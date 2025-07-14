@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- c190907: fix (provider/gateway): use zod v4
+
 ## 1.0.0-beta.6
 
 ### Patch Changes
