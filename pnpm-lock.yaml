@@ -60,7 +60,7 @@ importers:
   examples/ai-core:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 2.2.11
+        specifier: 2.2.12
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
         specifier: 1.2.12
@@ -141,7 +141,7 @@ importers:
         specifier: 0.2.15
         version: link:../../packages/togetherai
       '@ai-sdk/valibot':
-        specifier: 0.1.29
+        specifier: 0.1.30
         version: link:../../packages/valibot
       '@ai-sdk/vercel':
         specifier: 0.0.2
@@ -162,7 +162,7 @@ importers:
         specifier: 1.28.0
         version: 1.28.0(@opentelemetry/api@1.9.0)
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -205,7 +205,7 @@ importers:
         specifier: 1.3.23
         version: link:../../packages/openai
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -233,7 +233,7 @@ importers:
         specifier: 1.3.23
         version: link:../../packages/openai
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -261,7 +261,7 @@ importers:
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.9)
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -289,7 +289,7 @@ importers:
         specifier: 1.10.2
         version: 1.10.2
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -329,7 +329,7 @@ importers:
         specifier: ^10.4.9
         version: 10.4.9(@nestjs/common@10.4.15(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       reflect-metadata:
         specifier: ^0.2.0
@@ -411,7 +411,7 @@ importers:
         specifier: 1.2.11
         version: link:../../packages/ui-utils
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -463,7 +463,7 @@ importers:
         specifier: 2.2.27
         version: link:../../packages/google-vertex
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -512,7 +512,7 @@ importers:
         specifier: 0.0.28
         version: 0.0.28
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       langchain:
         specifier: 0.1.36
@@ -591,7 +591,7 @@ importers:
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -658,7 +658,7 @@ importers:
         specifier: latest
         version: 2.0.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0))
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -710,7 +710,7 @@ importers:
         specifier: 1.2.12
         version: link:../../packages/react
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -777,7 +777,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.29.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -850,7 +850,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -911,7 +911,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -960,7 +960,7 @@ importers:
         specifier: 1.3.23
         version: link:../../packages/openai
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -991,7 +991,7 @@ importers:
         specifier: 1.2.12
         version: link:../../packages/vue
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       zod:
         specifier: 3.23.8
@@ -1058,7 +1058,7 @@ importers:
         specifier: ^1.0.10
         version: 1.0.10(@testing-library/jest-dom@6.6.3)(solid-js@1.9.3)(vinxi@0.4.3(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.4.1)(terser@5.31.3)(typescript@5.6.3))(vite@6.0.3(@types/node@22.7.4)(jiti@2.4.0)(terser@5.31.3)(tsx@4.19.2)(yaml@2.7.0))
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       solid-js:
         specifier: ^1.9.3
@@ -1110,7 +1110,7 @@ importers:
         specifier: ^5.0.0
         version: 5.0.3(svelte@5.22.4)(vite@6.0.3(@types/node@22.7.4)(jiti@2.4.0)(terser@5.31.3)(tsx@4.19.2)(yaml@2.7.0))
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../../packages/ai
       autoprefixer:
         specifier: ^10.4.20
@@ -2260,7 +2260,7 @@ importers:
         specifier: ^1.0.0-rc.0 || ^1.0.0
         version: 1.0.0-rc.0(valibot@1.0.0-rc.0(typescript@5.6.3))
       ai:
-        specifier: 4.3.17
+        specifier: 4.3.18
         version: link:../ai
     devDependencies:
       '@types/node':
@@ -24121,7 +24121,7 @@ snapshots:
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.57.1)
       eslint-plugin-react: 7.35.0(eslint@8.57.1)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
@@ -24193,7 +24193,7 @@ snapshots:
       enhanced-resolve: 5.17.1
       eslint: 8.57.1
       eslint-module-utils: 2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.2
       is-core-module: 2.13.1
@@ -24314,7 +24314,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
