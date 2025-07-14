@@ -887,7 +887,7 @@ const openaiChatChunkSchema = z.union([
             tool_calls: z
               .array(
                 z.object({
-                  index: z.number().optional(),
+                  index: z.number(),
                   id: z.string().nullish(),
                   type: z.literal('function').nullish(),
                   function: z.object({

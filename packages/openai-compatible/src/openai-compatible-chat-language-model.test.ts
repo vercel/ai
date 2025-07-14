@@ -2018,6 +2018,94 @@ describe('doStream simulated streaming', () => {
     ]);
   });
 
+  it('should handle tool calls without index field in streaming response', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1752262213,"model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"id":"call_test1","type":"function","function":{"name":"search","arguments":""}}]},` +
+          `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1752262213,"model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"function":{"arguments":"{\\"query\\""}}]},` +
+          `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1752262213,"model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"function":{"arguments":":\\"test\\""}}]},` +
+          `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1752262213,"model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"function":{"arguments":"}"}}]},` +
+          `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1752262213,"model":"test-model",` +
+          `"choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'search',
+            parameters: {
+              type: 'object',
+              properties: { query: { type: 'string' } },
+              required: ['query'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-test',
+        modelId: 'test-model',
+        timestamp: new Date('2025-07-11T19:30:13.000Z'),
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_test1',
+        toolCallType: 'function',
+        toolName: 'search',
+        argsTextDelta: '{"query"',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_test1',
+        toolCallType: 'function',
+        toolName: 'search',
+        argsTextDelta: ':"test"',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_test1',
+        toolCallType: 'function',
+        toolName: 'search',
+        argsTextDelta: '}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call_test1',
+        toolCallType: 'function',
+        toolName: 'search',
+        args: '{"query":"test"}',
+      },
+      {
+        type: 'finish',
+        finishReason: 'tool-calls',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+        providerMetadata: { 'test-provider': {} },
+      },
+    ]);
+  });
+
   it('should stream tool calls', async () => {
     prepareJsonResponse({
       model: 'o1-preview',
