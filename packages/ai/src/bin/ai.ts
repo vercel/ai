@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { streamText } from '../../core/generate-text/stream-text';
+import { streamText } from '../generate-text/stream-text';
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { gateway } from '@ai-sdk/gateway';
