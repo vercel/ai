@@ -12,9 +12,20 @@ const testValues = ['sunny day at the beach', 'rainy day in the city'];
 const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
 const model = provider.textEmbeddingModel('text-embedding-004');
 
+const BATCH_URL = 'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents';
+const SINGLE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent';
 const server = createTestServer({
-  'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents':
+  [BATCH_URL]:
     {},
+  [SINGLE_URL]:
+    {
+      response: {
+        type: 'json-value',
+        body: {
+          embedding: { values: dummyEmbeddings[0] },
+        },
+      }
+    },
 });
 
 describe('GoogleGenerativeAIEmbeddingModel', () => {
@@ -26,7 +37,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     headers?: Record<string, string>;
   } = {}) {
     server.urls[
-      'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents'
+      BATCH_URL
     ].response = {
       type: 'json-value',
       headers,
@@ -34,6 +45,14 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
         embeddings: embeddings.map(embedding => ({ values: embedding })),
       },
     };
+
+    server.urls[SINGLE_URL].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        embedding: { values: embeddings[0] },
+      },
+    }
   }
 
   it('should extract embedding', async () => {
@@ -151,4 +170,25 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       'Too many values for a single embedding call. The google.generative-ai model "text-embedding-004" can only embed up to 2048 values per call, but 2049 values were provided.',
     );
   });
+
+  it('should use the batch embeddings endpoint', async () => {
+    prepareJsonResponse()
+    const model = provider.textEmbeddingModel("text-embedding-004")
+    await model.doEmbed({
+      values: testValues,
+    });
+
+    expect(server.calls[0].requestUrl).toBe(BATCH_URL);
+  })
+
+  it('should use the single embeddings endpoint', async () => {
+
+    const model = provider.textEmbeddingModel("text-embedding-004")
+
+    await model.doEmbed({
+      values: [testValues[0]],
+    });
+
+    expect(server.calls[0].requestUrl).toBe(SINGLE_URL);
+  })
 });
