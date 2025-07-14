@@ -73,6 +73,8 @@ describe('generateImage', () => {
     expect(capturedArgs).toStrictEqual({
       n: 1,
       prompt,
+      images: undefined,
+      mask: undefined,
       size: '1024x1024',
       aspectRatio: '16:9',
       seed: 12345,
@@ -211,6 +213,8 @@ describe('generateImage', () => {
               case 0:
                 expect(options).toStrictEqual({
                   prompt,
+                  images: undefined,
+                  mask: undefined,
                   n: 2,
                   seed: 12345,
                   size: '1024x1024',
@@ -227,6 +231,8 @@ describe('generateImage', () => {
               case 1:
                 expect(options).toStrictEqual({
                   prompt,
+                  images: undefined,
+                  mask: undefined,
                   n: 1,
                   seed: 12345,
                   size: '1024x1024',
@@ -270,6 +276,8 @@ describe('generateImage', () => {
               case 0:
                 expect(options).toStrictEqual({
                   prompt,
+                  images: undefined,
+                  mask: undefined,
                   n: 2,
                   seed: 12345,
                   size: '1024x1024',
@@ -285,6 +293,8 @@ describe('generateImage', () => {
               case 1:
                 expect(options).toStrictEqual({
                   prompt,
+                  images: undefined,
+                  mask: undefined,
                   n: 1,
                   seed: 12345,
                   size: '1024x1024',
@@ -336,6 +346,8 @@ describe('generateImage', () => {
                 case 0:
                   expect(options).toStrictEqual({
                     prompt,
+                    images: undefined,
+                    mask: undefined,
                     n: 2,
                     seed: 12345,
                     size: '1024x1024',
@@ -354,6 +366,8 @@ describe('generateImage', () => {
                 case 1:
                   expect(options).toStrictEqual({
                     prompt,
+                    images: undefined,
+                    mask: undefined,
                     n: 1,
                     seed: 12345,
                     size: '1024x1024',
