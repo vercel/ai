@@ -1,4 +1,3 @@
-import { JSONValue } from '@ai-sdk/provider';
 import {
   AssistantContent,
   AssistantModelMessage,
@@ -44,6 +43,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             type: 'file',
             data: part.file.base64,
             mediaType: part.file.mediaType,
+            providerOptions: part.providerMetadata,
           };
         case 'tool-call':
           return {
@@ -52,6 +52,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             toolName: part.toolName,
             input: part.input,
             providerExecuted: part.providerExecuted,
+            providerOptions: part.providerMetadata,
           };
         case 'tool-result':
           return {
@@ -64,6 +65,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
               errorMode: 'none',
             }),
             providerExecuted: true,
+            providerOptions: part.providerMetadata,
           };
         case 'tool-error':
           return {
@@ -75,6 +77,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
               output: part.error,
               errorMode: 'json',
             }),
+            providerOptions: part.providerMetadata,
           };
       }
     });

@@ -1,5 +1,5 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
+import { stepCountIs, ModelMessage, streamText, tool, APICallError } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod/v4';
@@ -36,19 +36,36 @@ async function main() {
       },
       stopWhen: stepCountIs(5),
       messages,
-      providerOptions: {
-        openai: {
-          store: false, // No data retention - makes interaction stateless
-          reasoningEffort: 'medium',
-          reasoningSummary: 'auto',
-          include: ['reasoning.encrypted_content'], // Hence, we need to retrieve the model's encrypted reasoning to be able to pass it to follow-up requests
-        } satisfies OpenAIResponsesProviderOptions,
+      // includeRawChunks: true,
+      onError: ({ error }) => {
+        console.log('onError');
+        console.error(error);
+
+        if (APICallError.isInstance(error)) {
+          console.error(JSON.stringify(error.requestBodyValues, null, 2));
+        }
+      },
+      // providerOptions: {
+      //   openai: {
+      //     store: false, // No data retention - makes interaction stateless
+      //     reasoningEffort: 'medium',
+      //     reasoningSummary: 'auto',
+      //     include: ['reasoning.encrypted_content'], // Hence, we need to retrieve the model's encrypted reasoning to be able to pass it to follow-up requests
+      //   } satisfies OpenAIResponsesProviderOptions,
+      // },
+      onStepFinish: ({ response: { messages } }) => {
+        console.log('onStepFinish');
+        console.log(JSON.stringify(messages, null, 2));
       },
     });
 
     process.stdout.write('\nAssistant: ');
     for await (const chunk of result.fullStream) {
       switch (chunk.type) {
+        case 'raw':
+          console.log(JSON.stringify(chunk.rawValue, null, 2));
+          break;
+
         case 'reasoning-start':
           process.stdout.write('\x1b[34m');
           break;
@@ -108,4 +125,11 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+main().catch(error => {
+  console.log('main error');
+  console.error(error);
+
+  if (APICallError.isInstance(error)) {
+    console.error(JSON.stringify(error.requestBodyValues, null, 2));
+  }
+});
