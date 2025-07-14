@@ -2,4 +2,4 @@
 '@ai-sdk/codemod': patch
 ---
 
-feat (codemods): updates for v5
+v5 - AI SDK 5.0 codemods package
