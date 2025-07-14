@@ -52,7 +52,7 @@ addTransformOptions(
 });
 
 addTransformOptions(
-  program.command('v4').description('Apply v4 codemods (v4 → v5 migration)'),
+  program.command('v4').description('Apply v4 codemods (v3 → v4 migration)'),
 ).action((options: TransformOptions) => {
   try {
     upgradeV4(options);
@@ -63,7 +63,7 @@ addTransformOptions(
 });
 
 addTransformOptions(
-  program.command('v5').description('Apply v5 codemods (v5 breaking changes)'),
+  program.command('v5').description('Apply v5 codemods (v4 → v5 migration)'),
 ).action((options: TransformOptions) => {
   try {
     upgradeV5(options);
