@@ -140,7 +140,7 @@ describe('google-vertex-anthropic-provider', () => {
     // Verify that supportedUrls returns empty object to force base64 conversion
     expect(config.supportedUrls?.()).toEqual({});
   });
-  
+
   it('should use correct URL for global location', () => {
     const provider = createVertexAnthropic({
       project: 'test-project',
