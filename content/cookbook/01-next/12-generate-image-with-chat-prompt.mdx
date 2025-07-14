@@ -37,7 +37,7 @@ export const generateImage = tool({
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  type InferUITool,
+  type InferUITools,
   stepCountIs,
   streamText,
   type UIMessage,
@@ -49,9 +49,7 @@ const tools = {
   generateImage,
 };
 
-export type ChatTools = {
-  generateImage: InferUITool<typeof generateImage>;
-};
+export type ChatTools = InferUITools<typeof tools>;
 
 export async function POST(request: Request) {
   const { messages }: { messages: UIMessage[] } = await request.json();
@@ -105,7 +103,6 @@ export default function Chat() {
     event.preventDefault();
 
     sendMessage({
-      role: 'user',
       parts: [{ type: 'text', text: input }],
     });
 
