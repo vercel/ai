@@ -20,7 +20,6 @@ interface CLIOptions {
   prompt?: string;
 }
 
-
 function isStdinAvailable(): boolean {
   return !process.stdin.isTTY;
 }
