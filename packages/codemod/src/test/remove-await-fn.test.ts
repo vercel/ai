@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import transformer from '../codemods/remove-await-streamtext';
+import transformer from '../codemods/v4/remove-await-streamtext';
 import { testTransform } from './test-utils';
 
 describe('remove-await-fn', () => {
