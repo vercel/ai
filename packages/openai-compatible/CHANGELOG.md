@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- 1b101e1: feat (provider/openai-compatible): allow providers that do not specify function type
+
 ## 1.0.0-beta.3
 
 ### Patch Changes

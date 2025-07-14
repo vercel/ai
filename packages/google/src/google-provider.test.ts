@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createGoogleGenerativeAI } from './google-provider';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
+import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 
 // Mock the imported modules
 vi.mock('@ai-sdk/provider-utils', () => ({
@@ -17,6 +18,9 @@ vi.mock('./google-generative-ai-language-model', () => ({
 
 vi.mock('./google-generative-ai-embedding-model', () => ({
   GoogleGenerativeAIEmbeddingModel: vi.fn(),
+}));
+vi.mock('./google-generative-ai-image-model', () => ({
+  GoogleGenerativeAIImageModel: vi.fn(),
 }));
 
 describe('google-provider', () => {
@@ -129,6 +133,43 @@ describe('google-provider', () => {
       'gemini-pro',
       expect.objectContaining({
         baseURL: customBaseURL,
+      }),
+    );
+  });
+
+  it('should create an image model with default settings', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+    });
+    provider.image('imagen-3.0-generate-002');
+
+    expect(GoogleGenerativeAIImageModel).toHaveBeenCalledWith(
+      'imagen-3.0-generate-002',
+      {},
+      expect.objectContaining({
+        provider: 'google.generative-ai',
+        headers: expect.any(Function),
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      }),
+    );
+  });
+
+  it('should create an image model with custom maxImagesPerCall', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+    });
+    const imageSettings = {
+      maxImagesPerCall: 3,
+    };
+    provider.image('imagen-3.0-generate-002', imageSettings);
+
+    expect(GoogleGenerativeAIImageModel).toHaveBeenCalledWith(
+      'imagen-3.0-generate-002',
+      imageSettings,
+      expect.objectContaining({
+        provider: 'google.generative-ai',
+        headers: expect.any(Function),
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       }),
     );
   });

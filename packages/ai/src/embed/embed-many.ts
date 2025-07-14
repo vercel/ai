@@ -1,6 +1,7 @@
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { splitArray } from '../../src/util/split-array';
+import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -83,6 +84,14 @@ Only applicable for HTTP-based providers.
    */
   maxParallelCalls?: number;
 }): Promise<EmbedManyResult<VALUE>> {
+  if (model.specificationVersion !== 'v2') {
+    throw new UnsupportedModelVersionError({
+      version: model.specificationVersion,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({

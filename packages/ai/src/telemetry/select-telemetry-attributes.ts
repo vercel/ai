@@ -20,7 +20,7 @@ export function selectTelemetryAttributes({
   }
 
   return Object.entries(attributes).reduce((attributes, [key, value]) => {
-    if (value === undefined) {
+    if (value == null) {
       return attributes;
     }
 
@@ -37,9 +37,7 @@ export function selectTelemetryAttributes({
 
       const result = value.input();
 
-      return result === undefined
-        ? attributes
-        : { ...attributes, [key]: result };
+      return result == null ? attributes : { ...attributes, [key]: result };
     }
 
     // output value, check if it should be recorded:
@@ -55,9 +53,7 @@ export function selectTelemetryAttributes({
 
       const result = value.output();
 
-      return result === undefined
-        ? attributes
-        : { ...attributes, [key]: result };
+      return result == null ? attributes : { ...attributes, [key]: result };
     }
 
     // value is an attribute value already:
