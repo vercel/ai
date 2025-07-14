@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  InferUITool,
+  InferUITools,
   stepCountIs,
   streamText,
   tool,
@@ -59,14 +59,19 @@ const getLocationTool = tool({
   outputSchema: z.string(),
 });
 
+const tools = {
+  // server-side tool with execute function:
+  getWeatherInformation: getWeatherInformationTool,
+  // client-side tool that starts user interaction:
+  askForConfirmation: askForConfirmationTool,
+  // client-side tool that is automatically executed on the client:
+  getLocation: getLocationTool,
+} as const;
+
 export type UseChatToolsMessage = UIMessage<
   never,
   UIDataTypes,
-  {
-    getWeatherInformation: InferUITool<typeof getWeatherInformationTool>;
-    askForConfirmation: InferUITool<typeof askForConfirmationTool>;
-    getLocation: InferUITool<typeof getLocationTool>;
-  }
+  InferUITools<typeof tools>
 >;
 
 export async function POST(req: Request) {
@@ -76,15 +81,13 @@ export async function POST(req: Request) {
     model: openai('gpt-4o'),
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5), // multi-steps for server-side tools
-    tools: {
-      // server-side tool with execute function:
-      getWeatherInformation: getWeatherInformationTool,
-      // client-side tool that starts user interaction:
-      askForConfirmation: askForConfirmationTool,
-      // client-side tool that is automatically executed on the client:
-      getLocation: getLocationTool,
-    },
+    tools,
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    //  originalMessages: messages, //add if you want to have correct ids
+    onFinish: options => {
+      console.log('onFinish', options);
+    },
+  });
 }

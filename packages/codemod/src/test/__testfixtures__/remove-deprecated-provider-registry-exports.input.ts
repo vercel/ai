@@ -1,17 +1,17 @@
 // @ts-nocheck
-import { experimental_Provider, experimental_ProviderRegistry, experimental_ModelRegistry, experimental_createModelRegistry } from 'ai';
+import { Provider, experimental_createProviderRegistry } from 'ai';
 
-function createProvider(): experimental_Provider {
+function createProvider(): Provider {
   return {
     languageModel: () => null,
     textEmbeddingModel: () => null
   };
 }
 
-function createRegistry(): experimental_ProviderRegistry {
-  return experimental_createModelRegistry({
+function createRegistry(): Provider {
+  return experimental_createProviderRegistry({
     test: createProvider()
   });
 }
 
-const registry: experimental_ModelRegistry = createRegistry();
+const registry: Provider = createRegistry();

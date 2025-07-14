@@ -6,7 +6,7 @@ import {
   UIDataTypes,
   UIMessage,
 } from '../ui/ui-messages';
-import { ProviderMetadata } from '../../core/types/provider-metadata';
+import { ProviderMetadata } from '../types/provider-metadata';
 
 export const uiMessageChunkSchema = z.union([
   z.strictObject({

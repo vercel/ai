@@ -57,7 +57,17 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   resume = false,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
-  const chatRef = useRef('chat' in options ? options.chat : new Chat(options));
+  const chatRef = useRef<Chat<UI_MESSAGE>>(
+    'chat' in options ? options.chat : new Chat(options),
+  );
+
+  const shouldRecreateChat =
+    ('chat' in options && options.chat !== chatRef.current) ||
+    ('id' in options && chatRef.current.id !== options.id);
+
+  if (shouldRecreateChat) {
+    chatRef.current = 'chat' in options ? options.chat : new Chat(options);
+  }
 
   const subscribeToMessages = useCallback(
     (update: () => void) =>
@@ -88,12 +98,11 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       messagesParam: UI_MESSAGE[] | ((messages: UI_MESSAGE[]) => UI_MESSAGE[]),
     ) => {
       if (typeof messagesParam === 'function') {
-        messagesParam = messagesParam(messages);
+        messagesParam = messagesParam(chatRef.current.messages);
       }
-
       chatRef.current.messages = messagesParam;
     },
-    [messages, chatRef],
+    [chatRef],
   );
 
   useEffect(() => {

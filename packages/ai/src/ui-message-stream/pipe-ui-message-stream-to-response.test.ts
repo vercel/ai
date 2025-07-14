@@ -1,5 +1,5 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { createMockServerResponse } from '../../core/test/mock-server-response';
+import { createMockServerResponse } from '../test/mock-server-response';
 import { pipeUIMessageStreamToResponse } from './pipe-ui-message-stream-to-response';
 
 describe('pipeUIMessageStreamToResponse', () => {

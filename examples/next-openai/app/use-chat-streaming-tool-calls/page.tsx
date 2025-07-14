@@ -25,7 +25,7 @@ export default function Chat() {
   let lastRole: string | undefined = undefined;
 
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+    <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       {messages?.map(m => {
         const isNewRole = m.role !== lastRole;
         lastRole = m.role;
@@ -42,17 +42,17 @@ export default function Chat() {
                 return (
                   <div
                     key={part.toolCallId}
-                    className="p-4 my-2 text-gray-500 border border-gray-300 rounded"
+                    className="p-4 my-2 text-gray-500 rounded border border-gray-300"
                   >
-                    <h4 className="mb-2">{part.input.city ?? ''}</h4>
+                    <h4 className="mb-2">{part.input?.city ?? ''}</h4>
                     <div className="flex flex-col gap-2">
                       <div className="flex gap-2">
-                        {part.input.weather && <b>{part.input.weather}</b>}
-                        {part.input.temperature && (
+                        {part.input?.weather && <b>{part.input.weather}</b>}
+                        {part.input?.temperature && (
                           <b>{part.input.temperature} &deg;C</b>
                         )}
                       </div>
-                      {part.input.typicalWeather && (
+                      {part.input?.typicalWeather && (
                         <div>{part.input.typicalWeather}</div>
                       )}
                     </div>
