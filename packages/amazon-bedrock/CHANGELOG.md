@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 2.2.12
+
+### Patch Changes
+
+- 7687af8: Fixes "Extra inputs are not permitted" error when using reasoning with Bedrock
+
 ## 2.2.11
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # ai
 
+## 4.3.18
+
+### Patch Changes
+
+- 37d93f4: fix (ai): throw error for v2 models or string model ids
+
 ## 4.3.17
 
 ### Patch Changes
