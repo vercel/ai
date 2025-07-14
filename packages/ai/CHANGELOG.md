@@ -1,5 +1,12 @@
 # ai
 
+## 5.0.0-beta.18
+
+### Patch Changes
+
+- d3960e3: selectTelemetryAttributes more robustness
+- 9338f3e: fix (ai): throw error for v1 models
+
 ## 5.0.0-beta.17
 
 ### Patch Changes
