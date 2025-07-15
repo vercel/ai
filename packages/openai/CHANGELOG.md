@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- db64cbe: fix (provider/openai): multi-step reasoning with tool calls
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+
 ## 2.0.0-beta.7
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 2.0.0-beta.10
+
+### Patch Changes
+
+- 7badba2: fix(google): grounding streaming sources
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+
 ## 2.0.0-beta.9
 
 ### Patch Changes
