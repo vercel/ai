@@ -2203,6 +2203,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "input": "{}",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "fc_67cb13a838088190be08eb3927c87501",
+              },
+            },
             "toolCallId": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
             "toolName": "currentLocation",
             "type": "tool-call",
@@ -2243,6 +2248,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "input": "{"location":"Rome"}",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "fc_67cb13a858f081908a600343fa040f47",
+              },
+            },
             "toolCallId": "call_X2PAkDJInno9VVnNkDrfhboW",
             "toolName": "weather",
             "type": "tool-call",
