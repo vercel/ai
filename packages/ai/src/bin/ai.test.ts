@@ -8,6 +8,13 @@ Object.defineProperty(process, 'exit', {
   writable: true,
 });
 
+vi.mock('./ai', async () => {
+  const actual = await vi.importActual('./ai');
+  return {
+    ...actual,
+  };
+});
+
 vi.mock('../generate-text/stream-text', () => ({
   streamText: vi.fn(() => ({
     textStream: (async function* () {
