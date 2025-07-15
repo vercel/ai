@@ -35,6 +35,51 @@ describe('parseToolCall', () => {
     });
   });
 
+  it('should successfully parse a valid tool call with provider metadata', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{"param1": "test", "param2": 42}',
+        providerMetadata: {
+          testProvider: {
+            signature: 'sig',
+          },
+        },
+      },
+      tools: {
+        testTool: tool({
+          inputSchema: z.object({
+            param1: z.string(),
+            param2: z.number(),
+          }),
+        }),
+      } as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "input": {
+          "param1": "test",
+          "param2": 42,
+        },
+        "providerExecuted": undefined,
+        "providerMetadata": {
+          "testProvider": {
+            "signature": "sig",
+          },
+        },
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
+  });
+
   it('should successfully process empty calls for tools that have no inputSchema', async () => {
     const result = await parseToolCall({
       toolCall: {
