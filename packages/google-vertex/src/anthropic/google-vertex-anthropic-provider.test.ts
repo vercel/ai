@@ -150,7 +150,6 @@ describe('google-vertex-anthropic-provider', () => {
 
     expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
-      {},
       expect.objectContaining({
         baseURL:
           'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/anthropic/models',
@@ -168,7 +167,6 @@ describe('google-vertex-anthropic-provider', () => {
 
     expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
-      {},
       expect.objectContaining({
         baseURL:
           'https://us-east5-aiplatform.googleapis.com/v1/projects/test-project/locations/us-east5/publishers/anthropic/models',

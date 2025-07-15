@@ -167,7 +167,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
       'imagen-3.0-generate-002',
-      imageSettings,
       expect.objectContaining({
         provider: 'google.vertex.image',
         headers: expect.any(Object),
@@ -186,7 +185,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'test-model-id',
-      {},
       expect.objectContaining({
         provider: 'google.vertex.chat',
         baseURL:
@@ -206,7 +204,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
       'test-embedding-model',
-      {},
       expect.objectContaining({
         provider: 'google.vertex.embedding',
         headers: expect.any(Object),
@@ -225,7 +222,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
       'imagen-3.0-generate-002',
-      {},
       expect.objectContaining({
         provider: 'google.vertex.image',
         baseURL:
@@ -244,7 +240,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'test-model-id',
-      {},
       expect.objectContaining({
         provider: 'google.vertex.chat',
         baseURL:
