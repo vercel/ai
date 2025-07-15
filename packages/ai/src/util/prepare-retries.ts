@@ -37,6 +37,8 @@ export function prepareRetries({
 
   return {
     maxRetries: maxRetriesResult,
-    retry: retryWithExponentialBackoffRespectingRetryHeaders({ maxRetries: maxRetriesResult }),
+    retry: retryWithExponentialBackoffRespectingRetryHeaders({
+      maxRetries: maxRetriesResult,
+    }),
   };
 }
