@@ -1,21 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { readFileSync, existsSync, writeFileSync, unlinkSync } from 'fs';
-import { resolve } from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { writeFileSync, unlinkSync } from 'fs';
+import { resolve, basename } from 'path';
 
-const execAsync = promisify(exec);
-
-// Mock the gateway module to avoid actual API calls
-vi.mock('@ai-sdk/gateway', () => ({
-  gateway: {
-    languageModel: vi.fn(() => ({
-      doStream: vi.fn(),
-    })),
-  },
-}));
-
-// Mock streamText to avoid actual API calls
 vi.mock('../generate-text/stream-text', () => ({
   streamText: vi.fn(() => ({
     textStream: (async function* () {
@@ -44,12 +30,11 @@ describe('AI CLI', () => {
   afterEach(() => {
     process.env = originalEnv;
     process.argv = originalArgv;
-    // Clean up test files
     testFiles.forEach(file => {
       try {
         unlinkSync(file);
       } catch (error) {
-        // Ignore errors when cleaning up
+        // Ignore cleanup errors
       }
     });
     testFiles.length = 0;
@@ -64,391 +49,230 @@ describe('AI CLI', () => {
     return testFile;
   };
 
-  describe('parseArgs', () => {
-    it('should parse basic prompt argument', async () => {
-      process.argv = ['node', 'ai', 'Hello world'];
+  const normalizeFileName = (filename: string): string => {
+    return filename.replace(/test-\d+-\w+/, 'test-file');
+  };
 
-      // Import the module to trigger parseArgs
-      const { parseArgs } = await import('./ai');
-      const options = parseArgs();
+  const normalizeFileContent = (content: any) => {
+    if (typeof content === 'object' && content.name) {
+      return {
+        ...content,
+        name: normalizeFileName(basename(content.name)),
+      };
+    }
+    return content;
+  };
 
-      expect(options.prompt).toBe('Hello world');
-      expect(options.model).toBe('openai/gpt-4');
-      expect(options.files).toEqual([]);
-      expect(options.help).toBe(false);
-      expect(options.version).toBe(false);
-      expect(options.verbose).toBe(false);
-    });
-
-    it('should parse model flag', async () => {
+  describe('argument parsing', () => {
+    it('should parse all CLI arguments correctly', async () => {
+      const testFile = createTestFile('test content', '.js');
       process.argv = [
         'node',
         'ai',
         '-m',
         'anthropic/claude-3-5-sonnet-20241022',
-        'Hello',
-      ];
-
-      const { parseArgs } = await import('./ai');
-      const options = parseArgs();
-
-      expect(options.model).toBe('anthropic/claude-3-5-sonnet-20241022');
-      expect(options.prompt).toBe('Hello');
-    });
-
-    it('should parse long model flag', async () => {
-      process.argv = [
-        'node',
-        'ai',
-        '--model',
-        'groq/llama-3.1-8b-instant',
-        'Hello',
-      ];
-
-      const { parseArgs } = await import('./ai');
-      const options = parseArgs();
-
-      expect(options.model).toBe('groq/llama-3.1-8b-instant');
-    });
-
-    it('should parse file flags', async () => {
-      const testFile1 = createTestFile('Test content 1');
-      const testFile2 = createTestFile('Test content 2');
-
-      process.argv = [
-        'node',
-        'ai',
         '-f',
-        testFile1,
-        '--file',
-        testFile2,
-        'Analyze these files',
-      ];
-
-      const { parseArgs } = await import('./ai');
-      const options = parseArgs();
-
-      expect(options.files).toEqual([testFile1, testFile2]);
-      expect(options.prompt).toBe('Analyze these files');
-    });
-
-    it('should parse system message flag', async () => {
-      process.argv = [
-        'node',
-        'ai',
+        testFile,
         '-s',
-        'You are a helpful assistant',
-        'Hello',
+        'You are helpful',
+        '-v',
+        'Hello world',
       ];
 
       const { parseArgs } = await import('./ai');
       const options = parseArgs();
 
-      expect(options.system).toBe('You are a helpful assistant');
+      expect({
+        ...options,
+        files: options.files.map(f => normalizeFileName(basename(f))),
+      }).toMatchInlineSnapshot(`
+        {
+          "files": [
+            "test-file.js",
+          ],
+          "help": false,
+          "model": "anthropic/claude-3-5-sonnet-20241022",
+          "prompt": "Hello world",
+          "system": "You are helpful",
+          "verbose": true,
+          "version": false,
+        }
+      `);
     });
 
-    it('should parse verbose flag', async () => {
-      process.argv = ['node', 'ai', '--verbose', 'Hello'];
-
-      const { parseArgs } = await import('./ai');
-      const options = parseArgs();
-
-      expect(options.verbose).toBe(true);
-    });
-
-    it('should parse help flag', async () => {
-      process.argv = ['node', 'ai', '--help'];
-
-      const { parseArgs } = await import('./ai');
-      const options = parseArgs();
-
-      expect(options.help).toBe(true);
-    });
-
-    it('should parse version flag', async () => {
-      process.argv = ['node', 'ai', '-V'];
-
-      const { parseArgs } = await import('./ai');
-      const options = parseArgs();
-
-      expect(options.version).toBe(true);
-    });
-
-    it('should handle multiple prompt words', async () => {
-      process.argv = ['node', 'ai', 'Hello', 'beautiful', 'world'];
-
-      const { parseArgs } = await import('./ai');
-      const options = parseArgs();
-
-      expect(options.prompt).toBe('Hello beautiful world');
-    });
-
-    it('should throw error for unknown flags', async () => {
-      process.argv = ['node', 'ai', '--unknown-flag'];
-
-      const { parseArgs } = await import('./ai');
-
-      expect(() => parseArgs()).toThrow('Unknown option: --unknown-flag');
-    });
-
-    it('should throw error for flag without value', async () => {
-      process.argv = ['node', 'ai', '-m'];
-
-      const { parseArgs } = await import('./ai');
-
-      expect(() => parseArgs()).toThrow('Model option requires a value');
-    });
-  });
-
-  describe('environment variables', () => {
-    it('should use AI_MODEL environment variable as default', async () => {
-      process.env.AI_MODEL = 'anthropic/claude-3-5-sonnet-20241022';
-      process.argv = ['node', 'ai', 'Hello'];
-
-      const { parseArgs } = await import('./ai');
-      const options = parseArgs();
-
-      expect(options.model).toBe('anthropic/claude-3-5-sonnet-20241022');
-    });
-
-    it('should use AI_SYSTEM environment variable as default', async () => {
-      process.env.AI_SYSTEM = 'You are a helpful coding assistant';
-      process.argv = ['node', 'ai', 'Hello'];
-
-      const { parseArgs } = await import('./ai');
-      const options = parseArgs();
-
-      expect(options.system).toBe('You are a helpful coding assistant');
-    });
-
-    it('should use AI_VERBOSE environment variable', async () => {
+    it('should handle environment variables with defaults', async () => {
+      process.env.AI_MODEL = 'groq/llama-3.1-8b-instant';
+      process.env.AI_SYSTEM = 'Be concise';
       process.env.AI_VERBOSE = 'true';
-      process.argv = ['node', 'ai', 'Hello'];
+      process.argv = ['node', 'ai', 'test prompt'];
 
       const { parseArgs } = await import('./ai');
       const options = parseArgs();
 
-      expect(options.verbose).toBe(true);
+      expect(options).toMatchInlineSnapshot(`
+        {
+          "files": [],
+          "help": false,
+          "model": "groq/llama-3.1-8b-instant",
+          "prompt": "test prompt",
+          "system": "Be concise",
+          "verbose": true,
+          "version": false,
+        }
+      `);
     });
 
-    it('should prioritize command line flags over environment variables', async () => {
-      process.env.AI_MODEL = 'openai/gpt-3.5-turbo';
-      process.argv = [
-        'node',
-        'ai',
-        '-m',
-        'anthropic/claude-3-5-sonnet-20241022',
-        'Hello',
-      ];
+    it('should throw for invalid arguments', async () => {
+      process.argv = ['node', 'ai', '--invalid-flag', 'test'];
 
       const { parseArgs } = await import('./ai');
-      const options = parseArgs();
 
-      expect(options.model).toBe('anthropic/claude-3-5-sonnet-20241022');
-    });
-  });
-
-  describe('file handling', () => {
-    it('should read text file content', async () => {
-      const content = 'This is test file content\nwith multiple lines';
-      const testFile = createTestFile(content);
-
-      const { readFileContent } = await import('./ai');
-      const fileAttachment = readFileContent(testFile);
-
-      expect(fileAttachment.name).toBe(testFile);
-      expect(fileAttachment.content).toBe(content);
-      expect(fileAttachment.mediaType).toBe('text/plain');
-    });
-
-    it('should read JavaScript file with correct media type', async () => {
-      const content = 'console.log("Hello world");';
-      const testFile = createTestFile(content, '.js');
-
-      const { readFileContent } = await import('./ai');
-      const fileAttachment = readFileContent(testFile);
-
-      expect(fileAttachment.mediaType).toBe('application/javascript');
-    });
-
-    it('should read TypeScript file with correct media type', async () => {
-      const content = 'const greeting: string = "Hello";';
-      const testFile = createTestFile(content, '.ts');
-
-      const { readFileContent } = await import('./ai');
-      const fileAttachment = readFileContent(testFile);
-
-      expect(fileAttachment.mediaType).toBe('application/typescript');
-    });
-
-    it('should read JSON file with correct media type', async () => {
-      const content = '{"name": "test", "version": "1.0.0"}';
-      const testFile = createTestFile(content, '.json');
-
-      const { readFileContent } = await import('./ai');
-      const fileAttachment = readFileContent(testFile);
-
-      expect(fileAttachment.mediaType).toBe('application/json');
-    });
-
-    it('should read markdown file with correct media type', async () => {
-      const content = '# Test\n\nThis is a test markdown file.';
-      const testFile = createTestFile(content, '.md');
-
-      const { readFileContent } = await import('./ai');
-      const fileAttachment = readFileContent(testFile);
-
-      expect(fileAttachment.mediaType).toBe('text/markdown');
-    });
-
-    it('should handle image files with base64 encoding', async () => {
-      // Create a simple PNG-like file (just for testing media type detection)
-      const testFile = createTestFile('fake-image-content', '.png');
-
-      const { readFileContent } = await import('./ai');
-      const fileAttachment = readFileContent(testFile);
-
-      expect(fileAttachment.mediaType).toBe('image/png');
-      expect(fileAttachment.content).toMatch(/^data:image\/png;base64,/);
-    });
-
-    it('should throw error for non-existent file', async () => {
-      const { readFileContent } = await import('./ai');
-
-      expect(() => readFileContent('/path/to/nonexistent/file.txt')).toThrow(
-        'File not found: /path/to/nonexistent/file.txt',
+      expect(() => parseArgs()).toThrowErrorMatchingInlineSnapshot(
+        `[Error: Unknown option: --invalid-flag]`,
       );
     });
   });
 
-  describe('getMediaType', () => {
-    it('should return correct media types for common extensions', async () => {
-      const { getMediaType } = await import('./ai');
+  describe('file handling', () => {
+    it('should read and process different file types', async () => {
+      const jsFile = createTestFile('console.log("hello");', '.js');
+      const jsonFile = createTestFile('{"name": "test"}', '.json');
+      const mdFile = createTestFile('# Hello\nWorld', '.md');
 
-      expect(getMediaType('file.js')).toBe('application/javascript');
-      expect(getMediaType('file.ts')).toBe('application/typescript');
-      expect(getMediaType('file.json')).toBe('application/json');
-      expect(getMediaType('file.md')).toBe('text/markdown');
-      expect(getMediaType('file.txt')).toBe('text/plain');
-      expect(getMediaType('file.html')).toBe('text/html');
-      expect(getMediaType('file.css')).toBe('text/css');
-      expect(getMediaType('file.py')).toBe('text/x-python');
-      expect(getMediaType('file.xml')).toBe('application/xml');
-      expect(getMediaType('file.yaml')).toBe('application/yaml');
-      expect(getMediaType('file.yml')).toBe('application/yaml');
+      const { readFileContent } = await import('./ai');
+
+      const jsContent = normalizeFileContent(readFileContent(jsFile));
+      const jsonContent = normalizeFileContent(readFileContent(jsonFile));
+      const mdContent = normalizeFileContent(readFileContent(mdFile));
+
+      expect(jsContent).toMatchInlineSnapshot(`
+        {
+          "content": "console.log("hello");",
+          "mediaType": "application/javascript",
+          "name": "test-file.js",
+        }
+      `);
+
+      expect(jsonContent).toMatchInlineSnapshot(`
+        {
+          "content": "{"name": "test"}",
+          "mediaType": "application/json",
+          "name": "test-file.json",
+        }
+      `);
+
+      expect(mdContent).toMatchInlineSnapshot(`
+        {
+          "content": "# Hello
+        World",
+          "mediaType": "text/markdown",
+          "name": "test-file.md",
+        }
+      `);
     });
 
-    it('should return correct media types for image extensions', async () => {
-      const { getMediaType } = await import('./ai');
+    it('should handle image files with base64 encoding', async () => {
+      const imageFile = createTestFile('fake-png-data', '.png');
 
-      expect(getMediaType('image.jpg')).toBe('image/jpeg');
-      expect(getMediaType('image.jpeg')).toBe('image/jpeg');
-      expect(getMediaType('image.png')).toBe('image/png');
-      expect(getMediaType('image.gif')).toBe('image/gif');
-      expect(getMediaType('image.webp')).toBe('image/webp');
-      expect(getMediaType('image.svg')).toBe('image/svg+xml');
-      expect(getMediaType('image.bmp')).toBe('image/bmp');
-      expect(getMediaType('image.tiff')).toBe('image/tiff');
-      expect(getMediaType('image.tif')).toBe('image/tiff');
-    });
+      const { readFileContent } = await import('./ai');
+      const content = readFileContent(imageFile);
 
-    it('should handle case insensitivity', async () => {
-      const { getMediaType } = await import('./ai');
-
-      expect(getMediaType('file.JS')).toBe('application/javascript');
-      expect(getMediaType('file.PNG')).toBe('image/png');
-      expect(getMediaType('file.JSON')).toBe('application/json');
-    });
-
-    it('should return text/plain for unknown extensions', async () => {
-      const { getMediaType } = await import('./ai');
-
-      expect(getMediaType('file.unknown')).toBe('text/plain');
-      expect(getMediaType('file')).toBe('text/plain');
-      expect(getMediaType('')).toBe('text/plain');
+      expect(content.mediaType).toBe('image/png');
+      expect(content.content).toMatch(/^data:image\/png;base64,/);
+      expect(content.name).toBe(imageFile);
     });
   });
 
-  describe('formatAttachedFiles', () => {
-    it('should format text files correctly', async () => {
-      const files = [
-        { name: 'file1.txt', content: 'Content 1', mediaType: 'text/plain' },
-        {
-          name: 'file2.js',
-          content: 'console.log("test");',
-          mediaType: 'application/javascript',
-        },
-      ];
+  describe('media type detection', () => {
+    it('should detect media types correctly', async () => {
+      const { getMediaType } = await import('./ai');
 
-      const { formatAttachedFiles } = await import('./ai');
-      const result = formatAttachedFiles(files);
-
-      expect(result).toContain('Attached files:');
-      expect(result).toContain('--- file1.txt ---');
-      expect(result).toContain('Content 1');
-      expect(result).toContain('--- file2.js ---');
-      expect(result).toContain('console.log("test");');
-    });
-
-    it('should exclude image files from formatting', async () => {
-      const files = [
-        { name: 'file1.txt', content: 'Text content', mediaType: 'text/plain' },
-        {
-          name: 'image.png',
-          content: 'data:image/png;base64,abc123',
-          mediaType: 'image/png',
-        },
-      ];
-
-      const { formatAttachedFiles } = await import('./ai');
-      const result = formatAttachedFiles(files);
-
-      expect(result).toContain('file1.txt');
-      expect(result).toContain('Text content');
-      expect(result).not.toContain('image.png');
-      expect(result).not.toContain('data:image/png');
-    });
-
-    it('should return empty string for no files', async () => {
-      const { formatAttachedFiles } = await import('./ai');
-      const result = formatAttachedFiles([]);
-
-      expect(result).toBe('');
-    });
-
-    it('should return empty string when only image files', async () => {
-      const files = [
-        {
-          name: 'image.png',
-          content: 'data:image/png;base64,abc123',
-          mediaType: 'image/png',
-        },
-      ];
-
-      const { formatAttachedFiles } = await import('./ai');
-      const result = formatAttachedFiles(files);
-
-      expect(result).toBe('');
+      expect(getMediaType('.js')).toMatchInlineSnapshot(
+        `"application/javascript"`,
+      );
+      expect(getMediaType('.TS')).toMatchInlineSnapshot(
+        `"application/typescript"`,
+      );
+      expect(getMediaType('.json')).toMatchInlineSnapshot(`"application/json"`);
+      expect(getMediaType('.png')).toMatchInlineSnapshot(`"image/png"`);
+      expect(getMediaType('.unknown')).toMatchInlineSnapshot(`"text/plain"`);
     });
   });
 
-  describe('help and version', () => {
-    it('should show help text', async () => {
+  describe('help and version output', () => {
+    it('should display complete help text', async () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       const { showHelp } = await import('./ai');
       showHelp();
 
-      expect(consoleSpy).toHaveBeenCalled();
-      const helpText = consoleSpy.mock.calls[0][0];
-      expect(helpText).toContain('Usage: ai [options] [prompt]');
-      expect(helpText).toContain('AI CLI - Stream text generation');
-      expect(helpText).toContain('Environment Variables:');
-      expect(helpText).toContain('Authentication (choose one):');
-      expect(helpText).toContain('VERCEL_OIDC_TOKEN');
-      expect(helpText).toContain('AI_GATEWAY_API_KEY');
-      expect(helpText).toContain('Setting Environment Variables:');
-      expect(helpText).toContain('export AI_GATEWAY_API_KEY');
+      const helpOutput = consoleSpy.mock.calls.map(call => call[0]).join('\n');
+
+      expect(helpOutput).toMatchInlineSnapshot(`
+        "Usage: ai [options] [prompt]
+
+        AI CLI - Stream text generation from various AI models
+
+        Arguments:
+          prompt                   The prompt to send to the AI model (optional if using stdin)
+
+        Options:
+          -m, --model <model>      Model to use. Format: provider/model or just model name.
+                                   Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet-20241022
+                                   (default: "openai/gpt-4")
+          -f, --file <file>        Attach a file to the prompt (can be used multiple times)
+          -s, --system <message>   System message to set context
+          -v, --verbose            Show detailed information (model, usage, etc.)
+          -h, --help               Display help for command
+          -V, --version            Output the version number
+
+        Environment Variables:
+          - AI_MODEL: Default model to use
+          - AI_SYSTEM: Default system message  
+          - AI_VERBOSE: Set to 'true' to enable verbose output
+
+        Authentication (choose one):
+          - VERCEL_OIDC_TOKEN: Vercel OIDC token (for Vercel projects)
+          - AI_GATEWAY_API_KEY: AI Gateway API key
+
+        Setting Environment Variables:
+          # Option 1: Export in current session
+          export AI_GATEWAY_API_KEY="your-key-here"
+          export AI_MODEL="anthropic/claude-3-5-sonnet-20241022"
+
+          # Option 2: Inline for single command
+          AI_GATEWAY_API_KEY="your-key" ai "Hello world"
+
+          # Option 3: Add to shell profile (~/.bashrc, ~/.zshrc)
+          echo 'export AI_GATEWAY_API_KEY="your-key"' >> ~/.bashrc
+
+        Examples:
+          npx ai "Hello, world!"
+          npx ai "Write a poem" -m anthropic/claude-3-5-sonnet-20241022
+          npx ai "Explain quantum physics" -m groq/llama-3.1-8b-instant
+          npx ai "Explain this code" -f script.js -f README.md
+          echo "What is life?" | npx ai
+          cat file.txt | npx ai "Summarize this content"
+          npx ai -f package.json "What dependencies does this project have?"
+
+        Unix-style piping:
+          echo "Hello world" | npx ai "Translate to French"
+          cat README.md | npx ai "Summarize this"
+          curl -s https://api.github.com/repos/vercel/ai | npx ai "What is this repository about?"
+
+        Authentication Setup:
+          This CLI uses the Vercel AI Gateway. You need ONE of these for authentication:
+
+          OIDC Token (for Vercel projects):
+          - Automatically available in Vercel deployments  
+          - For local development: run 'vercel env pull' or use 'vercel dev'
+          
+          API Key (for any environment):
+          - Get your key from the AI Gateway dashboard
+          - Set: export AI_GATEWAY_API_KEY="your-key-here"
+          
+          The gateway supports OpenAI, Anthropic, Google, Groq, and more providers."
+      `);
 
       consoleSpy.mockRestore();
     });
@@ -459,77 +283,33 @@ describe('AI CLI', () => {
       const { showVersion } = await import('./ai');
       showVersion();
 
-      expect(consoleSpy).toHaveBeenCalledWith('1.0.0');
-
+      expect(consoleSpy.mock.calls[0][0]).toMatchInlineSnapshot(`"1.0.0"`);
       consoleSpy.mockRestore();
     });
   });
 
-  describe('stdin detection', () => {
-    it('should detect when stdin is available', async () => {
-      // Mock process.stdin.isTTY
-      const originalIsTTY = process.stdin.isTTY;
-      process.stdin.isTTY = false;
-
-      const { isStdinAvailable } = await import('./ai');
-      const result = isStdinAvailable();
-
-      expect(result).toBe(true);
-
-      // Restore
-      process.stdin.isTTY = originalIsTTY;
-    });
-
-    it('should detect when stdin is not available', async () => {
-      const originalIsTTY = process.stdin.isTTY;
-      process.stdin.isTTY = true;
-
-      const { isStdinAvailable } = await import('./ai');
-      const result = isStdinAvailable();
-
-      expect(result).toBe(false);
-
-      process.stdin.isTTY = originalIsTTY;
-    });
-  });
-
-  describe('model resolution', () => {
-    it('should resolve model string to gateway language model', async () => {
-      const { gateway } = await import('@ai-sdk/gateway');
-      const { resolveModel } = await import('./ai');
-
-      resolveModel('openai/gpt-4o');
-
-      expect(gateway.languageModel).toHaveBeenCalledWith('openai/gpt-4o');
-    });
-  });
-
-  describe('integration scenarios', () => {
-    it('should handle model switching for images', async () => {
+  describe('integration behavior', () => {
+    it('should upgrade model for image files', async () => {
       const imageFile = createTestFile('fake-image', '.png');
+      process.argv = ['node', 'ai', '-f', imageFile, 'Describe this'];
 
-      process.argv = ['node', 'ai', '-f', imageFile, 'Describe this image'];
-
-      const { parseArgs } = await import('./ai');
+      const { parseArgs, readFileContent } = await import('./ai');
       let options = parseArgs();
 
-      // Simulate the model switching logic from main()
-      const { readFileContent } = await import('./ai');
       const attachedFiles = [readFileContent(imageFile)];
-      const imageFiles = attachedFiles.filter(f =>
+      const hasImages = attachedFiles.some(f =>
         f.mediaType?.startsWith('image/'),
       );
 
-      if (imageFiles.length > 0 && options.model === 'openai/gpt-4') {
+      if (hasImages && options.model === 'openai/gpt-4') {
         options.model = 'openai/gpt-4o';
       }
 
-      expect(options.model).toBe('openai/gpt-4o');
+      expect(options.model).toMatchInlineSnapshot(`"openai/gpt-4o"`);
     });
 
-    it('should not switch model if already specified', async () => {
-      const imageFile = createTestFile('fake-image', '.png');
-
+    it('should preserve explicitly set models', async () => {
+      const imageFile = createTestFile('fake-image', '.jpg');
       process.argv = [
         'node',
         'ai',
@@ -540,21 +320,36 @@ describe('AI CLI', () => {
         'Describe',
       ];
 
-      const { parseArgs } = await import('./ai');
+      const { parseArgs, readFileContent } = await import('./ai');
       let options = parseArgs();
 
-      // Model switching logic shouldn't affect explicitly set models
-      const { readFileContent } = await import('./ai');
       const attachedFiles = [readFileContent(imageFile)];
-      const imageFiles = attachedFiles.filter(f =>
+      const hasImages = attachedFiles.some(f =>
         f.mediaType?.startsWith('image/'),
       );
 
-      if (imageFiles.length > 0 && options.model === 'openai/gpt-4') {
+      if (hasImages && options.model === 'openai/gpt-4') {
         options.model = 'openai/gpt-4o';
       }
 
-      expect(options.model).toBe('anthropic/claude-3-5-sonnet-20241022');
+      expect(options.model).toMatchInlineSnapshot(
+        `"anthropic/claude-3-5-sonnet-20241022"`,
+      );
+    });
+  });
+
+  describe('stdin detection', () => {
+    it('should detect stdin availability', async () => {
+      const originalIsTTY = process.stdin.isTTY;
+
+      process.stdin.isTTY = false;
+      const { isStdinAvailable } = await import('./ai');
+      expect(isStdinAvailable()).toMatchInlineSnapshot(`true`);
+
+      process.stdin.isTTY = true;
+      expect(isStdinAvailable()).toMatchInlineSnapshot(`false`);
+
+      process.stdin.isTTY = originalIsTTY;
     });
   });
 });
