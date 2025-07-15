@@ -202,6 +202,8 @@ Mistral language models can also be used in the `streamText`, `generateObject`, 
 | ----------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `pixtral-large-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `mistral-large-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mistral-medium-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mistral-medium-2505`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `mistral-small-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `magistral-small-2506`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `magistral-medium-2506` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -222,10 +224,10 @@ Mistral language models can also be used in the `streamText`, `generateObject`, 
 ## Embedding Models
 
 You can create models that call the [Mistral embeddings API](https://docs.mistral.ai/api/#operation/createEmbedding)
-using the `.textEmbeddingModel()` factory method.
+using the `.textEmbedding()` factory method.
 
 ```ts
-const model = mistral.textEmbeddingModel('mistral-embed');
+const model = mistral.textEmbedding('mistral-embed');
 ```
 
 You can use Mistral embedding models to generate embeddings with the `embed` function:
@@ -235,7 +237,7 @@ import { mistral } from '@ai-sdk/mistral';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: mistral.textEmbeddingModel('mistral-embed'),
+  model: mistral.textEmbedding('mistral-embed'),
   value: 'sunny day at the beach',
 });
 ```

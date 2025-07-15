@@ -1,5 +1,17 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.0-beta.5
+
+### Patch Changes
+
+- 89eaf5e: Add style parameter support for Amazon Bedrock Nova Canvas image generation
+
+## 3.0.0-beta.4
+
+### Patch Changes
+
+- a10bf62: Fixes "Extra inputs are not permitted" error when using reasoning with Bedrock
+
 ## 3.0.0-beta.3
 
 ### Patch Changes

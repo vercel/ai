@@ -1,5 +1,5 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
-import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
+import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,
   HttpChatTransportInitOptions,
@@ -12,7 +12,7 @@ class MockHttpChatTransport extends HttpChatTransport<UIMessage> {
   }
   protected processResponseStream(
     stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
-  ): ReadableStream<UIMessageStreamPart> {
+  ): ReadableStream<UIMessageChunk> {
     return new ReadableStream();
   }
 }
@@ -68,6 +68,115 @@ describe('HttpChatTransport', () => {
           "trigger": "submit-user-message",
         }
       `);
+    });
+
+    it('should include the body in the request when a function is provided', async () => {
+      server.urls['http://localhost/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [],
+      };
+
+      const transport = new MockHttpChatTransport({
+        api: 'http://localhost/api/chat',
+        body: () => ({ someData: true }),
+      });
+
+      await transport.sendMessages({
+        chatId: 'c123',
+        messageId: 'm123',
+        trigger: 'submit-user-message',
+        messages: [
+          {
+            id: 'm123',
+            role: 'user',
+            parts: [{ text: 'Hello, world!', type: 'text' }],
+          },
+        ],
+        abortSignal: new AbortController().signal,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "id": "c123",
+          "messageId": "m123",
+          "messages": [
+            {
+              "id": "m123",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "someData": true,
+          "trigger": "submit-user-message",
+        }
+      `);
+    });
+  });
+
+  describe('headers', () => {
+    it('should include headers in the request by default', async () => {
+      server.urls['http://localhost/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [],
+      };
+
+      const transport = new MockHttpChatTransport({
+        api: 'http://localhost/api/chat',
+        headers: { 'X-Test-Header': 'test-value' },
+      });
+
+      await transport.sendMessages({
+        chatId: 'c123',
+        messageId: 'm123',
+        trigger: 'submit-user-message',
+        messages: [
+          {
+            id: 'm123',
+            role: 'user',
+            parts: [{ text: 'Hello, world!', type: 'text' }],
+          },
+        ],
+        abortSignal: new AbortController().signal,
+      });
+
+      expect(server.calls[0].requestHeaders['x-test-header']).toBe(
+        'test-value',
+      );
+    });
+
+    it('should include headers in the request when a function is provided', async () => {
+      server.urls['http://localhost/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [],
+      };
+
+      const transport = new MockHttpChatTransport({
+        api: 'http://localhost/api/chat',
+        headers: () => ({ 'X-Test-Header': 'test-value-fn' }),
+      });
+
+      await transport.sendMessages({
+        chatId: 'c123',
+        messageId: 'm123',
+        trigger: 'submit-user-message',
+        messages: [
+          {
+            id: 'm123',
+            role: 'user',
+            parts: [{ text: 'Hello, world!', type: 'text' }],
+          },
+        ],
+        abortSignal: new AbortController().signal,
+      });
+
+      expect(server.calls[0].requestHeaders['x-test-header']).toBe(
+        'test-value-fn',
+      );
     });
   });
 });
