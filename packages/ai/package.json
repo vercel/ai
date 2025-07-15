@@ -14,6 +14,9 @@
     "mcp-stdio.d.ts",
     "test.d.ts"
   ],
+  "bin": {
+    "ai": "./dist/bin/ai.min.js"
+  },
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
@@ -60,8 +63,8 @@
     "@opentelemetry/api": "1.9.0"
   },
   "devDependencies": {
-    "@types/json-schema": "7.0.15",
     "@edge-runtime/vm": "^5.0.0",
+    "@types/json-schema": "7.0.15",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "eslint": "8.57.1",
@@ -71,7 +74,7 @@
     "zod": "3.25.49"
   },
   "peerDependencies": {
-    "zod": "^3.25.49"
+    "zod": "^3.25.49 || ^4"
   },
   "engines": {
     "node": ">=18"
