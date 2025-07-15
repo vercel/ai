@@ -2,4 +2,4 @@
 '@ai-sdk/google': patch
 ---
 
-fix(google): grounding sse streaming sources
+fix(google): grounding streaming sources
