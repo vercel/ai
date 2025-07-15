@@ -1,5 +1,11 @@
 # ai
 
+## 4.3.19
+
+### Patch Changes
+
+- 849af1c: feat(ai): Record tool call errors on tool call spans recorded in `generateText` and `streamText`.
+
 ## 4.3.18
 
 ### Patch Changes
