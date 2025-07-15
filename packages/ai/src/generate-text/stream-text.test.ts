@@ -1417,7 +1417,9 @@ describe('streamText', () => {
         ]
       `);
     });
+  });
 
+  describe('errors', () => {
     it('should forward error in doStream as error stream part', async () => {
       const result = streamText({
         model: new MockLanguageModelV2({
@@ -1440,6 +1442,80 @@ describe('streamText', () => {
           error: new Error('test error'),
         },
       ]);
+    });
+
+    it('should invoke onError callback when error is thrown', async () => {
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async () => {
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(onError).toHaveBeenCalledWith({
+        error: new Error('test error'),
+      });
+    });
+
+    it('should invoke onError callback when error is thrown in 2nd step', async () => {
+      const onError = vi.fn();
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async ({ prompt, tools, toolChoice }) => {
+            if (responseCount++ === 0) {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    id: 'call-1',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ "value": "value" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: 'tool-calls',
+                    usage: testUsage,
+                  },
+                ]),
+                response: { headers: { call: '1' } },
+              };
+            }
+
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        stopWhen: stepCountIs(3),
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(onError).toHaveBeenCalledWith({
+        error: new Error('test error'),
+      });
     });
   });
 
