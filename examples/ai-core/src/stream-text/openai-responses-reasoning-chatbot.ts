@@ -53,10 +53,6 @@ async function main() {
       //     include: ['reasoning.encrypted_content'], // Hence, we need to retrieve the model's encrypted reasoning to be able to pass it to follow-up requests
       //   } satisfies OpenAIResponsesProviderOptions,
       // },
-      onStepFinish: ({ response: { messages } }) => {
-        console.log('onStepFinish');
-        console.log(JSON.stringify(messages, null, 2));
-      },
     });
 
     process.stdout.write('\nAssistant: ');
