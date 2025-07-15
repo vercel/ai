@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { streamText } from '../generate-text/stream-text';
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
@@ -20,7 +19,7 @@ interface CLIOptions {
   prompt?: string;
 }
 
-function isStdinAvailable(): boolean {
+export function isStdinAvailable(): boolean {
   return !process.stdin.isTTY;
 }
 
@@ -37,7 +36,7 @@ async function readStdin(): Promise<string> {
   });
 }
 
-function getMediaType(filePath: string): string {
+export function getMediaType(filePath: string): string {
   const ext = filePath.split('.').pop()?.toLowerCase();
   const mimeTypes: Record<string, string> = {
     js: 'application/javascript',
@@ -67,7 +66,7 @@ function getMediaType(filePath: string): string {
   return mimeTypes[ext || ''] || 'text/plain';
 }
 
-function readFileContent(filePath: string): FileAttachment {
+export function readFileContent(filePath: string): FileAttachment {
   const absolutePath = resolve(filePath);
 
   if (!existsSync(absolutePath)) {
@@ -92,26 +91,16 @@ function readFileContent(filePath: string): FileAttachment {
   };
 }
 
-function loadEnvironmentConfig() {
-  return {
-    model: process.env.AI_MODEL,
-    system: process.env.AI_SYSTEM,
-    verbose: process.env.AI_VERBOSE === 'true',
-  };
-}
-
-function parseArgs(): CLIOptions {
+export function parseArgs(): CLIOptions {
   const args = process.argv.slice(2);
 
-  const envConfig = loadEnvironmentConfig();
-
   const options: CLIOptions = {
-    model: envConfig.model || 'openai/gpt-4',
+    model: process.env.AI_MODEL || 'openai/gpt-4',
     files: [],
     help: false,
     version: false,
-    verbose: envConfig.verbose || false,
-    system: envConfig.system,
+    verbose: process.env.AI_VERBOSE === 'true',
+    system: process.env.AI_SYSTEM,
   };
 
   const promptArgs: string[] = [];
@@ -177,7 +166,7 @@ function parseArgs(): CLIOptions {
   return options;
 }
 
-function showHelp(): void {
+export function showHelp(): void {
   console.log(`Usage: ai [options] [prompt]
 
 AI CLI - Stream text generation from various AI models
@@ -195,13 +184,25 @@ Options:
   -h, --help               Display help for command
   -V, --version            Output the version number
 
-Configuration:
-  Environment variables:
+Environment Variables:
   - AI_MODEL: Default model to use
-  - AI_SYSTEM: Default system message
+  - AI_SYSTEM: Default system message  
   - AI_VERBOSE: Set to 'true' to enable verbose output
-  - VERCEL_OIDC_TOKEN: Vercel OIDC token for authentication
-  - AI_GATEWAY_API_KEY: AI Gateway API key for authentication
+
+Authentication (choose one):
+  - VERCEL_OIDC_TOKEN: Vercel OIDC token (for Vercel projects)
+  - AI_GATEWAY_API_KEY: AI Gateway API key
+
+Setting Environment Variables:
+  # Option 1: Export in current session
+  export AI_GATEWAY_API_KEY="your-key-here"
+  export AI_MODEL="anthropic/claude-3-5-sonnet-20241022"
+
+  # Option 2: Inline for single command
+  AI_GATEWAY_API_KEY="your-key" ai "Hello world"
+
+  # Option 3: Add to shell profile (~/.bashrc, ~/.zshrc)
+  echo 'export AI_GATEWAY_API_KEY="your-key"' >> ~/.bashrc
 
 Examples:
   npx ai "Hello, world!"
@@ -217,23 +218,29 @@ Unix-style piping:
   cat README.md | npx ai "Summarize this"
   curl -s https://api.github.com/repos/vercel/ai | npx ai "What is this repository about?"
 
-Authentication:
-  This CLI uses the Vercel AI Gateway. Set one of the following for authentication:
-  - VERCEL_OIDC_TOKEN: For OIDC-based authentication
-  - AI_GATEWAY_API_KEY: For API key-based authentication
+Authentication Setup:
+  This CLI uses the Vercel AI Gateway. You need ONE of these for authentication:
+
+  OIDC Token (for Vercel projects):
+  - Automatically available in Vercel deployments  
+  - For local development: run 'vercel env pull' or use 'vercel dev'
   
-  The gateway supports various model providers including OpenAI, Anthropic, Google, and Groq.`);
+  API Key (for any environment):
+  - Get your key from the AI Gateway dashboard
+  - Set: export AI_GATEWAY_API_KEY="your-key-here"
+  
+  The gateway supports OpenAI, Anthropic, Google, Groq, and more providers.`);
 }
 
-function showVersion() {
+export function showVersion() {
   console.log('1.0.0');
 }
 
-function resolveModel(modelString: string) {
+export function resolveModel(modelString: string) {
   return gateway.languageModel(modelString);
 }
 
-function formatAttachedFiles(files: FileAttachment[]): string {
+export function formatAttachedFiles(files: FileAttachment[]): string {
   if (files.length === 0) return '';
 
   const textFiles = files.filter(f => !f.mediaType?.startsWith('image/'));
