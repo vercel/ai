@@ -21,7 +21,7 @@ async function main() {
     }
 
     const { text, toolCalls, toolResults, response } = await generateText({
-      model: openai.responses('gpt-4o-mini'),
+      model: openai.responses('o3'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,

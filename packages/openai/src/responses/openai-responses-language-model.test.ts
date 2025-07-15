@@ -1708,12 +1708,22 @@ describe('OpenAIResponsesLanguageModel', () => {
           [
             {
               "input": "{"location":"San Francisco"}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "fc_67caf7f4c1ec8190b27edfb5580cfd31",
+                },
+              },
               "toolCallId": "call_0NdsJqOS8N3J9l2p0p4WpYU9",
               "toolName": "weather",
               "type": "tool-call",
             },
             {
               "input": "{"city":"San Francisco"}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "fc_67caf7f5071c81908209c2909c77af05",
+                },
+              },
               "toolCallId": "call_gexo0HtjUfmAIW4gjNOgyrcr",
               "toolName": "cityAttractions",
               "type": "tool-call",
@@ -2203,6 +2213,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "input": "{}",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "fc_67cb13a838088190be08eb3927c87501",
+              },
+            },
             "toolCallId": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
             "toolName": "currentLocation",
             "type": "tool-call",
@@ -2243,6 +2258,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "input": "{"location":"Rome"}",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "fc_67cb13a858f081908a600343fa040f47",
+              },
+            },
             "toolCallId": "call_X2PAkDJInno9VVnNkDrfhboW",
             "toolName": "weather",
             "type": "tool-call",
