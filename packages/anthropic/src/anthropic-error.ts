@@ -6,6 +6,7 @@ const anthropicErrorDataSchema = z.object({
   error: z.object({
     type: z.string(),
     message: z.string(),
+    details: z.any().optional(),
   }),
 });
 
