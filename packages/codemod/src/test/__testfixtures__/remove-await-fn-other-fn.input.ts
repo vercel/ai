@@ -5,7 +5,7 @@ async function main() {
   const result = await otherFunction({
     data: 'test',
   });
-  const streamResult = await streamText({
+  const streamResult = streamText({
     model: 'gpt-3.5-turbo',
     prompt: 'Hello again!',
   });

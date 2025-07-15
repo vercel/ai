@@ -23,10 +23,15 @@ Let's start with the following example first.
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { useState } from 'react';
 
 export default function Page() {
-  const { messages, sendMessage, status } = useChat();
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
   const [input, setInput] = useState('');
 
   return (
@@ -121,10 +126,15 @@ You can use `status` for e.g. the following purposes:
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { useState } from 'react';
 
 export default function Page() {
-  const { messages, sendMessage, status, stop } = useChat({});
+  const { messages, sendMessage, status, stop } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
   const [input, setInput] = useState('');
 
   return (
@@ -186,10 +196,15 @@ It can be used to display an error message, disable the submit button, or show a
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, sendMessage, error, reload } = useChat({});
+  const { messages, sendMessage, error, reload } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
   const [input, setInput] = useState('');
 
   return (
@@ -356,18 +371,51 @@ You can configure transport-level options that will be applied to all requests m
 
 ```tsx
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 
 const { messages, sendMessage } = useChat({
-  api: '/api/custom-chat',
-  headers: {
-    Authorization: 'your_token',
-  },
-  body: {
-    user_id: '123',
-  },
-  credentials: 'same-origin',
+  transport: new DefaultChatTransport({
+    api: '/api/custom-chat',
+    headers: {
+      Authorization: 'your_token',
+    },
+    body: {
+      user_id: '123',
+    },
+    credentials: 'same-origin',
+  }),
 });
 ```
+
+#### Dynamic Hook-Level Configuration
+
+You can also provide functions that return configuration values. This is useful for authentication tokens that need to be refreshed, or for configuration that depends on runtime conditions:
+
+```tsx
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+
+const { messages, sendMessage } = useChat({
+  transport: new DefaultChatTransport({
+    api: '/api/custom-chat',
+    headers: () => ({
+      Authorization: `Bearer ${getAuthToken()}`,
+      'X-User-ID': getCurrentUserId(),
+    }),
+    body: () => ({
+      sessionId: getCurrentSessionId(),
+      preferences: getUserPreferences(),
+    }),
+    credentials: () => 'include',
+  }),
+});
+```
+
+<Note>
+  For component state that changes over time, use `useRef` to store the current
+  value and reference `ref.current` in your configuration function, or prefer
+  request-level options (see next section) for better reliability.
+</Note>
 
 #### Request-Level Configuration (Recommended)
 
@@ -650,10 +698,13 @@ export async function POST(req: Request) {
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { TextStreamChatTransport } from 'ai';
 
 export default function Chat() {
   const { messages } = useChat({
-    streamProtocol: 'text',
+    transport: new TextStreamChatTransport({
+      api: '/api/chat',
+    }),
   });
 
   return <>...</>;
@@ -664,7 +715,7 @@ This configuration also works with other backend servers that stream plain text.
 Check out the [stream protocol guide](/docs/ai-sdk-ui/stream-protocol) for more information.
 
 <Note>
-  When using `streamProtocol: 'text'`, tool calls, usage information and finish
+  When using `TextStreamChatTransport`, tool calls, usage information and finish
   reasons are not available.
 </Note>
 
@@ -974,3 +1025,110 @@ export default function Page() {
   );
 }
 ```
+
+## Type Inference for Tools
+
+When working with tools in TypeScript, AI SDK UI provides type inference helpers to ensure type safety for your tool inputs and outputs.
+
+### InferUITool
+
+The `InferUITool` type helper infers the input and output types of a single tool for use in UI messages:
+
+```tsx
+import { InferUITool } from 'ai';
+import { z } from 'zod';
+
+const weatherTool = {
+  description: 'Get the current weather',
+  parameters: z.object({
+    location: z.string().describe('The city and state'),
+  }),
+  execute: async ({ location }) => {
+    return `The weather in ${location} is sunny.`;
+  },
+};
+
+// Infer the types from the tool
+type WeatherUITool = InferUITool<typeof weatherTool>;
+// This creates a type with:
+// {
+//   input: { location: string };
+//   output: string;
+// }
+```
+
+### InferUITools
+
+The `InferUITools` type helper infers the input and output types of a `ToolSet`:
+
+```tsx
+import { InferUITools, ToolSet } from 'ai';
+import { z } from 'zod';
+
+const tools: ToolSet = {
+  weather: {
+    description: 'Get the current weather',
+    parameters: z.object({
+      location: z.string().describe('The city and state'),
+    }),
+    execute: async ({ location }) => {
+      return `The weather in ${location} is sunny.`;
+    },
+  },
+  calculator: {
+    description: 'Perform basic arithmetic',
+    parameters: z.object({
+      operation: z.enum(['add', 'subtract', 'multiply', 'divide']),
+      a: z.number(),
+      b: z.number(),
+    }),
+    execute: async ({ operation, a, b }) => {
+      switch (operation) {
+        case 'add':
+          return a + b;
+        case 'subtract':
+          return a - b;
+        case 'multiply':
+          return a * b;
+        case 'divide':
+          return a / b;
+      }
+    },
+  },
+};
+
+// Infer the types from the tool set
+type MyUITools = InferUITools<typeof tools>;
+// This creates a type with:
+// {
+//   weather: { input: { location: string }; output: string };
+//   calculator: { input: { operation: 'add' | 'subtract' | 'multiply' | 'divide'; a: number; b: number }; output: number };
+// }
+```
+
+### Using Inferred Types
+
+You can use these inferred types to create a custom UIMessage type and pass it to various AI SDK UI functions:
+
+```tsx
+import { InferUITools, UIMessage, UIDataTypes } from 'ai';
+
+type MyUITools = InferUITools<typeof tools>;
+type MyUIMessage = UIMessage<never, UIDataTypes, MyUITools>;
+```
+
+Pass the custom type to `useChat` or `createUIMessageStream`:
+
+```tsx
+import { useChat } from '@ai-sdk/react';
+import { createUIMessageStream } from 'ai';
+import { MyUIMessage } from './types';
+
+// With useChat
+const { messages } = useChat<MyUIMessage>();
+
+// With createUIMessageStream
+const stream = createUIMessageStream<MyUIMessage>(/* ... */);
+```
+
+This provides full type safety for tool inputs and outputs on the client and server.

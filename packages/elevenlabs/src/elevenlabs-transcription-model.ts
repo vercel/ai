@@ -26,7 +26,7 @@ const elevenLabsProviderOptionsSchema = z.object({
     .nullish()
     .default('word'),
   diarize: z.boolean().nullish().default(false),
-  file_format: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
+  fileFormat: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
 });
 
 export type ElevenLabsTranscriptionCallOptions = z.infer<
@@ -84,7 +84,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV2 {
         num_speakers: elevenlabsOptions.numSpeakers ?? undefined,
         timestamps_granularity:
           elevenlabsOptions.timestampsGranularity ?? undefined,
-        file_format: elevenlabsOptions.file_format ?? undefined,
+        file_format: elevenlabsOptions.fileFormat ?? undefined,
       };
 
       if (typeof elevenlabsOptions.diarize === 'boolean') {

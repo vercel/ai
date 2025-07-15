@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import transformer from '../codemods/remove-metadata-with-headers';
+import transformer from '../codemods/v4/remove-metadata-with-headers';
 import { testTransform } from './test-utils';
 
 describe('remove-metadata-with-headers', () => {
