@@ -4,8 +4,8 @@ import { model } from 'langchain';
 
 const /* WARNING: toAIStream has been removed from streamText.
  See migration guide at https://ai-sdk.dev/docs/migration-guides */
-  stream = LangChainAdapter.toAIStream(model.stream(), {
-    onToken: token => console.log(token),
-  });
+stream = LangChainAdapter.toAIStream(model.stream(), {
+  onToken: token => console.log(token)
+});
 
 const response = new Response(stream);
