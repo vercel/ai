@@ -1033,6 +1033,11 @@ describe('streamText', () => {
                   toolCallId: 'call-1',
                   toolName: 'tool1',
                   input: `{ "value": "value" }`,
+                  providerMetadata: {
+                    testProvider: {
+                      signature: 'sig',
+                    },
+                  },
                 },
                 {
                   type: 'finish',

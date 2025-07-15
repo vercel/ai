@@ -313,7 +313,11 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
       "value": "value",
     },
     "providerExecuted": undefined,
-    "providerMetadata": undefined,
+    "providerMetadata": {
+      "testProvider": {
+        "signature": "sig",
+      },
+    },
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-call",
