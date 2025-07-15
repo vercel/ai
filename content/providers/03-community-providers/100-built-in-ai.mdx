@@ -4,8 +4,9 @@ description: Learn how to use the Built-in AI provider (Chrome & Edge models) fo
 ---
 
 <Note type="secondary">
-  Since this package relies on `ChatTransform` and `useChat()` from AI SDK v5 to work properly, it is ONLY compatible with that version and higher. 
-  It will not work with versions below v5.
+  Since this package relies on `ChatTransform` and `useChat()` from AI SDK v5 to
+  work properly, it is ONLY compatible with that version and higher. It will not
+  work with versions below v5.
 </Note>
 
 # Built-in AI
@@ -13,7 +14,9 @@ description: Learn how to use the Built-in AI provider (Chrome & Edge models) fo
 [jakobhoeg/built-in-ai](https://github.com/jakobhoeg/built-in-ai) is a community provider that utilizes the browser's native JavaScript [Prompt API](https://github.com/webmachinelearning/prompt-api) to provide access to native browser AI models in Chrome & Edge and use these in conjunction with the AI SDK.
 
 <Note type="warning">
-  This package is under constant development as the Prompt API matures, and may contain errors and breaking changes. However, this module will also mature with it as new implementations arise.
+  This package is under constant development as the Prompt API matures, and may
+  contain errors and breaking changes. However, this module will also mature
+  with it as new implementations arise.
 </Note>
 
 ## Setup
@@ -37,18 +40,20 @@ The Built-in AI provider is available in the `built-in-ai` module. You can insta
 ### Browser-specific setup (Chrome or Edge)
 
 <Note type="warning">
-  The Prompt API (built-in AI) is currently experimental and might change as it matures. The following enablement guide for the API might also change in the future.
+  The Prompt API (built-in AI) is currently experimental and might change as it
+  matures. The following enablement guide for the API might also change in the
+  future.
 </Note>
 
 1. You need Chrome (v128 or higher) or Edge Dev/Canary (v138.0.3309.2 or higher)
 
 2. Enable these experimental flags:
-    - If you're using Chrome:
-      1. Go to chrome://flags/#prompt-api-for-gemini-nano and set it to Enabled
-      2. Go to chrome://flags/#optimization-guide-on-device-model and set it to Enabled BypassPrefRequirement
-      3. Go to chrome://components and click Check for Update on Optimization Guide On Device Model
-    - If you're using Edge:
-      1. Go to edge://flags/#prompt-api-for-phi-mini and set it to Enabled
+   - If you're using Chrome:
+     1. Go to chrome://flags/#prompt-api-for-gemini-nano and set it to Enabled
+     2. Go to chrome://flags/#optimization-guide-on-device-model and set it to Enabled BypassPrefRequirement
+     3. Go to chrome://components and click Check for Update on Optimization Guide On Device Model
+   - If you're using Edge:
+     1. Go to edge://flags/#prompt-api-for-phi-mini and set it to Enabled
 
 For more information, check out [this guide](https://developer.chrome.com/docs/extensions/ai/prompt-api)
 
@@ -86,7 +91,7 @@ You can use the following optional settings to customize the model:
 
 ## Language Models
 
-The provider will automatically work in all browsers that support the Prompt API since the browser handles model orchestration. 
+The provider will automatically work in all browsers that support the Prompt API since the browser handles model orchestration.
 For instance, if your user uses Edge, it will use [Phi4-mini](https://learn.microsoft.com/en-us/microsoft-edge/web-platform/prompt-api#the-phi-4-mini-model), and for Chrome, it will use [Gemini Nano](https://developer.chrome.com/docs/ai/prompt-api#model_download).
 
 ### Example usage
