@@ -34,3 +34,9 @@ Defaults to `false`.
 });
 
 export type MistralProviderOptions = z.infer<typeof mistralProviderOptions>;
+
+declare module '@ai-sdk/provider' {
+  interface SharedV2ProviderOptions {
+    mistral?: MistralProviderOptions;
+  }
+}

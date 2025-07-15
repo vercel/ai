@@ -35,3 +35,9 @@ export const groqProviderOptions = z.object({
 });
 
 export type GroqProviderOptions = z.infer<typeof groqProviderOptions>;
+
+declare module '@ai-sdk/provider' {
+  interface SharedV2ProviderOptions {
+    groq?: GroqProviderOptions;
+  }
+}
