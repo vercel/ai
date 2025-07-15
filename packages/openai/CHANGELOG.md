@@ -1,5 +1,27 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- db64cbe: fix (provider/openai): multi-step reasoning with tool calls
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+
+## 2.0.0-beta.7
+
+### Patch Changes
+
+- 209256d: Add missing file_search tool support to OpenAI Responses API
+
+## 2.0.0-beta.6
+
+### Patch Changes
+
+- 0eee6a8: Fix streaming and reconstruction of reasoning summary parts
+- b5a0e32: fix (provider/openai): correct default for chat model strict mode
+- c7d3b2e: fix (provider/openai): push first reasoning chunk in output item added event
+
 ## 2.0.0-beta.5
 
 ### Patch Changes

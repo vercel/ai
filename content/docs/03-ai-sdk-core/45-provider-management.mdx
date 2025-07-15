@@ -28,7 +28,11 @@ with pre-configured settings.
 
 ```ts
 import { openai as originalOpenAI } from '@ai-sdk/openai';
-import { customProvider } from 'ai';
+import {
+  customProvider,
+  defaultSettingsMiddleware,
+  wrapLanguageModel,
+} from 'ai';
 
 // custom provider with different provider options:
 export const openai = customProvider({
@@ -90,7 +94,11 @@ You can limit the available models in the system, even if you have multiple prov
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
-import { customProvider } from 'ai';
+import {
+  customProvider,
+  defaultSettingsMiddleware,
+  wrapLanguageModel,
+} from 'ai';
 
 export const myProvider = customProvider({
   languageModels: {
@@ -109,7 +117,7 @@ export const myProvider = customProvider({
       }),
     }),
     'reasoning-fast': wrapLanguageModel({
-      model: originalOpenAI('gpt-4o-mini'),
+      model: openai('gpt-4o-mini'),
       middleware: defaultSettingsMiddleware({
         settings: {
           providerOptions: {
@@ -269,7 +277,7 @@ export const registry = createProviderRegistry(
           middleware: defaultSettingsMiddleware({
             settings: {
               maxOutputTokens: 100000, // example default setting
-              providerMetadata: {
+              providerOptions: {
                 anthropic: {
                   thinking: {
                     type: 'enabled',

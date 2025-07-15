@@ -497,13 +497,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                 const index = toolCallDelta.index;
 
                 if (toolCalls[index] == null) {
-                  if (toolCallDelta.type !== 'function') {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function' type.`,
-                    });
-                  }
-
                   if (toolCallDelta.id == null) {
                     throw new InvalidResponseDataError({
                       data: toolCallDelta,
@@ -697,7 +690,6 @@ const OpenAICompatibleChatResponseSchema = z.object({
           .array(
             z.object({
               id: z.string().nullish(),
-              type: z.literal('function'),
               function: z.object({
                 name: z.string(),
                 arguments: z.string(),
@@ -734,7 +726,6 @@ const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
                   z.object({
                     index: z.number(),
                     id: z.string().nullish(),
-                    type: z.literal('function').nullish(),
                     function: z.object({
                       name: z.string().nullish(),
                       arguments: z.string().nullish(),

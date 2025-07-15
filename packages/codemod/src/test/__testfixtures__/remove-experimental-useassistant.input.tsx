@@ -1,9 +1,9 @@
 // @ts-nocheck
-import { experimental_useAssistant, Message } from 'ai/react';
+import { useAssistant, Message } from 'ai/react';
 
 export default function Page() {
   const { status, messages, input, submitMessage, handleInputChange } =
-    experimental_useAssistant({ api: '/api/assistant' });
+    useAssistant({ api: '/api/assistant' });
 
   return (
     <div className="flex flex-col gap-2">

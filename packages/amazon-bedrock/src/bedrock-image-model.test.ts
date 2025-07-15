@@ -202,4 +202,57 @@ describe('doGenerate', () => {
     );
     expect(result.response.modelId).toBe('amazon.nova-canvas-v1:0');
   });
+
+  it('should pass the style parameter when provided', async () => {
+    await model.doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: 1234,
+      providerOptions: {
+        bedrock: {
+          negativeText: 'bad',
+          quality: 'premium',
+          cfgScale: 1.2,
+          style: 'PHOTOREALISM',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      taskType: 'TEXT_IMAGE',
+      textToImageParams: {
+        text: prompt,
+        negativeText: 'bad',
+        style: 'PHOTOREALISM',
+      },
+      imageGenerationConfig: {
+        numberOfImages: 1,
+        seed: 1234,
+        quality: 'premium',
+        cfgScale: 1.2,
+        width: 1024,
+        height: 1024,
+      },
+    });
+  });
+
+  it('should not include style parameter when not provided', async () => {
+    await model.doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: 1234,
+      providerOptions: {
+        bedrock: {
+          quality: 'standard',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.textToImageParams).not.toHaveProperty('style');
+  });
 });

@@ -3,12 +3,15 @@ import {
   convertReadableStreamToArray,
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
+import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
+
 import {
-  GoogleGenerativeAILanguageModel,
-  groundingMetadataSchema,
-} from './google-generative-ai-language-model';
-import { GoogleGenerativeAIGroundingMetadata } from './google-generative-ai-prompt';
+  GoogleGenerativeAIGroundingMetadata,
+  GoogleGenerativeAIUrlContextMetadata,
+} from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
+import { groundingMetadataSchema } from './tool/google-search';
+import { urlContextMetadataSchema } from './tool/url-context';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -141,6 +144,31 @@ describe('groundingMetadataSchema', () => {
 
     const result = groundingMetadataSchema.safeParse(metadata);
     expect(result.success).toBe(false);
+  });
+});
+
+describe('urlContextMetadata', () => {
+  it('validates complete url context output', () => {
+    const output = {
+      urlMetadata: [
+        {
+          retrievedUrl: 'https://example.com/weather',
+          urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+        },
+      ],
+    };
+
+    const result = urlContextMetadataSchema.safeParse(output);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates empty url context output', () => {
+    const output = {
+      urlMetadata: [],
+    };
+
+    const result = urlContextMetadataSchema.safeParse(output);
+    expect(result.success).toBe(true);
   });
 });
 
@@ -971,11 +999,14 @@ describe('doGenerate', () => {
       const gemini2Pro = provider.languageModel('gemini-2.0-pro');
       await gemini2Pro.doGenerate({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -991,11 +1022,14 @@ describe('doGenerate', () => {
       const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp');
       await gemini2Flash.doGenerate({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1011,11 +1045,14 @@ describe('doGenerate', () => {
       const geminiPro = provider.languageModel('gemini-1.0-pro');
       await geminiPro.doGenerate({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1032,15 +1069,17 @@ describe('doGenerate', () => {
 
       await geminiPro.doGenerate({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
-            dynamicRetrievalConfig: {
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {
               mode: 'MODE_DYNAMIC',
               dynamicThreshold: 1,
             },
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1052,6 +1091,28 @@ describe('doGenerate', () => {
             },
           },
         },
+      });
+    });
+    it('should use urlContextTool for gemini-2.0-pro', async () => {
+      prepareJsonResponse({
+        url: TEST_URL_GEMINI_2_0_PRO,
+      });
+
+      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
+      await gemini2Pro.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.url_context',
+            name: 'url_context',
+            args: {},
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tools: { urlContext: {} },
       });
     });
   });
@@ -1447,11 +1508,13 @@ describe('doStream', () => {
     content,
     headers,
     groundingMetadata,
+    urlContextMetadata,
     url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
   }: {
     content: string[];
     headers?: Record<string, string>;
     groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
+    urlContextMetadata?: GoogleGenerativeAIUrlContextMetadata;
     url?:
       | typeof TEST_URL_GEMINI_PRO
       | typeof TEST_URL_GEMINI_2_0_PRO
@@ -1472,6 +1535,7 @@ describe('doStream', () => {
                 index: 0,
                 safetyRatings: SAFETY_RATINGS,
                 ...(groundingMetadata && { groundingMetadata }),
+                ...(urlContextMetadata && { urlContextMetadata }),
               },
             ],
             // Include usage metadata only in the last chunk
@@ -1561,6 +1625,40 @@ describe('doStream', () => {
     });
   });
 
+  it('should expose url context metadata in provider metadata on finish', async () => {
+    prepareStreamResponse({
+      content: ['test'],
+      urlContextMetadata: {
+        urlMetadata: [
+          {
+            retrievedUrl: 'https://example.com/weather',
+            urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+          },
+        ],
+      },
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.urlContextMetadata,
+    ).toStrictEqual({
+      urlMetadata: [
+        {
+          retrievedUrl: 'https://example.com/weather',
+          urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+        },
+      ],
+    });
+  });
+
   it('should stream text deltas', async () => {
     prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
 
@@ -1621,6 +1719,12 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "urlContextMetadata": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 233,
+                "promptTokenCount": 294,
+                "totalTokenCount": 527,
+              },
             },
           },
           "type": "finish",
@@ -1686,11 +1790,14 @@ describe('doStream', () => {
       await gemini2Pro.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1709,11 +1816,14 @@ describe('doStream', () => {
       await gemini2Flash.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1731,11 +1841,14 @@ describe('doStream', () => {
       await geminiPro.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1754,15 +1867,17 @@ describe('doStream', () => {
       await geminiPro.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
-            dynamicRetrievalConfig: {
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {
               mode: 'MODE_DYNAMIC',
               dynamicThreshold: 1,
             },
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1809,6 +1924,153 @@ describe('doStream', () => {
           "title": "Source Title",
           "type": "source",
           "url": "https://source.example.com",
+        },
+      ]
+    `);
+  });
+
+  it('should stream sources during intermediate chunks', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'text' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                groundingChunks: [
+                  { web: { uri: 'https://a.com', title: 'A' } },
+                  { web: { uri: 'https://b.com', title: 'B' } },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'more' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "A",
+          "type": "source",
+          "url": "https://a.com",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "B",
+          "type": "source",
+          "url": "https://b.com",
+        },
+      ]
+    `);
+  });
+
+  it('should deduplicate sources across chunks', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'first chunk' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                groundingChunks: [
+                  { web: { uri: 'https://example.com', title: 'Example' } },
+                  { web: { uri: 'https://unique.com', title: 'Unique' } },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'second chunk' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                groundingChunks: [
+                  {
+                    web: {
+                      uri: 'https://example.com',
+                      title: 'Example Duplicate',
+                    },
+                  },
+                  { web: { uri: 'https://another.com', title: 'Another' } },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'final chunk' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Example",
+          "type": "source",
+          "url": "https://example.com",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Unique",
+          "type": "source",
+          "url": "https://unique.com",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Another",
+          "type": "source",
+          "url": "https://another.com",
         },
       ]
     `);
@@ -1869,6 +2131,7 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "urlContextMetadata": null,
             },
           },
           "type": "finish",
@@ -2124,6 +2387,13 @@ describe('doStream', () => {
             "google": {
               "groundingMetadata": null,
               "safetyRatings": null,
+              "urlContextMetadata": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 18,
+                "promptTokenCount": 14,
+                "thoughtsTokenCount": 142,
+                "totalTokenCount": 174,
+              },
             },
           },
           "type": "finish",

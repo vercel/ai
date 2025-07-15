@@ -15,6 +15,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  generateId,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -31,6 +32,11 @@ import {
 } from './google-generative-ai-options';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
+import {
+  groundingChunkSchema,
+  groundingMetadataSchema,
+} from './tool/google-search';
+import { urlContextMetadataSchema } from './tool/url-context';
 
 type GoogleGenerativeAIConfig = {
   provider: string;
@@ -51,6 +57,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   readonly modelId: GoogleGenerativeAIModelId;
 
   private readonly config: GoogleGenerativeAIConfig;
+  private readonly generateId: () => string;
 
   constructor(
     modelId: GoogleGenerativeAIModelId,
@@ -58,6 +65,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   ) {
     this.modelId = modelId;
     this.config = config;
+    this.generateId = config.generateId ?? generateId;
   }
 
   get provider(): string {
@@ -119,8 +127,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     } = prepareTools({
       tools,
       toolChoice,
-      useSearchGrounding: googleOptions?.useSearchGrounding ?? false,
-      dynamicRetrievalConfig: googleOptions?.dynamicRetrievalConfig,
       modelId: this.modelId,
     });
 
@@ -258,7 +264,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       providerMetadata: {
         google: {
           groundingMetadata: candidate.groundingMetadata ?? null,
+          urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
+          usageMetadata: usageMetadata ?? null,
         },
       },
       request: { body },
@@ -309,6 +317,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     let currentReasoningBlockId: string | null = null;
     let blockCounter = 0;
 
+    // Track emitted sources to prevent duplicates
+    const emittedSourceUrls = new Set<string>();
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -352,6 +363,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             }
 
             const content = candidate.content;
+
+            const sources = extractSources({
+              groundingMetadata: candidate.groundingMetadata,
+              generateId,
+            });
+            if (sources != null) {
+              for (const source of sources) {
+                if (
+                  source.sourceType === 'url' &&
+                  !emittedSourceUrls.has(source.url)
+                ) {
+                  emittedSourceUrls.add(source.url);
+                  controller.enqueue(source);
+                }
+              }
+            }
 
             // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
             if (content != null) {
@@ -468,22 +495,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 hasToolCalls,
               });
 
-              const sources =
-                extractSources({
-                  groundingMetadata: candidate.groundingMetadata,
-                  generateId,
-                }) ?? [];
-
-              for (const source of sources) {
-                controller.enqueue(source);
-              }
-
               providerMetadata = {
                 google: {
                   groundingMetadata: candidate.groundingMetadata ?? null,
+                  urlContextMetadata: candidate.urlContextMetadata ?? null,
                   safetyRatings: candidate.safetyRatings ?? null,
                 },
               };
+              if (usageMetadata != null) {
+                providerMetadata.google.usageMetadata = usageMetadata;
+              }
             }
           },
 
@@ -612,44 +633,6 @@ const contentSchema = z.object({
     .nullish(),
 });
 
-// https://ai.google.dev/gemini-api/docs/grounding
-// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search
-const groundingChunkSchema = z.object({
-  web: z.object({ uri: z.string(), title: z.string() }).nullish(),
-  retrievedContext: z.object({ uri: z.string(), title: z.string() }).nullish(),
-});
-
-export const groundingMetadataSchema = z.object({
-  webSearchQueries: z.array(z.string()).nullish(),
-  retrievalQueries: z.array(z.string()).nullish(),
-  searchEntryPoint: z.object({ renderedContent: z.string() }).nullish(),
-  groundingChunks: z.array(groundingChunkSchema).nullish(),
-  groundingSupports: z
-    .array(
-      z.object({
-        segment: z.object({
-          startIndex: z.number().nullish(),
-          endIndex: z.number().nullish(),
-          text: z.string().nullish(),
-        }),
-        segment_text: z.string().nullish(),
-        groundingChunkIndices: z.array(z.number()).nullish(),
-        supportChunkIndices: z.array(z.number()).nullish(),
-        confidenceScores: z.array(z.number()).nullish(),
-        confidenceScore: z.array(z.number()).nullish(),
-      }),
-    )
-    .nullish(),
-  retrievalMetadata: z
-    .union([
-      z.object({
-        webDynamicRetrievalScore: z.number(),
-      }),
-      z.object({}),
-    ])
-    .nullish(),
-});
-
 // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters
 export const safetyRatingSchema = z.object({
   category: z.string().nullish(),
@@ -675,6 +658,7 @@ const responseSchema = z.object({
       finishReason: z.string().nullish(),
       safetyRatings: z.array(safetyRatingSchema).nullish(),
       groundingMetadata: groundingMetadataSchema.nullish(),
+      urlContextMetadata: urlContextMetadataSchema.nullish(),
     }),
   ),
   usageMetadata: usageSchema.nullish(),
@@ -690,6 +674,7 @@ const chunkSchema = z.object({
         finishReason: z.string().nullish(),
         safetyRatings: z.array(safetyRatingSchema).nullish(),
         groundingMetadata: groundingMetadataSchema.nullish(),
+        urlContextMetadata: urlContextMetadataSchema.nullish(),
       }),
     )
     .nullish(),

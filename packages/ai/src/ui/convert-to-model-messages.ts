@@ -3,9 +3,9 @@ import {
   ModelMessage,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
-import { ToolSet } from '../../core/generate-text/tool-set';
-import { createToolModelOutput } from '../../core/prompt/create-tool-model-output';
-import { MessageConversionError } from '../../core/prompt/message-conversion-error';
+import { ToolSet } from '../generate-text/tool-set';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
+import { MessageConversionError } from '../prompt/message-conversion-error';
 import {
   FileUIPart,
   getToolName,

@@ -1,5 +1,18 @@
 # @ai-sdk/elevenlabs
 
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- 2219fef: fix(elevenlabs): use camelCase fileFormat in provider options
+
 ## 1.0.0-beta.2
 
 ### Patch Changes

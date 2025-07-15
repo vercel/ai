@@ -126,6 +126,8 @@ export async function convertToOpenAIResponsesMessages({
                 call_id: part.toolCallId,
                 name: part.toolName,
                 arguments: JSON.stringify(part.input),
+                id:
+                  (part.providerOptions?.openai?.itemId as string) ?? undefined,
               });
               break;
             }
