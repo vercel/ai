@@ -21,4 +21,6 @@ import { JSONValue } from '../../json-value/json-value';
  * }
  * ```
  */
-export type SharedV2ProviderOptions = Record<string, Record<string, JSONValue>>;
+export interface SharedV2ProviderOptions {
+  [providerName: string]: Record<string, JSONValue>;
+}
