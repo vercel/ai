@@ -42,30 +42,30 @@ const adaptive = createAdaptive({
 
 You can use the following optional settings to customize the Adaptive provider instance:
 
-- **baseURL** *string*
+- **baseURL** _string_
 
-    Use a different URL prefix for API calls, e.g. to use proxy servers.
-    The default prefix is `http://localhost:8080/v1`.
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `http://localhost:8080/v1`.
 
-- **apiKey** *string*
+- **apiKey** _string_
 
-    API key that is being sent using the `Authorization` header.
-    It defaults to the `ADAPTIVE_API_KEY` environment variable.
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `ADAPTIVE_API_KEY` environment variable.
 
-- **headers** *Record\<string,string\>*
+- **headers** _Record\<string,string\>_
 
-    Custom headers to include in the requests.
+  Custom headers to include in the requests.
 
-- **fetch** *(input: RequestInfo, init?: RequestInit) =\> Promise\<Response\>*
+- **fetch** _(input: RequestInfo, init?: RequestInit) =\> Promise\<Response\>_
 
-    Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
-    Defaults to the global `fetch` function.
-    You can use it as a middleware to intercept requests,
-    or to provide a custom fetch implementation for e.g. testing.
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
 
-- **defaultProvider** *string*
+- **defaultProvider** _string_
 
-    Default provider to use for comparisons and fallbacks.
+  Default provider to use for comparisons and fallbacks.
 
 ## Language Models
 
@@ -90,9 +90,9 @@ await generateText({
 
 The following optional provider options are available for Adaptive models:
 
-- **costBias** *number*
+- **costBias** _number_
 
-    Bias towards cost-optimized selections (0-1, where 1 prioritizes cost).
+  Bias towards cost-optimized selections (0-1, where 1 prioritizes cost).
 
 ### Example
 
