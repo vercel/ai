@@ -7,7 +7,7 @@ import { gateway } from '@ai-sdk/gateway';
 interface FileAttachment {
   name: string;
   content: string;
-  mimeType?: string;
+  mediaType?: string;
 }
 
 interface CLIOptions {
@@ -37,7 +37,7 @@ async function readStdin(): Promise<string> {
   });
 }
 
-function getMimeType(filePath: string): string {
+function getMediaType(filePath: string): string {
   const ext = filePath.split('.').pop()?.toLowerCase();
   const mimeTypes: Record<string, string> = {
     js: 'application/javascript',
@@ -74,13 +74,13 @@ function readFileContent(filePath: string): FileAttachment {
     throw new Error(`File not found: ${filePath}`);
   }
 
-  const mimeType = getMimeType(filePath);
-  const isImage = mimeType.startsWith('image/');
+  const mediaType = getMediaType(filePath);
+  const isImage = mediaType.startsWith('image/');
 
   let content: string;
   if (isImage) {
     const buffer = readFileSync(absolutePath);
-    content = `data:${mimeType};base64,${buffer.toString('base64')}`;
+    content = `data:${mediaType};base64,${buffer.toString('base64')}`;
   } else {
     content = readFileSync(absolutePath, 'utf8');
   }
@@ -88,7 +88,7 @@ function readFileContent(filePath: string): FileAttachment {
   return {
     name: filePath,
     content,
-    mimeType,
+    mediaType,
   };
 }
 
@@ -236,7 +236,7 @@ function resolveModel(modelString: string) {
 function formatAttachedFiles(files: FileAttachment[]): string {
   if (files.length === 0) return '';
 
-  const textFiles = files.filter(f => !f.mimeType?.startsWith('image/'));
+  const textFiles = files.filter(f => !f.mediaType?.startsWith('image/'));
 
   if (textFiles.length === 0) return '';
 
@@ -296,7 +296,7 @@ async function main(): Promise<void> {
 
     const textPrompt = prompt + formatAttachedFiles(attachedFiles);
     const imageFiles = attachedFiles.filter(f =>
-      f.mimeType?.startsWith('image/'),
+      f.mediaType?.startsWith('image/'),
     );
 
     if (imageFiles.length > 0 && options.model === 'openai/gpt-4') {
