@@ -67,6 +67,6 @@ export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
 
 declare module '@ai-sdk/provider' {
   interface SharedV2ProviderOptions {
-    anthropic?: AnthropicProviderOptions;
+    anthropic?: AnthropicProviderOptions & AnthropicFilePartProviderOptions;
   }
 }
