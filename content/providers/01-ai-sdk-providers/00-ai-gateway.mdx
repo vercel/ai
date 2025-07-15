@@ -246,6 +246,24 @@ const { text } = await generateText({
 });
 ```
 
+## Provider Options
+
+When using provider-specific options, use the actual provider name (not `gateway`) as the key:
+
+```ts
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-3-5-sonnet',
+  prompt: 'Explain quantum computing',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 12000 },
+    },
+  },
+});
+```
+
 ## Model Capabilities
 
 Model capabilities depend on the specific provider and model you're using. For detailed capability information, see:
