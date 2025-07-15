@@ -44,7 +44,9 @@ const { text } = await generateText({
   model: 'openai/gpt-4o',
   prompt: 'Hello world',
 });
+```
 
+```ts
 // use provider instance
 import { generateText } from 'ai';
 import { gateway } from '@ai-sdk/gateway';
@@ -150,20 +152,6 @@ const { text } = await generateText({
 
 AI Gateway language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions (see [AI SDK Core](/docs/ai-sdk-core)).
 
-### Example
-
-You can use AI Gateway language models to generate text with the `generateText` function:
-
-```ts
-import { gateway } from '@ai-sdk/gateway';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: gateway('anthropic/claude-3.5-sonnet'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-});
-```
-
 ## Available Models
 
 The AI Gateway supports models from OpenAI, Anthropic, Google, Meta, xAI, Mistral, DeepSeek, Amazon Bedrock, Cohere, Perplexity, Alibaba, and other providers.
@@ -258,7 +246,7 @@ const { text } = await generateText({
 
 ## Provider Options
 
-When using provider-specific options, use the actual provider name (not `gateway`) as the key:
+When using provider-specific options, use the actual provider name (e.g. `anthropic` not `gateway`) as the key:
 
 ```ts
 import { generateText } from 'ai';
