@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.2.16
+
+### Patch Changes
+
+- 919ce07: Modified the validation logic for tool_calls for the index parameter to be optional.
+
 ## 0.2.15
 
 ### Patch Changes
