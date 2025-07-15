@@ -21,9 +21,9 @@ With select models, you can send PDFs (files) as part of your prompt. Let's crea
 On the frontend, create a form that allows the user to upload a PDF. When the form is submitted, send the PDF to the `/api/analyze` route.
 
 ```tsx file="app/page.tsx"
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 
 export default function Page() {
   const [description, setDescription] = useState<string>();
@@ -32,11 +32,11 @@ export default function Page() {
   return (
     <div>
       <form
-        action={async (formData) => {
+        action={async formData => {
           try {
             setLoading(true);
-            const response = await fetch("/api/analyze", {
-              method: "POST",
+            const response = await fetch('/api/analyze', {
+              method: 'POST',
               body: formData,
             });
             setLoading(false);
@@ -45,7 +45,7 @@ export default function Page() {
               setDescription(await response.text());
             }
           } catch (error) {
-            console.error("Analysis failed:", error);
+            console.error('Analysis failed:', error);
           }
         }}
       >
@@ -54,7 +54,7 @@ export default function Page() {
           <input name="pdf" type="file" accept="application/pdf" />
         </div>
         <button type="submit" disabled={loading}>
-          Submit{loading && "ing..."}
+          Submit{loading && 'ing...'}
         </button>
       </form>
       {description && (

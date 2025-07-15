@@ -267,21 +267,21 @@ The "no-schema" output mode can be used when you don't want to specify a schema,
 On the client, you wrap the schema in `z.array()` to generate an array of objects.
 
 ```tsx filename='app/page.tsx'
-"use client";
+'use client';
 
-import { experimental_useObject as useObject } from "@ai-sdk/react";
-import { z } from "zod";
+import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { z } from 'zod';
 
 export default function Page() {
   const { object, submit, isLoading, stop } = useObject({
-    api: "/api/use-object",
+    api: '/api/use-object',
     schema: z.unknown(),
   });
 
   return (
     <div>
       <button
-        onClick={() => submit("Messages during finals week.")}
+        onClick={() => submit('Messages during finals week.')}
         disabled={isLoading}
       >
         Generate notifications
@@ -319,7 +319,8 @@ export async function POST(req: Request) {
     model: openai('gpt-4o'),
     output: 'no-schema',
     prompt:
-      `Generate 3 notifications (in JSON) for a messages app in this context:` + context,
+      `Generate 3 notifications (in JSON) for a messages app in this context:` +
+      context,
   });
 
   return result.toTextStreamResponse();
