@@ -724,7 +724,7 @@ const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
               tool_calls: z
                 .array(
                   z.object({
-                    index: z.number(),
+                    index: z.number().optional(),
                     id: z.string().nullish(),
                     function: z.object({
                       name: z.string().nullish(),
