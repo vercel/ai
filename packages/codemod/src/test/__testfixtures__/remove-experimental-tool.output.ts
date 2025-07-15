@@ -7,5 +7,5 @@ interface Config {
 
 const myTool: CoreTool = {
   description: 'test',
-  parameters: {}
+  parameters: {},
 };
