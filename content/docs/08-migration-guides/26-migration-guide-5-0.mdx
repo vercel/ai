@@ -28,14 +28,20 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0 Beta.
 
 You need to update the following packages to the following versions in your `package.json` file(s):
 
-- `ai` package: `5.0.0-beta@latest`
-- `@ai-sdk/provider` package: `2.0.0-beta@latest`
-- `@ai-sdk/provider-utils` package: `3.0.0-beta@latest`
-- `@ai-sdk/*` packages: `2.0.0-beta@latest` (other `@ai-sdk` packages)
+- `ai` package: `5.0.0@beta`
+- `@ai-sdk/provider` package: `2.0.0@beta`
+- `@ai-sdk/provider-utils` package: `3.0.0@beta`
+- `@ai-sdk/*` packages: `2.0.0@beta` (other `@ai-sdk` packages)
 
 Additionally, you need to update the following peer dependencies:
 
 - `zod` package: `3.25.0` or later
+
+An example upgrade command would be:
+
+```
+npm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta zod@3.25.0
+```
 
 ## Codemods
 
