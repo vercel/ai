@@ -12,20 +12,13 @@ const testValues = ['sunny day at the beach', 'rainy day in the city'];
 const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
 const model = provider.textEmbeddingModel('text-embedding-004');
 
-const BATCH_URL = 'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents';
-const SINGLE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent';
+const BATCH_URL =
+  'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents';
+const SINGLE_URL =
+  'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent';
 const server = createTestServer({
-  [BATCH_URL]:
-    {},
-  [SINGLE_URL]:
-    {
-      response: {
-        type: 'json-value',
-        body: {
-          embedding: { values: dummyEmbeddings[0] },
-        },
-      }
-    },
+  [BATCH_URL]: {},
+  [SINGLE_URL]: {},
 });
 
 describe('GoogleGenerativeAIEmbeddingModel', () => {
@@ -36,9 +29,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     embeddings?: EmbeddingModelV2Embedding[];
     headers?: Record<string, string>;
   } = {}) {
-    server.urls[
-      BATCH_URL
-    ].response = {
+    server.urls[BATCH_URL].response = {
       type: 'json-value',
       headers,
       body: {
@@ -52,7 +43,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       body: {
         embedding: { values: embeddings[0] },
       },
-    }
+    };
   }
 
   it('should extract embedding', async () => {
@@ -172,23 +163,22 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should use the batch embeddings endpoint', async () => {
-    prepareJsonResponse()
-    const model = provider.textEmbeddingModel("text-embedding-004")
+    prepareJsonResponse();
+    const model = provider.textEmbeddingModel('text-embedding-004');
     await model.doEmbed({
       values: testValues,
     });
 
     expect(server.calls[0].requestUrl).toBe(BATCH_URL);
-  })
+  });
 
   it('should use the single embeddings endpoint', async () => {
-
-    const model = provider.textEmbeddingModel("text-embedding-004")
+    const model = provider.textEmbeddingModel('text-embedding-004');
 
     await model.doEmbed({
       values: [testValues[0]],
     });
 
     expect(server.calls[0].requestUrl).toBe(SINGLE_URL);
-  })
+  });
 });
