@@ -382,9 +382,12 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-main().catch(error => {
-  console.error(
-    `Fatal error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-  );
-  process.exit(1);
-});
+// Only run main if not in test environment
+if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
+  main().catch(error => {
+    console.error(
+      `Fatal error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    );
+    process.exit(1);
+  });
+}

@@ -2,6 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { writeFileSync, unlinkSync } from 'fs';
 import { resolve, basename } from 'path';
 
+const mockExit = vi.fn();
+Object.defineProperty(process, 'exit', {
+  value: mockExit,
+  writable: true,
+});
+
 vi.mock('../generate-text/stream-text', () => ({
   streamText: vi.fn(() => ({
     textStream: (async function* () {
