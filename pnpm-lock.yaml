@@ -72,7 +72,7 @@ importers:
         specifier: 1.3.24
         version: link:../../packages/azure
       '@ai-sdk/cerebras':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../../packages/cerebras
       '@ai-sdk/cohere':
         specifier: 1.2.10
@@ -81,10 +81,10 @@ importers:
         specifier: 0.0.1
         version: link:../../packages/deepgram
       '@ai-sdk/deepinfra':
-        specifier: 0.2.16
+        specifier: 0.2.17
         version: link:../../packages/deepinfra
       '@ai-sdk/deepseek':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../../packages/deepseek
       '@ai-sdk/elevenlabs':
         specifier: 0.0.3
@@ -93,7 +93,7 @@ importers:
         specifier: 0.1.12
         version: link:../../packages/fal
       '@ai-sdk/fireworks':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../../packages/fireworks
       '@ai-sdk/gladia':
         specifier: 0.0.1
@@ -123,7 +123,7 @@ importers:
         specifier: 1.3.23
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../../packages/openai-compatible
       '@ai-sdk/perplexity':
         specifier: 1.1.9
@@ -138,16 +138,16 @@ importers:
         specifier: 0.0.2
         version: link:../../packages/revai
       '@ai-sdk/togetherai':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../../packages/togetherai
       '@ai-sdk/valibot':
         specifier: 0.1.31
         version: link:../../packages/valibot
       '@ai-sdk/vercel':
-        specifier: 0.0.2
+        specifier: 0.0.3
         version: link:../../packages/vercel
       '@ai-sdk/xai':
-        specifier: 1.2.17
+        specifier: 1.2.18
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0
@@ -561,10 +561,10 @@ importers:
         specifier: 1.2.12
         version: link:../../packages/anthropic
       '@ai-sdk/deepseek':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../../packages/fireworks
       '@ai-sdk/google':
         specifier: 1.2.22
@@ -1358,7 +1358,7 @@ importers:
   packages/cerebras:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3
@@ -1485,7 +1485,7 @@ importers:
   packages/deepinfra:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3
@@ -1513,7 +1513,7 @@ importers:
   packages/deepseek:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3
@@ -1591,7 +1591,7 @@ importers:
   packages/fireworks:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3
@@ -2195,7 +2195,7 @@ importers:
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3
@@ -2282,7 +2282,7 @@ importers:
   packages/vercel:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3
@@ -2365,7 +2365,7 @@ importers:
   packages/xai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.15
+        specifier: 0.2.16
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3
@@ -24121,7 +24121,7 @@ snapshots:
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.57.1)
       eslint-plugin-react: 7.35.0(eslint@8.57.1)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
@@ -24192,8 +24192,8 @@ snapshots:
       debug: 4.4.0(supports-color@9.4.0)
       enhanced-resolve: 5.17.1
       eslint: 8.57.1
-      eslint-module-utils: 2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-module-utils: 2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.2
       is-core-module: 2.13.1
@@ -24232,7 +24232,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-module-utils@2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -24265,7 +24265,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -24314,7 +24314,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
@@ -24324,7 +24324,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       hasown: 2.0.2
       is-core-module: 2.15.0
       is-glob: 4.0.3
