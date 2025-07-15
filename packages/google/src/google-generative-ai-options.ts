@@ -1,4 +1,6 @@
 import { z } from 'zod/v4';
+import { GoogleGenerativeAIEmbeddingProviderOptions } from './google-generative-ai-embedding-options';
+import { GoogleGenerativeAIImageSettings } from './google-generative-ai-image-settings';
 
 export type GoogleGenerativeAIModelId =
   // Stable models
@@ -110,6 +112,6 @@ export type GoogleGenerativeAIProviderOptions = z.infer<
 
 declare module '@ai-sdk/provider' {
   interface SharedV2ProviderOptions {
-    google?: GoogleGenerativeAIProviderOptions;
+    google?: GoogleGenerativeAIProviderOptions & GoogleGenerativeAIImageSettings & GoogleGenerativeAIEmbeddingProviderOptions;
   }
 }
