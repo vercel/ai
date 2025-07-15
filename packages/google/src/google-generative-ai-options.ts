@@ -107,3 +107,9 @@ Optional. A list of unique safety settings for blocking unsafe content.
 export type GoogleGenerativeAIProviderOptions = z.infer<
   typeof googleGenerativeAIProviderOptions
 >;
+
+declare module '@ai-sdk/provider' {
+  interface SharedV2ProviderOptions {
+    google?: GoogleGenerativeAIProviderOptions;
+  }
+}
