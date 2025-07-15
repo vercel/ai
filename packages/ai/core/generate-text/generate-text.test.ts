@@ -1373,6 +1373,63 @@ describe('telemetry', () => {
     expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
+  it('should record error on tool call', async () => {
+    await expect(async () => {
+      await generateText({
+        model: new MockLanguageModelV1({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            toolCalls: [
+              {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async () => {
+              throw new Error('test error');
+            },
+          },
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+        _internal: {
+          generateId: () => 'test-id',
+          currentDate: () => new Date(0),
+        },
+      });
+    }).rejects.toThrow(ToolExecutionError);
+
+    expect(tracer.jsonSpans).toHaveLength(3);
+
+    const toolCallSpan = tracer.jsonSpans[2];
+    expect(toolCallSpan.events).toHaveLength(2);
+    expect(toolCallSpan.status).toEqual({
+      code: 2,
+      message: 'Error executing tool tool1: test error',
+    });
+
+    // Find the exception event
+    const exceptionEvent = toolCallSpan.events.find(
+      event => event.name === 'exception',
+    );
+    expect(exceptionEvent).toBeDefined();
+    expect(exceptionEvent!.attributes).toMatchObject({
+      'exception.message': 'test error',
+      'exception.name': 'Error',
+      'exception.stack': expect.any(String),
+    });
+  });
+
   it('should not record telemetry inputs / outputs when disabled', async () => {
     await generateText({
       model: new MockLanguageModelV1({
