@@ -249,10 +249,27 @@ const { text } = await generateText({
 When using provider-specific options, use the actual provider name (e.g. `anthropic` not `gateway`) as the key:
 
 ```ts
+// with model string
 import { generateText } from 'ai';
 
 const { text } = await generateText({
   model: 'anthropic/claude-3-5-sonnet',
+  prompt: 'Explain quantum computing',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 12000 },
+    },
+  },
+});
+```
+
+```ts
+// with provider instance
+import { generateText } from 'ai';
+import { gateway } from '@ai-sdk/gateway';
+
+const { text } = await generateText({
+  model: gateway('anthropic/claude-3-5-sonnet'),
   prompt: 'Explain quantum computing',
   providerOptions: {
     anthropic: {
