@@ -30,15 +30,13 @@ Some models allow developers to provide a list of tools that can be called at an
 
 Let's create a React component that imports the `useChat` hook from the `@ai-sdk/react` module. The `useChat` hook will call the `/api/chat` endpoint when the user sends a message. The endpoint will generate the assistant's response based on the conversation history and stream it to the client. If the assistant responds with a tool call, the hook will automatically display them as well.
 
-We will use the `maxSteps` to specify the maximum number of steps (i.e., LLM calls) that can be made to prevent infinite loops. In this example, you will set it to `2` to allow for two backend calls to happen.
-
 ```tsx filename='app/page.tsx'
 'use client';
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useState } from 'react';
-import type { ChatMessage } from '../api/chat/route';
+import type { ChatMessage } from './api/chat/route';
 
 export default function Page() {
   const [input, setInput] = useState('');
@@ -60,9 +58,9 @@ export default function Page() {
         onKeyDown={async event => {
           if (event.key === 'Enter') {
             sendMessage({
-              role: 'user',
-              parts: [{ type: 'text', text: input }],
+              text: input,
             });
+            setInput('');
           }
         }}
       />
@@ -70,8 +68,15 @@ export default function Page() {
       {messages.map((message, index) => (
         <div key={index}>
           {message.parts.map(part => {
-            if (part.type === 'text') {
-              return <div key={`${message.id}-text`}>{part.text}</div>;
+            switch (part.type) {
+              case 'text':
+                return <div key={`${message.id}-text`}>{part.text}</div>;
+              case 'tool-getWeather':
+                return (
+                  <div key={`${message.id}-weather`}>
+                    {JSON.stringify(part, null, 2)}
+                  </div>
+                );
             }
           })}
         </div>
@@ -92,16 +97,18 @@ You will also use zod to specify the schema for the `celsiusToFahrenheit` functi
 ```tsx filename='app/api/chat/route.ts'
 import { openai } from '@ai-sdk/openai';
 import {
+  type InferUITools,
+  type ToolSet,
+  type UIDataTypes,
+  type UIMessage,
   convertToModelMessages,
-  type InferUITool,
   stepCountIs,
   streamText,
   tool,
-  type UIMessage,
 } from 'ai';
 import { z } from 'zod';
 
-const tools = {
+const tools: ToolSet = {
   getWeather: tool({
     description: 'Get the weather for a location',
     inputSchema: z.object({
@@ -121,14 +128,12 @@ const tools = {
   }),
 };
 
-export type ChatTools = {
-  getWeather: InferUITool<typeof tools.getWeather>;
-};
+export type ChatTools = InferUITools<typeof tools>;
 
-export type ChatMessage = UIMessage<never, never, ChatTools>;
+export type ChatMessage = UIMessage<never, UIDataTypes, ChatTools>;
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages }: { messages: ChatMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
@@ -138,7 +143,7 @@ export async function POST(req: Request) {
     tools,
   });
 
-  return result.toUIMessageStreamResponse<ChatMessage>();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
