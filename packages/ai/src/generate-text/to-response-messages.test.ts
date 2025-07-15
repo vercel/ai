@@ -106,6 +106,7 @@ describe('toResponseMessages', () => {
             {
               "input": {},
               "providerExecuted": undefined,
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -171,6 +172,7 @@ describe('toResponseMessages', () => {
             {
               "input": {},
               "providerExecuted": undefined,
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -336,6 +338,7 @@ describe('toResponseMessages', () => {
             {
               "input": {},
               "providerExecuted": undefined,
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -385,7 +388,12 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         content: [
           { type: 'text', text: 'Here is an image' },
-          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
+          {
+            type: 'file',
+            data: pngFile.base64,
+            mediaType: pngFile.mediaType,
+            providerOptions: undefined,
+          },
         ],
       },
     ]);
@@ -418,11 +426,17 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         content: [
           { type: 'text', text: 'Here are multiple images' },
-          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
+          {
+            type: 'file',
+            data: pngFile.base64,
+            mediaType: pngFile.mediaType,
+            providerOptions: undefined,
+          },
           {
             type: 'file',
             data: jpegFile.base64,
             mediaType: jpegFile.mediaType,
+            providerOptions: undefined,
           },
         ],
       },
@@ -451,7 +465,12 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         content: [
           { type: 'text', text: 'Here is a binary image' },
-          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
+          {
+            type: 'file',
+            data: pngFile.base64,
+            mediaType: pngFile.mediaType,
+            providerOptions: undefined,
+          },
         ],
       },
     ]);
@@ -506,6 +525,7 @@ describe('toResponseMessages', () => {
             {
               "data": "iVBORw0KGgo=",
               "mediaType": "image/png",
+              "providerOptions": undefined,
               "type": "file",
             },
             {
@@ -515,6 +535,7 @@ describe('toResponseMessages', () => {
             {
               "input": {},
               "providerExecuted": undefined,
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -555,6 +576,7 @@ describe('toResponseMessages', () => {
             {
               "input": {},
               "providerExecuted": undefined,
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -640,6 +662,7 @@ describe('toResponseMessages', () => {
                   "query": "San Francisco major news events June 22 2025",
                 },
                 "providerExecuted": true,
+                "providerOptions": undefined,
                 "toolCallId": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                 "toolName": "web_search",
                 "type": "tool-call",
@@ -654,6 +677,7 @@ describe('toResponseMessages', () => {
                   ],
                 },
                 "providerExecuted": true,
+                "providerOptions": undefined,
                 "toolCallId": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                 "toolName": "web_search",
                 "type": "tool-result",
