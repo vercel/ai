@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import transformer from '../codemods/remove-openai-facade';
+import transformer from '../codemods/v4/remove-openai-facade';
 import { testTransform } from './test-utils';
 
 describe('remove-openai-facade', () => {

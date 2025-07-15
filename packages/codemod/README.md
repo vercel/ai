@@ -16,6 +16,18 @@ npx @ai-sdk/codemod upgrade
 
 This will automatically detect and transform all applicable code patterns in your project.
 
+### Run Version-Specific Codemods
+
+To run codemods for a specific version:
+
+```sh
+npx @ai-sdk/codemod v4
+
+npx @ai-sdk/codemod v5
+
+npx @ai-sdk/codemod upgrade
+```
+
 ### Run Individual Codemods
 
 To run a specific codemod:
@@ -28,89 +40,126 @@ Examples:
 
 ```sh
 # Transform a specific file
-npx @ai-sdk/codemod remove-experimental-ai-fn-exports src/app/api/chat/route.ts
+npx @ai-sdk/codemod v4/remove-experimental-ai-fn-exports src/app/api/chat/route.ts
 
 # Transform a directory
-npx @ai-sdk/codemod replace-baseurl src/lib/
+npx @ai-sdk/codemod v4/replace-baseurl src/lib/
 
 # Transform entire project
-npx @ai-sdk/codemod rename-format-stream-part .
+npx @ai-sdk/codemod v5/rename-format-stream-part .
 ```
 
 ## Available Codemods
 
-### Provider Changes
+### v4 Codemods (v3 → v4 Migration)
 
-| Codemod                   | Description              |
-| ------------------------- | ------------------------ |
-| `remove-anthropic-facade` | Removes anthropic facade |
-| `remove-google-facade`    | Removes google facade    |
-| `remove-mistral-facade`   | Removes mistral facade   |
-| `remove-openai-facade`    | Removes openai facade    |
-| `replace-baseurl`         | Replaces baseurl         |
+| Codemod                                               | Description                                                    |
+| ----------------------------------------------------- | -------------------------------------------------------------- |
+| `v4/remove-ai-stream-methods-from-stream-text-result` | Transforms v4/remove ai stream methods from stream text result |
+| `v4/remove-anthropic-facade`                          | Transforms v4/remove anthropic facade                          |
+| `v4/remove-await-streamobject`                        | Transforms v4/remove await streamobject                        |
+| `v4/remove-await-streamtext`                          | Transforms v4/remove await streamtext                          |
+| `v4/remove-deprecated-provider-registry-exports`      | Transforms v4/remove deprecated provider registry exports      |
+| `v4/remove-experimental-ai-fn-exports`                | Transforms v4/remove experimental ai fn exports                |
+| `v4/remove-experimental-message-types`                | Transforms v4/remove experimental message types                |
+| `v4/remove-experimental-streamdata`                   | Transforms v4/remove experimental streamdata                   |
+| `v4/remove-experimental-tool`                         | Transforms v4/remove experimental tool                         |
+| `v4/remove-experimental-useassistant`                 | Transforms v4/remove experimental useassistant                 |
+| `v4/remove-google-facade`                             | Transforms v4/remove google facade                             |
+| `v4/remove-isxxxerror`                                | Transforms v4/remove isxxxerror                                |
+| `v4/remove-metadata-with-headers`                     | Transforms v4/remove metadata with headers                     |
+| `v4/remove-mistral-facade`                            | Transforms v4/remove mistral facade                            |
+| `v4/remove-openai-facade`                             | Transforms v4/remove openai facade                             |
+| `v4/rename-format-stream-part`                        | Transforms v4/rename format stream part                        |
+| `v4/rename-parse-stream-part`                         | Transforms v4/rename parse stream part                         |
+| `v4/replace-baseurl`                                  | Transforms v4/replace baseurl                                  |
+| `v4/replace-continuation-steps`                       | Transforms v4/replace continuation steps                       |
+| `v4/replace-langchain-toaistream`                     | Transforms v4/replace langchain toaistream                     |
+| `v4/replace-nanoid`                                   | Transforms v4/replace nanoid                                   |
+| `v4/replace-roundtrips-with-maxsteps`                 | Transforms v4/replace roundtrips with maxsteps                 |
+| `v4/replace-token-usage-types`                        | Transforms v4/replace token usage types                        |
+| `v4/rewrite-framework-imports`                        | Transforms v4/rewrite framework imports                        |
 
-### Core API Changes
+### v5 Codemods (v4 → v5 Migration)
 
-| Codemod                                       | Description                                  |
-| --------------------------------------------- | -------------------------------------------- |
-| `remove-deprecated-provider-registry-exports` | Removes deprecated provider registry exports |
-| `remove-experimental-ai-fn-exports`           | Removes experimental ai fn exports           |
-| `replace-continuation-steps`                  | Replaces continuation steps                  |
-| `replace-roundtrips-with-maxsteps`            | Replaces roundtrips with maxsteps            |
-| `replace-token-usage-types`                   | Replaces token usage types                   |
-
-### Streaming and Response Changes
-
-| Codemod                                            | Description                                       |
-| -------------------------------------------------- | ------------------------------------------------- |
-| `remove-ai-stream-methods-from-stream-text-result` | Removes ai stream methods from stream text result |
-| `remove-await-streamobject`                        | Removes await streamobject                        |
-| `remove-await-streamtext`                          | Removes await streamtext                          |
-| `remove-experimental-streamdata`                   | Removes experimental streamdata                   |
-| `rename-format-stream-part`                        | Renames format stream part                        |
-| `rename-parse-stream-part`                         | Renames parse stream part                         |
-| `replace-langchain-toaistream`                     | Replaces langchain toaistream                     |
-
-### UI Framework Changes
-
-| Codemod                             | Description                        |
-| ----------------------------------- | ---------------------------------- |
-| `remove-experimental-message-types` | Removes experimental message types |
-| `remove-experimental-tool`          | Removes experimental tool          |
-| `remove-experimental-useassistant`  | Removes experimental useassistant  |
-| `rewrite-framework-imports`         | Rewrites framework imports         |
-
-### Utility and Helper Changes
-
-| Codemod                        | Description                   |
-| ------------------------------ | ----------------------------- |
-| `remove-isxxxerror`            | Removes isxxxerror            |
-| `remove-metadata-with-headers` | Removes metadata with headers |
-| `replace-nanoid`               | Replaces nanoid               |
+| Codemod                                              | Description                                                   |
+| ---------------------------------------------------- | ------------------------------------------------------------- |
+| `v5/flatten-streamtext-file-properties`              | Transforms v5/flatten streamtext file properties              |
+| `v5/import-LanguageModelV2-from-provider-package`    | Transforms v5/import LanguageModelV2 from provider package    |
+| `v5/migrate-to-data-stream-protocol-v2`              | Transforms v5/migrate to data stream protocol v2              |
+| `v5/move-image-model-maxImagesPerCall`               | Transforms v5/move image model maxImagesPerCall               |
+| `v5/move-langchain-adapter`                          | Transforms v5/move langchain adapter                          |
+| `v5/move-provider-options`                           | Transforms v5/move provider options                           |
+| `v5/move-react-to-ai-sdk`                            | Transforms v5/move react to ai sdk                            |
+| `v5/move-ui-utils-to-ai`                             | Transforms v5/move ui utils to ai                             |
+| `v5/remove-experimental-wrap-language-model`         | Transforms v5/remove experimental wrap language model         |
+| `v5/remove-get-ui-text`                              | Transforms v5/remove get ui text                              |
+| `v5/remove-openai-compatibility`                     | Transforms v5/remove openai compatibility                     |
+| `v5/remove-sendExtraMessageFields`                   | Transforms v5/remove sendExtraMessageFields                   |
+| `v5/rename-core-message-to-model-message`            | Transforms v5/rename core message to model message            |
+| `v5/rename-datastream-transform-stream`              | Transforms v5/rename datastream transform stream              |
+| `v5/rename-languagemodelv1providermetadata`          | Transforms v5/rename languagemodelv1providermetadata          |
+| `v5/rename-max-tokens-to-max-output-tokens`          | Transforms v5/rename max tokens to max output tokens          |
+| `v5/rename-message-to-ui-message`                    | Transforms v5/rename message to ui message                    |
+| `v5/rename-mime-type-to-media-type`                  | Transforms v5/rename mime type to media type                  |
+| `v5/rename-reasoning-properties`                     | Transforms v5/rename reasoning properties                     |
+| `v5/rename-reasoning-to-reasoningText`               | Transforms v5/rename reasoning to reasoningText               |
+| `v5/rename-request-options`                          | Transforms v5/rename request options                          |
+| `v5/replace-bedrock-snake-case`                      | Transforms v5/replace bedrock snake case                      |
+| `v5/replace-content-with-parts`                      | Transforms v5/replace content with parts                      |
+| `v5/replace-experimental-provider-metadata`          | Transforms v5/replace experimental provider metadata          |
+| `v5/replace-generatetext-text-property`              | Transforms v5/replace generatetext text property              |
+| `v5/replace-image-type-with-file-type`               | Transforms v5/replace image type with file type               |
+| `v5/replace-llamaindex-adapter`                      | Transforms v5/replace llamaindex adapter                      |
+| `v5/replace-oncompletion-with-onfinal`               | Transforms v5/replace oncompletion with onfinal               |
+| `v5/replace-provider-metadata-with-provider-options` | Transforms v5/replace provider metadata with provider options |
+| `v5/replace-rawresponse-with-response`               | Transforms v5/replace rawresponse with response               |
+| `v5/replace-redacted-reasoning-type`                 | Transforms v5/replace redacted reasoning type                 |
+| `v5/replace-simulate-streaming`                      | Transforms v5/replace simulate streaming                      |
+| `v5/replace-textdelta-with-text`                     | Transforms v5/replace textdelta with text                     |
+| `v5/replace-usage-token-properties`                  | Transforms v5/replace usage token properties                  |
+| `v5/restructure-file-stream-parts`                   | Transforms v5/restructure file stream parts                   |
+| `v5/restructure-source-stream-parts`                 | Transforms v5/restructure source stream parts                 |
+| `v5/rsc-package`                                     | Transforms v5/rsc package                                     |
 
 ## CLI Options
 
-### Global Options
+### Commands
 
 ```sh
-npx @ai-sdk/codemod [options] <codemod-name> <path>
+npx @ai-sdk/codemod@beta <command> [options]
 ```
 
-- `--dry-run` - Preview changes without applying them
+**Available Commands:**
+
+- `upgrade` - Apply all codemods (v4 + v5)
+- `v4` - Apply v4 codemods (v3 → v4 migration)
+- `v5` - Apply v5 codemods (v4 → v5 migration)
+- `<codemod-name> <path>` - Apply specific codemod
+
+### Global Options
+
+- `--dry` - Preview changes without applying them
 - `--print` - Print transformed code to stdout
 - `--verbose` - Show detailed transformation logs
 
 ### Examples
 
 ```sh
-# Preview changes without applying
-npx @ai-sdk/codemod --dry-run upgrade
+# Preview all changes without applying
+npx @ai-sdk/codemod@beta --dry upgrade
 
-# Show verbose output
-npx @ai-sdk/codemod --verbose remove-experimental-ai-fn-exports src/
+# Preview v4 changes only
+npx @ai-sdk/codemod@beta --dry v4
 
-# Print transformed code
-npx @ai-sdk/codemod --print replace-baseurl src/config.ts
+# Preview v5 changes only
+npx @ai-sdk/codemod@beta --dry v5
+
+# Show verbose output for specific codemod
+npx @ai-sdk/codemod@beta --verbose v4/remove-experimental-ai-fn-exports src/
+
+# Print transformed code for specific codemod
+npx @ai-sdk/codemod@beta --print v4/replace-baseurl src/config.ts
 ```
 
 ## Best Practices

@@ -6,11 +6,14 @@ description: Learn how to write a custom provider for the AI SDK
 # Writing a Custom Provider
 
 <Note type="warning">
-  AI SDK 5 is currently in Alpha. During this phase, we still expect some
-  breaking changes to the specification, specifically regarding tool calling.
+  AI SDK 5 is currently in Beta. The specification may change up until GA.
 </Note>
 
 The AI SDK provides a [Language Model Specification](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v2) that enables you to create custom providers compatible with the AI SDK. This specification ensures consistency across different providers.
+
+## Publishing Your Provider
+
+Please publish your custom provider in your own GitHub repository and as an NPM package. You are responsible for hosting and maintaining your provider. Once published, you can submit a PR to the AI SDK repository to add your provider to the [Community Providers](/providers/community-providers) documentation section. Use the [OpenRouter provider documentation](https://github.com/vercel/ai/blob/main/content/providers/03-community-providers/13-openrouter.mdx) as a template for your documentation.
 
 ## Why the Language Model Specification?
 

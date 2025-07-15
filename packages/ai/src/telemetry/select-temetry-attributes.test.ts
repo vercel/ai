@@ -99,6 +99,9 @@ it('should handle mixed attribute types correctly', () => {
       input: { input: () => 'input value' },
       output: { output: () => 'output value' },
       undefined: undefined,
+      // Invalid null input
+      null: null as any,
+      input_null: { input: () => null as any },
     },
   });
   expect(result).toEqual({

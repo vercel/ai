@@ -1,5 +1,32 @@
 # ai
 
+## 5.0.0-beta.18
+
+### Patch Changes
+
+- d3960e3: selectTelemetryAttributes more robustness
+- 9338f3e: fix (ai): throw error for v1 models
+
+## 5.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [c190907]
+  - @ai-sdk/gateway@1.0.0-beta.7
+
+## 5.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [9e16bfd]
+  - @ai-sdk/gateway@1.0.0-beta.6
+
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- 8e31d46: feat (ai): export SourceDocumentUIPart
+
 ## 5.0.0-beta.14
 
 ### Patch Changes

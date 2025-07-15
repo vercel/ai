@@ -7,6 +7,7 @@ import {
 } from '../../src/util/detect-media-type';
 import { download } from '../../src/util/download';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { TranscriptionWarning } from '../types/transcription-model';
@@ -78,6 +79,14 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
+  if (model.specificationVersion !== 'v2') {
+    throw new UnsupportedModelVersionError({
+      version: model.specificationVersion,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
   const audioData =
     audio instanceof URL
