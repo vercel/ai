@@ -66,6 +66,60 @@ describe('toResponseMessages', () => {
     ]);
   });
 
+  it('should include tool calls with metadata in the assistant message', () => {
+    const result = toResponseMessages({
+      content: [
+        {
+          type: 'text',
+          text: 'Using a tool',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          input: {},
+          providerMetadata: {
+            testProvider: {
+              signature: 'sig',
+            },
+          },
+        },
+      ],
+      tools: {
+        testTool: tool({
+          description: 'A test tool',
+          inputSchema: z.object({}),
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Using a tool",
+              "type": "text",
+            },
+            {
+              "input": {},
+              "providerExecuted": undefined,
+              "providerOptions": {
+                "testProvider": {
+                  "signature": "sig",
+                },
+              },
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
+
   it('should include tool results as a separate message', () => {
     const result = toResponseMessages({
       content: [
