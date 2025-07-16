@@ -125,6 +125,7 @@ export class GoogleGenerativeAIEmbeddingModel
         response: singleResult.response,
       };
     }
+
     // Parse provider options
     const googleOptions = await parseProviderOptions({
       provider: 'google',

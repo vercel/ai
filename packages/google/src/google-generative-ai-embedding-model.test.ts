@@ -12,32 +12,38 @@ const testValues = ['sunny day at the beach', 'rainy day in the city'];
 const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
 const model = provider.textEmbeddingModel('text-embedding-004');
 
-const BATCH_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents';
-const SINGLE_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent';
+const URL =
+  'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:something';
+
 const server = createTestServer({
-  [BATCH_URL]: {},
-  [SINGLE_URL]: {},
+  [URL]: {},
 });
 
 describe('GoogleGenerativeAIEmbeddingModel', () => {
-  function prepareJsonResponse({
+  function prepareBatchJsonResponse({
     embeddings = dummyEmbeddings,
     headers,
   }: {
     embeddings?: EmbeddingModelV2Embedding[];
     headers?: Record<string, string>;
   } = {}) {
-    server.urls[BATCH_URL].response = {
+    server.urls[URL].response = {
       type: 'json-value',
       headers,
       body: {
         embeddings: embeddings.map(embedding => ({ values: embedding })),
       },
     };
+  }
 
-    server.urls[SINGLE_URL].response = {
+  function prepareSingleJsonResponse({
+    embeddings = dummyEmbeddings,
+    headers,
+  }: {
+    embeddings?: EmbeddingModelV2Embedding[];
+    headers?: Record<string, string>;
+  } = {}) {
+    server.urls[URL].response = {
       type: 'json-value',
       headers,
       body: {
@@ -47,7 +53,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   }
 
   it('should extract embedding', async () => {
-    prepareJsonResponse();
+    prepareBatchJsonResponse();
 
     const { embeddings } = await model.doEmbed({ values: testValues });
 
@@ -55,7 +61,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should expose the raw response', async () => {
-    prepareJsonResponse({
+    prepareBatchJsonResponse({
       headers: {
         'test-header': 'test-value',
       },
@@ -75,7 +81,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should pass the model and the values', async () => {
-    prepareJsonResponse();
+    prepareBatchJsonResponse();
 
     await model.doEmbed({ values: testValues });
 
@@ -88,7 +94,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should pass the outputDimensionality setting', async () => {
-    prepareJsonResponse();
+    prepareBatchJsonResponse();
 
     await provider.embedding('text-embedding-004').doEmbed({
       values: testValues,
@@ -107,7 +113,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should pass the taskType setting', async () => {
-    prepareJsonResponse();
+    prepareBatchJsonResponse();
 
     await provider.embedding('text-embedding-004').doEmbed({
       values: testValues,
@@ -124,7 +130,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should pass headers', async () => {
-    prepareJsonResponse();
+    prepareBatchJsonResponse();
 
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
@@ -163,22 +169,28 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should use the batch embeddings endpoint', async () => {
-    prepareJsonResponse();
+    prepareBatchJsonResponse();
     const model = provider.textEmbeddingModel('text-embedding-004');
     await model.doEmbed({
       values: testValues,
     });
 
-    expect(server.calls[0].requestUrl).toBe(BATCH_URL);
+    expect(server.calls[0].requestUrl).toBe(
+      'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents',
+    );
   });
 
   it('should use the single embeddings endpoint', async () => {
+    prepareSingleJsonResponse();
+
     const model = provider.textEmbeddingModel('text-embedding-004');
 
     await model.doEmbed({
       values: [testValues[0]],
     });
 
-    expect(server.calls[0].requestUrl).toBe(SINGLE_URL);
+    expect(server.calls[0].requestUrl).toBe(
+      'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent',
+    );
   });
 });
