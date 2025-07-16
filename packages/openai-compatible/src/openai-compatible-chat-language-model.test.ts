@@ -1608,6 +1608,84 @@ describe('doStream', () => {
     `);
   });
 
+  it('should stream empty tool call that is sent in one chunk', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolName": "test-tool",
+          "type": "tool-input-start",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 18,
+            "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
+          },
+        },
+      ]
+    `);
+  });
+
   it('should handle error stream parts', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
