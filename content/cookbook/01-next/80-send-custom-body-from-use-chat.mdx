@@ -6,11 +6,6 @@ tags: ['next', 'chat']
 
 # Send Custom Body from useChat
 
-<Note type="warning">
-  `experimental_prepareRequestBody` is an experimental feature and only
-  available in React, Svelte and Vue.
-</Note>
-
 By default, `useChat` sends all messages as well as information from the request to the server.
 However, it is often desirable to control the body content that is sent to the server, e.g. to:
 
@@ -18,7 +13,7 @@ However, it is often desirable to control the body content that is sent to the s
 - send additional data along with the message
 - change the structure of the request body
 
-The `experimental_prepareRequestBody` option allows you to customize the body content that is sent to the server.
+The `prepareSendMessagesRequest` option allows you to customize the body content that is sent to the server.
 The function receives the message list, the request data, and the request body from the append call.
 It should return the body content that will be sent to the server.
 
@@ -34,6 +29,7 @@ This can be useful if you want to reduce the amount of data sent to the server.
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
 
 export default function Chat() {
   const [input, setInput] = useState('');
@@ -83,7 +79,7 @@ The rest of the message history can be loaded from storage.
 
 ```tsx filename='app/api/chat/route.ts' highlight="8,11,12,16"
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { convertToModelMessages, streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -102,6 +98,11 @@ export async function POST(req: Request) {
   });
 
   // Respond with the stream
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    originalMessages: messages,
+    onFinish: ({ messages: newMessages }) => {
+      saveMessages(id, newMessages);
+    },
+  });
 }
 ```
