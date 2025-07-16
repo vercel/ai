@@ -12,24 +12,30 @@ As conversations get longer and more complex, this performance impact becomes ex
 
 This recipe uses memoization - a performance optimization technique where the results of expensive function calls are cached and reused to avoid unnecessary re-computation. In this case, parsed Markdown blocks are memoized to prevent them from being re-parsed and re-rendered on each token update, which means that once a block is fully parsed, it's cached and reused rather than being regenerated. This approach significantly improves rendering performance for long conversations by eliminating redundant parsing and rendering operations.
 
+## Installation
+
+First, install the required dependencies for Markdown rendering and parsing:
+
+```bash
+npm install react-markdown marked
+```
+
 ## Server
 
 On the server, you use a simple route handler that streams the response from the language model.
 
 ```tsx filename='app/api/chat/route.ts'
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
-
-export const maxDuration = 60;
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     system:
       'You are a helpful assistant. Respond to the user in Markdown format.',
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();
@@ -80,46 +86,73 @@ MemoizedMarkdown.displayName = 'MemoizedMarkdown';
 Finally, on the client, use the `useChat` hook to manage the chat state and render the chat interface. You can use the `MemoizedMarkdown` component to render the message contents in Markdown format without compromising on performance. Additionally, you can render the form in its own component so as to not trigger unnecessary re-renders of the chat messages. You can also use the `experimental_throttle` option that will throttle data updates to a specified interval, helping to manage rendering performance.
 
 ```typescript filename='app/page.tsx'
-'use client';
+"use client";
 
-import { useChat } from '@ai-sdk/react';
-import { MemoizedMarkdown } from '@/components/memoized-markdown';
+import { Chat, useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import { useState } from "react";
+import { MemoizedMarkdown } from "@/components/memoized-markdown";
+
+const chat = new Chat({
+  transport: new DefaultChatTransport({
+    api: "/api/chat",
+  }),
+});
 
 export default function Page() {
-  const { messages } = useChat({
-    id: 'chat',
-    // Throttle the messages and data updates to 50ms:
-    experimental_throttle: 50,
-  });
+  const { messages } = useChat({ chat, experimental_throttle: 50 });
 
   return (
     <div className="flex flex-col w-full max-w-xl py-24 mx-auto stretch">
       <div className="space-y-8 mb-4">
-        {messages.map(message => (
+        {messages.map((message) => (
           <div key={message.id}>
             <div className="font-bold mb-2">
-              {message.role === 'user' ? 'You' : 'Assistant'}
+              {message.role === "user" ? "You" : "Assistant"}
             </div>
             <div className="prose space-y-2">
-              <MemoizedMarkdown id={message.id} content={message.content} />
+              {message.parts.map((part) => {
+                if (part.type === "text") {
+                  return (
+                    <MemoizedMarkdown
+                      key={`${message.id}-text`}
+                      id={message.id}
+                      content={part.text}
+                    />
+                  );
+                }
+              })}
             </div>
           </div>
         ))}
       </div>
+
       <MessageInput />
     </div>
   );
 }
 
 const MessageInput = () => {
-  const { input, handleSubmit, handleInputChange } = useChat({ id: 'chat' });
+  const [input, setInput] = useState("");
+  const { sendMessage } = useChat({ chat });
+
   return (
-    <form onSubmit={handleSubmit}>
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        sendMessage({
+          text: input,
+        });
+        setInput("");
+      }}
+    >
       <input
         className="fixed bottom-0 w-full max-w-xl p-2 mb-8 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded shadow-xl"
         placeholder="Say something..."
         value={input}
-        onChange={handleInputChange}
+        onChange={(event) => {
+          setInput(event.target.value);
+        }}
       />
     </form>
   );
@@ -127,7 +160,7 @@ const MessageInput = () => {
 ```
 
 <Note>
-  The chat state is shared between both components by using the same `id` value.
-  This allows you to split the form and chat messages into separate components
-  while maintaining synchronized state.
+  The chat state is shared between both components by using the same `Chat`
+  instance. This allows you to split the form and chat messages into separate
+  components while maintaining synchronized state.
 </Note>

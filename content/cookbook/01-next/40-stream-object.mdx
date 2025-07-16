@@ -194,7 +194,8 @@ On the client, you wrap the schema in `z.array()` to generate an array of object
 'use client';
 
 import { experimental_useObject as useObject } from '@ai-sdk/react';
-import { notificationSchema } from './api/use-object/schema';
+import { notificationSchema } from '../api/use-object/schema';
+import z from 'zod';
 
 export default function Page() {
   const { object, submit, isLoading, stop } = useObject({
@@ -222,8 +223,8 @@ export default function Page() {
 
       {object?.map((notification, index) => (
         <div key={index}>
-          <p>{notification.name}</p>
-          <p>{notification.message}</p>
+          <p>{notification?.name}</p>
+          <p>{notification?.message}</p>
         </div>
       ))}
     </div>
@@ -295,12 +296,7 @@ export default function Page() {
         </div>
       )}
 
-      {object?.map((notification, index) => (
-        <div key={index}>
-          <p>{notification.name}</p>
-          <p>{notification.message}</p>
-        </div>
-      ))}
+      {JSON.stringify(object, null, 2)}
     </div>
   );
 }
@@ -313,7 +309,6 @@ On the server, specify `output: 'no-schema'`.
 ```typescript filename='app/api/use-object/route.ts'
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
-import { notificationSchema } from './schema';
 
 export const maxDuration = 30;
 
@@ -321,10 +316,11 @@ export async function POST(req: Request) {
   const context = await req.json();
 
   const result = streamObject({
-    model: openai('gpt-4.1'),
+    model: openai('gpt-4o'),
     output: 'no-schema',
     prompt:
-      `Generate 3 notifications for a messages app in this context:` + context,
+      `Generate 3 notifications (in JSON) for a messages app in this context:` +
+      context,
   });
 
   return result.toTextStreamResponse();
