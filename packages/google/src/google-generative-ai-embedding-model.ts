@@ -31,7 +31,6 @@ export class GoogleGenerativeAIEmbeddingModel
   readonly modelId: GoogleGenerativeAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
-  readonly supportsSingleEmbed = true;
 
   private readonly config: GoogleGenerativeAIEmbeddingConfig;
 
