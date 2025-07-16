@@ -19,28 +19,29 @@ let clientThree;
 
 try {
   // Initialize an MCP client to connect to a `stdio` MCP server:
-  const transport = new Experimental_StdioMCPTransport({
+  const transport = new StdioClientTransport({
     command: 'node',
     args: ['src/stdio/dist/server.js'],
   });
-  clientOne = await experimental_createMCPClient({
+
+  const clientOne = await experimental_createMCPClient({
     transport,
   });
 
   // Alternatively, you can connect to a Server-Sent Events (SSE) MCP server:
-  clientTwo = await experimental_createMCPClient({
-    transport: {
-      type: 'sse',
-      url: 'http://localhost:3000/sse',
-    },
+  const sseTransport = new SSEClientTransport(
+    new URL('http://localhost:3000/mcp'),
+  );
+  const clientTwo = await experimental_createMCPClient({
+    sseTransport,
   });
 
-  // Similarly to the stdio example, you can pass in your own custom transport as long as it implements the `MCPTransport` interface:
-  const transport = new MyCustomTransport({
-    // ...
-  });
-  clientThree = await experimental_createMCPClient({
-    transport,
+  // You can also connect to StreamableHTTP MCP servers
+  const httpTransport = new StreamableHTTPClientTransport(
+    new URL('http://localhost:3000/mcp'),
+  );
+  const clientThree = await experimental_createMCPClient({
+    httpTransport,
   });
 
   const toolSetOne = await clientOne.tools();
