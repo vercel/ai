@@ -8,10 +8,17 @@ tags: ['node', 'tool use', 'agent', 'mcp']
 
 The AI SDK supports Model Context Protocol (MCP) tools by offering a lightweight client that exposes a `tools` method for retrieving tools from a MCP server. After use, the client should always be closed to release resources.
 
+Use the official Model Context Protocol Typescript SDK to create the connection to the MCP server.
+
+<Snippet text="pnpm install @modelcontextprotocol/sdk" />
+
 ```ts
 import { experimental_createMCPClient, generateText } from 'ai';
 import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
 
 let clientOne;
 let clientTwo;
@@ -30,7 +37,7 @@ try {
 
   // Alternatively, you can connect to a Server-Sent Events (SSE) MCP server:
   const sseTransport = new SSEClientTransport(
-    new URL('http://localhost:3000/mcp'),
+    new URL('http://localhost:3000/sse'),
   );
   const clientTwo = await experimental_createMCPClient({
     sseTransport,
