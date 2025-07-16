@@ -2753,3 +2753,57 @@ describe('GEMMA Model System Instruction Fix', () => {
     `);
   });
 });
+
+it('should handle generateObject with JSON response format', async () => {
+  prepareJsonResponse({
+    content:
+      '{"recipe": {"name": "Simple Lasagna", "ingredients": ["pasta", "sauce", "cheese"], "steps": ["boil pasta", "add sauce", "add cheese"]}}',
+  });
+
+  await provider.languageModel('gemini-2.5-pro').doGenerate({
+    responseFormat: {
+      type: 'json',
+      schema: {
+        type: 'object',
+        properties: {
+          recipe: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              ingredients: { type: 'array', items: { type: 'string' } },
+              steps: { type: 'array', items: { type: 'string' } },
+            },
+            required: ['name', 'ingredients', 'steps'],
+          },
+        },
+        required: ['recipe'],
+      },
+    },
+    prompt: TEST_PROMPT,
+  });
+  // @ts-expect-error
+  expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'object',
+        properties: {
+          recipe: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              ingredients: { type: 'array', items: { type: 'string' } },
+              steps: { type: 'array', items: { type: 'string' } },
+            },
+            required: ['name', 'ingredients', 'steps'],
+          },
+        },
+        required: ['recipe'],
+      },
+    },
+  });
+});
+function prepareJsonResponse(arg0: { content: string }) {
+  throw new Error('Function not implemented.');
+}
