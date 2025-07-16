@@ -1,0 +1,46 @@
+import type { LanguageModelV2Middleware, ProviderV2 } from '@ai-sdk/provider';
+import { wrapLanguageModel } from 'ai';
+
+/**
+ * Wraps a ProviderV2 instance with middleware functionality.
+ * This function allows you to apply middleware to all language models
+ * from the provider, enabling you to transform parameters, wrap generate
+ * operations, and wrap stream operations for every language model.
+ *
+ * @param options - Configuration options for wrapping the provider.
+ * @param options.provider - The original ProviderV2 instance to be wrapped.
+ * @param options.middleware - The middleware to be applied to all language models from the provider. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
+ * @param options.modelId - Optional custom model ID to override the original model's ID for all language models from the provider.
+ * @param options.providerId - Optional custom provider ID to override the original model's provider for all language models from the provider.
+ * @returns A new ProviderV2 instance with middleware applied to all language models.
+ */
+export function wrapProvider({
+  provider,
+  middleware,
+  modelId: overriddenModelId,
+  providerId,
+}: {
+  provider: ProviderV2;
+  middleware: LanguageModelV2Middleware | LanguageModelV2Middleware[];
+  modelId?: string;
+  providerId?: string;
+}): ProviderV2 {
+  const wrappedProvider = {
+    languageModel(modelId: string) {
+      const originalModel = provider.languageModel(modelId);
+      const wrappedModel = wrapLanguageModel({
+        model: originalModel,
+        middleware,
+        modelId: overriddenModelId,
+        providerId,
+      });
+      return wrappedModel;
+    },
+    textEmbeddingModel: provider.textEmbeddingModel,
+    imageModel: provider.imageModel,
+    transcriptionModel: provider.transcriptionModel,
+    speechModel: provider.speechModel,
+  };
+
+  return wrappedProvider;
+}
