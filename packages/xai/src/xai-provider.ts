@@ -1,55 +1,67 @@
 import {
+  ImageModelV1,
+  LanguageModelV1,
+  NoSuchModelError,
+  ProviderV1,
+} from '@ai-sdk/provider';
+import {
+  OpenAICompatibleChatLanguageModel,
   OpenAICompatibleImageModel,
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
-  ImageModelV2,
-  LanguageModelV2,
-  NoSuchModelError,
-  ProviderV2,
-} from '@ai-sdk/provider';
-import {
   FetchFunction,
-  generateId,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { XaiChatLanguageModel } from './xai-chat-language-model';
-import { XaiChatModelId } from './xai-chat-options';
-import { XaiErrorData, xaiErrorDataSchema } from './xai-error';
+import {
+  XaiChatModelId,
+  XaiChatSettings,
+  supportsStructuredOutputs,
+} from './xai-chat-settings';
+import { XaiImageSettings } from './xai-image-settings';
 import { XaiImageModelId } from './xai-image-settings';
+import { XaiErrorData, xaiErrorSchema } from './xai-error';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
-  errorSchema: xaiErrorDataSchema,
-  errorToMessage: data => data.error.message,
+  errorSchema: xaiErrorSchema,
+  errorToMessage: data => data.error,
 };
 
-export interface XaiProvider extends ProviderV2 {
+export interface XaiProvider extends ProviderV1 {
   /**
 Creates an Xai chat model for text generation.
    */
-  (modelId: XaiChatModelId): LanguageModelV2;
+  (modelId: XaiChatModelId, settings?: XaiChatSettings): LanguageModelV1;
 
   /**
 Creates an Xai language model for text generation.
    */
-  languageModel(modelId: XaiChatModelId): LanguageModelV2;
+  languageModel(
+    modelId: XaiChatModelId,
+    settings?: XaiChatSettings,
+  ): LanguageModelV1;
 
   /**
 Creates an Xai chat model for text generation.
    */
-  chat: (modelId: XaiChatModelId) => LanguageModelV2;
-
-  /**
-Creates an Xai image model for image generation.
-@deprecated Use `imageModel` instead.
-   */
-  image(modelId: XaiImageModelId): ImageModelV2;
+  chat: (
+    modelId: XaiChatModelId,
+    settings?: XaiChatSettings,
+  ) => LanguageModelV1;
 
   /**
 Creates an Xai image model for image generation.
    */
-  imageModel(modelId: XaiImageModelId): ImageModelV2;
+  image(modelId: XaiImageModelId, settings?: XaiImageSettings): ImageModelV1;
+
+  /**
+Creates an Xai image model for image generation.
+   */
+  imageModel(
+    modelId: XaiImageModelId,
+    settings?: XaiImageSettings,
+  ): ImageModelV1;
 }
 
 export interface XaiProviderSettings {
@@ -88,18 +100,28 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     ...options.headers,
   });
 
-  const createLanguageModel = (modelId: XaiChatModelId) => {
-    return new XaiChatLanguageModel(modelId, {
+  const createLanguageModel = (
+    modelId: XaiChatModelId,
+    settings: XaiChatSettings = {},
+  ) => {
+    const structuredOutputs = supportsStructuredOutputs(modelId);
+    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
       provider: 'xai.chat',
-      baseURL,
+      url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
-      generateId,
       fetch: options.fetch,
+      defaultObjectGenerationMode: structuredOutputs ? 'json' : 'tool',
+      errorStructure: xaiErrorStructure,
+      supportsStructuredOutputs: structuredOutputs,
+      includeUsage: true,
     });
   };
 
-  const createImageModel = (modelId: XaiImageModelId) => {
-    return new OpenAICompatibleImageModel(modelId, {
+  const createImageModel = (
+    modelId: XaiImageModelId,
+    settings: XaiImageSettings = {},
+  ) => {
+    return new OpenAICompatibleImageModel(modelId, settings, {
       provider: 'xai.image',
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
@@ -108,7 +130,8 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const provider = (modelId: XaiChatModelId) => createLanguageModel(modelId);
+  const provider = (modelId: XaiChatModelId, settings?: XaiChatSettings) =>
+    createLanguageModel(modelId, settings);
 
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;

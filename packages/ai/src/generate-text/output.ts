@@ -1,27 +1,33 @@
-import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
 import {
   asSchema,
-  safeParseJSON,
-  safeValidateTypes,
+  DeepPartial,
+  parsePartialJson,
   Schema,
-} from '@ai-sdk/provider-utils';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
-import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
-import { DeepPartial } from '../../src/util/deep-partial';
-import { parsePartialJson } from '../../src/util/parse-partial-json';
-import { FinishReason } from '../types/language-model';
+} from '@ai-sdk/ui-utils';
+import { z } from 'zod';
+import { NoObjectGeneratedError } from '../../errors';
+import { injectJsonInstruction } from '../generate-object/inject-json-instruction';
+import {
+  FinishReason,
+  LanguageModel,
+  LanguageModelV1CallOptions,
+} from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 
 export interface Output<OUTPUT, PARTIAL> {
   readonly type: 'object' | 'text';
+  injectIntoSystemPrompt(options: {
+    system: string | undefined;
+    model: LanguageModel;
+  }): string | undefined;
 
-  responseFormat: LanguageModelV2CallOptions['responseFormat'];
+  responseFormat: (options: {
+    model: LanguageModel;
+  }) => LanguageModelV1CallOptions['responseFormat'];
 
-  parsePartial(options: {
-    text: string;
-  }): Promise<{ partial: PARTIAL } | undefined>;
+  parsePartial(options: { text: string }): { partial: PARTIAL } | undefined;
 
   parseOutput(
     options: { text: string },
@@ -30,19 +36,23 @@ export interface Output<OUTPUT, PARTIAL> {
       usage: LanguageModelUsage;
       finishReason: FinishReason;
     },
-  ): Promise<OUTPUT>;
+  ): OUTPUT;
 }
 
 export const text = (): Output<string, string> => ({
   type: 'text',
 
-  responseFormat: { type: 'text' },
+  responseFormat: () => ({ type: 'text' }),
 
-  async parsePartial({ text }: { text: string }) {
+  injectIntoSystemPrompt({ system }: { system: string | undefined }) {
+    return system;
+  },
+
+  parsePartial({ text }: { text: string }) {
     return { partial: text };
   },
 
-  async parseOutput({ text }: { text: string }) {
+  parseOutput({ text }: { text: string }) {
     return text;
   },
 });
@@ -50,23 +60,31 @@ export const text = (): Output<string, string> => ({
 export const object = <OUTPUT>({
   schema: inputSchema,
 }: {
-  schema:
-    | z4.ZodType<OUTPUT, any>
-    | z3.Schema<OUTPUT, z3.ZodTypeDef, any>
-    | Schema<OUTPUT>;
+  schema: z.Schema<OUTPUT, z.ZodTypeDef, any> | Schema<OUTPUT>;
 }): Output<OUTPUT, DeepPartial<OUTPUT>> => {
   const schema = asSchema(inputSchema);
 
   return {
     type: 'object',
 
-    responseFormat: {
+    responseFormat: ({ model }) => ({
       type: 'json',
-      schema: schema.jsonSchema,
+      schema: model.supportsStructuredOutputs ? schema.jsonSchema : undefined,
+    }),
+
+    injectIntoSystemPrompt({ system, model }) {
+      // when the model supports structured outputs,
+      // we can use the system prompt as is:
+      return model.supportsStructuredOutputs
+        ? system
+        : injectJsonInstruction({
+            prompt: system,
+            schema: schema.jsonSchema,
+          });
     },
 
-    async parsePartial({ text }: { text: string }) {
-      const result = await parsePartialJson(text);
+    parsePartial({ text }: { text: string }) {
+      const result = parsePartialJson(text);
 
       switch (result.state) {
         case 'failed-parse':
@@ -87,7 +105,7 @@ export const object = <OUTPUT>({
       }
     },
 
-    async parseOutput(
+    parseOutput(
       { text }: { text: string },
       context: {
         response: LanguageModelResponseMetadata;
@@ -95,7 +113,7 @@ export const object = <OUTPUT>({
         finishReason: FinishReason;
       },
     ) {
-      const parseResult = await safeParseJSON({ text });
+      const parseResult = safeParseJSON({ text });
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({
@@ -108,7 +126,7 @@ export const object = <OUTPUT>({
         });
       }
 
-      const validationResult = await safeValidateTypes({
+      const validationResult = safeValidateTypes({
         value: parseResult.value,
         schema,
       });

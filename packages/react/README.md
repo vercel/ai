@@ -4,4 +4,4 @@
 
 - [`useChat`](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat) hook
 - [`useCompletion`](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-completion) hook
-- [`useObject`](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-object) hook
+- [`useAssistant`](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-assistant) hook

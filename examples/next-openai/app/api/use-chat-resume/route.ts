@@ -1,16 +1,16 @@
 import {
   appendMessageToChat,
   appendStreamId,
+  loadStreams,
   saveChat,
 } from '@/util/chat-store';
 import { openai } from '@ai-sdk/openai';
 import {
-  convertToModelMessages,
-  createUIMessageStream,
+  appendResponseMessages,
+  createDataStream,
   generateId,
-  JsonToSseTransformStream,
+  Message,
   streamText,
-  UIMessage,
 } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
@@ -19,7 +19,11 @@ import { createResumableStreamContext } from 'resumable-stream';
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { chatId, messages }: { chatId: string; messages: UIMessage[] } =
+  const streamContext = createResumableStreamContext({
+    waitUntil: after,
+  });
+
+  const { id, messages }: { id: string; messages: Message[] } =
     await req.json();
 
   const streamId = generateId();
@@ -32,23 +36,64 @@ export async function POST(req: Request) {
     throw new Error('No recent user message found');
   }
 
-  await appendMessageToChat({ chatId, message: recentUserMessage });
-  await appendStreamId({ chatId, streamId });
+  await appendMessageToChat({ chatId: id, message: recentUserMessage });
 
-  const result = streamText({
-    model: openai('gpt-4o'),
-    messages: convertToModelMessages(messages),
+  await appendStreamId({ chatId: id, streamId });
+
+  const stream = createDataStream({
+    execute: dataStream => {
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages,
+        onFinish: async ({ response }) => {
+          await saveChat({
+            id,
+            messages: appendResponseMessages({
+              messages,
+              responseMessages: response.messages,
+            }),
+          });
+        },
+      });
+
+      result.mergeIntoDataStream(dataStream);
+    },
   });
 
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages,
-    onFinish: ({ messages }) => {
-      saveChat({ chatId, messages });
-    },
-    async consumeSseStream({ stream }) {
-      // send the sse stream into a resumable stream sink as well:
-      const streamContext = createResumableStreamContext({ waitUntil: after });
-      await streamContext.createNewResumableStream(streamId, () => stream);
-    },
+  return new Response(
+    await streamContext.resumableStream(streamId, () => stream),
+  );
+}
+
+export async function GET(request: Request) {
+  const streamContext = createResumableStreamContext({
+    waitUntil: after,
   });
+
+  const { searchParams } = new URL(request.url);
+  const chatId = searchParams.get('chatId');
+
+  if (!chatId) {
+    return new Response('id is required', { status: 400 });
+  }
+
+  const streamIds = await loadStreams(chatId);
+
+  if (!streamIds.length) {
+    return new Response('No streams found', { status: 404 });
+  }
+
+  const recentStreamId = streamIds.at(-1);
+
+  if (!recentStreamId) {
+    return new Response('No recent stream found', { status: 404 });
+  }
+
+  const emptyDataStream = createDataStream({
+    execute: () => {},
+  });
+
+  return new Response(
+    await streamContext.resumableStream(recentStreamId, () => emptyDataStream),
+  );
 }

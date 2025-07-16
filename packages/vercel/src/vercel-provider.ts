@@ -1,7 +1,7 @@
 import {
-  LanguageModelV2,
+  LanguageModelV1,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV1,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
@@ -9,7 +9,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { VercelChatModelId } from './vercel-chat-options';
+import { VercelChatModelId, VercelChatSettings } from './vercel-chat-settings';
 
 export interface VercelProviderSettings {
   /**
@@ -31,16 +31,27 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface VercelProvider extends ProviderV2 {
+export interface VercelProvider extends ProviderV1 {
   /**
 Creates a model for text generation.
 */
-  (modelId: VercelChatModelId): LanguageModelV2;
+  (modelId: VercelChatModelId, settings?: VercelChatSettings): LanguageModelV1;
+
+  /**
+Creates a chat model for text generation.
+*/
+  chatModel(
+    modelId: VercelChatModelId,
+    settings?: VercelChatSettings,
+  ): LanguageModelV1;
 
   /**
 Creates a language model for text generation.
 */
-  languageModel(modelId: VercelChatModelId): LanguageModelV2;
+  languageModel(
+    modelId: VercelChatModelId,
+    settings?: VercelChatSettings,
+  ): LanguageModelV1;
 }
 
 export function createVercel(
@@ -72,20 +83,25 @@ export function createVercel(
     fetch: options.fetch,
   });
 
-  const createChatModel = (modelId: VercelChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, {
+  const createChatModel = (
+    modelId: VercelChatModelId,
+    settings: VercelChatSettings = {},
+  ) => {
+    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
       ...getCommonModelConfig('chat'),
+      defaultObjectGenerationMode: 'json',
     });
   };
 
-  const provider = (modelId: VercelChatModelId) => createChatModel(modelId);
+  const provider = (
+    modelId: VercelChatModelId,
+    settings?: VercelChatSettings,
+  ) => createChatModel(modelId, settings);
 
+  provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
-  };
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
   return provider;

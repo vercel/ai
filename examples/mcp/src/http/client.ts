@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { experimental_createMCPClient, generateText, stepCountIs } from 'ai';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
+import { experimental_createMCPClient, generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -18,7 +18,7 @@ async function main() {
     const { text: answer } = await generateText({
       model: openai('gpt-4o-mini'),
       tools,
-      stopWhen: stepCountIs(10),
+      maxSteps: 10,
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },

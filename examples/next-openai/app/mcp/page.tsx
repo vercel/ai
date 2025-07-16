@@ -1,12 +1,23 @@
 'use client';
 
-import ChatInput from '@/component/chat-input';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
-  const { error, status, sendMessage, messages, regenerate, stop } = useChat({
-    transport: new DefaultChatTransport({ api: '/mcp/chat' }),
+  const {
+    error,
+    input,
+    status,
+    handleInputChange,
+    handleSubmit,
+    messages,
+    reload,
+    stop,
+  } = useChat({
+    api: '/mcp/chat',
+    onFinish(_message, { usage, finishReason }) {
+      console.log('Usage', usage);
+      console.log('FinishReason', finishReason);
+    },
   });
 
   return (
@@ -14,9 +25,7 @@ export default function Chat() {
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.parts
-            .map(part => (part.type === 'text' ? part.text : ''))
-            .join('')}
+          {m.content}
         </div>
       ))}
 
@@ -39,14 +48,22 @@ export default function Chat() {
           <button
             type="button"
             className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
-            onClick={() => regenerate()}
+            onClick={() => reload()}
           >
             Retry
           </button>
         </div>
       )}
 
-      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Ask me a basic arithmetic problem"
+          onChange={handleInputChange}
+          disabled={status !== 'ready'}
+        />
+      </form>
     </div>
   );
 }

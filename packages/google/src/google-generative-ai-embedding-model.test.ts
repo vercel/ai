@@ -1,4 +1,4 @@
-import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
+import { EmbeddingModelV1Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { createGoogleGenerativeAI } from './google-provider';
@@ -22,7 +22,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     embeddings = dummyEmbeddings,
     headers,
   }: {
-    embeddings?: EmbeddingModelV2Embedding[];
+    embeddings?: EmbeddingModelV1Embedding[];
     headers?: Record<string, string>;
   } = {}) {
     server.urls[
@@ -44,16 +44,16 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
 
-  it('should expose the raw response', async () => {
+  it('should expose the raw response headers', async () => {
     prepareJsonResponse({
       headers: {
         'test-header': 'test-value',
       },
     });
 
-    const { response } = await model.doEmbed({ values: testValues });
+    const { rawResponse } = await model.doEmbed({ values: testValues });
 
-    expect(response?.headers).toStrictEqual({
+    expect(rawResponse?.headers).toStrictEqual({
       // default headers:
       'content-length': '80',
       'content-type': 'application/json',
@@ -61,7 +61,6 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       // custom header
       'test-header': 'test-value',
     });
-    expect(response).toMatchSnapshot();
   });
 
   it('should pass the model and the values', async () => {
@@ -69,7 +68,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       requests: testValues.map(value => ({
         model: 'models/text-embedding-004',
         content: { role: 'user', parts: [{ text: value }] },
@@ -80,14 +79,11 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   it('should pass the outputDimensionality setting', async () => {
     prepareJsonResponse();
 
-    await provider.embedding('text-embedding-004').doEmbed({
-      values: testValues,
-      providerOptions: {
-        google: { outputDimensionality: 64 },
-      },
-    });
+    await provider
+      .embedding('text-embedding-004', { outputDimensionality: 64 })
+      .doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       requests: testValues.map(value => ({
         model: 'models/text-embedding-004',
         content: { role: 'user', parts: [{ text: value }] },
@@ -99,12 +95,11 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   it('should pass the taskType setting', async () => {
     prepareJsonResponse();
 
-    await provider.embedding('text-embedding-004').doEmbed({
-      values: testValues,
-      providerOptions: { google: { taskType: 'SEMANTIC_SIMILARITY' } },
-    });
+    await provider
+      .embedding('text-embedding-004', { taskType: 'SEMANTIC_SIMILARITY' })
+      .doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       requests: testValues.map(value => ({
         model: 'models/text-embedding-004',
         content: { role: 'user', parts: [{ text: value }] },
@@ -139,11 +134,15 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should throw an error if too many values are provided', async () => {
-    const model = new GoogleGenerativeAIEmbeddingModel('text-embedding-004', {
-      provider: 'google.generative-ai',
-      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-      headers: () => ({}),
-    });
+    const model = new GoogleGenerativeAIEmbeddingModel(
+      'text-embedding-004',
+      {},
+      {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({}),
+      },
+    );
 
     const tooManyValues = Array(2049).fill('test');
 

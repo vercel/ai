@@ -25,3 +25,10 @@ export type {
 } from './transcription-model';
 export type { TranscriptionModelResponseMetadata } from './transcription-model-response-metadata';
 export type { EmbeddingModelUsage, LanguageModelUsage } from './usage';
+export type {
+  TranscriptionModel,
+  TranscriptionWarning,
+} from './transcription-model';
+export type { TranscriptionModelResponseMetadata } from './transcription-model-response-metadata';
+export type { SpeechModel, SpeechWarning } from './speech-model';
+export type { SpeechModelResponseMetadata } from './speech-model-response-metadata';

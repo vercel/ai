@@ -1,7 +1,7 @@
 import {
-  TranscriptionModelV2,
-  TranscriptionModelV2CallOptions,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV1,
+  TranscriptionModelV1CallOptions,
+  TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -10,21 +10,54 @@ import {
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
 import {
   OpenAITranscriptionModelId,
-  openAITranscriptionProviderOptions,
-  OpenAITranscriptionProviderOptions,
-} from './openai-transcription-options';
+  OpenAITranscriptionModelOptions,
+} from './openai-transcription-settings';
+
+// https://platform.openai.com/docs/api-reference/audio/createTranscription
+const OpenAIProviderOptionsSchema = z.object({
+  include: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Additional information to include in the transcription response.',
+    ),
+  language: z
+    .string()
+    .optional()
+    .describe('The language of the input audio in ISO-639-1 format.'),
+  prompt: z
+    .string()
+    .optional()
+    .describe(
+      "An optional text to guide the model's style or continue a previous audio segment.",
+    ),
+  temperature: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .default(0)
+    .describe('The sampling temperature, between 0 and 1.'),
+  timestampGranularities: z
+    .array(z.enum(['word', 'segment']))
+    .optional()
+    .default(['segment'])
+    .describe(
+      'The timestamp granularities to populate for this transcription.',
+    ),
+});
 
 export type OpenAITranscriptionCallOptions = Omit<
-  TranscriptionModelV2CallOptions,
+  TranscriptionModelV1CallOptions,
   'providerOptions'
 > & {
   providerOptions?: {
-    openai?: OpenAITranscriptionProviderOptions;
+    openai?: z.infer<typeof OpenAIProviderOptionsSchema>;
   };
 };
 
@@ -95,8 +128,8 @@ const languageMap = {
   welsh: 'cy',
 };
 
-export class OpenAITranscriptionModel implements TranscriptionModelV2 {
-  readonly specificationVersion = 'v2';
+export class OpenAITranscriptionModel implements TranscriptionModelV1 {
+  readonly specificationVersion = 'v1';
 
   get provider(): string {
     return this.config.provider;
@@ -107,18 +140,18 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
     private readonly config: OpenAITranscriptionModelConfig,
   ) {}
 
-  private async getArgs({
+  private getArgs({
     audio,
-    mediaType,
+    mimeType,
     providerOptions,
   }: OpenAITranscriptionCallOptions) {
-    const warnings: TranscriptionModelV2CallWarning[] = [];
+    const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
-    const openAIOptions = await parseProviderOptions({
+    const openAIOptions = parseProviderOptions({
       provider: 'openai',
       providerOptions,
-      schema: openAITranscriptionProviderOptions,
+      schema: OpenAIProviderOptionsSchema,
     });
 
     // Create form data with base fields
@@ -129,11 +162,11 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
-    formData.append('file', new File([blob], 'audio', { type: mediaType }));
+    formData.append('file', new File([blob], 'audio', { type: mimeType }));
 
     // Add provider-specific options
     if (openAIOptions) {
-      const transcriptionModelOptions = {
+      const transcriptionModelOptions: OpenAITranscriptionModelOptions = {
         include: openAIOptions.include,
         language: openAIOptions.language,
         prompt: openAIOptions.prompt,
@@ -141,9 +174,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
         timestamp_granularities: openAIOptions.timestampGranularities,
       };
 
-      for (const [key, value] of Object.entries(transcriptionModelOptions)) {
-        if (value != null) {
-          formData.append(key, String(value));
+      for (const key in transcriptionModelOptions) {
+        const value =
+          transcriptionModelOptions[
+            key as keyof OpenAITranscriptionModelOptions
+          ];
+        if (value !== undefined) {
+          formData.append(key, value as string);
         }
       }
     }
@@ -156,15 +193,11 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
 
   async doGenerate(
     options: OpenAITranscriptionCallOptions,
-  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { formData, warnings } = await this.getArgs(options);
+    const { formData, warnings } = this.getArgs(options);
 
-    const {
-      value: response,
-      responseHeaders,
-      rawValue: rawResponse,
-    } = await postFormDataToApi({
+    const { value: response, responseHeaders } = await postFormDataToApi({
       url: this.config.url({
         path: '/audio/transcriptions',
         modelId: this.modelId,
@@ -179,27 +212,34 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
       fetch: this.config.fetch,
     });
 
-    const language =
-      response.language != null && response.language in languageMap
-        ? languageMap[response.language as keyof typeof languageMap]
-        : undefined;
+    let language: string | undefined;
+
+    if (response.language && response.language in languageMap) {
+      language = languageMap[response.language as keyof typeof languageMap];
+    }
 
     return {
       text: response.text,
-      segments:
-        response.words?.map(word => ({
-          text: word.word,
-          startSecond: word.start,
-          endSecond: word.end,
-        })) ?? [],
+      segments: response.words.map(word => ({
+        text: word.word,
+        startSecond: word.start,
+        endSecond: word.end,
+      })),
       language,
-      durationInSeconds: response.duration ?? undefined,
+      durationInSeconds: response.duration,
       warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
-        body: rawResponse,
+        body: response,
+      },
+
+      // When using format `verbose_json` on `whisper-1`, OpenAI includes the things like `task` and enhanced `segments` information.
+      providerMetadata: {
+        openai: {
+          transcript: response,
+        },
       },
     };
   }
@@ -207,15 +247,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
 
 const openaiTranscriptionResponseSchema = z.object({
   text: z.string(),
-  language: z.string().nullish(),
-  duration: z.number().nullish(),
-  words: z
-    .array(
-      z.object({
-        word: z.string(),
-        start: z.number(),
-        end: z.number(),
-      }),
-    )
-    .nullish(),
+  language: z.string().optional(),
+  duration: z.number().optional(),
+  words: z.array(
+    z.object({
+      word: z.string(),
+      start: z.number(),
+      end: z.number(),
+    }),
+  ),
 });

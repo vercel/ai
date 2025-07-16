@@ -1,13 +1,10 @@
-import {
-  TranscriptionModelV2,
-  ProviderV2,
-  NoSuchModelError,
-} from '@ai-sdk/provider';
+import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
-import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import { DeepgramTranscriptionModelId } from './deepgram-transcription-settings';
 
-export interface DeepgramProvider extends ProviderV2 {
+export interface DeepgramProvider
+  extends Pick<ProviderV1, 'transcriptionModel'> {
   (
     modelId: 'nova-3',
     settings?: {},
@@ -18,7 +15,7 @@ export interface DeepgramProvider extends ProviderV2 {
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV2;
+  transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV1;
 }
 
 export interface DeepgramProviderSettings {
@@ -70,31 +67,6 @@ export function createDeepgram(
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
-
-  // Required ProviderV2 methods that are not supported
-  provider.languageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'languageModel',
-      message: 'Deepgram does not provide language models',
-    });
-  };
-
-  provider.textEmbeddingModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
-      message: 'Deepgram does not provide text embedding models',
-    });
-  };
-
-  provider.imageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'imageModel',
-      message: 'Deepgram does not provide image models',
-    });
-  };
 
   return provider as DeepgramProvider;
 }

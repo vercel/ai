@@ -7,26 +7,20 @@ import {
   TypeValidationError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
-  asSchema,
-  safeValidateTypes,
-  Schema,
-  ValidationResult,
-} from '@ai-sdk/provider-utils';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
-import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
+import { safeValidateTypes, ValidationResult } from '@ai-sdk/provider-utils';
+import { asSchema, DeepPartial, Schema } from '@ai-sdk/ui-utils';
+import { z } from 'zod';
+import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
-} from '../../src/util/async-iterable-stream';
-import { DeepPartial } from '../../src/util/deep-partial';
+} from '../util/async-iterable-stream';
+import { ObjectStreamPart } from './stream-object-result';
 import {
   FinishReason,
   LanguageModelResponseMetadata,
   LanguageModelUsage,
 } from '../types';
-import { ObjectStreamPart } from './stream-object-result';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'enum' | 'no-schema';
@@ -42,12 +36,10 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
     isFirstDelta: boolean;
     isFinalDelta: boolean;
     latestObject: PARTIAL | undefined;
-  }): Promise<
-    ValidationResult<{
-      partial: PARTIAL;
-      textDelta: string;
-    }>
-  >;
+  }): ValidationResult<{
+    partial: PARTIAL;
+    textDelta: string;
+  }>;
   validateFinalResult(
     value: JSONValue | undefined,
     context: {
@@ -55,7 +47,7 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
       response: LanguageModelResponseMetadata;
       usage: LanguageModelUsage;
     },
-  ): Promise<ValidationResult<RESULT>>;
+  ): ValidationResult<RESULT>;
 
   createElementStream(
     originalStream: ReadableStream<ObjectStreamPart<PARTIAL>>,
@@ -66,11 +58,11 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
   type: 'no-schema',
   jsonSchema: undefined,
 
-  async validatePartialResult({ value, textDelta }) {
+  validatePartialResult({ value, textDelta }) {
     return { success: true, value: { partial: value, textDelta } };
   },
 
-  async validateFinalResult(
+  validateFinalResult(
     value: JSONValue | undefined,
     context: {
       text: string;
@@ -78,7 +70,7 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
       usage: LanguageModelUsage;
       finishReason: FinishReason;
     },
-  ): Promise<ValidationResult<JSONValue>> {
+  ): ValidationResult<JSONValue> {
     return value === undefined
       ? {
           success: false,
@@ -106,7 +98,7 @@ const objectOutputStrategy = <OBJECT>(
   type: 'object',
   jsonSchema: schema.jsonSchema,
 
-  async validatePartialResult({ value, textDelta }) {
+  validatePartialResult({ value, textDelta }) {
     return {
       success: true,
       value: {
@@ -117,9 +109,7 @@ const objectOutputStrategy = <OBJECT>(
     };
   },
 
-  async validateFinalResult(
-    value: JSONValue | undefined,
-  ): Promise<ValidationResult<OBJECT>> {
+  validateFinalResult(value: JSONValue | undefined): ValidationResult<OBJECT> {
     return safeValidateTypes({ value, schema });
   },
 
@@ -152,12 +142,7 @@ const arrayOutputStrategy = <ELEMENT>(
       additionalProperties: false,
     },
 
-    async validatePartialResult({
-      value,
-      latestObject,
-      isFirstDelta,
-      isFinalDelta,
-    }) {
+    validatePartialResult({ value, latestObject, isFirstDelta, isFinalDelta }) {
       // check that the value is an object that contains an array of elements:
       if (!isJSONObject(value) || !isJSONArray(value.elements)) {
         return {
@@ -174,7 +159,7 @@ const arrayOutputStrategy = <ELEMENT>(
 
       for (let i = 0; i < inputArray.length; i++) {
         const element = inputArray[i];
-        const result = await safeValidateTypes({ value: element, schema });
+        const result = safeValidateTypes({ value: element, schema });
 
         // special treatment for last processed element:
         // ignore parse or validation failures, since they indicate that the
@@ -222,9 +207,9 @@ const arrayOutputStrategy = <ELEMENT>(
       };
     },
 
-    async validateFinalResult(
+    validateFinalResult(
       value: JSONValue | undefined,
-    ): Promise<ValidationResult<Array<ELEMENT>>> {
+    ): ValidationResult<Array<ELEMENT>> {
       // check that the value is an object that contains an array of elements:
       if (!isJSONObject(value) || !isJSONArray(value.elements)) {
         return {
@@ -240,7 +225,7 @@ const arrayOutputStrategy = <ELEMENT>(
 
       // check that each element in the array is of the correct type:
       for (const element of inputArray) {
-        const result = await safeValidateTypes({ value: element, schema });
+        const result = safeValidateTypes({ value: element, schema });
         if (!result.success) {
           return result;
         }
@@ -296,7 +281,7 @@ const arrayOutputStrategy = <ELEMENT>(
 
 const enumOutputStrategy = <ENUM extends string>(
   enumValues: Array<ENUM>,
-): OutputStrategy<string, ENUM, never> => {
+): OutputStrategy<ENUM, ENUM, never> => {
   return {
     type: 'enum',
 
@@ -313,9 +298,7 @@ const enumOutputStrategy = <ENUM extends string>(
       additionalProperties: false,
     },
 
-    async validateFinalResult(
-      value: JSONValue | undefined,
-    ): Promise<ValidationResult<ENUM>> {
+    validateFinalResult(value: JSONValue | undefined): ValidationResult<ENUM> {
       // check that the value is an object that contains an array of elements:
       if (!isJSONObject(value) || typeof value.result !== 'string') {
         return {
@@ -341,41 +324,11 @@ const enumOutputStrategy = <ENUM extends string>(
           };
     },
 
-    async validatePartialResult({ value, textDelta }) {
-      if (!isJSONObject(value) || typeof value.result !== 'string') {
-        return {
-          success: false,
-          error: new TypeValidationError({
-            value,
-            cause:
-              'value must be an object that contains a string in the "result" property.',
-          }),
-        };
-      }
-
-      const result = value.result as string;
-      const possibleEnumValues = enumValues.filter(enumValue =>
-        enumValue.startsWith(result),
-      );
-
-      if (value.result.length === 0 || possibleEnumValues.length === 0) {
-        return {
-          success: false,
-          error: new TypeValidationError({
-            value,
-            cause: 'value must be a string in the enum',
-          }),
-        };
-      }
-
-      return {
-        success: true,
-        value: {
-          partial:
-            possibleEnumValues.length > 1 ? result : possibleEnumValues[0],
-          textDelta,
-        },
-      };
+    validatePartialResult() {
+      // no streaming in enum mode
+      throw new UnsupportedFunctionalityError({
+        functionality: 'partial results in enum mode',
+      });
     },
 
     createElementStream() {
@@ -393,10 +346,7 @@ export function getOutputStrategy<SCHEMA>({
   enumValues,
 }: {
   output: 'object' | 'array' | 'enum' | 'no-schema';
-  schema?:
-    | z4.ZodType<SCHEMA, any>
-    | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
-    | Schema<SCHEMA>;
+  schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
   enumValues?: Array<SCHEMA>;
 }): OutputStrategy<any, any, any> {
   switch (output) {

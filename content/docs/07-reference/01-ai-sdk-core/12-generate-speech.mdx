@@ -37,7 +37,7 @@ console.log(audio);
   content={[
     {
       name: 'model',
-      type: 'SpeechModelV2',
+      type: 'SpeechModelV1',
       description: 'The speech model to use.',
     },
     {
@@ -69,13 +69,6 @@ console.log(audio);
       type: 'number',
       isOptional: true,
       description: 'The speed of the speech generation.',
-    },
-    {
-      name: 'language',
-      type: 'string',
-      isOptional: true,
-      description:
-        'The language for speech generation. This should be an ISO 639-1 language code (e.g. "en", "es", "fr") or "auto" for automatic language detection. Provider support varies.',
     },
     {
       name: 'providerOptions',
@@ -165,12 +158,6 @@ console.log(audio);
               type: 'string',
               description:
                 'The ID of the response model that was used to generate the response.',
-            },
-            {
-              name: 'body',
-              isOptional: true,
-              type: 'unknown',
-              description: 'Optional response body.',
             },
             {
               name: 'headers',

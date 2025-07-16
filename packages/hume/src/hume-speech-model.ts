@@ -1,11 +1,11 @@
-import { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV1, SpeechModelV1CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { HumeConfig } from './hume-config';
 import { humeFailedResponseHandler } from './hume-error';
 import { HumeSpeechAPITypes } from './hume-api-types';
@@ -90,8 +90,8 @@ interface HumeSpeechModelConfig extends HumeConfig {
   };
 }
 
-export class HumeSpeechModel implements SpeechModelV2 {
-  readonly specificationVersion = 'v2';
+export class HumeSpeechModel implements SpeechModelV1 {
+  readonly specificationVersion = 'v1';
 
   get provider(): string {
     return this.config.provider;
@@ -102,19 +102,18 @@ export class HumeSpeechModel implements SpeechModelV2 {
     private readonly config: HumeSpeechModelConfig,
   ) {}
 
-  private async getArgs({
+  private getArgs({
     text,
     voice = 'd8ab67c6-953d-4bd8-9370-8fa53a0f1453',
     outputFormat = 'mp3',
     speed,
     instructions,
-    language,
     providerOptions,
-  }: Parameters<SpeechModelV2['doGenerate']>[0]) {
-    const warnings: SpeechModelV2CallWarning[] = [];
+  }: Parameters<SpeechModelV1['doGenerate']>[0]) {
+    const warnings: SpeechModelV1CallWarning[] = [];
 
     // Parse provider options
-    const humeOptions = await parseProviderOptions({
+    const humeOptions = parseProviderOptions({
       provider: 'hume',
       providerOptions,
       schema: humeSpeechCallOptionsSchema,
@@ -184,14 +183,6 @@ export class HumeSpeechModel implements SpeechModelV2 {
       }
     }
 
-    if (language) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'language',
-        details: `Hume speech models do not support language selection. Language parameter "${language}" was ignored.`,
-      });
-    }
-
     return {
       requestBody,
       warnings,
@@ -199,10 +190,10 @@ export class HumeSpeechModel implements SpeechModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV2['doGenerate']>>> {
+    options: Parameters<SpeechModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestBody, warnings } = await this.getArgs(options);
+    const { requestBody, warnings } = this.getArgs(options);
 
     const {
       value: audio,

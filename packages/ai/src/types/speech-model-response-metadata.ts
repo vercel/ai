@@ -13,9 +13,4 @@ The ID of the response model that was used to generate the response.
 Response headers.
    */
   headers?: Record<string, string>;
-
-  /**
-Response body.
-   */
-  body?: unknown;
 };

@@ -1,13 +1,9 @@
-import {
-  TranscriptionModelV2,
-  ProviderV2,
-  NoSuchModelError,
-} from '@ai-sdk/provider';
+import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { RevaiTranscriptionModel } from './revai-transcription-model';
-import { RevaiTranscriptionModelId } from './revai-transcription-options';
+import { RevaiTranscriptionModelId } from './revai-transcription-settings';
 
-export interface RevaiProvider extends ProviderV2 {
+export interface RevaiProvider extends Pick<ProviderV1, 'transcriptionModel'> {
   (
     modelId: 'machine',
     settings?: {},
@@ -18,7 +14,7 @@ export interface RevaiProvider extends ProviderV2 {
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV2;
+  transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV1;
 }
 
 export interface RevaiProviderSettings {
@@ -70,30 +66,6 @@ export function createRevai(
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
-
-  provider.languageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'languageModel',
-      message: 'Rev.ai does not provide language models',
-    });
-  };
-
-  provider.textEmbeddingModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
-      message: 'Rev.ai does not provide text embedding models',
-    });
-  };
-
-  provider.imageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'imageModel',
-      message: 'Rev.ai does not provide image models',
-    });
-  };
 
   return provider as RevaiProvider;
 }

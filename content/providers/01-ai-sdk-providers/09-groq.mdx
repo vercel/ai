@@ -88,31 +88,11 @@ import { generateText } from 'ai';
 const result = await generateText({
   model: groq('qwen-qwq-32b'),
   providerOptions: {
-    groq: {
-      reasoningFormat: 'parsed',
-      parallelToolCalls: true, // Enable parallel function calling (default: true)
-      user: 'user-123', // Unique identifier for end-user (optional)
-    },
+    groq: { reasoningFormat: 'parsed' },
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
 ```
-
-The following optional provider options are available for Groq language models:
-
-- **reasoningFormat** _'parsed' | 'raw' | 'hidden'_
-
-  Controls how reasoning is exposed in the generated text. Only supported by reasoning models like `qwen-qwq-32b` and `deepseek-r1-distill-*` models.
-
-  For a complete list of reasoning models and their capabilities, see [Groq's reasoning models documentation](https://console.groq.com/docs/reasoning).
-
-- **parallelToolCalls** _boolean_
-
-  Whether to enable parallel function calling during tool use. Defaults to `true`.
-
-- **user** _string_
-
-  A unique identifier representing your end-user, which can help with monitoring and abuse detection.
 
 <Note>Only Groq reasoning models support the `reasoningFormat` option.</Note>
 
@@ -130,86 +110,29 @@ const { text } = await generateText({
 });
 ```
 
-### Image Input
-
-Groq's multi-modal models like `meta-llama/llama-4-scout-17b-16e-instruct` support image inputs. You can include images in your messages using either URLs or base64-encoded data:
-
-```ts
-import { groq } from '@ai-sdk/groq';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: groq('meta-llama/llama-4-scout-17b-16e-instruct'),
-  messages: [
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'What do you see in this image?' },
-        {
-          type: 'image',
-          image: 'https://example.com/image.jpg',
-        },
-      ],
-    },
-  ],
-});
-```
-
-You can also use base64-encoded images:
-
-```ts
-import { groq } from '@ai-sdk/groq';
-import { generateText } from 'ai';
-import { readFileSync } from 'fs';
-
-const imageData = readFileSync('path/to/image.jpg', 'base64');
-
-const { text } = await generateText({
-  model: groq('meta-llama/llama-4-scout-17b-16e-instruct'),
-  messages: [
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'Describe this image in detail.' },
-        {
-          type: 'image',
-          image: `data:image/jpeg;base64,${imageData}`,
-        },
-      ],
-    },
-  ],
-});
-```
-
 ## Model Capabilities
 
-| Model                                           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ----------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gemma2-9b-it`                                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `llama-3.1-8b-instant`                          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `llama-3.3-70b-versatile`                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/llama-guard-4-12b`                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-r1-distill-llama-70b`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/llama-4-maverick-17b-128e-instruct` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/llama-4-scout-17b-16e-instruct`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/llama-prompt-guard-2-22m`           | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `meta-llama/llama-prompt-guard-2-86m`           | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `mistral-saba-24b`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `moonshotai/kimi-k2-instruct`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen/qwen3-32b`                                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `llama-guard-3-8b`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `llama3-70b-8192`                               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `llama3-8b-8192`                                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mixtral-8x7b-32768`                            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen-qwq-32b`                                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen-2.5-32b`                                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-r1-distill-qwen-32b`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                                       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `meta-llama/llama-4-scout-17b-16e-instruct` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemma2-9b-it`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama-3.3-70b-versatile`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama-3.1-8b-instant`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama-guard-3-8b`                          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama3-70b-8192`                           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama3-8b-8192`                            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mixtral-8x7b-32768`                        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen-qwq-32b`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mistral-saba-24b`                          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen-2.5-32b`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-r1-distill-qwen-32b`              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-r1-distill-llama-70b`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
-  The tables above list the most commonly used models. Please see the [Groq
-  docs](https://console.groq.com/docs/models) for a complete list of available
-  models. You can also pass any available provider model ID as a string if
-  needed.
+  The table above lists popular models. Please see the [Groq
+  docs](https://console.groq.com/docs/models) for a full list of available
+  models. The table above lists popular models. You can also pass any available
+  provider model ID as a string if needed.
 </Note>
 
 ## Transcription Models
@@ -263,5 +186,5 @@ The following provider options are available:
 | Model                        | Transcription       | Duration            | Segments            | Language            |
 | ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `whisper-large-v3`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `whisper-large-v3-turbo`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `distil-whisper-large-v3-en` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `whisper-large-v3-turbo`     | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `distil-whisper-large-v3-en` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |

@@ -1,5 +1,5 @@
 import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { stepCountIs, streamText } from 'ai';
+import { streamText } from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 
@@ -8,7 +8,7 @@ async function main() {
     model: google('gemini-2.5-flash-preview-05-20'),
     tools: { weather: weatherTool },
     prompt: 'What is the weather in San Francisco?',
-    stopWhen: stepCountIs(2),
+    maxSteps: 2,
     providerOptions: {
       google: {
         thinkingConfig: {
@@ -20,10 +20,35 @@ async function main() {
   });
 
   for await (const part of result.fullStream) {
-    if (part.type === 'reasoning') {
-      process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
-    } else if (part.type === 'text') {
-      process.stdout.write(part.text);
+    switch (part.type) {
+      case 'text-delta': {
+        process.stdout.write(part.textDelta);
+        break;
+      }
+
+      case 'reasoning': {
+        process.stdout.write('\x1b[34m' + part.textDelta + '\x1b[0m');
+        break;
+      }
+
+      case 'tool-call': {
+        process.stdout.write(
+          `\nTool call: '${part.toolName}' ${JSON.stringify(part.args)}`,
+        );
+        break;
+      }
+
+      case 'tool-result': {
+        process.stdout.write(
+          `\nTool response: '${part.toolName}' ${JSON.stringify(part.result)}`,
+        );
+        break;
+      }
+
+      case 'error': {
+        process.stdout.write('\x1b[31m' + part.error + '\x1b[0m');
+        break;
+      }
     }
   }
 
