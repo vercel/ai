@@ -37,7 +37,7 @@ const result = await generateText({
         calories: z.number(),
       }),
       execute({ name, calories }) {
-        storeInDatabase({ name, calories });
+        storeInDatabase({ name, calories }); // your implementation here
       },
     }),
   },
