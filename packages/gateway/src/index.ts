@@ -12,6 +12,7 @@ export type {
   GatewayProvider,
   GatewayProviderSettings,
 } from './gateway-provider';
+export type { GatewayProviderOptions } from './gateway-provider-options';
 export {
   GatewayError,
   GatewayAuthenticationError,

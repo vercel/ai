@@ -9,6 +9,7 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
   type ParseResult,
@@ -19,6 +20,7 @@ import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import { gatewayProviderOptions } from './gateway-provider-options';
 
 type GatewayChatConfig = GatewayConfig & {
   provider: string;
@@ -38,11 +40,50 @@ export class GatewayLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
+  private async prepareRequestBody(
+    body: any,
+    providerOptions: any,
+  ): Promise<any> {
+    const gatewayOptions = await parseProviderOptions({
+      providerOptions,
+      provider: 'gateway',
+      schema: gatewayProviderOptions,
+    });
+
+    const baseRequestBody = this.maybeEncodeFileParts(body);
+    let requestBody = baseRequestBody;
+    
+    if (gatewayOptions?.order && gatewayOptions.order.length > 0) {
+      requestBody = {
+        ...baseRequestBody,
+        providerOptions: {
+          ...baseRequestBody.providerOptions,
+          gateway: { order: gatewayOptions.order },
+        },
+      };
+    } else if (baseRequestBody.providerOptions?.gateway) {
+      const { gateway, ...otherProviderOptions } = baseRequestBody.providerOptions;
+      const { providerOptions, ...baseBodyWithoutProviderOptions } = baseRequestBody;
+      requestBody = {
+        ...baseBodyWithoutProviderOptions,
+        ...(Object.keys(otherProviderOptions).length > 0 
+          ? { providerOptions: otherProviderOptions }
+          : {}
+        ),
+      };
+    }
+
+    return requestBody;
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { abortSignal, ...body } = options;
+    
+    const requestBody = await this.prepareRequestBody(body, options.providerOptions);
     const resolvedHeaders = await resolve(this.config.headers());
+
     try {
       const {
         responseHeaders,
@@ -56,7 +97,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
           this.getModelConfigHeaders(this.modelId, false),
           await resolve(this.config.o11yHeaders),
         ),
-        body: this.maybeEncodeFileParts(body),
+        body: requestBody,
         successfulResponseHandler: createJsonResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
@@ -68,7 +109,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
 
       return {
         ...responseBody,
-        request: { body },
+        request: { body: requestBody },
         response: { headers: responseHeaders, body: rawResponse },
         warnings: [],
       };
@@ -81,7 +122,10 @@ export class GatewayLanguageModel implements LanguageModelV2 {
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { abortSignal, ...body } = options;
+    
+    const requestBody = await this.prepareRequestBody(body, options.providerOptions);
     const resolvedHeaders = await resolve(this.config.headers());
+
     try {
       const { value: response, responseHeaders } = await postJsonToApi({
         url: this.getUrl(),
@@ -91,7 +135,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
           this.getModelConfigHeaders(this.modelId, true),
           await resolve(this.config.o11yHeaders),
         ),
-        body: this.maybeEncodeFileParts(body),
+        body: requestBody,
         successfulResponseHandler: createEventSourceResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
@@ -134,7 +178,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
             },
           }),
         ),
-        request: { body },
+        request: { body: requestBody },
         response: { headers: responseHeaders },
       };
     } catch (error) {
