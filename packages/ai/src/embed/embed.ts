@@ -1,5 +1,6 @@
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -70,6 +71,14 @@ Only applicable for HTTP-based providers.
    */
   experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedResult<VALUE>> {
+  if (model.specificationVersion !== 'v2') {
+    throw new UnsupportedModelVersionError({
+      version: model.specificationVersion,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({

@@ -281,6 +281,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 call_id: z.string(),
                 name: z.string(),
                 arguments: z.string(),
+                id: z.string(),
               }),
               z.object({
                 type: z.literal('web_search_call'),
@@ -379,6 +380,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolCallId: part.call_id,
             toolName: part.name,
             input: part.arguments,
+            providerMetadata: {
+              openai: {
+                itemId: part.id,
+              },
+            },
           });
           break;
         }
@@ -601,6 +607,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolCallId: value.item.call_id,
                   toolName: value.item.name,
                   input: value.item.arguments,
+                  providerMetadata: {
+                    openai: {
+                      itemId: value.item.id,
+                    },
+                  },
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = undefined;

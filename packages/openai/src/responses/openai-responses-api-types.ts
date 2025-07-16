@@ -40,6 +40,7 @@ export type OpenAIResponsesFunctionCall = {
   call_id: string;
   name: string;
   arguments: string;
+  id?: string;
 };
 
 export type OpenAIResponsesFunctionCallOutput = {

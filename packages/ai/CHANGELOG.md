@@ -1,5 +1,38 @@
 # ai
 
+## 5.0.0-beta.19
+
+### Patch Changes
+
+- 10b21eb: feat(cli): add ai command line interface
+- 75c3396: fix (ai): handle errors in 2nd streamText doStream call
+- 05d2819: feat: allow zod 4.x as peer dependency
+- db64cbe: fix (provider/openai): multi-step reasoning with tool calls
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+  - @ai-sdk/gateway@1.0.0-beta.8
+
+## 5.0.0-beta.18
+
+### Patch Changes
+
+- d3960e3: selectTelemetryAttributes more robustness
+- 9338f3e: fix (ai): throw error for v1 models
+
+## 5.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [c190907]
+  - @ai-sdk/gateway@1.0.0-beta.7
+
+## 5.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [9e16bfd]
+  - @ai-sdk/gateway@1.0.0-beta.6
+
 ## 5.0.0-beta.15
 
 ### Patch Changes

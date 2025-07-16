@@ -1,5 +1,19 @@
 # @ai-sdk/google
 
+## 2.0.0-beta.10
+
+### Patch Changes
+
+- 7badba2: fix(google): grounding streaming sources
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+
+## 2.0.0-beta.9
+
+### Patch Changes
+
+- 8af9e03: Added Image Models to the Google Provider for Imagen 3 Support
+
 ## 2.0.0-beta.8
 
 ### Patch Changes

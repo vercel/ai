@@ -1,6 +1,7 @@
 import { Tool } from '@ai-sdk/provider-utils';
 import { ValueOf } from '../../src/util/value-of';
 import { ToolSet } from './tool-set';
+import { ProviderMetadata } from '../types';
 
 // transforms the tools into a tool call union
 export type ToolCallUnion<TOOLS extends ToolSet> = ValueOf<{
@@ -10,6 +11,7 @@ export type ToolCallUnion<TOOLS extends ToolSet> = ValueOf<{
     toolName: NAME & string;
     input: TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never;
     providerExecuted?: boolean;
+    providerMetadata?: ProviderMetadata;
   };
 }>;
 

@@ -140,4 +140,38 @@ describe('google-vertex-anthropic-provider', () => {
     // Verify that supportedUrls returns empty object to force base64 conversion
     expect(config.supportedUrls?.()).toEqual({});
   });
+
+  it('should use correct URL for global location', () => {
+    const provider = createVertexAnthropic({
+      project: 'test-project',
+      location: 'global',
+    });
+    provider('test-model-id');
+
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        baseURL:
+          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/anthropic/models',
+        provider: 'vertex.anthropic.messages',
+      }),
+    );
+  });
+
+  it('should use region-prefixed URL for non-global locations', () => {
+    const provider = createVertexAnthropic({
+      project: 'test-project',
+      location: 'us-east5',
+    });
+    provider('test-model-id');
+
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        baseURL:
+          'https://us-east5-aiplatform.googleapis.com/v1/projects/test-project/locations/us-east5/publishers/anthropic/models',
+        provider: 'vertex.anthropic.messages',
+      }),
+    );
+  });
 });

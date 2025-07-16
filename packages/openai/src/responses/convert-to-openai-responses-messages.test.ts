@@ -342,6 +342,52 @@ describe('convertToOpenAIResponsesMessages', () => {
       ]);
     });
 
+    it('should convert messages with tool call parts that have ids', async () => {
+      const result = await convertToOpenAIResponsesMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'I will search for that information.' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                input: { query: 'weather in San Francisco' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'id_123',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "I will search for that information.",
+                "type": "output_text",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "arguments": "{"query":"weather in San Francisco"}",
+            "call_id": "call_123",
+            "id": "id_123",
+            "name": "search",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+
     it('should convert multiple tool call parts in a single message', async () => {
       const result = await convertToOpenAIResponsesMessages({
         prompt: [
@@ -1316,6 +1362,7 @@ describe('convertToOpenAIResponsesMessages', () => {
             {
               "arguments": "{"a":1,"b":2}",
               "call_id": "call-1",
+              "id": undefined,
               "name": "calculator",
               "type": "function_call",
             },

@@ -3,9 +3,13 @@ import { NoSuchModelError } from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
   withoutTrailingSlash,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { type FetchFunction } from '@ai-sdk/provider-utils';
-import { asGatewayError } from './errors';
+import { asGatewayError, GatewayAuthenticationError } from './errors';
+import {
+  GATEWAY_AUTH_METHOD_HEADER,
+  parseAuthMethod,
+} from './errors/parse-auth-method';
 import {
   GatewayFetchMetadata,
   type GatewayFetchMetadataResponse,
@@ -13,12 +17,6 @@ import {
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
-import { GatewayAuthenticationError } from './errors';
-import { z } from 'zod';
-import {
-  GATEWAY_AUTH_METHOD_HEADER,
-  parseAuthMethod,
-} from './errors/parse-auth-method';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
