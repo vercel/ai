@@ -16,7 +16,7 @@ import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = streamText({
-  model: openai('gpt-3.5-turbo'),
+  model: openai('gpt-4o'),
   maxOutputTokens: 1024,
   system: 'You are a helpful chatbot.',
   messages: [
@@ -36,6 +36,6 @@ const result = streamText({
 });
 
 for await (const textPart of result.textStream) {
-  console.log(textPart);
+  process.stdout.write(textPart);
 }
 ```
