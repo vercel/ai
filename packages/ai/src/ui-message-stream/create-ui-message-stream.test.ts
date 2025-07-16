@@ -403,6 +403,7 @@ describe('createUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "1a",
                   "type": "text",
@@ -416,6 +417,7 @@ describe('createUIMessageStream', () => {
             "metadata": undefined,
             "parts": [
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "1a",
                 "type": "text",
@@ -480,6 +482,7 @@ describe('createUIMessageStream', () => {
                   "type": "text",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "1b",
                   "type": "text",
@@ -497,6 +500,7 @@ describe('createUIMessageStream', () => {
                 "type": "text",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "1b",
                 "type": "text",
