@@ -9,7 +9,7 @@ import {
 } from '@ai-sdk/provider';
 import { NoSuchProviderError } from './no-such-provider-error';
 
-type ExtractLiteralUnion<T> = T extends string
+export type ExtractLiteralUnion<T> = T extends string
   ? string extends T
     ? never
     : T
