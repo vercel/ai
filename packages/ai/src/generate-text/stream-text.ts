@@ -682,7 +682,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           }
 
           activeText.text += part.text;
-          activeText.providerMetadata = part.providerMetadata;
+          activeText.providerMetadata =
+            part.providerMetadata ?? activeText.providerMetadata;
         }
 
         if (part.type === 'text-end') {

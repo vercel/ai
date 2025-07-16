@@ -260,6 +260,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               z.object({
                 type: z.literal('message'),
                 role: z.literal('assistant'),
+                id: z.string(),
                 content: z.array(
                   z.object({
                     type: z.literal('output_text'),
@@ -359,6 +360,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             content.push({
               type: 'text',
               text: contentPart.text,
+              providerMetadata: {
+                openai: {
+                  itemId: part.id,
+                },
+              },
             });
 
             for (const annotation of contentPart.annotations) {
@@ -572,6 +578,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
+                  providerMetadata: {
+                    openai: {
+                      itemId: value.item.id,
+                    },
+                  },
                 });
               } else if (isResponseOutputItemAddedReasoningChunk(value)) {
                 activeReasoning[value.item.id] = {

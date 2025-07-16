@@ -3450,7 +3450,7 @@ describe('streamText', () => {
                 "type": "reasoning",
               },
               {
-                "providerMetadata": undefined,
+                "providerOptions": undefined,
                 "text": "Hi there!",
                 "type": "text",
               },
@@ -3532,7 +3532,7 @@ describe('streamText', () => {
             {
               "content": [
                 {
-                  "providerMetadata": undefined,
+                  "providerOptions": undefined,
                   "text": "Hello",
                   "type": "text",
                 },
@@ -3731,7 +3731,7 @@ describe('streamText', () => {
                       "type": "reasoning",
                     },
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "Hi there!",
                       "type": "text",
                     },
@@ -3807,7 +3807,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "Hello!",
                       "type": "text",
                     },
@@ -3883,7 +3883,7 @@ describe('streamText', () => {
                       "type": "file",
                     },
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "Hello!",
                       "type": "text",
                     },
@@ -4290,7 +4290,7 @@ describe('streamText', () => {
               {
                 "content": [
                   {
-                    "providerMetadata": undefined,
+                    "providerOptions": undefined,
                     "text": "Hello, world!",
                     "type": "text",
                   },
@@ -4372,7 +4372,7 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "Hello, world!",
                         "type": "text",
                       },
@@ -4523,7 +4523,7 @@ describe('streamText', () => {
               {
                 "content": [
                   {
-                    "providerMetadata": undefined,
+                    "providerOptions": undefined,
                     "text": "Hello!",
                     "type": "text",
                   },
@@ -4603,7 +4603,7 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "Hello!",
                         "type": "text",
                       },
@@ -4720,7 +4720,7 @@ describe('streamText', () => {
                     "type": "file",
                   },
                   {
-                    "providerMetadata": undefined,
+                    "providerOptions": undefined,
                     "text": "Hello!",
                     "type": "text",
                   },
@@ -4781,7 +4781,7 @@ describe('streamText', () => {
                         "type": "file",
                       },
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "Hello!",
                         "type": "text",
                       },
@@ -4882,7 +4882,7 @@ describe('streamText', () => {
           {
             "content": [
               {
-                "providerMetadata": undefined,
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
@@ -4930,7 +4930,7 @@ describe('streamText', () => {
           {
             "content": [
               {
-                "providerMetadata": undefined,
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
@@ -5384,7 +5384,7 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "Hello, world!",
                         "type": "text",
                       },
@@ -5536,7 +5536,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "providerMetadata": undefined,
+                            "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
@@ -5721,7 +5721,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "providerMetadata": undefined,
+                          "providerOptions": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -5925,7 +5925,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "providerMetadata": undefined,
+                          "providerOptions": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -5989,7 +5989,7 @@ describe('streamText', () => {
               {
                 "content": [
                   {
-                    "providerMetadata": undefined,
+                    "providerOptions": undefined,
                     "text": "Hello, world!",
                     "type": "text",
                   },
@@ -6458,7 +6458,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "providerMetadata": undefined,
+                            "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
@@ -6642,7 +6642,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "providerMetadata": undefined,
+                            "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
@@ -6973,7 +6973,7 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "Hello, world!",
                         "type": "text",
                       },
@@ -7125,7 +7125,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "providerMetadata": undefined,
+                            "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
@@ -7310,7 +7310,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "providerMetadata": undefined,
+                          "providerOptions": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -7514,7 +7514,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "providerMetadata": undefined,
+                          "providerOptions": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -7578,7 +7578,7 @@ describe('streamText', () => {
               {
                 "content": [
                   {
-                    "providerMetadata": undefined,
+                    "providerOptions": undefined,
                     "text": "Hello, world!",
                     "type": "text",
                   },
@@ -9411,7 +9411,7 @@ describe('streamText', () => {
               role: 'assistant',
               content: [
                 {
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                   text: 'HELLO, WORLD!',
                   type: 'text',
                 },
@@ -9674,7 +9674,7 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "HELLO, WORLD!",
                         "type": "text",
                       },
@@ -9895,7 +9895,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "HELLO, WORLD!",
                       "type": "text",
                     },
@@ -9977,7 +9977,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "providerMetadata": undefined,
+                          "providerOptions": undefined,
                           "text": "HELLO, WORLD!",
                           "type": "text",
                         },
@@ -10164,7 +10164,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "HELLO, WORLD!",
                       "type": "text",
                     },
@@ -10620,7 +10620,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "Hello, ",
                       "type": "text",
                     },
@@ -10983,7 +10983,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "{ "value": "Hello, world!" }",
                       "type": "text",
                     },
@@ -11014,7 +11014,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "providerMetadata": undefined,
+                          "providerOptions": undefined,
                           "text": "{ "value": "Hello, world!" }",
                           "type": "text",
                         },
@@ -11652,12 +11652,12 @@ describe('streamText', () => {
                         "type": "reasoning",
                       },
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "Hello, world!",
                         "type": "text",
                       },
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "This is a test.",
                         "type": "text",
                       },

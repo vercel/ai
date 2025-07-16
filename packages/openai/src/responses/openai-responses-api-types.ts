@@ -33,6 +33,7 @@ export type OpenAIResponsesAssistantMessage = {
     | OpenAIWebSearchCall
     | OpenAIComputerCall
   >;
+  id?: string;
 };
 
 export type OpenAIResponsesFunctionCall = {

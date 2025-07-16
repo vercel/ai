@@ -98,6 +98,7 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "Using a tool",
               "type": "text",
             },
@@ -154,6 +155,7 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "Tool used",
               "type": "text",
             },
@@ -220,6 +222,7 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "Tool used",
               "type": "text",
             },
@@ -336,6 +339,7 @@ describe('toResponseMessages', () => {
               "type": "reasoning",
             },
             {
+              "providerOptions": undefined,
               "text": "Final text",
               "type": "text",
             },
@@ -386,6 +390,7 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "multipart tool result",
               "type": "text",
             },
@@ -441,7 +446,11 @@ describe('toResponseMessages', () => {
       {
         role: 'assistant',
         content: [
-          { type: 'text', text: 'Here is an image' },
+          {
+            type: 'text',
+            text: 'Here is an image',
+            providerOptions: undefined,
+          },
           {
             type: 'file',
             data: pngFile.base64,
@@ -479,7 +488,11 @@ describe('toResponseMessages', () => {
       {
         role: 'assistant',
         content: [
-          { type: 'text', text: 'Here are multiple images' },
+          {
+            type: 'text',
+            text: 'Here are multiple images',
+            providerOptions: undefined,
+          },
           {
             type: 'file',
             data: pngFile.base64,
@@ -518,7 +531,11 @@ describe('toResponseMessages', () => {
       {
         role: 'assistant',
         content: [
-          { type: 'text', text: 'Here is a binary image' },
+          {
+            type: 'text',
+            text: 'Here is a binary image',
+            providerOptions: undefined,
+          },
           {
             type: 'file',
             data: pngFile.base64,
@@ -583,6 +600,7 @@ describe('toResponseMessages', () => {
               "type": "file",
             },
             {
+              "providerOptions": undefined,
               "text": "Combined response",
               "type": "text",
             },
@@ -708,6 +726,7 @@ describe('toResponseMessages', () => {
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "Let me search for recent news from San Francisco.",
                 "type": "text",
               },
@@ -737,6 +756,7 @@ describe('toResponseMessages', () => {
                 "type": "tool-result",
               },
               {
+                "providerOptions": undefined,
                 "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025). Here are the main highlights:
 
         1. Juneteenth Celebration:
@@ -749,5 +769,37 @@ describe('toResponseMessages', () => {
         ]
       `);
     });
+  });
+
+  it('should include provider metadata in the text parts', () => {
+    const result = toResponseMessages({
+      content: [
+        {
+          type: 'text',
+          text: 'Here is a text',
+          providerMetadata: { testProvider: { signature: 'sig' } },
+        },
+      ],
+      tools: {},
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "providerOptions": {
+                "testProvider": {
+                  "signature": "sig",
+                },
+              },
+              "text": "Here is a text",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 });
