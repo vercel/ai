@@ -134,13 +134,14 @@ const gateway = createGateway({
 
 ### OIDC Authentication (Vercel Deployments)
 
-The AI Gateway provider supports authenticating using OIDC (OpenID Connect) 
-tokens when deployed on Vercel. This provides a seamless authentication experience 
+The AI Gateway provider supports authenticating using OIDC (OpenID Connect)
+tokens when deployed on Vercel. This provides a seamless authentication experience
 without requiring API keys.
 
 #### How OIDC Authentication Works
 
 1. **In Production/Preview Deployments**:
+
    - OIDC authentication is automatically handled
    - No manual configuration needed
    - Tokens are automatically obtained and refreshed every 12 hours
@@ -150,6 +151,7 @@ without requiring API keys.
    - Since OIDC tokens expire after 12 hours, you'll need to run `vercel env pull` again to refresh them
 
 Important notes:
+
 - If an API Key is present (either passed directly or via environment), it will always be used, even if invalid
 - OIDC tokens are only used if no API Key is present
 
