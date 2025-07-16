@@ -1,5 +1,5 @@
 import type { LanguageModelV2Middleware, ProviderV2 } from '@ai-sdk/provider';
-import { wrapLanguageModel } from 'ai';
+import { wrapLanguageModel } from './wrap-language-model';
 
 /**
  * Wraps a ProviderV2 instance with middleware functionality.

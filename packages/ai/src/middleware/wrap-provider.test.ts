@@ -1,7 +1,6 @@
-import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
-import { wrapProvider } from './wrap-provider';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockProviderV2 } from '../test/mock-provider-v2';
+import { wrapProvider } from './wrap-provider';
 
 describe('wrapProvider', () => {
   it('should wrap all language models in the provider', () => {
