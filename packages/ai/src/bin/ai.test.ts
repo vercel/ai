@@ -286,9 +286,7 @@ describe('AI CLI', () => {
         options.model = 'openai/gpt-4o';
       }
 
-      expect(options.model).toMatchInlineSnapshot(
-        `"openai/gpt-4o"`,
-      );
+      expect(options.model).toMatchInlineSnapshot(`"openai/gpt-4o"`);
     });
 
     it('should preserve explicitly set models', async () => {
@@ -352,7 +350,7 @@ describe('AI CLI', () => {
 
       expect(mockExit).toHaveBeenCalledWith(1);
       expect(consoleErrorSpy).toHaveBeenCalled();
-      
+
       const firstErrorCall = consoleErrorSpy.mock.calls[0][0];
       expect(firstErrorCall).toContain('Error: Authentication required.');
       expect(firstErrorCall).toContain('AI_GATEWAY_API_KEY');
