@@ -50,7 +50,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-3.5-turbo'),
+    model: openai('gpt-4o'),
     maxOutputTokens: 512,
     tools: {
       weather: tool({
@@ -106,7 +106,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-3.5-turbo'),
+    model: openai('gpt-4o'),
     maxOutputTokens: 512,
     tools: {
       weather: tool({
@@ -154,5 +154,5 @@ main().catch(console.error);
 When using tools, it's important to note that the model won't respond with the tool call results by default.
 This is because the model has technically already generated its response to the prompt: the tool call.
 Many use cases will require the model to summarise the results of the tool call within the context of the original prompt automatically.
-You can achieve this by [using `maxSteps`](/examples/node/tools/call-tools-with-automatic-roundtrips)
+You can achieve this by [using `stopWhen`](/examples/node/tools/call-tools-multiple-steps)
 which will automatically send toolResults to the model to trigger another generation.
