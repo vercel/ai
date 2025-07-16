@@ -71,7 +71,7 @@ describe('convertToModelMessages', () => {
   });
 
   describe('assistant message', () => {
-    it('should convert a simple assistant message', () => {
+    it('should convert a simple assistant text message', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -85,6 +85,41 @@ describe('convertToModelMessages', () => {
           content: [{ type: 'text', text: 'Hello, human!' }],
         },
       ]);
+    });
+
+    it('should convert a simple assistant text message with provider metadata', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'text',
+              text: 'Hello, human!',
+              state: 'done',
+              providerMetadata: { testProvider: { signature: '1234567890' } },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "Hello, human!",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
     });
 
     it('should convert an assistant message with reasoning', () => {
