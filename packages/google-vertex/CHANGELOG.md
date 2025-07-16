@@ -1,5 +1,26 @@
 # @ai-sdk/google-vertex
 
+## 3.0.0-beta.12
+
+### Minor Changes
+
+- 6ca44f2: Fixed global region for vertex provider
+
+### Patch Changes
+
+- Updated dependencies [05d2819]
+- Updated dependencies [7badba2]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+  - @ai-sdk/google@2.0.0-beta.10
+  - @ai-sdk/anthropic@2.0.0-beta.6
+
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [8af9e03]
+  - @ai-sdk/google@2.0.0-beta.9
+
 ## 3.0.0-beta.10
 
 ### Patch Changes

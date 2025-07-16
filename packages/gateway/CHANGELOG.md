@@ -1,5 +1,24 @@
 # @ai-sdk/gateway
 
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- c190907: fix (provider/gateway): use zod v4
+
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- 9e16bfd: feat (provider/gateway): update model ids
+
 ## 1.0.0-beta.5
 
 ### Patch Changes
