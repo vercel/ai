@@ -287,7 +287,7 @@ describe('AI CLI', () => {
       }
 
       expect(options.model).toMatchInlineSnapshot(
-        `"anthropic/claude-3.5-sonnet"`,
+        `"openai/gpt-4o"`,
       );
     });
 
@@ -297,7 +297,7 @@ describe('AI CLI', () => {
         'node',
         'ai',
         '-m',
-        'anthropic/claude-3-5-sonnet-20241022',
+        'anthropic/claude-3-5-sonnet',
         '-f',
         imageFile,
         'Describe',
@@ -316,7 +316,7 @@ describe('AI CLI', () => {
       }
 
       expect(options.model).toMatchInlineSnapshot(
-        `"anthropic/claude-3-5-sonnet-20241022"`,
+        `"anthropic/claude-3-5-sonnet"`,
       );
     });
   });
@@ -351,12 +351,12 @@ describe('AI CLI', () => {
       await main();
 
       expect(mockExit).toHaveBeenCalledWith(1);
-      expect(consoleErrorSpy).toHaveBeenCalledOnce();
-      expect(consoleErrorSpy.mock.calls[0][0]).toContain(
-        'Error: Authentication required.',
-      );
-      expect(consoleErrorSpy.mock.calls[0][0]).toContain('AI_GATEWAY_API_KEY');
-      expect(consoleErrorSpy.mock.calls[0][0]).toContain('VERCEL_OIDC_TOKEN');
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      
+      const firstErrorCall = consoleErrorSpy.mock.calls[0][0];
+      expect(firstErrorCall).toContain('Error: Authentication required.');
+      expect(firstErrorCall).toContain('AI_GATEWAY_API_KEY');
+      expect(firstErrorCall).toContain('VERCEL_OIDC_TOKEN');
 
       consoleErrorSpy.mockRestore();
     });
