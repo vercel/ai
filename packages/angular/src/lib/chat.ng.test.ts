@@ -271,6 +271,7 @@ describe('text stream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "Hello, world.",
               "type": "text",
@@ -842,6 +843,7 @@ describe('maxSteps', () => {
                 "type": "tool-test-tool",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "final result",
                 "type": "text",
@@ -967,6 +969,7 @@ describe('file attachments with data url', () => {
           "metadata": undefined,
           "parts": [
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "Response to message with text attachment",
               "type": "text",
@@ -1056,6 +1059,7 @@ describe('file attachments with data url', () => {
           "metadata": undefined,
           "parts": [
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "Response to message with image attachment",
               "type": "text",
@@ -1155,6 +1159,7 @@ describe('file attachments with url', () => {
           "metadata": undefined,
           "parts": [
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "Response to message with image attachment",
               "type": "text",
@@ -1249,6 +1254,7 @@ describe('file attachments with empty text content', () => {
           "metadata": undefined,
           "parts": [
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "Response to message with image attachment",
               "type": "text",
@@ -1470,6 +1476,7 @@ describe('generateId function', () => {
           "metadata": undefined,
           "parts": [
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "Hello, world.",
               "type": "text",
