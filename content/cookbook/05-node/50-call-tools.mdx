@@ -19,7 +19,7 @@ const result = await generateText({
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
-      parameters: z.object({
+      inputSchema: z.object({
         location: z.string().describe('The location to get the weather for'),
       }),
       execute: async ({ location }) => ({
@@ -28,7 +28,7 @@ const result = await generateText({
       }),
     }),
     cityAttractions: tool({
-      parameters: z.object({ city: z.string() }),
+      inputSchema: z.object({ city: z.string() }),
     }),
   },
   prompt:
@@ -50,12 +50,12 @@ dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-3.5-turbo'),
+    model: openai('gpt-4o'),
     maxOutputTokens: 512,
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => ({
@@ -64,7 +64,7 @@ async function main() {
         }),
       }),
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       }),
     },
     prompt:
@@ -75,12 +75,12 @@ async function main() {
   for (const toolCall of result.toolCalls) {
     switch (toolCall.toolName) {
       case 'cityAttractions': {
-        toolCall.args.city; // string
+        toolCall.input.city; // string
         break;
       }
 
       case 'weather': {
-        toolCall.args.location; // string
+        toolCall.input.location; // string
         break;
       }
     }
@@ -106,12 +106,12 @@ dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-3.5-turbo'),
+    model: openai('gpt-4o'),
     maxOutputTokens: 512,
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => ({
@@ -120,7 +120,7 @@ async function main() {
         }),
       }),
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       }),
     },
     prompt:
@@ -131,9 +131,9 @@ async function main() {
   for (const toolResult of result.toolResults) {
     switch (toolResult.toolName) {
       case 'weather': {
-        toolResult.args.location; // string
-        toolResult.result.location; // string
-        toolResult.result.temperature; // number
+        toolResult.input.location; // string
+        toolResult.output.location; // string
+        toolResult.output.temperature; // number
         break;
       }
     }
@@ -154,5 +154,5 @@ main().catch(console.error);
 When using tools, it's important to note that the model won't respond with the tool call results by default.
 This is because the model has technically already generated its response to the prompt: the tool call.
 Many use cases will require the model to summarise the results of the tool call within the context of the original prompt automatically.
-You can achieve this by [using `maxSteps`](/examples/node/tools/call-tools-with-automatic-roundtrips)
+You can achieve this by [using `stopWhen`](/examples/node/tools/call-tools-multiple-steps)
 which will automatically send toolResults to the model to trigger another generation.

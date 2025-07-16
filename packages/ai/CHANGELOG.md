@@ -1,5 +1,15 @@
 # ai
 
+## 5.0.0-beta.21
+
+### Patch Changes
+
+- 38ae5cc: feat (ai): export InferUIMessageChunk type
+- faea29f: fix (provider/openai): multi-step reasoning with text
+- 90ac328: fix (ui): tool part metadata support in ui messages
+- 4a1e0c8: fix(ai-cli): fix bundling and improve authentication error handling
+- 30ac566: fix (ui): text message metadata support in ui messages
+
 ## 5.0.0-beta.20
 
 ### Patch Changes

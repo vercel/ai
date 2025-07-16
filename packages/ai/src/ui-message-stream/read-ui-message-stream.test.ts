@@ -26,74 +26,78 @@ describe('readUIMessageStream', () => {
 
     expect(await convertAsyncIterableToArray(uiMessages))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "id": "msg-123",
-          "metadata": undefined,
-          "parts": [],
-          "role": "assistant",
-        },
-        {
-          "id": "msg-123",
-          "metadata": undefined,
-          "parts": [
-            {
-              "type": "step-start",
-            },
-            {
-              "state": "streaming",
-              "text": "",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "id": "msg-123",
-          "metadata": undefined,
-          "parts": [
-            {
-              "type": "step-start",
-            },
-            {
-              "state": "streaming",
-              "text": "Hello, ",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "id": "msg-123",
-          "metadata": undefined,
-          "parts": [
-            {
-              "type": "step-start",
-            },
-            {
-              "state": "streaming",
-              "text": "Hello, world!",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "id": "msg-123",
-          "metadata": undefined,
-          "parts": [
-            {
-              "type": "step-start",
-            },
-            {
-              "state": "done",
-              "text": "Hello, world!",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
+        [
+          {
+            "id": "msg-123",
+            "metadata": undefined,
+            "parts": [],
+            "role": "assistant",
+          },
+          {
+            "id": "msg-123",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "streaming",
+                "text": "",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "id": "msg-123",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "streaming",
+                "text": "Hello, ",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "id": "msg-123",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "streaming",
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "id": "msg-123",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "done",
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
   });
 });
