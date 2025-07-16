@@ -770,4 +770,36 @@ describe('toResponseMessages', () => {
       `);
     });
   });
+
+  it('should include provider metadata in the text parts', () => {
+    const result = toResponseMessages({
+      content: [
+        {
+          type: 'text',
+          text: 'Here is a text',
+          providerMetadata: { testProvider: { signature: 'sig' } },
+        },
+      ],
+      tools: {},
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "providerOptions": {
+                "testProvider": {
+                  "signature": "sig",
+                },
+              },
+              "text": "Here is a text",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
 });
