@@ -77,3 +77,31 @@ function prepareBodyString(body: BodyInit | undefined): string {
     return JSON.stringify(body);
   }
 }
+
+/**
+Creates a fetch function that applies Bearer token authentication.
+
+@param apiKey - The API key to use for Bearer token authentication.
+@param fetch - Optional original fetch implementation to wrap. Defaults to global fetch.
+@returns A FetchFunction that adds Authorization header with Bearer token to requests.
+ */
+export function createApiKeyFetchFunction(
+  apiKey: string,
+  fetch: FetchFunction = globalThis.fetch,
+): FetchFunction {
+  return async (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> => {
+    const originalHeaders = extractHeaders(init?.headers);
+
+    return fetch(input, {
+      ...init,
+      headers: removeUndefinedEntries(
+        combineHeaders(originalHeaders, {
+          Authorization: `Bearer ${apiKey}`,
+        }),
+      ),
+    });
+  };
+}
