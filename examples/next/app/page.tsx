@@ -1,6 +1,15 @@
-import { generateId } from 'ai';
+'use client';
+
+import { useActiveChat } from './chat-context';
 import Chat from './chat/[chatId]/chat';
 
-export default async function ChatPage() {
-  return <Chat chatData={{ id: generateId(), messages: [] }} isNewChat />;
+export default function ChatPage() {
+  const { chat } = useActiveChat();
+  return (
+    <Chat
+      chatData={{ id: chat?.id!, messages: chat?.messages! }}
+      isNewChat
+      resume={false}
+    />
+  );
 }
