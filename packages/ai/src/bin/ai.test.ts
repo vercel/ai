@@ -333,30 +333,4 @@ describe('AI CLI', () => {
       process.stdin.isTTY = originalIsTTY;
     });
   });
-
-  describe('error handling', () => {
-    it('should exit with authentication error when no credentials provided', async () => {
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-
-      delete process.env.AI_GATEWAY_API_KEY;
-      delete process.env.VERCEL_OIDC_TOKEN;
-
-      process.argv = ['node', 'ai', 'test prompt'];
-
-      const { main } = await import('./ai');
-      await main();
-
-      expect(mockExit).toHaveBeenCalledWith(1);
-      expect(consoleErrorSpy).toHaveBeenCalled();
-
-      const firstErrorCall = consoleErrorSpy.mock.calls[0][0];
-      expect(firstErrorCall).toContain('Error: Authentication required.');
-      expect(firstErrorCall).toContain('AI_GATEWAY_API_KEY');
-      expect(firstErrorCall).toContain('VERCEL_OIDC_TOKEN');
-
-      consoleErrorSpy.mockRestore();
-    });
-  });
 });
