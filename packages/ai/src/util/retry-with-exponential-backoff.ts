@@ -7,10 +7,66 @@ export type RetryFunction = <OUTPUT>(
 ) => PromiseLike<OUTPUT>;
 
 /**
-The `retryWithExponentialBackoff` strategy retries a failed API call with an exponential backoff.
+ * Determines the retry delay for a failed API call by checking rate limit headers.
+ *
+ * This matches the implementation used by both Anthropic and OpenAI client SDKs:
+ * - First checks for 'retry-after-ms' header (milliseconds)
+ * - Falls back to 'retry-after' header (seconds or HTTP date)
+ * - Only uses the header value if it's reasonable (between 0 and 60 seconds)
+ * - Falls back to exponential backoff if no valid headers or if the delay is unreasonable
+ *
+ * @param error - The API call error containing response headers
+ * @param exponentialBackoffDelay - The calculated exponential backoff delay to use as fallback
+ * @returns The delay in milliseconds to wait before retrying
+ */
+function getRetryDelay(
+  error: APICallError,
+  exponentialBackoffDelay: number,
+): number {
+  const headers = error.responseHeaders;
+  if (!headers) return exponentialBackoffDelay;
+
+  let timeoutMillis: number | undefined;
+
+  // Note the `retry-after-ms` header may not be standard, but is a good idea and we'd like proactive support for it.
+  const retryAfterMs = headers['retry-after-ms'];
+  if (retryAfterMs) {
+    const timeoutMs = parseFloat(retryAfterMs);
+    if (!Number.isNaN(timeoutMs)) {
+      timeoutMillis = timeoutMs;
+    }
+  }
+
+  // About the Retry-After header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
+  const retryAfter = headers['retry-after'];
+  if (retryAfter && timeoutMillis === undefined) {
+    const timeoutSeconds = parseFloat(retryAfter);
+    if (!Number.isNaN(timeoutSeconds)) {
+      timeoutMillis = timeoutSeconds * 1000;
+    } else {
+      timeoutMillis = Date.parse(retryAfter) - Date.now();
+    }
+  }
+
+  // If the API asks us to wait a certain amount of time (and it's a reasonable amount),
+  // just do what it says, but otherwise calculate a default
+  if (
+    timeoutMillis !== undefined &&
+    0 <= timeoutMillis &&
+    timeoutMillis < 60 * 1000
+  ) {
+    return timeoutMillis;
+  }
+
+  return exponentialBackoffDelay;
+}
+
+/**
+The `retryWithExponentialBackoffRespectingRetryHeaders` strategy retries a failed API call with an exponential backoff,
+while respecting rate limit headers (retry-after-ms and retry-after) if they are provided and reasonable (0-60 seconds).
 You can configure the maximum number of retries, the initial delay, and the backoff factor.
  */
-export const retryWithExponentialBackoff =
+export const retryWithExponentialBackoffRespectingRetryHeaders =
   ({
     maxRetries = 2,
     initialDelayInMs = 2000,
@@ -61,7 +117,10 @@ async function _retryWithExponentialBackoff<OUTPUT>(
       error.isRetryable === true &&
       tryNumber <= maxRetries
     ) {
-      await delay(delayInMs);
+      // Check for rate limit headers and use them if reasonable (0-60s)
+      const actualDelay = getRetryDelay(error, delayInMs);
+
+      await delay(actualDelay);
       return _retryWithExponentialBackoff(
         f,
         { maxRetries, delayInMs: backoffFactor * delayInMs, backoffFactor },
