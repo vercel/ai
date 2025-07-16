@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- e0d9541: feat: add kimi k2 model via groq
+
 ## 2.0.0-beta.3
 
 ### Patch Changes
