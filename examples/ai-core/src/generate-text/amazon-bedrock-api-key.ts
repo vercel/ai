@@ -53,7 +53,10 @@ async function main() {
     console.log('Generated explanation:', result2.text);
     console.log('Token usage:', result2.usage);
   } catch (error) {
-    console.log('Error (expected if API key not valid):', (error as Error).message);
+    console.log(
+      'Error (expected if API key not valid):',
+      (error as Error).message,
+    );
   }
 
   console.log('\n' + '='.repeat(60) + '\n');
