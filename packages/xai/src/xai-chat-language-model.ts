@@ -330,6 +330,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
     };
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' | 'reasoning' }> = {};
+    const lastReasoningDeltas: Record<string, string> = {};
 
     const self = this;
 
@@ -438,6 +439,12 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
               delta.reasoning_content.length > 0
             ) {
               const blockId = `reasoning-${value.id || choiceIndex}`;
+
+              // skip if this reasoning content duplicates the last delta
+              if (lastReasoningDeltas[blockId] === delta.reasoning_content) {
+                return;
+              }
+              lastReasoningDeltas[blockId] = delta.reasoning_content;
 
               if (contentBlocks[blockId] == null) {
                 contentBlocks[blockId] = { type: 'reasoning' };
