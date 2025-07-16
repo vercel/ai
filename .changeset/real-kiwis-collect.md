@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-fix (ai cli): fixes + bundle
+fix(ai-cli): fix bundling and improve authentication error handling
