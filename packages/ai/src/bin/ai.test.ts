@@ -286,7 +286,9 @@ describe('AI CLI', () => {
         options.model = 'openai/gpt-4o';
       }
 
-      expect(options.model).toMatchInlineSnapshot(`"anthropic/claude-3.5-sonnet"`);
+      expect(options.model).toMatchInlineSnapshot(
+        `"anthropic/claude-3.5-sonnet"`,
+      );
     });
 
     it('should preserve explicitly set models', async () => {
