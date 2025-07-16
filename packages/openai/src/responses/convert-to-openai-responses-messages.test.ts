@@ -348,7 +348,15 @@ describe('convertToOpenAIResponsesMessages', () => {
           {
             role: 'assistant',
             content: [
-              { type: 'text', text: 'I will search for that information.' },
+              {
+                type: 'text',
+                text: 'I will search for that information.',
+                providerOptions: {
+                  openai: {
+                    itemId: 'id_123',
+                  },
+                },
+              },
               {
                 type: 'tool-call',
                 toolCallId: 'call_123',
@@ -356,7 +364,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                 input: { query: 'weather in San Francisco' },
                 providerOptions: {
                   openai: {
-                    itemId: 'id_123',
+                    itemId: 'id_456',
                   },
                 },
               },
@@ -375,12 +383,13 @@ describe('convertToOpenAIResponsesMessages', () => {
                 "type": "output_text",
               },
             ],
+            "id": "id_123",
             "role": "assistant",
           },
           {
             "arguments": "{"query":"weather in San Francisco"}",
             "call_id": "call_123",
-            "id": "id_123",
+            "id": "id_456",
             "name": "search",
             "type": "function_call",
           },
@@ -1315,6 +1324,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                   "type": "output_text",
                 },
               ],
+              "id": undefined,
               "role": "assistant",
             },
             {
@@ -1324,6 +1334,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                   "type": "output_text",
                 },
               ],
+              "id": undefined,
               "role": "assistant",
             },
           ],
