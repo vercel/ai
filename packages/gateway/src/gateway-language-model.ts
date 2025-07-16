@@ -52,7 +52,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
 
     const baseRequestBody = this.maybeEncodeFileParts(body);
     let requestBody = baseRequestBody;
-    
+
     if (gatewayOptions?.order && gatewayOptions.order.length > 0) {
       requestBody = {
         ...baseRequestBody,
@@ -62,14 +62,15 @@ export class GatewayLanguageModel implements LanguageModelV2 {
         },
       };
     } else if (baseRequestBody.providerOptions?.gateway) {
-      const { gateway, ...otherProviderOptions } = baseRequestBody.providerOptions;
-      const { providerOptions, ...baseBodyWithoutProviderOptions } = baseRequestBody;
+      const { gateway, ...otherProviderOptions } =
+        baseRequestBody.providerOptions;
+      const { providerOptions, ...baseBodyWithoutProviderOptions } =
+        baseRequestBody;
       requestBody = {
         ...baseBodyWithoutProviderOptions,
-        ...(Object.keys(otherProviderOptions).length > 0 
+        ...(Object.keys(otherProviderOptions).length > 0
           ? { providerOptions: otherProviderOptions }
-          : {}
-        ),
+          : {}),
       };
     }
 
@@ -80,8 +81,11 @@ export class GatewayLanguageModel implements LanguageModelV2 {
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { abortSignal, ...body } = options;
-    
-    const requestBody = await this.prepareRequestBody(body, options.providerOptions);
+
+    const requestBody = await this.prepareRequestBody(
+      body,
+      options.providerOptions,
+    );
     const resolvedHeaders = await resolve(this.config.headers());
 
     try {
@@ -122,8 +126,11 @@ export class GatewayLanguageModel implements LanguageModelV2 {
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { abortSignal, ...body } = options;
-    
-    const requestBody = await this.prepareRequestBody(body, options.providerOptions);
+
+    const requestBody = await this.prepareRequestBody(
+      body,
+      options.providerOptions,
+    );
     const resolvedHeaders = await resolve(this.config.headers());
 
     try {
