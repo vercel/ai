@@ -23,7 +23,7 @@ async function main() {
   } catch (error) {
     console.log(
       'Error (expected if AWS_BEARER_TOKEN_BEDROCK not set):',
-      error.message,
+      (error as Error).message,
     );
   }
 
@@ -39,7 +39,8 @@ async function main() {
 
   try {
     // Create provider with explicit API key
-    const bedrockWithApiKey = bedrock.withSettings({
+    const { createAmazonBedrock } = await import('@ai-sdk/amazon-bedrock');
+    const bedrockWithApiKey = createAmazonBedrock({
       apiKey: exampleApiKey,
       region: 'us-east-1', // Optional: specify region
     });
@@ -52,7 +53,7 @@ async function main() {
     console.log('Generated explanation:', result2.text);
     console.log('Token usage:', result2.usage);
   } catch (error) {
-    console.log('Error (expected if API key not valid):', error.message);
+    console.log('Error (expected if API key not valid):', (error as Error).message);
   }
 
   console.log('\n' + '='.repeat(60) + '\n');
@@ -96,7 +97,7 @@ API Key authentication is ideal for:
       'Authentication method used: API Key or SigV4 (automatic fallback)',
     );
   } catch (error) {
-    console.log('Error:', error.message);
+    console.log('Error:', (error as Error).message);
     console.log(
       'Make sure either AWS_BEARER_TOKEN_BEDROCK or AWS credentials are configured',
     );
