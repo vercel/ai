@@ -47,8 +47,8 @@ export default function Page() {
 Let's create a route handler for `/api/completion` that will generate text based on the input prompt. The route will call the `streamText` function from the `ai` module, which will then generate text based on the input prompt and stream it to the client.
 
 ```typescript filename='app/api/completion/route.ts'
-import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 
 export async function POST(req: Request) {
   const { prompt }: { prompt: string } = await req.json();

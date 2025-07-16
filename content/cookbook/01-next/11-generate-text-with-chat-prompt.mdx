@@ -31,7 +31,7 @@ Let's start by creating a simple chat interface with an input field that sends t
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { ModelMessage } from 'ai';
+import type { ModelMessage } from 'ai';
 import { useState } from 'react';
 
 export default function Page() {
@@ -90,14 +90,14 @@ export default function Page() {
 Next, let's create the `/api/chat` endpoint that generates the assistant's response based on the conversation history.
 
 ```typescript filename='app/api/chat/route.ts'
-import { ModelMessage, generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { generateText, type ModelMessage } from 'ai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: ModelMessage[] } = await req.json();
 
   const { response } = await generateText({
-    model: openai('gpt-4'),
+    model: openai('gpt-4o'),
     system: 'You are a helpful assistant.',
     messages,
   });
