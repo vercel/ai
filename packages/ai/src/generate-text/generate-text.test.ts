@@ -1014,6 +1014,7 @@ describe('generateText', () => {
                       {
                         "content": [
                           {
+                            "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
@@ -1194,6 +1195,7 @@ describe('generateText', () => {
                       {
                         "content": [
                           {
+                            "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
