@@ -107,6 +107,9 @@ export function convertToModelMessages(
                 content.push({
                   type: 'text' as const,
                   text: part.text,
+                  ...(part.providerMetadata != null
+                    ? { providerOptions: part.providerMetadata }
+                    : {}),
                 });
               } else if (part.type === 'file') {
                 content.push({

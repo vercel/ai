@@ -2022,7 +2022,7 @@ describe('streamText', () => {
   });
 
   describe('result.toUIMessageStream', () => {
-    it('should create a data stream', async () => {
+    it('should create a ui message stream', async () => {
       const result = streamText({
         model: createTestModel(),
         ...defaultSettings(),
@@ -2075,6 +2075,184 @@ describe('streamText', () => {
       `);
     });
 
+    it('should create a ui message stream with provider metadata', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'stream-start',
+              warnings: [],
+            },
+            {
+              type: 'reasoning-start',
+              id: 'r1',
+              providerMetadata: { testProvider: { signature: 'r1' } },
+            },
+            {
+              type: 'reasoning-delta',
+              id: 'r1',
+              delta: 'Hello',
+              providerMetadata: { testProvider: { signature: 'r2' } },
+            },
+            {
+              type: 'reasoning-delta',
+              id: 'r1',
+              delta: ', ',
+              providerMetadata: { testProvider: { signature: 'r3' } },
+            },
+            {
+              type: 'reasoning-end',
+              id: 'r1',
+              providerMetadata: { testProvider: { signature: 'r4' } },
+            },
+            {
+              type: 'text-start',
+              id: '1',
+              providerMetadata: { testProvider: { signature: '1' } },
+            },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: 'Hello',
+              providerMetadata: { testProvider: { signature: '2' } },
+            },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: ', ',
+              providerMetadata: { testProvider: { signature: '3' } },
+            },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: 'world!',
+              providerMetadata: { testProvider: { signature: '4' } },
+            },
+            {
+              type: 'text-end',
+              id: '1',
+              providerMetadata: { testProvider: { signature: '5' } },
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream();
+
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "id": "r1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "r1",
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "Hello",
+            "id": "r1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "r2",
+              },
+            },
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": ", ",
+            "id": "r1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "r3",
+              },
+            },
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "r1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "r4",
+              },
+            },
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "1",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello",
+            "id": "1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "2",
+              },
+            },
+            "type": "text-delta",
+          },
+          {
+            "delta": ", ",
+            "id": "1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "3",
+              },
+            },
+            "type": "text-delta",
+          },
+          {
+            "delta": "world!",
+            "id": "1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "4",
+              },
+            },
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "5",
+              },
+            },
+            "type": "text-end",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
+    });
+
     it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts', async () => {
       const result = streamText({
         model: createTestModel({
@@ -2110,7 +2288,7 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
-    it('should send metadata as defined in the metadata function', async () => {
+    it('should send message metadata as defined in the metadata function', async () => {
       const result = streamText({
         model: createTestModel(),
         ...defaultSettings(),
@@ -2380,19 +2558,16 @@ describe('streamText', () => {
             },
             {
               "id": "1",
-              "providerMetadata": undefined,
               "type": "reasoning-start",
             },
             {
               "delta": "I will open the conversation",
               "id": "1",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " with witty banter.",
               "id": "1",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
@@ -2407,7 +2582,6 @@ describe('streamText', () => {
             },
             {
               "id": "1",
-              "providerMetadata": undefined,
               "type": "reasoning-end",
             },
             {
@@ -2421,24 +2595,20 @@ describe('streamText', () => {
             },
             {
               "id": "2",
-              "providerMetadata": undefined,
               "type": "reasoning-end",
             },
             {
               "id": "3",
-              "providerMetadata": undefined,
               "type": "reasoning-start",
             },
             {
               "delta": " Once the user has relaxed,",
               "id": "3",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " I will pry for valuable information.",
               "id": "3",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
@@ -2462,13 +2632,11 @@ describe('streamText', () => {
             {
               "delta": " I need to think about",
               "id": "4",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " this problem carefully.",
               "id": "4",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
@@ -2483,19 +2651,16 @@ describe('streamText', () => {
             {
               "delta": " The best solution",
               "id": "5",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " requires careful",
               "id": "5",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " consideration of all factors.",
               "id": "5",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
@@ -6020,18 +6185,15 @@ describe('streamText', () => {
               },
               {
                 "id": "0",
-                "providerMetadata": undefined,
                 "type": "reasoning-start",
               },
               {
                 "delta": "thinking",
                 "id": "0",
-                "providerMetadata": undefined,
                 "type": "reasoning-delta",
               },
               {
                 "id": "0",
-                "providerMetadata": undefined,
                 "type": "reasoning-end",
               },
               {
@@ -7740,18 +7902,15 @@ describe('streamText', () => {
               },
               {
                 "id": "id-0",
-                "providerMetadata": undefined,
                 "type": "reasoning-start",
               },
               {
                 "delta": "thinking",
                 "id": "id-0",
-                "providerMetadata": undefined,
                 "type": "reasoning-delta",
               },
               {
                 "id": "id-0",
-                "providerMetadata": undefined,
                 "type": "reasoning-end",
               },
               {

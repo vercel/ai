@@ -179,6 +179,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               const textPart: TextUIPart = {
                 type: 'text',
                 text: '',
+                providerMetadata: part.providerMetadata,
                 state: 'streaming',
               };
               state.activeTextParts[part.id] = textPart;
@@ -188,7 +189,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'text-delta': {
-              state.activeTextParts[part.id].text += part.delta;
+              const textPart = state.activeTextParts[part.id];
+              textPart.text += part.delta;
+              textPart.providerMetadata =
+                part.providerMetadata ?? textPart.providerMetadata;
               write();
               break;
             }
@@ -196,6 +200,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'text-end': {
               const textPart = state.activeTextParts[part.id];
               textPart.state = 'done';
+              textPart.providerMetadata =
+                part.providerMetadata ?? textPart.providerMetadata;
               delete state.activeTextParts[part.id];
               write();
               break;

@@ -358,6 +358,7 @@ describe('data protocol stream', () => {
             },
             "parts": [
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -518,6 +519,7 @@ describe('text stream', () => {
                 "type": "step-start",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
