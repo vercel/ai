@@ -4896,6 +4896,13 @@ describe('processUIMessageStream', () => {
           type: 'text-end',
           id: '1',
         },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-id',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          providerMetadata: { testProvider: { signature: '2' } },
+        },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -5037,6 +5044,44 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1",
+                    },
+                  },
+                  "state": "done",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+                {
+                  "callProviderMetadata": {
+                    "testProvider": {
+                      "signature": "2",
+                    },
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "providerExecuted": undefined,
+                  "state": "input-available",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -5056,6 +5101,22 @@ describe('processUIMessageStream', () => {
             "state": "done",
             "text": "Hello, world!",
             "type": "text",
+          },
+          {
+            "callProviderMetadata": {
+              "testProvider": {
+                "signature": "2",
+              },
+            },
+            "errorText": undefined,
+            "input": {
+              "query": "test",
+            },
+            "output": undefined,
+            "providerExecuted": undefined,
+            "state": "input-available",
+            "toolCallId": "tool-call-id",
+            "type": "tool-tool-name",
           },
         ]
       `);
