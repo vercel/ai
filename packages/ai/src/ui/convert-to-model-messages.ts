@@ -138,6 +138,9 @@ export function convertToModelMessages(
                     toolName,
                     input: part.input,
                     providerExecuted: part.providerExecuted,
+                    ...(part.callProviderMetadata != null
+                      ? { providerOptions: part.callProviderMetadata }
+                      : {}),
                   });
 
                   if (

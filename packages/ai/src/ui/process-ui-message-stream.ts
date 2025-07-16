@@ -27,6 +27,7 @@ import {
   UIMessage,
   UIMessagePart,
 } from './ui-messages';
+import { ProviderMetadata } from '../types';
 
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
@@ -110,6 +111,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'input-available';
                   input: unknown;
                   providerExecuted?: boolean;
+                  providerMetadata?: ProviderMetadata;
                 }
               | {
                   state: 'output-available';
@@ -142,6 +144,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // once providerExecuted is set, it stays for streaming
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
+
+              if (
+                anyOptions.providerMetadata != null &&
+                part.state === 'input-available'
+              ) {
+                part.callProviderMetadata = anyOptions.providerMetadata;
+              }
             } else {
               state.message.parts.push({
                 type: `tool-${options.toolName}`,
@@ -151,6 +160,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 output: anyOptions.output,
                 errorText: anyOptions.errorText,
                 providerExecuted: anyOptions.providerExecuted,
+                ...(anyOptions.providerMetadata != null
+                  ? { callProviderMetadata: anyOptions.providerMetadata }
+                  : {}),
               } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>);
             }
           }
@@ -327,6 +339,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state: 'input-available',
                 input: part.input,
                 providerExecuted: part.providerExecuted,
+                providerMetadata: part.providerMetadata,
               });
 
               write();

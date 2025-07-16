@@ -49,7 +49,7 @@ export const uiMessageChunkSchema = z.union([
     toolName: z.string(),
     input: z.unknown(),
     providerExecuted: z.boolean().optional(),
-    callProviderMetadata: providerMetadataSchema.optional(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('tool-output-available'),
@@ -190,6 +190,7 @@ export type UIMessageChunk<
       toolName: string;
       input: unknown;
       providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
     }
   | {
       type: 'tool-output-available';
