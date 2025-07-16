@@ -2380,19 +2380,16 @@ describe('streamText', () => {
             },
             {
               "id": "1",
-              "providerMetadata": undefined,
               "type": "reasoning-start",
             },
             {
               "delta": "I will open the conversation",
               "id": "1",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " with witty banter.",
               "id": "1",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
@@ -2407,7 +2404,6 @@ describe('streamText', () => {
             },
             {
               "id": "1",
-              "providerMetadata": undefined,
               "type": "reasoning-end",
             },
             {
@@ -2421,24 +2417,20 @@ describe('streamText', () => {
             },
             {
               "id": "2",
-              "providerMetadata": undefined,
               "type": "reasoning-end",
             },
             {
               "id": "3",
-              "providerMetadata": undefined,
               "type": "reasoning-start",
             },
             {
               "delta": " Once the user has relaxed,",
               "id": "3",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " I will pry for valuable information.",
               "id": "3",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
@@ -2462,13 +2454,11 @@ describe('streamText', () => {
             {
               "delta": " I need to think about",
               "id": "4",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " this problem carefully.",
               "id": "4",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
@@ -2483,19 +2473,16 @@ describe('streamText', () => {
             {
               "delta": " The best solution",
               "id": "5",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " requires careful",
               "id": "5",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " consideration of all factors.",
               "id": "5",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
@@ -6020,18 +6007,15 @@ describe('streamText', () => {
               },
               {
                 "id": "0",
-                "providerMetadata": undefined,
                 "type": "reasoning-start",
               },
               {
                 "delta": "thinking",
                 "id": "0",
-                "providerMetadata": undefined,
                 "type": "reasoning-delta",
               },
               {
                 "id": "0",
-                "providerMetadata": undefined,
                 "type": "reasoning-end",
               },
               {
@@ -7740,18 +7724,15 @@ describe('streamText', () => {
               },
               {
                 "id": "id-0",
-                "providerMetadata": undefined,
                 "type": "reasoning-start",
               },
               {
                 "delta": "thinking",
                 "id": "id-0",
-                "providerMetadata": undefined,
                 "type": "reasoning-delta",
               },
               {
                 "id": "id-0",
-                "providerMetadata": undefined,
                 "type": "reasoning-end",
               },
               {
