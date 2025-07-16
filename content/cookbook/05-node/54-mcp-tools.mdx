@@ -40,7 +40,7 @@ try {
     new URL('http://localhost:3000/mcp'),
   );
   const clientTwo = await experimental_createMCPClient({
-    httpTransport,
+    transport: httpTransport,
   });
 
   // Alternatively, you can connect to a Server-Sent Events (SSE) MCP server:
@@ -48,7 +48,7 @@ try {
     new URL('http://localhost:3000/sse'),
   );
   const clientThree = await experimental_createMCPClient({
-    sseTransport,
+    transport: sseTransport,
   });
 
   const toolSetOne = await clientOne.tools();

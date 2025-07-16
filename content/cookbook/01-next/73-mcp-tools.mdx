@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       new URL('http://localhost:3000/mcp'),
     );
     const httpClient = await experimental_createMCPClient({
-      httpTransport,
+      transport: httpTransport,
     });
 
     // Alternatively, you can connect to a Server-Sent Events (SSE) MCP server:
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
       new URL('http://localhost:3000/sse'),
     );
     const sseClient = await experimental_createMCPClient({
-      sseTransport,
+      transport: sseTransport,
     });
 
     const toolSetOne = await stdioClient.tools();
