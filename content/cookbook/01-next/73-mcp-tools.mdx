@@ -38,14 +38,6 @@ export async function POST(req: Request) {
       transport,
     });
 
-    // Alternatively, you can connect to a Server-Sent Events (SSE) MCP server:
-    const sseTransport = new SSEClientTransport(
-      new URL('http://localhost:3000/sse'),
-    );
-    const sseClient = await experimental_createMCPClient({
-      sseTransport,
-    });
-
     // You can also connect to StreamableHTTP MCP servers
     const httpTransport = new StreamableHTTPClientTransport(
       new URL('http://localhost:3000/mcp'),
@@ -54,9 +46,17 @@ export async function POST(req: Request) {
       httpTransport,
     });
 
+    // Alternatively, you can connect to a Server-Sent Events (SSE) MCP server:
+    const sseTransport = new SSEClientTransport(
+      new URL('http://localhost:3000/sse'),
+    );
+    const sseClient = await experimental_createMCPClient({
+      sseTransport,
+    });
+
     const toolSetOne = await stdioClient.tools();
-    const toolSetTwo = await sseClient.tools();
-    const toolSetThree = await httpClient.tools();
+    const toolSetTwo = await httpClient.tools();
+    const toolSetThree = await sseClient.tools();
     const tools = {
       ...toolSetOne,
       ...toolSetTwo,
@@ -70,16 +70,16 @@ export async function POST(req: Request) {
       // When streaming, the client should be closed after the response is finished:
       onFinish: async () => {
         await stdioClient.close();
-        await sseClient.close();
         await httpClient.close();
+        await sseClient.close();
       },
       // Closing clients onError is optional
       // - Closing: Immediately frees resources, prevents hanging connections
       // - Not closing: Keeps connection open for retries
       onError: async error => {
         await stdioClient.close();
-        await sseClient.close();
         await httpClient.close();
+        await sseClient.close();
       },
     });
 
