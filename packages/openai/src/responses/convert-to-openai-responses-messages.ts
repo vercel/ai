@@ -1,5 +1,4 @@
 import {
-  InvalidArgumentError,
   LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
@@ -113,6 +112,8 @@ export async function convertToOpenAIResponsesMessages({
               messages.push({
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
+                id:
+                  (part.providerOptions?.openai?.itemId as string) ?? undefined,
               });
               break;
             }

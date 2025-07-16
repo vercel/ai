@@ -572,6 +572,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
+                  providerMetadata: {
+                    openai: {
+                      itemId: value.item.id,
+                    },
+                  },
                 });
               } else if (isResponseOutputItemAddedReasoningChunk(value)) {
                 activeReasoning[value.item.id] = {
