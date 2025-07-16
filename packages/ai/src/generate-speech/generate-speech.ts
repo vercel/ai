@@ -1,5 +1,5 @@
 import { JSONValue, SpeechModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { SpeechProviderOptions } from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../../src/error/no-speech-generated-error';
 import {
   audioMediaTypeSignatures,
@@ -93,7 +93,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
      */
-  providerOptions?: ProviderOptions;
+  providerOptions?: SpeechProviderOptions;
 
   /**
 Maximum number of retries per speech model call. Set to 0 to disable retries.

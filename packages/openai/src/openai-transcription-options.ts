@@ -43,3 +43,9 @@ export const openAITranscriptionProviderOptions = z.object({
 export type OpenAITranscriptionProviderOptions = z.infer<
   typeof openAITranscriptionProviderOptions
 >;
+
+declare module '@ai-sdk/provider' {
+  interface SharedV2TranscribeProviderOptions {
+    openai?: OpenAITranscriptionProviderOptions;
+  }
+}

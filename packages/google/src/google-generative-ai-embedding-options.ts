@@ -40,3 +40,9 @@ export const googleGenerativeAIEmbeddingProviderOptions = z.object({
 export type GoogleGenerativeAIEmbeddingProviderOptions = z.infer<
   typeof googleGenerativeAIEmbeddingProviderOptions
 >;
+
+declare module '@ai-sdk/provider' {
+  interface SharedV2EmbedProviderOptions {
+    google?: GoogleGenerativeAIEmbeddingProviderOptions;
+  }
+}

@@ -1,4 +1,4 @@
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { EmbedProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -64,7 +64,7 @@ Only applicable for HTTP-based providers.
   to the provider from the AI SDK and enable provider-specific
   functionality that can be fully encapsulated in the provider.
   */
-  providerOptions?: ProviderOptions;
+  providerOptions?: EmbedProviderOptions;
 
   /**
    * Optional telemetry configuration (experimental).

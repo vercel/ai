@@ -24,3 +24,31 @@ import { JSONValue } from '../../json-value/json-value';
 export interface SharedV2ProviderOptions {
   [providerName: string]: Record<string, JSONValue>;
 }
+
+/**
+ * Provider-specific options for embedding models.
+ */
+export interface SharedV2EmbedProviderOptions {
+  [providerName: string]: Record<string, JSONValue>;
+}
+
+/**
+ * Provider-specific options for image generation models.
+ */
+export interface SharedV2ImageProviderOptions {
+  [providerName: string]: Record<string, JSONValue>;
+}
+
+/**
+ * Provider-specific options for speech generation models.
+ */
+export interface SharedV2SpeechProviderOptions {
+  [providerName: string]: Record<string, JSONValue>;
+}
+
+/**
+ * Provider-specific options for transcription models.
+ */
+export interface SharedV2TranscribeProviderOptions {
+  [providerName: string]: Record<string, JSONValue>;
+}

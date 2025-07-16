@@ -112,6 +112,6 @@ export type GoogleGenerativeAIProviderOptions = z.infer<
 
 declare module '@ai-sdk/provider' {
   interface SharedV2ProviderOptions {
-    google?: GoogleGenerativeAIProviderOptions & GoogleGenerativeAIImageSettings & GoogleGenerativeAIEmbeddingProviderOptions;
+    google?: GoogleGenerativeAIProviderOptions;
   }
 }
