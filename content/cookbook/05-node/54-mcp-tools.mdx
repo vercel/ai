@@ -9,7 +9,7 @@ tags: ['node', 'tool use', 'agent', 'mcp']
 The AI SDK supports Model Context Protocol (MCP) tools by offering a lightweight client that exposes a `tools` method for retrieving tools from a MCP server. After use, the client should always be closed to release resources.
 
 ```ts
-import { experimental_createMCPClient, generateText } from 'ai';
+import { experimental_createMCPClient, generateText, stepCountIs } from 'ai';
 import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
 
@@ -55,6 +55,7 @@ try {
   const response = await generateText({
     model: openai('gpt-4o'),
     tools,
+    stopWhen: stepCountIs(5),
     messages: [
       {
         role: 'user',
