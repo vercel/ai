@@ -2424,6 +2424,83 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
+    it('should handle web search progress chunks without duplicate events', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_67cf3395786881908b27489d7e8cfb6c","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_67cf3395e9608190869b5d45698a7068","status":"in_progress"}}\n\n`,
+          `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_67cf3395e9608190869b5d45698a7068"}\n\n`,
+          `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_67cf3395e9608190869b5d45698a7068"}\n\n`,
+          `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_67cf3395e9608190869b5d45698a7068"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_67cf3395e9608190869b5d45698a7068","status":"completed"}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_67cf3395786881908b27489d7e8cfb6c","object":"response","created_at":1741632400,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"web_search_call","id":"ws_67cf3395e9608190869b5d45698a7068","status":"completed"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":327,"input_tokens_details":{"cached_tokens":0},"output_tokens":50,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":377},"user":null,"metadata":{}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o-mini').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_67cf3395786881908b27489d7e8cfb6c",
+            "modelId": "gpt-4o-mini-2024-07-18",
+            "timestamp": 2025-03-10T18:46:40.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "ws_67cf3395e9608190869b5d45698a7068",
+            "toolName": "web_search_preview",
+            "type": "tool-input-start",
+          },
+          {
+            "id": "ws_67cf3395e9608190869b5d45698a7068",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "",
+            "providerExecuted": true,
+            "toolCallId": "ws_67cf3395e9608190869b5d45698a7068",
+            "toolName": "web_search_preview",
+            "type": "tool-call",
+          },
+          {
+            "providerExecuted": true,
+            "result": {
+              "status": "completed",
+              "type": "web_search_tool_result",
+            },
+            "toolCallId": "ws_67cf3395e9608190869b5d45698a7068",
+            "toolName": "web_search_preview",
+            "type": "tool-result",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_67cf3395786881908b27489d7e8cfb6c",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 327,
+              "outputTokens": 50,
+              "reasoningTokens": 0,
+              "totalTokens": 377,
+            },
+          },
+        ]
+      `);
+    });
+
     describe('errors', () => {
       it('should stream error parts', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {

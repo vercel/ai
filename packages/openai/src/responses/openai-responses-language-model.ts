@@ -776,6 +776,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 url: value.annotation.url,
                 title: value.annotation.title,
               });
+            } else if (isResponseWebSearchCallInProgressChunk(value)) {
+            } else if (isResponseWebSearchCallSearchingChunk(value)) {
+            } else if (isResponseWebSearchCallCompletedChunk(value)) {
             } else if (isErrorChunk(value)) {
               controller.enqueue({ type: 'error', error: value });
             }
@@ -939,6 +942,24 @@ const responseReasoningSummaryTextDeltaSchema = z.object({
   delta: z.string(),
 });
 
+const responseWebSearchCallInProgressSchema = z.object({
+  type: z.literal('response.web_search_call.in_progress'),
+  output_index: z.number(),
+  item_id: z.string(),
+});
+
+const responseWebSearchCallSearchingSchema = z.object({
+  type: z.literal('response.web_search_call.searching'),
+  output_index: z.number(),
+  item_id: z.string(),
+});
+
+const responseWebSearchCallCompletedSchema = z.object({
+  type: z.literal('response.web_search_call.completed'),
+  output_index: z.number(),
+  item_id: z.string(),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
@@ -949,6 +970,9 @@ const openaiResponsesChunkSchema = z.union([
   responseAnnotationAddedSchema,
   responseReasoningSummaryPartAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
+  responseWebSearchCallInProgressSchema,
+  responseWebSearchCallSearchingSchema,
+  responseWebSearchCallCompletedSchema,
   errorChunkSchema,
   z.object({ type: z.string() }).loose(), // fallback for unknown chunks
 ]);
@@ -1038,6 +1062,24 @@ function isResponseReasoningSummaryTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
   return chunk.type === 'response.reasoning_summary_text.delta';
+}
+
+function isResponseWebSearchCallInProgressChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseWebSearchCallInProgressSchema> {
+  return chunk.type === 'response.web_search_call.in_progress';
+}
+
+function isResponseWebSearchCallSearchingChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseWebSearchCallSearchingSchema> {
+  return chunk.type === 'response.web_search_call.searching';
+}
+
+function isResponseWebSearchCallCompletedChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseWebSearchCallCompletedSchema> {
+  return chunk.type === 'response.web_search_call.completed';
 }
 
 function isErrorChunk(
