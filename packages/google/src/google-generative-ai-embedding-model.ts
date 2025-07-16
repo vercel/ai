@@ -46,63 +46,6 @@ export class GoogleGenerativeAIEmbeddingModel
     this.config = config;
   }
 
-  async doEmbedSingle({
-    value,
-    headers,
-    abortSignal,
-    providerOptions,
-  }: {
-    value: string;
-    headers?: Record<string, string | undefined>;
-    abortSignal?: AbortSignal;
-    providerOptions?: any;
-  }): Promise<{
-    embedding: number[];
-    usage?: { tokens: number };
-    response?: { headers?: Record<string, string>; body?: unknown };
-  }> {
-    // Parse provider options
-    const googleOptions = await parseProviderOptions({
-      provider: 'google',
-      providerOptions,
-      schema: googleGenerativeAIEmbeddingProviderOptions,
-    });
-
-    const mergedHeaders = combineHeaders(
-      await resolve(this.config.headers),
-      headers,
-    );
-
-    const {
-      responseHeaders,
-      value: response,
-      rawValue,
-    } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}:embedContent`,
-      headers: mergedHeaders,
-      body: {
-        model: `models/${this.modelId}`,
-        content: {
-          parts: [{ text: value }],
-        },
-        outputDimensionality: googleOptions?.outputDimensionality,
-        taskType: googleOptions?.taskType,
-      },
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        googleGenerativeAISingleEmbeddingResponseSchema,
-      ),
-      abortSignal,
-      fetch: this.config.fetch,
-    });
-
-    return {
-      embedding: response.embedding.values,
-      usage: undefined,
-      response: { headers: responseHeaders, body: rawValue },
-    };
-  }
-
   async doEmbed({
     values,
     headers,
@@ -111,21 +54,6 @@ export class GoogleGenerativeAIEmbeddingModel
   }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
-    // For single embeddings, use the single endpoint (ratelimits, etc.)
-    if (values.length === 1) {
-      const singleResult = await this.doEmbedSingle({
-        value: values[0],
-        headers,
-        abortSignal,
-        providerOptions,
-      });
-      return {
-        embeddings: [singleResult.embedding],
-        usage: singleResult.usage,
-        response: singleResult.response,
-      };
-    }
-
     // Parse provider options
     const googleOptions = await parseProviderOptions({
       provider: 'google',
@@ -146,6 +74,38 @@ export class GoogleGenerativeAIEmbeddingModel
       await resolve(this.config.headers),
       headers,
     );
+
+    // For single embeddings, use the single endpoint (ratelimits, etc.)
+    if (values.length === 1) {
+      const {
+        responseHeaders,
+        value: response,
+        rawValue,
+      } = await postJsonToApi({
+        url: `${this.config.baseURL}/models/${this.modelId}:embedContent`,
+        headers: mergedHeaders,
+        body: {
+          model: `models/${this.modelId}`,
+          content: {
+            parts: [{ text: values[0] }],
+          },
+          outputDimensionality: googleOptions?.outputDimensionality,
+          taskType: googleOptions?.taskType,
+        },
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          googleGenerativeAISingleEmbeddingResponseSchema,
+        ),
+        abortSignal,
+        fetch: this.config.fetch,
+      });
+
+      return {
+        embeddings: [response.embedding.values],
+        usage: undefined,
+        response: { headers: responseHeaders, body: rawValue },
+      };
+    }
 
     const {
       responseHeaders,
