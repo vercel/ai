@@ -215,6 +215,11 @@ describe('convertToModelMessages', () => {
               toolCallId: 'call1',
               input: { operation: 'add', numbers: [1, 2] },
               output: '3',
+              callProviderMetadata: {
+                testProvider: {
+                  signature: '1234567890',
+                },
+              },
             },
           ],
         },
@@ -237,6 +242,11 @@ describe('convertToModelMessages', () => {
                   "operation": "add",
                 },
                 "providerExecuted": undefined,
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
                 "toolCallId": "call1",
                 "toolName": "calculator",
                 "type": "tool-call",
