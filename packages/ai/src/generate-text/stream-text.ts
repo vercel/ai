@@ -1383,11 +1383,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       }),
                     );
 
-                    await streamStep({
-                      currentStep: currentStep + 1,
-                      responseMessages,
-                      usage: combinedUsage,
-                    });
+                    try {
+                      await streamStep({
+                        currentStep: currentStep + 1,
+                        responseMessages,
+                        usage: combinedUsage,
+                      });
+                    } catch (error) {
+                      controller.enqueue({
+                        type: 'error',
+                        error,
+                      });
+
+                      self.closeStream();
+                    }
                   } else {
                     controller.enqueue({
                       type: 'finish',
