@@ -77,8 +77,6 @@ export interface ProviderRegistryProvider<
  * @param options - Configuration options for the provider registry.
  * @param options.separator - The separator used between provider ID and model ID in the combined identifier. Defaults to ':'.
  * @param options.languageModelMiddleware - Optional middleware to be applied to all language models from the registry. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
- * @param options.languageModelIdOverride - Optional custom model ID to override the original model's ID for all language models from the registry.
- * @param options.languageModelProviderIdOverride - Optional custom provider ID to override the original model's provider ID for all language models from the registry.
  * @returns A new ProviderRegistryProvider instance that provides access to all registered providers with optional middleware applied to language models.
  */
 export function createProviderRegistry<
@@ -89,22 +87,16 @@ export function createProviderRegistry<
   {
     separator = ':' as SEPARATOR,
     languageModelMiddleware,
-    languageModelIdOverride,
-    languageModelProviderIdOverride,
   }: {
     separator?: SEPARATOR;
     languageModelMiddleware?:
       | LanguageModelV2Middleware
       | LanguageModelV2Middleware[];
-    languageModelIdOverride?: string;
-    languageModelProviderIdOverride?: string;
   } = {},
 ): ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
   const registry = new DefaultProviderRegistry<PROVIDERS, SEPARATOR>({
     separator,
     languageModelMiddleware,
-    languageModelIdOverride,
-    languageModelProviderIdOverride,
   });
 
   for (const [id, provider] of Object.entries(providers)) {
@@ -132,26 +124,18 @@ class DefaultProviderRegistry<
   private languageModelMiddleware?:
     | LanguageModelV2Middleware
     | LanguageModelV2Middleware[];
-  private languageModelIdOverride?: string;
-  private languageModelProviderIdOverride?: string;
 
   constructor({
     separator,
     languageModelMiddleware,
-    languageModelIdOverride,
-    languageModelProviderIdOverride,
   }: {
     separator: SEPARATOR;
     languageModelMiddleware?:
       | LanguageModelV2Middleware
       | LanguageModelV2Middleware[];
-    languageModelIdOverride?: string;
-    languageModelProviderIdOverride?: string;
   }) {
     this.separator = separator;
     this.languageModelMiddleware = languageModelMiddleware;
-    this.languageModelIdOverride = languageModelIdOverride;
-    this.languageModelProviderIdOverride = languageModelProviderIdOverride;
   }
 
   registerProvider<K extends keyof PROVIDERS>({
@@ -215,26 +199,23 @@ class DefaultProviderRegistry<
     id: `${KEY & string}${SEPARATOR}${string}`,
   ): LanguageModelV2 {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
-    const originalModel = this.getProvider(
+    let model = this.getProvider(
       providerId,
       'languageModel',
     ).languageModel?.(modelId);
 
-    if (originalModel == null) {
+    if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'languageModel' });
     }
 
     if (this.languageModelMiddleware != null) {
-      const wrappedModel = wrapLanguageModel({
-        model: originalModel,
+      model = wrapLanguageModel({
+        model,
         middleware: this.languageModelMiddleware,
-        modelId: this.languageModelIdOverride,
-        providerId: this.languageModelProviderIdOverride,
       });
-      return wrappedModel;
     }
 
-    return originalModel;
+    return model;
   }
 
   textEmbeddingModel<KEY extends keyof PROVIDERS>(
