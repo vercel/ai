@@ -2,7 +2,7 @@ import {
   generateId as generateIdFunc,
   IdGenerator,
   StandardSchemaV1,
-  ToolCall,
+  Tool,
   Validator,
 } from '@ai-sdk/provider-utils';
 import { consumeStream } from '../util/consume-stream';
@@ -20,6 +20,7 @@ import {
   shouldResubmitMessages,
 } from './should-resubmit-messages';
 import {
+  InferUIMessageToolCall,
   isToolUIPart,
   type DataUIPart,
   type FileUIPart,
@@ -93,11 +94,10 @@ export interface ChatState<UI_MESSAGE extends UIMessage> {
 
 export type ChatOnErrorCallback = (error: Error) => void;
 
-export type ChatOnToolCallCallback = ({
-  toolCall,
-}: {
-  toolCall: ToolCall<string, unknown>;
-}) => void | Promise<unknown> | unknown;
+export type ChatOnToolCallCallback<UI_MESSAGE extends UIMessage = UIMessage> =
+  (options: {
+    toolCall: InferUIMessageToolCall<UI_MESSAGE>;
+  }) => void | Promise<unknown> | unknown;
 
 export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
   dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
@@ -143,7 +143,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   You can optionally return a result for the tool call,
   either synchronously or asynchronously.
      */
-  onToolCall?: ChatOnToolCallCallback;
+  onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
 
   /**
    * Optional callback function that is called when the assistant message is finished streaming.

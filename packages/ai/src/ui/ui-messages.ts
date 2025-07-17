@@ -1,4 +1,9 @@
-import { InferToolInput, InferToolOutput, Tool } from '@ai-sdk/provider-utils';
+import {
+  InferToolInput,
+  InferToolOutput,
+  Tool,
+  ToolCall,
+} from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { DeepPartial } from '../util/deep-partial';
@@ -251,3 +256,12 @@ export type InferUIMessageData<T extends UIMessage> =
 
 export type InferUIMessageTools<T extends UIMessage> =
   T extends UIMessage<unknown, UIDataTypes, infer TOOLS> ? TOOLS : UITools;
+
+export type InferUIMessageToolCall<UI_MESSAGE extends UIMessage> = ValueOf<{
+  [NAME in keyof InferUIMessageTools<UI_MESSAGE>]: ToolCall<
+    NAME & string,
+    InferUIMessageTools<UI_MESSAGE>[NAME] extends { input: infer INPUT }
+      ? INPUT
+      : never
+  >;
+}>;
