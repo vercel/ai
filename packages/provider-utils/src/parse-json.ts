@@ -3,12 +3,11 @@ import {
   JSONValue,
   TypeValidationError,
 } from '@ai-sdk/provider';
-import { secureJsonParse } from './secure-json-parse';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
+import { secureJsonParse } from './secure-json-parse';
 import { safeValidateTypes, validateTypes } from './validate-types';
 import { Validator } from './validator';
-import { InferSchema } from './schema';
 
 /**
  * Parses a JSON string into an unknown object.

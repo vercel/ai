@@ -14,8 +14,8 @@ For Zod 3 usage (only required in compatibility code, e.g. parsing):
 
 For Zod 4 usage:
 
-- always use `import * as z4 from "zod/v4/core";`
-- always use `z4.$ZodType`
+- always use `import * as z4 from "zod/v4";`
+- always use `z4.core.$ZodType`
 
 ## Future Work
 
