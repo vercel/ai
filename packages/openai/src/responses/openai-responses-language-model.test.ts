@@ -1042,10 +1042,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": null,
-                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": null,
                 },
               },
               "text": "**Exploring burrito origins**
@@ -1056,10 +1054,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": null,
-                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": null,
                 },
               },
               "text": "**Investigating burrito origins**
@@ -1170,10 +1166,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": null,
-                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": null,
                 },
               },
               "text": "",
@@ -1292,10 +1286,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": "encrypted_reasoning_data_abc123",
-                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": "encrypted_reasoning_data_abc123",
                 },
               },
               "text": "**Exploring burrito origins**
@@ -1306,10 +1298,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": "encrypted_reasoning_data_abc123",
-                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": "encrypted_reasoning_data_abc123",
                 },
               },
               "text": "**Investigating burrito origins**
@@ -1423,10 +1413,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": "encrypted_reasoning_data_abc123",
-                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": "encrypted_reasoning_data_abc123",
                 },
               },
               "text": "",
@@ -1567,10 +1555,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": null,
-                    "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": null,
                 },
               },
               "text": "**Initial analysis**
@@ -1581,10 +1567,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": null,
-                    "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": null,
                 },
               },
               "text": "**Deeper consideration**
@@ -1604,10 +1588,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": null,
-                    "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
-                  },
+                  "itemId": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                  "reasoningEncryptedContent": null,
                 },
               },
               "text": "Second reasoning block: considering alternative approaches.",
@@ -2588,10 +2570,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-start",
@@ -2603,9 +2583,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2615,9 +2593,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2626,10 +2602,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-start",
@@ -2641,9 +2615,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2653,9 +2625,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2664,10 +2634,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-end",
@@ -2676,10 +2644,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-end",
@@ -2779,10 +2745,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-start",
@@ -2791,10 +2755,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-end",
@@ -2902,10 +2864,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": "encrypted_reasoning_data_abc123",
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_abc123",
                   },
                 },
                 "type": "reasoning-start",
@@ -2917,9 +2877,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2929,9 +2887,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2940,10 +2896,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": "encrypted_reasoning_data_abc123",
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_abc123",
                   },
                 },
                 "type": "reasoning-start",
@@ -2955,9 +2909,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2967,9 +2919,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2978,10 +2928,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": "encrypted_reasoning_data_final_def456",
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_final_def456",
                   },
                 },
                 "type": "reasoning-end",
@@ -2990,10 +2938,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": "encrypted_reasoning_data_final_def456",
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_final_def456",
                   },
                 },
                 "type": "reasoning-end",
@@ -3095,10 +3041,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": "encrypted_reasoning_data_abc123",
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_abc123",
                   },
                 },
                 "type": "reasoning-start",
@@ -3107,10 +3051,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": "encrypted_reasoning_data_final_def456",
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_final_def456",
                   },
                 },
                 "type": "reasoning-end",
@@ -3232,10 +3174,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-start",
@@ -3247,9 +3187,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -3259,9 +3197,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -3270,10 +3206,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-start",
@@ -3285,9 +3219,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -3297,9 +3229,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -3308,10 +3238,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-end",
@@ -3320,10 +3248,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-end",
@@ -3355,10 +3281,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_second_7908809g7gcc9291be3e3fee895028c4:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
-                    },
+                    "itemId": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-start",
@@ -3368,9 +3292,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_second_7908809g7gcc9291be3e3fee895028c4:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
-                    },
+                    "itemId": "rs_second_7908809g7gcc9291be3e3fee895028c4",
                   },
                 },
                 "type": "reasoning-delta",
@@ -3380,9 +3302,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_second_7908809g7gcc9291be3e3fee895028c4:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
-                    },
+                    "itemId": "rs_second_7908809g7gcc9291be3e3fee895028c4",
                   },
                 },
                 "type": "reasoning-delta",
@@ -3391,10 +3311,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_second_7908809g7gcc9291be3e3fee895028c4:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
-                    },
+                    "itemId": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-end",

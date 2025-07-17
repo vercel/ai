@@ -1594,10 +1594,13 @@ However, the LLM results are expected to be small enough to not cause issues.
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): ReadableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
-    const responseMessageId = getResponseUIMessageId({
-      originalMessages,
-      responseMessageId: this.generateId,
-    });
+    const responseMessageId =
+      generateMessageId != null
+        ? getResponseUIMessageId({
+            originalMessages,
+            responseMessageId: generateMessageId,
+          })
+        : undefined;
 
     const baseStream = this.fullStream.pipeThrough(
       new TransformStream<
@@ -1792,8 +1795,12 @@ However, the LLM results are expected to be small enough to not cause issues.
               if (sendStart) {
                 controller.enqueue({
                   type: 'start',
-                  messageId: responseMessageId,
-                  messageMetadata: messageMetadataValue,
+                  ...(messageMetadataValue != null
+                    ? { messageMetadata: messageMetadataValue }
+                    : {}),
+                  ...(responseMessageId != null
+                    ? { messageId: responseMessageId }
+                    : {}),
                 });
               }
               break;
@@ -1803,7 +1810,9 @@ However, the LLM results are expected to be small enough to not cause issues.
               if (sendFinish) {
                 controller.enqueue({
                   type: 'finish',
-                  messageMetadata: messageMetadataValue,
+                  ...(messageMetadataValue != null
+                    ? { messageMetadata: messageMetadataValue }
+                    : {}),
                 });
               }
               break;

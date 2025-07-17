@@ -723,7 +723,9 @@ const OpenAICompatibleChatResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
+const createOpenAICompatibleChatChunkSchema = <
+  ERROR_SCHEMA extends z.core.$ZodType,
+>(
   errorSchema: ERROR_SCHEMA,
 ) =>
   z.union([

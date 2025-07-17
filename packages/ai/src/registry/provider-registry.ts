@@ -2,12 +2,14 @@ import {
   EmbeddingModelV2,
   ImageModelV2,
   LanguageModelV2,
+  LanguageModelV2Middleware,
   NoSuchModelError,
   ProviderV2,
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
 import { NoSuchProviderError } from './no-such-provider-error';
+import { wrapLanguageModel } from '../middleware/wrap-language-model';
 
 type ExtractLiteralUnion<T> = T extends string
   ? string extends T
@@ -66,7 +68,16 @@ export interface ProviderRegistryProvider<
 }
 
 /**
- * Creates a registry for the given providers.
+ * Creates a registry for the given providers with optional middleware functionality.
+ * This function allows you to register multiple providers and optionally apply middleware
+ * to all language models from the registry, enabling you to transform parameters, wrap generate
+ * operations, and wrap stream operations for every language model accessed through the registry.
+ *
+ * @param providers - A record of provider instances to be registered in the registry.
+ * @param options - Configuration options for the provider registry.
+ * @param options.separator - The separator used between provider ID and model ID in the combined identifier. Defaults to ':'.
+ * @param options.languageModelMiddleware - Optional middleware to be applied to all language models from the registry. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
+ * @returns A new ProviderRegistryProvider instance that provides access to all registered providers with optional middleware applied to language models.
  */
 export function createProviderRegistry<
   PROVIDERS extends Record<string, ProviderV2>,
@@ -75,12 +86,17 @@ export function createProviderRegistry<
   providers: PROVIDERS,
   {
     separator = ':' as SEPARATOR,
+    languageModelMiddleware,
   }: {
     separator?: SEPARATOR;
+    languageModelMiddleware?:
+      | LanguageModelV2Middleware
+      | LanguageModelV2Middleware[];
   } = {},
 ): ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
   const registry = new DefaultProviderRegistry<PROVIDERS, SEPARATOR>({
     separator,
+    languageModelMiddleware,
   });
 
   for (const [id, provider] of Object.entries(providers)) {
@@ -105,9 +121,21 @@ class DefaultProviderRegistry<
 {
   private providers: PROVIDERS = {} as PROVIDERS;
   private separator: SEPARATOR;
+  private languageModelMiddleware?:
+    | LanguageModelV2Middleware
+    | LanguageModelV2Middleware[];
 
-  constructor({ separator }: { separator: SEPARATOR }) {
+  constructor({
+    separator,
+    languageModelMiddleware,
+  }: {
+    separator: SEPARATOR;
+    languageModelMiddleware?:
+      | LanguageModelV2Middleware
+      | LanguageModelV2Middleware[];
+  }) {
     this.separator = separator;
+    this.languageModelMiddleware = languageModelMiddleware;
   }
 
   registerProvider<K extends keyof PROVIDERS>({
@@ -171,12 +199,19 @@ class DefaultProviderRegistry<
     id: `${KEY & string}${SEPARATOR}${string}`,
   ): LanguageModelV2 {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
-    const model = this.getProvider(providerId, 'languageModel').languageModel?.(
+    let model = this.getProvider(providerId, 'languageModel').languageModel?.(
       modelId,
     );
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'languageModel' });
+    }
+
+    if (this.languageModelMiddleware != null) {
+      model = wrapLanguageModel({
+        model,
+        middleware: this.languageModelMiddleware,
+      });
     }
 
     return model;
