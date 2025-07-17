@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-feat(ai): add wrap provider / provider registry functionality
+feat(ai): add provider and provider registry middleware functionality

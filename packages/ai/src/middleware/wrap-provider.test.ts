@@ -22,7 +22,7 @@ describe('wrapProvider', () => {
 
     const wrappedProvider = wrapProvider({
       provider,
-      middleware: {
+      languageModelMiddleware: {
         middlewareVersion: 'v2',
         overrideModelId,
       },
