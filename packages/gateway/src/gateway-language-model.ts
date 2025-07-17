@@ -21,7 +21,6 @@ import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
-import { gatewayProviderOptions } from './gateway-provider-options';
 
 type GatewayChatConfig = GatewayConfig & {
   provider: string;
