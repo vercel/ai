@@ -331,6 +331,113 @@ const stream = createUIMessageStream({
 return createUIMessageStreamResponse({ stream });
 ```
 
+### Custom Data Streaming: writeMessageAnnotation/writeData Removed
+
+The `writeMessageAnnotation` and `writeData` methods from `DataStreamWriter` have been removed. Instead, use custom data parts with the new UI message stream architecture.
+
+```tsx filename="AI SDK 4.0"
+import { openai } from '@ai-sdk/openai';
+import { createDataStreamResponse, streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  return createDataStreamResponse({
+    execute: dataStream => {
+      // Write general data
+      dataStream.writeData('call started');
+
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages,
+        onChunk() {
+          // Write message annotations
+          dataStream.writeMessageAnnotation({
+            status: 'streaming',
+            timestamp: Date.now(),
+          });
+        },
+        onFinish() {
+          // Write final annotations
+          dataStream.writeMessageAnnotation({
+            id: generateId(),
+            completed: true,
+          });
+
+          dataStream.writeData('call completed');
+        },
+      });
+
+      result.mergeIntoDataStream(dataStream);
+    },
+  });
+}
+```
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+  generateId,
+} from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const stream = createUIMessageStream({
+    execute: ({ writer }) => {
+      const statusId = generateId();
+      // Write general data (transient - not added to message history)
+      writer.write({
+        type: 'data-status',
+        id: statusId,
+        data: { status: 'call started' },
+      });
+
+      // Generate shared IDs for data parts
+      const completionId = generateId();
+
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages,
+        onChunk() {
+          // Write data parts that update during streaming
+          writer.write({
+            type: 'data-status',
+            id: statusId,
+            data: {
+              status: 'streaming',
+              timestamp: Date.now(),
+            },
+          });
+        },
+        onFinish() {
+          // Write final data parts
+          writer.write({
+            type: 'data-status',
+            id: statusId,
+            data: {
+              status: 'completed',
+            },
+          });
+        },
+      });
+
+      writer.merge(result.toUIMessageStream());
+    },
+  });
+
+  return createUIMessageStreamResponse({ stream });
+}
+```
+
+<Note>
+  For more detailed information about streaming custom data in v5, see the
+  [Streaming Data guide](/docs/ai-sdk-ui/streaming-data).
+</Note>
+
 ##### Provider Metadata → Provider Options
 
 The `providerMetadata` input parameter has been renamed to `providerOptions`. Note that the returned metadata in results is still called `providerMetadata`.
