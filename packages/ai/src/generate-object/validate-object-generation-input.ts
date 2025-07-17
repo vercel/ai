@@ -12,7 +12,7 @@ export function validateObjectGenerationInput({
 }: {
   output?: 'object' | 'array' | 'enum' | 'no-schema';
   schema?:
-    | z4.core.$ZodType<any, any>
+    | z4.core.$ZodType
     | z3.Schema<any, z3.ZodTypeDef, any>
     | Schema<any>;
   schemaName?: string;

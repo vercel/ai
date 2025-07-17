@@ -9,7 +9,7 @@ export async function parseProviderOptions<T>({
 }: {
   provider: string;
   providerOptions: Record<string, unknown> | undefined;
-  schema: z.core.$ZodType<T,any>;
+  schema: z.core.$ZodType<T, any>;
 }): Promise<T | undefined> {
   if (providerOptions?.[provider] == null) {
     return undefined;
