@@ -172,7 +172,7 @@ export async function convertToOpenAIResponsesMessages({
                     type: 'reasoning',
                     id: reasoningId,
                     encrypted_content:
-                      providerOptions?.reasoning?.encryptedContent,
+                      providerOptions?.reasoningEncryptedContent,
                     summary: summaryParts,
                   };
                   messages.push(reasoningMessages[reasoningId]);
@@ -232,11 +232,7 @@ export async function convertToOpenAIResponsesMessages({
 
 const openaiResponsesReasoningProviderOptionsSchema = z.object({
   itemId: z.string().nullish(),
-  reasoning: z
-    .object({
-      encryptedContent: z.string().nullish(),
-    })
-    .nullish(),
+  reasoningEncryptedContent: z.string().nullish(),
 });
 
 export type OpenAIResponsesReasoningProviderOptions = z.infer<

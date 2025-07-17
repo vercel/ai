@@ -345,9 +345,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               providerMetadata: {
                 openai: {
                   itemId: part.id,
-                  reasoning: {
-                    encryptedContent: part.encrypted_content ?? null,
-                  },
+                  reasoningEncryptedContent: part.encrypted_content ?? null,
                 },
               },
             });
@@ -596,9 +594,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerMetadata: {
                     openai: {
                       itemId: value.item.id,
-                      reasoning: {
-                        encryptedContent: value.item.encrypted_content ?? null,
-                      },
+                      reasoningEncryptedContent:
+                        value.item.encrypted_content ?? null,
                     },
                   },
                 });
@@ -693,10 +690,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     providerMetadata: {
                       openai: {
                         itemId: value.item.id,
-                        reasoning: {
-                          encryptedContent:
-                            value.item.encrypted_content ?? null,
-                        },
+                        reasoningEncryptedContent:
+                          value.item.encrypted_content ?? null,
                       },
                     },
                   });
@@ -741,11 +736,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerMetadata: {
                     openai: {
                       itemId: value.item_id,
-                      reasoning: {
-                        encryptedContent:
-                          activeReasoning[value.item_id]?.encryptedContent ??
-                          null,
-                      },
+                      reasoningEncryptedContent:
+                        activeReasoning[value.item_id]?.encryptedContent ??
+                        null,
                     },
                   },
                 });

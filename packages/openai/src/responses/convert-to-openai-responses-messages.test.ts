@@ -489,9 +489,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
-                        reasoning: {
-                          encryptedContent: 'encrypted_content_001',
-                        },
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -530,9 +528,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
-                        reasoning: {
-                          encryptedContent: null,
-                        },
+                        reasoningEncryptedContent: null,
                       },
                     },
                   },
@@ -606,9 +602,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
-                        reasoning: {
-                          encryptedContent: 'encrypted_content_001',
-                        },
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -910,9 +904,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
-                        reasoning: {
-                          encryptedContent: 'encrypted_content_001',
-                        },
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -922,9 +914,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
-                        reasoning: {
-                          encryptedContent: 'encrypted_content_001',
-                        },
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -962,9 +952,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_002',
-                        reasoning: {
-                          encryptedContent: 'encrypted_content_002',
-                        },
+                        reasoningEncryptedContent: 'encrypted_content_002',
                       },
                     },
                   },
@@ -974,9 +962,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_002',
-                        reasoning: {
-                          encryptedContent: 'encrypted_content_002',
-                        },
+                        reasoningEncryptedContent: 'encrypted_content_002',
                       },
                     },
                   },
@@ -986,9 +972,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_002',
-                        reasoning: {
-                          encryptedContent: 'encrypted_content_002',
-                        },
+                        reasoningEncryptedContent: 'encrypted_content_002',
                       },
                     },
                   },
