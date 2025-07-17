@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 1.0.0-beta.9
+
+### Patch Changes
+
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+
 ## 1.0.0-beta.8
 
 ### Patch Changes

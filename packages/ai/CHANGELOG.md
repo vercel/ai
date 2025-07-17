@@ -1,5 +1,19 @@
 # ai
 
+## 5.0.0-beta.22
+
+### Patch Changes
+
+- de2d2ab: feat(ai): add provider and provider registry middleware functionality
+- 6c42e56: feat (ai): validate ui stream data chunks
+- c93a8bc: chore(ai): export AsyncIterableStream type from async-iterable-stream module
+- 20398f2: feat: ai sdk cli documentation + adjusted default model
+- 86293e5: fix (ai): use correct generateMessageId in streamText toUIMessageStream
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+  - @ai-sdk/gateway@1.0.0-beta.9
+
 ## 5.0.0-beta.21
 
 ### Patch Changes

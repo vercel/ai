@@ -1,5 +1,15 @@
 # @ai-sdk/google-vertex
 
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+  - @ai-sdk/anthropic@2.0.0-beta.7
+  - @ai-sdk/google@2.0.0-beta.12
+
 ## 3.0.0-beta.13
 
 ### Patch Changes
