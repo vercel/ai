@@ -51,7 +51,7 @@ export const object = <OUTPUT>({
   schema: inputSchema,
 }: {
   schema:
-    | z4.ZodType<OUTPUT, any>
+    | z4.core.$ZodType<OUTPUT, any>
     | z3.Schema<OUTPUT, z3.ZodTypeDef, any>
     | Schema<OUTPUT>;
 }): Output<OUTPUT, DeepPartial<OUTPUT>> => {

@@ -20,7 +20,7 @@ import * as z4 from 'zod/v4';
 const getOriginalFetch = () => fetch;
 
 export type Experimental_UseObjectOptions<
-  SCHEMA extends z4.ZodType | z3.Schema | Schema,
+  SCHEMA extends z4.core.$ZodType | z3.Schema | Schema,
   RESULT,
 > = {
   /**
@@ -113,7 +113,7 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
 };
 
 function useObject<
-  SCHEMA extends z4.ZodType | z3.Schema | Schema,
+  SCHEMA extends z4.core.$ZodType | z3.Schema | Schema,
   RESULT = InferSchema<SCHEMA>,
   INPUT = any,
 >({

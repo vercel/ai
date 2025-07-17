@@ -56,14 +56,17 @@ describe('MCPClient', () => {
           toolCallId: '1',
         },
       ),
-    ).toEqual({
-      content: [
-        {
-          type: 'text',
-          text: 'Mock tool call result',
-        },
-      ],
-    });
+    ).toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "text": "Mock tool call result",
+            "type": "text",
+          },
+        ],
+        "isError": false,
+      }
+    `);
   });
 
   it('should return typed AI SDK compatible tool set', async () => {
@@ -293,8 +296,16 @@ describe('MCPClient', () => {
     });
 
     const result = await tool.execute({}, { messages: [], toolCallId: '1' });
-    expect(result).toEqual({
-      content: [{ type: 'text', text: 'Mock tool call result' }],
-    });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "text": "Mock tool call result",
+            "type": "text",
+          },
+        ],
+        "isError": false,
+      }
+    `);
   });
 });

@@ -189,11 +189,11 @@ importers:
         specifier: ^1.0.0-rc.0 || ^1.0.0
         version: 1.0.0-rc.0(typescript@5.8.3)
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
       zod-to-json-schema:
         specifier: 3.23.5
-        version: 3.23.5(zod@3.25.49)
+        version: 3.23.5(zod@3.25.76)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -256,8 +256,8 @@ importers:
         specifier: ^2.3.0
         version: 2.8.1
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
       zone.js:
         specifier: ~0.15.0
         version: 0.15.1
@@ -395,8 +395,8 @@ importers:
         specifier: 5.0.1
         version: 5.0.1
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/express':
         specifier: 5.0.0
@@ -535,8 +535,8 @@ importers:
         specifier: ^2.2.0
         version: 2.2.0
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -680,7 +680,7 @@ importers:
         version: link:../../packages/react
       '@langchain/core':
         specifier: 0.1.63
-        version: 0.1.63(openai@5.6.0(ws@8.18.0)(zod@3.25.49))
+        version: 0.1.63(openai@5.6.0(ws@8.18.0)(zod@3.25.76))
       '@langchain/openai':
         specifier: 0.0.28
         version: 0.0.28(encoding@0.1.13)
@@ -689,7 +689,7 @@ importers:
         version: link:../../packages/ai
       langchain:
         specifier: 0.1.36
-        version: 0.1.36(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-runtime@3.663.0)(@aws-sdk/credential-provider-node@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0))(@smithy/util-utf8@2.3.0)(@upstash/redis@1.34.3)(@vercel/kv@0.2.4)(encoding@0.1.13)(fast-xml-parser@4.4.1)(ignore@5.3.2)(ioredis@5.4.1)(jsdom@26.0.0)(lodash@4.17.21)(openai@5.6.0(ws@8.18.0)(zod@3.25.49))(playwright@1.50.1)(redis@4.7.0)(ws@8.18.0)
+        version: 0.1.36(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-runtime@3.663.0)(@aws-sdk/credential-provider-node@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0))(@smithy/util-utf8@2.3.0)(@upstash/redis@1.34.3)(@vercel/kv@0.2.4)(encoding@0.1.13)(fast-xml-parser@4.4.1)(ignore@5.3.2)(ioredis@5.4.1)(jsdom@26.0.0)(lodash@4.17.21)(openai@5.6.0(ws@8.18.0)(zod@3.25.76))(playwright@1.50.1)(redis@4.7.0)(ws@8.18.0)
       next:
         specifier: latest
         version: 15.2.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.85.0)
@@ -806,8 +806,8 @@ importers:
         specifier: ^2.2.0
         version: 2.2.0
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -919,8 +919,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -986,8 +986,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -1056,8 +1056,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -1163,11 +1163,11 @@ importers:
         specifier: 16.4.5
         version: 16.4.5
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
       zod-to-json-schema:
         specifier: 3.23.5
-        version: 3.23.5(zod@3.25.49)
+        version: 3.23.5(zod@3.25.76)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -1194,8 +1194,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ai
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@nuxt/devtools':
         specifier: 1.6.3
@@ -1321,8 +1321,8 @@ importers:
         specifier: ^6.0.0
         version: 6.0.3(@types/node@22.7.4)(jiti@2.4.0)(less@4.2.2)(sass@1.85.0)(terser@5.39.0)(tsx@4.19.2)(yaml@2.7.0)
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/ai:
     dependencies:
@@ -1364,8 +1364,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/amazon-bedrock:
     dependencies:
@@ -1398,8 +1398,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/angular:
     dependencies:
@@ -1413,8 +1413,8 @@ importers:
         specifier: workspace:*
         version: link:../ai
       zod:
-        specifier: ^3.25.49 || ^4
-        version: 3.25.49
+        specifier: ^3.25.76 || ^4
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -1463,8 +1463,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/assemblyai:
     dependencies:
@@ -1488,8 +1488,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/azure:
     dependencies:
@@ -1516,8 +1516,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/cerebras:
     dependencies:
@@ -1544,8 +1544,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/codemod:
     dependencies:
@@ -1621,8 +1621,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/deepgram:
     dependencies:
@@ -1646,8 +1646,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/deepinfra:
     dependencies:
@@ -1674,8 +1674,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/deepseek:
     dependencies:
@@ -1702,8 +1702,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/elevenlabs:
     dependencies:
@@ -1727,8 +1727,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/fal:
     dependencies:
@@ -1752,8 +1752,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/fireworks:
     dependencies:
@@ -1780,8 +1780,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/gateway:
     dependencies:
@@ -1805,8 +1805,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/gladia:
     dependencies:
@@ -1830,8 +1830,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/google:
     dependencies:
@@ -1855,8 +1855,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/google-vertex:
     dependencies:
@@ -1889,8 +1889,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/groq:
     dependencies:
@@ -1914,8 +1914,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/hume:
     dependencies:
@@ -1939,8 +1939,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/langchain:
     dependencies:
@@ -2002,8 +2002,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/luma:
     dependencies:
@@ -2027,8 +2027,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/mistral:
     dependencies:
@@ -2052,8 +2052,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/openai:
     dependencies:
@@ -2077,8 +2077,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/openai-compatible:
     dependencies:
@@ -2102,8 +2102,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/perplexity:
     dependencies:
@@ -2127,8 +2127,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/provider:
     dependencies:
@@ -2165,7 +2165,7 @@ importers:
         version: 3.0.3
       zod-to-json-schema:
         specifier: ^3.24.1
-        version: 3.24.1(zod@3.25.49)
+        version: 3.24.1(zod@3.25.76)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -2183,8 +2183,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/react:
     dependencies:
@@ -2247,8 +2247,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/replicate:
     dependencies:
@@ -2272,8 +2272,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/revai:
     dependencies:
@@ -2297,8 +2297,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/rsc:
     dependencies:
@@ -2367,8 +2367,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/rsc/tests/e2e/next-server:
     dependencies:
@@ -2452,8 +2452,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.7(@edge-runtime/vm@5.0.0)(@types/debug@4.1.12)(@types/node@20.17.24)(jiti@2.4.0)(jsdom@26.0.0)(less@4.2.2)(msw@2.7.0(@types/node@20.17.24)(typescript@5.6.3))(sass@1.85.0)(terser@5.39.0)(tsx@4.19.2)(yaml@2.7.0)
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/togetherai:
     dependencies:
@@ -2480,8 +2480,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/valibot:
     dependencies:
@@ -2533,8 +2533,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/vue:
     dependencies:
@@ -2616,8 +2616,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.25.49
-        version: 3.25.49
+        specifier: 3.25.76
+        version: 3.25.76
 
   tools/analyze-downloads:
     devDependencies:
@@ -17793,8 +17793,8 @@ packages:
     peerDependencies:
       zod: ^3.24.1
 
-  zod@3.25.49:
-    resolution: {integrity: sha512-JMMPMy9ZBk3XFEdbM3iL1brx4NUSejd6xr3ELrrGEfGb355gjhiAWtG3K5o+AViV/3ZfkIrCzXsZn6SbLwTR8Q==}
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
   zone.js@0.15.1:
     resolution: {integrity: sha512-XE96n56IQpJM7NAoXswY3XRLcWFW83xe0BiAOeMD7K5k5xecOeul3Qcpx6GqEeeHNkW5DWL5zOyTbEfB4eti8w==}
@@ -17824,7 +17824,7 @@ snapshots:
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@angular-devkit/architect': 0.1902.15(chokidar@4.0.3)
-      '@angular-devkit/build-webpack': 0.1902.15(chokidar@4.0.3)(webpack-dev-server@5.2.2(webpack@5.98.0))(webpack@5.98.0)
+      '@angular-devkit/build-webpack': 0.1902.15(chokidar@4.0.3)(webpack-dev-server@5.2.2(webpack@5.98.0))(webpack@5.98.0(esbuild@0.25.4))
       '@angular-devkit/core': 19.2.15(chokidar@4.0.3)
       '@angular/build': 19.2.15(@angular/compiler-cli@19.2.14(@angular/compiler@19.2.14)(typescript@5.8.3))(@angular/compiler@19.2.14)(@types/node@20.17.24)(chokidar@4.0.3)(jiti@2.4.0)(less@4.2.2)(postcss@8.5.2)(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3)))(terser@5.39.0)(tsx@4.19.2)(typescript@5.8.3)(yaml@2.7.0)
       '@angular/compiler-cli': 19.2.14(@angular/compiler@19.2.14)(typescript@5.8.3)
@@ -17838,14 +17838,14 @@ snapshots:
       '@babel/preset-env': 7.26.9(@babel/core@7.26.10)
       '@babel/runtime': 7.26.10
       '@discoveryjs/json-ext': 0.6.3
-      '@ngtools/webpack': 19.2.15(@angular/compiler-cli@19.2.14(@angular/compiler@19.2.14)(typescript@5.8.3))(typescript@5.8.3)(webpack@5.98.0)
+      '@ngtools/webpack': 19.2.15(@angular/compiler-cli@19.2.14(@angular/compiler@19.2.14)(typescript@5.8.3))(typescript@5.8.3)(webpack@5.98.0(esbuild@0.25.4))
       '@vitejs/plugin-basic-ssl': 1.2.0(vite@6.2.7(@types/node@20.17.24)(jiti@2.4.0)(less@4.2.2)(sass@1.85.0)(terser@5.39.0)(tsx@4.19.2)(yaml@2.7.0))
       ansi-colors: 4.1.3
       autoprefixer: 10.4.20(postcss@8.5.2)
-      babel-loader: 9.2.1(@babel/core@7.26.10)(webpack@5.98.0)
+      babel-loader: 9.2.1(@babel/core@7.26.10)(webpack@5.98.0(esbuild@0.25.4))
       browserslist: 4.25.1
-      copy-webpack-plugin: 12.0.2(webpack@5.98.0)
-      css-loader: 7.1.2(webpack@5.98.0)
+      copy-webpack-plugin: 12.0.2(webpack@5.98.0(esbuild@0.25.4))
+      css-loader: 7.1.2(webpack@5.98.0(esbuild@0.25.4))
       esbuild-wasm: 0.25.4
       fast-glob: 3.3.3
       http-proxy-middleware: 3.0.5
@@ -17853,22 +17853,22 @@ snapshots:
       jsonc-parser: 3.3.1
       karma-source-map-support: 1.4.0
       less: 4.2.2
-      less-loader: 12.2.0(less@4.2.2)(webpack@5.98.0)
-      license-webpack-plugin: 4.0.2(webpack@5.98.0)
+      less-loader: 12.2.0(less@4.2.2)(webpack@5.98.0(esbuild@0.25.4))
+      license-webpack-plugin: 4.0.2(webpack@5.98.0(esbuild@0.25.4))
       loader-utils: 3.3.1
-      mini-css-extract-plugin: 2.9.2(webpack@5.98.0)
+      mini-css-extract-plugin: 2.9.2(webpack@5.98.0(esbuild@0.25.4))
       open: 10.1.0
       ora: 5.4.1
       picomatch: 4.0.2
       piscina: 4.8.0
       postcss: 8.5.2
-      postcss-loader: 8.1.1(postcss@8.5.2)(typescript@5.8.3)(webpack@5.98.0)
+      postcss-loader: 8.1.1(postcss@8.5.2)(typescript@5.8.3)(webpack@5.98.0(esbuild@0.25.4))
       resolve-url-loader: 5.0.0
       rxjs: 7.8.1
       sass: 1.85.0
-      sass-loader: 16.0.5(sass@1.85.0)(webpack@5.98.0)
+      sass-loader: 16.0.5(sass@1.85.0)(webpack@5.98.0(esbuild@0.25.4))
       semver: 7.7.1
-      source-map-loader: 5.0.0(webpack@5.98.0)
+      source-map-loader: 5.0.0(webpack@5.98.0(esbuild@0.25.4))
       source-map-support: 0.5.21
       terser: 5.39.0
       tree-kill: 1.2.2
@@ -17878,7 +17878,7 @@ snapshots:
       webpack-dev-middleware: 7.4.2(webpack@5.98.0)
       webpack-dev-server: 5.2.2(webpack@5.98.0)
       webpack-merge: 6.0.1
-      webpack-subresource-integrity: 5.1.0(webpack@5.98.0)
+      webpack-subresource-integrity: 5.1.0(webpack@5.98.0(esbuild@0.25.4))
     optionalDependencies:
       esbuild: 0.25.4
       jest: 29.7.0(@types/node@20.17.24)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))
@@ -17906,7 +17906,7 @@ snapshots:
       - webpack-cli
       - yaml
 
-  '@angular-devkit/build-webpack@0.1902.15(chokidar@4.0.3)(webpack-dev-server@5.2.2(webpack@5.98.0))(webpack@5.98.0)':
+  '@angular-devkit/build-webpack@0.1902.15(chokidar@4.0.3)(webpack-dev-server@5.2.2(webpack@5.98.0))(webpack@5.98.0(esbuild@0.25.4))':
     dependencies:
       '@angular-devkit/architect': 0.1902.15(chokidar@4.0.3)
       rxjs: 7.8.1
@@ -22411,16 +22411,16 @@ snapshots:
 
   '@kwsites/promise-deferred@1.1.1': {}
 
-  '@langchain/community@0.0.57(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-runtime@3.663.0)(@aws-sdk/credential-provider-node@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0))(@smithy/util-utf8@2.3.0)(@upstash/redis@1.34.3)(@vercel/kv@0.2.4)(encoding@0.1.13)(ioredis@5.4.1)(jsdom@26.0.0)(lodash@4.17.21)(openai@5.6.0(ws@8.18.0)(zod@3.25.49))(redis@4.7.0)(ws@8.18.0)':
+  '@langchain/community@0.0.57(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-runtime@3.663.0)(@aws-sdk/credential-provider-node@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0))(@smithy/util-utf8@2.3.0)(@upstash/redis@1.34.3)(@vercel/kv@0.2.4)(encoding@0.1.13)(ioredis@5.4.1)(jsdom@26.0.0)(lodash@4.17.21)(openai@5.6.0(ws@8.18.0)(zod@3.25.76))(redis@4.7.0)(ws@8.18.0)':
     dependencies:
-      '@langchain/core': 0.1.63(openai@5.6.0(ws@8.18.0)(zod@3.25.49))
+      '@langchain/core': 0.1.63(openai@5.6.0(ws@8.18.0)(zod@3.25.76))
       '@langchain/openai': 0.0.28(encoding@0.1.13)
       expr-eval: 2.0.2
       flat: 5.0.2
-      langsmith: 0.1.23(openai@5.6.0(ws@8.18.0)(zod@3.25.49))
+      langsmith: 0.1.23(openai@5.6.0(ws@8.18.0)(zod@3.25.76))
       uuid: 9.0.1
-      zod: 3.25.49
-      zod-to-json-schema: 3.24.1(zod@3.25.49)
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.1(zod@3.25.76)
     optionalDependencies:
       '@aws-crypto/sha256-js': 5.2.0
       '@aws-sdk/client-bedrock-runtime': 3.663.0
@@ -22449,25 +22449,25 @@ snapshots:
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 9.0.1
-      zod: 3.25.49
-      zod-to-json-schema: 3.23.5(zod@3.25.49)
+      zod: 3.25.76
+      zod-to-json-schema: 3.23.5(zod@3.25.76)
     transitivePeerDependencies:
       - openai
 
-  '@langchain/core@0.1.63(openai@5.6.0(ws@8.18.0)(zod@3.25.49))':
+  '@langchain/core@0.1.63(openai@5.6.0(ws@8.18.0)(zod@3.25.76))':
     dependencies:
       ansi-styles: 5.2.0
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.12
-      langsmith: 0.1.23(openai@5.6.0(ws@8.18.0)(zod@3.25.49))
+      langsmith: 0.1.23(openai@5.6.0(ws@8.18.0)(zod@3.25.76))
       ml-distance: 4.0.1
       mustache: 4.2.0
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 9.0.1
-      zod: 3.25.49
-      zod-to-json-schema: 3.23.5(zod@3.25.49)
+      zod: 3.25.76
+      zod-to-json-schema: 3.23.5(zod@3.25.76)
     transitivePeerDependencies:
       - openai
 
@@ -22476,14 +22476,14 @@ snapshots:
       '@langchain/core': 0.1.63(openai@4.52.6(encoding@0.1.13))
       js-tiktoken: 1.0.12
       openai: 4.52.6(encoding@0.1.13)
-      zod: 3.25.49
-      zod-to-json-schema: 3.23.5(zod@3.25.49)
+      zod: 3.25.76
+      zod-to-json-schema: 3.23.5(zod@3.25.76)
     transitivePeerDependencies:
       - encoding
 
-  '@langchain/textsplitters@0.0.2(openai@5.6.0(ws@8.18.0)(zod@3.25.49))':
+  '@langchain/textsplitters@0.0.2(openai@5.6.0(ws@8.18.0)(zod@3.25.76))':
     dependencies:
-      '@langchain/core': 0.1.63(openai@5.6.0(ws@8.18.0)(zod@3.25.49))
+      '@langchain/core': 0.1.63(openai@5.6.0(ws@8.18.0)(zod@3.25.76))
       js-tiktoken: 1.0.12
     transitivePeerDependencies:
       - openai
@@ -22573,8 +22573,8 @@ snapshots:
       express-rate-limit: 7.5.0(express@5.0.1)
       pkce-challenge: 5.0.0
       raw-body: 3.0.0
-      zod: 3.25.49
-      zod-to-json-schema: 3.24.1(zod@3.25.49)
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.1(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
 
@@ -22896,7 +22896,7 @@ snapshots:
   '@next/swc-win32-x64-msvc@15.3.3':
     optional: true
 
-  '@ngtools/webpack@19.2.15(@angular/compiler-cli@19.2.14(@angular/compiler@19.2.14)(typescript@5.8.3))(typescript@5.8.3)(webpack@5.98.0)':
+  '@ngtools/webpack@19.2.15(@angular/compiler-cli@19.2.14(@angular/compiler@19.2.14)(typescript@5.8.3))(typescript@5.8.3)(webpack@5.98.0(esbuild@0.25.4))':
     dependencies:
       '@angular/compiler-cli': 19.2.14(@angular/compiler@19.2.14)(typescript@5.8.3)
       typescript: 5.8.3
@@ -27303,7 +27303,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  babel-loader@9.2.1(@babel/core@7.26.10)(webpack@5.98.0):
+  babel-loader@9.2.1(@babel/core@7.26.10)(webpack@5.98.0(esbuild@0.25.4)):
     dependencies:
       '@babel/core': 7.26.10
       find-cache-dir: 4.0.0
@@ -28041,7 +28041,7 @@ snapshots:
     dependencies:
       is-what: 4.1.16
 
-  copy-webpack-plugin@12.0.2(webpack@5.98.0):
+  copy-webpack-plugin@12.0.2(webpack@5.98.0(esbuild@0.25.4)):
     dependencies:
       fast-glob: 3.3.3
       glob-parent: 6.0.2
@@ -28142,7 +28142,7 @@ snapshots:
     dependencies:
       postcss: 8.5.3
 
-  css-loader@7.1.2(webpack@5.98.0):
+  css-loader@7.1.2(webpack@5.98.0(esbuild@0.25.4)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.3)
       postcss: 8.5.3
@@ -31800,26 +31800,26 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  langchain@0.1.36(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-runtime@3.663.0)(@aws-sdk/credential-provider-node@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0))(@smithy/util-utf8@2.3.0)(@upstash/redis@1.34.3)(@vercel/kv@0.2.4)(encoding@0.1.13)(fast-xml-parser@4.4.1)(ignore@5.3.2)(ioredis@5.4.1)(jsdom@26.0.0)(lodash@4.17.21)(openai@5.6.0(ws@8.18.0)(zod@3.25.49))(playwright@1.50.1)(redis@4.7.0)(ws@8.18.0):
+  langchain@0.1.36(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-runtime@3.663.0)(@aws-sdk/credential-provider-node@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0))(@smithy/util-utf8@2.3.0)(@upstash/redis@1.34.3)(@vercel/kv@0.2.4)(encoding@0.1.13)(fast-xml-parser@4.4.1)(ignore@5.3.2)(ioredis@5.4.1)(jsdom@26.0.0)(lodash@4.17.21)(openai@5.6.0(ws@8.18.0)(zod@3.25.76))(playwright@1.50.1)(redis@4.7.0)(ws@8.18.0):
     dependencies:
       '@anthropic-ai/sdk': 0.9.1(encoding@0.1.13)
-      '@langchain/community': 0.0.57(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-runtime@3.663.0)(@aws-sdk/credential-provider-node@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0))(@smithy/util-utf8@2.3.0)(@upstash/redis@1.34.3)(@vercel/kv@0.2.4)(encoding@0.1.13)(ioredis@5.4.1)(jsdom@26.0.0)(lodash@4.17.21)(openai@5.6.0(ws@8.18.0)(zod@3.25.49))(redis@4.7.0)(ws@8.18.0)
-      '@langchain/core': 0.1.63(openai@5.6.0(ws@8.18.0)(zod@3.25.49))
+      '@langchain/community': 0.0.57(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-runtime@3.663.0)(@aws-sdk/credential-provider-node@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0))(@smithy/util-utf8@2.3.0)(@upstash/redis@1.34.3)(@vercel/kv@0.2.4)(encoding@0.1.13)(ioredis@5.4.1)(jsdom@26.0.0)(lodash@4.17.21)(openai@5.6.0(ws@8.18.0)(zod@3.25.76))(redis@4.7.0)(ws@8.18.0)
+      '@langchain/core': 0.1.63(openai@5.6.0(ws@8.18.0)(zod@3.25.76))
       '@langchain/openai': 0.0.28(encoding@0.1.13)
-      '@langchain/textsplitters': 0.0.2(openai@5.6.0(ws@8.18.0)(zod@3.25.49))
+      '@langchain/textsplitters': 0.0.2(openai@5.6.0(ws@8.18.0)(zod@3.25.76))
       binary-extensions: 2.2.0
       js-tiktoken: 1.0.12
       js-yaml: 4.1.0
       jsonpointer: 5.0.1
       langchainhub: 0.0.11
-      langsmith: 0.1.23(openai@5.6.0(ws@8.18.0)(zod@3.25.49))
+      langsmith: 0.1.23(openai@5.6.0(ws@8.18.0)(zod@3.25.76))
       ml-distance: 4.0.1
       openapi-types: 12.1.3
       p-retry: 4.6.2
       uuid: 9.0.1
       yaml: 2.4.2
-      zod: 3.25.49
-      zod-to-json-schema: 3.23.5(zod@3.25.49)
+      zod: 3.25.76
+      zod-to-json-schema: 3.23.5(zod@3.25.76)
     optionalDependencies:
       '@aws-sdk/credential-provider-node': 3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0)
       '@vercel/kv': 0.2.4
@@ -31914,7 +31914,7 @@ snapshots:
     optionalDependencies:
       openai: 4.52.6(encoding@0.1.13)
 
-  langsmith@0.1.23(openai@5.6.0(ws@8.18.0)(zod@3.25.49)):
+  langsmith@0.1.23(openai@5.6.0(ws@8.18.0)(zod@3.25.76)):
     dependencies:
       '@types/uuid': 9.0.7
       commander: 10.0.1
@@ -31922,7 +31922,7 @@ snapshots:
       p-retry: 4.6.2
       uuid: 9.0.1
     optionalDependencies:
-      openai: 5.6.0(ws@8.18.0)(zod@3.25.49)
+      openai: 5.6.0(ws@8.18.0)(zod@3.25.76)
 
   language-subtag-registry@0.3.22: {}
 
@@ -31939,7 +31939,7 @@ snapshots:
     dependencies:
       readable-stream: 2.3.8
 
-  less-loader@12.2.0(less@4.2.2)(webpack@5.98.0):
+  less-loader@12.2.0(less@4.2.2)(webpack@5.98.0(esbuild@0.25.4)):
     dependencies:
       less: 4.2.2
     optionalDependencies:
@@ -31966,7 +31966,7 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
-  license-webpack-plugin@4.0.2(webpack@5.98.0):
+  license-webpack-plugin@4.0.2(webpack@5.98.0(esbuild@0.25.4)):
     dependencies:
       webpack-sources: 3.2.3
     optionalDependencies:
@@ -32548,7 +32548,7 @@ snapshots:
 
   min-indent@1.0.1: {}
 
-  mini-css-extract-plugin@2.9.2(webpack@5.98.0):
+  mini-css-extract-plugin@2.9.2(webpack@5.98.0(esbuild@0.25.4)):
     dependencies:
       schema-utils: 4.3.2
       tapable: 2.2.1
@@ -33506,10 +33506,10 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  openai@5.6.0(ws@8.18.0)(zod@3.25.49):
+  openai@5.6.0(ws@8.18.0)(zod@3.25.76):
     optionalDependencies:
       ws: 8.18.0
-      zod: 3.25.49
+      zod: 3.25.76
     optional: true
 
   openapi-types@12.1.3: {}
@@ -34020,7 +34020,7 @@ snapshots:
       tsx: 4.19.2
       yaml: 2.7.0
 
-  postcss-loader@8.1.1(postcss@8.5.2)(typescript@5.8.3)(webpack@5.98.0):
+  postcss-loader@8.1.1(postcss@8.5.2)(typescript@5.8.3)(webpack@5.98.0(esbuild@0.25.4)):
     dependencies:
       cosmiconfig: 9.0.0(typescript@5.8.3)
       jiti: 1.21.6
@@ -34884,7 +34884,7 @@ snapshots:
 
   safer-buffer@2.1.2: {}
 
-  sass-loader@16.0.5(sass@1.85.0)(webpack@5.98.0):
+  sass-loader@16.0.5(sass@1.85.0)(webpack@5.98.0(esbuild@0.25.4)):
     dependencies:
       neo-async: 2.6.2
     optionalDependencies:
@@ -35226,7 +35226,7 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
-  source-map-loader@5.0.0(webpack@5.98.0):
+  source-map-loader@5.0.0(webpack@5.98.0(esbuild@0.25.4)):
     dependencies:
       iconv-lite: 0.6.3
       source-map-js: 1.2.1
@@ -37311,7 +37311,7 @@ snapshots:
 
   webpack-sources@3.2.3: {}
 
-  webpack-subresource-integrity@5.1.0(webpack@5.98.0):
+  webpack-subresource-integrity@5.1.0(webpack@5.98.0(esbuild@0.25.4)):
     dependencies:
       typed-assert: 1.0.9
       webpack: 5.98.0(esbuild@0.25.4)
@@ -37592,15 +37592,15 @@ snapshots:
       compress-commons: 6.0.2
       readable-stream: 4.5.2
 
-  zod-to-json-schema@3.23.5(zod@3.25.49):
+  zod-to-json-schema@3.23.5(zod@3.25.76):
     dependencies:
-      zod: 3.25.49
+      zod: 3.25.76
 
-  zod-to-json-schema@3.24.1(zod@3.25.49):
+  zod-to-json-schema@3.24.1(zod@3.25.76):
     dependencies:
-      zod: 3.25.49
+      zod: 3.25.76
 
-  zod@3.25.49: {}
+  zod@3.25.76: {}
 
   zone.js@0.15.1: {}
 
