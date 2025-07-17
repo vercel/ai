@@ -2,4 +2,4 @@
 '@ai-sdk/gateway': patch
 ---
 
-Added support for Gateway options (ordering)
+feat (provider/gateway): Add AI Gateway provider options (ordering)
