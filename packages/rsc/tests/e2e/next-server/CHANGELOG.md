@@ -4,6 +4,18 @@
 
 ### Patch Changes
 
+- Updated dependencies [de2d2ab]
+- Updated dependencies [6c42e56]
+- Updated dependencies [c93a8bc]
+- Updated dependencies [20398f2]
+- Updated dependencies [86293e5]
+- Updated dependencies [205077b]
+  - ai@5.0.0-beta.22
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - Updated dependencies [38ae5cc]
 - Updated dependencies [faea29f]
 - Updated dependencies [90ac328]

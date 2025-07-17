@@ -1,5 +1,19 @@
 # @ai-sdk/rsc
 
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [de2d2ab]
+- Updated dependencies [6c42e56]
+- Updated dependencies [c93a8bc]
+- Updated dependencies [20398f2]
+- Updated dependencies [86293e5]
+- Updated dependencies [205077b]
+  - ai@5.0.0-beta.22
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+
 ## 1.0.0-beta.21
 
 ### Patch Changes

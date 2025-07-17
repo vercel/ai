@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.10
+
+### Patch Changes
+
+- 0fa7414: chore (provider/openai): standardize on itemId in provider metadata
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+
 ## 2.0.0-beta.9
 
 ### Patch Changes
