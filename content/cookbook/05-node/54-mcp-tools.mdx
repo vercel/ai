@@ -8,10 +8,17 @@ tags: ['node', 'tool use', 'agent', 'mcp']
 
 The AI SDK supports Model Context Protocol (MCP) tools by offering a lightweight client that exposes a `tools` method for retrieving tools from a MCP server. After use, the client should always be closed to release resources.
 
+Use the official Model Context Protocol Typescript SDK to create the connection to the MCP server.
+
+<Snippet text="pnpm install @modelcontextprotocol/sdk" />
+
 ```ts
-import { experimental_createMCPClient, generateText } from 'ai';
+import { experimental_createMCPClient, generateText, stepCountIs } from 'ai';
 import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
 
 let clientOne;
 let clientTwo;
@@ -19,28 +26,29 @@ let clientThree;
 
 try {
   // Initialize an MCP client to connect to a `stdio` MCP server:
-  const transport = new Experimental_StdioMCPTransport({
+  const transport = new StdioClientTransport({
     command: 'node',
     args: ['src/stdio/dist/server.js'],
   });
-  clientOne = await experimental_createMCPClient({
+
+  const clientOne = await experimental_createMCPClient({
     transport,
+  });
+
+  // You can also connect to StreamableHTTP MCP servers
+  const httpTransport = new StreamableHTTPClientTransport(
+    new URL('http://localhost:3000/mcp'),
+  );
+  const clientTwo = await experimental_createMCPClient({
+    transport: httpTransport,
   });
 
   // Alternatively, you can connect to a Server-Sent Events (SSE) MCP server:
-  clientTwo = await experimental_createMCPClient({
-    transport: {
-      type: 'sse',
-      url: 'http://localhost:3000/sse',
-    },
-  });
-
-  // Similarly to the stdio example, you can pass in your own custom transport as long as it implements the `MCPTransport` interface:
-  const transport = new MyCustomTransport({
-    // ...
-  });
-  clientThree = await experimental_createMCPClient({
-    transport,
+  const sseTransport = new SSEClientTransport(
+    new URL('http://localhost:3000/sse'),
+  );
+  const clientThree = await experimental_createMCPClient({
+    transport: sseTransport,
   });
 
   const toolSetOne = await clientOne.tools();
@@ -55,10 +63,11 @@ try {
   const response = await generateText({
     model: openai('gpt-4o'),
     tools,
+    stopWhen: stepCountIs(5),
     messages: [
       {
         role: 'user',
-        content: 'Find products under $100',
+        content: [{ type: 'text', text: 'Find products under $100' }],
       },
     ],
   });
@@ -67,6 +76,10 @@ try {
 } catch (error) {
   console.error(error);
 } finally {
-  await Promise.all([clientOne.close(), clientTwo.close()]);
+  await Promise.all([
+    clientOne.close(),
+    clientTwo.close(),
+    clientThree.close(),
+  ]);
 }
 ```

@@ -1,5 +1,4 @@
 import {
-  InvalidArgumentError,
   LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
@@ -113,6 +112,8 @@ export async function convertToOpenAIResponsesMessages({
               messages.push({
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
+                id:
+                  (part.providerOptions?.openai?.itemId as string) ?? undefined,
               });
               break;
             }
@@ -126,6 +127,8 @@ export async function convertToOpenAIResponsesMessages({
                 call_id: part.toolCallId,
                 name: part.toolName,
                 arguments: JSON.stringify(part.input),
+                id:
+                  (part.providerOptions?.openai?.itemId as string) ?? undefined,
               });
               break;
             }
@@ -145,7 +148,7 @@ export async function convertToOpenAIResponsesMessages({
                 schema: openaiResponsesReasoningProviderOptionsSchema,
               });
 
-              const reasoningId = providerOptions?.reasoning?.id;
+              const reasoningId = providerOptions?.itemId;
 
               if (reasoningId != null) {
                 const existingReasoningMessage = reasoningMessages[reasoningId];
@@ -169,7 +172,7 @@ export async function convertToOpenAIResponsesMessages({
                     type: 'reasoning',
                     id: reasoningId,
                     encrypted_content:
-                      providerOptions?.reasoning?.encryptedContent,
+                      providerOptions?.reasoningEncryptedContent,
                     summary: summaryParts,
                   };
                   messages.push(reasoningMessages[reasoningId]);
@@ -228,12 +231,8 @@ export async function convertToOpenAIResponsesMessages({
 }
 
 const openaiResponsesReasoningProviderOptionsSchema = z.object({
-  reasoning: z
-    .object({
-      id: z.string().nullish(),
-      encryptedContent: z.string().nullish(),
-    })
-    .nullish(),
+  itemId: z.string().nullish(),
+  reasoningEncryptedContent: z.string().nullish(),
 });
 
 export type OpenAIResponsesReasoningProviderOptions = z.infer<

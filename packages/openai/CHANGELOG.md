@@ -1,5 +1,28 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.10
+
+### Patch Changes
+
+- 0fa7414: chore (provider/openai): standardize on itemId in provider metadata
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+
+## 2.0.0-beta.9
+
+### Patch Changes
+
+- faea29f: fix (provider/openai): multi-step reasoning with text
+
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- db64cbe: fix (provider/openai): multi-step reasoning with tool calls
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+
 ## 2.0.0-beta.7
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/deepseek",
-  "version": "1.0.0-beta.4",
+  "version": "1.0.0-beta.7",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -41,10 +41,10 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "zod": "3.25.49"
+    "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.25.49 || ^4"
+    "zod": "^3.25.76 || ^4"
   },
   "engines": {
     "node": ">=18"

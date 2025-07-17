@@ -1,5 +1,31 @@
 # @ai-sdk/azure
 
+## 2.0.0-beta.10
+
+### Patch Changes
+
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [0fa7414]
+- Updated dependencies [205077b]
+  - @ai-sdk/openai@2.0.0-beta.10
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+
+## 2.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [faea29f]
+  - @ai-sdk/openai@2.0.0-beta.9
+
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [05d2819]
+- Updated dependencies [db64cbe]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+  - @ai-sdk/openai@2.0.0-beta.8
+
 ## 2.0.0-beta.7
 
 ### Patch Changes

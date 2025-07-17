@@ -71,7 +71,11 @@ export default function Page() {
         Generate
       </div>
 
-      {isLoading ? 'Loading...' : <pre>{JSON.stringify(generation)}</pre>}
+      {isLoading ? (
+        'Loading...'
+      ) : (
+        <pre>{JSON.stringify(generation, null, 2)}</pre>
+      )}
     </div>
   );
 }
@@ -90,7 +94,7 @@ export async function POST(req: Request) {
   const { prompt }: { prompt: string } = await req.json();
 
   const result = await generateObject({
-    model: openai('gpt-4'),
+    model: openai('gpt-4o'),
     system: 'You generate three notifications for a messages app.',
     prompt,
     schema: z.object({

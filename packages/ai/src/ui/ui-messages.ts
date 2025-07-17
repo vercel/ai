@@ -1,5 +1,6 @@
 import { InferToolInput, InferToolOutput, Tool } from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text';
+import { ProviderMetadata } from '../types/provider-metadata';
 import { DeepPartial } from '../util/deep-partial';
 import { ValueOf } from '../util/value-of';
 
@@ -94,6 +95,11 @@ export type TextUIPart = {
    * The state of the text part.
    */
   state?: 'streaming' | 'done';
+
+  /**
+   * The provider metadata.
+   */
+  providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -115,7 +121,7 @@ export type ReasoningUIPart = {
   /**
    * The provider metadata.
    */
-  providerMetadata?: Record<string, any>;
+  providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -126,7 +132,7 @@ export type SourceUrlUIPart = {
   sourceId: string;
   url: string;
   title?: string;
-  providerMetadata?: Record<string, any>;
+  providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -138,7 +144,7 @@ export type SourceDocumentUIPart = {
   mediaType: string;
   title: string;
   filename?: string;
-  providerMetadata?: Record<string, any>;
+  providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -164,6 +170,11 @@ export type FileUIPart = {
    * It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
    */
   url: string;
+
+  /**
+   * The provider metadata.
+   */
+  providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -199,6 +210,7 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         providerExecuted?: boolean;
         output?: never;
         errorText?: never;
+        callProviderMetadata?: ProviderMetadata;
       }
     | {
         state: 'output-available';
@@ -206,6 +218,7 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         output: TOOLS[NAME]['output'];
         errorText?: never;
         providerExecuted?: boolean;
+        callProviderMetadata?: ProviderMetadata;
       }
     | {
         state: 'output-error';
@@ -213,6 +226,7 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         output?: never;
         errorText: string;
         providerExecuted?: boolean;
+        callProviderMetadata?: ProviderMetadata;
       }
   );
 }>;
@@ -226,7 +240,7 @@ export function isToolUIPart<TOOLS extends UITools>(
 export function getToolName<TOOLS extends UITools>(
   part: ToolUIPart<TOOLS>,
 ): keyof TOOLS {
-  return part.type.split('-')[1] as keyof TOOLS;
+  return part.type.split('-').slice(1).join('-') as keyof TOOLS;
 }
 
 export type InferUIMessageMetadata<T extends UIMessage> =

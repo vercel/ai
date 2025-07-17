@@ -260,6 +260,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               z.object({
                 type: z.literal('message'),
                 role: z.literal('assistant'),
+                id: z.string(),
                 content: z.array(
                   z.object({
                     type: z.literal('output_text'),
@@ -281,6 +282,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 call_id: z.string(),
                 name: z.string(),
                 arguments: z.string(),
+                id: z.string(),
               }),
               z.object({
                 type: z.literal('web_search_call'),
@@ -342,10 +344,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               text: summary.text,
               providerMetadata: {
                 openai: {
-                  reasoning: {
-                    id: part.id,
-                    encryptedContent: part.encrypted_content ?? null,
-                  },
+                  itemId: part.id,
+                  reasoningEncryptedContent: part.encrypted_content ?? null,
                 },
               },
             });
@@ -358,6 +358,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             content.push({
               type: 'text',
               text: contentPart.text,
+              providerMetadata: {
+                openai: {
+                  itemId: part.id,
+                },
+              },
             });
 
             for (const annotation of contentPart.annotations) {
@@ -379,6 +384,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolCallId: part.call_id,
             toolName: part.name,
             input: part.arguments,
+            providerMetadata: {
+              openai: {
+                itemId: part.id,
+              },
+            },
           });
           break;
         }
@@ -566,6 +576,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
+                  providerMetadata: {
+                    openai: {
+                      itemId: value.item.id,
+                    },
+                  },
                 });
               } else if (isResponseOutputItemAddedReasoningChunk(value)) {
                 activeReasoning[value.item.id] = {
@@ -578,10 +593,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: `${value.item.id}:0`,
                   providerMetadata: {
                     openai: {
-                      reasoning: {
-                        id: value.item.id,
-                        encryptedContent: value.item.encrypted_content ?? null,
-                      },
+                      itemId: value.item.id,
+                      reasoningEncryptedContent:
+                        value.item.encrypted_content ?? null,
                     },
                   },
                 });
@@ -601,6 +615,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolCallId: value.item.call_id,
                   toolName: value.item.name,
                   input: value.item.arguments,
+                  providerMetadata: {
+                    openai: {
+                      itemId: value.item.id,
+                    },
+                  },
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -670,11 +689,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     id: `${value.item.id}:${summaryIndex}`,
                     providerMetadata: {
                       openai: {
-                        reasoning: {
-                          id: value.item.id,
-                          encryptedContent:
-                            value.item.encrypted_content ?? null,
-                        },
+                        itemId: value.item.id,
+                        reasoningEncryptedContent:
+                          value.item.encrypted_content ?? null,
                       },
                     },
                   });
@@ -718,12 +735,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
                     openai: {
-                      reasoning: {
-                        id: value.item_id,
-                        encryptedContent:
-                          activeReasoning[value.item_id]?.encryptedContent ??
-                          null,
-                      },
+                      itemId: value.item_id,
+                      reasoningEncryptedContent:
+                        activeReasoning[value.item_id]?.encryptedContent ??
+                        null,
                     },
                   },
                 });
@@ -735,9 +750,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 delta: value.delta,
                 providerMetadata: {
                   openai: {
-                    reasoning: {
-                      id: value.item_id,
-                    },
+                    itemId: value.item_id,
                   },
                 },
               });

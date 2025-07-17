@@ -3,19 +3,19 @@ import {
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import { generateId, ModelMessage } from '@ai-sdk/provider-utils';
-import { SpanStatusCode, Tracer } from '@opentelemetry/api';
+import { Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
+import { Source } from '../types/language-model';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
+import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolErrorUnion, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
-import { Source } from '../types/language-model';
-import { ToolCallUnion } from './tool-call';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   // Text blocks:

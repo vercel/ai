@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "5.0.0-beta.18",
+  "version": "5.0.0-beta.23",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -71,10 +71,10 @@
     "eslint-config-vercel-ai": "workspace:*",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "zod": "3.25.49"
+    "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.25.49 || ^4"
+    "zod": "^3.25.76 || ^4"
   },
   "engines": {
     "node": ">=18"
