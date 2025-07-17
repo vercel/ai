@@ -673,6 +673,35 @@ const result = await generateText({
 const sources = result.sources;
 ```
 
+#### File Search
+
+The OpenAI responses provider supports file search through the `openai.tools.fileSearch` tool.
+
+You can force the use of the file search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'file_search' }`.
+
+```ts
+const result = await generateText({
+  model: openai.responses('gpt-4o-mini'),
+  prompt: 'What does the document say about user authentication?',
+  tools: {
+    file_search: openai.tools.fileSearch({
+      // optional configuration:
+      vectorStoreIds: ['vs_123', 'vs_456'],
+      maxResults: 10,
+      searchType: 'auto',
+    }),
+  },
+  // Force file search tool:
+  toolChoice: { type: 'tool', toolName: 'file_search' },
+});
+```
+
+<Note>
+  The tool must be named `file_search` when using OpenAI's file search
+  functionality. This name is required by OpenAI's API specification and cannot
+  be customized.
+</Note>
+
 #### Reasoning Summaries
 
 For reasoning models like `o3-mini`, `o3`, and `o4-mini`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available.

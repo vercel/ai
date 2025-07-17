@@ -362,7 +362,7 @@ const openaiCompatibleCompletionResponseSchema = z.object({
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const createOpenAICompatibleCompletionChunkSchema = <
-  ERROR_SCHEMA extends z.ZodType,
+  ERROR_SCHEMA extends z.core.$ZodType,
 >(
   errorSchema: ERROR_SCHEMA,
 ) =>

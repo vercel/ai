@@ -497,13 +497,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                 const index = toolCallDelta.index;
 
                 if (toolCalls[index] == null) {
-                  if (toolCallDelta.type !== 'function') {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function' type.`,
-                    });
-                  }
-
                   if (toolCallDelta.id == null) {
                     throw new InvalidResponseDataError({
                       data: toolCallDelta,
@@ -621,6 +614,23 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
+            // go through all tool calls and send the ones that are not finished
+            for (const toolCall of toolCalls.filter(
+              toolCall => !toolCall.hasFinished,
+            )) {
+              controller.enqueue({
+                type: 'tool-input-end',
+                id: toolCall.id,
+              });
+
+              controller.enqueue({
+                type: 'tool-call',
+                toolCallId: toolCall.id ?? generateId(),
+                toolName: toolCall.function.name,
+                input: toolCall.function.arguments,
+              });
+            }
+
             const providerMetadata: SharedV2ProviderMetadata = {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
@@ -697,7 +707,6 @@ const OpenAICompatibleChatResponseSchema = z.object({
           .array(
             z.object({
               id: z.string().nullish(),
-              type: z.literal('function'),
               function: z.object({
                 name: z.string(),
                 arguments: z.string(),
@@ -714,7 +723,9 @@ const OpenAICompatibleChatResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
+const createOpenAICompatibleChatChunkSchema = <
+  ERROR_SCHEMA extends z.core.$ZodType,
+>(
   errorSchema: ERROR_SCHEMA,
 ) =>
   z.union([
@@ -734,7 +745,6 @@ const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
                   z.object({
                     index: z.number(),
                     id: z.string().nullish(),
-                    type: z.literal('function').nullish(),
                     function: z.object({
                       name: z.string().nullish(),
                       arguments: z.string().nullish(),

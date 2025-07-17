@@ -1,5 +1,36 @@
 # @ai-sdk/fireworks
 
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/openai-compatible@1.0.0-beta.7
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [281bb1c]
+  - @ai-sdk/openai-compatible@1.0.0-beta.6
+
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+  - @ai-sdk/openai-compatible@1.0.0-beta.5
+
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [1b101e1]
+  - @ai-sdk/openai-compatible@1.0.0-beta.4
+
 ## 1.0.0-beta.3
 
 ### Patch Changes

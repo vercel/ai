@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 export const GATEWAY_AUTH_METHOD_HEADER = 'x-ai-gateway-auth-method' as const;
 

@@ -18,6 +18,8 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0 Beta.
 
 1. Backup your project. If you use a versioning control system, make sure all previous versions are committed.
 1. Upgrade to AI SDK 5.0.
+1. Automatically migrate your code using [codemods](#codemods).
+   > If you don't want to use codemods, we recommend resolving all deprecation warnings before upgrading to AI SDK 5.0.
 1. Follow the breaking changes guide below.
 1. Verify your project is working as expected.
 1. Commit your changes.
@@ -26,14 +28,65 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0 Beta.
 
 You need to update the following packages to the following versions in your `package.json` file(s):
 
-- `ai` package: `5.0.0-beta@latest`
-- `@ai-sdk/provider` package: `2.0.0-beta@latest`
-- `@ai-sdk/provider-utils` package: `3.0.0-beta@latest`
-- `@ai-sdk/*` packages: `2.0.0-beta@latest` (other `@ai-sdk` packages)
+- `ai` package: `5.0.0@beta`
+- `@ai-sdk/provider` package: `2.0.0@beta`
+- `@ai-sdk/provider-utils` package: `3.0.0@beta`
+- `@ai-sdk/*` packages: `2.0.0@beta` (other `@ai-sdk` packages)
 
 Additionally, you need to update the following peer dependencies:
 
 - `zod` package: `3.25.0` or later
+
+An example upgrade command would be:
+
+```
+npm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta zod@3.25.0
+```
+
+## Codemods
+
+The AI SDK provides Codemod transformations to help upgrade your codebase when a
+feature is deprecated, removed, or otherwise changed.
+
+Codemods are transformations that run on your codebase automatically. They
+allow you to easily apply many changes without having to manually go through
+every file.
+
+<Note>
+  Codemods are intended as a tool to help you with the upgrade process. They may
+  not cover all of the changes you need to make. You may need to make additional
+  changes manually.
+</Note>
+
+You can run all codemods provided as part of the 5.0 upgrade process by running
+the following command from the root of your project:
+
+```sh
+npx @ai-sdk/codemod@beta upgrade
+```
+
+To run only the v5 codemods (v4 → v5 migration):
+
+```sh
+npx @ai-sdk/codemod@beta v5
+```
+
+Individual codemods can be run by specifying the name of the codemod:
+
+```sh
+npx @ai-sdk/codemod@beta <codemod-name> <path>
+```
+
+For example, to run a specific v5 codemod:
+
+```sh
+npx @ai-sdk/codemod@beta v5/rename-format-stream-part src/
+```
+
+See also the [table of codemods](#codemod-table). In addition, the latest set of
+codemods can be found in the
+[`@ai-sdk/codemod`](https://github.com/vercel/ai/tree/main/packages/codemod/src/codemods)
+repository.
 
 ## AI SDK Core Changes
 
@@ -277,6 +330,113 @@ const stream = createUIMessageStream({
 
 return createUIMessageStreamResponse({ stream });
 ```
+
+### Custom Data Streaming: writeMessageAnnotation/writeData Removed
+
+The `writeMessageAnnotation` and `writeData` methods from `DataStreamWriter` have been removed. Instead, use custom data parts with the new `UIMessage` stream architecture.
+
+```tsx filename="AI SDK 4.0"
+import { openai } from '@ai-sdk/openai';
+import { createDataStreamResponse, streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  return createDataStreamResponse({
+    execute: dataStream => {
+      // Write general data
+      dataStream.writeData('call started');
+
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages,
+        onChunk() {
+          // Write message annotations
+          dataStream.writeMessageAnnotation({
+            status: 'streaming',
+            timestamp: Date.now(),
+          });
+        },
+        onFinish() {
+          // Write final annotations
+          dataStream.writeMessageAnnotation({
+            id: generateId(),
+            completed: true,
+          });
+
+          dataStream.writeData('call completed');
+        },
+      });
+
+      result.mergeIntoDataStream(dataStream);
+    },
+  });
+}
+```
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+  generateId,
+} from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const stream = createUIMessageStream({
+    execute: ({ writer }) => {
+      const statusId = generateId();
+      // Write general data (transient - not added to message history)
+      writer.write({
+        type: 'data-status',
+        id: statusId,
+        data: { status: 'call started' },
+      });
+
+      // Generate shared IDs for data parts
+      const completionId = generateId();
+
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages,
+        onChunk() {
+          // Write data parts that update during streaming
+          writer.write({
+            type: 'data-status',
+            id: statusId,
+            data: {
+              status: 'streaming',
+              timestamp: Date.now(),
+            },
+          });
+        },
+        onFinish() {
+          // Write final data parts
+          writer.write({
+            type: 'data-status',
+            id: statusId,
+            data: {
+              status: 'completed',
+            },
+          });
+        },
+      });
+
+      writer.merge(result.toUIMessageStream());
+    },
+  });
+
+  return createUIMessageStreamResponse({ stream });
+}
+```
+
+<Note>
+  For more detailed information about streaming custom data in v5, see the
+  [Streaming Data guide](/docs/ai-sdk-ui/streaming-data).
+</Note>
 
 ##### Provider Metadata → Provider Options
 
@@ -1959,6 +2119,103 @@ await generateText({
 });
 ```
 
+## Message Persistence Changes
+
+In v4, you would typically use helper functions like `appendResponseMessages` or `appendClientMessage` to format messages in the `onFinish` callback of `streamText`:
+
+```tsx filename="AI SDK 4.0"
+import {
+  streamText,
+  convertToModelMessages,
+  appendClientMessage,
+  appendResponseMessages,
+} from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = streamText({
+  model: openai('gpt-4o'),
+  messages: convertToModelMessages(messages),
+  onFinish: async ({ responseMessages, usage }) => {
+    // Use helper functions to format messages
+    const updatedMessages = appendClientMessage({
+      messages,
+      message: lastUserMessage,
+    });
+    const finalMessages = appendResponseMessages({
+      messages: updatedMessages,
+      responseMessages,
+    });
+
+    // Save formatted messages to database
+    await saveMessages(finalMessages);
+  },
+});
+```
+
+In v5, message persistence is now handled through the `toUIMessageStreamResponse` method, which automatically formats response messages in the `UIMessage` format:
+
+```tsx filename="AI SDK 5.0"
+import { streamText, convertToModelMessages, UIMessage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const messages: UIMessage[] = [
+  // Your existing messages in UIMessage format
+];
+
+const result = streamText({
+  model: openai('gpt-4o'),
+  messages: convertToModelMessages(messages),
+});
+
+return result.toUIMessageStreamResponse({
+  originalMessages: messages, // Pass original messages for context
+  onFinish: ({ messages }) => {
+    // messages contains all messages (original + response) in UIMessage format
+    saveChat({ chatId, messages });
+  },
+});
+```
+
+### Alternative: Using createUIMessageStream
+
+For more complex scenarios, especially when working with data parts, you can use `createUIMessageStream`:
+
+```tsx filename="AI SDK 5.0 - Advanced"
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+  convertToModelMessages,
+  UIMessage,
+} from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const stream = createUIMessageStream({
+  originalMessages: messages,
+  execute: ({ writer }) => {
+    // Write custom data parts
+    writer.write({
+      type: 'data',
+      data: { status: 'processing', timestamp: Date.now() },
+    });
+
+    // Stream the AI response
+    const result = streamText({
+      model: openai('gpt-4o'),
+      messages: convertToModelMessages(messages),
+    });
+
+    writer.merge(result.toUIMessageStream());
+  },
+  onFinish: ({ messages }) => {
+    // messages contains all messages (original + response + data parts) in UIMessage format
+    saveChat({ chatId, messages });
+  },
+});
+
+return createUIMessageStreamResponse({ stream });
+```
+
 ## Provider & Model Changes
 
 ### OpenAI
@@ -2121,3 +2378,64 @@ import {
   ToolChoice,
 } from '@ai-sdk/provider-utils';
 ```
+
+## Codemod Table
+
+The following table lists available codemods for the AI SDK 5.0 upgrade
+process.
+For more information, see the [Codemods](#codemods) section.
+
+| Change                                           | Codemod                                               |
+| ------------------------------------------------ | ----------------------------------------------------- |
+| **AI SDK Core Changes**                          |                                                       |
+| Flatten streamText file properties               | `v5/flatten-streamtext-file-properties`               |
+| Import LanguageModelV2 from provider package     | `v5/import-LanguageModelV2-from-provider-package`     |
+| Migrate to data stream protocol v2               | `v5/migrate-to-data-stream-protocol-v2`               |
+| Move image model maxImagesPerCall                | `v5/move-image-model-maxImagesPerCall`                |
+| Move LangChain adapter                           | `v5/move-langchain-adapter`                           |
+| Move provider options                            | `v5/move-provider-options`                            |
+| Move React to AI SDK                             | `v5/move-react-to-ai-sdk`                             |
+| Move UI utils to AI                              | `v5/move-ui-utils-to-ai`                              |
+| Remove experimental wrap language model          | `v5/remove-experimental-wrap-language-model`          |
+| Remove experimental activeTools                  | `v5/remove-experimental-activetools`                  |
+| Remove experimental prepareStep                  | `v5/remove-experimental-preparestep`                  |
+| Remove experimental continueSteps                | `v5/remove-experimental-continuesteps`                |
+| Remove experimental temperature                  | `v5/remove-experimental-temperature`                  |
+| Remove experimental truncate                     | `v5/remove-experimental-truncate`                     |
+| Remove experimental OpenAI compatibility         | `v5/remove-experimental-openai-compatibility`         |
+| Remove experimental OpenAI legacy function calls | `v5/remove-experimental-openai-legacy-function-calls` |
+| Remove experimental OpenAI structured outputs    | `v5/remove-experimental-openai-structured-outputs`    |
+| Remove experimental OpenAI store                 | `v5/remove-experimental-openai-store`                 |
+| Remove experimental OpenAI user                  | `v5/remove-experimental-openai-user`                  |
+| Remove experimental OpenAI parallel tool calls   | `v5/remove-experimental-openai-parallel-tool-calls`   |
+| Remove experimental OpenAI response format       | `v5/remove-experimental-openai-response-format`       |
+| Remove experimental OpenAI logit bias            | `v5/remove-experimental-openai-logit-bias`            |
+| Remove experimental OpenAI logprobs              | `v5/remove-experimental-openai-logprobs`              |
+| Remove experimental OpenAI seed                  | `v5/remove-experimental-openai-seed`                  |
+| Remove experimental OpenAI service tier          | `v5/remove-experimental-openai-service-tier`          |
+| Remove experimental OpenAI top logprobs          | `v5/remove-experimental-openai-top-logprobs`          |
+| Remove experimental OpenAI transform             | `v5/remove-experimental-openai-transform`             |
+| Remove experimental OpenAI stream options        | `v5/remove-experimental-openai-stream-options`        |
+| Remove experimental OpenAI prediction            | `v5/remove-experimental-openai-prediction`            |
+| Remove experimental Anthropic caching            | `v5/remove-experimental-anthropic-caching`            |
+| Remove experimental Anthropic computer use       | `v5/remove-experimental-anthropic-computer-use`       |
+| Remove experimental Anthropic PDF support        | `v5/remove-experimental-anthropic-pdf-support`        |
+| Remove experimental Anthropic prompt caching     | `v5/remove-experimental-anthropic-prompt-caching`     |
+| Remove experimental Google search grounding      | `v5/remove-experimental-google-search-grounding`      |
+| Remove experimental Google code execution        | `v5/remove-experimental-google-code-execution`        |
+| Remove experimental Google cached content        | `v5/remove-experimental-google-cached-content`        |
+| Remove experimental Google custom headers        | `v5/remove-experimental-google-custom-headers`        |
+| Rename format stream part                        | `v5/rename-format-stream-part`                        |
+| Rename parse stream part                         | `v5/rename-parse-stream-part`                         |
+| Replace image type with file type                | `v5/replace-image-type-with-file-type`                |
+| Replace LlamaIndex adapter                       | `v5/replace-llamaindex-adapter`                       |
+| Replace onCompletion with onFinal                | `v5/replace-oncompletion-with-onfinal`                |
+| Replace provider metadata with provider options  | `v5/replace-provider-metadata-with-provider-options`  |
+| Replace rawResponse with response                | `v5/replace-rawresponse-with-response`                |
+| Replace redacted reasoning type                  | `v5/replace-redacted-reasoning-type`                  |
+| Replace simulate streaming                       | `v5/replace-simulate-streaming`                       |
+| Replace textDelta with text                      | `v5/replace-textdelta-with-text`                      |
+| Replace usage token properties                   | `v5/replace-usage-token-properties`                   |
+| Restructure file stream parts                    | `v5/restructure-file-stream-parts`                    |
+| Restructure source stream parts                  | `v5/restructure-source-stream-parts`                  |
+| RSC package                                      | `v5/rsc-package`                                      |

@@ -36,6 +36,7 @@ export {
   type InferUITools,
   type ReasoningUIPart,
   type SourceUrlUIPart,
+  type SourceDocumentUIPart,
   type StepStartUIPart,
   type TextUIPart,
   type ToolUIPart,

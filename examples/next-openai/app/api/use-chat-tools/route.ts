@@ -84,5 +84,10 @@ export async function POST(req: Request) {
     tools,
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    //  originalMessages: messages, //add if you want to have correct ids
+    onFinish: options => {
+      console.log('onFinish', options);
+    },
+  });
 }

@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
 import {
-  parseAuthMethod,
   GATEWAY_AUTH_METHOD_HEADER,
+  parseAuthMethod,
 } from './parse-auth-method';
 
 describe('GATEWAY_AUTH_METHOD_HEADER', () => {

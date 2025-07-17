@@ -4,6 +4,7 @@ import { computer_20241022 } from './tool/computer_20241022';
 import { computer_20250124 } from './tool/computer_20250124';
 import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
+import { textEditor_20250429 } from './tool/text-editor_20250429';
 import { webSearch_20250305 } from './tool/web-search_20250305';
 
 export const anthropicTools = {
@@ -34,6 +35,12 @@ export const anthropicTools = {
    * Creates a tool for editing text. Must have name "str_replace_editor".
    */
   textEditor_20250124,
+
+  /**
+   * Creates a tool for editing text. Must have name "str_replace_based_edit_tool".
+   * Note: This version does not support the "undo_edit" command.
+   */
+  textEditor_20250429,
 
   /**
    * Creates a tool for executing actions on a computer. Must have name "computer".

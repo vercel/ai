@@ -26,11 +26,11 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
   readonly jsonSchema: JSONSchema7;
 };
 
-export type FlexibleSchema<T> = z4.ZodType<T> | z3.Schema<T> | Schema<T>;
+export type FlexibleSchema<T> = z4.core.$ZodType<T> | z3.Schema<T> | Schema<T>;
 
 export type InferSchema<SCHEMA> = SCHEMA extends z3.Schema
   ? z3.infer<SCHEMA>
-  : SCHEMA extends z4.ZodType
+  : SCHEMA extends z4.core.$ZodType
     ? z4.infer<SCHEMA>
     : SCHEMA extends Schema<infer T>
       ? T
@@ -74,7 +74,7 @@ function isSchema(value: unknown): value is Schema {
 
 export function asSchema<OBJECT>(
   schema:
-    | z4.ZodType<OBJECT, any>
+    | z4.core.$ZodType<OBJECT, any>
     | z3.Schema<OBJECT, z3.ZodTypeDef, any>
     | Schema<OBJECT>
     | undefined,

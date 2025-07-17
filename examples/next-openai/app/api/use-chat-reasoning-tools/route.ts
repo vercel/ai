@@ -1,28 +1,13 @@
-import { createAnthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
-import { fireworks } from '@ai-sdk/fireworks';
+import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  extractReasoningMiddleware,
   stepCountIs,
   streamText,
   tool,
   UIDataTypes,
   UIMessage,
-  wrapLanguageModel,
 } from 'ai';
 import { z } from 'zod/v4';
-
-const anthropic = createAnthropic({
-  // example fetch wrapper that logs the input to the API call:
-  fetch: async (url, options) => {
-    console.log('URL', url);
-    console.log('Headers', JSON.stringify(options!.headers, null, 2));
-    console.log(
-      `Body ${JSON.stringify(JSON.parse(options!.body! as string), null, 2)}`,
-    );
-    return await fetch(url, options);
-  },
-});
 
 export type ReasoningToolsMessage = UIMessage<
   never, // could define metadata here
@@ -52,10 +37,7 @@ export async function POST(req: Request) {
   console.log(JSON.stringify(messages, null, 2));
 
   const result = streamText({
-    model: wrapLanguageModel({
-      model: fireworks('accounts/fireworks/models/qwen3-30b-a3b'),
-      middleware: extractReasoningMiddleware({ tagName: 'think' }),
-    }),
+    model: openai('o3'),
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5), // multi-steps for server-side tools
     tools: {

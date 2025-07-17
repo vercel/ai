@@ -92,6 +92,13 @@ export function prepareTools({
               type: 'text_editor_20241022',
             });
             break;
+          case 'anthropic.text_editor_20250429':
+            betas.add('computer-use-2025-01-24');
+            anthropicTools.push({
+              name: 'str_replace_based_edit_tool',
+              type: 'text_editor_20250429',
+            });
+            break;
           case 'anthropic.bash_20250124':
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({

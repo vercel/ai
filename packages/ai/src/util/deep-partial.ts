@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 
 import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4/core';
+import * as z4 from 'zod/v4';
 
 /**
 Create a type from an object with all keys and nested keys set to optional.
@@ -32,7 +32,7 @@ Adopted from [type-fest](https://github.com/sindresorhus/type-fest/tree/main) Pa
 
 export type DeepPartial<T> = T extends z3.ZodTypeAny
   ? DeepPartialInternal<z3.infer<T>> // resolve Zod schemas first to prevent infinite recursion
-  : T extends z4.$ZodType
+  : T extends z4.core.$ZodType
     ? DeepPartialInternal<z4.infer<T>>
     : DeepPartialInternal<T>;
 

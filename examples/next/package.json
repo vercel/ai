@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/react": "workspace:*",
     "@vercel/blob": "^0.26.0",
     "ai": "workspace:*",
@@ -17,7 +18,7 @@
     "react-dom": "^18",
     "react-markdown": "9.0.1",
     "resumable-stream": "^2.2.0",
-    "zod": "3.25.49"
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

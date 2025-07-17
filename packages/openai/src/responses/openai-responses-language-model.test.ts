@@ -134,6 +134,11 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                },
+              },
               "text": "answer text",
               "type": "text",
             },
@@ -787,6 +792,144 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send file_search tool', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_123', 'vs_456'],
+                maxResults: 10,
+                searchType: 'auto',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tools": [
+              {
+                "max_results": 10,
+                "search_type": "auto",
+                "type": "file_search",
+                "vector_store_ids": [
+                  "vs_123",
+                  "vs_456",
+                ],
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send file_search tool as tool_choice', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          toolChoice: {
+            type: 'tool',
+            toolName: 'file_search',
+          },
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_789'],
+                maxResults: 5,
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tool_choice": {
+              "type": "file_search",
+            },
+            "tools": [
+              {
+                "max_results": 5,
+                "type": "file_search",
+                "vector_store_ids": [
+                  "vs_789",
+                ],
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send file_search tool with minimal args', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {},
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tools": [
+              {
+                "type": "file_search",
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should warn about unsupported settings', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -899,10 +1042,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": null,
-                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": null,
                 },
               },
               "text": "**Exploring burrito origins**
@@ -913,10 +1054,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": null,
-                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": null,
                 },
               },
               "text": "**Investigating burrito origins**
@@ -925,6 +1064,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "reasoning",
             },
             {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                },
+              },
               "text": "answer text",
               "type": "text",
             },
@@ -1022,16 +1166,19 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": null,
-                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": null,
                 },
               },
               "text": "",
               "type": "reasoning",
             },
             {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                },
+              },
               "text": "answer text",
               "type": "text",
             },
@@ -1139,10 +1286,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": "encrypted_reasoning_data_abc123",
-                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": "encrypted_reasoning_data_abc123",
                 },
               },
               "text": "**Exploring burrito origins**
@@ -1153,10 +1298,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": "encrypted_reasoning_data_abc123",
-                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": "encrypted_reasoning_data_abc123",
                 },
               },
               "text": "**Investigating burrito origins**
@@ -1165,6 +1308,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "reasoning",
             },
             {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                },
+              },
               "text": "answer text",
               "type": "text",
             },
@@ -1265,16 +1413,19 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": "encrypted_reasoning_data_abc123",
-                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": "encrypted_reasoning_data_abc123",
                 },
               },
               "text": "",
               "type": "reasoning",
             },
             {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                },
+              },
               "text": "answer text",
               "type": "text",
             },
@@ -1404,10 +1555,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": null,
-                    "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": null,
                 },
               },
               "text": "**Initial analysis**
@@ -1418,10 +1567,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": null,
-                    "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
+                  "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                  "reasoningEncryptedContent": null,
                 },
               },
               "text": "**Deeper consideration**
@@ -1430,22 +1577,30 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "reasoning",
             },
             {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                },
+              },
               "text": "Let me think about this step by step.",
               "type": "text",
             },
             {
               "providerMetadata": {
                 "openai": {
-                  "reasoning": {
-                    "encryptedContent": null,
-                    "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
-                  },
+                  "itemId": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                  "reasoningEncryptedContent": null,
                 },
               },
               "text": "Second reasoning block: considering alternative approaches.",
               "type": "reasoning",
             },
             {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                },
+              },
               "text": "Based on my analysis, here is the solution.",
               "type": "text",
             },
@@ -1570,12 +1725,22 @@ describe('OpenAIResponsesLanguageModel', () => {
           [
             {
               "input": "{"location":"San Francisco"}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "fc_67caf7f4c1ec8190b27edfb5580cfd31",
+                },
+              },
               "toolCallId": "call_0NdsJqOS8N3J9l2p0p4WpYU9",
               "toolName": "weather",
               "type": "tool-call",
             },
             {
               "input": "{"city":"San Francisco"}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "fc_67caf7f5071c81908209c2909c77af05",
+                },
+              },
               "toolCallId": "call_gexo0HtjUfmAIW4gjNOgyrcr",
               "toolName": "cityAttractions",
               "type": "tool-call",
@@ -1740,6 +1905,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "tool-result",
             },
             {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_67cf2b35467481908f24412e4fd40d66",
+                },
+              },
               "text": "Last week in San Francisco, several notable events and developments took place:
 
           **Bruce Lee Statue in Chinatown**
@@ -1907,6 +2077,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+              },
+            },
             "type": "text-start",
           },
           {
@@ -1978,6 +2153,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+              },
+            },
             "type": "text-start",
           },
           {
@@ -2065,6 +2245,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "input": "{}",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "fc_67cb13a838088190be08eb3927c87501",
+              },
+            },
             "toolCallId": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
             "toolName": "currentLocation",
             "type": "tool-call",
@@ -2105,6 +2290,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "input": "{"location":"Rome"}",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "fc_67cb13a858f081908a600343fa040f47",
+              },
+            },
             "toolCallId": "call_X2PAkDJInno9VVnNkDrfhboW",
             "toolName": "weather",
             "type": "tool-call",
@@ -2201,6 +2391,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+              },
+            },
             "type": "text-start",
           },
           {
@@ -2375,10 +2570,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-start",
@@ -2390,9 +2583,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2402,9 +2593,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2413,10 +2602,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-start",
@@ -2428,9 +2615,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2440,9 +2625,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2451,10 +2634,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-end",
@@ -2463,16 +2644,19 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-end",
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-start",
               },
               {
@@ -2561,10 +2745,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-start",
@@ -2573,16 +2755,19 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-end",
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-start",
               },
               {
@@ -2679,10 +2864,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": "encrypted_reasoning_data_abc123",
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_abc123",
                   },
                 },
                 "type": "reasoning-start",
@@ -2694,9 +2877,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2706,9 +2887,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2717,10 +2896,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": "encrypted_reasoning_data_abc123",
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_abc123",
                   },
                 },
                 "type": "reasoning-start",
@@ -2732,9 +2909,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2744,9 +2919,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -2755,10 +2928,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": "encrypted_reasoning_data_final_def456",
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_final_def456",
                   },
                 },
                 "type": "reasoning-end",
@@ -2767,16 +2938,19 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": "encrypted_reasoning_data_final_def456",
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_final_def456",
                   },
                 },
                 "type": "reasoning-end",
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-start",
               },
               {
@@ -2867,10 +3041,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": "encrypted_reasoning_data_abc123",
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_abc123",
                   },
                 },
                 "type": "reasoning-start",
@@ -2879,16 +3051,19 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": "encrypted_reasoning_data_final_def456",
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_final_def456",
                   },
                 },
                 "type": "reasoning-end",
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-start",
               },
               {
@@ -2999,10 +3174,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-start",
@@ -3014,9 +3187,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -3026,9 +3197,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -3037,10 +3206,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-start",
@@ -3052,9 +3219,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -3064,9 +3229,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
                   },
                 },
                 "type": "reasoning-delta",
@@ -3075,10 +3238,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-end",
@@ -3087,16 +3248,19 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    },
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-end",
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-start",
               },
               {
@@ -3117,10 +3281,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_second_7908809g7gcc9291be3e3fee895028c4:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
-                    },
+                    "itemId": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-start",
@@ -3130,9 +3292,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_second_7908809g7gcc9291be3e3fee895028c4:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
-                    },
+                    "itemId": "rs_second_7908809g7gcc9291be3e3fee895028c4",
                   },
                 },
                 "type": "reasoning-delta",
@@ -3142,9 +3302,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_second_7908809g7gcc9291be3e3fee895028c4:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
-                    },
+                    "itemId": "rs_second_7908809g7gcc9291be3e3fee895028c4",
                   },
                 },
                 "type": "reasoning-delta",
@@ -3153,16 +3311,19 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "id": "rs_second_7908809g7gcc9291be3e3fee895028c4:0",
                 "providerMetadata": {
                   "openai": {
-                    "reasoning": {
-                      "encryptedContent": null,
-                      "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
-                    },
+                    "itemId": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                    "reasoningEncryptedContent": null,
                   },
                 },
                 "type": "reasoning-end",
               },
               {
                 "id": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                  },
+                },
                 "type": "text-start",
               },
               {
@@ -3300,43 +3461,48 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(result.content).toMatchInlineSnapshot(`
-        [
-          {
-            "input": "",
-            "providerExecuted": true,
-            "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-            "toolName": "web_search_preview",
-            "type": "tool-call",
-          },
-          {
-            "providerExecuted": true,
-            "result": {
-              "status": "completed",
+          [
+            {
+              "input": "",
+              "providerExecuted": true,
+              "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "web_search_preview",
+              "type": "tool-call",
             },
-            "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-            "toolName": "web_search_preview",
-            "type": "tool-result",
-          },
-          {
-            "text": "As of June 23, 2025, here are some recent developments in San Francisco's tech scene:",
-            "type": "text",
-          },
-          {
-            "id": "id-0",
-            "sourceType": "url",
-            "title": "Discover Tech Events & Activities in San Francisco, CA | Eventbrite",
-            "type": "source",
-            "url": "https://www.eventbrite.sg/d/ca--san-francisco/tech-events/?utm_source=openai",
-          },
-          {
-            "id": "id-1",
-            "sourceType": "url",
-            "title": "AI+ SF Summit: AI agents are the next big thing",
-            "type": "source",
-            "url": "https://www.axios.com/2024/12/10/ai-sf-summit-2024-roundup?utm_source=openai",
-          },
-        ]
-      `);
+            {
+              "providerExecuted": true,
+              "result": {
+                "status": "completed",
+              },
+              "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "web_search_preview",
+              "type": "tool-result",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_67cf2b35467481908f24412e4fd40d66",
+                },
+              },
+              "text": "As of June 23, 2025, here are some recent developments in San Francisco's tech scene:",
+              "type": "text",
+            },
+            {
+              "id": "id-0",
+              "sourceType": "url",
+              "title": "Discover Tech Events & Activities in San Francisco, CA | Eventbrite",
+              "type": "source",
+              "url": "https://www.eventbrite.sg/d/ca--san-francisco/tech-events/?utm_source=openai",
+            },
+            {
+              "id": "id-1",
+              "sourceType": "url",
+              "title": "AI+ SF Summit: AI agents are the next big thing",
+              "type": "source",
+              "url": "https://www.axios.com/2024/12/10/ai-sf-summit-2024-roundup?utm_source=openai",
+            },
+          ]
+        `);
       });
 
       it('should handle computer use tool calls', async () => {
@@ -3396,30 +3562,35 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(result.content).toMatchInlineSnapshot(`
-        [
-          {
-            "input": "",
-            "providerExecuted": true,
-            "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
-            "toolName": "computer_use",
-            "type": "tool-call",
-          },
-          {
-            "providerExecuted": true,
-            "result": {
-              "status": "completed",
-              "type": "computer_use_tool_result",
+          [
+            {
+              "input": "",
+              "providerExecuted": true,
+              "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "computer_use",
+              "type": "tool-call",
             },
-            "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
-            "toolName": "computer_use",
-            "type": "tool-result",
-          },
-          {
-            "text": "I've completed the computer task.",
-            "type": "text",
-          },
-        ]
-      `);
+            {
+              "providerExecuted": true,
+              "result": {
+                "status": "completed",
+                "type": "computer_use_tool_result",
+              },
+              "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "computer_use",
+              "type": "tool-result",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_computer_test",
+                },
+              },
+              "text": "I've completed the computer task.",
+              "type": "text",
+            },
+          ]
+        `);
       });
     });
   });

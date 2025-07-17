@@ -1,4 +1,4 @@
 // @ts-nocheck
-import { parseStreamPart } from 'ai';
+import { parseDataStreamPart } from 'ai';
 
-const result = parseStreamPart(data);
+const result = parseDataStreamPart(data);

@@ -687,6 +687,11 @@ using the `.textEmbedding()` factory method.
 const model = google.textEmbedding('text-embedding-004');
 ```
 
+The Google Generative AI provider sends API calls to the right endpoint based on the type of embedding:
+
+- **Single embeddings**: When embedding a single value with `embed()`, the provider uses the single `:embedContent` endpoint, which typically has higher rate limits compared to the batch endpoint.
+- **Batch embeddings**: When embedding multiple values with `embedMany()` or multiple values in `embed()`, the provider uses the `:batchEmbedContents` endpoint.
+
 Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
 
 ```ts
@@ -731,3 +736,53 @@ The following optional provider options are available for Google Generative AI e
 | Model                | Default Dimensions | Custom Dimensions   |
 | -------------------- | ------------------ | ------------------- |
 | `text-embedding-004` | 768                | <Check size={18} /> |
+
+## Image Models
+
+You can create [Imagen](https://ai.google.dev/gemini-api/imagen) models that call the Google Generative AI API using the `.image()` factory method.
+For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+```ts
+import { google } from '@ai-sdk/google';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: google.image('imagen-3.0-generate-002'),
+  prompt: 'A futuristic cityscape at sunset',
+  aspectRatio: '16:9',
+});
+```
+
+Further configuration can be done using Google provider options. You can validate the provider options using the `GoogleGenerativeAIImageProviderOptions` type.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: google.image('imagen-3.0-generate-002'),
+  providerOptions: {
+    google: {
+      personGeneration: 'dont_allow',
+    } satisfies GoogleGenerativeAIImageProviderOptions,
+  },
+  // ...
+});
+```
+
+The following provider options are available:
+
+- **personGeneration** `allow_adult` | `allow_all` | `dont_allow`
+  Whether to allow person generation. Defaults to `allow_adult`.
+
+<Note>
+  Imagen models do not support the `size` parameter. Use the `aspectRatio`
+  parameter instead.
+</Note>
+
+#### Model Capabilities
+
+| Model                     | Aspect Ratios             |
+| ------------------------- | ------------------------- |
+| `imagen-3.0-generate-002` | 1:1, 3:4, 4:3, 9:16, 16:9 |

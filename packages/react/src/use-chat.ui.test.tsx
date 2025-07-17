@@ -16,6 +16,7 @@ import {
   UIMessageChunk,
 } from 'ai';
 import React, { act, useRef, useState } from 'react';
+import { Chat } from './chat.react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
 
@@ -26,6 +27,65 @@ function formatChunk(part: UIMessageChunk) {
 const server = createTestServer({
   '/api/chat': {},
   '/api/chat/123/stream': {},
+});
+
+describe('initial messages', () => {
+  let onFinishCalls: Array<{ message: UIMessage }> = [];
+
+  setupTestComponent(
+    ({ id: idParam }: { id: string }) => {
+      const [id, setId] = React.useState<string>(idParam);
+      const {
+        messages,
+        status,
+        id: idKey,
+      } = useChat({
+        id,
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ text: 'hi', type: 'text' }],
+          },
+        ],
+      });
+
+      return (
+        <div>
+          <div data-testid="id">{idKey}</div>
+          <div data-testid="status">{status.toString()}</div>
+          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+        </div>
+      );
+    },
+    {
+      // use a random id to avoid conflicts:
+      init: TestComponent => <TestComponent id={`first-${mockId()()}`} />,
+    },
+  );
+
+  beforeEach(() => {
+    onFinishCalls = [];
+  });
+
+  it('should show initial messages', async () => {
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          role: 'user',
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          id: 'id-0',
+        },
+      ]);
+    });
+  });
 });
 
 describe('data protocol stream', () => {
@@ -298,6 +358,7 @@ describe('data protocol stream', () => {
             },
             "parts": [
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -344,53 +405,6 @@ describe('data protocol stream', () => {
           "trigger": "submit-user-message",
         }
       `);
-    });
-
-    it('should clear out messages when the id changes', async () => {
-      server.urls['/api/chat'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          formatChunk({ type: 'text-start', id: '0' }),
-          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
-          formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
-          formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
-          formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
-          formatChunk({ type: 'text-end', id: '0' }),
-        ],
-      };
-
-      await userEvent.click(screen.getByTestId('do-send'));
-
-      await waitFor(() => {
-        expect(
-          JSON.parse(screen.getByTestId('messages').textContent ?? ''),
-        ).toStrictEqual([
-          {
-            id: expect.any(String),
-            parts: [
-              {
-                text: 'hi',
-                type: 'text',
-              },
-            ],
-            role: 'user',
-          },
-          {
-            id: 'id-1',
-            parts: [
-              {
-                text: 'Hello, world.',
-                type: 'text',
-                state: 'done',
-              },
-            ],
-            role: 'assistant',
-          },
-        ]);
-      });
-      await userEvent.click(screen.getByTestId('do-change-id'));
-
-      expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
     });
   });
 });
@@ -505,6 +519,7 @@ describe('text stream', () => {
                 "type": "step-start",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -2331,5 +2346,194 @@ describe('experimental_throttle', () => {
     );
 
     vi.useRealTimers();
+  });
+});
+
+describe('id changes', () => {
+  setupTestComponent(
+    () => {
+      const [id, setId] = React.useState<string>('initial-id');
+
+      const {
+        messages,
+        sendMessage,
+        error,
+        status,
+        id: idKey,
+      } = useChat({
+        id,
+        generateId: mockId(),
+      });
+
+      return (
+        <div>
+          <div data-testid="id">{idKey}</div>
+          <div data-testid="status">{status.toString()}</div>
+          {error && <div data-testid="error">{error.toString()}</div>}
+          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+            }}
+          />
+          <button
+            data-testid="do-change-id"
+            onClick={() => {
+              setId('second-id');
+            }}
+          />
+        </div>
+      );
+    },
+    {
+      init: TestComponent => <TestComponent />,
+    },
+  );
+
+  it('should update chat instance when the id changes', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
+      ],
+    };
+
+    await userEvent.click(screen.getByTestId('do-send'));
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          id: expect.any(String),
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          id: 'id-1',
+          parts: [
+            {
+              text: 'Hello, world.',
+              type: 'text',
+              state: 'done',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+    });
+    await userEvent.click(screen.getByTestId('do-change-id'));
+
+    expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+  });
+});
+
+describe('chat instance changes', () => {
+  setupTestComponent(
+    () => {
+      const [chat, setChat] = React.useState<Chat<UIMessage>>(
+        new Chat({
+          id: 'initial-id',
+          generateId: mockId(),
+        }),
+      );
+
+      const {
+        messages,
+        sendMessage,
+        error,
+        status,
+        id: idKey,
+      } = useChat({
+        chat,
+      });
+
+      return (
+        <div>
+          <div data-testid="id">{idKey}</div>
+          <div data-testid="status">{status.toString()}</div>
+          {error && <div data-testid="error">{error.toString()}</div>}
+          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+            }}
+          />
+          <button
+            data-testid="do-change-chat"
+            onClick={() => {
+              setChat(
+                new Chat({
+                  id: 'second-id',
+                  generateId: mockId(),
+                }),
+              );
+            }}
+          />
+        </div>
+      );
+    },
+    {
+      init: TestComponent => <TestComponent />,
+    },
+  );
+
+  it('should update chat instance when the id changes', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
+      ],
+    };
+
+    await userEvent.click(screen.getByTestId('do-send'));
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          id: expect.any(String),
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          id: 'id-1',
+          parts: [
+            {
+              text: 'Hello, world.',
+              type: 'text',
+              state: 'done',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+    });
+    await userEvent.click(screen.getByTestId('do-change-chat'));
+
+    expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
   });
 });

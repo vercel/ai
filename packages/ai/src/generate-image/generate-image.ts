@@ -1,10 +1,12 @@
 import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
+import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../../src/error/no-image-generated-error';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../../src/util/detect-media-type';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import {
   DefaultGeneratedFile,
   GeneratedFile,
@@ -12,7 +14,6 @@ import {
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
 
 /**
 Generates images using an image model.
@@ -113,6 +114,14 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<GenerateImageResult> {
+  if (model.specificationVersion !== 'v2') {
+    throw new UnsupportedModelVersionError({
+      version: model.specificationVersion,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   // default to 1 if the model has not specified limits on

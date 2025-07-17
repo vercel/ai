@@ -8,11 +8,29 @@ if (!fs.existsSync(codemodsDir)) {
   throw new Error(`Codemods directory not found: ${codemodsDir}`);
 }
 
-const codemodFiles = fs
-  .readdirSync(codemodsDir)
-  .filter(file => file.endsWith('.ts') && !file.includes('lib/'))
-  .map(file => file.replace('.ts', ''))
-  .sort();
+function scanCodemodsRecursively(dir: string, prefix: string = ''): string[] {
+  const files: string[] = [];
+  const items = fs.readdirSync(dir);
+
+  for (const item of items) {
+    const itemPath = path.join(dir, item);
+    const stat = fs.statSync(itemPath);
+
+    if (stat.isDirectory() && item !== 'lib') {
+      files.push(...scanCodemodsRecursively(itemPath, prefix + item + '/'));
+    } else if (
+      stat.isFile() &&
+      item.endsWith('.ts') &&
+      !item.includes('lib/')
+    ) {
+      files.push(prefix + item.replace('.ts', ''));
+    }
+  }
+
+  return files;
+}
+
+const codemodFiles = scanCodemodsRecursively(codemodsDir).sort();
 
 function generateDescription(name: string): string {
   const readable = name.replace(/-/g, ' ');
@@ -37,36 +55,15 @@ function generateDescription(name: string): string {
 }
 
 function categorizeCodemod(name: string): string {
-  if (name.includes('facade') || name.includes('baseurl')) {
-    return 'Provider Changes';
+  if (name.startsWith('v4/')) {
+    return 'v4 Codemods (v3 → v4 Migration)';
   }
 
-  if (
-    name.includes('experimental-ai') ||
-    name.includes('registry') ||
-    name.includes('continuation') ||
-    name.includes('roundtrip') ||
-    name.includes('token-usage')
-  ) {
-    return 'Core API Changes';
+  if (name.startsWith('v5/')) {
+    return 'v5 Codemods (v4 → v5 Migration)';
   }
 
-  if (name.includes('stream') || name.includes('part')) {
-    return 'Streaming and Response Changes';
-  }
-
-  if (
-    name.includes('framework') ||
-    name.includes('useassistant') ||
-    name.includes('message-types') ||
-    name.includes('tool') ||
-    name.includes('chat') ||
-    name.includes('ui')
-  ) {
-    return 'UI Framework Changes';
-  }
-
-  return 'Utility and Helper Changes';
+  return 'General Codemods';
 }
 
 const categories: Record<
@@ -86,11 +83,9 @@ codemodFiles.forEach(codemod => {
 });
 
 const categoryOrder = [
-  'Provider Changes',
-  'Core API Changes',
-  'Streaming and Response Changes',
-  'UI Framework Changes',
-  'Utility and Helper Changes',
+  'v4 Codemods (v3 → v4 Migration)',
+  'v5 Codemods (v4 → v5 Migration)',
+  'General Codemods',
 ];
 
 function generateCategoryTable(

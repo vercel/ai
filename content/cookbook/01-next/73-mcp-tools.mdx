@@ -20,6 +20,8 @@ To use the `StreamableHTTPClientTransport`, you will need to install the officia
 import { experimental_createMCPClient, streamText } from 'ai';
 import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
 
 export async function POST(req: Request) {
@@ -27,33 +29,34 @@ export async function POST(req: Request) {
 
   try {
     // Initialize an MCP client to connect to a `stdio` MCP server:
-    const transport = new Experimental_StdioMCPTransport({
+    const transport = new StdioClientTransport({
       command: 'node',
       args: ['src/stdio/dist/server.js'],
     });
+
     const stdioClient = await experimental_createMCPClient({
       transport,
     });
 
-    // Alternatively, you can connect to a Server-Sent Events (SSE) MCP server:
-    const sseClient = await experimental_createMCPClient({
-      transport: {
-        type: 'sse',
-        url: 'https://actions.zapier.com/mcp/[YOUR_KEY]/sse',
-      },
-    });
-
-    // Similarly to the stdio example, you can pass in your own custom transport as long as it implements the `MCPTransport` interface (e.g. `StreamableHTTPClientTransport`):
-    const transport = new StreamableHTTPClientTransport(
+    // You can also connect to StreamableHTTP MCP servers
+    const httpTransport = new StreamableHTTPClientTransport(
       new URL('http://localhost:3000/mcp'),
     );
-    const customClient = await experimental_createMCPClient({
-      transport,
+    const httpClient = await experimental_createMCPClient({
+      transport: httpTransport,
+    });
+
+    // Alternatively, you can connect to a Server-Sent Events (SSE) MCP server:
+    const sseTransport = new SSEClientTransport(
+      new URL('http://localhost:3000/sse'),
+    );
+    const sseClient = await experimental_createMCPClient({
+      transport: sseTransport,
     });
 
     const toolSetOne = await stdioClient.tools();
-    const toolSetTwo = await sseClient.tools();
-    const toolSetThree = await customClient.tools();
+    const toolSetTwo = await httpClient.tools();
+    const toolSetThree = await sseClient.tools();
     const tools = {
       ...toolSetOne,
       ...toolSetTwo,
@@ -67,16 +70,16 @@ export async function POST(req: Request) {
       // When streaming, the client should be closed after the response is finished:
       onFinish: async () => {
         await stdioClient.close();
+        await httpClient.close();
         await sseClient.close();
-        await customClient.close();
       },
       // Closing clients onError is optional
       // - Closing: Immediately frees resources, prevents hanging connections
       // - Not closing: Keeps connection open for retries
       onError: async error => {
         await stdioClient.close();
+        await httpClient.close();
         await sseClient.close();
-        await customClient.close();
       },
     });
 

@@ -1,4 +1,4 @@
-import { ReasoningPart } from '@ai-sdk/provider-utils';
+import { IdGenerator, ReasoningPart } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
 import { InferUIMessageChunk } from '../../src/ui-message-stream/ui-message-chunks';
 import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
@@ -28,6 +28,14 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    * and a message ID is provided for the response message.
    */
   originalMessages?: UI_MESSAGE[];
+
+  /**
+   * Generate a message ID for the response message.
+   *
+   * If not provided, no message ID will be set for the response message (unless
+   * the original messages are provided and the last message is an assistant message).
+   */
+  generateMessageId?: IdGenerator;
 
   onFinish?: (options: {
     /**

@@ -154,4 +154,78 @@ describe('google-vertex-provider', () => {
       }),
     );
   });
+
+  it('should use correct URL for global region', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'global',
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        provider: 'google.vertex.chat',
+        baseURL:
+          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
+        headers: expect.any(Object),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should use correct URL for global region with embedding model', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'global',
+    });
+    provider.textEmbeddingModel('test-embedding-model');
+
+    expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
+      'test-embedding-model',
+      expect.objectContaining({
+        provider: 'google.vertex.embedding',
+        headers: expect.any(Object),
+        baseURL:
+          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
+      }),
+    );
+  });
+
+  it('should use correct URL for global region with image model', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'global',
+    });
+    provider.image('imagen-3.0-generate-002');
+
+    expect(GoogleVertexImageModel).toHaveBeenCalledWith(
+      'imagen-3.0-generate-002',
+      expect.objectContaining({
+        provider: 'google.vertex.image',
+        baseURL:
+          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
+        headers: expect.any(Object),
+      }),
+    );
+  });
+
+  it('should use region-prefixed URL for non-global regions', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'us-central1',
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        provider: 'google.vertex.chat',
+        baseURL:
+          'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google',
+        headers: expect.any(Object),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
 });

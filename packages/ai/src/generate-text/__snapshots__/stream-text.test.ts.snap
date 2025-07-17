@@ -250,6 +250,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
       "value": "value",
     },
     "providerExecuted": undefined,
+    "providerMetadata": undefined,
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-call",
@@ -260,6 +261,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     },
     "output": "value-result",
     "providerExecuted": undefined,
+    "providerMetadata": undefined,
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-result",
@@ -311,6 +313,11 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
       "value": "value",
     },
     "providerExecuted": undefined,
+    "providerMetadata": {
+      "testProvider": {
+        "signature": "sig",
+      },
+    },
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-call",
@@ -362,6 +369,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
       "value": "value",
     },
     "providerExecuted": undefined,
+    "providerMetadata": undefined,
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-call",
@@ -372,6 +380,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     },
     "output": "value-result",
     "providerExecuted": undefined,
+    "providerMetadata": undefined,
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-result",
@@ -462,7 +471,7 @@ exports[`streamText > result.reasoning > should contain reasoning from model res
         "signature": "1234567890",
       },
     },
-    "text": "I will open the conversation with witty banter. ",
+    "text": "I will open the conversation with witty banter.",
     "type": "reasoning",
   },
   {
@@ -480,13 +489,31 @@ exports[`streamText > result.reasoning > should contain reasoning from model res
         "signature": "1234567890",
       },
     },
-    "text": "Once the user has relaxed, I will pry for valuable information.",
+    "text": " Once the user has relaxed, I will pry for valuable information.",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "testProvider": {
+        "signature": "0987654321",
+      },
+    },
+    "text": " I need to think about this problem carefully.",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "testProvider": {
+        "signature": "0987654321",
+      },
+    },
+    "text": " The best solution requires careful consideration of all factors.",
     "type": "reasoning",
   },
 ]
 `;
 
-exports[`streamText > result.reasoningText > should contain reasoning text from model response 1`] = `"I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information."`;
+exports[`streamText > result.reasoningText > should contain reasoning text from model response 1`] = `"I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information. I need to think about this problem carefully. The best solution requires careful consideration of all factors."`;
 
 exports[`streamText > result.sources > should contain sources 1`] = `
 [
@@ -539,8 +566,6 @@ exports[`streamText > result.textStream > should swallow error to prevent server
 exports[`streamText > result.toUIMessageStream > should mask error messages by default 1`] = `
 [
   {
-    "messageId": undefined,
-    "messageMetadata": undefined,
     "type": "start",
   },
   {
@@ -554,7 +579,6 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
     "type": "finish-step",
   },
   {
-    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -563,8 +587,6 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
 exports[`streamText > result.toUIMessageStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts 1`] = `
 [
   {
-    "messageId": undefined,
-    "messageMetadata": undefined,
     "type": "start",
   },
   {
@@ -591,6 +613,7 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
       "value": "value",
     },
     "providerExecuted": undefined,
+    "providerMetadata": undefined,
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-input-available",
@@ -605,7 +628,6 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
     "type": "finish-step",
   },
   {
-    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -614,8 +636,6 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
 exports[`streamText > result.toUIMessageStream > should support custom error messages 1`] = `
 [
   {
-    "messageId": undefined,
-    "messageMetadata": undefined,
     "type": "start",
   },
   {
@@ -629,7 +649,6 @@ exports[`streamText > result.toUIMessageStream > should support custom error mes
     "type": "finish-step",
   },
   {
-    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -955,6 +974,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
       "value": "value",
     },
     "providerExecuted": undefined,
+    "providerMetadata": undefined,
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-call",

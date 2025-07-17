@@ -1,5 +1,17 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-beta.4
+
+### Patch Changes
+
+- 205077b: fix: improve Zod compatibility
+
+## 3.0.0-beta.3
+
+### Patch Changes
+
+- 05d2819: feat: allow zod 4.x as peer dependency
+
 ## 3.0.0-beta.2
 
 ### Patch Changes

@@ -133,7 +133,10 @@ export type AnthropicTool =
     }
   | {
       name: string;
-      type: 'text_editor_20250124' | 'text_editor_20241022';
+      type:
+        | 'text_editor_20250124'
+        | 'text_editor_20241022'
+        | 'text_editor_20250429';
     }
   | {
       name: string;
