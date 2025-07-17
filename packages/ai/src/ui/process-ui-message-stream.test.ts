@@ -4482,7 +4482,6 @@ describe('processUIMessageStream', () => {
                 },
                 {
                   "data": {
-                    "a": "a1",
                     "b": "b2",
                     "c": "c2",
                   },
@@ -4508,7 +4507,6 @@ describe('processUIMessageStream', () => {
             },
             {
               "data": {
-                "a": "a1",
                 "b": "b2",
                 "c": "c2",
               },
