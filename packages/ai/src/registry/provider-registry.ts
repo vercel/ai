@@ -199,10 +199,9 @@ class DefaultProviderRegistry<
     id: `${KEY & string}${SEPARATOR}${string}`,
   ): LanguageModelV2 {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
-    let model = this.getProvider(
-      providerId,
-      'languageModel',
-    ).languageModel?.(modelId);
+    let model = this.getProvider(providerId, 'languageModel').languageModel?.(
+      modelId,
+    );
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'languageModel' });
