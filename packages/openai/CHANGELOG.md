@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.9
+
+### Patch Changes
+
+- faea29f: fix (provider/openai): multi-step reasoning with text
+
 ## 2.0.0-beta.8
 
 ### Patch Changes

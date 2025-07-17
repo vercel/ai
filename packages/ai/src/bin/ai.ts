@@ -171,43 +171,27 @@ export function showHelp(): void {
 
 AI CLI - Stream text generation from various AI models
 
-Arguments:
-  prompt                   The prompt to send to the AI model (optional if using stdin)
-
 Options:
-  -m, --model <model>      Model to use. Format: provider/model or just model name.
-                           Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet-20241022
-                           (default: "openai/gpt-4")
-  -f, --file <file>        Attach a file to the prompt (can be used multiple times)
-  -s, --system <message>   System message to set context
-  -v, --verbose            Show detailed information (model, usage, etc.)
-  -h, --help               Display help for command
-  -V, --version            Output the version number
+  -m, --model <model>      Model to use (default: "openai/gpt-4")
+                           Format: provider/model (e.g., anthropic/claude-3-5-sonnet)
+  -f, --file <file>        Attach file(s) to prompt
+  -s, --system <message>   System message
+  -v, --verbose            Show detailed output
+  -h, --help               Show help
+  -V, --version            Show version
+
+Authentication (required):
+  export AI_GATEWAY_API_KEY="your-key"     # Get from Vercel Dashboard (AI tab)
+  export VERCEL_OIDC_TOKEN="your-token"   # For Vercel projects (or run: vercel env pull)
 
 Environment Variables:
-  - AI_MODEL: Default model to use
-  - AI_SYSTEM: Default system message  
-  - AI_VERBOSE: Set to 'true' to enable verbose output
-
-Authentication (choose one):
-  - VERCEL_OIDC_TOKEN: Vercel OIDC token (for Vercel projects)
-  - AI_GATEWAY_API_KEY: AI Gateway API key
-
-Setting Environment Variables:
-  # Option 1: Export in current session
-  export AI_GATEWAY_API_KEY="your-key-here"
-  export AI_MODEL="anthropic/claude-3-5-sonnet-20241022"
-
-  # Option 2: Inline for single command
-  AI_GATEWAY_API_KEY="your-key" ai "Hello world"
-
-  # Option 3: Add to shell profile (~/.bashrc, ~/.zshrc)
-  echo 'export AI_GATEWAY_API_KEY="your-key"' >> ~/.bashrc
+  AI_MODEL: Default model to use
+  AI_SYSTEM: Default system message
+  AI_VERBOSE: Set to 'true' for detailed output
 
 Examples:
   npx ai "Hello, world!"
-  npx ai "Write a poem" -m anthropic/claude-3-5-sonnet-20241022
-  npx ai "Explain quantum physics" -m groq/llama-3.1-8b-instant
+  npx ai "Write a poem" -m anthropic/claude-3-5-sonnet
   npx ai "Explain this code" -f script.js -f README.md
   echo "What is life?" | npx ai
   cat file.txt | npx ai "Summarize this content"
@@ -217,17 +201,6 @@ Unix-style piping:
   echo "Hello world" | npx ai "Translate to French"
   cat README.md | npx ai "Summarize this"
   curl -s https://api.github.com/repos/vercel/ai | npx ai "What is this repository about?"
-
-Authentication Setup:
-  This CLI uses the Vercel AI Gateway. You need ONE of these for authentication:
-
-  OIDC Token (for Vercel projects):
-  - Automatically available in Vercel deployments  
-  - For local development: run 'vercel env pull' or use 'vercel dev'
-  
-  API Key (for any environment):
-  - Get your key from the AI Gateway dashboard
-  - Set: export AI_GATEWAY_API_KEY="your-key-here"
   
   The gateway supports OpenAI, Anthropic, Google, Groq, and more providers.`);
 }
@@ -258,7 +231,7 @@ export function formatAttachedFiles(files: FileAttachment[]): string {
   return result;
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   try {
     const options = parseArgs();
 
@@ -318,6 +291,27 @@ async function main(): Promise<void> {
         );
       }
       console.error('');
+    }
+
+    const hasApiKey =
+      process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
+    if (!hasApiKey) {
+      console.error(`Error: Authentication required.
+
+Set up authentication with one of these options:
+
+  # Option 1: Export in current session
+  export AI_GATEWAY_API_KEY="your-key-here"
+  export VERCEL_OIDC_TOKEN="your-oidc-token"
+  export AI_MODEL="anthropic/claude-3-5-sonnet"
+
+  # Option 2: Add to shell profile (~/.bashrc, ~/.zshrc)
+  echo 'export AI_GATEWAY_API_KEY="your-key"' >> ~/.bashrc
+  # Or run: vercel env pull
+  
+Get your API key from the Vercel Dashboard (AI tab > API keys).
+Use --help for more details and examples.`);
+      process.exit(1);
     }
 
     const model = resolveModel(options.model);

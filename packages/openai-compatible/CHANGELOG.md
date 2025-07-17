@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- 281bb1c: fix (provider/openai-incompatible): support empty tool calls
+
 ## 1.0.0-beta.5
 
 ### Patch Changes

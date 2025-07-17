@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.0-beta.7
+
+### Patch Changes
+
+- 314edb2: Add API key authentication support for Amazon Bedrock with Bearer token and automatic SigV4 fallback
+
 ## 3.0.0-beta.6
 
 ### Patch Changes

@@ -31,7 +31,11 @@ export function toResponseMessages<TOOLS extends ToolSet>({
     .map(part => {
       switch (part.type) {
         case 'text':
-          return part;
+          return {
+            type: 'text',
+            text: part.text,
+            providerOptions: part.providerMetadata,
+          };
         case 'reasoning':
           return {
             type: 'reasoning',

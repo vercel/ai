@@ -30,8 +30,10 @@ export default function Chat() {
       },
     });
 
+  console.log(structuredClone(messages));
+
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+    <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       {messages?.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
           <strong>{`${message.role}: `}</strong>
@@ -40,7 +42,7 @@ export default function Chat() {
               return (
                 <pre
                   key={index}
-                  className="max-w-full overflow-x-auto break-words whitespace-pre-wrap"
+                  className="overflow-x-auto max-w-full whitespace-pre-wrap break-words"
                 >
                   {part.text}
                 </pre>
@@ -51,7 +53,7 @@ export default function Chat() {
               return (
                 <pre
                   key={index}
-                  className="max-w-full mb-4 overflow-x-auto italic text-gray-500 break-words whitespace-pre-wrap"
+                  className="overflow-x-auto mb-4 max-w-full italic text-gray-500 whitespace-pre-wrap break-words"
                 >
                   {part.text}
                 </pre>

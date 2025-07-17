@@ -1,5 +1,18 @@
 # @ai-sdk/xai
 
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- 6d835a7: fix (provider/grok): filter duplicated reasoning chunks
+
+## 2.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [281bb1c]
+  - @ai-sdk/openai-compatible@1.0.0-beta.6
+
 ## 2.0.0-beta.6
 
 ### Patch Changes

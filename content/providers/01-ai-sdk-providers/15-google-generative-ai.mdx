@@ -687,6 +687,11 @@ using the `.textEmbedding()` factory method.
 const model = google.textEmbedding('text-embedding-004');
 ```
 
+The Google Generative AI provider sends API calls to the right endpoint based on the type of embedding:
+
+- **Single embeddings**: When embedding a single value with `embed()`, the provider uses the single `:embedContent` endpoint, which typically has higher rate limits compared to the batch endpoint.
+- **Batch embeddings**: When embedding multiple values with `embedMany()` or multiple values in `embed()`, the provider uses the `:batchEmbedContents` endpoint.
+
 Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
 
 ```ts

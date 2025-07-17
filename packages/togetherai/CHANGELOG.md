@@ -1,5 +1,12 @@
 # @ai-sdk/togetherai
 
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [281bb1c]
+  - @ai-sdk/openai-compatible@1.0.0-beta.6
+
 ## 1.0.0-beta.5
 
 ### Patch Changes

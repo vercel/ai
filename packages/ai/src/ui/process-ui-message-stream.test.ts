@@ -84,6 +84,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -101,6 +102,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, ",
                   "type": "text",
@@ -118,6 +120,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world!",
                   "type": "text",
@@ -135,6 +138,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Hello, world!",
                   "type": "text",
@@ -157,6 +161,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "Hello, world!",
               "type": "text",
@@ -347,6 +352,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -380,6 +386,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -413,6 +420,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -451,6 +459,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "The weather in London is sunny.",
               "type": "text",
@@ -641,6 +650,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -683,6 +693,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -725,6 +736,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -772,6 +784,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "The weather in London is sunny.",
               "type": "text",
@@ -853,6 +866,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -870,6 +884,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "I will ",
                   "type": "text",
@@ -887,6 +902,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "I will use a tool to get the weather in London.",
                   "type": "text",
@@ -904,6 +920,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "I will use a tool to get the weather in London.",
                   "type": "text",
@@ -921,6 +938,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "I will use a tool to get the weather in London.",
                   "type": "text",
@@ -949,6 +967,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "I will use a tool to get the weather in London.",
                   "type": "text",
@@ -979,6 +998,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "I will use a tool to get the weather in London.",
                   "type": "text",
@@ -1000,6 +1020,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -1017,6 +1038,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "I will use a tool to get the weather in London.",
                   "type": "text",
@@ -1038,6 +1060,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "The weather in London ",
                   "type": "text",
@@ -1055,6 +1078,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "I will use a tool to get the weather in London.",
                   "type": "text",
@@ -1076,6 +1100,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -1093,6 +1118,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "I will use a tool to get the weather in London.",
                   "type": "text",
@@ -1114,6 +1140,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -1136,6 +1163,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "I will use a tool to get the weather in London.",
               "type": "text",
@@ -1157,6 +1185,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "The weather in London is sunny.",
               "type": "text",
@@ -1586,6 +1615,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -1639,6 +1669,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -1692,6 +1723,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -1750,6 +1782,7 @@ describe('processUIMessageStream', () => {
               "type": "reasoning",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "The weather in London is sunny.",
               "type": "text",
@@ -1886,6 +1919,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -1917,6 +1951,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -1948,6 +1983,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -1984,6 +2020,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "The weather in London is sunny.",
               "type": "text",
@@ -2081,6 +2118,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -2104,6 +2142,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "t1",
                   "type": "text",
@@ -2128,6 +2167,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "t1",
                   "type": "text",
@@ -2152,6 +2192,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "t1t2",
                   "type": "text",
@@ -2176,6 +2217,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "t1t2",
                   "type": "text",
@@ -2202,6 +2244,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "t1t2",
                   "type": "text",
@@ -2233,6 +2276,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "t1t2",
               "type": "text",
@@ -2298,6 +2342,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -2315,6 +2360,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "t1",
                   "type": "text",
@@ -2332,6 +2378,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "t1",
                   "type": "text",
@@ -2351,6 +2398,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "t1",
                   "type": "text",
@@ -2375,6 +2423,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "t1",
               "type": "text",
@@ -2457,6 +2506,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -2478,6 +2528,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "t1",
                   "type": "text",
@@ -2499,6 +2550,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "t1",
                   "type": "text",
@@ -2525,6 +2577,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "t1",
               "type": "text",
@@ -2791,6 +2844,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -2808,6 +2862,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, ",
                   "type": "text",
@@ -2825,6 +2880,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world!",
                   "type": "text",
@@ -2842,6 +2898,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Hello, world!",
                   "type": "text",
@@ -2864,6 +2921,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "Hello, world!",
               "type": "text",
@@ -3325,6 +3383,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -3372,6 +3431,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hi there!",
                   "type": "text",
@@ -3419,6 +3479,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Hi there!",
                   "type": "text",
@@ -3471,6 +3532,7 @@ describe('processUIMessageStream', () => {
               "type": "reasoning",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "Hi there!",
               "type": "text",
@@ -3660,6 +3722,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -3677,6 +3740,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -3694,6 +3758,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -3711,6 +3776,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "The weather in London is sunny.",
                   "type": "text",
@@ -3740,6 +3806,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "The weather in London is sunny.",
               "type": "text",
@@ -3819,6 +3886,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -3836,6 +3904,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Here is a file:",
                   "type": "text",
@@ -3853,6 +3922,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Here is a file:",
                   "type": "text",
@@ -3870,6 +3940,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Here is a file:",
                   "type": "text",
@@ -3892,6 +3963,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Here is a file:",
                   "type": "text",
@@ -3902,6 +3974,7 @@ describe('processUIMessageStream', () => {
                   "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -3919,6 +3992,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Here is a file:",
                   "type": "text",
@@ -3929,6 +4003,7 @@ describe('processUIMessageStream', () => {
                   "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "And another one:",
                   "type": "text",
@@ -3946,6 +4021,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Here is a file:",
                   "type": "text",
@@ -3956,6 +4032,7 @@ describe('processUIMessageStream', () => {
                   "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "And another one:",
                   "type": "text",
@@ -3973,6 +4050,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Here is a file:",
                   "type": "text",
@@ -3983,6 +4061,7 @@ describe('processUIMessageStream', () => {
                   "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "And another one:",
                   "type": "text",
@@ -4010,6 +4089,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "Here is a file:",
               "type": "text",
@@ -4020,6 +4100,7 @@ describe('processUIMessageStream', () => {
               "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
             },
             {
+              "providerMetadata": undefined,
               "state": "done",
               "text": "And another one:",
               "type": "text",
@@ -4778,6 +4859,262 @@ describe('processUIMessageStream', () => {
             "output": "client-result",
             "providerExecuted": undefined,
             "state": "output-available",
+            "toolCallId": "tool-call-id",
+            "type": "tool-tool-name",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('provider metadata', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'text-start',
+          id: '1',
+          providerMetadata: { testProvider: { signature: '1' } },
+        },
+        {
+          type: 'text-delta',
+          id: '1',
+          delta: 'Hello',
+        },
+        {
+          type: 'text-delta',
+          id: '1',
+          delta: ', ',
+        },
+        {
+          type: 'text-delta',
+          id: '1',
+          delta: 'world!',
+        },
+        {
+          type: 'text-end',
+          id: '1',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-id',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          providerMetadata: { testProvider: { signature: '2' } },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should call the update function with the correct arguments', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1",
+                    },
+                  },
+                  "state": "streaming",
+                  "text": "",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1",
+                    },
+                  },
+                  "state": "streaming",
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1",
+                    },
+                  },
+                  "state": "streaming",
+                  "text": "Hello, ",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1",
+                    },
+                  },
+                  "state": "streaming",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1",
+                    },
+                  },
+                  "state": "done",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1",
+                    },
+                  },
+                  "state": "done",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+                {
+                  "callProviderMetadata": {
+                    "testProvider": {
+                      "signature": "2",
+                    },
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "providerExecuted": undefined,
+                  "state": "input-available",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "1",
+              },
+            },
+            "state": "done",
+            "text": "Hello, world!",
+            "type": "text",
+          },
+          {
+            "callProviderMetadata": {
+              "testProvider": {
+                "signature": "2",
+              },
+            },
+            "errorText": undefined,
+            "input": {
+              "query": "test",
+            },
+            "output": undefined,
+            "providerExecuted": undefined,
+            "state": "input-available",
             "toolCallId": "tool-call-id",
             "type": "tool-tool-name",
           },

@@ -682,7 +682,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           }
 
           activeText.text += part.text;
-          activeText.providerMetadata = part.providerMetadata;
+          activeText.providerMetadata =
+            part.providerMetadata ?? activeText.providerMetadata;
         }
 
         if (part.type === 'text-end') {
@@ -1612,7 +1613,13 @@ However, the LLM results are expected to be small enough to not cause issues.
           const partType = part.type;
           switch (partType) {
             case 'text-start': {
-              controller.enqueue({ type: 'text-start', id: part.id });
+              controller.enqueue({
+                type: 'text-start',
+                id: part.id,
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
+              });
               break;
             }
 
@@ -1621,12 +1628,21 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'text-delta',
                 id: part.id,
                 delta: part.text,
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
               });
               break;
             }
 
             case 'text-end': {
-              controller.enqueue({ type: 'text-end', id: part.id });
+              controller.enqueue({
+                type: 'text-end',
+                id: part.id,
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
+              });
               break;
             }
 
@@ -1634,7 +1650,9 @@ However, the LLM results are expected to be small enough to not cause issues.
               controller.enqueue({
                 type: 'reasoning-start',
                 id: part.id,
-                providerMetadata: part.providerMetadata,
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
               });
               break;
             }
@@ -1645,7 +1663,9 @@ However, the LLM results are expected to be small enough to not cause issues.
                   type: 'reasoning-delta',
                   id: part.id,
                   delta: part.text,
-                  providerMetadata: part.providerMetadata,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
                 });
               }
               break;
@@ -1655,7 +1675,9 @@ However, the LLM results are expected to be small enough to not cause issues.
               controller.enqueue({
                 type: 'reasoning-end',
                 id: part.id,
-                providerMetadata: part.providerMetadata,
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
               });
               break;
             }
@@ -1676,7 +1698,9 @@ However, the LLM results are expected to be small enough to not cause issues.
                   sourceId: part.id,
                   url: part.url,
                   title: part.title,
-                  providerMetadata: part.providerMetadata,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
                 });
               }
 
@@ -1687,7 +1711,9 @@ However, the LLM results are expected to be small enough to not cause issues.
                   mediaType: part.mediaType,
                   title: part.title,
                   filename: part.filename,
-                  providerMetadata: part.providerMetadata,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
                 });
               }
               break;
@@ -1719,6 +1745,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 toolName: part.toolName,
                 input: part.input,
                 providerExecuted: part.providerExecuted,
+                providerMetadata: part.providerMetadata,
               });
               break;
             }
