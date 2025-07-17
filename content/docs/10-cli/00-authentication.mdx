@@ -27,7 +27,8 @@ For temporary use in your current session:
 Replace `your-key-here` with your actual AI Gateway API key.
 
 <Note className="mb-4">
-  The AI SDK CLI will default to using the `AI_GATEWAY_API_KEY` environment variable.
+  The AI SDK CLI will default to using the `AI_GATEWAY_API_KEY` environment
+  variable.
 </Note>
 
 ## Environment Variables
@@ -60,13 +61,17 @@ For persistent configuration across terminal sessions, you can add environment v
   <Tabs items={['Bash', 'Zsh']}>
     <Tab>
       <Snippet
-        text='echo \'export AI_GATEWAY_API_KEY="your-key"\' >> ~/.bashrc && source ~/.bashrc'
+        text={
+          'echo \'export AI_GATEWAY_API_KEY="your-key"\' >> ~/.bashrc && source ~/.bashrc'
+        }
         dark
       />
     </Tab>
     <Tab>
       <Snippet
-        text='echo \'export AI_GATEWAY_API_KEY="your-key"\' >> ~/.zshrc && source ~/.zshrc'
+        text={
+          'echo \'export AI_GATEWAY_API_KEY="your-key"\' >> ~/.zshrc && source ~/.zshrc'
+        }
         dark
       />
     </Tab>
