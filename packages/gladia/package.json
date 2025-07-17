@@ -39,10 +39,10 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.6.3",
-    "zod": "3.25.50"
+    "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.25.50 || ^4"
+    "zod": "^3.25.76 || ^4"
   },
   "engines": {
     "node": ">=18"
