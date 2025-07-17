@@ -109,7 +109,7 @@ describe('AI CLI', () => {
     });
 
     it('should handle environment variables with defaults', async () => {
-      process.env.AI_MODEL = 'groq/llama-3.1-8b-instant';
+      process.env.AI_DEFAULT_MODEL = 'groq/llama-3.1-8b-instant';
       process.env.AI_SYSTEM = 'Be concise';
       process.env.AI_VERBOSE = 'true';
       process.argv = ['node', 'ai', 'test prompt'];
@@ -235,7 +235,7 @@ describe('AI CLI', () => {
           export VERCEL_OIDC_TOKEN="your-token"   # For Vercel projects (or run: vercel env pull)
 
         Environment Variables:
-          AI_MODEL: Default model to use
+          AI_DEFAULT_MODEL: Default model to use
           AI_SYSTEM: Default system message
           AI_VERBOSE: Set to 'true' for detailed output
 
