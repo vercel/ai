@@ -11,7 +11,7 @@ import {
 import { NoSuchProviderError } from './no-such-provider-error';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 
-export type ExtractLiteralUnion<T> = T extends string
+type ExtractLiteralUnion<T> = T extends string
   ? string extends T
     ? never
     : T
