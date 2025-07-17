@@ -1424,22 +1424,6 @@ describe('GatewayLanguageModel', () => {
       });
     });
 
-    it('should work with empty gateway provider options', async () => {
-      prepareJsonResponse({
-        content: { type: 'text', text: 'Test response' },
-      });
-
-      await createTestModel().doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          gateway: {},
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.providerOptions).toBeUndefined();
-    });
-
     it('should pass provider routing order for doStream', async () => {
       prepareStreamResponse({
         content: ['Hello', ' world'],

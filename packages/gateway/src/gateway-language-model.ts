@@ -1,6 +1,7 @@
 import type {
   LanguageModelV2,
   LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
   LanguageModelV2FilePart,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
@@ -40,52 +41,24 @@ export class GatewayLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  private async prepareRequestBody(
-    body: LanguageModelV2CallOptions,
-    providerOptions: Record<string, unknown> | undefined,
-  ): Promise<any> {
-    const gatewayOptions = await parseProviderOptions({
-      providerOptions,
-      provider: 'gateway',
-      schema: gatewayProviderOptions,
-    });
-
-    const baseRequestBody = this.maybeEncodeFileParts(body);
-    let requestBody = baseRequestBody;
-
-    if (gatewayOptions?.order && gatewayOptions.order.length > 0) {
-      requestBody = {
-        ...baseRequestBody,
-        providerOptions: {
-          ...baseRequestBody.providerOptions,
-          gateway: { order: gatewayOptions.order },
-        },
-      };
-    } else if (baseRequestBody.providerOptions?.gateway) {
-      const { gateway, ...otherProviderOptions } =
-        baseRequestBody.providerOptions;
-      const { providerOptions, ...baseBodyWithoutProviderOptions } =
-        baseRequestBody;
-      requestBody = {
-        ...baseBodyWithoutProviderOptions,
-        ...(Object.keys(otherProviderOptions).length > 0
-          ? { providerOptions: otherProviderOptions }
-          : {}),
-      };
-    }
-
-    return requestBody;
+  private async getArgs(
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ) {
+    const { abortSignal, ...optionsWithoutSignal } = options;
+    const args = this.maybeEncodeFileParts(optionsWithoutSignal);
+    
+    return {
+      args,
+      warnings: [],
+    };
   }
 
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { abortSignal, ...body } = options;
+    const { args, warnings } = await this.getArgs(options);
+    const { abortSignal } = options;
 
-    const requestBody = await this.prepareRequestBody(
-      body,
-      options.providerOptions,
-    );
     const resolvedHeaders = await resolve(this.config.headers());
 
     try {
@@ -101,7 +74,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
           this.getModelConfigHeaders(this.modelId, false),
           await resolve(this.config.o11yHeaders),
         ),
-        body: requestBody,
+        body: args,
         successfulResponseHandler: createJsonResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
@@ -113,9 +86,9 @@ export class GatewayLanguageModel implements LanguageModelV2 {
 
       return {
         ...responseBody,
-        request: { body: requestBody },
+        request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
-        warnings: [],
+        warnings,
       };
     } catch (error) {
       throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
@@ -125,12 +98,9 @@ export class GatewayLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { abortSignal, ...body } = options;
+    const { args, warnings } = await this.getArgs(options);
+    const { abortSignal } = options;
 
-    const requestBody = await this.prepareRequestBody(
-      body,
-      options.providerOptions,
-    );
     const resolvedHeaders = await resolve(this.config.headers());
 
     try {
@@ -142,7 +112,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
           this.getModelConfigHeaders(this.modelId, true),
           await resolve(this.config.o11yHeaders),
         ),
-        body: requestBody,
+        body: args,
         successfulResponseHandler: createEventSourceResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
@@ -158,6 +128,11 @@ export class GatewayLanguageModel implements LanguageModelV2 {
             ParseResult<LanguageModelV2StreamPart>,
             LanguageModelV2StreamPart
           >({
+            start(controller) {
+              if (warnings.length > 0) {
+                controller.enqueue({ type: 'stream-start', warnings });
+              }
+            },
             transform(chunk, controller) {
               if (chunk.success) {
                 const streamPart = chunk.value;
@@ -185,7 +160,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
             },
           }),
         ),
-        request: { body: requestBody },
+        request: { body: args },
         response: { headers: responseHeaders },
       };
     } catch (error) {
