@@ -344,10 +344,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               text: summary.text,
               providerMetadata: {
                 openai: {
-                  reasoning: {
-                    id: part.id,
-                    encryptedContent: part.encrypted_content ?? null,
-                  },
+                  itemId: part.id,
+                  reasoningEncryptedContent: part.encrypted_content ?? null,
                 },
               },
             });
@@ -595,10 +593,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: `${value.item.id}:0`,
                   providerMetadata: {
                     openai: {
-                      reasoning: {
-                        id: value.item.id,
-                        encryptedContent: value.item.encrypted_content ?? null,
-                      },
+                      itemId: value.item.id,
+                      reasoningEncryptedContent:
+                        value.item.encrypted_content ?? null,
                     },
                   },
                 });
@@ -692,11 +689,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     id: `${value.item.id}:${summaryIndex}`,
                     providerMetadata: {
                       openai: {
-                        reasoning: {
-                          id: value.item.id,
-                          encryptedContent:
-                            value.item.encrypted_content ?? null,
-                        },
+                        itemId: value.item.id,
+                        reasoningEncryptedContent:
+                          value.item.encrypted_content ?? null,
                       },
                     },
                   });
@@ -740,12 +735,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
                     openai: {
-                      reasoning: {
-                        id: value.item_id,
-                        encryptedContent:
-                          activeReasoning[value.item_id]?.encryptedContent ??
-                          null,
-                      },
+                      itemId: value.item_id,
+                      reasoningEncryptedContent:
+                        activeReasoning[value.item_id]?.encryptedContent ??
+                        null,
                     },
                   },
                 });
@@ -757,9 +750,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 delta: value.delta,
                 providerMetadata: {
                   openai: {
-                    reasoning: {
-                      id: value.item_id,
-                    },
+                    itemId: value.item_id,
                   },
                 },
               });
