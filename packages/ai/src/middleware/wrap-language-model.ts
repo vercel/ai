@@ -14,7 +14,7 @@ import { asArray } from '../../src/util/as-array';
  * @param options.model - The original LanguageModelV2 instance to be wrapped.
  * @param options.middleware - The middleware to be applied to the language model. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
  * @param options.modelId - Optional custom model ID to override the original model's ID.
- * @param options.providerId - Optional custom provider ID to override the original model's provider.
+ * @param options.providerId - Optional custom provider ID to override the original model's provider ID.
  * @returns A new LanguageModelV2 instance with middleware applied.
  */
 export const wrapLanguageModel = ({

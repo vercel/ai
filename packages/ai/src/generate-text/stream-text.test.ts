@@ -2032,47 +2032,44 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": "world!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": ", ",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": "world!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should create a ui message stream with provider metadata', async () => {
@@ -2147,110 +2144,107 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "id": "r1",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "r1",
-              },
+          [
+            {
+              "type": "start",
             },
-            "type": "reasoning-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "r1",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "r2",
-              },
+            {
+              "type": "start-step",
             },
-            "type": "reasoning-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "r1",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "r3",
+            {
+              "id": "r1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "r1",
+                },
               },
+              "type": "reasoning-start",
             },
-            "type": "reasoning-delta",
-          },
-          {
-            "id": "r1",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "r4",
+            {
+              "delta": "Hello",
+              "id": "r1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "r2",
+                },
               },
+              "type": "reasoning-delta",
             },
-            "type": "reasoning-end",
-          },
-          {
-            "id": "1",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "1",
+            {
+              "delta": ", ",
+              "id": "r1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "r3",
+                },
               },
+              "type": "reasoning-delta",
             },
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "1",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "2",
+            {
+              "id": "r1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "r4",
+                },
               },
+              "type": "reasoning-end",
             },
-            "type": "text-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "1",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "3",
+            {
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "1",
+                },
               },
+              "type": "text-start",
             },
-            "type": "text-delta",
-          },
-          {
-            "delta": "world!",
-            "id": "1",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "4",
+            {
+              "delta": "Hello",
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "2",
+                },
               },
+              "type": "text-delta",
             },
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "5",
+            {
+              "delta": ", ",
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "3",
+                },
               },
+              "type": "text-delta",
             },
-            "type": "text-end",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+            {
+              "delta": "world!",
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "4",
+                },
+              },
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "5",
+                },
+              },
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts', async () => {
@@ -2311,7 +2305,6 @@ describe('streamText', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": undefined,
               "messageMetadata": {
                 "key1": "value1",
               },
@@ -2458,33 +2451,31 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello, World!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "type": "finish-step",
-          },
-        ]
-      `);
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello, World!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+          ]
+        `);
     });
 
     it('should omit message start event when sendStart is false', async () => {
@@ -2509,32 +2500,31 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "type": "start-step",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello, World!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+          [
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello, World!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should send reasoning content when sendReasoning is true', async () => {
@@ -2549,8 +2539,6 @@ describe('streamText', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": undefined,
-              "messageMetadata": undefined,
               "type": "start",
             },
             {
@@ -2703,7 +2691,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "messageMetadata": undefined,
               "type": "finish",
             },
           ]
@@ -2720,59 +2707,56 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "providerMetadata": {
-              "provider": {
-                "custom": "value",
-              },
+          [
+            {
+              "type": "start",
             },
-            "sourceId": "123",
-            "title": "Example",
-            "type": "source-url",
-            "url": "https://example.com",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "providerMetadata": {
-              "provider": {
-                "custom": "value2",
-              },
+            {
+              "type": "start-step",
             },
-            "sourceId": "456",
-            "title": "Example 2",
-            "type": "source-url",
-            "url": "https://example.com/2",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+            {
+              "providerMetadata": {
+                "provider": {
+                  "custom": "value",
+                },
+              },
+              "sourceId": "123",
+              "title": "Example",
+              "type": "source-url",
+              "url": "https://example.com",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "providerMetadata": {
+                "provider": {
+                  "custom": "value2",
+                },
+              },
+              "sourceId": "456",
+              "title": "Example 2",
+              "type": "source-url",
+              "url": "https://example.com/2",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should send document source content when sendSources is true', async () => {
@@ -2785,61 +2769,58 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "filename": "example.pdf",
-            "mediaType": "application/pdf",
-            "providerMetadata": {
-              "provider": {
-                "custom": "doc-value",
-              },
+          [
+            {
+              "type": "start",
             },
-            "sourceId": "doc-123",
-            "title": "Document Example",
-            "type": "source-document",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello from document!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "filename": undefined,
-            "mediaType": "text/plain",
-            "providerMetadata": {
-              "provider": {
-                "custom": "doc-value2",
-              },
+            {
+              "type": "start-step",
             },
-            "sourceId": "doc-456",
-            "title": "Text Document",
-            "type": "source-document",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+            {
+              "filename": "example.pdf",
+              "mediaType": "application/pdf",
+              "providerMetadata": {
+                "provider": {
+                  "custom": "doc-value",
+                },
+              },
+              "sourceId": "doc-123",
+              "title": "Document Example",
+              "type": "source-document",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello from document!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "filename": undefined,
+              "mediaType": "text/plain",
+              "providerMetadata": {
+                "provider": {
+                  "custom": "doc-value2",
+                },
+              },
+              "sourceId": "doc-456",
+              "title": "Text Document",
+              "type": "source-document",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should send file content', async () => {
@@ -2852,47 +2833,44 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "mediaType": "text/plain",
-            "type": "file",
-            "url": "data:text/plain;base64,Hello World",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "mediaType": "image/jpeg",
-            "type": "file",
-            "url": "data:image/jpeg;base64,QkFVRw==",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "mediaType": "text/plain",
+              "type": "file",
+              "url": "data:text/plain;base64,Hello World",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "mediaType": "image/jpeg",
+              "type": "file",
+              "url": "data:image/jpeg;base64,QkFVRw==",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should not generate a new message id when onFinish is provided and generateMessageId is not provided', async () => {
@@ -2907,47 +2885,44 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": "world!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": ", ",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": "world!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should generate a new message id when generateMessageId is provided', async () => {
@@ -2957,52 +2932,50 @@ describe('streamText', () => {
       });
 
       const uiMessageStream = result.toUIMessageStream({
-        generateMessageId: mockId({ prefix: 'id' }),
+        generateMessageId: mockId({ prefix: 'message' }),
       });
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": "id-0",
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": "world!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+          [
+            {
+              "messageId": "message-0",
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": ", ",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": "world!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
   });
 
@@ -3411,8 +3384,6 @@ describe('streamText', () => {
           ],
           "uiMessageStream": [
             {
-              "messageId": undefined,
-              "messageMetadata": undefined,
               "type": "start",
             },
             {
@@ -3445,7 +3416,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "messageMetadata": undefined,
               "type": "finish",
             },
           ],
@@ -6176,8 +6146,6 @@ describe('streamText', () => {
           .toMatchInlineSnapshot(`
             [
               {
-                "messageId": undefined,
-                "messageMetadata": undefined,
                 "type": "start",
               },
               {
@@ -6240,7 +6208,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "messageMetadata": undefined,
                 "type": "finish",
               },
             ]
@@ -7894,8 +7861,6 @@ describe('streamText', () => {
           .toMatchInlineSnapshot(`
             [
               {
-                "messageId": undefined,
-                "messageMetadata": undefined,
                 "type": "start",
               },
               {
@@ -7958,7 +7923,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "messageMetadata": undefined,
                 "type": "finish",
               },
             ]
@@ -8512,8 +8476,6 @@ describe('streamText', () => {
           .toMatchInlineSnapshot(`
             [
               {
-                "messageId": undefined,
-                "messageMetadata": undefined,
                 "type": "start",
               },
               {
@@ -8566,7 +8528,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "messageMetadata": undefined,
                 "type": "finish",
               },
             ]
@@ -9445,8 +9406,6 @@ describe('streamText', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": undefined,
-              "messageMetadata": undefined,
               "type": "start",
             },
             {
@@ -9472,7 +9431,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "messageMetadata": undefined,
               "type": "finish",
             },
           ]
