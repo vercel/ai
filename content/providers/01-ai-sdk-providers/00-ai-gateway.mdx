@@ -143,12 +143,12 @@ tokens](https://vercel.com/docs/oidc) without API Keys.
 
    - OIDC authentication is automatically handled
    - No manual configuration needed
-   - Tokens are automatically obtained and refreshed every 12 hours
+   - Tokens are automatically obtained and refreshed
 
 2. **In Local Development**:
    - Run `vercel env pull` using the [Vercel CLI](https://vercel.com/docs/cli) to fetch the OIDC token
-   - If you use `vercel env` to start your dev server, token refresh happens automatically
-   - Since tokens expire after 12 hours, you'll need to run `vercel env pull` again if you're developing for extended periods
+   - If you use `vercel dev` to start your dev server, token refresh happens automatically
+   - You'll need to run `vercel env pull` periodically if you're NOT using `vercel dev` since local Vercel OIDC tokens are only valid for 12 hours.
 
 <Note>
   If an API Key is present (either passed directly or via environment), it will
