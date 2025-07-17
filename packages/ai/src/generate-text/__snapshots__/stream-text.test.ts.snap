@@ -566,8 +566,6 @@ exports[`streamText > result.textStream > should swallow error to prevent server
 exports[`streamText > result.toUIMessageStream > should mask error messages by default 1`] = `
 [
   {
-    "messageId": undefined,
-    "messageMetadata": undefined,
     "type": "start",
   },
   {
@@ -581,7 +579,6 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
     "type": "finish-step",
   },
   {
-    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -590,8 +587,6 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
 exports[`streamText > result.toUIMessageStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts 1`] = `
 [
   {
-    "messageId": undefined,
-    "messageMetadata": undefined,
     "type": "start",
   },
   {
@@ -633,7 +628,6 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
     "type": "finish-step",
   },
   {
-    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -642,8 +636,6 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
 exports[`streamText > result.toUIMessageStream > should support custom error messages 1`] = `
 [
   {
-    "messageId": undefined,
-    "messageMetadata": undefined,
     "type": "start",
   },
   {
@@ -657,7 +649,6 @@ exports[`streamText > result.toUIMessageStream > should support custom error mes
     "type": "finish-step",
   },
   {
-    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
