@@ -344,8 +344,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               text: summary.text,
               providerMetadata: {
                 openai: {
+                  itemId: part.id,
                   reasoning: {
-                    id: part.id,
                     encryptedContent: part.encrypted_content ?? null,
                   },
                 },
@@ -595,8 +595,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: `${value.item.id}:0`,
                   providerMetadata: {
                     openai: {
+                      itemId: value.item.id,
                       reasoning: {
-                        id: value.item.id,
                         encryptedContent: value.item.encrypted_content ?? null,
                       },
                     },
@@ -692,8 +692,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     id: `${value.item.id}:${summaryIndex}`,
                     providerMetadata: {
                       openai: {
+                        itemId: value.item.id,
                         reasoning: {
-                          id: value.item.id,
                           encryptedContent:
                             value.item.encrypted_content ?? null,
                         },
@@ -740,8 +740,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
                     openai: {
+                      itemId: value.item_id,
                       reasoning: {
-                        id: value.item_id,
                         encryptedContent:
                           activeReasoning[value.item_id]?.encryptedContent ??
                           null,
@@ -757,9 +757,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 delta: value.delta,
                 providerMetadata: {
                   openai: {
-                    reasoning: {
-                      id: value.item_id,
-                    },
+                    itemId: value.item_id,
                   },
                 },
               });

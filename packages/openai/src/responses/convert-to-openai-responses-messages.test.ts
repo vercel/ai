@@ -450,9 +450,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'Analyzing the problem step by step',
                     providerOptions: {
                       openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                        },
+                        itemId: 'reasoning_001',
                       },
                     },
                   },
@@ -490,8 +488,8 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'Analyzing the problem step by step',
                     providerOptions: {
                       openai: {
+                        itemId: 'reasoning_001',
                         reasoning: {
-                          id: 'reasoning_001',
                           encryptedContent: 'encrypted_content_001',
                         },
                       },
@@ -531,8 +529,8 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'Analyzing the problem step by step',
                     providerOptions: {
                       openai: {
+                        itemId: 'reasoning_001',
                         reasoning: {
-                          id: 'reasoning_001',
                           encryptedContent: null,
                         },
                       },
@@ -574,9 +572,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: '', // Empty text should NOT generate warning when it's the first reasoning part
                     providerOptions: {
                       openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                        },
+                        itemId: 'reasoning_001',
                       },
                     },
                   },
@@ -609,8 +605,8 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: '', // Empty text should NOT generate warning when it's the first reasoning part
                     providerOptions: {
                       openai: {
+                        itemId: 'reasoning_001',
                         reasoning: {
-                          id: 'reasoning_001',
                           encryptedContent: 'encrypted_content_001',
                         },
                       },
@@ -645,9 +641,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'First reasoning step',
                     providerOptions: {
                       openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                        },
+                        itemId: 'reasoning_001',
                       },
                     },
                   },
@@ -656,9 +650,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: '', // Empty text should generate warning when appending to existing reasoning sequence
                     providerOptions: {
                       openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                        },
+                        itemId: 'reasoning_001',
                       },
                     },
                   },
@@ -685,7 +677,7 @@ describe('convertToOpenAIResponsesMessages', () => {
           expect(result.warnings).toMatchInlineSnapshot(`
             [
               {
-                "message": "Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: {"type":"reasoning","text":"","providerOptions":{"openai":{"reasoning":{"id":"reasoning_001"}}}}.",
+                "message": "Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: {"type":"reasoning","text":"","providerOptions":{"openai":{"itemId":"reasoning_001"}}}.",
                 "type": "other",
               },
             ]
@@ -705,9 +697,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'First reasoning step',
                     providerOptions: {
                       openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                        },
+                        itemId: 'reasoning_001',
                       },
                     },
                   },
@@ -716,9 +706,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'Second reasoning step',
                     providerOptions: {
                       openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                        },
+                        itemId: 'reasoning_001',
                       },
                     },
                   },
@@ -760,9 +748,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'First reasoning block',
                     providerOptions: {
                       openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                        },
+                        itemId: 'reasoning_001',
                       },
                     },
                   },
@@ -771,9 +757,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'Second reasoning block',
                     providerOptions: {
                       openai: {
-                        reasoning: {
-                          id: 'reasoning_002',
-                        },
+                        itemId: 'reasoning_002',
                       },
                     },
                   },
@@ -826,9 +810,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'First reasoning step (message 1)',
                     providerOptions: {
                       openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                        },
+                        itemId: 'reasoning_001',
                       },
                     },
                   },
@@ -837,9 +819,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'Second reasoning step (message 1)',
                     providerOptions: {
                       openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                        },
+                        itemId: 'reasoning_001',
                       },
                     },
                   },
@@ -858,9 +838,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'First reasoning step (message 2)',
                     providerOptions: {
                       openai: {
-                        reasoning: {
-                          id: 'reasoning_002',
-                        },
+                        itemId: 'reasoning_002',
                       },
                     },
                   },
@@ -931,8 +909,8 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'Initial analysis step 1',
                     providerOptions: {
                       openai: {
+                        itemId: 'reasoning_001',
                         reasoning: {
-                          id: 'reasoning_001',
                           encryptedContent: 'encrypted_content_001',
                         },
                       },
@@ -943,8 +921,8 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'Initial analysis step 2',
                     providerOptions: {
                       openai: {
+                        itemId: 'reasoning_001',
                         reasoning: {
-                          id: 'reasoning_001',
                           encryptedContent: 'encrypted_content_001',
                         },
                       },
@@ -983,8 +961,8 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'Processing results step 1',
                     providerOptions: {
                       openai: {
+                        itemId: 'reasoning_002',
                         reasoning: {
-                          id: 'reasoning_002',
                           encryptedContent: 'encrypted_content_002',
                         },
                       },
@@ -995,8 +973,8 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'Processing results step 2',
                     providerOptions: {
                       openai: {
+                        itemId: 'reasoning_002',
                         reasoning: {
-                          id: 'reasoning_002',
                           encryptedContent: 'encrypted_content_002',
                         },
                       },
@@ -1007,8 +985,8 @@ describe('convertToOpenAIResponsesMessages', () => {
                     text: 'Processing results step 3',
                     providerOptions: {
                       openai: {
+                        itemId: 'reasoning_002',
                         reasoning: {
-                          id: 'reasoning_002',
                           encryptedContent: 'encrypted_content_002',
                         },
                       },

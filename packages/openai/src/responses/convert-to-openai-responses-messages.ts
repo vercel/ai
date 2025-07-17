@@ -148,7 +148,7 @@ export async function convertToOpenAIResponsesMessages({
                 schema: openaiResponsesReasoningProviderOptionsSchema,
               });
 
-              const reasoningId = providerOptions?.reasoning?.id;
+              const reasoningId = providerOptions?.itemId;
 
               if (reasoningId != null) {
                 const existingReasoningMessage = reasoningMessages[reasoningId];
@@ -231,9 +231,9 @@ export async function convertToOpenAIResponsesMessages({
 }
 
 const openaiResponsesReasoningProviderOptionsSchema = z.object({
+  itemId: z.string().nullish(),
   reasoning: z
     .object({
-      id: z.string().nullish(),
       encryptedContent: z.string().nullish(),
     })
     .nullish(),
