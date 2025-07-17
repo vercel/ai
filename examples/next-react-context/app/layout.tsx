@@ -1,3 +1,4 @@
+import { ActiveChatProvider } from './chat-context';
 import './globals.css';
 
 export const metadata = {
@@ -12,7 +13,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ActiveChatProvider>{children}</ActiveChatProvider>
+      </body>
     </html>
   );
 }
