@@ -39,7 +39,9 @@ type Renderer<T extends Array<any>> = (
   | Generator<Streamable, Streamable, void>
   | AsyncGenerator<Streamable, Streamable, void>;
 
-type RenderTool<INPUT_SCHEMA extends z4.core.$ZodType | z3.Schema | Schema = any> = {
+type RenderTool<
+  INPUT_SCHEMA extends z4.core.$ZodType | z3.Schema | Schema = any,
+> = {
   description?: string;
   inputSchema: INPUT_SCHEMA;
   generate?: Renderer<

@@ -162,7 +162,10 @@ functionality that can be fully encapsulated in the provider.
 A result object for accessing the partial object stream and additional information.
  */
 export function streamObject<
-  SCHEMA extends z3.Schema | z4.core.$ZodType | Schema = z4.core.$ZodType<JSONValue>,
+  SCHEMA extends
+    | z3.Schema
+    | z4.core.$ZodType
+    | Schema = z4.core.$ZodType<JSONValue>,
   OUTPUT extends
     | 'object'
     | 'array'

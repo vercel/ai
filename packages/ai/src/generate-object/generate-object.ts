@@ -121,7 +121,10 @@ functionality that can be fully encapsulated in the provider.
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<
-  SCHEMA extends z3.Schema | z4.core.$ZodType | Schema = z4.core.$ZodType<JSONValue>,
+  SCHEMA extends
+    | z3.Schema
+    | z4.core.$ZodType
+    | Schema = z4.core.$ZodType<JSONValue>,
   OUTPUT extends
     | 'object'
     | 'array'

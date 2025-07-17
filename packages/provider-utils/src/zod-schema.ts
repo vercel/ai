@@ -74,7 +74,9 @@ export function isZod4Schema(
 }
 
 export function zodSchema<OBJECT>(
-  zodSchema: z4.core.$ZodType<OBJECT, any> | z3.Schema<OBJECT, z3.ZodTypeDef, any>,
+  zodSchema:
+    | z4.core.$ZodType<OBJECT, any>
+    | z3.Schema<OBJECT, z3.ZodTypeDef, any>,
   options?: {
     /**
      * Enables support for references in the schema.
