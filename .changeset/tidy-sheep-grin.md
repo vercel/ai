@@ -36,4 +36,4 @@
 'ai': patch
 ---
 
-Bumped minimum Zod version to 3.25.50
+fix: improve Zod compatibility
