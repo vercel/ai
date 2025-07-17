@@ -10,7 +10,6 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  parseProviderOptions,
   postJsonToApi,
   resolve,
   type ParseResult,
