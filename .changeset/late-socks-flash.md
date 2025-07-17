@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-add: ai sdk cli documentation + update help commands
+feat: ai sdk cli documentation + adjusted default model
