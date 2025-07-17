@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.0-beta.23
+
+### Patch Changes
+
+- 89ba235: fix (ui): support tool names with dash
+
 ## 5.0.0-beta.22
 
 ### Patch Changes
