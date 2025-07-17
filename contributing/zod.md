@@ -8,8 +8,14 @@ Incorrect internal implementations can lead to infinite recursion and OOM issues
 
 ## Rules
 
-- always use `z.core.$ZodType`
-- always use `import * as z from 'zod/v4/core'`
+For Zod 3 usage (only required in compatibility code, e.g. parsing):
+
+- always use `import * as z3 from "zod/v3";`
+
+For Zod 4 usage:
+
+- always use `import * as z4 from "zod/v4/core";`
+- always use `z4.$ZodType`
 
 ## Future Work
 
