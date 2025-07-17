@@ -25,10 +25,7 @@ describe('wrapGenerateObject', () => {
       },
     });
 
-    const wrappedGenerateObject = wrapGenerateObject<{
-      model: LanguageModelV2;
-      hot?: boolean;
-    }>({
+    const wrappedGenerateObject = wrapGenerateObject<{ hot?: boolean }>({
       middleware: ({ options, doGenerateObject }) => {
         const { hot, ...baseOptions } = options;
         let temperature = baseOptions.temperature;
