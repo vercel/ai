@@ -109,7 +109,7 @@ describe('AI CLI', () => {
     });
 
     it('should handle environment variables with defaults', async () => {
-      process.env.AI_MODEL = 'groq/llama-3.1-8b-instant';
+      process.env.AI_DEFAULT_MODEL = 'groq/llama-3.1-8b-instant';
       process.env.AI_SYSTEM = 'Be concise';
       process.env.AI_VERBOSE = 'true';
       process.argv = ['node', 'ai', 'test prompt'];
@@ -232,10 +232,9 @@ describe('AI CLI', () => {
 
         Authentication (required):
           export AI_GATEWAY_API_KEY="your-key"     # Get from Vercel Dashboard (AI tab)
-          export VERCEL_OIDC_TOKEN="your-token"   # For Vercel projects (or run: vercel env pull)
-
+          
         Environment Variables:
-          AI_MODEL: Default model to use
+          AI_DEFAULT_MODEL: Default model to use
           AI_SYSTEM: Default system message
           AI_VERBOSE: Set to 'true' for detailed output
 
@@ -252,7 +251,9 @@ describe('AI CLI', () => {
           cat README.md | npx ai "Summarize this"
           curl -s https://api.github.com/repos/vercel/ai | npx ai "What is this repository about?"
           
-          The gateway supports OpenAI, Anthropic, Google, Groq, and more providers."
+          The gateway supports OpenAI, Anthropic, Google, Groq, and more providers.
+          
+          For detailed setup instructions, visit: https://ai-sdk.dev/docs/cli/authentication"
       `);
 
       consoleSpy.mockRestore();

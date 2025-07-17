@@ -30,7 +30,7 @@
         "GOOGLE_VERTEX_LOCATION",
         "GOOGLE_VERTEX_PROJECT",
         "GROQ_API_KEY",
-        "AI_MODEL",
+        "AI_DEFAULT_MODEL",
         "AI_SYSTEM",
         "AI_VERBOSE",
         "LUMA_API_KEY",

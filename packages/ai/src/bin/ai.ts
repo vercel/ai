@@ -95,7 +95,7 @@ export function parseArgs(): CLIOptions {
   const args = process.argv.slice(2);
 
   const options: CLIOptions = {
-    model: process.env.AI_MODEL || 'openai/gpt-4',
+    model: process.env.AI_DEFAULT_MODEL || 'openai/gpt-4',
     files: [],
     help: false,
     version: false,
@@ -182,10 +182,9 @@ Options:
 
 Authentication (required):
   export AI_GATEWAY_API_KEY="your-key"     # Get from Vercel Dashboard (AI tab)
-  export VERCEL_OIDC_TOKEN="your-token"   # For Vercel projects (or run: vercel env pull)
-
+  
 Environment Variables:
-  AI_MODEL: Default model to use
+  AI_DEFAULT_MODEL: Default model to use
   AI_SYSTEM: Default system message
   AI_VERBOSE: Set to 'true' for detailed output
 
@@ -202,7 +201,9 @@ Unix-style piping:
   cat README.md | npx ai "Summarize this"
   curl -s https://api.github.com/repos/vercel/ai | npx ai "What is this repository about?"
   
-  The gateway supports OpenAI, Anthropic, Google, Groq, and more providers.`);
+  The gateway supports OpenAI, Anthropic, Google, Groq, and more providers.
+  
+  For detailed setup instructions, visit: https://ai-sdk.dev/docs/cli/authentication`);
 }
 
 export function showVersion() {
@@ -293,8 +294,7 @@ export async function main(): Promise<void> {
       console.error('');
     }
 
-    const hasApiKey =
-      process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
+    const hasApiKey = process.env.AI_GATEWAY_API_KEY;
     if (!hasApiKey) {
       console.error(`Error: Authentication required.
 
@@ -302,12 +302,10 @@ Set up authentication with one of these options:
 
   # Option 1: Export in current session
   export AI_GATEWAY_API_KEY="your-key-here"
-  export VERCEL_OIDC_TOKEN="your-oidc-token"
-  export AI_MODEL="anthropic/claude-3-5-sonnet"
+  export AI_DEFAULT_MODEL="anthropic/claude-3-5-sonnet"
 
   # Option 2: Add to shell profile (~/.bashrc, ~/.zshrc)
   echo 'export AI_GATEWAY_API_KEY="your-key"' >> ~/.bashrc
-  # Or run: vercel env pull
   
 Get your API key from the Vercel Dashboard (AI tab > API keys).
 Use --help for more details and examples.`);
