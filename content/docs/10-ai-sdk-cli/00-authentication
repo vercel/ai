@@ -1,0 +1,82 @@
+---
+title: Authentication
+description: Learn how to set up authentication for the AI SDK CLI.
+---
+
+# Authentication
+
+The AI SDK CLI requires authentication to access AI models through the AI Gateway. This guide will walk you through setting up your API key and configuring environment variables.
+
+## Prerequisites
+
+To use the AI SDK CLI, you'll need:
+
+- Node.js 18+ and pnpm installed on your local development machine.
+- An AI Gateway API key.
+
+If you haven't obtained your AI Gateway API key, you can do so by visiting the [Vercel Dashboard](https://vercel.com/dashboard) and navigating to the **AI** tab.
+
+## Configure API Key
+
+Export your AI Gateway API Key as an environment variable. This key is used to authenticate your application with the AI Gateway service.
+
+For temporary use in your current session:
+
+<Snippet text='export AI_GATEWAY_API_KEY="your-key-here"' />
+
+Replace `your-key-here` with your actual AI Gateway API key.
+
+<Note className="mb-4">
+  The AI SDK CLI will default to using the `AI_GATEWAY_API_KEY` environment variable.
+</Note>
+
+## Environment Variables
+
+You can configure additional environment variables to customize the CLI behavior:
+
+### AI_DEFAULT_MODEL
+
+Set a default model to avoid specifying it with each command:
+
+<Snippet text='export AI_DEFAULT_MODEL="anthropic/claude-3-5-sonnet"' />
+
+### AI_SYSTEM
+
+Set a default system message:
+
+<Snippet text='export AI_SYSTEM="You are a helpful assistant."' />
+
+### AI_VERBOSE
+
+Enable detailed output by default:
+
+<Snippet text='export AI_VERBOSE="true"' />
+
+## Shell Configuration
+
+For persistent configuration across terminal sessions, you can add environment variables to your shell profile:
+
+<div className="my-4">
+  <Tabs items={['Bash', 'Zsh']}>
+    <Tab>
+      <Snippet
+        text='echo \'export AI_GATEWAY_API_KEY="your-key"\' >> ~/.bashrc && source ~/.bashrc'
+        dark
+      />
+    </Tab>
+    <Tab>
+      <Snippet
+        text='echo \'export AI_GATEWAY_API_KEY="your-key"\' >> ~/.zshrc && source ~/.zshrc'
+        dark
+      />
+    </Tab>
+  </Tabs>
+</div>
+
+## Verify Setup
+
+Test your authentication setup by running a simple command:
+
+<Snippet text='npx ai "Hello, world!"' />
+
+If authentication is successful, you should see a response from the AI model. If you encounter authentication errors, double-check that your API key is correctly set and valid.
