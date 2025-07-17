@@ -19,7 +19,7 @@
     "next": "latest",
     "react": "^18",
     "react-dom": "^18",
-    "zod": "3.25.49"
+    "zod": "3.25.50"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

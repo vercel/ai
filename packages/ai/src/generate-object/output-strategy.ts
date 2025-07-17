@@ -394,7 +394,7 @@ export function getOutputStrategy<SCHEMA>({
 }: {
   output: 'object' | 'array' | 'enum' | 'no-schema';
   schema?:
-    | z4.ZodType<SCHEMA, any>
+    | z4.core.$ZodType<SCHEMA, any>
     | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
     | Schema<SCHEMA>;
   enumValues?: Array<SCHEMA>;

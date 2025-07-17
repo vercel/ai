@@ -1,6 +1,6 @@
 import { Schema } from '@ai-sdk/provider-utils';
 import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4/core';
+import * as z4 from 'zod/v4';
 import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 
 export function validateObjectGenerationInput({
@@ -12,7 +12,7 @@ export function validateObjectGenerationInput({
 }: {
   output?: 'object' | 'array' | 'enum' | 'no-schema';
   schema?:
-    | z4.$ZodType<any, any>
+    | z4.core.$ZodType<any, any>
     | z3.Schema<any, z3.ZodTypeDef, any>
     | Schema<any>;
   schemaName?: string;

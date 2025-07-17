@@ -13,7 +13,7 @@
     "@ai-sdk/vue": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
     "ai": "workspace:*",
-    "zod": "3.25.49"
+    "zod": "3.25.50"
   },
   "devDependencies": {
     "@nuxt/devtools": "1.6.3",
