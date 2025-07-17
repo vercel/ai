@@ -6,6 +6,7 @@ export type {
   GeneratedFile,
 } from './generated-file';
 export * as Output from './output';
+export type { PrepareStepFunction } from './prepare-step';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
 export type { StepResult } from './step-result';
 export { streamText } from './stream-text';

@@ -2913,6 +2913,270 @@ describe('streamText', () => {
         expect(await result.sources).toMatchSnapshot();
       });
     });
+
+    describe('2 steps: initial, tool-result with experimental_prepareStep', () => {
+      beforeEach(async () => {
+        result = undefined as any;
+        onFinishResult = undefined as any;
+        onStepFinishResults = [];
+
+        let responseCount = 0;
+
+        const trueModel = new MockLanguageModelV1({
+          doStream: async ({ prompt, mode }) => {
+            switch (responseCount++) {
+              case 0: {
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  tools: [
+                    {
+                      type: 'function',
+                      name: 'tool1',
+                      description: undefined,
+                      parameters: {
+                        $schema: 'http://json-schema.org/draft-07/schema#',
+                        additionalProperties: false,
+                        properties: { value: { type: 'string' } },
+                        required: ['value'],
+                        type: 'object',
+                      },
+                    },
+                  ],
+                  toolChoice: { type: 'tool', toolName: 'tool1' },
+                });
+
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      args: '{ "value": "value" }',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: 'tool-calls',
+                      logprobs: undefined,
+                      usage: { completionTokens: 5, promptTokens: 10 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                };
+              }
+              case 1: {
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  tools: [],
+                  toolChoice: { type: 'auto' },
+                });
+
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
+                  },
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        args: { value: 'value' },
+                        providerMetadata: undefined,
+                      },
+                    ],
+                    providerMetadata: undefined,
+                  },
+                  {
+                    role: 'tool',
+                    content: [
+                      {
+                        type: 'tool-result',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        result: 'result1',
+                        content: undefined,
+                        isError: undefined,
+                        providerMetadata: undefined,
+                      },
+                    ],
+                    providerMetadata: undefined,
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(10000),
+                    },
+                    { type: 'text-delta', textDelta: 'Hello, world!' },
+                    {
+                      type: 'finish',
+                      finishReason: 'stop',
+                      logprobs: undefined,
+                      usage: { completionTokens: 15, promptTokens: 10 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                  rawResponse: {
+                    headers: {
+                      'custom-response-header': 'response-header-value',
+                    },
+                  },
+                };
+              }
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        });
+
+        const modelWithFiles = new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'file',
+                data: new Uint8Array([1, 2, 3]),
+                mimeType: 'image/png',
+              },
+              { type: 'text-delta', textDelta: 'Hello, world!' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 20, promptTokens: 10 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          }),
+        });
+
+        result = streamText({
+          model: trueModel,
+          tools: {
+            tool1: tool({
+              parameters: z.object({ value: z.string() }),
+              execute: async (args, options) => {
+                expect(args).toStrictEqual({ value: 'value' });
+                expect(options.messages).toStrictEqual([
+                  { role: 'user', content: 'test-input' },
+                ]);
+                return 'result1';
+              },
+            }),
+          },
+          prompt: 'test-input',
+          maxSteps: 3,
+          onFinish: async event => {
+            expect(onFinishResult).to.be.undefined;
+            onFinishResult = event as unknown as typeof onFinishResult;
+          },
+          onStepFinish: async event => {
+            onStepFinishResults.push(event);
+          },
+          experimental_prepareStep: async ({ model, stepNumber, steps }) => {
+            if (stepNumber === 0) {
+              expect(model).toStrictEqual(trueModel);
+              expect(steps).toStrictEqual([]);
+              return {
+                model: trueModel,
+                toolChoice: {
+                  type: 'tool',
+                  toolName: 'tool1' as const,
+                },
+              };
+            }
+
+            if (stepNumber === 1) {
+              expect(model).toStrictEqual(trueModel);
+              expect(steps.length).toStrictEqual(1);
+              return { model: modelWithFiles, experimental_activeTools: [] };
+            }
+          },
+          experimental_telemetry: { isEnabled: true, tracer },
+          experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        });
+      });
+
+      it('should contain assistant response message and tool message from all steps', async () => {
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toMatchSnapshot();
+      });
+
+      describe('callbacks', () => {
+        beforeEach(async () => {
+          await result.consumeStream();
+        });
+
+        it('onFinish should send correct information', async () => {
+          expect(onFinishResult).toMatchSnapshot();
+        });
+
+        it('onStepFinish should send correct information', async () => {
+          expect(onStepFinishResults).toMatchSnapshot();
+        });
+      });
+
+      describe('value promises', () => {
+        beforeEach(async () => {
+          await result.consumeStream();
+        });
+
+        it('result.text should return text from last step', async () => {
+          assert.strictEqual(await result.text, 'Hello, world!');
+        });
+
+        it('result.toolCalls should return empty tool calls from last step', async () => {
+          assert.deepStrictEqual(await result.toolCalls, []);
+        });
+
+        it('result.toolResults should return empty tool results from last step', async () => {
+          assert.deepStrictEqual(await result.toolResults, []);
+        });
+
+        it('result.usage should sum token usage', async () => {
+          assert.deepStrictEqual(await result.usage, {
+            completionTokens: 25,
+            promptTokens: 20,
+            totalTokens: 45,
+          });
+        });
+
+        it('result.steps should contain all steps', async () => {
+          expect(await result.steps).toMatchSnapshot();
+        });
+
+        it('result.response.messages should contain response messages from all steps', async () => {
+          expect((await result.response).messages).toMatchSnapshot();
+        });
+      });
+
+      it('should record telemetry data for each step', async () => {
+        await result.consumeStream();
+        expect(tracer.jsonSpans).toMatchSnapshot();
+      });
+    });
   });
 
   describe('options.headers', () => {

@@ -49,6 +49,7 @@ import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
 import { writeToServerResponse } from '../util/write-to-server-response';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
+import { PrepareStepFunction } from './prepare-step';
 import { asReasoningText, ReasoningDetail } from './reasoning-detail';
 import {
   runToolsTransformation,
@@ -216,6 +217,7 @@ export function streamText<
   experimental_activeTools: activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
+  experimental_prepareStep: prepareStep,
   onChunk,
   onError,
   onFinish,
@@ -317,6 +319,19 @@ The stream transformations must maintain the stream structure for streamText to 
       | Array<StreamTextTransform<TOOLS>>;
 
     /**
+Optional function that you can use to provide different settings for a step.
+
+@param options - The options for the step.
+@param options.steps - The steps that have been executed so far.
+@param options.stepNumber - The number of the step that is being executed.
+@param options.model - The model that is being used.
+
+@returns An object that contains the settings for the step.
+If you return undefined (or for undefined settings), the settings from the outer level will be used.
+    */
+    experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
+
+    /**
 Callback that is called for each chunk of the stream.
 The stream processing will pause until the callback promise is resolved.
      */
@@ -375,6 +390,7 @@ Internal. For test use only. May change without notice.
     output,
     continueSteps,
     providerOptions,
+    experimental_prepareStep: prepareStep,
     onChunk,
     onError,
     onFinish,
@@ -549,6 +565,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     output,
     continueSteps,
     providerOptions,
+    experimental_prepareStep: prepareStep,
     now,
     currentDate,
     generateId,
@@ -577,6 +594,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
     continueSteps: boolean;
     providerOptions: ProviderOptions | undefined;
+    experimental_prepareStep: PrepareStepFunction<TOOLS> | undefined;
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
@@ -955,6 +973,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           previousStepText,
           hasLeadingWhitespace,
           messageId,
+          completedSteps = [],
         }: {
           currentStep: number;
           responseMessages: Array<ResponseMessage>;
@@ -963,6 +982,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           previousStepText: string;
           hasLeadingWhitespace: boolean;
           messageId: string;
+          completedSteps?: StepResult<TOOLS>[];
         }) {
           // after the 1st step, we need to switch to messages format:
           const promptFormat =
@@ -973,19 +993,32 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             ...responseMessages,
           ];
 
+          const prepareStepResult = await prepareStep?.({
+            model,
+            steps: completedSteps,
+            stepNumber: currentStep,
+            messages: stepInputMessages,
+          });
+
+          const stepToolChoice = prepareStepResult?.toolChoice ?? toolChoice;
+          const stepActiveTools = prepareStepResult?.experimental_activeTools ?? activeTools;
+          const stepModel = prepareStepResult?.model ?? model;
+          const stepSystem = prepareStepResult?.system ?? initialPrompt.system;
+          const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               type: promptFormat,
-              system: initialPrompt.system,
-              messages: stepInputMessages,
+              system: stepSystem,
+              messages: stepMessages,
             },
-            modelSupportsImageUrls: model.supportsImageUrls,
-            modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
+            modelSupportsImageUrls: stepModel.supportsImageUrls,
+            modelSupportsUrl: stepModel.supportsUrl?.bind(stepModel), // support 'this' context
           });
 
           const mode = {
             type: 'regular' as const,
-            ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
+            ...prepareToolsAndToolChoice({ tools, toolChoice: stepToolChoice, activeTools: stepActiveTools }),
           };
 
           const {
@@ -1021,8 +1054,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   },
 
                   // standardized gen-ai llm span attributes:
-                  'gen_ai.system': model.provider,
-                  'gen_ai.request.model': model.modelId,
+                  'gen_ai.system': stepModel.provider,
+                  'gen_ai.request.model': stepModel.modelId,
                   'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
                   'gen_ai.request.max_tokens': settings.maxTokens,
                   'gen_ai.request.presence_penalty': settings.presencePenalty,
@@ -1037,11 +1070,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               fn: async doStreamSpan => ({
                 startTimestampMs: now(), // get before the call
                 doStreamSpan,
-                result: await model.doStream({
+                result: await stepModel.doStream({
                   mode,
                   ...prepareCallSettings(settings),
                   inputFormat: promptFormat,
-                  responseFormat: output?.responseFormat({ model }),
+                  responseFormat: output?.responseFormat({ model: stepModel }),
                   prompt: promptMessages,
                   providerMetadata: providerOptions,
                   abortSignal,
@@ -1087,7 +1120,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: currentDate(),
-            modelId: model.modelId,
+            modelId: stepModel.modelId,
           };
 
           // chunk buffer when using continue:
@@ -1452,6 +1485,42 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       );
                     }
 
+                    // Build the current step result for passing to the next step
+                    const currentStepResult: StepResult<TOOLS> = {
+                      stepType,
+                      text: stepText,
+                      reasoning: asReasoningText(stepReasoning),
+                      reasoningDetails: stepReasoning,
+                      files: stepFiles,
+                      sources: [],
+                      toolCalls: stepToolCalls,
+                      toolResults: stepToolResults,
+                      finishReason: stepFinishReason,
+                      usage: stepUsage,
+                      warnings: warnings,
+                      logprobs: stepLogProbs,
+                      request: stepRequest,
+                      response: {
+                        ...stepResponse,
+                        messages: nextStepType === 'continue' 
+                          ? [...responseMessages] 
+                          : [...responseMessages, ...toResponseMessages({
+                              text: stepText,
+                              files: stepFiles,
+                              reasoning: stepReasoning,
+                              tools: tools ?? ({} as TOOLS),
+                              toolCalls: stepToolCalls,
+                              toolResults: stepToolResults,
+                              messageId,
+                              generateMessageId,
+                            })],
+                        headers: undefined,
+                      },
+                      providerMetadata: stepProviderMetadata,
+                      experimental_providerMetadata: stepProviderMetadata,
+                      isContinued: nextStepType === 'continue',
+                    };
+
                     await streamStep({
                       currentStep: currentStep + 1,
                       responseMessages,
@@ -1464,6 +1533,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                         nextStepType === 'continue'
                           ? messageId
                           : generateMessageId(),
+                      completedSteps: [...completedSteps, currentStepResult],
                     });
                   }
                 },

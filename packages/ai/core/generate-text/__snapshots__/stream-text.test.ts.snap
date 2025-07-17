@@ -931,6 +931,855 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
 ]
 `;
 
+exports[`streamText > options.maxSteps > 2 steps: initial, tool-result with experimental_prepareStep > callbacks > onFinish should send correct information 1`] = `
+{
+  "experimental_providerMetadata": undefined,
+  "files": [
+    DefaultGeneratedFileWithType {
+      "base64Data": "AQID",
+      "mimeType": "image/png",
+      "type": "file",
+      "uint8ArrayData": Uint8Array [
+        1,
+        2,
+        3,
+      ],
+    },
+  ],
+  "finishReason": "stop",
+  "logprobs": undefined,
+  "providerMetadata": undefined,
+  "reasoning": undefined,
+  "reasoningDetails": [],
+  "request": {},
+  "response": {
+    "headers": undefined,
+    "id": "aitxt-iXJTvlce3Ln62vjRuB5myOVB",
+    "messages": [
+      {
+        "content": [
+          {
+            "args": {
+              "value": "value",
+            },
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+        ],
+        "id": "msg-0",
+        "role": "assistant",
+      },
+      {
+        "content": [
+          {
+            "result": "result1",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+        ],
+        "id": "msg-4",
+        "role": "tool",
+      },
+      {
+        "content": [
+          {
+            "data": "AQID",
+            "mimeType": "image/png",
+            "type": "file",
+          },
+          {
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ],
+        "id": "msg-3",
+        "role": "assistant",
+      },
+    ],
+    "modelId": "mock-model-id",
+    "timestamp": 2025-07-17T18:47:27.305Z,
+  },
+  "sources": [],
+  "steps": [
+    {
+      "experimental_providerMetadata": undefined,
+      "files": [],
+      "finishReason": "tool-calls",
+      "isContinued": false,
+      "logprobs": undefined,
+      "providerMetadata": undefined,
+      "reasoning": undefined,
+      "reasoningDetails": [],
+      "request": {},
+      "response": {
+        "headers": undefined,
+        "id": "id-0",
+        "messages": [
+          {
+            "content": [
+              {
+                "args": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "id": "msg-0",
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "result": "result1",
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "id": "msg-4",
+            "role": "tool",
+          },
+        ],
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "sources": [],
+      "stepType": "initial",
+      "text": "",
+      "toolCalls": [
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "toolResults": [
+        {
+          "args": {
+            "value": "value",
+          },
+          "result": "result1",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "usage": {
+        "completionTokens": 5,
+        "promptTokens": 10,
+        "totalTokens": 15,
+      },
+      "warnings": undefined,
+    },
+    {
+      "experimental_providerMetadata": undefined,
+      "files": [
+        DefaultGeneratedFileWithType {
+          "base64Data": "AQID",
+          "mimeType": "image/png",
+          "type": "file",
+          "uint8ArrayData": Uint8Array [
+            1,
+            2,
+            3,
+          ],
+        },
+      ],
+      "finishReason": "stop",
+      "isContinued": false,
+      "logprobs": undefined,
+      "providerMetadata": undefined,
+      "reasoning": undefined,
+      "reasoningDetails": [],
+      "request": {},
+      "response": {
+        "headers": undefined,
+        "id": "aitxt-iXJTvlce3Ln62vjRuB5myOVB",
+        "messages": [
+          {
+            "content": [
+              {
+                "args": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "id": "msg-0",
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "result": "result1",
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "id": "msg-4",
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "data": "AQID",
+                "mimeType": "image/png",
+                "type": "file",
+              },
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "id": "msg-3",
+            "role": "assistant",
+          },
+        ],
+        "modelId": "mock-model-id",
+        "timestamp": 2025-07-17T18:47:27.305Z,
+      },
+      "sources": [],
+      "stepType": "tool-result",
+      "text": "Hello, world!",
+      "toolCalls": [],
+      "toolResults": [],
+      "usage": {
+        "completionTokens": 20,
+        "promptTokens": 10,
+        "totalTokens": 30,
+      },
+      "warnings": undefined,
+    },
+  ],
+  "text": "Hello, world!",
+  "toolCalls": [],
+  "toolResults": [],
+  "usage": {
+    "completionTokens": 25,
+    "promptTokens": 20,
+    "totalTokens": 45,
+  },
+  "warnings": undefined,
+}
+`;
+
+exports[`streamText > options.maxSteps > 2 steps: initial, tool-result with experimental_prepareStep > callbacks > onStepFinish should send correct information 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "files": [],
+    "finishReason": "tool-calls",
+    "isContinued": false,
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "reasoning": undefined,
+    "reasoningDetails": [],
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-0",
+      "messages": [
+        {
+          "content": [
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "id": "msg-4",
+          "role": "tool",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "sources": [],
+    "stepType": "initial",
+    "text": "",
+    "toolCalls": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "toolResults": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 10,
+      "totalTokens": 15,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "files": [
+      DefaultGeneratedFileWithType {
+        "base64Data": "AQID",
+        "mimeType": "image/png",
+        "type": "file",
+        "uint8ArrayData": Uint8Array [
+          1,
+          2,
+          3,
+        ],
+      },
+    ],
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "reasoning": undefined,
+    "reasoningDetails": [],
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "aitxt-eEiSEsfF9vuWNerpnJIDZeqm",
+      "messages": [
+        {
+          "content": [
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "id": "msg-4",
+          "role": "tool",
+        },
+        {
+          "content": [
+            {
+              "data": "AQID",
+              "mimeType": "image/png",
+              "type": "file",
+            },
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "id": "msg-3",
+          "role": "assistant",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 2025-07-17T18:47:27.359Z,
+    },
+    "sources": [],
+    "stepType": "tool-result",
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`streamText > options.maxSteps > 2 steps: initial, tool-result with experimental_prepareStep > should contain assistant response message and tool message from all steps 1`] = `
+[
+  {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
+    "args": {
+      "value": "value",
+    },
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-call",
+  },
+  {
+    "args": {
+      "value": "value",
+    },
+    "result": "result1",
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-result",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "tool-calls",
+    "isContinued": false,
+    "logprobs": undefined,
+    "messageId": "msg-0",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 10,
+      "totalTokens": 15,
+    },
+    "warnings": undefined,
+  },
+  {
+    "messageId": "msg-3",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  DefaultGeneratedFileWithType {
+    "base64Data": "AQID",
+    "mimeType": "image/png",
+    "type": "file",
+    "uint8ArrayData": Uint8Array [
+      1,
+      2,
+      3,
+    ],
+  },
+  {
+    "textDelta": "Hello, world!",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "messageId": "msg-3",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "aitxt-XvyywMLII4X9oKt9V36nijZv",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-07-17T18:47:27.293Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "aitxt-XvyywMLII4X9oKt9V36nijZv",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-07-17T18:47:27.293Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 25,
+      "promptTokens": 20,
+      "totalTokens": 45,
+    },
+  },
+]
+`;
+
+exports[`streamText > options.maxSteps > 2 steps: initial, tool-result with experimental_prepareStep > should record telemetry data for each step 1`] = `
+[
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText",
+      "ai.prompt": "{"prompt":"test-input"}",
+      "ai.response.finishReason": "stop",
+      "ai.response.text": "Hello, world!",
+      "ai.settings.maxRetries": 2,
+      "ai.settings.maxSteps": 3,
+      "ai.usage.completionTokens": 25,
+      "ai.usage.promptTokens": 20,
+      "operation.name": "ai.streamText",
+    },
+    "events": [],
+    "name": "ai.streamText",
+  },
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.prompt.format": "prompt",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+      "ai.prompt.toolChoice": "{"type":"tool","toolName":"tool1"}",
+      "ai.prompt.tools": [
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+      ],
+      "ai.response.avgCompletionTokensPerSecond": 2750.521636428267,
+      "ai.response.finishReason": "tool-calls",
+      "ai.response.id": "id-0",
+      "ai.response.model": "mock-model-id",
+      "ai.response.msToFinish": 1.817837000000054,
+      "ai.response.msToFirstChunk": 0.4361229999999523,
+      "ai.response.text": "",
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.completionTokens": 5,
+      "ai.usage.promptTokens": 10,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "tool-calls",
+      ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 10,
+      "gen_ai.usage.output_tokens": 5,
+      "operation.name": "ai.streamText.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.response.msToFirstChunk": 0.4361229999999523,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+      {
+        "attributes": undefined,
+        "name": "ai.stream.finish",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+  {
+    "attributes": {
+      "ai.operationId": "ai.toolCall",
+      "ai.toolCall.args": "{"value":"value"}",
+      "ai.toolCall.id": "call-1",
+      "ai.toolCall.name": "tool1",
+      "ai.toolCall.result": ""result1"",
+      "operation.name": "ai.toolCall",
+    },
+    "events": [],
+    "name": "ai.toolCall",
+  },
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.prompt.format": "messages",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]",
+      "ai.prompt.toolChoice": "{"type":"auto"}",
+      "ai.prompt.tools": [],
+      "ai.response.avgCompletionTokensPerSecond": 4517.284145529679,
+      "ai.response.finishReason": "stop",
+      "ai.response.id": "aitxt-ebB1SqsXZh99vtTKTSuAzbIf",
+      "ai.response.model": "mock-model-id",
+      "ai.response.msToFinish": 4.427439000000049,
+      "ai.response.msToFirstChunk": 0.25783000000001266,
+      "ai.response.text": "Hello, world!",
+      "ai.response.timestamp": "2025-07-17T18:47:27.449Z",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.completionTokens": 20,
+      "ai.usage.promptTokens": 10,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.response.id": "aitxt-ebB1SqsXZh99vtTKTSuAzbIf",
+      "gen_ai.response.model": "mock-model-id",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 10,
+      "gen_ai.usage.output_tokens": 20,
+      "operation.name": "ai.streamText.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.response.msToFirstChunk": 0.25783000000001266,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+      {
+        "attributes": undefined,
+        "name": "ai.stream.finish",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+]
+`;
+
+exports[`streamText > options.maxSteps > 2 steps: initial, tool-result with experimental_prepareStep > value promises > result.response.messages should contain response messages from all steps 1`] = `
+[
+  {
+    "content": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "id": "msg-0",
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "id": "msg-4",
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "data": "AQID",
+        "mimeType": "image/png",
+        "type": "file",
+      },
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "id": "msg-3",
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`streamText > options.maxSteps > 2 steps: initial, tool-result with experimental_prepareStep > value promises > result.steps should contain all steps 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "files": [],
+    "finishReason": "tool-calls",
+    "isContinued": false,
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "reasoning": undefined,
+    "reasoningDetails": [],
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-0",
+      "messages": [
+        {
+          "content": [
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "id": "msg-4",
+          "role": "tool",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "sources": [],
+    "stepType": "initial",
+    "text": "",
+    "toolCalls": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "toolResults": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 10,
+      "totalTokens": 15,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "files": [
+      DefaultGeneratedFileWithType {
+        "base64Data": "AQID",
+        "mimeType": "image/png",
+        "type": "file",
+        "uint8ArrayData": Uint8Array [
+          1,
+          2,
+          3,
+        ],
+      },
+    ],
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "reasoning": undefined,
+    "reasoningDetails": [],
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "aitxt-YADHSkLvpFtb3d0kdgLSNoZZ",
+      "messages": [
+        {
+          "content": [
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "id": "msg-4",
+          "role": "tool",
+        },
+        {
+          "content": [
+            {
+              "data": "AQID",
+              "mimeType": "image/png",
+              "type": "file",
+            },
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "id": "msg-3",
+          "role": "assistant",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 2025-07-17T18:47:27.424Z,
+    },
+    "sources": [],
+    "stepType": "tool-result",
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
 exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > callbacks > onFinish should send correct information 1`] = `
 {
   "experimental_providerMetadata": undefined,

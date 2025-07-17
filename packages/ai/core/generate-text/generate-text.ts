@@ -31,6 +31,7 @@ import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile, GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
+import { PrepareStepFunction } from './prepare-step';
 import { asReasoningText, ReasoningDetail } from './reasoning-detail';
 import { ResponseMessage, StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
@@ -207,25 +208,13 @@ Optional function that you can use to provide different settings for a step.
 @param options - The options for the step.
 @param options.steps - The steps that have been executed so far.
 @param options.stepNumber - The number of the step that is being executed.
-@param options.maxSteps - The maximum number of steps.
 @param options.model - The model that is being used.
+@param options.messages - The messages that will be sent to the model for this step.
 
 @returns An object that contains the settings for the step.
 If you return undefined (or for undefined settings), the settings from the outer level will be used.
     */
-    experimental_prepareStep?: (options: {
-      steps: Array<StepResult<TOOLS>>;
-      stepNumber: number;
-      maxSteps: number;
-      model: LanguageModel;
-    }) => PromiseLike<
-      | {
-          model?: LanguageModel;
-          toolChoice?: ToolChoice<TOOLS>;
-          experimental_activeTools?: Array<keyof TOOLS>;
-        }
-      | undefined
-    >;
+    experimental_prepareStep?: PrepareStepFunction<TOOLS>;
 
     /**
 A function that attempts to repair a tool call that failed to parse.
@@ -332,13 +321,12 @@ A function that attempts to repair a tool call that failed to parse.
         const prepareStepResult = await prepareStep?.({
           model,
           steps,
-          maxSteps,
           stepNumber: stepCount,
+          messages: stepInputMessages,
         });
 
         const stepToolChoice = prepareStepResult?.toolChoice ?? toolChoice;
-        const stepActiveTools =
-          prepareStepResult?.experimental_activeTools ?? activeTools;
+        const stepActiveTools = prepareStepResult?.experimental_activeTools ?? activeTools;
         const stepModel = prepareStepResult?.model ?? model;
 
         const promptMessages = await convertToLanguageModelPrompt({
