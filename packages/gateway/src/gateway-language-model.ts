@@ -41,8 +41,8 @@ export class GatewayLanguageModel implements LanguageModelV2 {
   }
 
   private async prepareRequestBody(
-    body: any,
-    providerOptions: any,
+    body: LanguageModelV2CallOptions,
+    providerOptions: Record<string, unknown> | undefined,
   ): Promise<any> {
     const gatewayOptions = await parseProviderOptions({
       providerOptions,
