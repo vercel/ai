@@ -182,7 +182,7 @@ Options:
 
 Authentication (required):
   export AI_GATEWAY_API_KEY="your-key"     # Get from Vercel Dashboard (AI tab)
-
+  
 Environment Variables:
   AI_DEFAULT_MODEL: Default model to use
   AI_SYSTEM: Default system message
@@ -201,7 +201,9 @@ Unix-style piping:
   cat README.md | npx ai "Summarize this"
   curl -s https://api.github.com/repos/vercel/ai | npx ai "What is this repository about?"
   
-  The gateway supports OpenAI, Anthropic, Google, Groq, and more providers.`);
+  The gateway supports OpenAI, Anthropic, Google, Groq, and more providers.
+  
+  For detailed setup instructions, visit: https://ai-sdk.dev/docs/cli/authentication`);
 }
 
 export function showVersion() {
