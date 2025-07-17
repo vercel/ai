@@ -240,7 +240,7 @@ export function isToolUIPart<TOOLS extends UITools>(
 export function getToolName<TOOLS extends UITools>(
   part: ToolUIPart<TOOLS>,
 ): keyof TOOLS {
-  return part.type.split('-')[1] as keyof TOOLS;
+  return part.type.split('-').slice(1).join('-') as keyof TOOLS;
 }
 
 export type InferUIMessageMetadata<T extends UIMessage> =
