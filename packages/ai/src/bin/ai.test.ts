@@ -251,9 +251,9 @@ describe('AI CLI', () => {
           cat README.md | npx ai "Summarize this"
           curl -s https://api.github.com/repos/vercel/ai | npx ai "What is this repository about?"
           
-          The gateway supports OpenAI, Anthropic, Google, Groq, and more providers."
-
-        For detailed setup instructions, visit: https://ai-sdk.dev/docs/cli/authentication
+          The gateway supports OpenAI, Anthropic, Google, Groq, and more providers.
+          
+          For detailed setup instructions, visit: https://ai-sdk.dev/docs/cli/authentication"
       `);
 
       consoleSpy.mockRestore();
