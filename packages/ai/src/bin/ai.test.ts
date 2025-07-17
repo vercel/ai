@@ -232,7 +232,6 @@ describe('AI CLI', () => {
 
         Authentication (required):
           export AI_GATEWAY_API_KEY="your-key"     # Get from Vercel Dashboard (AI tab)
-          export VERCEL_OIDC_TOKEN="your-token"   # For Vercel projects (or run: vercel env pull)
 
         Environment Variables:
           AI_DEFAULT_MODEL: Default model to use
