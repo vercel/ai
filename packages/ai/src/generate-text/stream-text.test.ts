@@ -1482,7 +1482,6 @@ describe('streamText', () => {
                   },
                   {
                     type: 'tool-call',
-                    id: 'call-1',
                     toolCallId: 'call-1',
                     toolName: 'tool1',
                     input: `{ "value": "value" }`,
@@ -11916,6 +11915,270 @@ describe('streamText', () => {
               },
             ]
           `);
+      });
+    });
+
+    describe('abort in 2nd step', () => {
+      let result: StreamTextResult<any, TextStreamPart<any>>;
+      let onErrorCalls: Array<{ error: unknown }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+
+      beforeEach(() => {
+        onErrorCalls = [];
+        onAbortCalls = [];
+
+        const abortController = new AbortController();
+        let pullCalls = 0;
+        let streamCalls = 0;
+
+        result = streamText({
+          abortSignal: abortController.signal,
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV2({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start(controller) {
+                  streamCalls++;
+                  pullCalls = 0;
+                },
+                pull(controller) {
+                  if (streamCalls === 1) {
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({
+                          type: 'tool-call',
+                          toolCallId: 'call-1',
+                          toolName: 'tool1',
+                          input: `{ "value": "value" }`,
+                        });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'finish',
+                          finishReason: 'tool-calls',
+                          usage: testUsage,
+                        });
+                        controller.close();
+                        break;
+                    }
+                  } else
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({
+                          type: 'text-start',
+                          id: '1',
+                        });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: '1',
+                          delta: 'Hello',
+                        });
+                        break;
+                      case 3:
+                        abortController.abort();
+                        controller.error(
+                          new DOMException(
+                            'The user aborted a request.',
+                            'AbortError',
+                          ),
+                        );
+                        break;
+                    }
+                },
+              }),
+            }),
+          }),
+          tools: {
+            tool1: {
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            },
+          },
+          stopWhen: stepCountIs(3),
+          ...defaultSettings(),
+          onError: error => {
+            onErrorCalls.push({ error });
+          },
+        });
+      });
+
+      it('should not call onError for abort errors', async () => {
+        await result.consumeStream();
+        expect(onErrorCalls).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should call onAbort when the abort signal is triggered', async () => {
+        await result.consumeStream();
+        expect(onAbortCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "providerMetadata": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "output": "result1",
+                      "providerExecuted": undefined,
+                      "providerMetadata": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": undefined,
+                    "id": "id-0",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+          ]
+        `);
+      });
+
+      it('should only stream initial chunks in full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "output": "result1",
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+            {
+              "finishReason": "tool-calls",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello",
+              "type": "text",
+            },
+            {
+              "type": "abort",
+            },
+          ]
+        `);
       });
     });
   });
