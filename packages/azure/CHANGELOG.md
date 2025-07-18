@@ -1,5 +1,15 @@
 # @ai-sdk/azure
 
+## 2.0.0-beta.11
+
+### Patch Changes
+
+- 3db5258: update: Azure OpenAI provider to v1 API format
+- Updated dependencies [57edfcb]
+- Updated dependencies [383cbfa]
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+  - @ai-sdk/openai@2.0.0-beta.11
+
 ## 2.0.0-beta.10
 
 ### Patch Changes
