@@ -1,4 +1,3 @@
-import type { LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
@@ -15,8 +14,14 @@ import {
   type GatewayFetchMetadataResponse,
 } from './gateway-fetch-metadata';
 import { GatewayLanguageModel } from './gateway-language-model';
-import type { GatewayModelId } from './gateway-language-model-settings';
+import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
+import type { GatewayModelId } from './gateway-language-model-settings';
+import type {
+  LanguageModelV2,
+  EmbeddingModelV2,
+  ProviderV2,
+} from '@ai-sdk/provider';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
@@ -30,6 +35,11 @@ Creates a model for text generation.
 Returns available providers and models for use with the remote provider.
  */
   getAvailableModels(): Promise<GatewayFetchMetadataResponse>;
+
+  /**
+Creates a model for generating text embeddings.
+*/
+  textEmbeddingModel(modelId: string): EmbeddingModelV2<string>;
 }
 
 export interface GatewayProviderSettings {
@@ -173,7 +183,34 @@ export function createGatewayProvider(
   };
   provider.languageModel = createLanguageModel;
   provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+    const deploymentId = loadOptionalSetting({
+      settingValue: undefined,
+      environmentVariableName: 'VERCEL_DEPLOYMENT_ID',
+    });
+    const environment = loadOptionalSetting({
+      settingValue: undefined,
+      environmentVariableName: 'VERCEL_ENV',
+    });
+    const region = loadOptionalSetting({
+      settingValue: undefined,
+      environmentVariableName: 'VERCEL_REGION',
+    });
+
+    return new GatewayEmbeddingModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: async () => {
+        const requestId = await getVercelRequestId();
+        return {
+          ...(deploymentId && { 'ai-o11y-deployment-id': deploymentId }),
+          ...(environment && { 'ai-o11y-environment': environment }),
+          ...(region && { 'ai-o11y-region': region }),
+          ...(requestId && { 'ai-o11y-request-id': requestId }),
+        };
+      },
+    });
   };
 
   return provider;
