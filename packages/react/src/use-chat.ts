@@ -69,10 +69,11 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     chatRef.current = 'chat' in options ? options.chat : new Chat(options);
   }
 
+  const id = 'id' in options ? options.id : null;
   const subscribeToMessages = useCallback(
     (update: () => void) =>
       chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
-    [throttleWaitMs],
+    [throttleWaitMs, 'id' in options ? options.id : null],
   );
 
   const messages = useSyncExternalStore(
