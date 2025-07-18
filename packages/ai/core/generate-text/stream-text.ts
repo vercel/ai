@@ -647,6 +647,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let stepType: 'initial' | 'continue' | 'tool-result' = 'initial';
     const recordedSteps: StepResult<TOOLS>[] = [];
     let rootSpan!: Span;
+    let stepFinish!: DelayedPromise<void>;
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
@@ -798,6 +799,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             recordedResponse.messages.push(...stepMessages);
             recordedContinuationText = '';
           }
+
+          // Signal that the step is fully processed
+          stepFinish.resolve();
         }
 
         if (part.type === 'finish') {
@@ -983,6 +987,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           hasLeadingWhitespace: boolean;
           messageId: string;
         }) {
+          // Create a new promise for this step
+          stepFinish = new DelayedPromise<void>();
+
           // after the 1st step, we need to switch to messages format:
           const promptFormat =
             responseMessages.length === 0 ? initialPrompt.type : 'messages';
@@ -996,6 +1003,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             model,
             steps: recordedSteps,
             stepNumber: recordedSteps.length,
+            maxSteps,
             messages: stepInputMessages
           });
 
@@ -1453,6 +1461,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     self.closeStream(); // close the stitchable stream
                   } else {
+                    // wait for the step to be fully processed by the event processor
+                    await stepFinish.value;
+
                     // append to messages for the next step:
                     if (stepType === 'continue') {
                       // continue step: update the last assistant message

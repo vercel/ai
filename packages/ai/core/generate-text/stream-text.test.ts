@@ -2982,21 +2982,8 @@ describe('streamText', () => {
               case 1: {
                 expect(mode).toStrictEqual({
                   type: 'regular',
-                  toolChoice: { type: 'tool', toolName: 'tool1' },
-                  tools: [
-                    {
-                      type: 'function',
-                      name: 'tool1',
-                      description: undefined,
-                      parameters: {
-                        $schema: 'http://json-schema.org/draft-07/schema#',
-                        additionalProperties: false,
-                        properties: { value: { type: 'string' } },
-                        required: ['value'],
-                        type: 'object',
-                      },
-                    },
-                  ],
+                  toolChoice: { type: 'auto' },
+                  tools: [],
                 });
 
                 expect(prompt).toStrictEqual([
@@ -3106,7 +3093,7 @@ describe('streamText', () => {
             }
 
             if (stepNumber === 1) {
-              expect(steps.length).toStrictEqual(0); // step 0 not yet recorded in streaming
+              expect(steps.length).toStrictEqual(1); // step 0 is now properly recorded due to race condition fix
               return {
                 model: trueModel,
                 toolChoice: 'auto',
