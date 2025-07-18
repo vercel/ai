@@ -3,7 +3,7 @@ import { UIMessage } from '../ui/ui-messages';
 export type UIMessageStreamOnFinishCallback<UI_MESSAGE extends UIMessage> =
   (event: {
     /**
-     * The updates list of UI messages.
+     * The updated list of UI messages.
      */
     messages: UI_MESSAGE[];
 
@@ -12,6 +12,11 @@ export type UIMessageStreamOnFinishCallback<UI_MESSAGE extends UIMessage> =
      * or if a new message was created.
      */
     isContinuation: boolean;
+
+    /**
+     * Indicates whether the stream was aborted.
+     */
+    isAborted: boolean;
 
     /**
      * The message that was sent to the client as a response

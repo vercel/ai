@@ -4,8 +4,8 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { UIMessage } from '../ui/ui-messages';
-import { UIMessageChunk } from './ui-message-chunks';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
+import { UIMessageChunk } from './ui-message-chunks';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
@@ -232,6 +232,141 @@ describe('handleUIMessageStreamFinish', () => {
       expect(callArgs.isContinuation).toBe(false);
       expect(callArgs.responseMessage.id).toBe('msg-001');
       expect(callArgs.messages).toHaveLength(3); // 2 user messages + 1 new assistant message
+    });
+  });
+
+  describe('abort scenarios', () => {
+    it('should set isAborted to true when abort chunk is encountered', async () => {
+      const onFinishCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-abort-1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Starting text' },
+        { type: 'abort' },
+        { type: 'finish' },
+      ];
+
+      const originalMessages: UIMessage[] = [
+        {
+          id: 'user-msg-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Test request' }],
+        },
+      ];
+
+      const stream = createUIMessageStream(inputChunks);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-abort-1',
+        originalMessages,
+        onError: mockErrorHandler,
+        onFinish: onFinishCallback,
+      });
+
+      const result = await convertReadableStreamToArray(resultStream);
+
+      expect(result).toEqual(inputChunks);
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.isAborted).toBe(true);
+      expect(callArgs.isContinuation).toBe(false);
+      expect(callArgs.responseMessage.id).toBe('msg-abort-1');
+      expect(callArgs.messages).toHaveLength(2);
+    });
+
+    it('should set isAborted to false when no abort chunk is encountered', async () => {
+      const onFinishCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-normal' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Complete text' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish' },
+      ];
+
+      const originalMessages: UIMessage[] = [
+        {
+          id: 'user-msg-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Test request' }],
+        },
+      ];
+
+      const stream = createUIMessageStream(inputChunks);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-normal',
+        originalMessages,
+        onError: mockErrorHandler,
+        onFinish: onFinishCallback,
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.isAborted).toBe(false);
+      expect(callArgs.isContinuation).toBe(false);
+      expect(callArgs.responseMessage.id).toBe('msg-normal');
+    });
+
+    it('should handle abort chunk in pass-through mode without onFinish', async () => {
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-abort-passthrough' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Text before abort' },
+        { type: 'abort' },
+        { type: 'finish' },
+      ];
+
+      const stream = createUIMessageStream(inputChunks);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-abort-passthrough',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        // onFinish is not provided
+      });
+
+      const result = await convertReadableStreamToArray(resultStream);
+
+      expect(result).toEqual(inputChunks);
+      expect(mockErrorHandler).not.toHaveBeenCalled();
+    });
+
+    it('should handle multiple abort chunks correctly', async () => {
+      const onFinishCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-multiple-abort' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'abort' },
+        { type: 'text-delta', id: 'text-1', delta: 'Some text' },
+        { type: 'abort' },
+        { type: 'finish' },
+      ];
+
+      const stream = createUIMessageStream(inputChunks);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-multiple-abort',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onFinish: onFinishCallback,
+      });
+
+      const result = await convertReadableStreamToArray(resultStream);
+
+      expect(result).toEqual(inputChunks);
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.isAborted).toBe(true);
     });
   });
 });

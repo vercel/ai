@@ -42,6 +42,8 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     messageId = lastMessage.id;
   }
 
+  let isAborted = false;
+
   const idInjectedStream = stream.pipeThrough(
     new TransformStream<
       InferUIMessageChunk<UI_MESSAGE>,
@@ -56,6 +58,10 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
           if (startChunk.messageId == null && messageId != null) {
             startChunk.messageId = messageId;
           }
+        }
+
+        if (chunk.type === 'abort') {
+          isAborted = true;
         }
 
         controller.enqueue(chunk);
@@ -99,6 +105,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       async flush() {
         const isContinuation = state.message.id === lastMessage?.id;
         await onFinish({
+          isAborted,
           isContinuation,
           responseMessage: state.message as UI_MESSAGE,
           messages: [
