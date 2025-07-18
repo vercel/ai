@@ -2913,6 +2913,249 @@ describe('streamText', () => {
         expect(await result.sources).toMatchSnapshot();
       });
     });
+
+    describe('2 steps: initial, tool-result with experimental_prepareStep', () => {
+      beforeEach(async () => {
+        result = undefined as any;
+        onFinishResult = undefined as any;
+        onStepFinishResults = [];
+
+        let responseCount = 0;
+
+        const trueModel = new MockLanguageModelV1({
+          doStream: async ({ prompt, mode }) => {
+            switch (responseCount++) {
+              case 0: {
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  tools: [
+                    {
+                      type: 'function',
+                      name: 'tool1',
+                      description: undefined,
+                      parameters: {
+                        $schema: 'http://json-schema.org/draft-07/schema#',
+                        additionalProperties: false,
+                        properties: { value: { type: 'string' } },
+                        required: ['value'],
+                        type: 'object',
+                      },
+                    },
+                  ],
+                  toolChoice: { type: 'tool', toolName: 'tool1' },
+                });
+
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      args: `{ "value": "value" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: 'tool-calls',
+                      logprobs: undefined,
+                      usage: { completionTokens: 5, promptTokens: 10 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                };
+              }
+
+              case 1: {
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  toolChoice: { type: 'auto' },
+                  tools: [],
+                });
+
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
+                  },
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        args: { value: 'value' },
+                        providerMetadata: undefined,
+                      },
+                    ],
+                    providerMetadata: undefined,
+                  },
+                  {
+                    role: 'tool',
+                    content: [
+                      {
+                        type: 'tool-result',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        result: 'result1',
+                        content: undefined,
+                        isError: undefined,
+                        providerMetadata: undefined,
+                      },
+                    ],
+                    providerMetadata: undefined,
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(10000),
+                    },
+                    { type: 'text-delta', textDelta: 'Hello' },
+                    { type: 'text-delta', textDelta: ', ' },
+                    { type: 'text-delta', textDelta: 'world!' },
+                    {
+                      type: 'finish',
+                      finishReason: 'stop',
+                      logprobs: undefined,
+                      usage: { completionTokens: 10, promptTokens: 5 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                };
+              }
+
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        });
+
+        const originalModel = new MockLanguageModelV1({
+          doStream: async () => {
+            throw new Error('Should not be called');
+          },
+        });
+
+        result = streamText({
+          model: originalModel,
+          tools: {
+            tool1: tool({
+              parameters: z.object({ value: z.string() }),
+              execute: async (args, options) => {
+                expect(args).toStrictEqual({ value: 'value' });
+                expect(options.messages).toStrictEqual([
+                  { role: 'user', content: 'test-input' },
+                ]);
+                return 'result1';
+              },
+            }),
+          },
+          prompt: 'test-input',
+          maxSteps: 3,
+          onFinish: async event => {
+            onFinishResult = event as any;
+          },
+          onStepFinish: async event => {
+            onStepFinishResults.push(event);
+          },
+          experimental_prepareStep: async ({ model, stepNumber, steps }) => {
+            expect(model).toStrictEqual(originalModel);
+
+            if (stepNumber === 0) {
+              expect(steps).toStrictEqual([]);
+              return {
+                model: trueModel,
+                toolChoice: {
+                  type: 'tool',
+                  toolName: 'tool1' as const,
+                },
+              };
+            }
+
+            if (stepNumber === 1) {
+              expect(steps.length).toStrictEqual(0); // step 0 not yet recorded in streaming
+              return {
+                model: trueModel,
+                toolChoice: 'auto',
+                experimental_activeTools: [],
+              };
+            }
+          },
+          experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        });
+      });
+
+      it('should contain assistant response message and tool message from all steps', async () => {
+        // We need to consume the stream to trigger tool execution and second step
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toMatchSnapshot();
+      });
+
+      describe('callbacks', () => {
+        it('onFinish should send correct information', async () => {
+          result.consumeStream();
+          expect(await result.finishReason).toStrictEqual('stop');
+          expect(onFinishResult).toMatchSnapshot();
+        });
+
+        it('onStepFinish should send correct information', async () => {
+          result.consumeStream();
+          expect(onStepFinishResults).toMatchSnapshot();
+        });
+      });
+
+      describe('value promises', () => {
+        it('result.usage should contain total token usage', async () => {
+          result.consumeStream();
+          assert.deepStrictEqual(await result.usage, {
+            completionTokens: 15,
+            promptTokens: 15,
+            totalTokens: 30,
+          });
+        });
+
+        it('result.finishReason should contain finish reason from final step', async () => {
+          result.consumeStream();
+          expect(await result.finishReason).toStrictEqual('stop');
+        });
+
+        it('result.text should contain text from final step', async () => {
+          result.consumeStream();
+          assert.deepStrictEqual(await result.text, 'Hello, world!');
+        });
+
+        it('result.steps should contain all steps', async () => {
+          result.consumeStream();
+          expect(await result.steps).toMatchSnapshot();
+        });
+
+        it('result.response.messages should contain response messages from all steps', async () => {
+          result.consumeStream();
+          expect((await result.response).messages).toMatchSnapshot();
+        });
+      });
+    });
   });
 
   describe('options.headers', () => {
