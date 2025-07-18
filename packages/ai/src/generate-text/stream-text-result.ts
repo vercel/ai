@@ -54,7 +54,7 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
      * (including the original message if it was extended).
      */
     responseMessage: UI_MESSAGE;
-  }) => void;
+  }) => PromiseLike<void> | void;
 
   /**
    * Extracts message metadata that will be send to the client.
@@ -402,6 +402,9 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       type: 'finish';
       finishReason: FinishReason;
       totalUsage: LanguageModelUsage;
+    }
+  | {
+      type: 'abort';
     }
   | {
       type: 'error';

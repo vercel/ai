@@ -6,6 +6,7 @@ import {
 import {
   createIdGenerator,
   IdGenerator,
+  isAbortError,
   ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
@@ -61,6 +62,7 @@ import {
 } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import { filterStreamErrors } from '../util/filter-stream-errors';
 import { ContentPart } from './content-part';
 import { Output } from './output';
 import { PrepareStepFunction } from './prepare-step';
@@ -110,7 +112,7 @@ Callback that is set using the `onError` option.
  */
 export type StreamTextOnErrorCallback = (event: {
   error: unknown;
-}) => Promise<void> | void;
+}) => PromiseLike<void> | void;
 
 /**
 Callback that is set using the `onStepFinish` option.
@@ -119,7 +121,7 @@ Callback that is set using the `onStepFinish` option.
  */
 export type StreamTextOnStepFinishCallback<TOOLS extends ToolSet> = (
   stepResult: StepResult<TOOLS>,
-) => Promise<void> | void;
+) => PromiseLike<void> | void;
 
 /**
 Callback that is set using the `onChunk` option.
@@ -141,7 +143,7 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
         | 'raw';
     }
   >;
-}) => Promise<void> | void;
+}) => PromiseLike<void> | void;
 
 /**
 Callback that is set using the `onFinish` option.
@@ -160,7 +162,19 @@ Total usage for all steps. This is the sum of the usage of all steps.
      */
     readonly totalUsage: LanguageModelUsage;
   },
-) => Promise<void> | void;
+) => PromiseLike<void> | void;
+
+/**
+Callback that is set using the `onAbort` option.
+
+@param event - The event that is passed to the callback.
+ */
+export type StreamTextOnAbortCallback<TOOLS extends ToolSet> = (event: {
+  /**
+Details for all previously finished steps.
+   */
+  readonly steps: StepResult<TOOLS>[];
+}) => PromiseLike<void> | void;
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -239,6 +253,7 @@ export function streamText<
     console.error(error);
   },
   onFinish,
+  onAbort,
   onStepFinish,
   _internal: {
     now = originalNow,
@@ -357,6 +372,8 @@ The usage is the combined usage of all steps.
      */
     onFinish?: StreamTextOnFinishCallback<TOOLS>;
 
+    onAbort?: StreamTextOnAbortCallback<TOOLS>;
+
     /**
 Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
@@ -394,6 +411,7 @@ Internal. For test use only. May change without notice.
     onChunk,
     onError,
     onFinish,
+    onAbort,
     onStepFinish,
     now,
     currentDate,
@@ -535,8 +553,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   private includeRawChunks: boolean;
 
-  private generateId: () => string;
-
   constructor({
     model,
     telemetry,
@@ -563,6 +579,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onChunk,
     onError,
     onFinish,
+    onAbort,
     onStepFinish,
   }: {
     model: LanguageModelV2;
@@ -592,11 +609,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
     onError: StreamTextOnErrorCallback;
     onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
+    onAbort: undefined | StreamTextOnAbortCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
     this.output = output;
     this.includeRawChunks = includeRawChunks;
-    this.generateId = generateId;
 
     // promise to ensure that the step has been fully processed by the event processor
     // before a new step is started. This is required because the continuation condition
@@ -886,6 +903,17 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     this.closeStream = stitchableStream.close;
 
     let stream = stitchableStream.stream;
+
+    // filter out abort errors:
+    stream = filterStreamErrors(stream, ({ error, controller }) => {
+      if (isAbortError(error) && abortSignal?.aborted) {
+        onAbort?.({ steps: recordedSteps });
+        controller.enqueue({ type: 'abort' });
+        controller.close();
+      } else {
+        controller.error(error);
+      }
+    });
 
     // add a stream that emits a start event:
     stream = stream.pipeThrough(
@@ -1818,6 +1846,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
+            case 'abort':
             case 'tool-input-end': {
               break;
             }
