@@ -11814,9 +11814,11 @@ describe('streamText', () => {
     describe('basic abort', () => {
       let result: StreamTextResult<ToolSet, TextStreamPart<ToolSet>>;
       let onErrorCalls: Array<{ error: unknown }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<ToolSet>[] }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
+        onAbortCalls = [];
 
         const abortController = new AbortController();
         let pullCalls = 0;
@@ -11825,6 +11827,9 @@ describe('streamText', () => {
           abortSignal: abortController.signal,
           onError: error => {
             onErrorCalls.push({ error });
+          },
+          onAbort: event => {
+            onAbortCalls.push(event);
           },
           model: new MockLanguageModelV2({
             doStream: async () => ({
@@ -11871,6 +11876,17 @@ describe('streamText', () => {
       it('should not call onError for abort errors', async () => {
         await result.consumeStream();
         expect(onErrorCalls).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should call onAbort when the abort signal is triggered', async () => {
+        await result.consumeStream();
+        expect(onAbortCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "steps": [],
+            },
+          ]
+        `);
       });
 
       it('should only stream initial chunks in full stream', async () => {

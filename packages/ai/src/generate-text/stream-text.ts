@@ -112,7 +112,7 @@ Callback that is set using the `onError` option.
  */
 export type StreamTextOnErrorCallback = (event: {
   error: unknown;
-}) => Promise<void> | void;
+}) => PromiseLike<void> | void;
 
 /**
 Callback that is set using the `onStepFinish` option.
@@ -121,7 +121,7 @@ Callback that is set using the `onStepFinish` option.
  */
 export type StreamTextOnStepFinishCallback<TOOLS extends ToolSet> = (
   stepResult: StepResult<TOOLS>,
-) => Promise<void> | void;
+) => PromiseLike<void> | void;
 
 /**
 Callback that is set using the `onChunk` option.
@@ -143,7 +143,7 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
         | 'raw';
     }
   >;
-}) => Promise<void> | void;
+}) => PromiseLike<void> | void;
 
 /**
 Callback that is set using the `onFinish` option.
@@ -162,7 +162,19 @@ Total usage for all steps. This is the sum of the usage of all steps.
      */
     readonly totalUsage: LanguageModelUsage;
   },
-) => Promise<void> | void;
+) => PromiseLike<void> | void;
+
+/**
+Callback that is set using the `onAbort` option.
+
+@param event - The event that is passed to the callback.
+ */
+export type StreamTextOnAbortCallback<TOOLS extends ToolSet> = (event: {
+  /**
+Details for all previously finished steps.
+   */
+  readonly steps: StepResult<TOOLS>[];
+}) => PromiseLike<void> | void;
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -241,6 +253,7 @@ export function streamText<
     console.error(error);
   },
   onFinish,
+  onAbort,
   onStepFinish,
   _internal: {
     now = originalNow,
@@ -359,6 +372,8 @@ The usage is the combined usage of all steps.
      */
     onFinish?: StreamTextOnFinishCallback<TOOLS>;
 
+    onAbort?: StreamTextOnAbortCallback<TOOLS>;
+
     /**
 Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
@@ -396,6 +411,7 @@ Internal. For test use only. May change without notice.
     onChunk,
     onError,
     onFinish,
+    onAbort,
     onStepFinish,
     now,
     currentDate,
@@ -563,6 +579,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onChunk,
     onError,
     onFinish,
+    onAbort,
     onStepFinish,
   }: {
     model: LanguageModelV2;
@@ -592,6 +609,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
     onError: StreamTextOnErrorCallback;
     onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
+    onAbort: undefined | StreamTextOnAbortCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
     this.output = output;
@@ -889,9 +907,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     // filter out abort errors:
     stream = filterStreamErrors(stream, ({ error, controller }) => {
       if (isAbortError(error) && abortSignal?.aborted) {
-        controller.enqueue({
-          type: 'abort',
-        });
+        onAbort?.({ steps: recordedSteps });
+        controller.enqueue({ type: 'abort' });
         controller.close();
       } else {
         controller.error(error);
