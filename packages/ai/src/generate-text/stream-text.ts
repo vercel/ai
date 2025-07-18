@@ -1619,7 +1619,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendStart = true,
     sendFinish = true,
     onError = getErrorMessage,
-  }: UIMessageStreamOptions<UI_MESSAGE> = {}): ReadableStream<
+  }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
     const responseMessageId =
@@ -1879,13 +1879,15 @@ However, the LLM results are expected to be small enough to not cause issues.
       }),
     );
 
-    return handleUIMessageStreamFinish<UI_MESSAGE>({
-      stream: baseStream,
-      messageId: responseMessageId ?? generateMessageId?.(),
-      originalMessages,
-      onFinish,
-      onError,
-    });
+    return createAsyncIterableStream(
+      handleUIMessageStreamFinish<UI_MESSAGE>({
+        stream: baseStream,
+        messageId: responseMessageId ?? generateMessageId?.(),
+        originalMessages,
+        onFinish,
+        onError,
+      }),
+    );
   }
 
   pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
