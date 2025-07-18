@@ -535,8 +535,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   private includeRawChunks: boolean;
 
-  private generateId: () => string;
-
   constructor({
     model,
     telemetry,
@@ -596,7 +594,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }) {
     this.output = output;
     this.includeRawChunks = includeRawChunks;
-    this.generateId = generateId;
 
     // promise to ensure that the step has been fully processed by the event processor
     // before a new step is started. This is required because the continuation condition
