@@ -1,0 +1,127 @@
+# Adaptive Provider
+
+The [Adaptive provider](https://ai-sdk.dev/providers/ai-sdk-providers/adaptive) provides intelligent model selection and routing across multiple AI services for optimal performance and cost efficiency.
+
+## Setup
+
+The Adaptive provider is available in the `@adaptive-llm/adaptive` module. You can install it with
+
+\<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}\>
+\<Tab\>
+\<Snippet text="pnpm add @adaptive-llm/adaptive" dark /\>
+\</Tab\>
+\<Tab\>
+\<Snippet text="npm install @adaptive-llm/adaptive" dark /\>
+\</Tab\>
+\<Tab\>
+\<Snippet text="yarn add @adaptive-llm/adaptive" dark /\>
+\</Tab\>
+\<Tab\>
+\<Snippet text="bun add @adaptive-llm/adaptive" dark /\>
+\</Tab\>
+\</Tabs\>
+
+## Provider Instance
+
+You can import the default provider instance `adaptive` from `@adaptive-llm/adaptive`:
+
+```ts
+import { adaptive } from '@adaptive-llm/adaptive';
+```
+
+If you need a customized setup, you can import `createAdaptive` from `@adaptive-llm/adaptive`
+and create a provider instance with your settings:
+
+```ts
+import { createAdaptive } from '@adaptive-llm/adaptive';
+
+const adaptive = createAdaptive({
+  // custom settings
+});
+```
+
+You can use the following optional settings to customize the Adaptive provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `http://localhost:8080/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `ADAPTIVE_API_KEY` environment variable.
+
+- **headers** _Record\<string,string\>_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) =\> Promise\<Response\>_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+- **defaultProvider** _string_
+
+  Default provider to use for comparisons and fallbacks.
+
+## Language Models
+
+You can create models that call the Adaptive API using a provider instance. The Adaptive provider automatically selects the best available underlying model based on your prompt and configured settings for optimal performance and cost efficiency.
+
+```ts
+const model = adaptive(); // Adaptive provider automatically selects the model
+```
+
+The Adaptive provider supports additional provider options:
+
+```ts
+const model = adaptive(); // Adaptive provider automatically selects the model
+
+await generateText({
+  model,
+  providerOptions: {
+    costBias: 0.8,
+  },
+});
+```
+
+The following optional provider options are available for Adaptive models:
+
+- **costBias** _number_
+
+  Bias towards cost-optimized selections (0-1, where 1 prioritizes cost).
+
+### Example
+
+You can use Adaptive language models to generate text with the `generateText` function:
+
+```ts
+import { adaptive } from '@adaptive-llm/adaptive';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: adaptive(), // Adaptive provider automatically selects the model
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Adaptive language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+(see [AI SDK Core](https://www.google.com/search?q=/docs/ai-sdk-core)).
+
+### Model Capabilities
+
+The Adaptive provider automatically selects from available underlying providers and models, supporting:
+
+- **Image Input**: Depends on selected underlying model
+- **Object Generation**: Supported across most underlying models
+- **Tool Usage**: Supported across most underlying models
+- **Tool Streaming**: Supported across most underlying models
+
+The specific capabilities depend on which underlying model is selected by the Adaptive routing system.
+
+## Text Embedding Models
+
+Text embedding is not currently supported by the Adaptive provider.
