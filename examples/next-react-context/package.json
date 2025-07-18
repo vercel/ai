@@ -1,5 +1,5 @@
 {
-  "name": "@example/next",
+  "name": "@example/next-react-context",
   "version": "0.0.0",
   "private": true,
   "scripts": {
