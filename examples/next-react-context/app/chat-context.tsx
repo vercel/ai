@@ -2,7 +2,7 @@
 
 import { MyUIMessage } from '@/util/chat-schema';
 import { Chat } from '@ai-sdk/react';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import {
   createContext,
   useCallback,
@@ -45,6 +45,7 @@ export function useActiveChat(chatData?: {
   messages: MyUIMessage[];
 }) {
   const params = useParams();
+  const pathname = usePathname();
   const { chat, setChat } = useContext(ActiveChatContext);
 
   const setOrCreateChat = useCallback(
@@ -63,7 +64,14 @@ export function useActiveChat(chatData?: {
     ) {
       setOrCreateChat(params.chatId, chatData?.messages);
     }
-  }, [params.chatId, chat, setOrCreateChat, chatData]);
+  }, [params.chatId, chat, setOrCreateChat, chatData, setChat]);
+
+  // New chat on /
+  useEffect(() => {
+    if (pathname === '/') {
+      setOrCreateChat();
+    }
+  }, [pathname, setOrCreateChat]);
 
   return { chat, setOrCreateChat };
 }
