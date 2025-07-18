@@ -222,9 +222,9 @@ describe('embedding', () => {
     }: {
       embeddings?: EmbeddingModelV2Embedding[];
     } = {}) {
-              server.urls[
-          'https://test-resource.openai.azure.com/openai/v1/embeddings'
-        ].response = {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/embeddings'
+      ].response = {
         type: 'json-value',
         body: {
           object: 'list',

@@ -132,9 +132,10 @@ export function createAzure(
     });
 
   const apiVersion = options.apiVersion ?? 'preview';
-  
+
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
-    const baseUrlPrefix = options.baseURL ?? `https://${getResourceName()}.openai.azure.com/openai`;
+    const baseUrlPrefix =
+      options.baseURL ?? `https://${getResourceName()}.openai.azure.com/openai`;
     // Use v1 API format - no deployment ID in URL
     const fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
     fullUrl.searchParams.set('api-version', apiVersion);
