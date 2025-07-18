@@ -1,5 +1,18 @@
 # ai
 
+## 5.0.0-beta.24
+
+### Patch Changes
+
+- add5ac1: feat (ai): make streamText toUIMessageStream async iterable
+- ff1c81a: feat (ai): add streamText onAbort callback
+- e4c8647: feat (ui): allow asynchronous onFinish in createUIMessageStream
+- 383cbfa: feat (ai): add isAborted to onFinish callback for ui message streams
+- Updated dependencies [57edfcb]
+- Updated dependencies [383cbfa]
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+  - @ai-sdk/gateway@1.0.0-beta.10
+
 ## 5.0.0-beta.23
 
 ### Patch Changes
