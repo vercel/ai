@@ -25,8 +25,8 @@ export function zod3Schema<OBJECT>(
       target: 'jsonSchema7', // note: openai mode breaks various gemini conversions
     }) as JSONSchema7,
     {
-      validate: value => {
-        const result = zodSchema.safeParse(value);
+      validate: async value => {
+        const result = await zodSchema.safeParseAsync(value);
         return result.success
           ? { success: true, value: result.data }
           : { success: false, error: result.error };
@@ -57,8 +57,8 @@ export function zod4Schema<OBJECT>(
   }) as JSONSchema7;
 
   return jsonSchema(z4JSONSchema, {
-    validate: value => {
-      const result = z4.safeParse(zodSchema, value);
+    validate: async value => {
+      const result = await z4.safeParseAsync(zodSchema, value);
       return result.success
         ? { success: true, value: result.data }
         : { success: false, error: result.error };
