@@ -74,7 +74,7 @@ export interface AzureOpenAIProviderSettings {
   /**
 Name of the Azure OpenAI resource. Either this or `baseURL` can be used.
 
-The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}`.
+The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/v1{path}`.
      */
   resourceName?: string;
 
@@ -82,7 +82,7 @@ The resource name is used in the assembled URL: `https://{resourceName}.openai.a
 Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
 When a baseURL is provided, the resourceName is ignored.
 
-With a baseURL, the resolved URL is `{baseURL}/{modelId}{path}`.
+With a baseURL, the resolved URL is `{baseURL}/v1{path}`.
    */
   baseURL?: string;
 
@@ -103,7 +103,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 
   /**
-Custom api version to use. Defaults to `2024-10-01-preview`.
+Custom api version to use. Defaults to `preview`.
     */
   apiVersion?: string;
 }
@@ -131,18 +131,14 @@ export function createAzure(
       description: 'Azure OpenAI resource name',
     });
 
-  const apiVersion = options.apiVersion ?? '2025-03-01-preview';
+  const apiVersion = options.apiVersion ?? 'preview';
+  
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
-    if (path === '/responses') {
-      return options.baseURL
-        ? `${options.baseURL}${path}?api-version=${apiVersion}`
-        : `https://${getResourceName()}.openai.azure.com/openai/responses?api-version=${apiVersion}`;
-    }
-
-    // Default URL format for other endpoints
-    return options.baseURL
-      ? `${options.baseURL}/${modelId}${path}?api-version=${apiVersion}`
-      : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=${apiVersion}`;
+    const baseUrlPrefix = options.baseURL ?? `https://${getResourceName()}.openai.azure.com/openai`;
+    // Use v1 API format - no deployment ID in URL
+    const fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
+    fullUrl.searchParams.set('api-version', apiVersion);
+    return fullUrl.toString();
   };
 
   const createChatModel = (deploymentName: string) =>
