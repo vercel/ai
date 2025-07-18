@@ -11,7 +11,14 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o'),
     prompt,
+    abortSignal: req.signal,
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    onFinish: async ({ isAborted }) => {
+      if (isAborted) {
+        console.log('Aborted');
+      }
+    },
+  });
 }
