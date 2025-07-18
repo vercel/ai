@@ -277,7 +277,7 @@ If an error occurs, it is passed to the optional `onError` callback.
      */
   toUIMessageStream<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamOptions<UI_MESSAGE>,
-  ): ReadableStream<InferUIMessageChunk<UI_MESSAGE>>;
+  ): AsyncIterableStream<InferUIMessageChunk<UI_MESSAGE>>;
 
   /**
   Writes UI message stream output to a Node.js response-like object.
