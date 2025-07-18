@@ -1,4 +1,4 @@
-import { AISDKError, LanguageModelV1Source } from '@ai-sdk/provider';
+import { AISDKError, LanguageModelV1Message, LanguageModelV1Source } from '@ai-sdk/provider';
 import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
 import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
@@ -990,14 +990,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepInputMessages = [
             ...initialPrompt.messages,
             ...responseMessages,
-          ];
+          ] as LanguageModelV1Message[];
 
           const prepareStepResult = await prepareStep?.({
             model,
             steps: recordedSteps,
             stepNumber: currentStep,
             maxSteps,
-            messages: stepInputMessages as any, // TODO: Fix type compatibility
+            messages: stepInputMessages
           });
 
           const promptMessages = await convertToLanguageModelPrompt({
