@@ -95,9 +95,11 @@ const result = streamText({
 ```
 
 The `onAbort` callback receives:
+
 - `steps`: Array of all completed steps before the abort occurred
 
 This is particularly useful for:
+
 - Persisting partial conversation history to database
 - Saving partial progress for later continuation
 - Cleaning up server-side resources or connections
