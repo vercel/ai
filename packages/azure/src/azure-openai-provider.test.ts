@@ -21,22 +21,18 @@ const providerApiVersionChanged = createAzure({
 });
 
 const server = createTestServer({
-  'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions':
-    {},
-  'https://test-resource.openai.azure.com/openai/deployments/gpt-35-turbo-instruct/completions':
-    {},
-  'https://test-resource.openai.azure.com/openai/deployments/my-embedding/embeddings':
-    {},
-  'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations':
-    {},
-  'https://test-resource.openai.azure.com/openai/responses': {},
+  'https://test-resource.openai.azure.com/openai/v1/chat/completions': {},
+  'https://test-resource.openai.azure.com/openai/v1/completions': {},
+  'https://test-resource.openai.azure.com/openai/v1/embeddings': {},
+  'https://test-resource.openai.azure.com/openai/v1/images/generations': {},
+  'https://test-resource.openai.azure.com/openai/v1/responses': {},
 });
 
 describe('chat', () => {
   describe('doGenerate', () => {
     function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
       server.urls[
-        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions'
+        'https://test-resource.openai.azure.com/openai/v1/chat/completions'
       ].response = {
         type: 'json-value',
         body: {
@@ -73,7 +69,7 @@ describe('chat', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2025-03-01-preview');
+      ).toStrictEqual('preview');
     });
 
     it('should set the correct modified api version', async () => {
@@ -118,7 +114,7 @@ describe('chat', () => {
       prepareJsonResponse();
 
       const provider = createAzure({
-        baseURL: 'https://test-resource.openai.azure.com/openai/deployments',
+        baseURL: 'https://test-resource.openai.azure.com/openai',
         apiKey: 'test-api-key',
       });
 
@@ -126,7 +122,7 @@ describe('chat', () => {
         prompt: TEST_PROMPT,
       });
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2025-03-01-preview',
+        'https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=preview',
       );
     });
   });
@@ -152,7 +148,7 @@ describe('completion', () => {
       finish_reason?: string;
     }) {
       server.urls[
-        'https://test-resource.openai.azure.com/openai/deployments/gpt-35-turbo-instruct/completions'
+        'https://test-resource.openai.azure.com/openai/v1/completions'
       ].response = {
         type: 'json-value',
         body: {
@@ -180,7 +176,7 @@ describe('completion', () => {
       });
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2025-03-01-preview');
+      ).toStrictEqual('preview');
     });
 
     it('should pass headers', async () => {
@@ -227,7 +223,7 @@ describe('embedding', () => {
       embeddings?: EmbeddingModelV2Embedding[];
     } = {}) {
       server.urls[
-        'https://test-resource.openai.azure.com/openai/deployments/my-embedding/embeddings'
+        'https://test-resource.openai.azure.com/openai/v1/embeddings'
       ].response = {
         type: 'json-value',
         body: {
@@ -251,7 +247,7 @@ describe('embedding', () => {
       });
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2025-03-01-preview');
+      ).toStrictEqual('preview');
     });
 
     it('should pass headers', async () => {
@@ -288,7 +284,7 @@ describe('image', () => {
   describe('doGenerate', () => {
     function prepareJsonResponse() {
       server.urls[
-        'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations'
+        'https://test-resource.openai.azure.com/openai/v1/images/generations'
       ].response = {
         type: 'json-value',
         body: {
@@ -321,7 +317,7 @@ describe('image', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2025-03-01-preview');
+      ).toStrictEqual('preview');
     });
 
     it('should set the correct modified api version', async () => {
@@ -378,7 +374,7 @@ describe('image', () => {
       prepareJsonResponse();
 
       const provider = createAzure({
-        baseURL: 'https://test-resource.openai.azure.com/openai/deployments',
+        baseURL: 'https://test-resource.openai.azure.com/openai',
         apiKey: 'test-api-key',
       });
 
@@ -392,7 +388,7 @@ describe('image', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations?api-version=2025-03-01-preview',
+        'https://test-resource.openai.azure.com/openai/v1/images/generations?api-version=preview',
       );
     });
 
@@ -456,7 +452,7 @@ describe('responses', () => {
       },
     } = {}) {
       server.urls[
-        'https://test-resource.openai.azure.com/openai/responses'
+        'https://test-resource.openai.azure.com/openai/v1/responses'
       ].response = {
         type: 'json-value',
         body: {
@@ -495,7 +491,7 @@ describe('responses', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2025-03-01-preview');
+      ).toStrictEqual('preview');
     });
 
     it('should pass headers', async () => {
@@ -537,7 +533,7 @@ describe('responses', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/responses?api-version=2025-03-01-preview',
+        'https://test-resource.openai.azure.com/openai/v1/responses?api-version=preview',
       );
     });
   });
