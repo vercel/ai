@@ -63,6 +63,7 @@ export async function POST(req: Request) {
 
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
+    generateMessageId: generateId,
     messageMetadata: ({ part }) => {
       if (part.type === 'start') {
         return { createdAt: Date.now() };
