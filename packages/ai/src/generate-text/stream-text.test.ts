@@ -11918,9 +11918,8 @@ describe('streamText', () => {
       });
 
       it('should sent an abort chunk in the ui message stream', async () => {
-        expect(
-          await convertAsyncIterableToArray(result.toUIMessageStream()),
-        ).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
           [
             {
               "type": "start",
@@ -11936,6 +11935,9 @@ describe('streamText', () => {
               "delta": "Hello",
               "id": "1",
               "type": "text-delta",
+            },
+            {
+              "type": "abort",
             },
           ]
         `);
@@ -12197,6 +12199,55 @@ describe('streamText', () => {
               "providerMetadata": undefined,
               "text": "Hello",
               "type": "text",
+            },
+            {
+              "type": "abort",
+            },
+          ]
+        `);
+      });
+
+      it('should sent an abort chunk in the ui message stream', async () => {
+        expect(
+          await convertAsyncIterableToArray(result.toUIMessageStream()),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-input-available",
+            },
+            {
+              "output": "result1",
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
             },
             {
               "type": "abort",
