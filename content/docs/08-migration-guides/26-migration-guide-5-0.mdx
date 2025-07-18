@@ -136,6 +136,33 @@ import { Message, CreateMessage } from 'ai';
 import { UIMessage, CreateUIMessage } from 'ai';
 ```
 
+##### `convertToCoreMessages` → `convertToModelMessages`
+
+```tsx filename="AI SDK 4.0"
+import { convertToCoreMessages, streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await streamText({
+  model: openai('gpt-4'),
+  messages: convertToCoreMessages(messages),
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { convertToModelMessages, streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await streamText({
+  model: openai('gpt-4'),
+  messages: convertToModelMessages(messages),
+});
+```
+
+<Note>
+  For more information about model messages, see the [Model Message
+  reference](/docs/reference/ai-sdk-core/model-message).
+</Note>
+
 ### UIMessage Changes
 
 #### Content → Parts Array
