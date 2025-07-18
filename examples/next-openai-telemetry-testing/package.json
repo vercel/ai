@@ -1,0 +1,45 @@
+{
+  "name": "@example/next-openai-telemetry-testing",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "workspace:*",
+    "@ai-sdk/react": "workspace:*",
+    "@opentelemetry/api": "1.7.0",
+    "@opentelemetry/api-logs": "0.55.0",
+    "@opentelemetry/sdk-logs": "0.55.0",
+    "@opentelemetry/instrumentation": "0.52.1",
+    "@opentelemetry/sdk-metrics": "1.19.0",
+    "@opentelemetry/sdk-trace-base": "1.19.0",
+    "@vercel/otel": "1.10.0",
+    "ai": "workspace:*",
+    "next": "latest",
+    "react": "^18",
+    "react-dom": "^18",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^14.2.1",
+    "@types/jest": "^29.5.12",
+    "@types/node": "20.17.24",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.14",
+    "eslint": "8.57.1",
+    "eslint-config-next": "14.2.3",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "5.6.3"
+  }
+} 
