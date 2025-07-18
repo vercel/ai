@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
-  "version": "3.0.0-beta.8",
+  "version": "3.0.0-beta.9",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",

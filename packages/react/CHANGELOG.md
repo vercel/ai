@@ -1,5 +1,18 @@
 # @ai-sdk/react
 
+## 2.0.0-beta.24
+
+### Patch Changes
+
+- 376a7d1: fix message subscription out of sync when chat id changes after mount
+- Updated dependencies [add5ac1]
+- Updated dependencies [57edfcb]
+- Updated dependencies [ff1c81a]
+- Updated dependencies [e4c8647]
+- Updated dependencies [383cbfa]
+  - ai@5.0.0-beta.24
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+
 ## 2.0.0-beta.23
 
 ### Patch Changes
