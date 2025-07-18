@@ -11827,7 +11827,7 @@ describe('streamText', () => {
             onErrorCalls.push({ error });
           },
           model: new MockLanguageModelV2({
-            doStream: async ({ abortSignal }) => ({
+            doStream: async () => ({
               stream: new ReadableStream({
                 pull(controller) {
                   switch (pullCalls++) {
