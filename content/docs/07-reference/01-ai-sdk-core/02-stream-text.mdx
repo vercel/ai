@@ -1369,6 +1369,25 @@ To see `streamText` in action, check out [these examples](#examples).
         },
       ],
     },
+    {
+      name: 'onAbort',
+      type: '(event: OnAbortResult) => Promise<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when a stream is aborted via AbortSignal. You can use it to perform cleanup operations.',
+      properties: [
+        {
+          type: 'OnAbortResult',
+          parameters: [
+            {
+              name: 'steps',
+              type: 'Array<StepResult>',
+              description: 'Details for all previously finished steps.',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
@@ -2289,6 +2308,16 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'unknown',
               description:
                 'Describes the error that may have occurred during execution.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'abort'",
+              description: 'The type to identify the object as abort.',
             },
           ],
         },
