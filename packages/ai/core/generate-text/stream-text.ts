@@ -995,8 +995,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const prepareStepResult = await prepareStep?.({
             model,
             steps: recordedSteps,
-            stepNumber: currentStep,
-            maxSteps,
+            stepNumber: recordedSteps.length,
             messages: stepInputMessages
           });
 

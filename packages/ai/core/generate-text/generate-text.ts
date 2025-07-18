@@ -331,7 +331,6 @@ A function that attempts to repair a tool call that failed to parse.
         const prepareStepResult = await prepareStep?.({
           model,
           steps,
-          maxSteps,
           stepNumber: stepCount,
           messages: promptMessages,
         });

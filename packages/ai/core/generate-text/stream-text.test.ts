@@ -2982,8 +2982,21 @@ describe('streamText', () => {
               case 1: {
                 expect(mode).toStrictEqual({
                   type: 'regular',
-                  toolChoice: { type: 'auto' },
-                  tools: [],
+                  toolChoice: { type: 'tool', toolName: 'tool1' },
+                  tools: [
+                    {
+                      type: 'function',
+                      name: 'tool1',
+                      description: undefined,
+                      parameters: {
+                        $schema: 'http://json-schema.org/draft-07/schema#',
+                        additionalProperties: false,
+                        properties: { value: { type: 'string' } },
+                        required: ['value'],
+                        type: 'object',
+                      },
+                    },
+                  ],
                 });
 
                 expect(prompt).toStrictEqual([

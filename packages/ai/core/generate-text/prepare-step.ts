@@ -21,7 +21,6 @@ export type PrepareStepFunction<
 > = (options: {
   steps: Array<StepResult<NoInfer<TOOLS>>>;
   stepNumber: number;
-  maxSteps: number;
   model: LanguageModel;
   messages: Array<LanguageModelV1Message>;
 }) => PromiseLike<PrepareStepResult<TOOLS>> | PrepareStepResult<TOOLS>;
