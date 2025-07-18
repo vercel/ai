@@ -4,6 +4,7 @@ import { InferUIMessageChunk } from '../../src/ui-message-stream/ui-message-chun
 import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 import { InferUIMessageMetadata, UIMessage } from '../../src/ui/ui-messages';
 import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
+import { ErrorHandler } from '../../src/util/error-handler';
 import {
   CallWarning,
   FinishReason,
@@ -13,6 +14,7 @@ import {
 import { Source } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
+import { UIMessageStreamOnFinishCallback } from '../ui-message-stream/ui-message-stream-on-finish-callback';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
@@ -20,7 +22,6 @@ import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolErrorUnion, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
-import { ErrorHandler } from '../../src/util/error-handler';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -37,24 +38,7 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    */
   generateMessageId?: IdGenerator;
 
-  onFinish?: (options: {
-    /**
-     * The updates list of UI messages.
-     */
-    messages: UI_MESSAGE[];
-
-    /**
-     * Indicates whether the response message is a continuation of the last original message,
-     * or if a new message was created.
-     */
-    isContinuation: boolean;
-
-    /**
-     * The message that was sent to the client as a response
-     * (including the original message if it was extended).
-     */
-    responseMessage: UI_MESSAGE;
-  }) => PromiseLike<void> | void;
+  onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
 
   /**
    * Extracts message metadata that will be send to the client.
