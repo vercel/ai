@@ -25,6 +25,6 @@ export async function POST(req: Request) {
         console.log('Aborted');
       }
     },
-    consumeSseStream: consumeStream,
+    consumeSseStream: consumeStream, // needed for correct abort handling
   });
 }
