@@ -12208,9 +12208,8 @@ describe('streamText', () => {
       });
 
       it('should sent an abort chunk in the ui message stream', async () => {
-        expect(
-          await convertAsyncIterableToArray(result.toUIMessageStream()),
-        ).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
           [
             {
               "type": "start",
