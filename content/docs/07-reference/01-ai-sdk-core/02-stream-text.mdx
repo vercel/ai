@@ -2350,9 +2350,9 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'toUIMessageStream',
-      type: '(options?: UIMessageStreamOptions) => ReadableStream<UIMessageChunk>',
+      type: '(options?: UIMessageStreamOptions) => AsyncIterableStream<UIMessageChunk>',
       description:
-        'Converts the result to a UI message stream.',
+        'Converts the result to a UI message stream. Returns an AsyncIterableStream that can be used as both an AsyncIterable and a ReadableStream.',
       properties: [
         {
           type: 'UIMessageStreamOptions',
@@ -2365,9 +2365,9 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'onFinish',
-              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; }) => void',
+              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; }) => void',
               isOptional: true,
-              description: 'Callback function called when the stream finishes. Provides the updated list of UI messages, whether the response is a continuation, and the response message.',
+              description: 'Callback function called when the stream finishes. Provides the updated list of UI messages, whether the response is a continuation, the response message, and whether the stream was aborted.',
             },
             {
               name: 'messageMetadata',
@@ -2409,6 +2409,13 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Process an error, e.g. to log it. Returns error message to include in the data stream. Defaults to () => "An error occurred."',
+            },
+            {
+              name: 'consumeSseStream',
+              type: '(stream: ReadableStream) => Promise<void>',
+              isOptional: true,
+              description:
+                'Function to consume the SSE stream. Required for proper abort handling in UI message streams. Use the `consumeStream` function from the AI SDK.',
             },
           ],
         },
