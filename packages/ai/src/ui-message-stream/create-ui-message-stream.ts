@@ -6,6 +6,7 @@ import {
 import { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import { InferUIMessageChunk } from './ui-message-chunks';
+import { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 
 export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
@@ -26,24 +27,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
    */
   originalMessages?: UI_MESSAGE[];
 
-  onFinish?: (options: {
-    /**
-     * The updates list of UI messages.
-     */
-    messages: UI_MESSAGE[];
-
-    /**
-     * Indicates whether the response message is a continuation of the last original message,
-     * or if a new message was created.
-     */
-    isContinuation: boolean;
-
-    /**
-     * The message that was sent to the client as a response
-     * (including the original message if it was extended).
-     */
-    responseMessage: UI_MESSAGE;
-  }) => void | PromiseLike<void>;
+  onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
 
   generateId?: IdGenerator;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {

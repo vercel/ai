@@ -5,4 +5,5 @@ export { pipeUIMessageStreamToResponse } from './pipe-ui-message-stream-to-respo
 export { readUIMessageStream } from './read-ui-message-stream';
 export type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
 export { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
+export type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
 export type { UIMessageStreamWriter } from './ui-message-stream-writer';

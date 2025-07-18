@@ -130,6 +130,9 @@ export const uiMessageChunkSchema = z.union([
     messageMetadata: z.unknown().optional(),
   }),
   z.strictObject({
+    type: z.literal('abort'),
+  }),
+  z.strictObject({
     type: z.literal('message-metadata'),
     messageMetadata: z.unknown(),
   }),
@@ -250,6 +253,9 @@ export type UIMessageChunk<
   | {
       type: 'finish';
       messageMetadata?: METADATA;
+    }
+  | {
+      type: 'abort';
     }
   | {
       type: 'message-metadata';
