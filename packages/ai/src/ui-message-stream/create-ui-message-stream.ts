@@ -43,7 +43,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
      * (including the original message if it was extended).
      */
     responseMessage: UI_MESSAGE;
-  }) => void;
+  }) => void | PromiseLike<void>;
 
   generateId?: IdGenerator;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
