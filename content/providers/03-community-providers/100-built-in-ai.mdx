@@ -1,0 +1,114 @@
+---
+title: Built-in AI
+description: Learn how to use the Built-in AI provider (browser models) for the AI SDK.
+---
+
+<Note type="secondary">
+  Since this package relies on `ChatTransform` and `useChat()` from AI SDK v5 to
+  work properly, it is ONLY compatible with that version and higher. It will not
+  work with versions below v5.
+</Note>
+
+# Built-in AI
+
+[jakobhoeg/built-in-ai](https://github.com/jakobhoeg/built-in-ai) is a community provider that serves as the base AI SDK provider for client side in-browser AI models.
+It currently supports Chrome & Edge's native browser AI models via the JavaScript [Prompt API](https://github.com/webmachinelearning/prompt-api), with ongoing development to include other browser-based AI providers and frameworks such as [web-llm](https://github.com/mlc-ai/web-llm) and [transformers.js](https://huggingface.co/docs/transformers.js/en/index).
+
+<Note type="warning">
+  This package is under constant development as the Prompt API matures, and may
+  contain errors and breaking changes. However, this module will also mature
+  with it as new implementations arise.
+</Note>
+
+## Setup
+
+### Installation
+
+The `@built-in-ai/core` package is the AI SDK provider for Chrome and Edge browser's built-in AI models. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @built-in-ai/core" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @built-in-ai/core" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @built-in-ai/core" dark />
+  </Tab>
+</Tabs>
+
+### Browser-specific setup (Chrome or Edge)
+
+<Note type="warning">
+  The Prompt API (built-in AI) is currently experimental and might change as it
+  matures. The following enablement guide for the API might also change in the
+  future.
+</Note>
+
+1. You need Chrome (v128 or higher) or Edge Dev/Canary (v138.0.3309.2 or higher)
+
+2. Enable these experimental flags:
+   - If you're using Chrome:
+     1. Go to chrome://flags/#prompt-api-for-gemini-nano and set it to Enabled
+     2. Go to chrome://flags/#optimization-guide-on-device-model and set it to Enabled BypassPrefRequirement
+     3. Go to chrome://components and click Check for Update on Optimization Guide On Device Model
+   - If you're using Edge:
+     1. Go to edge://flags/#prompt-api-for-phi-mini and set it to Enabled
+
+For more information, check out [this guide](https://developer.chrome.com/docs/extensions/ai/prompt-api)
+
+## Provider Instance
+
+You can import the default provider instance `builtInAI` from `@built-in-ai/core`:
+
+```ts
+import { builtInAI } from '@built-in-ai/core';
+
+const model = builtInAI();
+```
+
+If you need a customized setup, you can import `builtInAI` from `@built-in-ai/core` and create a provider instance with your settings:
+
+```ts
+import { builtInAI } from '@built-in-ai/core';
+
+const model = builtInAI({
+  // optional settings, e.g.
+  temperature: 0.7,
+  topK: 5,
+});
+```
+
+You can use the following optional settings to customize the model:
+
+- **temperature** _number_
+
+  Controls randomness in the model's responses. For most models, `0` means almost deterministic results, and higher values mean more randomness.
+
+- **topK** _number_
+
+  Control the diversity and coherence of generated text by limiting the selection of the next token.
+
+## Language Models
+
+The provider will automatically work in all browsers that support the Prompt API since the browser handles model orchestration.
+For instance, if your user uses Edge, it will use [Phi4-mini](https://learn.microsoft.com/en-us/microsoft-edge/web-platform/prompt-api#the-phi-4-mini-model), and for Chrome, it will use [Gemini Nano](https://developer.chrome.com/docs/ai/prompt-api#model_download).
+
+### Example usage
+
+```ts
+import { streamText } from 'ai';
+import { builtInAI } from '@built-in-ai/core';
+
+const result = streamText({
+  model: builtInAI(), // will default to the specific browser model
+  prompt: 'Hello, how are you',
+});
+
+for await (const chunk of result.textStream) {
+  console.log(chunk);
+}
+```
+
+For more examples, check out the [documentation](https://github.com/jakobhoeg/built-in-ai)
