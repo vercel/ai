@@ -46,7 +46,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
      * (including the original message if it was extended).
      */
     responseMessage: UI_MESSAGE;
-  }) => void;
+  }) => void | PromiseLike<void>;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   // last message is only relevant for assistant messages
   let lastMessage: UI_MESSAGE | undefined =
@@ -112,9 +112,9 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
         controller.enqueue(chunk);
       },
 
-      flush() {
+      async flush() {
         const isContinuation = state.message.id === lastMessage?.id;
-        onFinish({
+        await onFinish({
           isContinuation,
           responseMessage: state.message as UI_MESSAGE,
           messages: [
