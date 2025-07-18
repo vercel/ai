@@ -404,6 +404,9 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       totalUsage: LanguageModelUsage;
     }
   | {
+      type: 'abort';
+    }
+  | {
       type: 'error';
       error: unknown;
     }

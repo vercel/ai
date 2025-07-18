@@ -6,6 +6,7 @@ import {
 import {
   createIdGenerator,
   IdGenerator,
+  isAbortError,
   ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
@@ -61,6 +62,7 @@ import {
 } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import { filterStreamErrors } from '../util/filter-stream-errors';
 import { ContentPart } from './content-part';
 import { Output } from './output';
 import { PrepareStepFunction } from './prepare-step';
@@ -883,6 +885,18 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     this.closeStream = stitchableStream.close;
 
     let stream = stitchableStream.stream;
+
+    // filter out abort errors:
+    stream = filterStreamErrors(stream, ({ error, controller }) => {
+      if (isAbortError(error) && abortSignal?.aborted) {
+        controller.enqueue({
+          type: 'abort',
+        });
+        controller.close();
+      } else {
+        controller.error(error);
+      }
+    });
 
     // add a stream that emits a start event:
     stream = stream.pipeThrough(
@@ -1815,6 +1829,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
+            case 'abort':
             case 'tool-input-end': {
               break;
             }

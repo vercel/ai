@@ -11809,4 +11809,98 @@ describe('streamText', () => {
       });
     });
   });
+
+  describe('abort signal', () => {
+    describe('basic abort', () => {
+      let result: StreamTextResult<ToolSet, TextStreamPart<ToolSet>>;
+      let onErrorCalls: Array<{ error: unknown }> = [];
+
+      beforeEach(() => {
+        onErrorCalls = [];
+
+        const abortController = new AbortController();
+        let pullCalls = 0;
+
+        result = streamText({
+          abortSignal: abortController.signal,
+          onError: error => {
+            onErrorCalls.push({ error });
+          },
+          model: new MockLanguageModelV2({
+            doStream: async ({ abortSignal }) => ({
+              stream: new ReadableStream({
+                pull(controller) {
+                  switch (pullCalls++) {
+                    case 0:
+                      controller.enqueue({
+                        type: 'stream-start',
+                        warnings: [],
+                      });
+                      break;
+                    case 1:
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: '1',
+                      });
+                      break;
+                    case 2:
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Hello',
+                      });
+                      break;
+                    case 3:
+                      abortController.abort();
+                      controller.error(
+                        new DOMException(
+                          'The user aborted a request.',
+                          'AbortError',
+                        ),
+                      );
+                      break;
+                  }
+                },
+              }),
+            }),
+          }),
+          prompt: 'test-input',
+        });
+      });
+
+      it('should not call onError for abort errors', async () => {
+        await result.consumeStream();
+        expect(onErrorCalls).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should only stream initial chunks in full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "id": "1",
+                "providerMetadata": undefined,
+                "text": "Hello",
+                "type": "text",
+              },
+              {
+                "type": "abort",
+              },
+            ]
+          `);
+      });
+    });
+  });
 });
