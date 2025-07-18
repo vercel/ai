@@ -11920,7 +11920,25 @@ describe('streamText', () => {
       it('should sent an abort chunk in the ui message stream', async () => {
         expect(
           await convertAsyncIterableToArray(result.toUIMessageStream()),
-        ).toMatchInlineSnapshot();
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+          ]
+        `);
       });
     });
 
