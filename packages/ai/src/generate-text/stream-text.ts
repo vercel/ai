@@ -1847,7 +1847,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'abort': {
-              controller.enqueue({ type: 'abort' });
+              controller.enqueue(part);
               break;
             }
 
