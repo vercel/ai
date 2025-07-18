@@ -2542,11 +2542,7 @@ describe('streaming with id change from undefined to defined', () => {
   setupTestComponent(
     () => {
       const [id, setId] = React.useState<string | undefined>(undefined);
-      const {
-        messages,
-        sendMessage,
-        status,
-      } = useChat({
+      const { messages, sendMessage, status } = useChat({
         id,
         generateId: mockId(),
       });
@@ -2584,7 +2580,7 @@ describe('streaming with id change from undefined to defined', () => {
 
     // First, change the ID from undefined to 'chat-123'
     await userEvent.click(screen.getByTestId('change-id'));
-    
+
     // Then send a message
     await userEvent.click(screen.getByTestId('send-message'));
 

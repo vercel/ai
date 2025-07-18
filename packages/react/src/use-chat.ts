@@ -70,7 +70,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   }
 
   const optionsId = 'id' in options ? options.id : null;
-  
+
   const subscribeToMessages = useCallback(
     (update: () => void) =>
       chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
