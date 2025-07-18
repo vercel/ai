@@ -16,7 +16,7 @@ The AI SDK functions have an `abortSignal` argument that you can use to cancel a
 You would use this if you want to cancel a stream from the server side to the LLM API, e.g. by
 forwarding the `abortSignal` from the request.
 
-```tsx highlight="10,11"
+```tsx highlight="10,11,12-16"
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -28,6 +28,11 @@ export async function POST(req: Request) {
     prompt,
     // forward the abort signal:
     abortSignal: req.signal,
+    onAbort: ({ steps }) => {
+      // Handle cleanup when stream is aborted
+      console.log('Stream aborted after', steps.length, 'steps');
+      // Persist partial results to database
+    },
   });
 
   return result.toTextStreamResponse();
@@ -61,6 +66,59 @@ export default function Chat() {
       </form>
     </div>
   );
+}
+```
+
+## Handling stream abort cleanup
+
+When streams are aborted, you may need to perform cleanup operations such as persisting partial results or cleaning up resources. The `onAbort` callback provides a way to handle these scenarios on the server side.
+
+Unlike `onFinish`, which is called when a stream completes normally, `onAbort` is specifically called when a stream is aborted via `AbortSignal`. This distinction allows you to handle normal completion and aborted streams differently.
+
+```tsx highlight="8-12"
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: openai('gpt-4.1'),
+  prompt: 'Write a long story...',
+  abortSignal: controller.signal,
+  onAbort: ({ steps }) => {
+    // Called when stream is aborted - persist partial results
+    await savePartialResults(steps);
+    await logAbortEvent(steps.length);
+  },
+  onFinish: ({ steps, totalUsage }) => {
+    // Called when stream completes normally
+    await saveFinalResults(steps, totalUsage);
+  },
+});
+```
+
+The `onAbort` callback receives:
+
+- `steps`: Array of all completed steps before the abort occurred
+
+This is particularly useful for:
+
+- Persisting partial conversation history to database
+- Saving partial progress for later continuation
+- Cleaning up server-side resources or connections
+- Logging abort events for analytics
+
+You can also handle abort events directly in the stream using the `abort` stream part:
+
+```tsx highlight="8-12"
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'text':
+      // Handle text content
+      break;
+    case 'abort':
+      // Handle abort event directly in stream
+      console.log('Stream was aborted');
+      break;
+    // ... other cases
+  }
 }
 ```
 
