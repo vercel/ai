@@ -6,7 +6,7 @@ import {
 
 describe('GATEWAY_AUTH_METHOD_HEADER', () => {
   it('should export the correct header name', () => {
-    expect(GATEWAY_AUTH_METHOD_HEADER).toBe('x-ai-gateway-auth-method');
+    expect(GATEWAY_AUTH_METHOD_HEADER).toBe('ai-gateway-auth-method');
   });
 });
 

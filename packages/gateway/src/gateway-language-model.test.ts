@@ -31,7 +31,7 @@ const createTestModel = (
     baseURL: 'https://api.test.com',
     headers: () => ({
       Authorization: 'Bearer test-token',
-      'x-ai-gateway-auth-method': 'api-key',
+      'ai-gateway-auth-method': 'api-key',
     }),
     fetch: globalThis.fetch,
     o11yHeaders: config.o11yHeaders || {},

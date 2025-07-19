@@ -81,7 +81,7 @@ describe('GatewayProvider', () => {
         Authorization: 'Bearer test-api-key',
         'Custom-Header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
-        'x-ai-gateway-auth-method': 'api-key',
+        'ai-gateway-auth-method': 'api-key',
       });
     });
 
@@ -102,7 +102,7 @@ describe('GatewayProvider', () => {
         Authorization: 'Bearer mock-oidc-token',
         'Custom-Header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
-        'x-ai-gateway-auth-method': 'oidc',
+        'ai-gateway-auth-method': 'oidc',
       });
     });
 
@@ -378,7 +378,7 @@ describe('GatewayProvider', () => {
 
       // Verify that the API key was used in the Authorization header
       expect(headers.Authorization).toBe(`Bearer ${testApiKey}`);
-      expect(headers['x-ai-gateway-auth-method']).toBe('api-key');
+      expect(headers['ai-gateway-auth-method']).toBe('api-key');
 
       // Verify getVercelOidcToken was never called
       expect(getVercelOidcToken).not.toHaveBeenCalled();
