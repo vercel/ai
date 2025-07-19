@@ -20,6 +20,7 @@ import {
   InferUIMessageData,
   InferUIMessageMetadata,
   InferUIMessageToolCall,
+  InferUIMessageToolOutputs,
   InferUIMessageTools,
   isToolUIPart,
   ReasoningUIPart,
@@ -83,7 +84,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
-  }) => void | Promise<unknown> | unknown;
+  }) =>
+    | void
+    | Promise<InferUIMessageToolOutputs<UI_MESSAGE> | void>
+    | InferUIMessageToolOutputs<UI_MESSAGE>;
   onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
   runUpdateMessageJob: (
     job: (options: {

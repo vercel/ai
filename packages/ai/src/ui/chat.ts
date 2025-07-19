@@ -21,6 +21,7 @@ import {
 } from './should-resubmit-messages';
 import {
   InferUIMessageToolCall,
+  InferUIMessageToolOutputs,
   isToolUIPart,
   type DataUIPart,
   type FileUIPart,
@@ -97,7 +98,10 @@ export type ChatOnErrorCallback = (error: Error) => void;
 export type ChatOnToolCallCallback<UI_MESSAGE extends UIMessage = UIMessage> =
   (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
-  }) => void | Promise<unknown> | unknown;
+  }) =>
+    | void
+    | InferUIMessageToolOutputs<UI_MESSAGE>
+    | Promise<InferUIMessageToolOutputs<UI_MESSAGE> | void>;
 
 export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
   dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>,

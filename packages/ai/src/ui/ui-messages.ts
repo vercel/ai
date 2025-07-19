@@ -257,6 +257,9 @@ export type InferUIMessageData<T extends UIMessage> =
 export type InferUIMessageTools<T extends UIMessage> =
   T extends UIMessage<unknown, UIDataTypes, infer TOOLS> ? TOOLS : UITools;
 
+export type InferUIMessageToolOutputs<UI_MESSAGE extends UIMessage> =
+  InferUIMessageTools<UI_MESSAGE>[keyof InferUIMessageTools<UI_MESSAGE>]['output'];
+
 export type InferUIMessageToolCall<UI_MESSAGE extends UIMessage> = ValueOf<{
   [NAME in keyof InferUIMessageTools<UI_MESSAGE>]: ToolCall<
     NAME & string,
