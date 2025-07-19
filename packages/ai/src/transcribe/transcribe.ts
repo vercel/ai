@@ -1,5 +1,5 @@
 import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { TranscribeProviderOptions } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../../src/error/no-transcript-generated-error';
 import {
   audioMediaTypeSignatures,
@@ -59,7 +59,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
      */
-  providerOptions?: ProviderOptions;
+  providerOptions?: TranscribeProviderOptions;
 
   /**
 Maximum number of retries per transcript model call. Set to 0 to disable retries.

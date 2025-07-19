@@ -23,3 +23,9 @@ monitor and detect abuse. Learn more.
 export type OpenAIEmbeddingProviderOptions = z.infer<
   typeof openaiEmbeddingProviderOptions
 >;
+
+declare module '@ai-sdk/provider' {
+  interface SharedV2EmbedProviderOptions {
+    openai?: OpenAIEmbeddingProviderOptions;
+  }
+}

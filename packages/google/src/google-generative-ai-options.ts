@@ -1,4 +1,6 @@
 import { z } from 'zod/v4';
+import { GoogleGenerativeAIEmbeddingProviderOptions } from './google-generative-ai-embedding-options';
+import { GoogleGenerativeAIImageSettings } from './google-generative-ai-image-settings';
 
 export type GoogleGenerativeAIModelId =
   // Stable models
@@ -107,3 +109,9 @@ Optional. A list of unique safety settings for blocking unsafe content.
 export type GoogleGenerativeAIProviderOptions = z.infer<
   typeof googleGenerativeAIProviderOptions
 >;
+
+declare module '@ai-sdk/provider' {
+  interface SharedV2ProviderOptions {
+    google?: GoogleGenerativeAIProviderOptions;
+  }
+}

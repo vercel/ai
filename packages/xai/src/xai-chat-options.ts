@@ -109,3 +109,9 @@ export const xaiProviderOptions = z.object({
 });
 
 export type XaiProviderOptions = z.infer<typeof xaiProviderOptions>;
+
+declare module '@ai-sdk/provider' {
+  interface SharedV2ProviderOptions {
+    xai?: XaiProviderOptions;
+  }
+}

@@ -8,3 +8,9 @@ Override the maximum number of images per call (default 4)
    */
   maxImagesPerCall?: number;
 }
+
+declare module '@ai-sdk/provider' {
+  interface SharedV2ImageProviderOptions {
+    google?: GoogleGenerativeAIImageSettings;
+  }
+}

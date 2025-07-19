@@ -53,3 +53,9 @@ export const bedrockProviderOptions = z.object({
 });
 
 export type BedrockProviderOptions = z.infer<typeof bedrockProviderOptions>;
+
+declare module '@ai-sdk/provider' {
+  interface SharedV2ProviderOptions {
+    bedrock?: BedrockProviderOptions;
+  }
+}

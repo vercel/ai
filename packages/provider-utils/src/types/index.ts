@@ -12,7 +12,13 @@ export type {
 } from './content-part';
 export type { DataContent } from './data-content';
 export type { ModelMessage } from './model-message';
-export type { ProviderOptions } from './provider-options';
+export type { 
+  ProviderOptions,
+  EmbedProviderOptions,
+  ImageProviderOptions,
+  SpeechProviderOptions,
+  TranscribeProviderOptions
+} from './provider-options';
 export type { SystemModelMessage } from './system-model-message';
 export {
   tool,
