@@ -19,6 +19,8 @@ import {
   getToolName,
   InferUIMessageData,
   InferUIMessageMetadata,
+  InferUIMessageToolCall,
+  InferUIMessageToolOutputs,
   InferUIMessageTools,
   isToolUIPart,
   ReasoningUIPart,
@@ -81,8 +83,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
-    toolCall: ToolCall<string, unknown>;
-  }) => void | Promise<unknown> | unknown;
+    toolCall: InferUIMessageToolCall<UI_MESSAGE>;
+  }) =>
+    | void
+    | Promise<InferUIMessageToolOutputs<UI_MESSAGE> | void>
+    | InferUIMessageToolOutputs<UI_MESSAGE>;
   onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
   runUpdateMessageJob: (
     job: (options: {
@@ -350,7 +355,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // Skip calling onToolCall for provider-executed tools since they are already executed
               if (onToolCall && !chunk.providerExecuted) {
                 const result = await onToolCall({
-                  toolCall: chunk,
+                  toolCall: chunk as InferUIMessageToolCall<UI_MESSAGE>,
                 });
                 if (result != null) {
                   updateToolInvocationPart({
