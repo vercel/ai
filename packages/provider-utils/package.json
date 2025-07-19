@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "3.0.0-beta.3",
+  "version": "3.0.0-beta.5",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -50,10 +50,10 @@
     "msw": "2.7.0",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "zod": "3.25.49"
+    "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.25.49 || ^4"
+    "zod": "^3.25.76 || ^4"
   },
   "engines": {
     "node": ">=18"

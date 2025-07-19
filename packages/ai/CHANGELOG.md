@@ -1,5 +1,56 @@
 # ai
 
+## 5.0.0-beta.24
+
+### Patch Changes
+
+- add5ac1: feat (ai): make streamText toUIMessageStream async iterable
+- ff1c81a: feat (ai): add streamText onAbort callback
+- e4c8647: feat (ui): allow asynchronous onFinish in createUIMessageStream
+- 383cbfa: feat (ai): add isAborted to onFinish callback for ui message streams
+- Updated dependencies [57edfcb]
+- Updated dependencies [383cbfa]
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+  - @ai-sdk/gateway@1.0.0-beta.10
+
+## 5.0.0-beta.23
+
+### Patch Changes
+
+- 89ba235: fix (ui): support tool names with dash
+
+## 5.0.0-beta.22
+
+### Patch Changes
+
+- de2d2ab: feat(ai): add provider and provider registry middleware functionality
+- 6c42e56: feat (ai): validate ui stream data chunks
+- c93a8bc: chore(ai): export AsyncIterableStream type from async-iterable-stream module
+- 20398f2: feat: ai sdk cli documentation + adjusted default model
+- 86293e5: fix (ai): use correct generateMessageId in streamText toUIMessageStream
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+  - @ai-sdk/gateway@1.0.0-beta.9
+
+## 5.0.0-beta.21
+
+### Patch Changes
+
+- 38ae5cc: feat (ai): export InferUIMessageChunk type
+- faea29f: fix (provider/openai): multi-step reasoning with text
+- 90ac328: fix (ui): tool part metadata support in ui messages
+- 4a1e0c8: fix(ai-cli): fix bundling and improve authentication error handling
+- 30ac566: fix (ui): text message metadata support in ui messages
+
+## 5.0.0-beta.20
+
+### Patch Changes
+
+- 4c8f834: feat: automatically respect rate limit headers in retry logic
+
+  Added automatic support for respecting rate limit headers (`retry-after-ms` and `retry-after`) in the SDK's retry logic. When these headers are present and contain reasonable values (0-60 seconds), the retry mechanism will use the server-specified delay instead of exponential backoff. This matches the behavior of Anthropic and OpenAI client SDKs and improves rate limit handling without requiring any API changes.
+
 ## 5.0.0-beta.19
 
 ### Patch Changes

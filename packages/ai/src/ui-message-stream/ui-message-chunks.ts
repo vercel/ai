@@ -1,26 +1,32 @@
 import { z } from 'zod/v4';
-import { ValueOf } from '../util/value-of';
+import {
+  ProviderMetadata,
+  providerMetadataSchema,
+} from '../types/provider-metadata';
 import {
   InferUIMessageData,
   InferUIMessageMetadata,
   UIDataTypes,
   UIMessage,
 } from '../ui/ui-messages';
-import { ProviderMetadata } from '../types/provider-metadata';
+import { ValueOf } from '../util/value-of';
 
 export const uiMessageChunkSchema = z.union([
   z.strictObject({
     type: z.literal('text-start'),
     id: z.string(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('text-delta'),
     id: z.string(),
     delta: z.string(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('text-end'),
     id: z.string(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('error'),
@@ -43,6 +49,7 @@ export const uiMessageChunkSchema = z.union([
     toolName: z.string(),
     input: z.unknown(),
     providerExecuted: z.boolean().optional(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('tool-output-available'),
@@ -59,23 +66,23 @@ export const uiMessageChunkSchema = z.union([
   z.strictObject({
     type: z.literal('reasoning'),
     text: z.string(),
-    providerMetadata: z.record(z.string(), z.any()).optional(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-start'),
     id: z.string(),
-    providerMetadata: z.record(z.string(), z.any()).optional(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-delta'),
     id: z.string(),
     delta: z.string(),
-    providerMetadata: z.record(z.string(), z.any()).optional(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-end'),
     id: z.string(),
-    providerMetadata: z.record(z.string(), z.any()).optional(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-part-finish'),
@@ -85,7 +92,7 @@ export const uiMessageChunkSchema = z.union([
     sourceId: z.string(),
     url: z.string(),
     title: z.string().optional(),
-    providerMetadata: z.any().optional(), // Use z.any() for generic metadata
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('source-document'),
@@ -93,12 +100,13 @@ export const uiMessageChunkSchema = z.union([
     mediaType: z.string(),
     title: z.string(),
     filename: z.string().optional(),
-    providerMetadata: z.any().optional(), // Use z.any() for generic metadata
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('file'),
     url: z.string(),
     mediaType: z.string(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.string().startsWith('data-'),
@@ -122,6 +130,9 @@ export const uiMessageChunkSchema = z.union([
     messageMetadata: z.unknown().optional(),
   }),
   z.strictObject({
+    type: z.literal('abort'),
+  }),
+  z.strictObject({
     type: z.literal('message-metadata'),
     messageMetadata: z.unknown(),
   }),
@@ -140,10 +151,27 @@ export type UIMessageChunk<
   METADATA = unknown,
   DATA_TYPES extends UIDataTypes = UIDataTypes,
 > =
-  | { type: 'text-start'; id: string }
-  | { type: 'text-delta'; delta: string; id: string }
-  | { type: 'text-end'; id: string }
-  | { type: 'reasoning-start'; id: string; providerMetadata?: ProviderMetadata }
+  | {
+      type: 'text-start';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'text-delta';
+      delta: string;
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'text-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-start';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
   | {
       type: 'reasoning-delta';
       id: string;
@@ -165,6 +193,7 @@ export type UIMessageChunk<
       toolName: string;
       input: unknown;
       providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
     }
   | {
       type: 'tool-output-available';
@@ -224,6 +253,9 @@ export type UIMessageChunk<
   | {
       type: 'finish';
       messageMetadata?: METADATA;
+    }
+  | {
+      type: 'abort';
     }
   | {
       type: 'message-metadata';

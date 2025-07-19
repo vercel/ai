@@ -1,5 +1,56 @@
 # @ai-sdk/rsc
 
+## 1.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [add5ac1]
+- Updated dependencies [57edfcb]
+- Updated dependencies [ff1c81a]
+- Updated dependencies [e4c8647]
+- Updated dependencies [383cbfa]
+  - ai@5.0.0-beta.24
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [89ba235]
+  - ai@5.0.0-beta.23
+
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [de2d2ab]
+- Updated dependencies [6c42e56]
+- Updated dependencies [c93a8bc]
+- Updated dependencies [20398f2]
+- Updated dependencies [86293e5]
+- Updated dependencies [205077b]
+  - ai@5.0.0-beta.22
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [38ae5cc]
+- Updated dependencies [faea29f]
+- Updated dependencies [90ac328]
+- Updated dependencies [4a1e0c8]
+- Updated dependencies [30ac566]
+  - ai@5.0.0-beta.21
+
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [4c8f834]
+  - ai@5.0.0-beta.20
+
 ## 1.0.0-beta.19
 
 ### Patch Changes

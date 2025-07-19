@@ -16,4 +16,5 @@ export type FireworksChatModelId =
   | 'accounts/fireworks/models/llama-v3p2-11b-vision-instruct'
   | 'accounts/fireworks/models/qwq-32b'
   | 'accounts/fireworks/models/yi-large'
+  | 'accounts/fireworks/models/kimi-k2-instruct'
   | (string & {});

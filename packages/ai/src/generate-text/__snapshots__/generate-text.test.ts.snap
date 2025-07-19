@@ -123,6 +123,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > onSte
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "Hello, world!",
               "type": "text",
             },
@@ -179,6 +180,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
   {
     "content": [
       {
+        "providerOptions": undefined,
         "text": "Hello, world!",
         "type": "text",
       },
@@ -311,6 +313,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "Hello, world!",
               "type": "text",
             },
@@ -456,6 +459,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "Hello, world!",
               "type": "text",
             },
@@ -512,6 +516,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
   {
     "content": [
       {
+        "providerOptions": undefined,
         "text": "Hello, world!",
         "type": "text",
       },
@@ -644,6 +649,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "Hello, world!",
               "type": "text",
             },
@@ -696,6 +702,7 @@ exports[`generateText > result.response > should contain response body and heade
     {
       "content": [
         {
+          "providerOptions": undefined,
           "text": "Hello, world!",
           "type": "text",
         },
@@ -719,6 +726,7 @@ exports[`generateText > result.response > should contain response body and heade
     {
       "content": [
         {
+          "providerOptions": undefined,
           "text": "Hello, world!",
           "type": "text",
         },
@@ -736,6 +744,7 @@ exports[`generateText > result.response.messages > should contain assistant resp
   {
     "content": [
       {
+        "providerOptions": undefined,
         "text": "Hello, world!",
         "type": "text",
       },
@@ -774,6 +783,7 @@ exports[`generateText > result.response.messages > should contain assistant resp
   {
     "content": [
       {
+        "providerOptions": undefined,
         "text": "Hello, world!",
         "type": "text",
       },
@@ -806,6 +816,7 @@ exports[`generateText > result.response.messages > should contain reasoning 1`] 
         "type": "reasoning",
       },
       {
+        "providerOptions": undefined,
         "text": "Hello, world!",
         "type": "text",
       },
@@ -900,6 +911,7 @@ exports[`generateText > result.steps > should add the reasoning from the model r
               "type": "reasoning",
             },
             {
+              "providerOptions": undefined,
               "text": "Hello, world!",
               "type": "text",
             },
@@ -962,6 +974,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "Hello, world!",
               "type": "text",
             },
@@ -1040,6 +1053,7 @@ exports[`generateText > result.steps > should contain sources 1`] = `
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "Hello, world!",
               "type": "text",
             },

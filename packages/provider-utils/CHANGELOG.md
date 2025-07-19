@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-beta.5
+
+### Patch Changes
+
+- 57edfcb: Adds support for async zod validators
+- 383cbfa: feat (ai): add isAborted to onFinish callback for ui message streams
+
+## 3.0.0-beta.4
+
+### Patch Changes
+
+- 205077b: fix: improve Zod compatibility
+
 ## 3.0.0-beta.3
 
 ### Patch Changes

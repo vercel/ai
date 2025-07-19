@@ -148,6 +148,7 @@ describe('chat', () => {
                 "type": "step-start",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -194,6 +195,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -222,6 +224,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello",
                   "type": "text",
@@ -250,6 +253,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello,",
                   "type": "text",
@@ -278,6 +282,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world",
                   "type": "text",
@@ -306,6 +311,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world.",
                   "type": "text",
@@ -334,6 +340,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Hello, world.",
                   "type": "text",
@@ -429,6 +436,7 @@ describe('chat', () => {
                 "type": "step-start",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -479,6 +487,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -509,6 +518,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world.",
                   "type": "text",
@@ -539,6 +549,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Hello, world.",
                   "type": "text",
@@ -651,6 +662,7 @@ describe('chat', () => {
                 "type": "step-start",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -719,6 +731,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -747,6 +760,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello",
                   "type": "text",
@@ -775,6 +789,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello,",
                   "type": "text",
@@ -803,6 +818,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world",
                   "type": "text",
@@ -831,6 +847,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world.",
                   "type": "text",
@@ -859,6 +876,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Hello, world.",
                   "type": "text",

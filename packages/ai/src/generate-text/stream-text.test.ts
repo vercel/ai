@@ -1482,7 +1482,6 @@ describe('streamText', () => {
                   },
                   {
                     type: 'tool-call',
-                    id: 'call-1',
                     toolCallId: 'call-1',
                     toolName: 'tool1',
                     input: `{ "value": "value" }`,
@@ -2022,7 +2021,7 @@ describe('streamText', () => {
   });
 
   describe('result.toUIMessageStream', () => {
-    it('should create a data stream', async () => {
+    it('should create a ui message stream', async () => {
       const result = streamText({
         model: createTestModel(),
         ...defaultSettings(),
@@ -2032,47 +2031,219 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": "world!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": ", ",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": "world!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+
+    it('should create a ui message stream with provider metadata', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'stream-start',
+              warnings: [],
+            },
+            {
+              type: 'reasoning-start',
+              id: 'r1',
+              providerMetadata: { testProvider: { signature: 'r1' } },
+            },
+            {
+              type: 'reasoning-delta',
+              id: 'r1',
+              delta: 'Hello',
+              providerMetadata: { testProvider: { signature: 'r2' } },
+            },
+            {
+              type: 'reasoning-delta',
+              id: 'r1',
+              delta: ', ',
+              providerMetadata: { testProvider: { signature: 'r3' } },
+            },
+            {
+              type: 'reasoning-end',
+              id: 'r1',
+              providerMetadata: { testProvider: { signature: 'r4' } },
+            },
+            {
+              type: 'text-start',
+              id: '1',
+              providerMetadata: { testProvider: { signature: '1' } },
+            },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: 'Hello',
+              providerMetadata: { testProvider: { signature: '2' } },
+            },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: ', ',
+              providerMetadata: { testProvider: { signature: '3' } },
+            },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: 'world!',
+              providerMetadata: { testProvider: { signature: '4' } },
+            },
+            {
+              type: 'text-end',
+              id: '1',
+              providerMetadata: { testProvider: { signature: '5' } },
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream();
+
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "r1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "r1",
+                },
+              },
+              "type": "reasoning-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "r1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "r2",
+                },
+              },
+              "type": "reasoning-delta",
+            },
+            {
+              "delta": ", ",
+              "id": "r1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "r3",
+                },
+              },
+              "type": "reasoning-delta",
+            },
+            {
+              "id": "r1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "r4",
+                },
+              },
+              "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "1",
+                },
+              },
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "2",
+                },
+              },
+              "type": "text-delta",
+            },
+            {
+              "delta": ", ",
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "3",
+                },
+              },
+              "type": "text-delta",
+            },
+            {
+              "delta": "world!",
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "4",
+                },
+              },
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "5",
+                },
+              },
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts', async () => {
@@ -2110,7 +2281,7 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
-    it('should send metadata as defined in the metadata function', async () => {
+    it('should send message metadata as defined in the metadata function', async () => {
       const result = streamText({
         model: createTestModel(),
         ...defaultSettings(),
@@ -2133,7 +2304,6 @@ describe('streamText', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": undefined,
               "messageMetadata": {
                 "key1": "value1",
               },
@@ -2280,33 +2450,31 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello, World!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "type": "finish-step",
-          },
-        ]
-      `);
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello, World!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+          ]
+        `);
     });
 
     it('should omit message start event when sendStart is false', async () => {
@@ -2331,32 +2499,31 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "type": "start-step",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello, World!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+          [
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello, World!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should send reasoning content when sendReasoning is true', async () => {
@@ -2371,8 +2538,6 @@ describe('streamText', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": undefined,
-              "messageMetadata": undefined,
               "type": "start",
             },
             {
@@ -2380,19 +2545,16 @@ describe('streamText', () => {
             },
             {
               "id": "1",
-              "providerMetadata": undefined,
               "type": "reasoning-start",
             },
             {
               "delta": "I will open the conversation",
               "id": "1",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " with witty banter.",
               "id": "1",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
@@ -2407,7 +2569,6 @@ describe('streamText', () => {
             },
             {
               "id": "1",
-              "providerMetadata": undefined,
               "type": "reasoning-end",
             },
             {
@@ -2421,24 +2582,20 @@ describe('streamText', () => {
             },
             {
               "id": "2",
-              "providerMetadata": undefined,
               "type": "reasoning-end",
             },
             {
               "id": "3",
-              "providerMetadata": undefined,
               "type": "reasoning-start",
             },
             {
               "delta": " Once the user has relaxed,",
               "id": "3",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " I will pry for valuable information.",
               "id": "3",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
@@ -2462,13 +2619,11 @@ describe('streamText', () => {
             {
               "delta": " I need to think about",
               "id": "4",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " this problem carefully.",
               "id": "4",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
@@ -2483,19 +2638,16 @@ describe('streamText', () => {
             {
               "delta": " The best solution",
               "id": "5",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " requires careful",
               "id": "5",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " consideration of all factors.",
               "id": "5",
-              "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
@@ -2538,7 +2690,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "messageMetadata": undefined,
               "type": "finish",
             },
           ]
@@ -2555,59 +2706,56 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "providerMetadata": {
-              "provider": {
-                "custom": "value",
-              },
+          [
+            {
+              "type": "start",
             },
-            "sourceId": "123",
-            "title": "Example",
-            "type": "source-url",
-            "url": "https://example.com",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "providerMetadata": {
-              "provider": {
-                "custom": "value2",
-              },
+            {
+              "type": "start-step",
             },
-            "sourceId": "456",
-            "title": "Example 2",
-            "type": "source-url",
-            "url": "https://example.com/2",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+            {
+              "providerMetadata": {
+                "provider": {
+                  "custom": "value",
+                },
+              },
+              "sourceId": "123",
+              "title": "Example",
+              "type": "source-url",
+              "url": "https://example.com",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "providerMetadata": {
+                "provider": {
+                  "custom": "value2",
+                },
+              },
+              "sourceId": "456",
+              "title": "Example 2",
+              "type": "source-url",
+              "url": "https://example.com/2",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should send document source content when sendSources is true', async () => {
@@ -2620,61 +2768,58 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "filename": "example.pdf",
-            "mediaType": "application/pdf",
-            "providerMetadata": {
-              "provider": {
-                "custom": "doc-value",
-              },
+          [
+            {
+              "type": "start",
             },
-            "sourceId": "doc-123",
-            "title": "Document Example",
-            "type": "source-document",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello from document!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "filename": undefined,
-            "mediaType": "text/plain",
-            "providerMetadata": {
-              "provider": {
-                "custom": "doc-value2",
-              },
+            {
+              "type": "start-step",
             },
-            "sourceId": "doc-456",
-            "title": "Text Document",
-            "type": "source-document",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+            {
+              "filename": "example.pdf",
+              "mediaType": "application/pdf",
+              "providerMetadata": {
+                "provider": {
+                  "custom": "doc-value",
+                },
+              },
+              "sourceId": "doc-123",
+              "title": "Document Example",
+              "type": "source-document",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello from document!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "filename": undefined,
+              "mediaType": "text/plain",
+              "providerMetadata": {
+                "provider": {
+                  "custom": "doc-value2",
+                },
+              },
+              "sourceId": "doc-456",
+              "title": "Text Document",
+              "type": "source-document",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should send file content', async () => {
@@ -2687,47 +2832,44 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "mediaType": "text/plain",
-            "type": "file",
-            "url": "data:text/plain;base64,Hello World",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "mediaType": "image/jpeg",
-            "type": "file",
-            "url": "data:image/jpeg;base64,QkFVRw==",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "mediaType": "text/plain",
+              "type": "file",
+              "url": "data:text/plain;base64,Hello World",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "mediaType": "image/jpeg",
+              "type": "file",
+              "url": "data:image/jpeg;base64,QkFVRw==",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should not generate a new message id when onFinish is provided and generateMessageId is not provided', async () => {
@@ -2742,47 +2884,44 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": "world!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": ", ",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": "world!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should generate a new message id when generateMessageId is provided', async () => {
@@ -2792,52 +2931,50 @@ describe('streamText', () => {
       });
 
       const uiMessageStream = result.toUIMessageStream({
-        generateMessageId: mockId({ prefix: 'id' }),
+        generateMessageId: mockId({ prefix: 'message' }),
       });
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": "id-0",
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": "world!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+          [
+            {
+              "messageId": "message-0",
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": ", ",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": "world!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
     });
   });
 
@@ -3246,8 +3383,6 @@ describe('streamText', () => {
           ],
           "uiMessageStream": [
             {
-              "messageId": undefined,
-              "messageMetadata": undefined,
               "type": "start",
             },
             {
@@ -3280,7 +3415,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "messageMetadata": undefined,
               "type": "finish",
             },
           ],
@@ -3450,7 +3584,7 @@ describe('streamText', () => {
                 "type": "reasoning",
               },
               {
-                "providerMetadata": undefined,
+                "providerOptions": undefined,
                 "text": "Hi there!",
                 "type": "text",
               },
@@ -3532,7 +3666,7 @@ describe('streamText', () => {
             {
               "content": [
                 {
-                  "providerMetadata": undefined,
+                  "providerOptions": undefined,
                   "text": "Hello",
                   "type": "text",
                 },
@@ -3731,7 +3865,7 @@ describe('streamText', () => {
                       "type": "reasoning",
                     },
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "Hi there!",
                       "type": "text",
                     },
@@ -3807,7 +3941,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "Hello!",
                       "type": "text",
                     },
@@ -3883,7 +4017,7 @@ describe('streamText', () => {
                       "type": "file",
                     },
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "Hello!",
                       "type": "text",
                     },
@@ -4290,7 +4424,7 @@ describe('streamText', () => {
               {
                 "content": [
                   {
-                    "providerMetadata": undefined,
+                    "providerOptions": undefined,
                     "text": "Hello, world!",
                     "type": "text",
                   },
@@ -4372,7 +4506,7 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "Hello, world!",
                         "type": "text",
                       },
@@ -4523,7 +4657,7 @@ describe('streamText', () => {
               {
                 "content": [
                   {
-                    "providerMetadata": undefined,
+                    "providerOptions": undefined,
                     "text": "Hello!",
                     "type": "text",
                   },
@@ -4603,7 +4737,7 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "Hello!",
                         "type": "text",
                       },
@@ -4720,7 +4854,7 @@ describe('streamText', () => {
                     "type": "file",
                   },
                   {
-                    "providerMetadata": undefined,
+                    "providerOptions": undefined,
                     "text": "Hello!",
                     "type": "text",
                   },
@@ -4781,7 +4915,7 @@ describe('streamText', () => {
                         "type": "file",
                       },
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "Hello!",
                         "type": "text",
                       },
@@ -4882,7 +5016,7 @@ describe('streamText', () => {
           {
             "content": [
               {
-                "providerMetadata": undefined,
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
@@ -4930,7 +5064,7 @@ describe('streamText', () => {
           {
             "content": [
               {
-                "providerMetadata": undefined,
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
@@ -5384,7 +5518,7 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "Hello, world!",
                         "type": "text",
                       },
@@ -5536,7 +5670,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "providerMetadata": undefined,
+                            "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
@@ -5721,7 +5855,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "providerMetadata": undefined,
+                          "providerOptions": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -5925,7 +6059,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "providerMetadata": undefined,
+                          "providerOptions": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -5989,7 +6123,7 @@ describe('streamText', () => {
               {
                 "content": [
                   {
-                    "providerMetadata": undefined,
+                    "providerOptions": undefined,
                     "text": "Hello, world!",
                     "type": "text",
                   },
@@ -6011,8 +6145,6 @@ describe('streamText', () => {
           .toMatchInlineSnapshot(`
             [
               {
-                "messageId": undefined,
-                "messageMetadata": undefined,
                 "type": "start",
               },
               {
@@ -6020,18 +6152,15 @@ describe('streamText', () => {
               },
               {
                 "id": "0",
-                "providerMetadata": undefined,
                 "type": "reasoning-start",
               },
               {
                 "delta": "thinking",
                 "id": "0",
-                "providerMetadata": undefined,
                 "type": "reasoning-delta",
               },
               {
                 "id": "0",
-                "providerMetadata": undefined,
                 "type": "reasoning-end",
               },
               {
@@ -6039,6 +6168,7 @@ describe('streamText', () => {
                   "value": "value",
                 },
                 "providerExecuted": undefined,
+                "providerMetadata": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-input-available",
@@ -6077,7 +6207,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "messageMetadata": undefined,
                 "type": "finish",
               },
             ]
@@ -6458,7 +6587,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "providerMetadata": undefined,
+                            "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
@@ -6642,7 +6771,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "providerMetadata": undefined,
+                            "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
@@ -6973,7 +7102,7 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "Hello, world!",
                         "type": "text",
                       },
@@ -7125,7 +7254,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "providerMetadata": undefined,
+                            "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
@@ -7310,7 +7439,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "providerMetadata": undefined,
+                          "providerOptions": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -7514,7 +7643,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "providerMetadata": undefined,
+                          "providerOptions": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -7578,7 +7707,7 @@ describe('streamText', () => {
               {
                 "content": [
                   {
-                    "providerMetadata": undefined,
+                    "providerOptions": undefined,
                     "text": "Hello, world!",
                     "type": "text",
                   },
@@ -7731,8 +7860,6 @@ describe('streamText', () => {
           .toMatchInlineSnapshot(`
             [
               {
-                "messageId": undefined,
-                "messageMetadata": undefined,
                 "type": "start",
               },
               {
@@ -7740,18 +7867,15 @@ describe('streamText', () => {
               },
               {
                 "id": "id-0",
-                "providerMetadata": undefined,
                 "type": "reasoning-start",
               },
               {
                 "delta": "thinking",
                 "id": "id-0",
-                "providerMetadata": undefined,
                 "type": "reasoning-delta",
               },
               {
                 "id": "id-0",
-                "providerMetadata": undefined,
                 "type": "reasoning-end",
               },
               {
@@ -7759,6 +7883,7 @@ describe('streamText', () => {
                   "value": "value",
                 },
                 "providerExecuted": undefined,
+                "providerMetadata": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-input-available",
@@ -7797,7 +7922,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "messageMetadata": undefined,
                 "type": "finish",
               },
             ]
@@ -8351,8 +8475,6 @@ describe('streamText', () => {
           .toMatchInlineSnapshot(`
             [
               {
-                "messageId": undefined,
-                "messageMetadata": undefined,
                 "type": "start",
               },
               {
@@ -8374,6 +8496,7 @@ describe('streamText', () => {
                   "value": "value",
                 },
                 "providerExecuted": true,
+                "providerMetadata": undefined,
                 "toolCallId": "call-1",
                 "toolName": "web_search",
                 "type": "tool-input-available",
@@ -8389,6 +8512,7 @@ describe('streamText', () => {
                   "value": "value",
                 },
                 "providerExecuted": true,
+                "providerMetadata": undefined,
                 "toolCallId": "call-2",
                 "toolName": "web_search",
                 "type": "tool-input-available",
@@ -8403,7 +8527,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "messageMetadata": undefined,
                 "type": "finish",
               },
             ]
@@ -9282,8 +9405,6 @@ describe('streamText', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": undefined,
-              "messageMetadata": undefined,
               "type": "start",
             },
             {
@@ -9294,6 +9415,7 @@ describe('streamText', () => {
                 "value": "value",
               },
               "providerExecuted": undefined,
+              "providerMetadata": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-input-available",
@@ -9308,7 +9430,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "messageMetadata": undefined,
               "type": "finish",
             },
           ]
@@ -9411,7 +9532,7 @@ describe('streamText', () => {
               role: 'assistant',
               content: [
                 {
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                   text: 'HELLO, WORLD!',
                   type: 'text',
                 },
@@ -9674,7 +9795,7 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "HELLO, WORLD!",
                         "type": "text",
                       },
@@ -9895,7 +10016,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "HELLO, WORLD!",
                       "type": "text",
                     },
@@ -9977,7 +10098,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "providerMetadata": undefined,
+                          "providerOptions": undefined,
                           "text": "HELLO, WORLD!",
                           "type": "text",
                         },
@@ -10164,7 +10285,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "HELLO, WORLD!",
                       "type": "text",
                     },
@@ -10620,7 +10741,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "Hello, ",
                       "type": "text",
                     },
@@ -10983,7 +11104,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "providerMetadata": undefined,
+                      "providerOptions": undefined,
                       "text": "{ "value": "Hello, world!" }",
                       "type": "text",
                     },
@@ -11014,7 +11135,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "providerMetadata": undefined,
+                          "providerOptions": undefined,
                           "text": "{ "value": "Hello, world!" }",
                           "type": "text",
                         },
@@ -11652,12 +11773,12 @@ describe('streamText', () => {
                         "type": "reasoning",
                       },
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "Hello, world!",
                         "type": "text",
                       },
                       {
-                        "providerMetadata": undefined,
+                        "providerOptions": undefined,
                         "text": "This is a test.",
                         "type": "text",
                       },
@@ -11681,6 +11802,454 @@ describe('streamText', () => {
                 "totalTokens": 13,
               },
               "warnings": [],
+            },
+          ]
+        `);
+      });
+    });
+  });
+
+  describe('abort signal', () => {
+    describe('basic abort', () => {
+      let result: StreamTextResult<ToolSet, TextStreamPart<ToolSet>>;
+      let onErrorCalls: Array<{ error: unknown }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<ToolSet>[] }> = [];
+
+      beforeEach(() => {
+        onErrorCalls = [];
+        onAbortCalls = [];
+
+        const abortController = new AbortController();
+        let pullCalls = 0;
+
+        result = streamText({
+          abortSignal: abortController.signal,
+          onError: error => {
+            onErrorCalls.push({ error });
+          },
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV2({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                pull(controller) {
+                  switch (pullCalls++) {
+                    case 0:
+                      controller.enqueue({
+                        type: 'stream-start',
+                        warnings: [],
+                      });
+                      break;
+                    case 1:
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: '1',
+                      });
+                      break;
+                    case 2:
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Hello',
+                      });
+                      break;
+                    case 3:
+                      abortController.abort();
+                      controller.error(
+                        new DOMException(
+                          'The user aborted a request.',
+                          'AbortError',
+                        ),
+                      );
+                      break;
+                  }
+                },
+              }),
+            }),
+          }),
+          prompt: 'test-input',
+        });
+      });
+
+      it('should not call onError for abort errors', async () => {
+        await result.consumeStream();
+        expect(onErrorCalls).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should call onAbort when the abort signal is triggered', async () => {
+        await result.consumeStream();
+        expect(onAbortCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "steps": [],
+            },
+          ]
+        `);
+      });
+
+      it('should only stream initial chunks in full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "id": "1",
+                "providerMetadata": undefined,
+                "text": "Hello",
+                "type": "text",
+              },
+              {
+                "type": "abort",
+              },
+            ]
+          `);
+      });
+
+      it('should sent an abort chunk in the ui message stream', async () => {
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "type": "abort",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('abort in 2nd step', () => {
+      let result: StreamTextResult<any, TextStreamPart<any>>;
+      let onErrorCalls: Array<{ error: unknown }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+
+      beforeEach(() => {
+        onErrorCalls = [];
+        onAbortCalls = [];
+
+        const abortController = new AbortController();
+        let pullCalls = 0;
+        let streamCalls = 0;
+
+        result = streamText({
+          abortSignal: abortController.signal,
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV2({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start(controller) {
+                  streamCalls++;
+                  pullCalls = 0;
+                },
+                pull(controller) {
+                  if (streamCalls === 1) {
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({
+                          type: 'tool-call',
+                          toolCallId: 'call-1',
+                          toolName: 'tool1',
+                          input: `{ "value": "value" }`,
+                        });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'finish',
+                          finishReason: 'tool-calls',
+                          usage: testUsage,
+                        });
+                        controller.close();
+                        break;
+                    }
+                  } else
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({
+                          type: 'text-start',
+                          id: '1',
+                        });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: '1',
+                          delta: 'Hello',
+                        });
+                        break;
+                      case 3:
+                        abortController.abort();
+                        controller.error(
+                          new DOMException(
+                            'The user aborted a request.',
+                            'AbortError',
+                          ),
+                        );
+                        break;
+                    }
+                },
+              }),
+            }),
+          }),
+          tools: {
+            tool1: {
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            },
+          },
+          stopWhen: stepCountIs(3),
+          ...defaultSettings(),
+          onError: error => {
+            onErrorCalls.push({ error });
+          },
+        });
+      });
+
+      it('should not call onError for abort errors', async () => {
+        await result.consumeStream();
+        expect(onErrorCalls).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should call onAbort when the abort signal is triggered', async () => {
+        await result.consumeStream();
+        expect(onAbortCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "providerMetadata": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "output": "result1",
+                      "providerExecuted": undefined,
+                      "providerMetadata": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": undefined,
+                    "id": "id-0",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+          ]
+        `);
+      });
+
+      it('should only stream initial chunks in full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "output": "result1",
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+            {
+              "finishReason": "tool-calls",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello",
+              "type": "text",
+            },
+            {
+              "type": "abort",
+            },
+          ]
+        `);
+      });
+
+      it('should sent an abort chunk in the ui message stream', async () => {
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-input-available",
+            },
+            {
+              "output": "result1",
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "type": "abort",
             },
           ]
         `);

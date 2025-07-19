@@ -17,6 +17,15 @@ export function createStitchableStream<T>(): {
   let isClosed = false;
   let waitForNewStream = createResolvablePromise<void>();
 
+  const terminate = () => {
+    isClosed = true;
+    waitForNewStream.resolve();
+
+    innerStreamReaders.forEach(reader => reader.cancel());
+    innerStreamReaders = [];
+    controller?.close();
+  };
+
   const processPull = async () => {
     // Case 1: Outer stream is closed and no more inner streams
     if (isClosed && innerStreamReaders.length === 0) {
@@ -53,10 +62,7 @@ export function createStitchableStream<T>(): {
       // Case 5: Current inner stream throws an error
       controller?.error(error);
       innerStreamReaders.shift(); // Remove the errored stream
-
-      if (isClosed && innerStreamReaders.length === 0) {
-        controller?.close();
-      }
+      terminate(); // we have errored, terminate all streams
     }
   };
 
@@ -100,13 +106,6 @@ export function createStitchableStream<T>(): {
      * Immediately close the outer stream. This will cancel all inner streams
      * and close the outer stream.
      */
-    terminate: () => {
-      isClosed = true;
-      waitForNewStream.resolve();
-
-      innerStreamReaders.forEach(reader => reader.cancel());
-      innerStreamReaders = [];
-      controller?.close();
-    },
+    terminate,
   };
 }

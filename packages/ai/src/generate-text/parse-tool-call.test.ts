@@ -80,13 +80,39 @@ describe('parseToolCall', () => {
     `);
   });
 
-  it('should successfully process empty calls for tools that have no inputSchema', async () => {
+  it('should successfully process empty tool calls for tools that have no inputSchema', async () => {
     const result = await parseToolCall({
       toolCall: {
         type: 'tool-call',
         toolName: 'testTool',
         toolCallId: '123',
         input: '',
+      },
+      tools: {
+        testTool: tool({
+          inputSchema: z.object({}),
+        }),
+      } as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toEqual({
+      type: 'tool-call',
+      toolCallId: '123',
+      toolName: 'testTool',
+      input: {},
+    });
+  });
+
+  it('should successfully process empty object tool calls for tools that have no inputSchema', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{}',
       },
       tools: {
         testTool: tool({
