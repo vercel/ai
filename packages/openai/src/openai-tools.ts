@@ -4,6 +4,7 @@ import { codeInterpreter } from './tool/code-interpreter';
 
 export { fileSearch } from './tool/file-search';
 export { webSearchPreview } from './tool/web-search-preview';
+export { codeInterpreter } from './tool/code-interpreter';
 
 export type {
   OpenAITool,
@@ -14,7 +15,6 @@ export type {
   OpenAIWebSearchPreviewTool,
   OpenAIWebSearchUserLocation,
 } from './openai-types';
-
 
 export const openaiTools = {
   fileSearch,
