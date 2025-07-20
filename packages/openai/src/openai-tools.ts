@@ -15,7 +15,6 @@ export type {
   OpenAIWebSearchUserLocation,
 } from './openai-types';
 
-
 export const openaiTools = {
   fileSearch,
   webSearchPreview,

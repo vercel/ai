@@ -25,7 +25,7 @@ import { OpenAITranscriptionModelId } from './openai-transcription-options';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
 import { OpenAISpeechModel } from './openai-speech-model';
 import { OpenAISpeechModelId } from './openai-speech-options';
-import { CustomOpenAIResponsesLanguageModel } from './responses/custom-openai-responses-language-model.tscustom-openai-responses-language-model';
+import { CustomOpenAIResponsesLanguageModel } from './responses/custom-openai-responses-language-model';
 
 export interface OpenAIProvider extends ProviderV2 {
   (modelId: OpenAIResponsesModelId): LanguageModelV2;
