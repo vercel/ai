@@ -68,6 +68,8 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
     }),
     onError: handleError,
   }).finally(() => {
+    // Only close if no error occurred. Calling close() on an errored controller 
+    // throws "Invalid state: Controller is already closed" TypeError.
     if (!hasErrored) {
       controller?.close();
     }
