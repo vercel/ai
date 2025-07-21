@@ -257,6 +257,122 @@ describe('PerplexityLanguageModel', () => {
         'custom-request-header': 'request-header-value',
       });
     });
+
+    it('should extract JSON from reasoning model responses with <think> sections', async () => {
+      const reasoningModelId = 'sonar-deep-research';
+      const reasoningModel = new PerplexityLanguageModel(reasoningModelId, {
+        baseURL: 'https://api.perplexity.ai',
+        headers: () => ({
+          authorization: 'Bearer test-token',
+          'content-type': 'application/json',
+        }),
+        generateId: mockId(),
+      });
+
+      prepareJsonResponse({
+        content:
+          '<think>\nI need to provide information about France in a structured JSON format with specific fields: country, capital, population, official_language.\n\nFor France:\n- Country: France\n- Capital: Paris\n- Population: About 67 million (as of 2023)\n- Official Language: French\n\nLet me format this information as required.\n</think>\n{"country":"France","capital":"Paris","population":67750000,"official_language":"French"}',
+      });
+
+      const result = await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json', schema: {} },
+      });
+
+      // Should extract only the JSON content, not the <think> section
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "{"country":"France","capital":"Paris","population":67750000,"official_language":"French"}",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should handle reasoning model responses without <think> sections', async () => {
+      const reasoningModelId = 'sonar-reasoning-pro';
+      const reasoningModel = new PerplexityLanguageModel(reasoningModelId, {
+        baseURL: 'https://api.perplexity.ai',
+        headers: () => ({
+          authorization: 'Bearer test-token',
+          'content-type': 'application/json',
+        }),
+        generateId: mockId(),
+      });
+
+      prepareJsonResponse({
+        content: '{"result": "This is a direct response without thinking"}',
+      });
+
+      const result = await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json', schema: {} },
+      });
+
+      // Should return content as-is when there's no <think> section
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "{"result": "This is a direct response without thinking"}",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should not process <think> sections for non-reasoning models', async () => {
+      prepareJsonResponse({
+        content:
+          '<think>This should not be processed</think>{"result": "content"}',
+      });
+
+      const result = await perplexityModel.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      // Non-reasoning models should return content as-is
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "<think>This should not be processed</think>{"result": "content"}",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should not process <think> sections for reasoning models without structured output', async () => {
+      const reasoningModelId = 'sonar-deep-research';
+      const reasoningModel = new PerplexityLanguageModel(reasoningModelId, {
+        baseURL: 'https://api.perplexity.ai',
+        headers: () => ({
+          authorization: 'Bearer test-token',
+          'content-type': 'application/json',
+        }),
+        generateId: mockId(),
+      });
+
+      prepareJsonResponse({
+        content:
+          '<think>This is my reasoning process about the topic</think>Based on my analysis, I believe the answer is 42.',
+      });
+
+      const result = await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        // No responseFormat - plain text generation
+      });
+
+      // Should preserve <think> sections for plain text generation
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "<think>This is my reasoning process about the topic</think>Based on my analysis, I believe the answer is 42.",
+            "type": "text",
+          },
+        ]
+      `);
+    });
   });
 
   describe('doStream', () => {

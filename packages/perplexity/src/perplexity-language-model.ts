@@ -17,6 +17,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
+import { extractJSONFromReasoningResponse } from './extract-json-from-reasoning-response';
+import { isReasoningModel } from './is-reasoning-model';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
 import { PerplexityLanguageModelId } from './perplexity-language-model-options';
 
@@ -143,7 +145,17 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
     const content: Array<LanguageModelV2Content> = [];
 
     // text content:
-    const text = choice.message.content;
+    let text = choice.message.content;
+
+    // For reasoning models generating structured JSON output, extract JSON by removing <think> sections
+    if (
+      isReasoningModel(this.modelId) &&
+      options.responseFormat?.type === 'json' &&
+      text.length > 0
+    ) {
+      text = extractJSONFromReasoningResponse(text);
+    }
+
     if (text.length > 0) {
       content.push({ type: 'text', text });
     }
