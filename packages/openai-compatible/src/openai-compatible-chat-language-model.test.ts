@@ -886,6 +886,51 @@ describe('doGenerate', () => {
       `);
     });
   });
+
+  it('should handle null tools in providerOptions', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'standard-tool',
+          inputSchema: { type: 'object' },
+        },
+      ],
+      providerOptions: {
+        'test-provider': {
+          tools: null,
+          other_config: 'value',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tools[0].function.name).toBe('standard-tool');
+    expect(requestBody.other_config).toBe('value');
+  });
+
+  it('should handle different provider name in providerOptions', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      providerOptions: {
+        'different-provider': {
+          tools: [{ type: 'custom_tool' }],
+        },
+        'test-provider': {
+          custom_setting: 'value',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tools).toBeUndefined();
+    expect(requestBody.custom_setting).toBe('value');
+  });
 });
 
 describe('doStream', () => {
@@ -2021,7 +2066,6 @@ describe('doStream', () => {
       `);
     });
   });
-  // 在 doStream describe 块中添加这些测试
 
   it('should prioritize providerOptions tools in streaming', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
@@ -2057,7 +2101,6 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    // 请求已经发送，直接检查请求体
     expect(await server.calls[0].requestBodyJson).toMatchObject({
       tools: [
         {
@@ -2103,6 +2146,53 @@ describe('doStream', () => {
         },
       ],
       stream: true,
+    });
+  });
+
+  it('should emit warning when both tools are specified in streaming', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n',
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'standard-tool',
+          inputSchema: { type: 'object' },
+        },
+      ],
+      providerOptions: {
+        'test-provider': {
+          tools: [
+            {
+              type: 'web_search_20250305',
+              name: 'web_search',
+              max_uses: 5,
+            },
+          ],
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const reader = stream.getReader();
+    const { value: firstChunk } = await reader.read();
+    reader.releaseLock();
+
+    expect(firstChunk).toMatchObject({
+      type: 'stream-start',
+      warnings: expect.arrayContaining([
+        {
+          type: 'other',
+          message:
+            "Both 'tools' parameter and 'providerOptions.test-provider.tools' are specified. Using providerOptions tools.",
+        },
+      ]),
     });
   });
 });
