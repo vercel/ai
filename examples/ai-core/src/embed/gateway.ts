@@ -2,9 +2,7 @@ import { createGatewayProvider } from '@ai-sdk/gateway';
 import { embed } from 'ai';
 import 'dotenv/config';
 
-const gateway = createGatewayProvider({
-  baseURL: 'http://localhost:3000/v1/ai',
-});
+const gateway = createGatewayProvider();
 
 async function main() {
   const { embedding, usage } = await embed({
