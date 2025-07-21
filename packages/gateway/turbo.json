@@ -1,12 +1,12 @@
 {
-  "extends": [
-      "//"
-  ],
-  "tasks": {
-      "build": {
-          "outputs": [
-              "**/dist/**"
-          ]
-      }
-  }
+    "extends": [
+        "//"
+    ],
+    "tasks": {
+        "build": {
+            "outputs": [
+                "**/dist/**"
+            ]
+        }
+    }
 }
