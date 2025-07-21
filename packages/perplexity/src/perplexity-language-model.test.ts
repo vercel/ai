@@ -55,6 +55,7 @@ describe('PerplexityLanguageModel', () => {
         completion_tokens: number;
         citation_tokens?: number;
         num_search_queries?: number;
+        reasoning_tokens?: number;
       };
       id?: string;
       created?: number;
@@ -214,6 +215,7 @@ describe('PerplexityLanguageModel', () => {
           completion_tokens: 20,
           citation_tokens: 30,
           num_search_queries: 40,
+          reasoning_tokens: 50,
         },
       });
 
@@ -221,7 +223,11 @@ describe('PerplexityLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 20 });
+      expect(result.usage).toEqual({
+        inputTokens: 10,
+        outputTokens: 20,
+        reasoningTokens: 50,
+      });
 
       expect(result.providerMetadata).toEqual({
         perplexity: {
@@ -295,6 +301,7 @@ describe('PerplexityLanguageModel', () => {
         completion_tokens: number;
         citation_tokens?: number;
         num_search_queries?: number;
+        reasoning_tokens?: number;
       };
       citations?: string[];
       images?: z.infer<typeof perplexityImageSchema>[];
@@ -400,6 +407,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": 10,
               "outputTokens": 20,
+              "reasoningTokens": undefined,
               "totalTokens": undefined,
             },
           },
@@ -482,6 +490,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": 10,
               "outputTokens": 20,
+              "reasoningTokens": undefined,
               "totalTokens": undefined,
             },
           },
@@ -580,6 +589,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": 10,
               "outputTokens": 20,
+              "reasoningTokens": undefined,
               "totalTokens": undefined,
             },
           },
@@ -595,6 +605,7 @@ describe('PerplexityLanguageModel', () => {
           completion_tokens: 21,
           citation_tokens: 30,
           num_search_queries: 40,
+          reasoning_tokens: 50,
         },
       });
 
@@ -655,6 +666,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": 11,
               "outputTokens": 21,
+              "reasoningTokens": 50,
               "totalTokens": undefined,
             },
           },
@@ -830,6 +842,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": undefined,
               "outputTokens": undefined,
+              "reasoningTokens": undefined,
               "totalTokens": undefined,
             },
           },
