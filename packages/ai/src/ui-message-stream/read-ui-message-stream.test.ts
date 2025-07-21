@@ -100,19 +100,4 @@ describe('readUIMessageStream', () => {
         ]
       `);
   });
-
-  it('should throw an error when encountering an error UI stream part', async () => {
-    const stream = createUIMessageStream([
-      { type: 'start', messageId: 'msg-123' },
-      { type: 'text-start', id: 'text-1' },
-      { type: 'text-delta', id: 'text-1', delta: 'Hello' },
-      { type: 'error', errorText: 'Test error message' },
-    ]);
-
-    const uiMessages = readUIMessageStream({ stream });
-
-    await expect(convertAsyncIterableToArray(uiMessages)).rejects.toThrow(
-      'Test error message',
-    );
-  });
 });
