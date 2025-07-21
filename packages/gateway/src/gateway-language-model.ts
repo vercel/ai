@@ -40,11 +40,10 @@ export class GatewayLanguageModel implements LanguageModelV2 {
   }
 
   private async getArgs(options: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const { abortSignal, ...optionsWithoutSignal } = options;
-    const args = this.maybeEncodeFileParts(optionsWithoutSignal);
+    const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
 
     return {
-      args,
+      args: this.maybeEncodeFileParts(optionsWithoutSignal),
       warnings: [],
     };
   }
