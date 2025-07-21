@@ -2021,6 +2021,90 @@ describe('doStream', () => {
       `);
     });
   });
+  // 在 doStream describe 块中添加这些测试
+
+  it('should prioritize providerOptions tools in streaming', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n',
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'standard-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+          },
+        },
+      ],
+      providerOptions: {
+        'test-provider': {
+          tools: [
+            {
+              type: 'web_search_20250305',
+              name: 'web_search',
+              max_uses: 5,
+            },
+          ],
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    // 请求已经发送，直接检查请求体
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      tools: [
+        {
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 5,
+        },
+      ],
+      stream: true,
+    });
+  });
+
+  it('should handle providerOptions tools without standard tools in streaming', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n',
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    await model.doStream({
+      providerOptions: {
+        'test-provider': {
+          tools: [
+            {
+              type: 'web_search_20250305',
+              name: 'web_search',
+              max_uses: 5,
+            },
+          ],
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      tools: [
+        {
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 5,
+        },
+      ],
+      stream: true,
+    });
+  });
 });
 
 describe('metadata extraction', () => {
