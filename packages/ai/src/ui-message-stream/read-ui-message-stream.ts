@@ -28,6 +28,7 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
   stream: ReadableStream<UIMessageChunk>;
 }): AsyncIterableStream<UI_MESSAGE> {
   let controller: ReadableStreamDefaultController<UI_MESSAGE> | undefined;
+  let hasErrored = false;
 
   const outputStream = new ReadableStream<UI_MESSAGE>({
     start(controllerParam) {
@@ -39,6 +40,13 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
     messageId: message?.id ?? '',
     lastMessage: message,
   });
+
+  const handleError = (error: unknown) => {
+    if (!hasErrored) {
+      hasErrored = true;
+      controller?.error(error);
+    }
+  };
 
   consumeStream({
     stream: processUIMessageStream({
@@ -56,12 +64,15 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
           },
         });
       },
-      onError: error => {
-        throw error;
-      },
+      onError: handleError,
     }),
+    onError: handleError,
   }).finally(() => {
-    controller?.close();
+    // Only close if no error occurred. Calling close() on an errored controller
+    // throws "Invalid state: Controller is already closed" TypeError.
+    if (!hasErrored) {
+      controller?.close();
+    }
   });
 
   return createAsyncIterableStream(outputStream);
