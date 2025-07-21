@@ -1,5 +1,11 @@
 # @ai-sdk/vercel
 
+## 1.0.0-beta.9
+
+### Patch Changes
+
+- 6f87d1d: feat (provider/vercel): update chat model ids and examples
+
 ## 1.0.0-beta.8
 
 ### Patch Changes
