@@ -77,7 +77,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
   private getModelConfigHeaders() {
     return {
       'ai-embedding-model-specification-version': '2',
-      'ai-embedding-model-id': this.modelId,
+      'ai-model-id': this.modelId,
       'ai-embedding-model-streaming': 'false',
     };
   }
