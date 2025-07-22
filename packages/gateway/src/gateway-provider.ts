@@ -114,7 +114,7 @@ export function createGatewayProvider(
     });
   };
 
-  const createLanguageModel = (modelId: GatewayModelId) => {
+  const createO11yHeaders = () => {
     const deploymentId = loadOptionalSetting({
       settingValue: undefined,
       environmentVariableName: 'VERCEL_DEPLOYMENT_ID',
@@ -128,20 +128,24 @@ export function createGatewayProvider(
       environmentVariableName: 'VERCEL_REGION',
     });
 
+    return async () => {
+      const requestId = await getVercelRequestId();
+      return {
+        ...(deploymentId && { 'ai-o11y-deployment-id': deploymentId }),
+        ...(environment && { 'ai-o11y-environment': environment }),
+        ...(region && { 'ai-o11y-region': region }),
+        ...(requestId && { 'ai-o11y-request-id': requestId }),
+      };
+    };
+  };
+
+  const createLanguageModel = (modelId: GatewayModelId) => {
     return new GatewayLanguageModel(modelId, {
       provider: 'gateway',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      o11yHeaders: async () => {
-        const requestId = await getVercelRequestId();
-        return {
-          ...(deploymentId && { 'ai-o11y-deployment-id': deploymentId }),
-          ...(environment && { 'ai-o11y-environment': environment }),
-          ...(region && { 'ai-o11y-region': region }),
-          ...(requestId && { 'ai-o11y-request-id': requestId }),
-        };
-      },
+      o11yHeaders: createO11yHeaders(),
     });
   };
 
@@ -184,33 +188,12 @@ export function createGatewayProvider(
   };
   provider.languageModel = createLanguageModel;
   provider.textEmbeddingModel = (modelId: GatewayEmbeddingModelId) => {
-    const deploymentId = loadOptionalSetting({
-      settingValue: undefined,
-      environmentVariableName: 'VERCEL_DEPLOYMENT_ID',
-    });
-    const environment = loadOptionalSetting({
-      settingValue: undefined,
-      environmentVariableName: 'VERCEL_ENV',
-    });
-    const region = loadOptionalSetting({
-      settingValue: undefined,
-      environmentVariableName: 'VERCEL_REGION',
-    });
-
     return new GatewayEmbeddingModel(modelId, {
       provider: 'gateway',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      o11yHeaders: async () => {
-        const requestId = await getVercelRequestId();
-        return {
-          ...(deploymentId && { 'ai-o11y-deployment-id': deploymentId }),
-          ...(environment && { 'ai-o11y-environment': environment }),
-          ...(region && { 'ai-o11y-region': region }),
-          ...(requestId && { 'ai-o11y-request-id': requestId }),
-        };
-      },
+      o11yHeaders: createO11yHeaders(),
     });
   };
 
