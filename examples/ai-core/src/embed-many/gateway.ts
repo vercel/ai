@@ -1,8 +1,6 @@
-import { createGatewayProvider } from '@ai-sdk/gateway';
+import { gateway } from '@ai-sdk/gateway';
 import { embedMany } from 'ai';
 import 'dotenv/config';
-
-const gateway = createGatewayProvider();
 
 async function main() {
   const { embeddings, usage } = await embedMany({
