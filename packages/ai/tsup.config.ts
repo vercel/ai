@@ -38,7 +38,7 @@ export default defineConfig([
     entry: ['src/bin/ai.ts'],
     outDir: 'dist/bin',
     outExtension: () => ({ js: '.min.js' }),
-    format: 'cjs',
+    format: ['cjs'],
     bundle: true,
     minify: true,
     banner: { js: '#!/usr/bin/env node' },
