@@ -49,8 +49,8 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
             await resolve(this.config.o11yHeaders),
           ),
           body: {
-            input: values,
-            ...(providerOptions ? { providerOptions } : {}),
+            input: values.length === 1 ? values[0] : values,
+            ...(providerOptions ?? {}),
           },
           successfulResponseHandler: createJsonResponseHandler(
             gatewayEmbeddingResponseSchema,
