@@ -15,6 +15,7 @@ import {
 } from './gateway-fetch-metadata';
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
+import type { GatewayEmbeddingModelId } from './gateway-embedding-options';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
@@ -39,7 +40,7 @@ Returns available providers and models for use with the remote provider.
   /**
 Creates a model for generating text embeddings.
 */
-  textEmbeddingModel(modelId: string): EmbeddingModelV2<string>;
+  textEmbeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV2<string>;
 }
 
 export interface GatewayProviderSettings {
@@ -182,7 +183,7 @@ export function createGatewayProvider(
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
   provider.languageModel = createLanguageModel;
-  provider.textEmbeddingModel = (modelId: string) => {
+  provider.textEmbeddingModel = (modelId: GatewayEmbeddingModelId) => {
     const deploymentId = loadOptionalSetting({
       settingValue: undefined,
       environmentVariableName: 'VERCEL_DEPLOYMENT_ID',
@@ -242,7 +243,7 @@ export async function getGatewayAuthToken(
       token: oidcToken,
       authMethod: 'oidc',
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 }
