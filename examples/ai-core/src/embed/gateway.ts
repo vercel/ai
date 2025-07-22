@@ -12,4 +12,4 @@ async function main() {
   console.log(usage);
 }
 
-main().catch(console.error); 
+main().catch(console.error);

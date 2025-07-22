@@ -39,26 +39,29 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
   > {
     const resolvedHeaders = await resolve(this.config.headers());
     try {
-      const { responseHeaders, value: responseBody, rawValue } =
-        await postJsonToApi({
-          url: this.getUrl(),
-          headers: combineHeaders(
-            resolvedHeaders,
-            headers ?? {},
-            this.getModelConfigHeaders(),
-            await resolve(this.config.o11yHeaders),
-          ),
-          body: {
-            input: values.length === 1 ? values[0] : values,
-            ...(providerOptions ?? {}),
-          },
-          successfulResponseHandler: createJsonResponseHandler(
-            gatewayEmbeddingResponseSchema,
-          ),
-          failedResponseHandler: createJsonResponseHandler(z.any()),
-          ...(abortSignal && { abortSignal }),
-          fetch: this.config.fetch,
-        });
+      const {
+        responseHeaders,
+        value: responseBody,
+        rawValue,
+      } = await postJsonToApi({
+        url: this.getUrl(),
+        headers: combineHeaders(
+          resolvedHeaders,
+          headers ?? {},
+          this.getModelConfigHeaders(),
+          await resolve(this.config.o11yHeaders),
+        ),
+        body: {
+          input: values.length === 1 ? values[0] : values,
+          ...(providerOptions ?? {}),
+        },
+        successfulResponseHandler: createJsonResponseHandler(
+          gatewayEmbeddingResponseSchema,
+        ),
+        failedResponseHandler: createJsonResponseHandler(z.any()),
+        ...(abortSignal && { abortSignal }),
+        fetch: this.config.fetch,
+      });
 
       return {
         embeddings: responseBody.embeddings,
@@ -85,7 +88,5 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
 
 const gatewayEmbeddingResponseSchema = z.object({
   embeddings: z.array(z.array(z.number())),
-  usage: z
-    .object({ tokens: z.number() })
-    .nullish(),
-}); 
+  usage: z.object({ tokens: z.number() }).nullish(),
+});

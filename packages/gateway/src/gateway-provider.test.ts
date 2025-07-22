@@ -127,7 +127,9 @@ describe('GatewayProvider', () => {
         baseURL: 'https://api.example.com',
       });
 
-      const model = provider.textEmbeddingModel('openai/text-embedding-3-small');
+      const model = provider.textEmbeddingModel(
+        'openai/text-embedding-3-small',
+      );
       expect(model).toBeInstanceOf(GatewayEmbeddingModel);
     });
 

@@ -40,7 +40,9 @@ Returns available providers and models for use with the remote provider.
   /**
 Creates a model for generating text embeddings.
 */
-  textEmbeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV2<string>;
+  textEmbeddingModel(
+    modelId: GatewayEmbeddingModelId,
+  ): EmbeddingModelV2<string>;
 }
 
 export interface GatewayProviderSettings {
