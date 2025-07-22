@@ -9,7 +9,7 @@ async function main() {
       gateway: {
         order: ['bedrock', 'anthropic'],
       },
-    }
+    },
   });
 
   for await (const textPart of result.textStream) {
