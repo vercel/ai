@@ -1000,6 +1000,36 @@ import { useChat } from '@ai-sdk/react';
 
 The `useChat` hook has undergone significant changes in v5, with new transport architecture, removal of managed input state, and more.
 
+#### Initial Messages Renamed
+
+The `initialMessages` option has been renamed to `messages`.
+
+```tsx filename="AI SDK 4.0"
+import { useChat, type Message } from '@ai-sdk/react';
+
+function ChatComponent({ initialMessages }: { initialMessages: Message[] }) {
+  const { messages } = useChat({
+    initialMessages: initialMessages,
+    // ...
+  });
+
+  // your component
+}
+```
+
+```tsx filename="AI SDK 5.0"
+import { useChat, type UIMessage } from '@ai-sdk/react';
+
+function ChatComponent({ initialMessages }: { initialMessages: UIMessage[] }) {
+  const { messages } = useChat({
+    messages: initialMessages,
+    // ...
+  });
+
+  // your component
+}
+```
+
 #### Chat Transport Architecture
 
 Configuration is now handled through transport objects instead of direct API options.
