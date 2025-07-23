@@ -617,7 +617,7 @@ const { text } = await generateText({
 In order to send multi-modal tool results, e.g. screenshots, back to the model,
 they need to be converted into a specific format.
 
-AI SDK Core tools have an optional `experimental_toToolResultContent` function
+AI SDK Core tools have an optional `toModelOutput` function
 that converts the tool result into a content part.
 
 Here is an example for converting a screenshot into a content part:

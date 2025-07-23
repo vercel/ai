@@ -108,7 +108,7 @@ const computerTool = anthropic.tools.computer_20241022({
       }
     }
   },
-  experimental_toToolResultContent(result) {
+  toModelOutput(result) {
     return typeof result === 'string'
       ? [{ type: 'text', text: result }]
       : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
@@ -118,7 +118,7 @@ const computerTool = anthropic.tools.computer_20241022({
 
 The `computerTool` handles two main actions: taking screenshots via `getScreenshot()` and executing computer actions like mouse movements and clicks through `executeComputerAction()`. Remember, you have to implement this execution logic (eg. the `getScreenshot` and `executeComputerAction` functions) to handle the actual computer interactions. The `execute` function should handle all low-level interactions with the operating system.
 
-Finally, to send tool results back to the model, use the [`experimental_toToolResultContent()`](/docs/foundations/prompts#multi-modal-tool-results) function to convert text and image responses into a format the model can process. The AI SDK includes experimental support for these multi-modal tool results when using Anthropic's models.
+Finally, to send tool results back to the model, use the [`toModelOutput()`](/docs/foundations/prompts#multi-modal-tool-results) function to convert text and image responses into a format the model can process. The AI SDK includes experimental support for these multi-modal tool results when using Anthropic's models.
 
 <Note>
   Computer Use requires appropriate safety measures like using virtual machines,
