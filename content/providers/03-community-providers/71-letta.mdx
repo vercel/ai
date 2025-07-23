@@ -93,9 +93,15 @@ const { text } = await generateText({
 The `vercel-ai-sdk-provider` extends the [@letta-ai/letta-client](https://www.npmjs.com/package/@letta-ai/letta-client), you can access the operations directly by using `lettaCloud.client` or `lettaLocal.client` or your custom generated `letta.client`
 
 ```ts
+// with Letta Cloud
 import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
 
 lettaCloud.client.agents.list();
+
+// with Letta Local
+import { lettaLocal } from '@letta-ai/vercel-ai-sdk-provider';
+
+lettaLocal.client.agents.list();
 ```
 
 ### More Information
