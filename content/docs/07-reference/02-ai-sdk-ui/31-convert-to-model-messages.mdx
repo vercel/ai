@@ -5,11 +5,6 @@ description: Convert useChat messages to ModelMessages for AI functions (API Ref
 
 # `convertToModelMessages()`
 
-<Note title="warning">
-  The `convertToModelMessages` function is no longer required. The AI SDK now
-  automatically converts the incoming messages to the `ModelMessage` format.
-</Note>
-
 The `convertToModelMessages` function is used to transform an array of UI messages from the `useChat` hook into an array of `ModelMessage` objects. These `ModelMessage` objects are compatible with AI core functions like `streamText`.
 
 ```ts filename="app/api/chat/route.ts"
