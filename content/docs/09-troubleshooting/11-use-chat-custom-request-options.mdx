@@ -51,7 +51,7 @@ sendMessage(
       user_id: getCurrentUserId(), // Dynamic user ID
       sessionId: getCurrentSessionId(), // Dynamic session
     },
-  }
+  },
 );
 ```
 
@@ -70,13 +70,13 @@ const { messages, sendMessage } = useChat({
     api: '/api/chat',
     headers: {
       'X-API-Version': 'v1', // Static API version
-      'X-App-ID': 'my-app',  // Static app identifier
+      'X-App-ID': 'my-app', // Static app identifier
     },
     body: {
-      model: 'gpt-4o',        // Default model
-      stream: true,          // Static configuration
+      model: 'gpt-4o', // Default model
+      stream: true, // Static configuration
     },
-    credentials: 'include',  // Static credentials policy
+    credentials: 'include', // Static credentials policy
   }),
 });
 ```
@@ -100,13 +100,16 @@ const { messages, sendMessage } = useChat({
       sessionId: getCurrentSessionId(),
       preferences: getUserPreferences(),
     }),
-    credentials: () => isAuthenticated() ? 'include' : 'same-origin',
+    credentials: () => (isAuthenticated() ? 'include' : 'same-origin'),
   }),
 });
 ```
 
 <Note>
-For component state that changes over time, request-level configuration (Option 1) is recommended. If using hook-level functions, consider using `useRef` to store current values and reference `ref.current` in your configuration function.
+  For component state that changes over time, request-level configuration
+  (Option 1) is recommended. If using hook-level functions, consider using
+  `useRef` to store current values and reference `ref.current` in your
+  configuration function.
 </Note>
 
 ### Combining Hook and Request Level Options
@@ -137,9 +140,9 @@ sendMessage(
     },
     body: {
       model: 'gpt-4o-mini', // This overrides the hook-level body field
-      temperature: 0.5,     // This is added
+      temperature: 0.5, // This is added
     },
-  }
+  },
 );
 ```
 
