@@ -970,10 +970,10 @@ The following optional provider options are available for OpenAI embedding model
 ## Image Models
 
 You can create models that call the [OpenAI image generation API](https://platform.openai.com/docs/api-reference/images)
-using the `.image()` factory method.
+using the `.imageModel()` factory method.
 
 ```ts
-const model = openai.image('dall-e-3');
+const model = openai.imageModel('dall-e-3');
 ```
 
 <Note>
@@ -993,7 +993,7 @@ You can pass optional `providerOptions` to the image model. These are prone to c
 
 ```ts
 const { image, providerMetadata } = await generateImage({
-  model: openai.image('gpt-image-1'),
+  model: openai.imageModel('gpt-image-1'),
   prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
     openai: { quality: 'high' },
