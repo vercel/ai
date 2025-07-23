@@ -2355,16 +2355,17 @@ import {
 } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
+const updatedMessages = appendClientMessage({
+  messages,
+  message: lastUserMessage,
+});
+
 const result = streamText({
   model: openai('gpt-4o'),
-  messages: convertToModelMessages(messages),
+  messages: updatedMessages,
   experimental_generateMessageId: () => generateId(), // ID generation on streamText
   onFinish: async ({ responseMessages, usage }) => {
     // Use helper functions to format messages
-    const updatedMessages = appendClientMessage({
-      messages,
-      message: lastUserMessage,
-    });
     const finalMessages = appendResponseMessages({
       messages: updatedMessages,
       responseMessages,
@@ -2395,9 +2396,12 @@ const result = streamText({
 return result.toUIMessageStreamResponse({
   originalMessages: messages, // Pass original messages for context
   generateMessageId: () => generateId(), // ID generation moved here for UI messages
-  onFinish: ({ messages }) => {
+  onFinish: ({ messages, responseMessage }) => {
     // messages contains all messages (original + response) in UIMessage format
     saveChat({ chatId, messages });
+
+    // responseMessage contains just the generated message in UIMessage format
+    saveMessage({ chatId, message: responseMessage });
   },
 });
 ```
