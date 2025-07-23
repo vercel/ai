@@ -2,6 +2,7 @@ import type { EmbeddingModelV2 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
+  createJsonErrorResponseHandler,
   postJsonToApi,
   resolve,
   type Resolvable,
@@ -58,7 +59,10 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
         successfulResponseHandler: createJsonResponseHandler(
           gatewayEmbeddingResponseSchema,
         ),
-        failedResponseHandler: createJsonResponseHandler(z.any()),
+        failedResponseHandler: createJsonErrorResponseHandler({
+          errorSchema: z.any(),
+          errorToMessage: data => data,
+        }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
       });
