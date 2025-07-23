@@ -85,7 +85,6 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
     return {
       'ai-embedding-model-specification-version': '2',
       'ai-model-id': this.modelId,
-      'ai-embedding-model-streaming': 'false',
     };
   }
 }

@@ -67,7 +67,6 @@ describe('GatewayEmbeddingModel', () => {
         'custom-header': 'test-value',
         'ai-embedding-model-specification-version': '2',
         'ai-model-id': 'openai/text-embedding-3-small',
-        'ai-embedding-model-streaming': 'false',
       });
     });
 
