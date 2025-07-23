@@ -26,6 +26,17 @@ describe('shouldResubmitMessages', () => {
     ).toBe(false);
   });
 
+  it('should return false when there is no last message (empty messages array)', () => {
+    expect(
+      shouldResubmitMessages({
+        originalMaxToolInvocationStep: undefined,
+        originalMessageCount: 0,
+        maxSteps: 3,
+        messages: [],
+      }),
+    ).toBe(false);
+  });
+
   it('should allow resubmission when maxSteps > 1 and there are tool invocations with results', () => {
     expect(
       shouldResubmitMessages({
