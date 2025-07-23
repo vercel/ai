@@ -588,6 +588,34 @@ for await (const part of result.fullStream) {
 }
 ```
 
+### Tool Call Streaming Now Default (toolCallStreaming Removed)
+
+The `toolCallStreaming` option has been removed in AI SDK 5.0. Tool call streaming is now always enabled by default.
+
+```tsx filename="AI SDK 4.0"
+const result = streamText({
+  model: openai('gpt-4o'),
+  messages,
+  toolCallStreaming: true, // Optional parameter to enable streaming
+  tools: {
+    weatherTool,
+    searchTool,
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+const result = streamText({
+  model: openai('gpt-4o'),
+  messages: convertToModelMessages(messages),
+  // toolCallStreaming removed - streaming is always enabled
+  tools: {
+    weatherTool,
+    searchTool,
+  },
+});
+```
+
 ### Tool Part Type Changes (UIMessage)
 
 In v5, UI tool parts use typed naming: `tool-${toolName}` instead of generic types.
