@@ -16,7 +16,7 @@
         "COHERE_API_KEY",
         "DEEPINFRA_API_KEY",
         "DEEPSEEK_API_KEY",
-        "DEPLOYMENT_ID",
+        "VERCEL_DEPLOYMENT_ID",
         "ELEVENLABS_API_KEY",
         "FAL_KEY",
         "FAL_API_KEY",

@@ -259,7 +259,7 @@ describe('GatewayProvider', () => {
     it('should not include undefined o11y headers', async () => {
       const originalEnv = process.env;
       process.env = { ...originalEnv };
-      process.env.DEPLOYMENT_ID = undefined;
+      process.env.VERCEL_DEPLOYMENT_ID = undefined;
       process.env.VERCEL_ENV = undefined;
       process.env.VERCEL_REGION = undefined;
 
