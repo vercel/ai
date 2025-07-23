@@ -14,7 +14,6 @@ import { parseAuthMethod } from './errors/parse-auth-method';
 
 export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
   readonly specificationVersion = 'v2';
-  readonly supportedUrls = { '*/*': [/.*/] } as const;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
 
