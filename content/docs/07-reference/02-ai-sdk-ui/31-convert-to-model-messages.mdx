@@ -78,7 +78,7 @@ import { z } from 'zod';
 const screenshotTool = tool({
   parameters: z.object({}),
   execute: async () => 'imgbase64',
-  experimental_toToolResultContent: result => [{ type: 'image', data: result }],
+  toModelOutput: result => [{ type: 'image', data: result }],
 });
 
 const result = streamText({
@@ -91,4 +91,4 @@ const result = streamText({
 });
 ```
 
-Tools can implement the optional `experimental_toToolResultContent` method to transform their results into multi-modal content. The content is an array of content parts, where each part has a `type` (e.g., 'text', 'image') and corresponding data.
+Tools can implement the optional `toModelOutput` method to transform their results into multi-modal content. The content is an array of content parts, where each part has a `type` (e.g., 'text', 'image') and corresponding data.
