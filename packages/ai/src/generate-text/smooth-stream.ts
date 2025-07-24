@@ -21,17 +21,30 @@ export type ChunkDetector = (buffer: string) => string | undefined | null;
  * Smooths text streaming output.
  *
  * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay.
- * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom RegExp pattern for custom chunking.
+ * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, "grapheme" for character-level using Intl.Segmenter, "word-intl" for word-level using Intl.Segmenter, "sentence" for sentence-level using Intl.Segmenter, or provide a custom RegExp pattern or ChunkDetector function for custom chunking.
+ * @param segmenterOptions - Options for Intl.Segmenter when using "grapheme", "word-intl", or "sentence" chunking. Includes locale and localeMatcher settings.
  *
  * @returns A transform stream that smooths text streaming output.
  */
 export function smoothStream<TOOLS extends ToolSet>({
   delayInMs = 10,
   chunking = 'word',
+  segmenterOptions = {},
   _internal: { delay = originalDelay } = {},
 }: {
   delayInMs?: number | null;
-  chunking?: 'word' | 'line' | RegExp | ChunkDetector;
+  chunking?:
+    | 'word'
+    | 'line'
+    | 'grapheme'
+    | 'word-intl'
+    | 'sentence'
+    | RegExp
+    | ChunkDetector;
+  segmenterOptions?: {
+    locale?: Intl.LocalesArgument;
+    localeMatcher?: Intl.SegmenterOptions['localeMatcher'];
+  };
   /**
    * Internal. For test use only. May change without notice.
    */
@@ -63,6 +76,67 @@ export function smoothStream<TOOLS extends ToolSet>({
 
       return match;
     };
+  } else if (
+    chunking === 'grapheme' ||
+    chunking === 'word-intl' ||
+    chunking === 'sentence'
+  ) {
+    const granularity =
+      chunking === 'grapheme'
+        ? 'grapheme'
+        : chunking === 'word-intl'
+          ? 'word'
+          : 'sentence';
+
+    let segmenter: Intl.Segmenter;
+    try {
+      segmenter = new Intl.Segmenter(segmenterOptions.locale, {
+        granularity,
+        localeMatcher: segmenterOptions.localeMatcher,
+      });
+    } catch (error) {
+      throw new InvalidArgumentError({
+        argument: 'segmenterOptions',
+        message: `Failed to create Intl.Segmenter: ${error}`,
+      });
+    }
+
+    detectChunk = buffer => {
+      const segments = segmenter.segment(buffer);
+      const segmentArray = Array.from(segments);
+
+      if (segmentArray.length === 0) {
+        return null;
+      }
+
+      // For word-intl granularity, find the first word-like segment plus any following non-word segments
+      if (chunking === 'word-intl') {
+        let endIndex = 0;
+        let foundWord = false;
+
+        for (const segment of segmentArray) {
+          endIndex = segment.index + segment.segment.length;
+
+          if (segment.isWordLike) {
+            foundWord = true;
+          } else if (foundWord) {
+            // Found a word, now include trailing non-word segments (spaces, punctuation)
+            // but stop at the next word-like segment
+            break;
+          }
+        }
+
+        if (!foundWord) {
+          // If no word-like segments, return the first segment
+          return segmentArray[0].segment;
+        }
+
+        return buffer.slice(0, endIndex);
+      } else {
+        // For grapheme and sentence, return the first segment
+        return segmentArray[0].segment;
+      }
+    };
   } else {
     const chunkingRegex =
       typeof chunking === 'string' ? CHUNKING_REGEXPS[chunking] : chunking;
@@ -70,7 +144,7 @@ export function smoothStream<TOOLS extends ToolSet>({
     if (chunkingRegex == null) {
       throw new InvalidArgumentError({
         argument: 'chunking',
-        message: `Chunking must be "word" or "line" or a RegExp. Received: ${chunking}`,
+        message: `Chunking must be "word", "line", "grapheme", "word-intl", "sentence", or a RegExp. Received: ${chunking}`,
       });
     }
 

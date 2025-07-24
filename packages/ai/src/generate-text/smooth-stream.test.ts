@@ -1025,4 +1025,100 @@ describe('smoothStream', () => {
       `);
     });
   });
+
+  describe('Intl.Segmenter grapheme chunking', () => {
+    it('should split text by graphemes including complex emoji', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'Hi🫵👨‍👩‍👦!', type: 'text', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          chunking: 'grapheme',
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "H",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "i",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "🫵",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "👨‍👩‍👦",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('Intl.Segmenter word-intl chunking', () => {
+    it('should split Japanese text by words using locale-aware segmentation', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: '私は猫です。名前はタロウです。', type: 'text', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          chunking: 'word-intl',
+          segmenterOptions: { locale: 'ja' },
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      // Note: This test verifies that Intl.Segmenter correctly segments Japanese text
+      // The exact segmentation may vary by implementation, but should be better than regex-based splitting
+      expect(events.length).toBeGreaterThan(4); // Should have text-start, multiple text chunks, and text-end
+      expect(events[0]).toEqual({ id: '1', type: 'text-start' });
+      expect(events[events.length - 1]).toEqual({ id: '1', type: 'text-end' });
+
+      // Verify we get text chunks with delays
+      const textEvents = events.filter(
+        e => typeof e === 'object' && e.type === 'text',
+      );
+      const delayEvents = events.filter(
+        e => typeof e === 'string' && e.startsWith('delay'),
+      );
+      expect(textEvents.length).toBeGreaterThan(1);
+      expect(delayEvents.length).toBeGreaterThan(0);
+    });
+  });
 });

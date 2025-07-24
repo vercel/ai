@@ -42,10 +42,17 @@ const result = streamText({
     },
     {
       name: 'chunking',
-      type: '"word" | "line" | RegExp | (buffer: string) => string | undefined | null',
+      type: '"word" | "line" | "grapheme" | "word-intl" | "sentence" | RegExp | (buffer: string) => string | undefined | null',
       isOptional: true,
       description:
-        'Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom callback or RegExp pattern for custom chunking.',
+        'Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, "grapheme" for character-level using Intl.Segmenter, "word-intl" for locale-aware word segmentation, "sentence" for sentence boundaries, or provide a custom callback or RegExp pattern for custom chunking.',
+    },
+    {
+      name: 'segmenterOptions',
+      type: '{ locale?: string | string[]; localeMatcher?: "lookup" | "best fit" }',
+      isOptional: true,
+      description:
+        'Options for Intl.Segmenter when using "grapheme", "word-intl", or "sentence" chunking. Specify locale for language-specific segmentation.',
     },
   ]}
 />
@@ -53,18 +60,21 @@ const result = streamText({
 #### Word chunking caveats with non-latin languages
 
 <Note>
-    The word based chunking **does not work well** with the following languages that do not delimit words with spaces:
+    The default "word" chunking **does not work well** with languages that do not delimit words with spaces.
 
-    For these languages we recommend using a custom regex, like the following:
+    **Recommended solution**: Use `chunking: "word-intl"` with appropriate `segmenterOptions.locale`:
+
+    ```ts
+    smoothStream({
+      chunking: 'word-intl',
+      segmenterOptions: { locale: 'ja' } // for Japanese
+    })
+    ```
+
+    Alternatively, you can use custom regex or chunking functions:
 
     - Chinese - `/[\u4E00-\u9FFF]|\S+\s+/`
     - Japanese - `/[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/`
-
-    For these languages you could pass your own language aware chunking function:
-
-    - Vietnamese
-    - Thai
-    - Javanese (Aksara Jawa)
 
 </Note>
 
