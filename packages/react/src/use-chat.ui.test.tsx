@@ -30,8 +30,6 @@ const server = createTestServer({
 });
 
 describe('initial messages', () => {
-  let onFinishCalls: Array<{ message: UIMessage }> = [];
-
   setupTestComponent(
     ({ id: idParam }: { id: string }) => {
       const [id, setId] = React.useState<string>(idParam);
@@ -63,10 +61,6 @@ describe('initial messages', () => {
       init: TestComponent => <TestComponent id={`first-${mockId()()}`} />,
     },
   );
-
-  beforeEach(() => {
-    onFinishCalls = [];
-  });
 
   it('should show initial messages', async () => {
     await waitFor(() => {

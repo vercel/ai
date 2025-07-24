@@ -401,6 +401,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             : part,
         ),
       });
+
+      // update the active response if it exists
+      if (this.activeResponse) {
+        this.activeResponse.state.message.parts =
+          this.activeResponse.state.message.parts.map(part =>
+            isToolUIPart(part) && part.toolCallId === toolCallId
+              ? {
+                  ...part,
+                  state: 'output-available',
+                  output,
+                  errorText: undefined,
+                }
+              : part,
+          );
+      }
     });
   };
 
