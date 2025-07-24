@@ -230,4 +230,15 @@ export class StructuredObject<
       this.#error.set(coalescedError);
     }
   };
+
+  reset = () => {
+    this.stop();
+    this.#resetObject();
+  };
+
+  #resetObject = () => {
+    this.#object.set(undefined);
+    this.#error.set(undefined);
+    this.#loading.set(false);
+  };
 }
