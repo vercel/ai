@@ -24,7 +24,11 @@ export default function Chat() {
             'Chicago',
             'San Francisco',
           ];
-          return cities[Math.floor(Math.random() * cities.length)];
+          addToolResult({
+            tool: 'getLocation',
+            toolCallId: toolCall.toolCallId,
+            output: cities[Math.floor(Math.random() * cities.length)],
+          });
         }
       },
     });
@@ -70,6 +74,7 @@ export default function Chat() {
                           className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                           onClick={() =>
                             addToolResult({
+                              tool: 'askForConfirmation',
                               toolCallId: part.toolCallId,
                               output: 'Yes, confirmed.',
                             })
@@ -81,6 +86,7 @@ export default function Chat() {
                           className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                           onClick={() =>
                             addToolResult({
+                              tool: 'askForConfirmation',
                               toolCallId: part.toolCallId,
                               output: 'No, denied',
                             })

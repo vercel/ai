@@ -370,9 +370,14 @@ describe('onToolCall', () => {
     chat = new Chat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
-        return `test-tool-response: ${toolCall.toolName} ${
-          toolCall.toolCallId
-        } ${JSON.stringify(toolCall.input)}`;
+
+        chat.addToolResult({
+          tool: 'test-tool',
+          toolCallId: toolCall.toolCallId,
+          output: `test-tool-response: ${toolCall.toolName} ${
+            toolCall.toolCallId
+          } ${JSON.stringify(toolCall.input)}`,
+        });
       },
     });
   });
@@ -649,6 +654,7 @@ describe('tool invocations', () => {
     });
 
     chat.addToolResult({
+      tool: 'test-tool',
       toolCallId: 'tool-call-0',
       output: 'test-result',
     });

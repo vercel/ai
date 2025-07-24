@@ -663,12 +663,16 @@ describe('onToolCall', () => {
   let toolCallPromise: Promise<void>;
 
   setupTestComponent(() => {
-    const { messages, sendMessage } = useChat({
+    const { messages, sendMessage, addToolResult } = useChat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
-        return `test-tool-response: ${toolCall.toolName} ${
-          toolCall.toolCallId
-        } ${JSON.stringify(toolCall.input)}`;
+        addToolResult({
+          tool: 'test-tool',
+          toolCallId: toolCall.toolCallId,
+          output: `test-tool-response: ${toolCall.toolName} ${
+            toolCall.toolCallId
+          } ${JSON.stringify(toolCall.input)}`,
+        });
       },
     });
 
@@ -765,6 +769,7 @@ describe('tool invocations', () => {
                       data-testid={`add-result-${toolIdx}`}
                       onClick={() => {
                         addToolResult({
+                          tool: 'test-tool',
                           toolCallId: toolPart.toolCallId,
                           output: 'test-result',
                         });
