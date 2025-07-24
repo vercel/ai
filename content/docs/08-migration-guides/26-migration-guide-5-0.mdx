@@ -2695,3 +2695,41 @@ For more information, see the [Codemods](#codemods) section.
 | Restructure file stream parts                    | `v5/restructure-file-stream-parts`                    |
 | Restructure source stream parts                  | `v5/restructure-source-stream-parts`                  |
 | RSC package                                      | `v5/rsc-package`                                      |
+
+## Changes Between v5 Beta Versions
+
+This section documents breaking changes between different beta versions of AI SDK 5.0. If you're upgrading from an earlier v5 beta version to a later one, check this section for any changes that might affect your code.
+
+### fullStream Type Rename: text/reasoning → text-delta/reasoning-delta
+
+The chunk types in `fullStream` have been renamed for consistency with UI streams and language model streams.
+
+```tsx filename="AI SDK 5.0 (before beta.26)"
+for await (const chunk of result.fullStream) {
+  switch (chunk.type) {
+    case 'text': {
+      process.stdout.write(chunk.text);
+      break;
+    }
+    case 'reasoning': {
+      console.log('Reasoning:', chunk.text);
+      break;
+    }
+  }
+}
+```
+
+```tsx filename="AI SDK 5.0 (beta.26 and later)"
+for await (const chunk of result.fullStream) {
+  switch (chunk.type) {
+    case 'text-delta': {
+      process.stdout.write(chunk.text);
+      break;
+    }
+    case 'reasoning-delta': {
+      console.log('Reasoning:', chunk.text);
+      break;
+    }
+  }
+}
+```
