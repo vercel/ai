@@ -36,7 +36,7 @@ async function main() {
 
   for await (const part of result.fullStream) {
     switch (part.type) {
-      case 'text': {
+      case 'text-delta': {
         console.log('Text:', part.text);
         break;
       }

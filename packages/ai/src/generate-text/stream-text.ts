@@ -133,8 +133,8 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
     TextStreamPart<TOOLS>,
     {
       type:
-        | 'text'
-        | 'reasoning'
+        | 'text-delta'
+        | 'reasoning-delta'
         | 'source'
         | 'tool-call'
         | 'tool-input-start'
@@ -461,7 +461,7 @@ function createOutputTransformStream<
   }) {
     controller.enqueue({
       part: {
-        type: 'text',
+        type: 'text-delta',
         id: firstTextChunkId!,
         text: textChunk,
       },
@@ -481,7 +481,7 @@ function createOutputTransformStream<
       }
 
       if (
-        chunk.type !== 'text' &&
+        chunk.type !== 'text-delta' &&
         chunk.type !== 'text-start' &&
         chunk.type !== 'text-end'
       ) {
@@ -658,8 +658,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         const { part } = chunk;
 
         if (
-          part.type === 'text' ||
-          part.type === 'reasoning' ||
+          part.type === 'text-delta' ||
+          part.type === 'reasoning-delta' ||
           part.type === 'source' ||
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
@@ -684,7 +684,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(activeTextContent[part.id]);
         }
 
-        if (part.type === 'text') {
+        if (part.type === 'text-delta') {
           const activeText = activeTextContent[part.id];
 
           if (activeText == null) {
@@ -717,7 +717,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(activeReasoningContent[part.id]);
         }
 
-        if (part.type === 'reasoning') {
+        if (part.type === 'reasoning-delta') {
           const activeReasoning = activeReasoningContent[part.id];
 
           if (activeReasoning == null) {
@@ -1175,7 +1175,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'text-delta': {
                       if (chunk.delta.length > 0) {
                         controller.enqueue({
-                          type: 'text',
+                          type: 'text-delta',
                           id: chunk.id,
                           text: chunk.delta,
                           providerMetadata: chunk.providerMetadata,
@@ -1193,7 +1193,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'reasoning-delta': {
                       controller.enqueue({
-                        type: 'reasoning',
+                        type: 'reasoning-delta',
                         id: chunk.id,
                         text: chunk.delta,
                         providerMetadata: chunk.providerMetadata,
@@ -1553,7 +1553,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       this.teeStream().pipeThrough(
         new TransformStream<EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>, string>({
           transform({ part }, controller) {
-            if (part.type === 'text') {
+            if (part.type === 'text-delta') {
               controller.enqueue(part.text);
             }
           },
@@ -1654,7 +1654,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'text': {
+            case 'text-delta': {
               controller.enqueue({
                 type: 'text-delta',
                 id: part.id,
@@ -1688,7 +1688,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'reasoning': {
+            case 'reasoning-delta': {
               if (sendReasoning) {
                 controller.enqueue({
                   type: 'reasoning-delta',

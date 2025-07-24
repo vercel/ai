@@ -26,7 +26,7 @@ async function main() {
 
   for await (const part of result.fullStream) {
     switch (part.type) {
-      case 'reasoning': {
+      case 'reasoning-delta': {
         if (!enteredReasoning) {
           enteredReasoning = true;
           console.log('\nREASONING:\n');
@@ -35,7 +35,7 @@ async function main() {
         break;
       }
 
-      case 'text': {
+      case 'text-delta': {
         if (!enteredText) {
           enteredText = true;
           console.log('\nTEXT:\n');

@@ -31,7 +31,7 @@ async function main() {
 
   for await (const chunk of result.fullStream) {
     switch (chunk.type) {
-      case 'text': {
+      case 'text-delta': {
         process.stdout.write(chunk.text);
         break;
       }

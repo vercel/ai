@@ -323,7 +323,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       providerMetadata?: ProviderMetadata;
     }
   | {
-      type: 'text';
+      type: 'text-delta';
       id: string;
       providerMetadata?: ProviderMetadata;
       text: string;
@@ -339,7 +339,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       providerMetadata?: ProviderMetadata;
     }
   | {
-      type: 'reasoning';
+      type: 'reasoning-delta';
       providerMetadata?: ProviderMetadata;
       id: string;
       text: string;
