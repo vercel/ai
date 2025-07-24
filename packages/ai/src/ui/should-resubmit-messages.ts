@@ -12,6 +12,9 @@ export function shouldResubmitMessages({
   messages: UIMessage[];
 }) {
   const lastMessage = messages[messages.length - 1];
+  if (!lastMessage) {
+    return false;
+  }
 
   // count the number of step-start parts in the last message:
   const lastMessageStepStartCount = lastMessage.parts.filter(
@@ -21,8 +24,6 @@ export function shouldResubmitMessages({
   return (
     // check if the feature is enabled:
     maxSteps > 1 &&
-    // ensure there is a last message:
-    lastMessage != null &&
     // ensure we actually have new steps (to prevent infinite loops in case of errors):
     (messages.length > originalMessageCount ||
       lastMessageStepStartCount !== originalMaxToolInvocationStep) &&

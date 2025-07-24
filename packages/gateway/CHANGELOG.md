@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 1.0.0-beta.11
+
+### Patch Changes
+
+- 8bd3624: feat (provider/gateway): update model ids to include vercel
+- e001ea1: fix (provider/gateway): remove unnecessary 'x-' prefix on auth method header
+
 ## 1.0.0-beta.10
 
 ### Patch Changes
