@@ -11,9 +11,12 @@ const model = new GoogleVertexImageModel('imagen-3.0-generate-002', {
 
 const server = createTestServer({
   'https://api.example.com/models/imagen-3.0-generate-002:predict': {},
-  'https://api.example.com/models/imagen-4.0-generate-preview-06-06:predict': {},
-  'https://api.example.com/models/imagen-4.0-fast-generate-preview-06-06:predict': {},
-  'https://api.example.com/models/imagen-4.0-ultra-generate-preview-06-06:predict': {},
+  'https://api.example.com/models/imagen-4.0-generate-preview-06-06:predict':
+    {},
+  'https://api.example.com/models/imagen-4.0-fast-generate-preview-06-06:predict':
+    {},
+  'https://api.example.com/models/imagen-4.0-ultra-generate-preview-06-06:predict':
+    {},
 });
 
 describe('GoogleVertexImageModel', () => {
@@ -344,11 +347,14 @@ describe('GoogleVertexImageModel', () => {
 
   describe('Imagen 4 Models', () => {
     describe('imagen-4.0-generate-preview-06-06', () => {
-      const imagen4Model = new GoogleVertexImageModel('imagen-4.0-generate-preview-06-06', {
-        provider: 'google-vertex',
-        baseURL: 'https://api.example.com',
-        headers: { 'api-key': 'test-key' },
-      });
+      const imagen4Model = new GoogleVertexImageModel(
+        'imagen-4.0-generate-preview-06-06',
+        {
+          provider: 'google-vertex',
+          baseURL: 'https://api.example.com',
+          headers: { 'api-key': 'test-key' },
+        },
+      );
 
       function prepareImagen4Response() {
         server.urls[
@@ -424,11 +430,14 @@ describe('GoogleVertexImageModel', () => {
     });
 
     describe('imagen-4.0-fast-generate-preview-06-06', () => {
-      const imagen4FastModel = new GoogleVertexImageModel('imagen-4.0-fast-generate-preview-06-06', {
-        provider: 'google-vertex',
-        baseURL: 'https://api.example.com',
-        headers: { 'api-key': 'test-key' },
-      });
+      const imagen4FastModel = new GoogleVertexImageModel(
+        'imagen-4.0-fast-generate-preview-06-06',
+        {
+          provider: 'google-vertex',
+          baseURL: 'https://api.example.com',
+          headers: { 'api-key': 'test-key' },
+        },
+      );
 
       function prepareImagen4FastResponse() {
         server.urls[
@@ -471,11 +480,14 @@ describe('GoogleVertexImageModel', () => {
     });
 
     describe('imagen-4.0-ultra-generate-preview-06-06', () => {
-      const imagen4UltraModel = new GoogleVertexImageModel('imagen-4.0-ultra-generate-preview-06-06', {
-        provider: 'google-vertex',
-        baseURL: 'https://api.example.com',
-        headers: { 'api-key': 'test-key' },
-      });
+      const imagen4UltraModel = new GoogleVertexImageModel(
+        'imagen-4.0-ultra-generate-preview-06-06',
+        {
+          provider: 'google-vertex',
+          baseURL: 'https://api.example.com',
+          headers: { 'api-key': 'test-key' },
+        },
+      );
 
       function prepareImagen4UltraResponse() {
         server.urls[
