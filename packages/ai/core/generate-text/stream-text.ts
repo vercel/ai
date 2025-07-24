@@ -1,4 +1,4 @@
-import { AISDKError, LanguageModelV1Source } from '@ai-sdk/provider';
+import { AISDKError, LanguageModelV1Message, LanguageModelV1Source } from '@ai-sdk/provider';
 import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
 import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
@@ -49,6 +49,7 @@ import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
 import { writeToServerResponse } from '../util/write-to-server-response';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
+import { PrepareStepFunction } from './prepare-step';
 import { asReasoningText, ReasoningDetail } from './reasoning-detail';
 import {
   runToolsTransformation,
@@ -214,6 +215,7 @@ export function streamText<
   experimental_toolCallStreaming = false,
   toolCallStreaming = experimental_toolCallStreaming,
   experimental_activeTools: activeTools,
+  experimental_prepareStep: prepareStep,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   onChunk,
@@ -298,6 +300,20 @@ A function that attempts to repair a tool call that failed to parse.
     experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
 
     /**
+Optional function that you can use to provide different settings for a step.
+
+@param options - The options for the step.
+@param options.steps - The steps that have been executed so far.
+@param options.stepNumber - The number of the step that is being executed.
+@param options.maxSteps - The maximum number of steps.
+@param options.model - The model that is being used.
+
+@returns An object that contains the settings for the step.
+If you return undefined (or for undefined settings), the settings from the outer level will be used.
+    */
+    experimental_prepareStep?: PrepareStepFunction<TOOLS>;
+
+    /**
 Enable streaming of tool call deltas as they are generated. Disabled by default.
      */
     toolCallStreaming?: boolean;
@@ -370,6 +386,7 @@ Internal. For test use only. May change without notice.
     toolCallStreaming,
     transforms: asArray(transform),
     activeTools,
+    prepareStep,
     repairToolCall,
     maxSteps,
     output,
@@ -544,6 +561,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     toolCallStreaming,
     transforms,
     activeTools,
+    prepareStep,
     repairToolCall,
     maxSteps,
     output,
@@ -572,6 +590,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     toolCallStreaming: boolean;
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: Array<keyof TOOLS> | undefined;
+    prepareStep: PrepareStepFunction<TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
@@ -628,6 +647,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let stepType: 'initial' | 'continue' | 'tool-result' = 'initial';
     const recordedSteps: StepResult<TOOLS>[] = [];
     let rootSpan!: Span;
+    let stepFinish!: DelayedPromise<void>;
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
@@ -779,6 +799,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             recordedResponse.messages.push(...stepMessages);
             recordedContinuationText = '';
           }
+
+          // Signal that the step is fully processed
+          stepFinish.resolve();
         }
 
         if (part.type === 'finish') {
@@ -964,6 +987,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           hasLeadingWhitespace: boolean;
           messageId: string;
         }) {
+          // Create a new promise for this step
+          stepFinish = new DelayedPromise<void>();
+
           // after the 1st step, we need to switch to messages format:
           const promptFormat =
             responseMessages.length === 0 ? initialPrompt.type : 'messages';
@@ -971,21 +997,36 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepInputMessages = [
             ...initialPrompt.messages,
             ...responseMessages,
-          ];
+          ] as LanguageModelV1Message[];
+
+          const prepareStepResult = await prepareStep?.({
+            model,
+            steps: recordedSteps,
+            stepNumber: recordedSteps.length,
+            maxSteps,
+            messages: stepInputMessages
+          });
 
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               type: promptFormat,
-              system: initialPrompt.system,
-              messages: stepInputMessages,
+              system: prepareStepResult?.system ?? initialPrompt.system,
+              messages: prepareStepResult?.messages ?? stepInputMessages,
             },
             modelSupportsImageUrls: model.supportsImageUrls,
             modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
           });
 
+          const stepModel = prepareStepResult?.model ?? model;
+
           const mode = {
             type: 'regular' as const,
-            ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
+            ...prepareToolsAndToolChoice({
+              tools,
+              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              activeTools:
+                prepareStepResult?.experimental_activeTools ?? activeTools,
+            }),
           };
 
           const {
@@ -1021,8 +1062,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   },
 
                   // standardized gen-ai llm span attributes:
-                  'gen_ai.system': model.provider,
-                  'gen_ai.request.model': model.modelId,
+                  'gen_ai.system': stepModel.provider,
+                  'gen_ai.request.model': stepModel.modelId,
                   'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
                   'gen_ai.request.max_tokens': settings.maxTokens,
                   'gen_ai.request.presence_penalty': settings.presencePenalty,
@@ -1037,11 +1078,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               fn: async doStreamSpan => ({
                 startTimestampMs: now(), // get before the call
                 doStreamSpan,
-                result: await model.doStream({
+                result: await stepModel.doStream({
                   mode,
                   ...prepareCallSettings(settings),
                   inputFormat: promptFormat,
-                  responseFormat: output?.responseFormat({ model }),
+                  responseFormat: output?.responseFormat({ model: stepModel }),
                   prompt: promptMessages,
                   providerMetadata: providerOptions,
                   abortSignal,
@@ -1087,7 +1128,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: currentDate(),
-            modelId: model.modelId,
+            modelId: stepModel.modelId,
           };
 
           // chunk buffer when using continue:
@@ -1420,6 +1461,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     self.closeStream(); // close the stitchable stream
                   } else {
+                    // wait for the step to be fully processed by the event processor
+                    await stepFinish.value;
+
                     // append to messages for the next step:
                     if (stepType === 'continue') {
                       // continue step: update the last assistant message
