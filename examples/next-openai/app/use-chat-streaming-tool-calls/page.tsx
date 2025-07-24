@@ -6,24 +6,33 @@ import { DefaultChatTransport } from 'ai';
 import { StreamingToolCallsMessage } from '../api/use-chat-streaming-tool-calls/route';
 
 export default function Chat() {
-  const { messages, status, sendMessage, addToolResult } =
-    useChat<StreamingToolCallsMessage>({
-      transport: new DefaultChatTransport({
-        api: '/api/use-chat-streaming-tool-calls',
-      }),
+  const {
+    messages,
+    status,
+    sendMessage,
+    addToolResult,
+    canAssistantMessageBeSubmitted,
+  } = useChat<StreamingToolCallsMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/use-chat-streaming-tool-calls',
+    }),
 
-      // run client-side tools that are automatically executed:
-      async onToolCall({ toolCall }) {
-        if (toolCall.toolName === 'showWeatherInformation') {
-          // display tool. add tool result that informs the llm that the tool was executed.
-          addToolResult({
-            tool: 'showWeatherInformation',
-            toolCallId: toolCall.toolCallId,
-            output: 'Weather information was shown to the user.',
-          });
+    // run client-side tools that are automatically executed:
+    async onToolCall({ toolCall }) {
+      if (toolCall.toolName === 'showWeatherInformation') {
+        // display tool. add tool result that informs the llm that the tool was executed.
+        await addToolResult({
+          tool: 'showWeatherInformation',
+          toolCallId: toolCall.toolCallId,
+          output: 'Weather information was shown to the user.',
+        });
+
+        if (canAssistantMessageBeSubmitted()) {
+          sendMessage();
         }
-      },
-    });
+      }
+    },
+  });
 
   // used to only render the role when it changes:
   let lastRole: string | undefined = undefined;
