@@ -196,7 +196,8 @@ Only applicable for HTTP-based providers.
           values,
           embeddings,
           usage,
-          providerMetadata: (response?.body as EmbeddingResponseBody)?.providerMetadata,
+          providerMetadata: (response?.body as EmbeddingResponseBody)
+            ?.providerMetadata,
           responses: [response],
         });
       }
@@ -300,7 +301,7 @@ Only applicable for HTTP-based providers.
       );
 
       const providerMetadata = responses?.find(
-        r => (r?.body as EmbeddingResponseBody)?.providerMetadata
+        r => (r?.body as EmbeddingResponseBody)?.providerMetadata,
       )?.body as EmbeddingResponseBody;
 
       return new DefaultEmbedManyResult({

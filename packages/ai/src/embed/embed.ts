@@ -173,7 +173,8 @@ Only applicable for HTTP-based providers.
         value,
         embedding,
         usage,
-        providerMetadata: (response?.body as EmbeddingResponseBody)?.providerMetadata,
+        providerMetadata: (response?.body as EmbeddingResponseBody)
+          ?.providerMetadata,
         response,
       });
     },
