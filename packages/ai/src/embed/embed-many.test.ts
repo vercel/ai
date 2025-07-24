@@ -443,3 +443,25 @@ describe('telemetry', () => {
     expect(tracer.jsonSpans).toMatchSnapshot();
   });
 });
+
+describe('result.providerMetadata', () => {
+  it('should include provider metadata when returned in response bodies', async () => {
+    const providerMetadata = {
+      gateway: { routing: { resolvedProvider: 'test-provider' } },
+    };
+
+    const result = await embedMany({
+      model: new MockEmbeddingModelV2({
+        supportsParallelCalls: false,
+        maxEmbeddingsPerCall: 3,
+        doEmbed: mockEmbed(testValues, dummyEmbeddings, undefined, {
+          headers: {},
+          body: { providerMetadata },
+        }),
+      }),
+      values: testValues,
+    });
+
+    expect(result.providerMetadata).toStrictEqual(providerMetadata);
+  });
+});

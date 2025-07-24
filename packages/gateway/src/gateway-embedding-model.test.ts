@@ -166,5 +166,22 @@ describe('GatewayEmbeddingModel', () => {
           GatewayInternalServerError.isInstance(err) && err.statusCode === 500,
       );
     });
+
+    it('should include providerMetadata in response body', async () => {
+      server.urls['https://api.test.com/embedding-model'].response = {
+        type: 'json-value',
+        body: {
+          embeddings: dummyEmbeddings,
+          usage: { tokens: 5 },
+          providerMetadata: { gateway: { routing: { test: true } } },
+        },
+      };
+
+      const { response } = await createTestModel().doEmbed({ values: testValues });
+
+      expect(response?.body).toMatchObject({
+        providerMetadata: { gateway: { routing: { test: true } } },
+      });
+    });
   });
 });
