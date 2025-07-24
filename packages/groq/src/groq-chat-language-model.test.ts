@@ -380,12 +380,58 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should pass response format information as json_object when structuredOutputs disabled', async () => {
+  it('should pass response format information as json_schema when structuredOutputs enabled by default', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider('gemma2-9b-it');
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'test-name',
+          description: 'test description',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+  });
+
+  it('should pass response format information as json_object when structuredOutputs explicitly disabled', async () => {
     prepareJsonResponse({ content: '{"value":"Spark"}' });
 
     const model = provider('gemma2-9b-it');
 
     const { warnings } = await model.doGenerate({
+      providerOptions: {
+        groq: {
+          structuredOutputs: false,
+        },
+      },
       responseFormat: {
         type: 'json',
         name: 'test-name',
@@ -419,7 +465,7 @@ describe('doGenerate', () => {
     ]);
   });
 
-  it('should use json_schema format when structuredOutputs enabled', async () => {
+  it('should use json_schema format when structuredOutputs explicitly enabled', async () => {
     prepareJsonResponse({ content: '{"value":"Spark"}' });
 
     const model = provider('gemma2-9b-it');
@@ -616,10 +662,15 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should include warnings when structured outputs disabled but schema provided', async () => {
+  it('should include warnings when structured outputs explicitly disabled but schema provided', async () => {
     prepareJsonResponse({ content: '{"value":"test"}' });
 
     const { warnings } = await model.doGenerate({
+      providerOptions: {
+        groq: {
+          structuredOutputs: false,
+        },
+      },
       responseFormat: {
         type: 'json',
         schema: {

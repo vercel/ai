@@ -81,7 +81,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       schema: groqProviderOptions,
     });
 
-    const structuredOutputs = groqOptions?.structuredOutputs ?? false;
+    const structuredOutputs = groqOptions?.structuredOutputs ?? true;
 
     if (topK != null) {
       warnings.push({

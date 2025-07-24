@@ -109,8 +109,8 @@ The following optional provider options are available for Groq language models:
 - **structuredOutputs** _boolean_
 
   Whether to use structured outputs.
-
-  Defaults to `false`.
+  
+  Defaults to `true`.
 
   When enabled, object generation will use the `json_schema` format instead of `json_object` format, providing more reliable structured outputs.
 
@@ -126,21 +126,16 @@ The following optional provider options are available for Groq language models:
 
 #### Structured Outputs
 
-Groq supports structured outputs for newer models like `moonshotai/kimi-k2-instruct`.
-You can enable structured outputs by setting the `structuredOutputs` option to `true`.
+Structured outputs are enabled by default for Groq models.
+You can disable them by setting the `structuredOutputs` option to `false`.
 
-```ts highlight="9"
+```ts
 import { groq } from '@ai-sdk/groq';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const result = await generateObject({
   model: groq('moonshotai/kimi-k2-instruct'),
-  providerOptions: {
-    groq: {
-      structuredOutputs: true,
-    },
-  },
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -154,11 +149,37 @@ const result = await generateObject({
 console.log(JSON.stringify(result.object, null, 2));
 ```
 
+You can disable structured outputs for models that don't support them:
+
+```ts highlight="7"
+import { groq } from '@ai-sdk/groq';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const result = await generateObject({
+  model: groq('gemma2-9b-it'),
+  providerOptions: {
+    groq: {
+      structuredOutputs: false,
+    },
+  },
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+      instructions: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a simple pasta recipe in JSON format.',
+});
+
+console.log(JSON.stringify(result.object, null, 2));
+```
+
 <Note type="warning">
-  Structured outputs are only supported by newer Groq models and may have
-  limitations. When structured outputs are disabled (default), Groq uses the
-  `json_object` format which requires the word "JSON" to be included in your
-  messages.
+  Structured outputs are only supported by newer Groq models like `moonshotai/kimi-k2-instruct`.
+  For unsupported models, you can disable structured outputs by setting `structuredOutputs: false`.
+  When disabled, Groq uses the `json_object` format which requires the word "JSON" to be included in your messages.
 </Note>
 
 ### Example

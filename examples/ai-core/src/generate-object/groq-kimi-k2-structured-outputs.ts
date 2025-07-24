@@ -6,11 +6,6 @@ import 'dotenv/config';
 async function main() {
   const result = await generateObject({
     model: groq('moonshotai/kimi-k2-instruct'),
-    providerOptions: {
-      groq: {
-        structuredOutputs: true,
-      },
-    },
     schema: z.object({
       recipe: z.object({
         name: z.string(),

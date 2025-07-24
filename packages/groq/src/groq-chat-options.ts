@@ -42,7 +42,7 @@ export const groqProviderOptions = z.object({
   /**
    * Whether to use structured outputs.
    *
-   * @default false
+   * @default true
    */
   structuredOutputs: z.boolean().optional(),
 });
