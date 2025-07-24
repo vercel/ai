@@ -6,26 +6,37 @@ import { DefaultChatTransport } from 'ai';
 import { UseChatToolsMessage } from '../api/use-chat-tools/route';
 
 export default function Chat() {
-  const { messages, sendMessage, addToolResult, status } =
-    useChat<UseChatToolsMessage>({
-      transport: new DefaultChatTransport({ api: '/api/use-chat-tools' }),
+  const {
+    messages,
+    sendMessage,
+    addToolResult,
+    status,
+    canAssistantMessageBeSubmitted,
+  } = useChat<UseChatToolsMessage>({
+    transport: new DefaultChatTransport({ api: '/api/use-chat-tools' }),
 
-      // run client-side tools that are automatically executed:
-      async onToolCall({ toolCall }) {
-        // artificial 2 second delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
+    // run client-side tools that are automatically executed:
+    async onToolCall({ toolCall }) {
+      // artificial 2 second delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-        if (toolCall.toolName === 'getLocation') {
-          const cities = [
-            'New York',
-            'Los Angeles',
-            'Chicago',
-            'San Francisco',
-          ];
-          return cities[Math.floor(Math.random() * cities.length)];
-        }
-      },
-    });
+      if (toolCall.toolName === 'getLocation') {
+        const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+
+        addToolResult({
+          tool: 'getLocation',
+          toolCallId: toolCall.toolCallId,
+          output: cities[Math.floor(Math.random() * cities.length)],
+        });
+      }
+    },
+
+    onFinish({ message }) {
+      if (canAssistantMessageBeSubmitted()) {
+        sendMessage({ text: 'Hello, world!' });
+      }
+    },
+  });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
@@ -55,6 +66,7 @@ export default function Chat() {
                             className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                             onClick={() =>
                               addToolResult({
+                                tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'Yes, confirmed.',
                               })
@@ -66,6 +78,7 @@ export default function Chat() {
                             className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                             onClick={() =>
                               addToolResult({
+                                tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'No, denied',
                               })

@@ -93,10 +93,7 @@ export type ChatOnErrorCallback = (error: Error) => void;
 export type ChatOnToolCallCallback<UI_MESSAGE extends UIMessage = UIMessage> =
   (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
-  }) =>
-    | void
-    | InferUIMessageToolOutputs<UI_MESSAGE>
-    | Promise<InferUIMessageToolOutputs<UI_MESSAGE> | void>;
+  }) => void | PromiseLike<void>;
 
 export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
   dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
@@ -376,12 +373,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     await this.makeRequest({ trigger: 'resume-stream', ...options });
   };
 
-  addToolResult = async ({
+  addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
+    tool,
     toolCallId,
     output,
   }: {
+    tool: TOOL;
     toolCallId: string;
-    output: unknown;
+    output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
   }) => {
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
@@ -391,11 +390,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         ...lastMessage,
         parts: lastMessage.parts.map(part =>
           isToolUIPart(part) && part.toolCallId === toolCallId
-            ? {
-                ...part,
-                state: 'output-available',
-                output,
-              }
+            ? { ...part, state: 'output-available', output }
             : part,
         ),
       });
