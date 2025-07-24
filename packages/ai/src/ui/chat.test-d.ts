@@ -38,10 +38,6 @@ describe('onToolCall', () => {
         toolName: 'simple';
         input: number;
       }>();
-
-      expectTypeOf<ToolCallReturnType<Tools>>().toEqualTypeOf<
-        ToolCallOutput<string>
-      >();
     });
 
     it('single tool without output schema', () => {
@@ -56,10 +52,6 @@ describe('onToolCall', () => {
         toolName: 'simple';
         input: number;
       }>();
-
-      expectTypeOf<ToolCallReturnType<Tools>>().toEqualTypeOf<
-        ToolCallOutput<undefined>
-      >();
     });
 
     it('multiple tools with output schema', () => {
@@ -92,10 +84,6 @@ describe('onToolCall', () => {
             };
           }
       >();
-
-      expectTypeOf<ToolCallReturnType<Tools>>().toEqualTypeOf<
-        ToolCallOutput<string | Array<{ message: string }>>
-      >();
     });
 
     it('multiple tools without output schema', () => {
@@ -126,10 +114,6 @@ describe('onToolCall', () => {
             };
           }
       >();
-
-      expectTypeOf<ToolCallReturnType<Tools>>().toEqualTypeOf<
-        ToolCallOutput<undefined>
-      >();
     });
   });
 
@@ -148,10 +132,6 @@ describe('onToolCall', () => {
         toolName: 'simple';
         input: number;
       }>();
-
-      expectTypeOf<ToolCallReturnType<typeof tools>>().toEqualTypeOf<
-        ToolCallOutput<string>
-      >();
     });
 
     it('single tool without output schema', () => {
@@ -167,10 +147,6 @@ describe('onToolCall', () => {
         toolName: 'simple';
         input: number;
       }>();
-
-      expectTypeOf<ToolCallReturnType<typeof tools>>().toEqualTypeOf<
-        ToolCallOutput<void>
-      >();
     });
 
     it('multiple tools with output schema', () => {
@@ -209,10 +185,6 @@ describe('onToolCall', () => {
             };
           }
       >();
-
-      expectTypeOf<ToolCallReturnType<typeof tools>>().toEqualTypeOf<
-        ToolCallOutput<string | Array<{ message: string }>>
-      >();
     });
 
     it('multiple tools without output schema', () => {
@@ -244,10 +216,6 @@ describe('onToolCall', () => {
               description: string;
             };
           }
-      >();
-
-      expectTypeOf<ToolCallReturnType<typeof tools>>().toEqualTypeOf<
-        ToolCallOutput<void>
       >();
     });
   });

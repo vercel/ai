@@ -37,7 +37,7 @@ describe('HttpChatTransport', () => {
       await transport.sendMessages({
         chatId: 'c123',
         messageId: 'm123',
-        trigger: 'submit-user-message',
+        trigger: 'submit-message',
         messages: [
           {
             id: 'm123',
@@ -65,7 +65,7 @@ describe('HttpChatTransport', () => {
             },
           ],
           "someData": true,
-          "trigger": "submit-user-message",
+          "trigger": "submit-message",
         }
       `);
     });
@@ -84,7 +84,7 @@ describe('HttpChatTransport', () => {
       await transport.sendMessages({
         chatId: 'c123',
         messageId: 'm123',
-        trigger: 'submit-user-message',
+        trigger: 'submit-message',
         messages: [
           {
             id: 'm123',
@@ -112,7 +112,7 @@ describe('HttpChatTransport', () => {
             },
           ],
           "someData": true,
-          "trigger": "submit-user-message",
+          "trigger": "submit-message",
         }
       `);
     });
@@ -133,7 +133,7 @@ describe('HttpChatTransport', () => {
       await transport.sendMessages({
         chatId: 'c123',
         messageId: 'm123',
-        trigger: 'submit-user-message',
+        trigger: 'submit-message',
         messages: [
           {
             id: 'm123',
@@ -163,7 +163,7 @@ describe('HttpChatTransport', () => {
       await transport.sendMessages({
         chatId: 'c123',
         messageId: 'm123',
-        trigger: 'submit-user-message',
+        trigger: 'submit-message',
         messages: [
           {
             id: 'm123',

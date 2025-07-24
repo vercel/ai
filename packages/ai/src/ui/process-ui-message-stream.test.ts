@@ -3610,29 +3610,6 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "errorText": undefined,
-                  "input": {
-                    "city": "London",
-                  },
-                  "output": "test-result",
-                  "providerExecuted": undefined,
-                  "state": "output-available",
-                  "toolCallId": "tool-call-id",
-                  "type": "tool-tool-name",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
@@ -3651,9 +3628,9 @@ describe('processUIMessageStream', () => {
               "input": {
                 "city": "London",
               },
-              "output": "test-result",
+              "output": undefined,
               "providerExecuted": undefined,
-              "state": "output-available",
+              "state": "input-available",
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
             },
@@ -4578,9 +4555,8 @@ describe('processUIMessageStream', () => {
       await consumeStream({
         stream: processUIMessageStream({
           stream,
-          onToolCall: async () => {
+          onToolCall: () => {
             onToolCallInvoked = true;
-            return 'client-result';
           },
           runUpdateMessageJob,
           onError: error => {
@@ -4833,7 +4809,6 @@ describe('processUIMessageStream', () => {
           stream,
           onToolCall: async () => {
             onToolCallInvoked = true;
-            return 'client-result';
           },
           runUpdateMessageJob,
           onError: error => {
@@ -4854,9 +4829,9 @@ describe('processUIMessageStream', () => {
             "input": {
               "query": "test",
             },
-            "output": "client-result",
+            "output": undefined,
             "providerExecuted": undefined,
-            "state": "output-available",
+            "state": "input-available",
             "toolCallId": "tool-call-id",
             "type": "tool-tool-name",
           },
