@@ -509,8 +509,9 @@ describe('doGenerate', () => {
   });
 
   it('should handle structured outputs with Kimi K2 model', async () => {
-    prepareJsonResponse({ 
-      content: '{"recipe":{"name":"Spaghetti Aglio e Olio","ingredients":["spaghetti","garlic","olive oil","parmesan"],"instructions":["Boil pasta","Sauté garlic","Combine"]}}' 
+    prepareJsonResponse({
+      content:
+        '{"recipe":{"name":"Spaghetti Aglio e Olio","ingredients":["spaghetti","garlic","olive oil","parmesan"],"instructions":["Boil pasta","Sauté garlic","Combine"]}}',
     });
 
     const kimiModel = provider('moonshotai/kimi-k2-instruct');
@@ -543,7 +544,12 @@ describe('doGenerate', () => {
           $schema: 'http://json-schema.org/draft-07/schema#',
         },
       },
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Generate a simple pasta recipe' }] }],
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a simple pasta recipe' }],
+        },
+      ],
     });
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
