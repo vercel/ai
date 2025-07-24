@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toDataStreamResponse();
 }
 
 // Also test function call
