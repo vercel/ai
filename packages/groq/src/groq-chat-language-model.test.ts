@@ -411,7 +411,8 @@ describe('doGenerate', () => {
 
     expect(warnings).toEqual([
       {
-        details: 'JSON response format schema is only supported with structuredOutputs',
+        details:
+          'JSON response format schema is only supported with structuredOutputs',
         setting: 'responseFormat',
         type: 'unsupported-setting',
       },

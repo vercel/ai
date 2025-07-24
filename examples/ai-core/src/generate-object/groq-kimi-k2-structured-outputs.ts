@@ -20,4 +20,4 @@ async function main() {
   console.log('Token usage:', result.usage);
 }
 
-main().catch(console.error); 
+main().catch(console.error);

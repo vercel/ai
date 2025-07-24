@@ -28,8 +28,6 @@ import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';
 
-
-
 type GroqChatConfig = {
   provider: string;
   headers: () => Record<string, string | undefined>;
@@ -100,7 +98,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'responseFormat',
-        details: 'JSON response format schema is only supported with structuredOutputs',
+        details:
+          'JSON response format schema is only supported with structuredOutputs',
       });
     }
 
