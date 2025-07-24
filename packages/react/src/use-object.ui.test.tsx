@@ -26,18 +26,19 @@ describe('text stream', () => {
     headers?: Record<string, string> | Headers;
     credentials?: RequestCredentials;
   }) => {
-    const { object, error, submit, isLoading, stop, reset } = experimental_useObject({
-      api: '/api/use-object',
-      schema: z.object({ content: z.string() }),
-      onError(error) {
-        onErrorResult = error;
-      },
-      onFinish(event) {
-        onFinishCalls.push(event);
-      },
-      headers,
-      credentials,
-    });
+    const { object, error, submit, isLoading, stop, reset } =
+      experimental_useObject({
+        api: '/api/use-object',
+        schema: z.object({ content: z.string() }),
+        onError(error) {
+          onErrorResult = error;
+        },
+        onFinish(event) {
+          onFinishCalls.push(event);
+        },
+        headers,
+        credentials,
+      });
 
     return (
       <div>
@@ -179,7 +180,7 @@ describe('text stream', () => {
 
       controller.write('{"content": "h');
       await userEvent.click(screen.getByTestId('submit-button'));
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('loading')).toHaveTextContent('true');
       });
@@ -188,7 +189,7 @@ describe('text stream', () => {
           '{"content":"h"}',
         );
       });
-      
+
       await userEvent.click(screen.getByTestId('reset-button'));
 
       await vi.waitFor(() => {
@@ -204,7 +205,6 @@ describe('text stream', () => {
         expect(screen.getByTestId('error')).toBeEmptyDOMElement();
         expect(screen.getByTestId('object')).toBeEmptyDOMElement();
       });
-
     });
 
     describe('when the API returns a 404', () => {
@@ -296,14 +296,14 @@ describe('text stream', () => {
 
     render(<TestComponent />);
     await userEvent.click(screen.getByTestId('submit-button'));
-    
+
     await screen.findByTestId('object');
     expect(screen.getByTestId('object')).toHaveTextContent(
       JSON.stringify({ content: 'Hello, world!' }),
     );
 
     await userEvent.click(screen.getByTestId('reset-button'));
-    
+
     await waitFor(() => {
       expect(screen.getByTestId('object')).toBeEmptyDOMElement();
       expect(screen.getByTestId('error')).toBeEmptyDOMElement();
