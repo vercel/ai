@@ -177,7 +177,9 @@ describe('GatewayEmbeddingModel', () => {
         },
       };
 
-      const { response } = await createTestModel().doEmbed({ values: testValues });
+      const { response } = await createTestModel().doEmbed({
+        values: testValues,
+      });
 
       expect(response?.body).toMatchObject({
         providerMetadata: { gateway: { routing: { test: true } } },

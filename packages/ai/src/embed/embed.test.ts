@@ -85,9 +85,7 @@ describe('result.providerMetadata', () => {
 
     const result = await embed({
       model: new MockEmbeddingModelV2({
-        doEmbed: mockEmbed([
-          testValue,
-        ], [dummyEmbedding], undefined, {
+        doEmbed: mockEmbed([testValue], [dummyEmbedding], undefined, {
           headers: {},
           body: { providerMetadata },
         }),
