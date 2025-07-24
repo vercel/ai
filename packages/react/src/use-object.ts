@@ -110,6 +110,11 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
    * Abort the current request immediately, keep the current partial object if any.
    */
   stop: () => void;
+
+  /**
+   * Reset the object state to its initial value.
+   */
+  reset: () => void;
 };
 
 function useObject<
@@ -239,12 +244,24 @@ function useObject<
     }
   };
 
+  const reset = () => {
+    stop();
+    resetObject();
+  };
+
+  const resetObject = () => {
+    setError(undefined);
+    setIsLoading(false);
+    mutate(undefined);
+  };
+
   return {
     submit,
     object: data,
     error,
     isLoading,
     stop,
+    reset,
   };
 }
 

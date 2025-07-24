@@ -243,6 +243,10 @@ describe('text stream', () => {
       schema: z.object({ content: z.string() }),
     });
 
+    await structuredObjectWithOnFinish.submit('test-input');
+
+    expect(structuredObjectWithOnFinish.object).toBeDefined();
+
     structuredObjectWithOnFinish.reset();
 
     expect(structuredObjectWithOnFinish.object).toBeUndefined();

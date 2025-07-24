@@ -26,7 +26,7 @@ describe('text stream', () => {
     headers?: Record<string, string> | Headers;
     credentials?: RequestCredentials;
   }) => {
-    const { object, error, submit, isLoading, stop } = experimental_useObject({
+    const { object, error, submit, isLoading, stop, reset } = experimental_useObject({
       api: '/api/use-object',
       schema: z.object({ content: z.string() }),
       onError(error) {
@@ -52,6 +52,9 @@ describe('text stream', () => {
         </button>
         <button data-testid="stop-button" onClick={stop}>
           Stop
+        </button>
+        <button data-testid="reset-button" onClick={reset}>
+          Reset
         </button>
       </div>
     );
@@ -167,6 +170,43 @@ describe('text stream', () => {
       });
     });
 
+    it('should stop and reset the object state after a call to submit then reset', async () => {
+      const controller = new TestResponseController();
+      server.urls['/api/use-object'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      controller.write('{"content": "h');
+      await userEvent.click(screen.getByTestId('submit-button'));
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('true');
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('object')).toHaveTextContent(
+          '{"content":"h"}',
+        );
+      });
+      
+      await userEvent.click(screen.getByTestId('reset-button'));
+
+      await vi.waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      });
+
+      await expect(controller.write('ello, world!"}')).rejects.toThrow();
+      await expect(controller.close()).rejects.toThrow();
+      // await submitOperation;
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('false');
+        expect(screen.getByTestId('error')).toBeEmptyDOMElement();
+        expect(screen.getByTestId('object')).toBeEmptyDOMElement();
+      });
+
+    });
+
     describe('when the API returns a 404', () => {
       it('should render error', async () => {
         server.urls['/api/use-object'].response = {
@@ -246,5 +286,28 @@ describe('text stream', () => {
     render(<TestComponent credentials="include" />);
     await userEvent.click(screen.getByTestId('submit-button'));
     expect(server.calls[0].requestCredentials).toBe('include');
+  });
+
+  it('should reset the object state after a call to reset', async () => {
+    server.urls['/api/use-object'].response = {
+      type: 'stream-chunks',
+      chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+    };
+
+    render(<TestComponent />);
+    await userEvent.click(screen.getByTestId('submit-button'));
+    
+    await screen.findByTestId('object');
+    expect(screen.getByTestId('object')).toHaveTextContent(
+      JSON.stringify({ content: 'Hello, world!' }),
+    );
+
+    await userEvent.click(screen.getByTestId('reset-button'));
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('object')).toBeEmptyDOMElement();
+      expect(screen.getByTestId('error')).toBeEmptyDOMElement();
+      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    });
   });
 });
