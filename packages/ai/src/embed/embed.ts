@@ -7,8 +7,13 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { EmbeddingModel } from '../types';
+import { EmbeddingModel, ProviderMetadata } from '../types';
 import { EmbedResult } from './embed-result';
+
+export type EmbeddingResponseBody = {
+  providerMetadata?: ProviderMetadata;
+  [key: string]: unknown;
+};
 
 /**
 Embed a value using an embedding model. The type of the value is defined by the embedding model.
@@ -168,6 +173,7 @@ Only applicable for HTTP-based providers.
         value,
         embedding,
         usage,
+        providerMetadata: (response?.body as EmbeddingResponseBody)?.providerMetadata,
         response,
       });
     },
@@ -178,17 +184,20 @@ class DefaultEmbedResult<VALUE> implements EmbedResult<VALUE> {
   readonly value: EmbedResult<VALUE>['value'];
   readonly embedding: EmbedResult<VALUE>['embedding'];
   readonly usage: EmbedResult<VALUE>['usage'];
+  readonly providerMetadata: EmbedResult<VALUE>['providerMetadata'];
   readonly response: EmbedResult<VALUE>['response'];
 
   constructor(options: {
     value: EmbedResult<VALUE>['value'];
     embedding: EmbedResult<VALUE>['embedding'];
     usage: EmbedResult<VALUE>['usage'];
+    providerMetadata?: EmbedResult<VALUE>['providerMetadata'];
     response?: EmbedResult<VALUE>['response'];
   }) {
     this.value = options.value;
     this.embedding = options.embedding;
     this.usage = options.usage;
+    this.providerMetadata = options.providerMetadata;
     this.response = options.response;
   }
 }

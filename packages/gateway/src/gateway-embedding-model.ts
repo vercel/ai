@@ -69,7 +69,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
       return {
         embeddings: responseBody.embeddings,
         usage: responseBody.usage ?? undefined,
-        response: { headers: responseHeaders, body: rawValue },
+        response: { headers: responseHeaders, body: responseBody },
       };
     } catch (error) {
       throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
@@ -91,4 +91,5 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
 const gatewayEmbeddingResponseSchema = z.object({
   embeddings: z.array(z.array(z.number())),
   usage: z.object({ tokens: z.number() }).nullish(),
+  providerMetadata: z.any().optional(),
 });

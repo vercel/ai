@@ -10,6 +10,7 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel } from '../types';
 import { EmbedManyResult } from './embed-many-result';
+import { EmbeddingResponseBody } from './embed';
 
 /**
 Embed several values using an embedding model. The type of the value is defined
@@ -195,6 +196,7 @@ Only applicable for HTTP-based providers.
           values,
           embeddings,
           usage,
+          providerMetadata: (response?.body as EmbeddingResponseBody)?.providerMetadata,
           responses: [response],
         });
       }
@@ -297,10 +299,15 @@ Only applicable for HTTP-based providers.
         }),
       );
 
+      const providerMetadata = responses?.find(
+        r => (r?.body as EmbeddingResponseBody)?.providerMetadata
+      )?.body as EmbeddingResponseBody;
+
       return new DefaultEmbedManyResult({
         values,
         embeddings,
         usage: { tokens },
+        providerMetadata: providerMetadata?.providerMetadata,
         responses,
       });
     },
@@ -311,17 +318,20 @@ class DefaultEmbedManyResult<VALUE> implements EmbedManyResult<VALUE> {
   readonly values: EmbedManyResult<VALUE>['values'];
   readonly embeddings: EmbedManyResult<VALUE>['embeddings'];
   readonly usage: EmbedManyResult<VALUE>['usage'];
+  readonly providerMetadata: EmbedManyResult<VALUE>['providerMetadata'];
   readonly responses: EmbedManyResult<VALUE>['responses'];
 
   constructor(options: {
     values: EmbedManyResult<VALUE>['values'];
     embeddings: EmbedManyResult<VALUE>['embeddings'];
     usage: EmbedManyResult<VALUE>['usage'];
+    providerMetadata?: EmbedManyResult<VALUE>['providerMetadata'];
     responses?: EmbedManyResult<VALUE>['responses'];
   }) {
     this.values = options.values;
     this.embeddings = options.embeddings;
     this.usage = options.usage;
+    this.providerMetadata = options.providerMetadata;
     this.responses = options.responses;
   }
 }
