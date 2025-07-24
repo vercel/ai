@@ -53,7 +53,7 @@ async function main() {
 
     // Stream the response (only necessary for providing updates to the user)
     for await (const chunk of result.fullStream) {
-      if (chunk.type === 'text') {
+      if (chunk.type === 'text-delta') {
         process.stdout.write(chunk.text);
       }
 
