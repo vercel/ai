@@ -389,23 +389,7 @@ describe('tool invocations', () => {
   it('should display partial tool call, tool call, and tool result', async () => {
     const controller = new TestResponseController();
     server.urls['/api/chat'].response = [
-      {
-        type: 'controlled-stream',
-        controller,
-      },
-      // DO NOT REMOVE: used to ensure test does not have side-effects
-      {
-        type: 'stream-chunks',
-        chunks: [
-          formatChunk({ type: 'text-start', id: '0' }),
-          formatChunk({
-            type: 'text-delta',
-            id: '0',
-            delta: 'extra text',
-          }),
-          formatChunk({ type: 'text-end', id: '0' }),
-        ],
-      },
+      { type: 'controlled-stream', controller },
     ];
 
     await userEvent.click(screen.getByTestId('do-append'));
@@ -492,11 +476,6 @@ describe('tool invocations', () => {
         output: 'test-result',
       });
     });
-
-    // DO NOT REMOVE: used to ensure test does not have side-effects
-    await waitFor(() => {
-      expect(screen.getByTestId('text-1')).toHaveTextContent('extra text');
-    });
   });
 
   it('should display tool call and tool result (when there is no tool call streaming)', async () => {
@@ -505,19 +484,6 @@ describe('tool invocations', () => {
       {
         type: 'controlled-stream',
         controller,
-      },
-      // DO NOT REMOVE: used to ensure test does not have side-effects
-      {
-        type: 'stream-chunks',
-        chunks: [
-          formatChunk({ type: 'text-start', id: '0' }),
-          formatChunk({
-            type: 'text-delta',
-            id: '0',
-            delta: 'extra text',
-          }),
-          formatChunk({ type: 'text-end', id: '0' }),
-        ],
       },
     ];
 
@@ -555,11 +521,6 @@ describe('tool invocations', () => {
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent('test-result');
     });
-
-    // DO NOT REMOVE: wait for final text to ensure test does not have side-effects
-    await waitFor(() => {
-      expect(screen.getByTestId('text-1')).toHaveTextContent('extra text');
-    });
   });
 
   it('should update tool call to result when addToolResult is called', async () => {
@@ -568,19 +529,6 @@ describe('tool invocations', () => {
       {
         type: 'controlled-stream',
         controller,
-      },
-      // DO NOT REMOVE: used to ensure test does not have side-effects
-      {
-        type: 'stream-chunks',
-        chunks: [
-          formatChunk({ type: 'text-start', id: '0' }),
-          formatChunk({
-            type: 'text-delta',
-            id: '0',
-            delta: 'extra text',
-          }),
-          formatChunk({ type: 'text-end', id: '0' }),
-        ],
       },
     ];
 
@@ -621,83 +569,6 @@ describe('tool invocations', () => {
     );
     controller.write(formatChunk({ type: 'text-end', id: '0' }));
     controller.close();
-
-    // DO NOT REMOVE: used to ensure test does not have side-effects
-    await waitFor(() => {
-      expect(screen.getByTestId('text-1')).toHaveTextContent('extra text');
-    });
-  });
-
-  it('should delay tool result submission until the stream is finished', async () => {
-    const controller1 = new TestResponseController();
-
-    server.urls['/api/chat'].response = [
-      { type: 'controlled-stream', controller: controller1 },
-      // DO NOT REMOVE: used to ensure test does not have side-effects
-      {
-        type: 'stream-chunks',
-        chunks: [
-          formatChunk({ type: 'text-start', id: '0' }),
-          formatChunk({
-            type: 'text-delta',
-            id: '0',
-            delta: 'extra text',
-          }),
-          formatChunk({ type: 'text-end', id: '0' }),
-        ],
-      },
-    ];
-
-    await userEvent.click(screen.getByTestId('do-append'));
-
-    // start stream
-    controller1.write(formatChunk({ type: 'start' }));
-    controller1.write(formatChunk({ type: 'start-step' }));
-
-    // tool call
-    controller1.write(
-      formatChunk({
-        type: 'tool-input-available',
-        toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
-        input: { testArg: 'test-value' },
-      }),
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-available","input":{"testArg":"test-value"}}',
-      );
-    });
-
-    // user submits the tool result
-    await userEvent.click(screen.getByTestId('add-result-0'));
-
-    // UI should show the tool result
-    await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"output-available","input":{"testArg":"test-value"},"output":"test-result"}',
-      );
-    });
-
-    // should not have called the API yet
-    expect(server.calls.length).toBe(1);
-
-    // finish stream
-    controller1.write(formatChunk({ type: 'finish-step' }));
-    controller1.write(formatChunk({ type: 'finish' }));
-
-    await controller1.close();
-
-    // 2nd call should happen after the stream is finished
-    await waitFor(() => {
-      expect(server.calls.length).toBe(2);
-    });
-
-    // DO NOT REMOVE: used to ensure test does not have side-effects
-    await waitFor(() => {
-      expect(screen.getByTestId('text-1')).toHaveTextContent('extra text');
-    });
   });
 });
 

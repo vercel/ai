@@ -384,10 +384,20 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     output: unknown;
   }) => {
     this.jobExecutor.run(async () => {
-      updateToolOutput({
-        messages: this.state.messages,
-        toolCallId,
-        output,
+      const messages = this.state.messages;
+      const lastMessage = messages[messages.length - 1];
+
+      this.state.replaceMessage(messages.length - 1, {
+        ...lastMessage,
+        parts: lastMessage.parts.map(part =>
+          isToolUIPart(part) && part.toolCallId === toolCallId
+            ? {
+                ...part,
+                state: 'output-available',
+                output,
+              }
+            : part,
+        ),
       });
     });
   };
@@ -424,10 +434,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   } & ChatRequestOptions) {
     this.setStatus({ status: 'submitted', error: undefined });
 
-    const messageCount = this.state.messages.length;
     const lastMessage = this.lastMessage;
-    const maxStep =
-      lastMessage?.parts.filter(part => part.type === 'step-start').length ?? 0; // TODO: should this be 1?
 
     try {
       const activeResponse = {
@@ -533,43 +540,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       this.activeResponse = undefined;
     }
   }
-}
-
-/**
- * Updates the result of a specific tool invocation in the last message of the given messages array.
- *
- * @param {object} params - The parameters object.
- * @param {UIMessage[]} params.messages - An array of messages, from which the last one is updated.
- * @param {string} params.toolCallId - The unique identifier for the tool invocation to update.
- * @param {unknown} params.toolResult - The result object to attach to the tool invocation.
- * @returns {void} This function does not return anything.
- */
-function updateToolOutput<UI_MESSAGE extends UIMessage>({
-  messages,
-  toolCallId,
-  output,
-}: {
-  messages: UI_MESSAGE[];
-  toolCallId: string;
-  output: unknown;
-}) {
-  const lastMessage = messages[messages.length - 1];
-
-  const toolPart = lastMessage.parts.find(
-    (part): part is ToolUIPart<InferUIMessageTools<UI_MESSAGE>> =>
-      isToolUIPart(part) && part.toolCallId === toolCallId,
-  );
-
-  if (toolPart == null) {
-    return;
-  }
-
-  toolPart.state = 'output-available';
-  (
-    toolPart as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> & {
-      state: 'output-available';
-    }
-  ).output = output;
 }
 
 /**
