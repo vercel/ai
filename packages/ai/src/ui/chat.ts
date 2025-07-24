@@ -17,14 +17,12 @@ import {
 } from './process-ui-message-stream';
 import {
   InferUIMessageToolCall,
-  InferUIMessageToolOutputs,
   isToolUIPart,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
   type InferUIMessageMetadata,
   type InferUIMessageTools,
-  type ToolUIPart,
   type UIDataTypes,
   type UIMessage,
 } from './ui-messages';
