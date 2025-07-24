@@ -2,9 +2,9 @@ import {
   generateId as generateIdFunc,
   IdGenerator,
   StandardSchemaV1,
-  Tool,
   Validator,
 } from '@ai-sdk/provider-utils';
+import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { SerialJobExecutor } from '../util/serial-job-executor';
 import { ChatTransport } from './chat-transport';
@@ -15,10 +15,6 @@ import {
   processUIMessageStream,
   StreamingUIMessageState,
 } from './process-ui-message-stream';
-import {
-  isAssistantMessageWithCompletedToolCalls,
-  shouldResubmitMessages,
-} from './should-resubmit-messages';
 import {
   InferUIMessageToolCall,
   InferUIMessageToolOutputs,
@@ -32,7 +28,6 @@ import {
   type UIDataTypes,
   type UIMessage,
 } from './ui-messages';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 
 export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
   UI_MESSAGE,
@@ -133,8 +128,6 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
 
   transport?: ChatTransport<UI_MESSAGE>;
 
-  maxSteps?: number;
-
   /**
    * Callback function to be called when an error is encountered.
    */
@@ -178,7 +171,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     | UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>
     | undefined;
   private readonly transport: ChatTransport<UI_MESSAGE>;
-  private maxSteps: number;
   private onError?: ChatInit<UI_MESSAGE>['onError'];
   private onToolCall?: ChatInit<UI_MESSAGE>['onToolCall'];
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
@@ -191,7 +183,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     generateId = generateIdFunc,
     id = generateId(),
     transport = new DefaultChatTransport(),
-    maxSteps = 1,
     messageMetadataSchema,
     dataPartSchemas,
     state,
@@ -203,7 +194,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     state: ChatState<UI_MESSAGE>;
   }) {
     this.id = id;
-    this.maxSteps = maxSteps;
     this.transport = transport;
     this.generateId = generateId;
     this.messageMetadataSchema = messageMetadataSchema;
@@ -338,7 +328,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     await this.makeRequest({
-      trigger: 'submit-user-message',
+      trigger: 'submit-message',
       messageId: message.messageId,
       ...options,
     });
@@ -373,7 +363,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     );
 
     await this.makeRequest({
-      trigger: 'regenerate-assistant-message',
+      trigger: 'regenerate-message',
       messageId,
       ...options,
     });
@@ -399,24 +389,17 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         toolCallId,
         output,
       });
-
-      this.messages = this.state.messages;
-
-      // when the request is ongoing, the auto-submit will be triggered after the request is finished
-      if (this.status === 'submitted' || this.status === 'streaming') {
-        return;
-      }
-
-      // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage = this.lastMessage;
-      if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-        // we do not await this call to avoid a deadlock in the serial job executor; triggerRequest also uses the job executor internally.
-        this.makeRequest({
-          trigger: 'submit-tool-result',
-        });
-      }
     });
   };
+
+  /**
+   * Checks if the assistant message can be submitted, i.e. if it
+   * has tool calls and all tool calls have results.
+   *
+   * @returns {boolean} True if the assistant message can be submitted, false otherwise.
+   */
+  canAssistantMessageBeSubmitted = (): boolean =>
+    isAssistantMessageWithCompletedToolCalls(this.lastMessage);
 
   /**
    * Abort the current request immediately, keep the generated tokens if any.
@@ -436,11 +419,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     body,
     messageId,
   }: {
-    trigger:
-      | 'submit-user-message'
-      | 'resume-stream'
-      | 'submit-tool-result'
-      | 'regenerate-assistant-message';
+    trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
     messageId?: string;
   } & ChatRequestOptions) {
     this.setStatus({ status: 'submitted', error: undefined });
@@ -553,25 +532,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     } finally {
       this.activeResponse = undefined;
     }
-
-    // auto-submit when all tool calls in the last assistant message have results
-    // and assistant has not answered yet
-    if (
-      shouldResubmitMessages({
-        originalMaxToolInvocationStep: maxStep,
-        originalMessageCount: messageCount,
-        maxSteps: this.maxSteps,
-        messages: this.state.messages,
-      })
-    ) {
-      await this.makeRequest({
-        metadata,
-        headers,
-        body,
-        // secondary requests are triggered by automatic tool execution
-        trigger: 'submit-tool-result',
-      });
-    }
   }
 }
 
@@ -610,4 +570,36 @@ function updateToolOutput<UI_MESSAGE extends UIMessage>({
       state: 'output-available';
     }
   ).output = output;
+}
+
+/**
+Check if the message is an assistant message with completed tool calls.
+The last step of the message must have at least one tool invocation and
+all tool invocations must have a result.
+ */
+export function isAssistantMessageWithCompletedToolCalls(
+  message: UIMessage | undefined,
+): message is UIMessage & {
+  role: 'assistant';
+} {
+  if (!message) {
+    return false;
+  }
+
+  if (message.role !== 'assistant') {
+    return false;
+  }
+
+  const lastStepStartIndex = message.parts.reduce((lastIndex, part, index) => {
+    return part.type === 'step-start' ? index : lastIndex;
+  }, -1);
+
+  const lastStepToolInvocations = message.parts
+    .slice(lastStepStartIndex + 1)
+    .filter(isToolUIPart);
+
+  return (
+    lastStepToolInvocations.length > 0 &&
+    lastStepToolInvocations.every(part => part.state === 'output-available')
+  );
 }

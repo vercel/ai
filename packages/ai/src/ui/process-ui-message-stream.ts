@@ -1,12 +1,12 @@
 import {
   StandardSchemaV1,
-  ToolCall,
   validateTypes,
   Validator,
 } from '@ai-sdk/provider-utils';
+import { ProviderMetadata } from '../types';
 import {
-  InferUIMessageChunk,
   DataUIMessageChunk,
+  InferUIMessageChunk,
   isDataUIMessageChunk,
   UIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
@@ -29,7 +29,6 @@ import {
   UIMessage,
   UIMessagePart,
 } from './ui-messages';
-import { ProviderMetadata } from '../types';
 
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
