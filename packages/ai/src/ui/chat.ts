@@ -250,12 +250,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
    * If a messageId is provided, the message will be replaced.
    */
   sendMessage = async (
-    message:
+    message?:
       | (CreateUIMessage<UI_MESSAGE> & {
           text?: never;
           files?: never;
           messageId?: string;
-          mode?: 'new-message';
         })
       | {
           text: string;
@@ -263,21 +262,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
           messageId?: string;
-          mode?: 'new-message';
         }
       | {
           files: FileList | FileUIPart[];
           metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
           messageId?: string;
-          mode?: 'new-message';
-        }
-      | {
-          mode: 'current-messages';
         },
-    options: ChatRequestOptions = {},
+    options?: ChatRequestOptions,
   ): Promise<void> => {
-    if (message.mode === 'current-messages') {
+    if (message == null) {
       await this.makeRequest({
         trigger: 'submit-message',
         messageId: this.lastMessage?.id,

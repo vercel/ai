@@ -30,14 +30,14 @@ export default function Chat() {
         });
 
         if (canAssistantMessageBeSubmitted()) {
-          sendMessage({ mode: 'current-messages' });
+          sendMessage();
         }
       }
     },
 
     onFinish() {
       if (canAssistantMessageBeSubmitted()) {
-        sendMessage({ mode: 'current-messages' });
+        sendMessage();
       }
     },
   });
@@ -76,7 +76,7 @@ export default function Chat() {
                               });
 
                               if (canAssistantMessageBeSubmitted()) {
-                                sendMessage({ mode: 'current-messages' });
+                                sendMessage();
                               }
                             }}
                           >
@@ -92,7 +92,7 @@ export default function Chat() {
                               });
 
                               if (canAssistantMessageBeSubmitted()) {
-                                sendMessage({ mode: 'current-messages' });
+                                sendMessage();
                               }
                             }}
                           >
