@@ -24,6 +24,12 @@ and the AI model will generate data that conforms to that structure.
   `zodSchema` helper function.
 </Note>
 
+<Note type="warning">
+  **Zod v4 Compatibility**: AI SDK v4 requires Zod v3. If you're using Zod v4,
+  you'll encounter schema validation errors. [See troubleshooting
+  guide](/docs/troubleshooting/zod-v4-json-schema-type-error).
+</Note>
+
 ## Generate Object
 
 The `generateObject` generates structured data from a prompt.

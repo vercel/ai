@@ -1,0 +1,60 @@
+---
+title: Schema must be JSON Schema of type object error
+description: Fix the "Invalid schema for function" error when using Zod schemas with AI SDK tools and structured object generation.
+---
+
+# Invalid schema for function: schema must be a JSON Schema of 'type: "object"'
+
+## Issue
+
+When using tools, `generateObject`, or `streamObject` with Zod schemas, you encounter this error:
+
+```
+Error [AI_APICallError]: Invalid schema for function 'json': schema must be a JSON Schema of 'type: "object"', got 'type: "string"'.
+```
+
+or similar variants like:
+
+- `got 'type: "Null"`
+- `Invalid schema for function 'calculator'`
+- `Invalid schema for function '[your-function-name]'`
+
+This error occurs when using:
+
+- Tool definitions with `tool()` function
+- Structured object generation with `generateObject()` or `streamObject()`
+- Any AI SDK feature that converts Zod schemas to JSON schemas
+
+## Cause
+
+The AI SDK v4 is not compatible with Zod v4. The schema conversion process that transforms Zod schemas into JSON schemas breaks with Zod v4's internal structure changes.
+
+## Solution
+
+### Option 1: Downgrade to Zod v3 (Recommended)
+
+```bash
+npm install zod@3.25.76
+```
+
+or with pnpm:
+
+```bash
+pnpm add zod@3.25.76
+```
+
+### Option 2: Upgrade to AI SDK v5 (Beta)
+
+If you need Zod v4, you can upgrade to the beta version of AI SDK v5:
+
+```bash
+npm install ai@beta @ai-sdk/openai@beta
+```
+
+Note: v5 is currently in beta and may have breaking changes. See the [v5 migration guide](https://v5.ai-sdk.dev/docs/getting-started/nextjs-app-router).
+
+## Additional Resources
+
+- [GitHub Issue #7325](https://github.com/vercel/ai/issues/7325)
+- [Structured Object Generation Documentation](/docs/ai-sdk-core/generating-structured-data)
+- [Tool Calling Documentation](/docs/ai-sdk-core/tools-and-tool-calling)
