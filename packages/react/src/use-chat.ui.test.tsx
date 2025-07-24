@@ -402,7 +402,7 @@ describe('data protocol stream', () => {
               "role": "user",
             },
           ],
-          "trigger": "submit-user-message",
+          "trigger": "submit-message",
         }
       `);
     });
@@ -635,7 +635,7 @@ describe('prepareChatRequest', () => {
         "requestMetadata": {
           "request-metadata-key": "request-metadata-value",
         },
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
 
@@ -747,7 +747,6 @@ describe('onToolCall', () => {
 describe('tool invocations', () => {
   setupTestComponent(() => {
     const { messages, sendMessage, addToolResult } = useChat({
-      maxSteps: 5,
       generateId: mockId(),
     });
 
@@ -1215,7 +1214,6 @@ describe('maxSteps', () => {
           } ${JSON.stringify(toolCall.input)}`;
         },
         generateId: mockId(),
-        maxSteps: 5,
       });
 
       return (
@@ -1290,7 +1288,6 @@ describe('maxSteps', () => {
           } ${JSON.stringify(toolCall.input)}`;
         },
         generateId: mockId(),
-        maxSteps: 5,
       });
 
       return (
@@ -1490,7 +1487,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1580,7 +1577,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1703,7 +1700,7 @@ describe('file attachments with url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1806,7 +1803,7 @@ describe('attachments with empty submit', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1920,7 +1917,7 @@ describe('should send message with attachments', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -2017,7 +2014,7 @@ describe('regenerate', () => {
           },
         ],
         "request-body-key": "request-body-value",
-        "trigger": "regenerate-assistant-message",
+        "trigger": "regenerate-message",
       }
     `);
 
@@ -2103,7 +2100,7 @@ describe('test sending additional fields during message submission', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });

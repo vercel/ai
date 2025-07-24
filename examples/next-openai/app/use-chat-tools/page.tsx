@@ -9,7 +9,6 @@ export default function Chat() {
   const { messages, sendMessage, addToolResult, status } =
     useChat<UseChatToolsMessage>({
       transport: new DefaultChatTransport({ api: '/api/use-chat-tools' }),
-      maxSteps: 5,
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {

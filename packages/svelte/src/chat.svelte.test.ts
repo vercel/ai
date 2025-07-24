@@ -221,7 +221,7 @@ describe('data protocol stream', () => {
               "role": "user",
             },
           ],
-          "trigger": "submit-user-message",
+          "trigger": "submit-message",
         }
       `);
     });
@@ -431,7 +431,6 @@ describe('tool invocations', () => {
     const generateId = mockId();
     chat = new Chat({
       generateId,
-      maxSteps: 5,
       transport: new DefaultChatTransport({
         api: '/api/chat',
       }),
@@ -762,7 +761,6 @@ describe('maxSteps', () => {
           } ${JSON.stringify(toolCall.input)}`;
         },
         id: 'test-id',
-        maxSteps: 5,
         transport: new DefaultChatTransport({
           api: '/api/chat',
         }),
@@ -859,7 +857,6 @@ describe('maxSteps', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.input)}`;
         },
-        maxSteps: 5,
         transport: new DefaultChatTransport({
           api: '/api/chat',
         }),
@@ -992,7 +989,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1082,7 +1079,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1182,7 +1179,7 @@ describe('file attachments with url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1275,7 +1272,7 @@ describe('file attachments with empty text content', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1358,7 +1355,7 @@ describe('reload', () => {
           },
         ],
         "request-body-key": "request-body-value",
-        "trigger": "regenerate-assistant-message",
+        "trigger": "regenerate-message",
       }
     `);
 
@@ -1421,7 +1418,7 @@ describe('test sending additional fields during message submission', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });

@@ -11,7 +11,6 @@ export default function Chat() {
       transport: new DefaultChatTransport({
         api: '/api/use-chat-reasoning-tools',
       }),
-      maxSteps: 5,
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {

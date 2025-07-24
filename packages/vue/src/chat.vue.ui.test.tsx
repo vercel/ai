@@ -57,7 +57,7 @@ describe('prepareSubmitMessagesRequest', () => {
     expect(value).toStrictEqual({
       id: expect.any(String),
       api: '/api/chat',
-      trigger: 'submit-user-message',
+      trigger: 'submit-message',
       body: { 'request-body-key': 'request-body-value' },
       headers: { 'request-header-key': 'request-header-value' },
       requestMetadata: { 'request-metadata-key': 'request-metadata-value' },
@@ -368,7 +368,7 @@ describe('regenerate', () => {
         },
       ],
       'request-body-key': 'request-body-value',
-      trigger: 'regenerate-assistant-message',
+      trigger: 'regenerate-message',
     });
 
     expect(server.calls[1].requestHeaders).toStrictEqual({
