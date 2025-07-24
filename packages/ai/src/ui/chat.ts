@@ -255,6 +255,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           text?: never;
           files?: never;
           messageId?: string;
+          mode?: 'new-message';
         })
       | {
           text: string;
@@ -262,15 +263,29 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
           messageId?: string;
+          mode?: 'new-message';
         }
       | {
           files: FileList | FileUIPart[];
           metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
           messageId?: string;
+          mode?: 'new-message';
+        }
+      | {
+          mode: 'current-messages';
         },
     options: ChatRequestOptions = {},
   ): Promise<void> => {
+    if (message.mode === 'current-messages') {
+      await this.makeRequest({
+        trigger: 'submit-message',
+        messageId: this.lastMessage?.id,
+        ...options,
+      });
+      return;
+    }
+
     let uiMessage: CreateUIMessage<UI_MESSAGE>;
 
     if ('text' in message || 'files' in message) {

@@ -23,17 +23,21 @@ export default function Chat() {
       if (toolCall.toolName === 'getLocation') {
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
 
-        addToolResult({
+        await addToolResult({
           tool: 'getLocation',
           toolCallId: toolCall.toolCallId,
           output: cities[Math.floor(Math.random() * cities.length)],
         });
+
+        if (canAssistantMessageBeSubmitted()) {
+          sendMessage({ mode: 'current-messages' });
+        }
       }
     },
 
-    onFinish({ message }) {
+    onFinish() {
       if (canAssistantMessageBeSubmitted()) {
-        sendMessage({ text: 'Hello, world!' });
+        sendMessage({ mode: 'current-messages' });
       }
     },
   });
@@ -64,25 +68,33 @@ export default function Chat() {
                         <div className="flex gap-2">
                           <button
                             className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
-                            onClick={() =>
-                              addToolResult({
+                            onClick={async () => {
+                              await addToolResult({
                                 tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'Yes, confirmed.',
-                              })
-                            }
+                              });
+
+                              if (canAssistantMessageBeSubmitted()) {
+                                sendMessage({ mode: 'current-messages' });
+                              }
+                            }}
                           >
                             Yes
                           </button>
                           <button
                             className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
-                            onClick={() =>
-                              addToolResult({
+                            onClick={async () => {
+                              await addToolResult({
                                 tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'No, denied',
-                              })
-                            }
+                              });
+
+                              if (canAssistantMessageBeSubmitted()) {
+                                sendMessage({ mode: 'current-messages' });
+                              }
+                            }}
                           >
                             No
                           </button>
