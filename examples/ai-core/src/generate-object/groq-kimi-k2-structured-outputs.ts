@@ -7,7 +7,7 @@ async function main() {
   const result = await generateObject({
     model: groq('moonshotai/kimi-k2-instruct'),
     schema: z.record(z.unknown()),
-    prompt: 'Create a simple pasta recipe. Please return the following in JSON format.',
+    prompt: 'Create a simple pasta recipe.',
     providerOptions: {
       groq: {
         structuredOutputs: true,

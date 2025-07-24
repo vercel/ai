@@ -4,6 +4,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
+  LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
@@ -26,6 +27,8 @@ import { GroqChatModelId, groqProviderOptions } from './groq-chat-options';
 import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';
+
+
 
 type GroqChatConfig = {
   provider: string;
@@ -74,6 +77,14 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
   }) {
     const warnings: LanguageModelV2CallWarning[] = [];
 
+    const groqOptions = await parseProviderOptions({
+      provider: 'groq',
+      providerOptions,
+      schema: groqProviderOptions,
+    });
+
+    const structuredOutputs = groqOptions?.structuredOutputs ?? false;
+
     if (topK != null) {
       warnings.push({
         type: 'unsupported-setting',
@@ -82,22 +93,16 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     }
 
     if (
-      responseFormat != null &&
-      responseFormat.type === 'json' &&
-      responseFormat.schema != null
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !structuredOutputs
     ) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'responseFormat',
-        details: 'JSON response format schema is not supported',
+        details: 'JSON response format schema is only supported with structuredOutputs',
       });
     }
-
-    const groqOptions = await parseProviderOptions({
-      provider: 'groq',
-      providerOptions,
-      schema: groqProviderOptions,
-    });
 
     const {
       tools: groqTools,
@@ -125,9 +130,17 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
         // response format:
         response_format:
-          // json object response format is not supported for streaming:
-          stream === false && responseFormat?.type === 'json'
-            ? { type: 'json_object' }
+          responseFormat?.type === 'json'
+            ? structuredOutputs && responseFormat.schema != null
+              ? {
+                  type: 'json_schema',
+                  json_schema: {
+                    schema: responseFormat.schema,
+                    name: responseFormat.name ?? 'response',
+                    description: responseFormat.description,
+                  },
+                }
+              : { type: 'json_object' }
             : undefined,
 
         // provider options:
