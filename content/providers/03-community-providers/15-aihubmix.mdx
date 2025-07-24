@@ -7,7 +7,6 @@ description: One Gateway, Infinite Models；one-stop request: OpenAI, Claude, Ge
 
 The [Aihubmix](https://aihubmix.com/) provider contains unified access to multiple AI providers through the Aihubmix API, including OpenAI, Anthropic Claude, and Google Gemini models. View all available models at [aihubmix.com/models](https://aihubmix.com/models).
 
-
 ## Setup
 
 The Aihubmix provider is available in the `@aihubmix/ai-sdk-provider` module. You can install it with
@@ -44,16 +43,16 @@ First, import the necessary functions:
 
 ```ts
 import { createAihubmix } from '@aihubmix/ai-sdk-provider';
-import { 
-  generateText, 
-  streamText, 
-  generateImage, 
-  embed, 
-  embedMany, 
-  generateObject, 
-  streamObject, 
-  generateSpeech, 
-  transcribe 
+import {
+  generateText,
+  streamText,
+  generateImage,
+  embed,
+  embedMany,
+  generateObject,
+  streamObject,
+  generateSpeech,
+  transcribe,
 } from 'ai';
 import { z } from 'zod';
 ```
@@ -268,7 +267,6 @@ const { text } = await generateText({
   },
 });
 ```
-
 
 ## Additional Resources
 
