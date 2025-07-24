@@ -109,7 +109,7 @@ The following optional provider options are available for Groq language models:
 - **structuredOutputs** _boolean_
 
   Whether to use structured outputs.
-  
+
   Defaults to `true`.
 
   When enabled, object generation will use the `json_schema` format instead of `json_object` format, providing more reliable structured outputs.
@@ -177,9 +177,11 @@ console.log(JSON.stringify(result.object, null, 2));
 ```
 
 <Note type="warning">
-  Structured outputs are only supported by newer Groq models like `moonshotai/kimi-k2-instruct`.
-  For unsupported models, you can disable structured outputs by setting `structuredOutputs: false`.
-  When disabled, Groq uses the `json_object` format which requires the word "JSON" to be included in your messages.
+  Structured outputs are only supported by newer Groq models like
+  `moonshotai/kimi-k2-instruct`. For unsupported models, you can disable
+  structured outputs by setting `structuredOutputs: false`. When disabled, Groq
+  uses the `json_object` format which requires the word "JSON" to be included in
+  your messages.
 </Note>
 
 ### Example
