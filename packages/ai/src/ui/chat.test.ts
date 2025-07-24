@@ -1,6 +1,12 @@
 import { createTestServer, mockId } from '@ai-sdk/provider-utils/test';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
-import { AbstractChat, ChatInit, ChatState, ChatStatus } from './chat';
+import {
+  AbstractChat,
+  ChatInit,
+  ChatState,
+  ChatStatus,
+  isAssistantMessageWithCompletedToolCalls,
+} from './chat';
 import { UIMessage } from './ui-messages';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { DefaultChatTransport } from './default-chat-transport';
@@ -122,7 +128,7 @@ describe('chat', () => {
               "role": "user",
             },
           ],
-          "trigger": "submit-user-message",
+          "trigger": "submit-message",
         }
       `,
       );
@@ -148,6 +154,7 @@ describe('chat', () => {
                 "type": "step-start",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -194,6 +201,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -222,6 +230,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello",
                   "type": "text",
@@ -250,6 +259,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello,",
                   "type": "text",
@@ -278,6 +288,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world",
                   "type": "text",
@@ -306,6 +317,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world.",
                   "type": "text",
@@ -334,6 +346,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Hello, world.",
                   "type": "text",
@@ -401,7 +414,7 @@ describe('chat', () => {
               "role": "user",
             },
           ],
-          "trigger": "submit-user-message",
+          "trigger": "submit-message",
         }
       `,
       );
@@ -429,6 +442,7 @@ describe('chat', () => {
                 "type": "step-start",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -479,6 +493,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -509,6 +524,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world.",
                   "type": "text",
@@ -539,6 +555,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Hello, world.",
                   "type": "text",
@@ -625,7 +642,7 @@ describe('chat', () => {
               "role": "user",
             },
           ],
-          "trigger": "submit-user-message",
+          "trigger": "submit-message",
         }
       `,
       );
@@ -651,6 +668,7 @@ describe('chat', () => {
                 "type": "step-start",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -719,6 +737,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
                   "type": "text",
@@ -747,6 +766,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello",
                   "type": "text",
@@ -775,6 +795,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello,",
                   "type": "text",
@@ -803,6 +824,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world",
                   "type": "text",
@@ -831,6 +853,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world.",
                   "type": "text",
@@ -859,6 +882,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "Hello, world.",
                   "type": "text",
@@ -870,5 +894,58 @@ describe('chat', () => {
         ]
       `);
     });
+  });
+});
+
+describe('isAssistantMessageWithCompletedToolCalls', () => {
+  it('should return false if the last step of a multi-step sequency only has text', () => {
+    expect(
+      isAssistantMessageWithCompletedToolCalls({
+        id: '1',
+        role: 'assistant',
+        parts: [
+          { type: 'step-start' },
+          {
+            type: 'tool-getLocation',
+            toolCallId: 'call_CuEdmzpx4ZldCkg5SVr3ikLz',
+            state: 'output-available',
+            input: {},
+            output: 'New York',
+          },
+          { type: 'step-start' },
+          {
+            type: 'text',
+            text: 'The current weather in New York is windy.',
+            state: 'done',
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return true when there is a text part after the last tool result in the last step', () => {
+    expect(
+      isAssistantMessageWithCompletedToolCalls({
+        id: '1',
+        role: 'assistant',
+        parts: [
+          { type: 'step-start' },
+          {
+            type: 'tool-getWeatherInformation',
+            toolCallId: 'call_6iy0GxZ9R4VDI5MKohXxV48y',
+            state: 'output-available',
+            input: {
+              city: 'New York',
+            },
+            output: 'windy',
+          },
+          {
+            type: 'text',
+            text: 'The current weather in New York is windy.',
+            state: 'done',
+          },
+        ],
+      }),
+    ).toBe(true);
   });
 });

@@ -8,7 +8,8 @@ tags: ['next', 'multi-modal']
 
 <Note>
   This feature is limited to models/providers that support PDF inputs
-  ([Anthropic](/providers/ai-sdk-providers/anthropic#pdf-support), [Google
+  ([Anthropic](/providers/ai-sdk-providers/anthropic#pdf-support),
+  [OpenAI](/providers/ai-sdk-providers/openai#pdf-support), [Google
   Gemini](/providers/ai-sdk-providers/google-generative-ai#file-inputs), and
   [Google Vertex](/providers/ai-sdk-providers/google-vertex#file-inputs)).
 </Note>
@@ -56,7 +57,9 @@ export default function Page() {
           Submit{loading && 'ing...'}
         </button>
       </form>
-      {description && <pre>{description}</pre>}
+      {description && (
+        <pre>{JSON.stringify(JSON.parse(description), null, 2)}</pre>
+      )}
     </div>
   );
 }
@@ -67,16 +70,26 @@ export default function Page() {
 On the server, create an API route that receives the PDF, sends it to the LLM, and returns the result. This example uses the [ `generateObject` ](/docs/reference/ai-sdk-core/generate-object) function to generate the summary as part of a structured output.
 
 ```typescript file="app/api/analyze/route.ts"
+import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 
 export async function POST(request: Request) {
   const formData = await request.formData();
   const file = formData.get('pdf') as File;
 
+  // Convert the file's arrayBuffer to a Base64 data URL
+  const arrayBuffer = await file.arrayBuffer();
+  const uint8Array = new Uint8Array(arrayBuffer);
+
+  // Convert Uint8Array to an array of characters
+  const charArray = Array.from(uint8Array, byte => String.fromCharCode(byte));
+  const binaryString = charArray.join('');
+  const base64Data = btoa(binaryString);
+  const fileDataUrl = `data:application/pdf;base64,${base64Data}`;
+
   const result = await generateObject({
-    model: anthropic('claude-3-5-sonnet-latest'),
+    model: openai('gpt-4o'),
     messages: [
       {
         role: 'user',
@@ -87,17 +100,23 @@ export async function POST(request: Request) {
           },
           {
             type: 'file',
-            data: await file.arrayBuffer(),
+            data: fileDataUrl,
             mediaType: 'application/pdf',
           },
         ],
       },
     ],
     schema: z.object({
-      summary: z.string().describe('A 50 word summary of the PDF.'),
+      people: z
+        .object({
+          name: z.string().describe('The name of the person.'),
+          age: z.number().min(0).describe('The age of the person.'),
+        })
+        .array()
+        .describe('An array of people.'),
     }),
   });
 
-  return new Response(result.object.summary);
+  return Response.json(result.object);
 }
 ```

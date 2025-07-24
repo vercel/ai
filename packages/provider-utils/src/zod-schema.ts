@@ -25,8 +25,8 @@ export function zod3Schema<OBJECT>(
       target: 'jsonSchema7', // note: openai mode breaks various gemini conversions
     }) as JSONSchema7,
     {
-      validate: value => {
-        const result = zodSchema.safeParse(value);
+      validate: async value => {
+        const result = await zodSchema.safeParseAsync(value);
         return result.success
           ? { success: true, value: result.data }
           : { success: false, error: result.error };
@@ -36,7 +36,7 @@ export function zod3Schema<OBJECT>(
 }
 
 export function zod4Schema<OBJECT>(
-  zodSchema: z4.ZodType<OBJECT, any>,
+  zodSchema: z4.core.$ZodType<OBJECT, any>,
   options?: {
     /**
      * Enables support for references in the schema.
@@ -57,8 +57,8 @@ export function zod4Schema<OBJECT>(
   }) as JSONSchema7;
 
   return jsonSchema(z4JSONSchema, {
-    validate: value => {
-      const result = z4.safeParse(zodSchema, value);
+    validate: async value => {
+      const result = await z4.safeParseAsync(zodSchema, value);
       return result.success
         ? { success: true, value: result.data }
         : { success: false, error: result.error };
@@ -67,14 +67,16 @@ export function zod4Schema<OBJECT>(
 }
 
 export function isZod4Schema(
-  zodSchema: z4.ZodType<any, any> | z3.Schema<any, z3.ZodTypeDef, any>,
-): zodSchema is z4.ZodType<any, any> {
+  zodSchema: z4.core.$ZodType<any, any> | z3.Schema<any, z3.ZodTypeDef, any>,
+): zodSchema is z4.core.$ZodType<any, any> {
   // https://zod.dev/library-authors?id=how-to-support-zod-3-and-zod-4-simultaneously
   return '_zod' in zodSchema;
 }
 
 export function zodSchema<OBJECT>(
-  zodSchema: z4.ZodType<OBJECT, any> | z3.Schema<OBJECT, z3.ZodTypeDef, any>,
+  zodSchema:
+    | z4.core.$ZodType<OBJECT, any>
+    | z3.Schema<OBJECT, z3.ZodTypeDef, any>,
   options?: {
     /**
      * Enables support for references in the schema.

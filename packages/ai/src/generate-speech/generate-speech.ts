@@ -1,10 +1,12 @@
 import { JSONValue, SpeechModelV2 } from '@ai-sdk/provider';
+import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../../src/error/no-speech-generated-error';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
 } from '../../src/util/detect-media-type';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechResult } from './generate-speech-result';
@@ -12,7 +14,6 @@ import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
 
 /**
 Generates speech audio using a speech model.
@@ -112,6 +113,14 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<SpeechResult> {
+  if (model.specificationVersion !== 'v2') {
+    throw new UnsupportedModelVersionError({
+      version: model.specificationVersion,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   const result = await retry(() =>

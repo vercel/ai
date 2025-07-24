@@ -1,5 +1,103 @@
 # ai
 
+## 5.0.0-beta.26
+
+### Patch Changes
+
+- ae77a99: chore (ai): rename text and reasoning chunks in streamText fullstream
+- 1f6ce57: feat (ai): infer tool call types in the `onToolCall` callback
+- 5a975a4: feat (ui): update Chat tool result submission
+- 2a62513: Fix error thrown when emptying messages in onError or onFinish
+- 904fa5e: feat (ai/core): add terminateOnError option to readUIMessageStream
+- f81c720: chore(ai): bundle dependencies in CLI binary
+- Updated dependencies [70ebead]
+  - @ai-sdk/gateway@1.0.0-beta.12
+
+## 5.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [8bd3624]
+- Updated dependencies [e001ea1]
+  - @ai-sdk/gateway@1.0.0-beta.11
+
+## 5.0.0-beta.24
+
+### Patch Changes
+
+- add5ac1: feat (ai): make streamText toUIMessageStream async iterable
+- ff1c81a: feat (ai): add streamText onAbort callback
+- e4c8647: feat (ui): allow asynchronous onFinish in createUIMessageStream
+- 383cbfa: feat (ai): add isAborted to onFinish callback for ui message streams
+- Updated dependencies [57edfcb]
+- Updated dependencies [383cbfa]
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+  - @ai-sdk/gateway@1.0.0-beta.10
+
+## 5.0.0-beta.23
+
+### Patch Changes
+
+- 89ba235: fix (ui): support tool names with dash
+
+## 5.0.0-beta.22
+
+### Patch Changes
+
+- de2d2ab: feat(ai): add provider and provider registry middleware functionality
+- 6c42e56: feat (ai): validate ui stream data chunks
+- c93a8bc: chore(ai): export AsyncIterableStream type from async-iterable-stream module
+- 20398f2: feat: ai sdk cli documentation + adjusted default model
+- 86293e5: fix (ai): use correct generateMessageId in streamText toUIMessageStream
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+  - @ai-sdk/gateway@1.0.0-beta.9
+
+## 5.0.0-beta.21
+
+### Patch Changes
+
+- 38ae5cc: feat (ai): export InferUIMessageChunk type
+- faea29f: fix (provider/openai): multi-step reasoning with text
+- 90ac328: fix (ui): tool part metadata support in ui messages
+- 4a1e0c8: fix(ai-cli): fix bundling and improve authentication error handling
+- 30ac566: fix (ui): text message metadata support in ui messages
+
+## 5.0.0-beta.20
+
+### Patch Changes
+
+- 4c8f834: feat: automatically respect rate limit headers in retry logic
+
+  Added automatic support for respecting rate limit headers (`retry-after-ms` and `retry-after`) in the SDK's retry logic. When these headers are present and contain reasonable values (0-60 seconds), the retry mechanism will use the server-specified delay instead of exponential backoff. This matches the behavior of Anthropic and OpenAI client SDKs and improves rate limit handling without requiring any API changes.
+
+## 5.0.0-beta.19
+
+### Patch Changes
+
+- 10b21eb: feat(cli): add ai command line interface
+- 75c3396: fix (ai): handle errors in 2nd streamText doStream call
+- 05d2819: feat: allow zod 4.x as peer dependency
+- db64cbe: fix (provider/openai): multi-step reasoning with tool calls
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+  - @ai-sdk/gateway@1.0.0-beta.8
+
+## 5.0.0-beta.18
+
+### Patch Changes
+
+- d3960e3: selectTelemetryAttributes more robustness
+- 9338f3e: fix (ai): throw error for v1 models
+
+## 5.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [c190907]
+  - @ai-sdk/gateway@1.0.0-beta.7
+
 ## 5.0.0-beta.16
 
 ### Patch Changes

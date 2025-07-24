@@ -23,10 +23,15 @@ Let's start with the following example first.
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { useState } from 'react';
 
 export default function Page() {
-  const { messages, sendMessage, status } = useChat();
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
   const [input, setInput] = useState('');
 
   return (
@@ -121,10 +126,15 @@ You can use `status` for e.g. the following purposes:
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { useState } from 'react';
 
 export default function Page() {
-  const { messages, sendMessage, status, stop } = useChat({});
+  const { messages, sendMessage, status, stop } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
   const [input, setInput] = useState('');
 
   return (
@@ -186,10 +196,15 @@ It can be used to display an error message, disable the submit button, or show a
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, sendMessage, error, reload } = useChat({});
+  const { messages, sendMessage, error, reload } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
   const [input, setInput] = useState('');
 
   return (
@@ -356,16 +371,19 @@ You can configure transport-level options that will be applied to all requests m
 
 ```tsx
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 
 const { messages, sendMessage } = useChat({
-  api: '/api/custom-chat',
-  headers: {
-    Authorization: 'your_token',
-  },
-  body: {
-    user_id: '123',
-  },
-  credentials: 'same-origin',
+  transport: new DefaultChatTransport({
+    api: '/api/custom-chat',
+    headers: {
+      Authorization: 'your_token',
+    },
+    body: {
+      user_id: '123',
+    },
+    credentials: 'same-origin',
+  }),
 });
 ```
 
@@ -374,19 +392,30 @@ const { messages, sendMessage } = useChat({
 You can also provide functions that return configuration values. This is useful for authentication tokens that need to be refreshed, or for configuration that depends on runtime conditions:
 
 ```tsx
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+
 const { messages, sendMessage } = useChat({
-  api: '/api/chat',
-  headers: () => ({
-    Authorization: `Bearer ${getAuthToken()}`,
-    'X-User-ID': getCurrentUserId(),
+  transport: new DefaultChatTransport({
+    api: '/api/custom-chat',
+    headers: () => ({
+      Authorization: `Bearer ${getAuthToken()}`,
+      'X-User-ID': getCurrentUserId(),
+    }),
+    body: () => ({
+      sessionId: getCurrentSessionId(),
+      preferences: getUserPreferences(),
+    }),
+    credentials: () => 'include',
   }),
-  body: () => ({
-    sessionId: getCurrentSessionId(),
-    preferences: getUserPreferences(),
-  }),
-  credentials: () => 'include',
 });
 ```
+
+<Note>
+  For component state that changes over time, use `useRef` to store the current
+  value and reference `ref.current` in your configuration function, or prefer
+  request-level options (see next section) for better reliability.
+</Note>
 
 #### Request-Level Configuration (Recommended)
 
@@ -479,6 +508,53 @@ export async function POST(req: Request) {
   //...
 }
 ```
+
+## Message Metadata
+
+You can attach custom metadata to messages for tracking information like timestamps, model details, and token usage.
+
+```ts
+// Server: Send metadata about the message
+return result.toUIMessageStreamResponse({
+  messageMetadata: ({ part }) => {
+    if (part.type === 'start') {
+      return {
+        createdAt: Date.now(),
+        model: 'gpt-4o',
+      };
+    }
+
+    if (part.type === 'finish') {
+      return {
+        totalTokens: part.totalUsage.totalTokens,
+      };
+    }
+  },
+});
+```
+
+```tsx
+// Client: Access metadata via message.metadata
+{
+  messages.map(message => (
+    <div key={message.id}>
+      {message.role}:{' '}
+      {message.metadata?.createdAt &&
+        new Date(message.metadata.createdAt).toLocaleTimeString()}
+      {/* Render message content */}
+      {message.parts.map((part, index) =>
+        part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+      )}
+      {/* Show token count if available */}
+      {message.metadata?.totalTokens && (
+        <span>{message.metadata.totalTokens} tokens</span>
+      )}
+    </div>
+  ));
+}
+```
+
+For complete examples with type safety and advanced use cases, see the [Message Metadata documentation](/docs/ai-sdk-ui/message-metadata).
 
 ## Transport Configuration
 
@@ -620,7 +696,7 @@ export async function POST(req: Request) {
   });
 
   return result.toUIMessageStreamResponse({
-    getErrorMessage: error => {
+    onError: error => {
       if (error == null) {
         return 'unknown error';
       }
@@ -669,10 +745,13 @@ export async function POST(req: Request) {
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { TextStreamChatTransport } from 'ai';
 
 export default function Chat() {
   const { messages } = useChat({
-    streamProtocol: 'text',
+    transport: new TextStreamChatTransport({
+      api: '/api/chat',
+    }),
   });
 
   return <>...</>;
@@ -683,7 +762,7 @@ This configuration also works with other backend servers that stream plain text.
 Check out the [stream protocol guide](/docs/ai-sdk-ui/stream-protocol) for more information.
 
 <Note>
-  When using `streamProtocol: 'text'`, tool calls, usage information and finish
+  When using `TextStreamChatTransport`, tool calls, usage information and finish
   reasons are not available.
 </Note>
 

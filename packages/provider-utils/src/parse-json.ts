@@ -3,12 +3,11 @@ import {
   JSONValue,
   TypeValidationError,
 } from '@ai-sdk/provider';
-import { secureJsonParse } from './secure-json-parse';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
+import { secureJsonParse } from './secure-json-parse';
 import { safeValidateTypes, validateTypes } from './validate-types';
 import { Validator } from './validator';
-import { InferSchema } from './schema';
 
 /**
  * Parses a JSON string into an unknown object.
@@ -30,14 +29,14 @@ export async function parseJSON(options: {
  */
 export async function parseJSON<T>(options: {
   text: string;
-  schema: z4.ZodType<T> | z3.Schema<T> | Validator<T>;
+  schema: z4.core.$ZodType<T> | z3.Schema<T> | Validator<T>;
 }): Promise<T>;
 export async function parseJSON<T>({
   text,
   schema,
 }: {
   text: string;
-  schema?: z4.ZodType<T> | z3.Schema<T> | Validator<T>;
+  schema?: z4.core.$ZodType<T> | z3.Schema<T> | Validator<T>;
 }): Promise<T> {
   try {
     const value = secureJsonParse(text);
@@ -87,14 +86,14 @@ export async function safeParseJSON(options: {
  */
 export async function safeParseJSON<T>(options: {
   text: string;
-  schema: z4.ZodType<T> | z3.Schema<T> | Validator<T>;
+  schema: z4.core.$ZodType<T> | z3.Schema<T> | Validator<T>;
 }): Promise<ParseResult<T>>;
 export async function safeParseJSON<T>({
   text,
   schema,
 }: {
   text: string;
-  schema?: z4.ZodType<T> | z3.Schema<T> | Validator<T>;
+  schema?: z4.core.$ZodType<T> | z3.Schema<T> | Validator<T>;
 }): Promise<ParseResult<T>> {
   try {
     const value = secureJsonParse(text);

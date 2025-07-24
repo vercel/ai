@@ -49,7 +49,7 @@ You can use the following optional settings to customize the OpenAI provider ins
   Azure resource name.
   It defaults to the `AZURE_RESOURCE_NAME` environment variable.
 
-  The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}`.
+  The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/v1{path}`.
   You can use `baseURL` instead to specify the URL prefix.
 
 - **apiKey** _string_
@@ -60,7 +60,7 @@ You can use the following optional settings to customize the OpenAI provider ins
 - **apiVersion** _string_
 
   Sets a custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation).
-  Defaults to `2025-03-01-preview`.
+  Defaults to `preview`.
 
 - **baseURL** _string_
 
@@ -69,7 +69,7 @@ You can use the following optional settings to customize the OpenAI provider ins
   Either this or `resourceName` can be used.
   When a baseURL is provided, the resourceName is ignored.
 
-  With a baseURL, the resolved URL is `{baseURL}/{modelId}{path}`.
+  With a baseURL, the resolved URL is `{baseURL}/v1{path}`.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -170,7 +170,7 @@ const { text } = await generateText({
 
 <Note>
   The URL for calling Azure chat models will be constructed as follows:
-  `https://RESOURCE_NAME.openai.azure.com/openai/deployments/DEPLOYMENT_NAME/chat/completions?api-version=API_VERSION`
+  `https://RESOURCE_NAME.openai.azure.com/openai/v1/chat/completions?api-version=preview`
 </Note>
 
 Azure OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).

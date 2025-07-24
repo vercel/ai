@@ -5,7 +5,7 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { experimental_useObject } from './use-object';
 
 const server = createTestServer({

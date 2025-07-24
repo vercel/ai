@@ -5,6 +5,12 @@ description: 'Learn how to use the Letta AI SDK provider for the AI SDK.'
 
 # Letta Provider
 
+<Note type="warning">
+  This community provider is not yet compatible with AI SDK 5. Please wait for
+  the provider to be updated or consider using an [AI SDK 5 compatible
+  provider](/providers/ai-sdk-providers).
+</Note>
+
 The [Letta AI-SDK provider](https://github.com/letta-ai/vercel-ai-sdk-provider) is the official provider for the [Letta](https://docs.letta.com) platform. It allows you to integrate Letta's AI capabilities into your applications using the Vercel AI SDK.
 
 ## Setup
@@ -25,14 +31,6 @@ The Letta provider is available in the `@letta-ai/vercel-ai-sdk-provider` module
   </Tab>
 </Tabs>
 
-## Setup
-
-The Letta provider is available in the `@letta-ai/vercel-ai-sdk-provider` module. You can install it with
-
-```bash
-npm i @letta-ai/vercel-ai-sdk-provider a
-```
-
 ## Provider Instance
 
 You can import the default provider instance `letta` from `@letta-ai/vercel-ai-sdk-provider`:
@@ -48,8 +46,7 @@ import { letta } from '@letta-ai/vercel-ai-sdk-provider';
 Create a file called `.env.local` and add your [API Key](https://app.letta.com/api-keys)
 
 ```text
-LETTA_API_KEY=<your api key>
-
+LETTA_API_KEY=<your_api_key>
 ```
 
 ```ts
@@ -57,7 +54,7 @@ import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: lettaCloud('your-agent-id'),
+  model: lettaCloud('your_agent_id'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -69,7 +66,7 @@ import { lettaLocal } from '@letta-ai/vercel-ai-sdk-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: lettaLocal('your-agent-id'),
+  model: lettaLocal('your_agent_id'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -81,12 +78,12 @@ import { createLetta } from '@letta-ai/vercel-ai-sdk-provider';
 import { generateText } from 'ai';
 
 const letta = createLetta({
-  baseUrl: '<your-base-url>',
-  token: '<your-access-token>',
+  baseUrl: '<your_base_url>',
+  token: '<your_access_token>',
 });
 
 const { text } = await generateText({
-  model: letta('your-agent-id'),
+  model: letta('your_agent_id'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -96,9 +93,15 @@ const { text } = await generateText({
 The `vercel-ai-sdk-provider` extends the [@letta-ai/letta-client](https://www.npmjs.com/package/@letta-ai/letta-client), you can access the operations directly by using `lettaCloud.client` or `lettaLocal.client` or your custom generated `letta.client`
 
 ```ts
+// with Letta Cloud
 import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
 
-lettaCloud.agents.list();
+lettaCloud.client.agents.list();
+
+// with Letta Local
+import { lettaLocal } from '@letta-ai/vercel-ai-sdk-provider';
+
+lettaLocal.client.agents.list();
 ```
 
 ### More Information

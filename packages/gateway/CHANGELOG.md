@@ -1,5 +1,47 @@
 # @ai-sdk/gateway
 
+## 1.0.0-beta.12
+
+### Patch Changes
+
+- 70ebead: feat (provider/gateway): add qwen3 coder model id
+
+## 1.0.0-beta.11
+
+### Patch Changes
+
+- 8bd3624: feat (provider/gateway): update model ids to include vercel
+- e001ea1: fix (provider/gateway): remove unnecessary 'x-' prefix on auth method header
+
+## 1.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [57edfcb]
+- Updated dependencies [383cbfa]
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+
+## 1.0.0-beta.9
+
+### Patch Changes
+
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- c190907: fix (provider/gateway): use zod v4
+
 ## 1.0.0-beta.6
 
 ### Patch Changes

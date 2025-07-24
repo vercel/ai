@@ -1,5 +1,28 @@
 # @ai-sdk/perplexity
 
+## 2.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [57edfcb]
+- Updated dependencies [383cbfa]
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+
 ## 2.0.0-beta.3
 
 ### Major Changes

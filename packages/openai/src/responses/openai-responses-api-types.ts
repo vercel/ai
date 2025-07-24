@@ -33,6 +33,7 @@ export type OpenAIResponsesAssistantMessage = {
     | OpenAIWebSearchCall
     | OpenAIComputerCall
   >;
+  id?: string;
 };
 
 export type OpenAIResponsesFunctionCall = {
@@ -40,6 +41,7 @@ export type OpenAIResponsesFunctionCall = {
   call_id: string;
   name: string;
   arguments: string;
+  id?: string;
 };
 
 export type OpenAIResponsesFunctionCallOutput = {

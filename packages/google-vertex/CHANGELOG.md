@@ -1,5 +1,60 @@
 # @ai-sdk/google-vertex
 
+## 3.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [75f03b1]
+  - @ai-sdk/google@2.0.0-beta.14
+
+## 3.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [57edfcb]
+- Updated dependencies [383cbfa]
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+  - @ai-sdk/anthropic@2.0.0-beta.8
+  - @ai-sdk/google@2.0.0-beta.13
+
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+  - @ai-sdk/anthropic@2.0.0-beta.7
+  - @ai-sdk/google@2.0.0-beta.12
+
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [6a16dcf]
+  - @ai-sdk/google@2.0.0-beta.11
+
+## 3.0.0-beta.12
+
+### Minor Changes
+
+- 6ca44f2: Fixed global region for vertex provider
+
+### Patch Changes
+
+- Updated dependencies [05d2819]
+- Updated dependencies [7badba2]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+  - @ai-sdk/google@2.0.0-beta.10
+  - @ai-sdk/anthropic@2.0.0-beta.6
+
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [8af9e03]
+  - @ai-sdk/google@2.0.0-beta.9
+
 ## 3.0.0-beta.10
 
 ### Patch Changes

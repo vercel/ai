@@ -317,6 +317,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     let currentReasoningBlockId: string | null = null;
     let blockCounter = 0;
 
+    // Track emitted sources to prevent duplicates
+    const emittedSourceUrls = new Set<string>();
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -360,6 +363,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             }
 
             const content = candidate.content;
+
+            const sources = extractSources({
+              groundingMetadata: candidate.groundingMetadata,
+              generateId,
+            });
+            if (sources != null) {
+              for (const source of sources) {
+                if (
+                  source.sourceType === 'url' &&
+                  !emittedSourceUrls.has(source.url)
+                ) {
+                  emittedSourceUrls.add(source.url);
+                  controller.enqueue(source);
+                }
+              }
+            }
 
             // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
             if (content != null) {
@@ -475,16 +494,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 finishReason: candidate.finishReason,
                 hasToolCalls,
               });
-
-              const sources =
-                extractSources({
-                  groundingMetadata: candidate.groundingMetadata,
-                  generateId,
-                }) ?? [];
-
-              for (const source of sources) {
-                controller.enqueue(source);
-              }
 
               providerMetadata = {
                 google: {

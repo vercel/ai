@@ -34,6 +34,7 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   | 'addToolResult'
   | 'status'
   | 'messages'
+  | 'canAssistantMessageBeSubmitted'
 >;
 
 export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
@@ -69,10 +70,14 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     chatRef.current = 'chat' in options ? options.chat : new Chat(options);
   }
 
+  const optionsId = 'id' in options ? options.id : null;
+
   const subscribeToMessages = useCallback(
     (update: () => void) =>
       chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
-    [throttleWaitMs],
+    // optionsId is required to trigger re-subscription when the chat ID changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [throttleWaitMs, optionsId],
   );
 
   const messages = useSyncExternalStore(
@@ -98,12 +103,11 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       messagesParam: UI_MESSAGE[] | ((messages: UI_MESSAGE[]) => UI_MESSAGE[]),
     ) => {
       if (typeof messagesParam === 'function') {
-        messagesParam = messagesParam(messages);
+        messagesParam = messagesParam(chatRef.current.messages);
       }
-
       chatRef.current.messages = messagesParam;
     },
-    [messages, chatRef],
+    [chatRef],
   );
 
   useEffect(() => {
@@ -119,6 +123,8 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     sendMessage: chatRef.current.sendMessage,
     regenerate: chatRef.current.regenerate,
     stop: chatRef.current.stop,
+    canAssistantMessageBeSubmitted:
+      chatRef.current.canAssistantMessageBeSubmitted,
     error,
     resumeStream: chatRef.current.resumeStream,
     status,

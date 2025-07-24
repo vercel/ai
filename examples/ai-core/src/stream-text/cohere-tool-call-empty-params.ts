@@ -37,7 +37,7 @@ async function main() {
     console.log(delta);
 
     switch (delta.type) {
-      case 'text': {
+      case 'text-delta': {
         fullResponse += delta.text;
         process.stdout.write(delta.text);
         break;

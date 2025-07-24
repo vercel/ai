@@ -59,7 +59,9 @@ const result = await generateText({
         },
         {
           type: 'image',
-          image: fs.readFileSync('./node/attachments/eclipse.jpg'),
+          image: fs.readFileSync('./node/attachments/eclipse.jpg', {
+            encoding: 'base64',
+          }),
         },
       ],
     },
