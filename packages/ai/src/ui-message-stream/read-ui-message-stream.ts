@@ -16,6 +16,8 @@ import { consumeStream } from '../util/consume-stream';
  *
  * @param options.message - The last assistant message to use as a starting point when the conversation is resumed. Otherwise undefined.
  * @param options.stream - The stream of `UIMessageChunk`s to read.
+ * @param options.terminateOnError - Whether to terminate the stream if an error occurs.
+ * @param options.onError - A function that is called when an error occurs.
  *
  * @returns An `AsyncIterableStream` of `UIMessage`s. Each stream part is a different state of the same message
  * as it is being completed.
@@ -23,9 +25,13 @@ import { consumeStream } from '../util/consume-stream';
 export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
   message,
   stream,
+  onError,
+  terminateOnError = false,
 }: {
   message?: UI_MESSAGE;
   stream: ReadableStream<UIMessageChunk>;
+  onError?: (error: unknown) => void;
+  terminateOnError?: boolean;
 }): AsyncIterableStream<UI_MESSAGE> {
   let controller: ReadableStreamDefaultController<UI_MESSAGE> | undefined;
   let hasErrored = false;
@@ -42,7 +48,9 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
   });
 
   const handleError = (error: unknown) => {
-    if (!hasErrored) {
+    onError?.(error);
+
+    if (!hasErrored && terminateOnError) {
       hasErrored = true;
       controller?.error(error);
     }

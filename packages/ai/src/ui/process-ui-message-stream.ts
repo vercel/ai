@@ -537,7 +537,3 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     }),
   );
 }
-
-function isObject(value: unknown): value is object {
-  return typeof value === 'object' && value !== null;
-}

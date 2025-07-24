@@ -109,7 +109,10 @@ describe('readUIMessageStream', () => {
       { type: 'error', errorText: 'Test error message' },
     ]);
 
-    const uiMessages = readUIMessageStream({ stream });
+    const uiMessages = readUIMessageStream({
+      stream,
+      terminateOnError: true,
+    });
 
     await expect(convertAsyncIterableToArray(uiMessages)).rejects.toThrow(
       'Test error message',
