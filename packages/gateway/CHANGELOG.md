@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.0-beta.12
+
+### Patch Changes
+
+- 70ebead: feat (provider/gateway): add qwen3 coder model id
+
 ## 1.0.0-beta.11
 
 ### Patch Changes
