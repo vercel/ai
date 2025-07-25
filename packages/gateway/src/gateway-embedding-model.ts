@@ -70,7 +70,8 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
       return {
         embeddings: responseBody.embeddings,
         usage: responseBody.usage ?? undefined,
-        providerMetadata: responseBody.providerMetadata as unknown as SharedV2ProviderMetadata,
+        providerMetadata:
+          responseBody.providerMetadata as unknown as SharedV2ProviderMetadata,
         response: { headers: responseHeaders, body: rawValue },
       };
     } catch (error) {
