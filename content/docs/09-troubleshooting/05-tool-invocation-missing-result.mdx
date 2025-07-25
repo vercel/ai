@@ -42,17 +42,20 @@ const tools = {
 
 ```tsx
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
 
 const { messages, sendMessage, addToolResult } = useChat({
   // Automatically submit when all tool results are available
   sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-  
+
   // Handle tool calls in onToolCall
   onToolCall: async ({ toolCall }) => {
     if (toolCall.toolName === 'getLocation') {
       const result = await getLocationData();
-      
+
       // Important: Don't await inside onToolCall to avoid deadlocks
       addToolResult({
         tool: 'getLocation',
