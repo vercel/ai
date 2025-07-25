@@ -110,7 +110,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    if (responseFormat != null && responseFormat.type !== 'text' && responseFormat.type !== 'json') {
+    if (
+      responseFormat != null &&
+      responseFormat.type !== 'text' &&
+      responseFormat.type !== 'json'
+    ) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'responseFormat',
@@ -190,12 +194,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     }
 
     const { toolConfig, toolWarnings } = prepareTools({
-      tools: jsonResponseTool != null
-        ? [jsonResponseTool]
-        : tools ?? [],
-      toolChoice: jsonResponseTool != null
-        ? { type: 'tool', toolName: jsonResponseTool.name }
-        : toolChoice,
+      tools: jsonResponseTool != null ? [jsonResponseTool] : (tools ?? []),
+      toolChoice:
+        jsonResponseTool != null
+          ? { type: 'tool', toolName: jsonResponseTool.name }
+          : toolChoice,
       prompt,
     });
 
@@ -227,7 +230,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { command: args, warnings, usesJsonResponseTool } = await this.getArgs(options);
+    const {
+      command: args,
+      warnings,
+      usesJsonResponseTool,
+    } = await this.getArgs(options);
 
     const url = `${this.getUrl(this.modelId)}/converse`;
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -304,7 +311,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             : {
                 type: 'tool-call' as const,
                 toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
-                toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
+                toolName:
+                  part.toolUse?.name ?? `tool-${this.config.generateId()}`,
                 input: JSON.stringify(part.toolUse?.input ?? ''),
               },
         );
@@ -352,7 +360,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { command: args, warnings, usesJsonResponseTool } = await this.getArgs(options);
+    const {
+      command: args,
+      warnings,
+      usesJsonResponseTool,
+    } = await this.getArgs(options);
     const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -476,7 +488,9 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                   bedrock: {
                     ...cacheUsage,
                     ...trace,
-                    ...(usesJsonResponseTool && { isJsonResponseFromTool: true }),
+                    ...(usesJsonResponseTool && {
+                      isJsonResponseFromTool: true,
+                    }),
                   },
                 };
               }
@@ -503,7 +517,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
               if (contentBlocks[blockIndex] == null) {
                 contentBlocks[blockIndex] = { type: 'text' };
-                
+
                 // when a json response tool is used, we don't emit text events
                 if (!usesJsonResponseTool) {
                   controller.enqueue({
