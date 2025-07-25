@@ -1,4 +1,8 @@
-import { SharedV2Headers, SharedV2ProviderOptions, SharedV2ProviderMetadata } from '../../shared';
+import {
+  SharedV2Headers,
+  SharedV2ProviderOptions,
+  SharedV2ProviderMetadata,
+} from '../../shared';
 import { EmbeddingModelV2Embedding } from './embedding-model-v2-embedding';
 
 /**

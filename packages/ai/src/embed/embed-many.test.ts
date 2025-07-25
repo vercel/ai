@@ -454,10 +454,16 @@ describe('result.providerMetadata', () => {
       model: new MockEmbeddingModelV2({
         supportsParallelCalls: false,
         maxEmbeddingsPerCall: 3,
-        doEmbed: mockEmbed(testValues, dummyEmbeddings, undefined, {
-          headers: {},
-          body: {},
-        }, providerMetadata),
+        doEmbed: mockEmbed(
+          testValues,
+          dummyEmbeddings,
+          undefined,
+          {
+            headers: {},
+            body: {},
+          },
+          providerMetadata,
+        ),
       }),
       values: testValues,
     });

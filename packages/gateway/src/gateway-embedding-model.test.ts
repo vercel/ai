@@ -200,8 +200,8 @@ describe('GatewayEmbeddingModel', () => {
         values: testValues,
       });
 
-      expect(result.providerMetadata).toStrictEqual({ 
-        gateway: { routing: { test: true } } 
+      expect(result.providerMetadata).toStrictEqual({
+        gateway: { routing: { test: true } },
       });
     });
   });

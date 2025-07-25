@@ -126,58 +126,62 @@ Only applicable for HTTP-based providers.
       // the model has not specified limits on
       // how many embeddings can be generated in a single call
       if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
-        const { embeddings, usage, response, providerMetadata } = await retry(() => {
-          // nested spans to align with the embedMany telemetry data:
-          return recordSpan({
-            name: 'ai.embedMany.doEmbed',
-            attributes: selectTelemetryAttributes({
-              telemetry,
-              attributes: {
-                ...assembleOperationName({
-                  operationId: 'ai.embedMany.doEmbed',
-                  telemetry,
-                }),
-                ...baseTelemetryAttributes,
-                // specific settings that only make sense on the outer level:
-                'ai.values': {
-                  input: () => values.map(value => JSON.stringify(value)),
-                },
-              },
-            }),
-            tracer,
-            fn: async doEmbedSpan => {
-              const modelResponse = await model.doEmbed({
-                values,
-                abortSignal,
-                headers,
-                providerOptions,
-              });
-
-              const embeddings = modelResponse.embeddings;
-              const usage = modelResponse.usage ?? { tokens: NaN };
-
-              doEmbedSpan.setAttributes(
-                selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    'ai.embeddings': {
-                      output: () =>
-                        embeddings.map(embedding => JSON.stringify(embedding)),
-                    },
-                    'ai.usage.tokens': usage.tokens,
+        const { embeddings, usage, response, providerMetadata } = await retry(
+          () => {
+            // nested spans to align with the embedMany telemetry data:
+            return recordSpan({
+              name: 'ai.embedMany.doEmbed',
+              attributes: selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  ...assembleOperationName({
+                    operationId: 'ai.embedMany.doEmbed',
+                    telemetry,
+                  }),
+                  ...baseTelemetryAttributes,
+                  // specific settings that only make sense on the outer level:
+                  'ai.values': {
+                    input: () => values.map(value => JSON.stringify(value)),
                   },
-                }),
-              );
+                },
+              }),
+              tracer,
+              fn: async doEmbedSpan => {
+                const modelResponse = await model.doEmbed({
+                  values,
+                  abortSignal,
+                  headers,
+                  providerOptions,
+                });
 
-              return {
-                embeddings,
-                usage,
-                providerMetadata: modelResponse.providerMetadata,
-                response: modelResponse.response,
-              };
-            },
-          });
-        });
+                const embeddings = modelResponse.embeddings;
+                const usage = modelResponse.usage ?? { tokens: NaN };
+
+                doEmbedSpan.setAttributes(
+                  selectTelemetryAttributes({
+                    telemetry,
+                    attributes: {
+                      'ai.embeddings': {
+                        output: () =>
+                          embeddings.map(embedding =>
+                            JSON.stringify(embedding),
+                          ),
+                      },
+                      'ai.usage.tokens': usage.tokens,
+                    },
+                  }),
+                );
+
+                return {
+                  embeddings,
+                  usage,
+                  providerMetadata: modelResponse.providerMetadata,
+                  response: modelResponse.response,
+                };
+              },
+            });
+          },
+        );
 
         span.setAttributes(
           selectTelemetryAttributes({
