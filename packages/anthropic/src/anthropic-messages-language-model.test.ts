@@ -1327,7 +1327,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               $schema: 'http://json-schema.org/draft-07/schema#',
             },
           },
-          includeRawChunks: false,
         });
 
         result = await convertReadableStreamToArray(stream);
@@ -1472,7 +1471,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
-        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1548,7 +1546,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
-        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1639,7 +1636,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
-        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1714,7 +1710,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
-        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1798,7 +1793,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ],
         prompt: TEST_PROMPT,
-        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1907,7 +1901,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
-        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1952,7 +1945,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { response } = await model.doStream({
         prompt: TEST_PROMPT,
-        includeRawChunks: false,
       });
 
       expect(response?.headers).toStrictEqual({
@@ -1982,7 +1974,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       await model.doStream({
         prompt: TEST_PROMPT,
-        includeRawChunks: false,
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2021,7 +2012,6 @@ describe('AnthropicMessagesLanguageModel', () => {
         headers: {
           'Custom-Request-Header': 'request-header-value',
         },
-        includeRawChunks: false,
       });
 
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
@@ -2056,7 +2046,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
-        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2118,7 +2107,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { request } = await model.doStream({
         prompt: TEST_PROMPT,
-        includeRawChunks: false,
       });
 
       expect(request).toMatchInlineSnapshot(`
@@ -2261,7 +2249,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         const { stream } = await model.doStream({
           prompt: TEST_PROMPT,
-          includeRawChunks: false,
         });
 
         const chunks = await convertReadableStreamToArray(stream);
@@ -2314,7 +2301,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               ],
             },
           ],
-          includeRawChunks: false,
         });
 
         const result = await convertReadableStreamToArray(stream);
@@ -2447,11 +2433,53 @@ describe('AnthropicMessagesLanguageModel', () => {
         body: '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
       };
 
-      await expect(
-        model.doGenerate({
-          prompt: TEST_PROMPT,
-        }),
-      ).rejects.toThrow('Overloaded');
+      await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toThrow(
+        'Overloaded',
+      );
+    });
+
+    it('should forward overloaded error during streaming', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "error": {
+              "message": "Overloaded",
+              "type": "overloaded_error",
+            },
+            "type": "error",
+          },
+        ]
+      `);
     });
   });
 });
