@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- a89add7: fix(amazon-bedrock): add structured output support for claude models
+
 ## 3.0.0-beta.10
 
 ### Patch Changes
