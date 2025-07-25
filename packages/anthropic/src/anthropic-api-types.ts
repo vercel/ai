@@ -126,6 +126,7 @@ export type AnthropicTool =
       name: string;
       description: string | undefined;
       input_schema: JSONSchema7;
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       name: string;
