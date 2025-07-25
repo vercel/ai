@@ -2061,6 +2061,106 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should handle JSON response format with schema', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          type: 'tool_use',
+          id: 'json-tool-id',
+          name: 'json',
+          input: { recipe: { name: 'Lasagna', ingredients: ['pasta', 'cheese'] } },
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Generate a recipe' }] }],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            recipe: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                ingredients: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['name', 'ingredients'],
+            },
+          },
+          required: ['recipe'],
+        },
+      },
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`[]`);
+
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(requestBody.toolConfig.tools[0].toolSpec.description).toBe('Respond with a JSON object.');
+    expect(requestBody.toolConfig.toolChoice).toEqual({ tool: { name: 'json' } });
+  });
+
+  it('should warn when tools are provided with JSON response format', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          type: 'tool_use',
+          id: 'json-tool-id',
+          name: 'json',
+          input: { value: 'test' },
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+    });
+
+    expect(result.warnings).toEqual([
+      {
+        type: 'other',
+        message: 'JSON response format does not support tools. The provided tools are ignored.',
+      },
+    ]);
+  });
+
+  it('should handle unsupported response format types', async () => {
+    prepareJsonResponse({});
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: { type: 'xml' as any },
+    });
+
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'Only text and json response formats are supported.',
+      },
+    ]);
+  });
+
   it('should include toolConfig when conversation has tool calls but toolChoice is none', async () => {
     prepareJsonResponse({});
 
