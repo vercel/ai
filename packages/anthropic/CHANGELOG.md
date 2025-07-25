@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-beta.9
+
+### Patch Changes
+
+- 4f26d59: feat(provider/anthropic): add disable parallel tool use option
+- a753b3a: feat (provider/anthropic): cache control for tools
+- Updated dependencies [ac34802]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+
 ## 2.0.0-beta.8
 
 ### Patch Changes

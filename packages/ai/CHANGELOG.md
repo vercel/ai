@@ -1,5 +1,15 @@
 # ai
 
+## 5.0.0-beta.28
+
+### Patch Changes
+
+- 84343eb: fix (ui): call sendAutomaticallyWhen with updated messages
+- a753b3a: feat (provider/anthropic): cache control for tools
+- Updated dependencies [ac34802]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+  - @ai-sdk/gateway@1.0.0-beta.14
+
 ## 5.0.0-beta.27
 
 ### Patch Changes
