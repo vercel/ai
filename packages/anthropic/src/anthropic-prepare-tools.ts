@@ -141,7 +141,10 @@ export function prepareTools({
   if (toolChoice == null) {
     return {
       tools: anthropicTools,
-      toolChoice: undefined,
+      toolChoice:
+        disableParallelToolUse === true
+          ? { type: 'auto', disable_parallel_tool_use: true }
+          : undefined,
       toolWarnings,
       betas,
     };
