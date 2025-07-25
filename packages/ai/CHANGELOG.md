@@ -1,5 +1,18 @@
 # ai
 
+## 5.0.0-beta.26
+
+### Patch Changes
+
+- ae77a99: chore (ai): rename text and reasoning chunks in streamText fullstream
+- 1f6ce57: feat (ai): infer tool call types in the `onToolCall` callback
+- 5a975a4: feat (ui): update Chat tool result submission
+- 2a62513: Fix error thrown when emptying messages in onError or onFinish
+- 904fa5e: feat (ai/core): add terminateOnError option to readUIMessageStream
+- f81c720: chore(ai): bundle dependencies in CLI binary
+- Updated dependencies [70ebead]
+  - @ai-sdk/gateway@1.0.0-beta.12
+
 ## 5.0.0-beta.25
 
 ### Patch Changes

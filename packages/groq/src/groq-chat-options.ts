@@ -38,6 +38,13 @@ export const groqProviderOptions = z.object({
    * monitor and detect abuse. Learn more.
    */
   user: z.string().optional(),
+
+  /**
+   * Whether to use structured outputs.
+   *
+   * @default true
+   */
+  structuredOutputs: z.boolean().optional(),
 });
 
 export type GroqProviderOptions = z.infer<typeof groqProviderOptions>;

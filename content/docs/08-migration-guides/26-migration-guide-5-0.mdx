@@ -525,6 +525,37 @@ const weatherTool = tool({
 });
 ```
 
+#### Tool Result Content: experimental_toToolResultContent → toModelOutput
+
+The `experimental_toToolResultContent` option has been renamed to `toModelOutput` and is no longer experimental.
+
+```tsx filename="AI SDK 4.0"
+const screenshotTool = tool({
+  description: 'Take a screenshot',
+  parameters: z.object({}),
+  execute: async () => {
+    const imageData = await takeScreenshot();
+    return imageData; // base64 string
+  },
+  experimental_toToolResultContent: result => [{ type: 'image', data: result }],
+});
+```
+
+```tsx filename="AI SDK 5.0"
+const screenshotTool = tool({
+  description: 'Take a screenshot',
+  inputSchema: z.object({}),
+  execute: async () => {
+    const imageData = await takeScreenshot();
+    return imageData;
+  },
+  toModelOutput: result => ({
+    type: 'content',
+    value: [{ type: 'media', mediaType: 'image/png', data: result }],
+  }),
+});
+```
+
 ### Tool Property Changes (args/result → input/output)
 
 Tool call and result properties have been renamed for better consistency with schemas.
@@ -555,6 +586,34 @@ for await (const part of result.fullStream) {
       break;
   }
 }
+```
+
+### Tool Call Streaming Now Default (toolCallStreaming Removed)
+
+The `toolCallStreaming` option has been removed in AI SDK 5.0. Tool call streaming is now always enabled by default.
+
+```tsx filename="AI SDK 4.0"
+const result = streamText({
+  model: openai('gpt-4o'),
+  messages,
+  toolCallStreaming: true, // Optional parameter to enable streaming
+  tools: {
+    weatherTool,
+    searchTool,
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+const result = streamText({
+  model: openai('gpt-4o'),
+  messages: convertToModelMessages(messages),
+  // toolCallStreaming removed - streaming is always enabled
+  tools: {
+    weatherTool,
+    searchTool,
+  },
+});
 ```
 
 ### Tool Part Type Changes (UIMessage)
@@ -941,6 +1000,36 @@ import { useChat } from '@ai-sdk/react';
 
 The `useChat` hook has undergone significant changes in v5, with new transport architecture, removal of managed input state, and more.
 
+#### Initial Messages Renamed
+
+The `initialMessages` option has been renamed to `messages`.
+
+```tsx filename="AI SDK 4.0"
+import { useChat, type Message } from '@ai-sdk/react';
+
+function ChatComponent({ initialMessages }: { initialMessages: Message[] }) {
+  const { messages } = useChat({
+    initialMessages: initialMessages,
+    // ...
+  });
+
+  // your component
+}
+```
+
+```tsx filename="AI SDK 5.0"
+import { useChat, type UIMessage } from '@ai-sdk/react';
+
+function ChatComponent({ initialMessages }: { initialMessages: UIMessage[] }) {
+  const { messages } = useChat({
+    messages: initialMessages,
+    // ...
+  });
+
+  // your component
+}
+```
+
 #### Chat Transport Architecture
 
 Configuration is now handled through transport objects instead of direct API options.
@@ -1162,6 +1251,30 @@ import type { RequestOptions } from 'ai';
 import type { CompletionRequestOptions } from 'ai';
 ```
 
+#### addToolResult Changes
+
+In the `addToolResult` function, the `result` parameter has been renamed to `output` for consistency with other tool-related APIs.
+
+```tsx filename="AI SDK 4.0"
+const { addToolResult } = useChat();
+
+// Add tool result with 'result' parameter
+addToolResult({
+  toolCallId: 'tool-call-123',
+  result: 'Weather: 72°F, sunny',
+});
+```
+
+```tsx filename="AI SDK 5.0"
+const { addToolResult } = useChat();
+
+// Add tool result with 'output' parameter
+addToolResult({
+  toolCallId: 'tool-call-123',
+  output: 'Weather: 72°F, sunny',
+});
+```
+
 #### Loading State Changes
 
 The deprecated `isLoading` helper has been removed in favor of `status`.
@@ -1191,6 +1304,55 @@ const { messages } = useChat({
   resumeStream: true, // Resume interrupted streams
 });
 ```
+
+#### Dynamic Body Values
+
+In v4, the `body` option in useChat configuration would dynamically update with component state changes. In v5, the `body` value is only captured at the first render and remains static throughout the component lifecycle.
+
+```tsx filename="AI SDK 4.0"
+const [temperature, setTemperature] = useState(0.7);
+
+const { messages } = useChat({
+  api: '/api/chat',
+  body: {
+    temperature, // This would update dynamically in v4
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+const [temperature, setTemperature] = useState(0.7);
+
+// Option 1: Use request-level configuration (Recommended)
+const { messages, sendMessage } = useChat({
+  transport: new DefaultChatTransport({ api: '/api/chat' }),
+});
+
+// Pass dynamic values at request time
+sendMessage(
+  { text: input },
+  {
+    body: {
+      temperature, // Current temperature value at request time
+    },
+  },
+);
+
+// Option 2: Use function configuration with useRef
+const temperatureRef = useRef(temperature);
+temperatureRef.current = temperature;
+
+const { messages } = useChat({
+  transport: new DefaultChatTransport({
+    api: '/api/chat',
+    body: () => ({
+      temperature: temperatureRef.current,
+    }),
+  }),
+});
+```
+
+For more details on request configuration, see the [Chatbot guide](/docs/ai-sdk-ui/chatbot#request-configuration).
 
 ### `@ai-sdk/vue` Changes
 
@@ -1863,6 +2025,40 @@ import { DataStreamToSSETransformStream } from 'ai';
 import { JsonToSseTransformStream } from 'ai';
 ```
 
+#### Error Handling: getErrorMessage → onError
+
+The `getErrorMessage` option in `toDataStreamResponse` has been replaced with `onError` in `toUIMessageStreamResponse`, providing more control over error forwarding to the client.
+
+By default, error messages are NOT sent to the client to prevent leaking sensitive information. The `onError` callback allows you to explicitly control what error information is forwarded to the client.
+
+```tsx filename="AI SDK 4.0"
+return result.toDataStreamResponse({
+  getErrorMessage: error => {
+    // Return sanitized error data to send to client
+    // Only return what you want the client to see!
+    return {
+      errorCode: 'STREAM_ERROR',
+      message: 'An error occurred while processing your request',
+      // In production, avoid sending error.message directly to prevent information leakage
+    };
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+return result.toUIMessageStreamResponse({
+  onError: error => {
+    // Return sanitized error data to send to client
+    // Only return what you want the client to see!
+    return {
+      errorCode: 'STREAM_ERROR',
+      message: 'An error occurred while processing your request',
+      // In production, avoid sending error.message directly to prevent information leakage
+    };
+  },
+});
+```
+
 ### Utility Changes
 
 #### ID Generation Changes
@@ -2159,15 +2355,17 @@ import {
 } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
+const updatedMessages = appendClientMessage({
+  messages,
+  message: lastUserMessage,
+});
+
 const result = streamText({
   model: openai('gpt-4o'),
-  messages: convertToModelMessages(messages),
+  messages: updatedMessages,
+  experimental_generateMessageId: () => generateId(), // ID generation on streamText
   onFinish: async ({ responseMessages, usage }) => {
     // Use helper functions to format messages
-    const updatedMessages = appendClientMessage({
-      messages,
-      message: lastUserMessage,
-    });
     const finalMessages = appendResponseMessages({
       messages: updatedMessages,
       responseMessages,
@@ -2192,18 +2390,49 @@ const messages: UIMessage[] = [
 const result = streamText({
   model: openai('gpt-4o'),
   messages: convertToModelMessages(messages),
+  // experimental_generateMessageId removed from here
 });
 
 return result.toUIMessageStreamResponse({
   originalMessages: messages, // Pass original messages for context
-  onFinish: ({ messages }) => {
+  generateMessageId: () => generateId(), // ID generation moved here for UI messages
+  onFinish: ({ messages, responseMessage }) => {
     // messages contains all messages (original + response) in UIMessage format
     saveChat({ chatId, messages });
+
+    // responseMessage contains just the generated message in UIMessage format
+    saveMessage({ chatId, message: responseMessage });
   },
 });
 ```
 
-### Alternative: Using createUIMessageStream
+### Message ID Generation
+
+The `experimental_generateMessageId` option has been moved from `streamText` configuration to `toUIMessageStreamResponse`, as it's designed for use with `UIMessage`s rather than `ModelMessage`s.
+
+```tsx filename="AI SDK 4.0"
+const result = streamText({
+  model: openai('gpt-4o'),
+  messages,
+  experimental_generateMessageId: () => generateId(),
+});
+```
+
+```tsx filename="AI SDK 5.0"
+const result = streamText({
+  model: openai('gpt-4o'),
+  messages: convertToModelMessages(messages),
+});
+
+return result.toUIMessageStreamResponse({
+  generateMessageId: () => generateId(), // No longer experimental
+  // ...
+});
+```
+
+For more details on message IDs and persistence, see the [Chatbot Message Persistence guide](/docs/ai-sdk-ui/chatbot-message-persistence#message-ids).
+
+### Using createUIMessageStream
 
 For more complex scenarios, especially when working with data parts, you can use `createUIMessageStream`:
 
@@ -2466,3 +2695,41 @@ For more information, see the [Codemods](#codemods) section.
 | Restructure file stream parts                    | `v5/restructure-file-stream-parts`                    |
 | Restructure source stream parts                  | `v5/restructure-source-stream-parts`                  |
 | RSC package                                      | `v5/rsc-package`                                      |
+
+## Changes Between v5 Beta Versions
+
+This section documents breaking changes between different beta versions of AI SDK 5.0. If you're upgrading from an earlier v5 beta version to a later one, check this section for any changes that might affect your code.
+
+### fullStream Type Rename: text/reasoning → text-delta/reasoning-delta
+
+The chunk types in `fullStream` have been renamed for consistency with UI streams and language model streams.
+
+```tsx filename="AI SDK 5.0 (before beta.26)"
+for await (const chunk of result.fullStream) {
+  switch (chunk.type) {
+    case 'text': {
+      process.stdout.write(chunk.text);
+      break;
+    }
+    case 'reasoning': {
+      console.log('Reasoning:', chunk.text);
+      break;
+    }
+  }
+}
+```
+
+```tsx filename="AI SDK 5.0 (beta.26 and later)"
+for await (const chunk of result.fullStream) {
+  switch (chunk.type) {
+    case 'text-delta': {
+      process.stdout.write(chunk.text);
+      break;
+    }
+    case 'reasoning-delta': {
+      console.log('Reasoning:', chunk.text);
+      break;
+    }
+  }
+}
+```

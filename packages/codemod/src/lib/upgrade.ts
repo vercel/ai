@@ -65,6 +65,10 @@ const bundle = [
   'v5/move-provider-options',
   'v5/move-react-to-ai-sdk',
   'v5/move-ui-utils-to-ai',
+  'v5/rename-converttocoremessages-to-converttomodelmessages',
+  'v5/rename-pipedatastreamtoresponse-to-pipeuimessagestreamtoresponse',
+  'v5/rename-todatastreamresponse-to-touimessagestreamresponse',
+  'v5/rename-tool-parameters-to-inputschema',
 ];
 
 const log = debug('codemod:upgrade');

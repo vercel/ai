@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.0-beta.7
+
+### Patch Changes
+
+- ae3a4fd: feat(provider/groq): add structured outputs support
+
 ## 2.0.0-beta.6
 
 ### Patch Changes

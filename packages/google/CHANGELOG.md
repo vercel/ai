@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- 75f03b1: Add Gemini 2.5 Flash Lite GA
+
 ## 2.0.0-beta.13
 
 ### Patch Changes

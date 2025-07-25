@@ -1,12 +1,12 @@
 import {
   StandardSchemaV1,
-  ToolCall,
   validateTypes,
   Validator,
 } from '@ai-sdk/provider-utils';
+import { ProviderMetadata } from '../types';
 import {
-  InferUIMessageChunk,
   DataUIMessageChunk,
+  InferUIMessageChunk,
   isDataUIMessageChunk,
   UIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
@@ -19,6 +19,7 @@ import {
   getToolName,
   InferUIMessageData,
   InferUIMessageMetadata,
+  InferUIMessageToolCall,
   InferUIMessageTools,
   isToolUIPart,
   ReasoningUIPart,
@@ -27,7 +28,6 @@ import {
   UIMessage,
   UIMessagePart,
 } from './ui-messages';
-import { ProviderMetadata } from '../types';
 
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
@@ -67,11 +67,11 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
 
 export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   stream,
-  onToolCall,
   messageMetadataSchema,
   dataPartSchemas,
   runUpdateMessageJob,
   onError,
+  onToolCall,
   onData,
 }: {
   // input stream is not fully typed yet:
@@ -81,8 +81,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
-    toolCall: ToolCall<string, unknown>;
-  }) => void | Promise<unknown> | unknown;
+    toolCall: InferUIMessageToolCall<UI_MESSAGE>;
+  }) => void | PromiseLike<void>;
   onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
   runUpdateMessageJob: (
     job: (options: {
@@ -349,20 +349,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // requires additional state management for error handling etc.
               // Skip calling onToolCall for provider-executed tools since they are already executed
               if (onToolCall && !chunk.providerExecuted) {
-                const result = await onToolCall({
-                  toolCall: chunk,
+                await onToolCall({
+                  toolCall: chunk as InferUIMessageToolCall<UI_MESSAGE>,
                 });
-                if (result != null) {
-                  updateToolInvocationPart({
-                    toolCallId: chunk.toolCallId,
-                    toolName: chunk.toolName,
-                    state: 'output-available',
-                    input: chunk.input,
-                    output: result,
-                  });
-
-                  write();
-                }
               }
               break;
             }
@@ -536,8 +525,4 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
       },
     }),
   );
-}
-
-function isObject(value: unknown): value is object {
-  return typeof value === 'object' && value !== null;
 }
