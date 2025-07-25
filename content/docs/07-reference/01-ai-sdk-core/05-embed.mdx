@@ -174,5 +174,11 @@ const { embedding } = await embed({
         },
       ],
     },
+    {
+      name: 'providerMetadata',
+      type: 'ProviderMetadata | undefined',
+      isOptional: true,
+      description: 'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+    },
   ]}
 />
