@@ -1441,7 +1441,9 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Generate JSON' }] }],
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Generate JSON' }] },
+      ],
       responseFormat: {
         type: 'json',
         schema: {
@@ -2149,13 +2151,20 @@ describe('doGenerate', () => {
           type: 'tool_use',
           id: 'json-tool-id',
           name: 'json',
-          input: { recipe: { name: 'Lasagna', ingredients: ['pasta', 'cheese'] } },
+          input: {
+            recipe: { name: 'Lasagna', ingredients: ['pasta', 'cheese'] },
+          },
         },
       ],
     });
 
     const result = await model.doGenerate({
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Generate a recipe' }] }],
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a recipe' }],
+        },
+      ],
       responseFormat: {
         type: 'json',
         schema: {
@@ -2182,8 +2191,12 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.toolConfig.tools).toHaveLength(1);
     expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
-    expect(requestBody.toolConfig.tools[0].toolSpec.description).toBe('Respond with a JSON object.');
-    expect(requestBody.toolConfig.toolChoice).toEqual({ tool: { name: 'json' } });
+    expect(requestBody.toolConfig.tools[0].toolSpec.description).toBe(
+      'Respond with a JSON object.',
+    );
+    expect(requestBody.toolConfig.toolChoice).toEqual({
+      tool: { name: 'json' },
+    });
   });
 
   it('should warn when tools are provided with JSON response format', async () => {
@@ -2220,7 +2233,8 @@ describe('doGenerate', () => {
     expect(result.warnings).toEqual([
       {
         type: 'other',
-        message: 'JSON response format does not support tools. The provided tools are ignored.',
+        message:
+          'JSON response format does not support tools. The provided tools are ignored.',
       },
     ]);
   });
