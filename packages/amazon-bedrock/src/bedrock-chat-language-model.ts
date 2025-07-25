@@ -166,7 +166,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const { toolConfig, toolWarnings } = prepareTools({ tools, toolChoice });
+    const { toolConfig, toolWarnings } = prepareTools({
+      tools,
+      toolChoice,
+      prompt,
+    });
 
     // Filter out reasoningConfig from providerOptions.bedrock to prevent sending it to Bedrock API
     const { reasoningConfig: _, ...filteredBedrockOptions } =
@@ -182,7 +186,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           inferenceConfig,
         }),
         ...filteredBedrockOptions,
-        ...(toolConfig.tools?.length ? { toolConfig } : {}),
+        ...(toolConfig.tools !== undefined ? { toolConfig } : {}),
       },
       warnings: [...warnings, ...toolWarnings],
     };
