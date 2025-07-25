@@ -186,7 +186,7 @@ describe('prepareTools', () => {
           inputSchema: {},
           providerOptions: {
             anthropic: {
-              cacheControl: { type: 'ephemeral', ttl: '5m' },
+              cacheControl: { type: 'ephemeral' },
             },
           },
         },
@@ -197,7 +197,6 @@ describe('prepareTools', () => {
       [
         {
           "cache_control": {
-            "ttl": "5m",
             "type": "ephemeral",
           },
           "description": "Test",

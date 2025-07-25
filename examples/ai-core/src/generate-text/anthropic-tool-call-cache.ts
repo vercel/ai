@@ -11,7 +11,7 @@ async function main() {
         inputSchema: z.object({ city: z.string() }),
         providerOptions: {
           anthropic: {
-            cacheControl: { type: 'ephemeral', ttl: '5m' },
+            cacheControl: { type: 'ephemeral' },
           },
         },
       }),

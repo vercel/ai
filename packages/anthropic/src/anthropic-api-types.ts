@@ -9,7 +9,6 @@ export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
 
 export type AnthropicCacheControl = {
   type: 'ephemeral';
-  ttl?: '5m' | '1h';
 };
 
 export interface AnthropicUserMessage {
