@@ -39,15 +39,8 @@ export function prepareTools({
   const hasToolContent = promptContainsToolContent(prompt);
 
   if (tools == null) {
-    if (hasToolContent) {
-      return {
-        toolConfig: { tools: [], toolChoice: undefined },
-        toolWarnings: [],
-      };
-    }
-
     return {
-      toolConfig: { tools: undefined, toolChoice: undefined },
+      toolConfig: { tools: hasToolContent ? [] : undefined, toolChoice: undefined },
       toolWarnings: [],
     };
   }
@@ -94,14 +87,8 @@ export function prepareTools({
     case 'none':
       // Bedrock does not support 'none' tool choice, so we remove the tools.
       // However, if conversation contains tool content, we need empty tools array for API.
-      if (hasToolContent) {
-        return {
-          toolConfig: { tools: [], toolChoice: undefined },
-          toolWarnings,
-        };
-      }
       return {
-        toolConfig: { tools: undefined, toolChoice: undefined },
+        toolConfig: { tools: hasToolContent ? [] : undefined, toolChoice: undefined },
         toolWarnings,
       };
     case 'tool':
