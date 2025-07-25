@@ -1073,6 +1073,7 @@ describe('Chat', () => {
       ];
 
       let callCount = 0;
+      const onFinishPromise = createResolvablePromise<void>();
 
       const chat = new TestChat({
         id: '123',
@@ -1083,6 +1084,9 @@ describe('Chat', () => {
         sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
         onFinish: () => {
           callCount++;
+          if (callCount === 2) {
+            onFinishPromise.resolve();
+          }
         },
       });
 
@@ -1090,16 +1094,12 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
-      console.log('BEFORE SEND TOOL RESULT');
-
       // user submits the tool result
       await chat.addToolResult({
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
         output: 'test-result',
       });
-
-      console.log('AFTER SEND TOOL RESULT');
 
       // UI should show the tool result
       expect(chat.messages).toMatchInlineSnapshot(`
@@ -1138,6 +1138,8 @@ describe('Chat', () => {
           },
         ]
       `);
+
+      await onFinishPromise.promise;
 
       // 2nd call should happen after the stream is finished
       expect(server.calls.length).toBe(2);
