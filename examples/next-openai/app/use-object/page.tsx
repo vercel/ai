@@ -41,7 +41,11 @@ export default function Page() {
       )}
 
       <div className="mt-4 text-gray-500">
-        <button type="button" onClick={() => clear()}             className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md">
+        <button
+          type="button"
+          onClick={() => clear()}
+          className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+        >
           Clear
         </button>
       </div>
