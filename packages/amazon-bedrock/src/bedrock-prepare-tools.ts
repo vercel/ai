@@ -31,7 +31,7 @@ export function prepareTools({
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   prompt: LanguageModelV2Prompt;
 }): {
-  toolConfig: BedrockToolConfiguration;
+  toolConfig: BedrockToolConfiguration; // note: do not rename, name required by Bedrock
   toolWarnings: LanguageModelV2CallWarning[];
 } {
   tools = tools?.length ? tools : undefined;
