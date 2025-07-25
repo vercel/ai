@@ -1,7 +1,6 @@
 import {
   generateId as generateIdFunc,
   IdGenerator,
-  Resolvable,
   StandardSchemaV1,
   Validator,
 } from '@ai-sdk/provider-utils';
@@ -158,7 +157,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    */
   sendAutomaticallyWhen?: (options: {
     messages: UI_MESSAGE[];
-  }) => Resolvable<boolean>;
+  }) => boolean | PromiseLike<boolean>;
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
@@ -557,36 +556,4 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       this.activeResponse = undefined;
     }
   }
-}
-
-/**
-Check if the message is an assistant message with completed tool calls.
-The last step of the message must have at least one tool invocation and
-all tool invocations must have a result.
- */
-export function isAssistantMessageWithCompletedToolCalls(
-  message: UIMessage | undefined,
-): message is UIMessage & {
-  role: 'assistant';
-} {
-  if (!message) {
-    return false;
-  }
-
-  if (message.role !== 'assistant') {
-    return false;
-  }
-
-  const lastStepStartIndex = message.parts.reduce((lastIndex, part, index) => {
-    return part.type === 'step-start' ? index : lastIndex;
-  }, -1);
-
-  const lastStepToolInvocations = message.parts
-    .slice(lastStepStartIndex + 1)
-    .filter(isToolUIPart);
-
-  return (
-    lastStepToolInvocations.length > 0 &&
-    lastStepToolInvocations.every(part => part.state === 'output-available')
-  );
 }
