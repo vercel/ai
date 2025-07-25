@@ -34,7 +34,7 @@ const transportConfig = {
 };
 
 const apiRouteHandler = async req => {
-  const { messages, trigger } = await req.json();
+  const { messages, trigger, messageId } = await req.json();
 
   switch (trigger) {
     case 'submit-user-message':
@@ -57,12 +57,19 @@ const apiRouteHandler = async req => {
       });
 
     case 'regenerate-assistant-message':
-      const { messageId } = await req.json();
       return streamText({
         model: 'gpt-4o',
         messages: messages.slice(0, -1),
         tools: {
-          /* same tools */
+          weather: {
+            description: 'Get weather information',
+            inputSchema: z.object({
+              location: z.string(),
+            }),
+            execute: async ({ location }) => {
+              return { temperature: 72, conditions: 'sunny' };
+            },
+          },
         },
         stopWhen: stepCountIs(5),
       });

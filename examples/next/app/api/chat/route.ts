@@ -11,11 +11,16 @@ export async function POST(req: Request) {
     id,
     trigger,
     messageId,
+    messages: requestMessages,
   }: {
     message: MyUIMessage | undefined;
     id: string;
-    trigger: 'submit-user-message' | 'regenerate-assistant-message';
+    trigger:
+      | 'submit-user-message'
+      | 'submit-tool-result'
+      | 'regenerate-assistant-message';
     messageId: string | undefined;
+    messages?: MyUIMessage[];
   } = await req.json();
 
   const chat = await readChat(id);
@@ -33,6 +38,10 @@ export async function POST(req: Request) {
       messages.push(message!);
     } else {
       messages = [...messages, message!];
+    }
+  } else if (trigger === 'submit-tool-result') {
+    if (requestMessages) {
+      messages = requestMessages;
     }
   } else if (trigger === 'regenerate-assistant-message') {
     const messageIndex =

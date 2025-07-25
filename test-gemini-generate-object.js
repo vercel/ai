@@ -2,7 +2,6 @@ import { google } from '@ai-sdk/google';
 import { generateObject } from '@ai-sdk/ai';
 import { z } from 'zod';
 
-// Initialize the Gemini model
 const model = google('gemini-2.5-pro');
 
 async function testGenerateObject() {
