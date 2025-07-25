@@ -11,12 +11,16 @@ export const fileSearchArgsSchema = z.object({
   /**
    * Maximum number of search results to return. Defaults to 10.
    */
-  maxResults: z.number().optional(),
+  maxNumResults: z.number().optional(),
 
   /**
-   * Type of search to perform. Defaults to 'auto'.
+   * Ranking options for the search.
    */
-  searchType: z.enum(['auto', 'keyword', 'semantic']).optional(),
+  ranking: z
+    .object({
+      ranker: z.enum(['auto', 'keyword', 'semantic']).optional(),
+    })
+    .optional(),
 });
 
 export const fileSearch = createProviderDefinedToolFactory<
@@ -35,12 +39,14 @@ export const fileSearch = createProviderDefinedToolFactory<
     /**
      * Maximum number of search results to return. Defaults to 10.
      */
-    maxResults?: number;
+    maxNumResults?: number;
 
     /**
-     * Type of search to perform. Defaults to 'auto'.
+     * Ranking options for the search.
      */
-    searchType?: 'auto' | 'keyword' | 'semantic';
+    ranking?: {
+      ranker?: 'auto' | 'keyword' | 'semantic';
+    };
   }
 >({
   id: 'openai.file_search',

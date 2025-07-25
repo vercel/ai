@@ -82,8 +82,10 @@ export type OpenAIResponsesTool =
   | {
       type: 'file_search';
       vector_store_ids?: string[];
-      max_results?: number;
-      search_type?: 'auto' | 'keyword' | 'semantic';
+      max_num_results?: number;
+      ranking_options?: {
+        ranker?: 'auto' | 'keyword' | 'semantic';
+      };
     };
 
 export type OpenAIResponsesReasoning = {

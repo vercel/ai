@@ -66,8 +66,10 @@ it('should correctly prepare provider-defined-server tools', () => {
         name: 'file_search',
         args: {
           vectorStoreIds: ['vs_123'],
-          maxResults: 10,
-          searchType: 'semantic',
+          maxNumResults: 10,
+          ranking: {
+            ranker: 'semantic',
+          },
         },
       },
       {
@@ -92,8 +94,10 @@ it('should correctly prepare provider-defined-server tools', () => {
     {
       type: 'file_search',
       vector_store_ids: ['vs_123'],
-      max_results: 10,
-      search_type: 'semantic',
+      max_num_results: 10,
+      ranking_options: {
+        ranker: 'semantic',
+      },
     },
     {
       type: 'web_search_preview',

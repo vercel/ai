@@ -687,8 +687,10 @@ const result = await generateText({
     file_search: openai.tools.fileSearch({
       // optional configuration:
       vectorStoreIds: ['vs_123', 'vs_456'],
-      maxResults: 10,
-      searchType: 'auto',
+      maxNumResults: 10,
+      ranking: {
+        ranker: 'auto',
+      },
     }),
   },
   // Force file search tool:
