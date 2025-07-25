@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 1.0.0-beta.13
+
+### Patch Changes
+
+- 0477a13: feat (provider/gateway): Add OpenAI embedding support
+- cf1e00e: feat (provider/gateway): add devstral model id
+- cc21603: feat (provider/gateway): Add AI Gateway provider options (ordering)
+
 ## 1.0.0-beta.12
 
 ### Patch Changes
