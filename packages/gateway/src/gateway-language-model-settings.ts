@@ -38,6 +38,7 @@ export type GatewayModelId =
   | 'meta/llama-4-maverick'
   | 'meta/llama-4-scout'
   | 'mistral/codestral'
+  | 'mistral/devstral-small'
   | 'mistral/magistral-medium'
   | 'mistral/magistral-small'
   | 'mistral/ministral-3b'
