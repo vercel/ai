@@ -877,11 +877,6 @@ steps.forEach((step, index) => {
 
 For core functions like `generateText` and `streamText`, the `maxSteps` parameter has been replaced with `stopWhen`, which provides more flexible control over multi-step execution. The `stopWhen` parameter defines conditions for stopping the generation **when the last step contains tool results**. When multiple conditions are provided as an array, the generation stops if any condition is met.
 
-**Recommended Pattern:**
-
-- Use `stopWhen` in server-side functions (`generateText`/`streamText`) for your main stopping logic
-- Use `maxSteps > 1` in `useChat` for client-side tool execution limits
-
 ```tsx filename="AI SDK 4.0"
 // V4: Simple numeric limit
 const result = await generateText({
@@ -912,11 +907,6 @@ const result = await generateText({
   model: openai('gpt-4'),
   messages,
   stopWhen: hasToolCall('finalizeTask'), // Stop when finalizeTask tool is called
-});
-
-// Client-side - useChat still uses maxSteps for tool execution limits
-const { messages } = useChat({
-  maxSteps: 3, // Limit client-side tool execution rounds
 });
 ```
 
@@ -999,6 +989,62 @@ import { useChat } from '@ai-sdk/react';
 ### useChat Changes
 
 The `useChat` hook has undergone significant changes in v5, with new transport architecture, removal of managed input state, and more.
+
+#### maxSteps Removal
+
+The `maxSteps` parameter has been removed from `useChat`. You should now use server-side `stopWhen` conditions for multi-step tool execution control, and manually submit tool results and trigger new messages for client-side tool calls.
+
+```tsx filename="AI SDK 4.0"
+const { messages, sendMessage } = useChat({
+  maxSteps: 5, // Automatic tool result submission
+});
+```
+
+```tsx filename="AI SDK 5.0"
+// Server-side: Use stopWhen for multi-step control
+import { streamText, convertToModelMessages, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await streamText({
+  model: openai('gpt-4'),
+  messages: convertToModelMessages(messages),
+  stopWhen: stepCountIs(5), // Stop after 5 steps with tool calls
+});
+
+// Client-side: Configure automatic submission
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+
+const { messages, sendMessage, addToolResult } = useChat({
+  // Automatically submit when all tool results are available
+  sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+  async onToolCall({ toolCall }) {
+    const result = await executeToolCall(toolCall);
+
+    // Important: Don't await addToolResult inside onToolCall to avoid deadlocks
+    addToolResult({
+      tool: toolCall.toolName,
+      toolCallId: toolCall.toolCallId,
+      output: result,
+    });
+  },
+});
+```
+
+<Note>
+  Important: When using `sendAutomaticallyWhen`, don't use `await` with
+  `addToolResult` inside `onToolCall` as it can cause deadlocks. The `await` is
+  useful when you're not using automatic submission and need to ensure the
+  messages are updated before manually calling `sendMessage()`.
+</Note>
+
+This change provides more flexibility for handling tool calls and aligns client behavior with server-side multi-step execution patterns.
+
+For more details on the new tool submission approach, see the [Tool Result Submission Changes](#tool-result-submission-changes) section below.
 
 #### Initial Messages Renamed
 
@@ -1268,10 +1314,62 @@ addToolResult({
 ```tsx filename="AI SDK 5.0"
 const { addToolResult } = useChat();
 
-// Add tool result with 'output' parameter
+// Add tool result with 'output' parameter and 'tool' name for type safety
 addToolResult({
+  tool: 'getWeather',
   toolCallId: 'tool-call-123',
   output: 'Weather: 72°F, sunny',
+});
+```
+
+#### Tool Result Submission Changes
+
+The automatic tool result submission behavior has been updated in `useChat` and the `Chat` component. You now have more control and flexibility over when tool results are submitted.
+
+- `onToolCall` no longer supports returning values to automatically submit tool results
+- You must explicitly call `addToolResult` to provide tool results
+- Use `sendAutomaticallyWhen` with `lastAssistantMessageIsCompleteWithToolCalls` helper for automatic submission
+- Important: Don't use `await` with `addToolResult` inside `onToolCall` to avoid deadlocks
+- The `maxSteps` parameter has been removed from the `Chat` component and `useChat` hook
+- For multi-step tool execution, use server-side `stopWhen` conditions instead (see [maxSteps Removal](#maxsteps-removal))
+
+```tsx filename="AI SDK 4.0"
+const { messages, sendMessage, addToolResult } = useChat({
+  maxSteps: 5, // Removed in v5
+
+  // Automatic submission by returning a value
+  async onToolCall({ toolCall }) {
+    if (toolCall.toolName === 'getLocation') {
+      const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+      return cities[Math.floor(Math.random() * cities.length)];
+    }
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+
+const { messages, sendMessage, addToolResult } = useChat({
+  // Automatic submission with helper
+  sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+  async onToolCall({ toolCall }) {
+    if (toolCall.toolName === 'getLocation') {
+      const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+
+      // Important: Don't await inside onToolCall to avoid deadlocks
+      addToolResult({
+        tool: 'getLocation',
+        toolCallId: toolCall.toolCallId,
+        output: cities[Math.floor(Math.random() * cities.length)],
+      });
+    }
+  },
 });
 ```
 
