@@ -153,18 +153,20 @@ export function prepareTools({
     case 'auto':
       return {
         tools: anthropicTools,
-        toolChoice: disableParallelToolUse === true 
-          ? { type: 'auto', disable_parallel_tool_use: true }
-          : { type: 'auto' },
+        toolChoice:
+          disableParallelToolUse === true
+            ? { type: 'auto', disable_parallel_tool_use: true }
+            : { type: 'auto' },
         toolWarnings,
         betas,
       };
     case 'required':
       return {
         tools: anthropicTools,
-        toolChoice: disableParallelToolUse === true
-          ? { type: 'any', disable_parallel_tool_use: true }
-          : { type: 'any' },
+        toolChoice:
+          disableParallelToolUse === true
+            ? { type: 'any', disable_parallel_tool_use: true }
+            : { type: 'any' },
         toolWarnings,
         betas,
       };
@@ -174,9 +176,14 @@ export function prepareTools({
     case 'tool':
       return {
         tools: anthropicTools,
-        toolChoice: disableParallelToolUse === true
-          ? { type: 'tool', name: toolChoice.toolName, disable_parallel_tool_use: true }
-          : { type: 'tool', name: toolChoice.toolName },
+        toolChoice:
+          disableParallelToolUse === true
+            ? {
+                type: 'tool',
+                name: toolChoice.toolName,
+                disable_parallel_tool_use: true,
+              }
+            : { type: 'tool', name: toolChoice.toolName },
         toolWarnings,
         betas,
       };
