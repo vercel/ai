@@ -8,6 +8,7 @@ import { AbstractChat, ChatInit, ChatState, ChatStatus } from './chat';
 import { UIMessage } from './ui-messages';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { DefaultChatTransport } from './default-chat-transport';
+import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 
 class TestChatState<UI_MESSAGE extends UIMessage>
   implements ChatState<UI_MESSAGE>
@@ -1062,7 +1063,12 @@ describe('Chat', () => {
         },
         {
           type: 'stream-chunks',
-          chunks: [formatChunk({ type: 'start' })],
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
         },
       ];
 
@@ -1074,7 +1080,7 @@ describe('Chat', () => {
         transport: new DefaultChatTransport({
           api: 'http://localhost:3000/api/chat',
         }),
-        sendAutomaticallyWhen: () => callCount < 2,
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
         onFinish: () => {
           callCount++;
         },
@@ -1084,12 +1090,16 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
+      console.log('BEFORE SEND TOOL RESULT');
+
       // user submits the tool result
       await chat.addToolResult({
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
         output: 'test-result',
       });
+
+      console.log('AFTER SEND TOOL RESULT');
 
       // UI should show the tool result
       expect(chat.messages).toMatchInlineSnapshot(`
