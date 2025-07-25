@@ -29,6 +29,7 @@ export async function POST(req: Request) {
           ranker: 'semantic',
         },
         // vectorStoreIds: ['vs_123'], // optional: specify vector store IDs
+        // filters: { key: 'category', type: 'eq', value: 'technical' }, // optional: filter results
       }),
     },
     messages: convertToModelMessages(messages),

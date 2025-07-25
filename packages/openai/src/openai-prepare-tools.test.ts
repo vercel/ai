@@ -113,6 +113,47 @@ it('should correctly prepare provider-defined-server tools', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
+it('should correctly prepare file_search with filters', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'openai.file_search',
+        name: 'file_search',
+        args: {
+          vectorStoreIds: ['vs_123'],
+          maxNumResults: 5,
+          filters: {
+            type: 'and',
+            filters: [
+              { key: 'author', type: 'eq', value: 'John Doe' },
+              { key: 'date', type: 'gte', value: '2023-01-01' },
+            ],
+          },
+        },
+      },
+    ],
+    structuredOutputs: false,
+    strictJsonSchema: false,
+  });
+
+  expect(result.tools).toEqual([
+    {
+      type: 'file_search',
+      vector_store_ids: ['vs_123'],
+      max_num_results: 5,
+      ranking_options: undefined,
+      filters: {
+        type: 'and',
+        filters: [
+          { key: 'author', type: 'eq', value: 'John Doe' },
+          { key: 'date', type: 'gte', value: '2023-01-01' },
+        ],
+      },
+    },
+  ]);
+});
+
 it('should add warnings for unsupported tools', () => {
   const result = prepareTools({
     tools: [
