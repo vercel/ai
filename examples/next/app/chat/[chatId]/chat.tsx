@@ -48,13 +48,18 @@ export default function ChatComponent({
             };
 
           case 'submit-tool-result':
-            throw new Error(`submit-tool-result is not supported`);
+            return {
+              body: {
+                trigger: 'submit-tool-result',
+                id,
+                messages,
+                messageId,
+              },
+            };
         }
       },
     }),
     onFinish() {
-      // for new chats, the router cache needs to be invalidated so
-      // navigation to the previous page triggers SSR correctly
       if (isNewChat) {
         invalidateRouterCache();
       }
