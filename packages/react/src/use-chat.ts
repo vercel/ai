@@ -34,7 +34,6 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   | 'addToolResult'
   | 'status'
   | 'messages'
-  | 'canAssistantMessageBeSubmitted'
 >;
 
 export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
@@ -123,8 +122,6 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     sendMessage: chatRef.current.sendMessage,
     regenerate: chatRef.current.regenerate,
     stop: chatRef.current.stop,
-    canAssistantMessageBeSubmitted:
-      chatRef.current.canAssistantMessageBeSubmitted,
     error,
     resumeStream: chatRef.current.resumeStream,
     status,
