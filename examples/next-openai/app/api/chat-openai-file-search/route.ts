@@ -24,8 +24,10 @@ export async function POST(req: Request) {
     model: openai.responses('gpt-4o-mini'),
     tools: {
       file_search: openai.tools.fileSearch({
-        maxResults: 10,
-        searchType: 'semantic',
+        maxNumResults: 10,
+        ranking: {
+          ranker: 'semantic',
+        },
         // vectorStoreIds: ['vs_123'], // optional: specify vector store IDs
       }),
     },
