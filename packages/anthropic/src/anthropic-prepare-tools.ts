@@ -141,10 +141,9 @@ export function prepareTools({
   if (toolChoice == null) {
     return {
       tools: anthropicTools,
-      toolChoice:
-        disableParallelToolUse === true
-          ? { type: 'auto', disable_parallel_tool_use: true }
-          : undefined,
+      toolChoice: disableParallelToolUse
+        ? { type: 'auto', disable_parallel_tool_use: disableParallelToolUse }
+        : undefined,
       toolWarnings,
       betas,
     };
@@ -156,20 +155,20 @@ export function prepareTools({
     case 'auto':
       return {
         tools: anthropicTools,
-        toolChoice:
-          disableParallelToolUse === true
-            ? { type: 'auto', disable_parallel_tool_use: true }
-            : { type: 'auto' },
+        toolChoice: {
+          type: 'auto',
+          disable_parallel_tool_use: disableParallelToolUse,
+        },
         toolWarnings,
         betas,
       };
     case 'required':
       return {
         tools: anthropicTools,
-        toolChoice:
-          disableParallelToolUse === true
-            ? { type: 'any', disable_parallel_tool_use: true }
-            : { type: 'any' },
+        toolChoice: {
+          type: 'any',
+          disable_parallel_tool_use: disableParallelToolUse,
+        },
         toolWarnings,
         betas,
       };
@@ -179,14 +178,11 @@ export function prepareTools({
     case 'tool':
       return {
         tools: anthropicTools,
-        toolChoice:
-          disableParallelToolUse === true
-            ? {
-                type: 'tool',
-                name: toolChoice.toolName,
-                disable_parallel_tool_use: true,
-              }
-            : { type: 'tool', name: toolChoice.toolName },
+        toolChoice: {
+          type: 'tool',
+          name: toolChoice.toolName,
+          disable_parallel_tool_use: disableParallelToolUse,
+        },
         toolWarnings,
         betas,
       };
