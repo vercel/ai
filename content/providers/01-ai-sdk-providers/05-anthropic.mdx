@@ -139,13 +139,6 @@ on how to integrate reasoning into your chatbot.
 
 ### Cache Control
 
-<Note>
-  Anthropic cache control was originally a beta feature and required passing an
-  opt-in `cacheControl` setting when creating the model instance. It is now
-  Generally Available and enabled by default. The `cacheControl` setting is no
-  longer needed and will be removed in a future release.
-</Note>
-
 In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
 You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
@@ -203,6 +196,30 @@ const result = await generateText({
       role: 'system',
       content: 'Uncached system message part',
     },
+    {
+      role: 'user',
+      content: 'User prompt',
+    },
+  ],
+});
+```
+
+Cache control for tools:
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-3-5-haiku-latest'),
+  tools: {
+    cityAttractions: tool({
+      inputSchema: z.object({ city: z.string() }),
+      providerOptions: {
+        anthropic: {
+          cacheControl: { type: 'ephemeral' },
+        },
+      },
+    }),
+  },
+  messages: [
     {
       role: 'user',
       content: 'User prompt',

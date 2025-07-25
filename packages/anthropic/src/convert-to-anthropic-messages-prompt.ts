@@ -6,16 +6,16 @@ import {
   SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
-  AnthropicCacheControl,
   AnthropicMessagesPrompt,
   AnthropicToolResultContent,
   AnthropicUserMessage,
 } from './anthropic-api-types';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
+import { getCacheControl } from './get-cache-control';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
 function convertToString(data: LanguageModelV2DataContent): string {
@@ -55,20 +55,6 @@ export async function convertToAnthropicMessagesPrompt({
 
   let system: AnthropicMessagesPrompt['system'] = undefined;
   const messages: AnthropicMessagesPrompt['messages'] = [];
-
-  function getCacheControl(
-    providerMetadata: SharedV2ProviderMetadata | undefined,
-  ): AnthropicCacheControl | undefined {
-    const anthropic = providerMetadata?.anthropic;
-
-    // allow both cacheControl and cache_control:
-    const cacheControlValue =
-      anthropic?.cacheControl ?? anthropic?.cache_control;
-
-    // Pass through value assuming it is of the correct type.
-    // The Anthropic API will validate the value.
-    return cacheControlValue as AnthropicCacheControl | undefined;
-  }
 
   async function shouldEnableCitations(
     providerMetadata: SharedV2ProviderMetadata | undefined,

@@ -7,7 +7,9 @@ export type AnthropicMessagesPrompt = {
 
 export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
 
-export type AnthropicCacheControl = { type: 'ephemeral' };
+export type AnthropicCacheControl = {
+  type: 'ephemeral';
+};
 
 export interface AnthropicUserMessage {
   role: 'user';
@@ -123,6 +125,7 @@ export type AnthropicTool =
       name: string;
       description: string | undefined;
       input_schema: JSONSchema7;
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       name: string;

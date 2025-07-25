@@ -4,6 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
+import { getCacheControl } from './get-cache-control';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 
 function isWebSearchTool(
@@ -52,10 +53,13 @@ export function prepareTools({
 
     switch (tool.type) {
       case 'function':
+        const cacheControl = getCacheControl(tool.providerOptions);
+
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
           input_schema: tool.inputSchema,
+          cache_control: cacheControl,
         });
         break;
       case 'provider-defined':
