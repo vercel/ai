@@ -432,7 +432,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
-        this.sendAutomaticallyWhen?.({ messages })
+        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
       ) {
         await this.makeRequest({
           trigger: 'submit-message',
