@@ -112,9 +112,9 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   stop: () => void;
 
   /**
-   * Reset the object state to its initial value.
+   * Clear the object state.
    */
-  reset: () => void;
+  clear: () => void;
 };
 
 function useObject<
@@ -164,7 +164,7 @@ function useObject<
 
   const submit = async (input: INPUT) => {
     try {
-      mutate(undefined); // reset the data
+      mutate(undefined);
       setIsLoading(true);
       setError(undefined);
 
@@ -244,12 +244,12 @@ function useObject<
     }
   };
 
-  const reset = () => {
+  const clear = () => {
     stop();
-    resetObject();
+    mutate(undefined);
   };
 
-  const resetObject = () => {
+  const clearObject = () => {
     setError(undefined);
     setIsLoading(false);
     mutate(undefined);
@@ -261,7 +261,7 @@ function useObject<
     error,
     isLoading,
     stop,
-    reset,
+    clear,
   };
 }
 

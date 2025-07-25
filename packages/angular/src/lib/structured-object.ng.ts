@@ -140,7 +140,7 @@ export class StructuredObject<
    */
   submit = async (input: INPUT) => {
     try {
-      this.#object.set(undefined); // reset the data
+      this.#object.set(undefined);
       this.#loading.set(true);
       this.#error.set(undefined);
 
@@ -231,12 +231,12 @@ export class StructuredObject<
     }
   };
 
-  reset = () => {
+  clear = () => {
     this.stop();
-    this.#resetObject();
+    this.#clearObject();
   };
 
-  #resetObject = () => {
+  #clearObject = () => {
     this.#object.set(undefined);
     this.#error.set(undefined);
     this.#loading.set(false);

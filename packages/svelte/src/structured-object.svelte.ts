@@ -152,7 +152,7 @@ export class StructuredObject<
    */
   submit = async (input: INPUT) => {
     try {
-      this.#resetObject();
+      this.#clearObject();
 
       this.#store.loading = true;
 
@@ -238,14 +238,14 @@ export class StructuredObject<
   };
 
   /**
-   * Resets the object state to its initial value.
+   * Clears the object state.
    */
-  reset = () => {
+  clear = () => {
     this.stop();
-    this.#resetObject();
+    this.#clearObject();
   };
 
-  #resetObject = () => {
+  #clearObject = () => {
     this.#store.object = undefined;
     this.#store.error = undefined;
     this.#store.loading = false;

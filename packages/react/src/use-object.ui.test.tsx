@@ -26,7 +26,7 @@ describe('text stream', () => {
     headers?: Record<string, string> | Headers;
     credentials?: RequestCredentials;
   }) => {
-    const { object, error, submit, isLoading, stop, reset } =
+    const { object, error, submit, isLoading, stop, clear } =
       experimental_useObject({
         api: '/api/use-object',
         schema: z.object({ content: z.string() }),
@@ -54,8 +54,8 @@ describe('text stream', () => {
         <button data-testid="stop-button" onClick={stop}>
           Stop
         </button>
-        <button data-testid="reset-button" onClick={reset}>
-          Reset
+        <button data-testid="clear-button" onClick={clear}>
+          Clear
         </button>
       </div>
     );
@@ -171,7 +171,7 @@ describe('text stream', () => {
       });
     });
 
-    it('should stop and reset the object state after a call to submit then reset', async () => {
+    it('should stop and clear the object state after a call to submit then clear', async () => {
       const controller = new TestResponseController();
       server.urls['/api/use-object'].response = {
         type: 'controlled-stream',
@@ -190,7 +190,7 @@ describe('text stream', () => {
         );
       });
 
-      await userEvent.click(screen.getByTestId('reset-button'));
+      await userEvent.click(screen.getByTestId('clear-button'));
 
       await vi.waitFor(() => {
         expect(screen.getByTestId('loading')).toHaveTextContent('false');
@@ -288,7 +288,7 @@ describe('text stream', () => {
     expect(server.calls[0].requestCredentials).toBe('include');
   });
 
-  it('should reset the object state after a call to reset', async () => {
+  it('should clear the object state after a call to clear', async () => {
     server.urls['/api/use-object'].response = {
       type: 'stream-chunks',
       chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
@@ -302,7 +302,7 @@ describe('text stream', () => {
       JSON.stringify({ content: 'Hello, world!' }),
     );
 
-    await userEvent.click(screen.getByTestId('reset-button'));
+    await userEvent.click(screen.getByTestId('clear-button'));
 
     await waitFor(() => {
       expect(screen.getByTestId('object')).toBeEmptyDOMElement();

@@ -101,7 +101,7 @@ describe('text stream', () => {
       });
     });
 
-    it('should stop and reset the object state after a call to submit then reset', async () => {
+    it('should stop and clear the object state after a call to submit then clear', async () => {
       const controller = new TestResponseController();
       server.urls['/api/object'].response = {
         type: 'controlled-stream',
@@ -118,7 +118,7 @@ describe('text stream', () => {
         });
       });
 
-      structuredObject.reset();
+      structuredObject.clear();
 
       await vi.waitFor(() => {
         expect(structuredObject.loading).toBe(false);
@@ -232,7 +232,7 @@ describe('text stream', () => {
     expect(server.calls[0].requestCredentials).toBe('include');
   });
 
-  it('should reset the object state after a call to reset', async () => {
+  it('should clear the object state after a call to clear', async () => {
     server.urls['/api/object'].response = {
       type: 'stream-chunks',
       chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
@@ -247,7 +247,7 @@ describe('text stream', () => {
 
     expect(structuredObjectWithOnFinish.object).toBeDefined();
 
-    structuredObjectWithOnFinish.reset();
+    structuredObjectWithOnFinish.clear();
 
     expect(structuredObjectWithOnFinish.object).toBeUndefined();
     expect(structuredObjectWithOnFinish.error).toBeUndefined();

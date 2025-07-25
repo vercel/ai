@@ -3,4 +3,4 @@
 '@ai-sdk/react': patch
 ---
 
-Add reset object to React and Angular packages
+Add clear object to React and Angular packages
