@@ -10,11 +10,6 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel, ProviderMetadata } from '../types';
 import { EmbedResult } from './embed-result';
 
-export type EmbeddingResponseBody = {
-  providerMetadata?: ProviderMetadata;
-  [key: string]: unknown;
-};
-
 /**
 Embed a value using an embedding model. The type of the value is defined by the embedding model.
 
@@ -107,7 +102,7 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const { embedding, usage, response } = await retry(() =>
+      const { embedding, usage, response, providerMetadata } = await retry(() =>
         // nested spans to align with the embedMany telemetry data:
         recordSpan({
           name: 'ai.embed.doEmbed',
@@ -153,6 +148,7 @@ Only applicable for HTTP-based providers.
             return {
               embedding,
               usage,
+              providerMetadata: modelResponse.providerMetadata,
               response: modelResponse.response,
             };
           },
@@ -173,8 +169,7 @@ Only applicable for HTTP-based providers.
         value,
         embedding,
         usage,
-        providerMetadata: (response?.body as EmbeddingResponseBody)
-          ?.providerMetadata,
+        providerMetadata,
         response,
       });
     },

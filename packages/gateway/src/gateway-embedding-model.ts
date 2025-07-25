@@ -69,7 +69,8 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
       return {
         embeddings: responseBody.embeddings,
         usage: responseBody.usage ?? undefined,
-        response: { headers: responseHeaders, body: responseBody },
+        providerMetadata: responseBody.providerMetadata,
+        response: { headers: responseHeaders, body: rawValue },
       };
     } catch (error) {
       throw asGatewayError(error, parseAuthMethod(resolvedHeaders));

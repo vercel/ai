@@ -87,8 +87,8 @@ describe('result.providerMetadata', () => {
       model: new MockEmbeddingModelV2({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], undefined, {
           headers: {},
-          body: { providerMetadata },
-        }),
+          body: {},
+        }, providerMetadata),
       }),
       value: testValue,
     });

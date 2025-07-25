@@ -8,9 +8,8 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { Embedding, EmbeddingModel } from '../types';
+import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import { EmbedManyResult } from './embed-many-result';
-import { EmbeddingResponseBody } from './embed';
 
 /**
 Embed several values using an embedding model. The type of the value is defined
@@ -127,7 +126,7 @@ Only applicable for HTTP-based providers.
       // the model has not specified limits on
       // how many embeddings can be generated in a single call
       if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
-        const { embeddings, usage, response } = await retry(() => {
+        const { embeddings, usage, response, providerMetadata } = await retry(() => {
           // nested spans to align with the embedMany telemetry data:
           return recordSpan({
             name: 'ai.embedMany.doEmbed',
@@ -173,6 +172,7 @@ Only applicable for HTTP-based providers.
               return {
                 embeddings,
                 usage,
+                providerMetadata: modelResponse.providerMetadata,
                 response: modelResponse.response,
               };
             },
@@ -196,8 +196,7 @@ Only applicable for HTTP-based providers.
           values,
           embeddings,
           usage,
-          providerMetadata: (response?.body as EmbeddingResponseBody)
-            ?.providerMetadata,
+          providerMetadata,
           responses: [response],
         });
       }
@@ -215,6 +214,7 @@ Only applicable for HTTP-based providers.
         | undefined
       > = [];
       let tokens = 0;
+      let providerMetadata: ProviderMetadata | undefined;
 
       const parallelChunks = splitArray(
         valueChunks,
@@ -272,6 +272,7 @@ Only applicable for HTTP-based providers.
                   return {
                     embeddings,
                     usage,
+                    providerMetadata: modelResponse.providerMetadata,
                     response: modelResponse.response,
                   };
                 },
@@ -284,6 +285,9 @@ Only applicable for HTTP-based providers.
           embeddings.push(...result.embeddings);
           responses.push(result.response);
           tokens += result.usage.tokens;
+          if (!providerMetadata && result.providerMetadata) {
+            providerMetadata = result.providerMetadata;
+          }
         }
       }
 
@@ -300,15 +304,11 @@ Only applicable for HTTP-based providers.
         }),
       );
 
-      const providerMetadata = responses?.find(
-        r => (r?.body as EmbeddingResponseBody)?.providerMetadata,
-      )?.body as EmbeddingResponseBody;
-
       return new DefaultEmbedManyResult({
         values,
         embeddings,
         usage: { tokens },
-        providerMetadata: providerMetadata?.providerMetadata,
+        providerMetadata: providerMetadata,
         responses,
       });
     },

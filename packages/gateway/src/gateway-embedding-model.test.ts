@@ -185,5 +185,24 @@ describe('GatewayEmbeddingModel', () => {
         providerMetadata: { gateway: { routing: { test: true } } },
       });
     });
+
+    it('should extract providerMetadata to top level', async () => {
+      server.urls['https://api.test.com/embedding-model'].response = {
+        type: 'json-value',
+        body: {
+          embeddings: dummyEmbeddings,
+          usage: { tokens: 5 },
+          providerMetadata: { gateway: { routing: { test: true } } },
+        },
+      };
+
+      const result = await createTestModel().doEmbed({
+        values: testValues,
+      });
+
+      expect(result.providerMetadata).toStrictEqual({ 
+        gateway: { routing: { test: true } } 
+      });
+    });
   });
 });

@@ -445,7 +445,7 @@ describe('telemetry', () => {
 });
 
 describe('result.providerMetadata', () => {
-  it('should include provider metadata when returned in response bodies', async () => {
+  it('should include provider metadata when returned by the model', async () => {
     const providerMetadata = {
       gateway: { routing: { resolvedProvider: 'test-provider' } },
     };
@@ -456,8 +456,8 @@ describe('result.providerMetadata', () => {
         maxEmbeddingsPerCall: 3,
         doEmbed: mockEmbed(testValues, dummyEmbeddings, undefined, {
           headers: {},
-          body: { providerMetadata },
-        }),
+          body: {},
+        }, providerMetadata),
       }),
       values: testValues,
     });
