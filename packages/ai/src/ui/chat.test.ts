@@ -903,8 +903,9 @@ describe('Chat', () => {
         { type: 'stream-chunks', chunks: [formatChunk({ type: 'start' })] },
       ];
 
-      const finishPromise = createResolvablePromise<void>();
       const toolCallPromise = createResolvablePromise<void>();
+      const submitMessagePromise = createResolvablePromise<void>();
+      let callCount = 0;
 
       const chat = new TestChat({
         id: '123',
@@ -912,13 +913,20 @@ describe('Chat', () => {
         transport: new DefaultChatTransport({
           api: 'http://localhost:3000/api/chat',
         }),
+        sendAutomaticallyWhen: () => callCount < 2,
         onToolCall: () => toolCallPromise.resolve(),
-        onFinish: () => finishPromise.resolve(),
+        onFinish: () => {
+          callCount++;
+        },
       });
 
-      chat.sendMessage({
-        text: 'Hello, world!',
-      });
+      chat
+        .sendMessage({
+          text: 'Hello, world!',
+        })
+        .then(() => {
+          submitMessagePromise.resolve();
+        });
 
       // start stream
       controller1.write(formatChunk({ type: 'start' }));
@@ -990,10 +998,49 @@ describe('Chat', () => {
 
       await controller1.close();
 
-      await finishPromise.promise;
+      await submitMessagePromise.promise;
 
       // 2nd call should happen after the stream is finished
-      // expect(server.calls.length).toBe(2); TODO
+      expect(server.calls.length).toBe(2);
+
+      // check details of the 2nd call
+      expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "id": "123",
+          "messageId": "id-1",
+          "messages": [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "input": {
+                    "testArg": "test-value",
+                  },
+                  "output": "test-result",
+                  "state": "output-available",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "trigger": "submit-message",
+        }
+      `);
     });
   });
 });

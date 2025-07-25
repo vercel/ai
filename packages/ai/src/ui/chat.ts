@@ -178,6 +178,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private onToolCall?: ChatInit<UI_MESSAGE>['onToolCall'];
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
   private onData?: ChatInit<UI_MESSAGE>['onData'];
+  private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
 
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
@@ -193,6 +194,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     onToolCall,
     onFinish,
     onData,
+    sendAutomaticallyWhen,
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
@@ -206,6 +208,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onToolCall = onToolCall;
     this.onFinish = onFinish;
     this.onData = onData;
+    this.sendAutomaticallyWhen = sendAutomaticallyWhen;
   }
 
   /**
@@ -424,6 +427,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
               : part,
           );
       }
+
+      // automatically send the message if the sendAutomaticallyWhen function returns true
+      if (
+        this.status !== 'streaming' &&
+        this.status !== 'submitted' &&
+        this.sendAutomaticallyWhen?.({ messages })
+      ) {
+        await this.makeRequest({
+          trigger: 'submit-message',
+          messageId: this.lastMessage?.id,
+        });
+      }
     });
 
   /**
@@ -553,6 +568,17 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       this.setStatus({ status: 'error', error: err as Error });
     } finally {
       this.activeResponse = undefined;
+    }
+
+    // automatically send the message if the sendAutomaticallyWhen function returns true
+    if (this.sendAutomaticallyWhen?.({ messages: this.state.messages })) {
+      await this.makeRequest({
+        trigger: 'submit-message',
+        messageId: this.lastMessage?.id,
+        metadata,
+        headers,
+        body,
+      });
     }
   }
 }
