@@ -8,6 +8,7 @@ import { AbstractChat, ChatInit, ChatState, ChatStatus } from './chat';
 import { UIMessage } from './ui-messages';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { DefaultChatTransport } from './default-chat-transport';
+import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 
 class TestChatState<UI_MESSAGE extends UIMessage>
   implements ChatState<UI_MESSAGE>
@@ -999,6 +1000,146 @@ describe('Chat', () => {
       await controller1.close();
 
       await submitMessagePromise.promise;
+
+      // 2nd call should happen after the stream is finished
+      expect(server.calls.length).toBe(2);
+
+      // check details of the 2nd call
+      expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "id": "123",
+          "messageId": "id-1",
+          "messages": [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "input": {
+                    "testArg": "test-value",
+                  },
+                  "output": "test-result",
+                  "state": "output-available",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "trigger": "submit-message",
+        }
+      `);
+    });
+
+    it('should send message when a tool result is submitted', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({
+              type: 'tool-input-available',
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              input: { testArg: 'test-value' },
+            }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+      ];
+
+      let callCount = 0;
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+        onFinish: () => {
+          callCount++;
+          if (callCount === 2) {
+            onFinishPromise.resolve();
+          }
+        },
+      });
+
+      await chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      // user submits the tool result
+      await chat.addToolResult({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-result',
+      });
+
+      // UI should show the tool result
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "errorText": undefined,
+                "input": {
+                  "testArg": "test-value",
+                },
+                "output": "test-result",
+                "providerExecuted": undefined,
+                "state": "output-available",
+                "toolCallId": "tool-call-0",
+                "type": "tool-test-tool",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      await onFinishPromise.promise;
 
       // 2nd call should happen after the stream is finished
       expect(server.calls.length).toBe(2);
