@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`AnthropicMessagesLanguageModel > raw chunks > web search > should stream sources and tool calls 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search > should stream sources and tool calls 1`] = `
 [
   {
     "type": "stream-start",
