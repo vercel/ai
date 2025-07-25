@@ -23,6 +23,16 @@ export interface OpenAIFileSearchTool {
   ranking_options?: {
     ranker?: 'auto' | 'keyword' | 'semantic';
   };
+  filters?: 
+    | {
+        key: string;
+        type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
+        value: string | number | boolean;
+      }
+    | {
+        type: 'and' | 'or';
+        filters: any[];
+      };
 }
 
 /**

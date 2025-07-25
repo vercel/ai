@@ -58,6 +58,7 @@ export function prepareResponsesTools({
               ranking_options: args.ranking
                 ? { ranker: args.ranking.ranker }
                 : undefined,
+              filters: args.filters,
             });
             break;
           }
