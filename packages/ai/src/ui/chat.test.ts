@@ -1,4 +1,8 @@
-import { createTestServer, mockId } from '@ai-sdk/provider-utils/test';
+import {
+  createTestServer,
+  mockId,
+  TestResponseController,
+} from '@ai-sdk/provider-utils/test';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { AbstractChat, ChatInit, ChatState, ChatStatus } from './chat';
 import { UIMessage } from './ui-messages';
@@ -54,7 +58,7 @@ class TestChat extends AbstractChat<UIMessage> {
   }
 }
 
-function formatStreamPart(part: UIMessageChunk) {
+function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
@@ -62,30 +66,30 @@ const server = createTestServer({
   'http://localhost:3000/api/chat': {},
 });
 
-describe('chat', () => {
+describe('Chat', () => {
   describe('sendMessage', () => {
     it('should send a simple message', async () => {
       server.urls['http://localhost:3000/api/chat'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatStreamPart({ type: 'start' }),
-          formatStreamPart({ type: 'start-step' }),
-          formatStreamPart({ type: 'text-start', id: 'text-1' }),
-          formatStreamPart({
+          formatChunk({ type: 'start' }),
+          formatChunk({ type: 'start-step' }),
+          formatChunk({ type: 'text-start', id: 'text-1' }),
+          formatChunk({
             type: 'text-delta',
             id: 'text-1',
             delta: 'Hello',
           }),
-          formatStreamPart({ type: 'text-delta', id: 'text-1', delta: ',' }),
-          formatStreamPart({
+          formatChunk({ type: 'text-delta', id: 'text-1', delta: ',' }),
+          formatChunk({
             type: 'text-delta',
             id: 'text-1',
             delta: ' world',
           }),
-          formatStreamPart({ type: 'text-delta', id: 'text-1', delta: '.' }),
-          formatStreamPart({ type: 'text-end', id: 'text-1' }),
-          formatStreamPart({ type: 'finish-step' }),
-          formatStreamPart({ type: 'finish' }),
+          formatChunk({ type: 'text-delta', id: 'text-1', delta: '.' }),
+          formatChunk({ type: 'text-end', id: 'text-1' }),
+          formatChunk({ type: 'finish-step' }),
+          formatChunk({ type: 'finish' }),
         ],
       };
 
@@ -357,17 +361,17 @@ describe('chat', () => {
       server.urls['http://localhost:3000/api/chat'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatStreamPart({ type: 'start' }),
-          formatStreamPart({ type: 'start-step' }),
-          formatStreamPart({ type: 'text-start', id: 'text-1' }),
-          formatStreamPart({
+          formatChunk({ type: 'start' }),
+          formatChunk({ type: 'start-step' }),
+          formatChunk({ type: 'text-start', id: 'text-1' }),
+          formatChunk({
             type: 'text-delta',
             id: 'text-1',
             delta: 'Hello, world.',
           }),
-          formatStreamPart({ type: 'text-end', id: 'text-1' }),
-          formatStreamPart({ type: 'finish-step' }),
-          formatStreamPart({ type: 'finish' }),
+          formatChunk({ type: 'text-end', id: 'text-1' }),
+          formatChunk({ type: 'finish-step' }),
+          formatChunk({ type: 'finish' }),
         ],
       };
 
@@ -566,24 +570,24 @@ describe('chat', () => {
       server.urls['http://localhost:3000/api/chat'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatStreamPart({ type: 'start' }),
-          formatStreamPart({ type: 'start-step' }),
-          formatStreamPart({ type: 'text-start', id: 'text-1' }),
-          formatStreamPart({
+          formatChunk({ type: 'start' }),
+          formatChunk({ type: 'start-step' }),
+          formatChunk({ type: 'text-start', id: 'text-1' }),
+          formatChunk({
             type: 'text-delta',
             id: 'text-1',
             delta: 'Hello',
           }),
-          formatStreamPart({ type: 'text-delta', id: 'text-1', delta: ',' }),
-          formatStreamPart({
+          formatChunk({ type: 'text-delta', id: 'text-1', delta: ',' }),
+          formatChunk({
             type: 'text-delta',
             id: 'text-1',
             delta: ' world',
           }),
-          formatStreamPart({ type: 'text-delta', id: 'text-1', delta: '.' }),
-          formatStreamPart({ type: 'text-end', id: 'text-1' }),
-          formatStreamPart({ type: 'finish-step' }),
-          formatStreamPart({ type: 'finish' }),
+          formatChunk({ type: 'text-delta', id: 'text-1', delta: '.' }),
+          formatChunk({ type: 'text-end', id: 'text-1' }),
+          formatChunk({ type: 'finish-step' }),
+          formatChunk({ type: 'finish' }),
         ],
       };
 
@@ -887,6 +891,109 @@ describe('chat', () => {
           ],
         ]
       `);
+    });
+  });
+
+  describe('sendAutomaticallyWhen', () => {
+    it('should delay tool result submission until the stream is finished', async () => {
+      const controller1 = new TestResponseController();
+
+      server.urls['http://localhost:3000/api/chat'].response = [
+        { type: 'controlled-stream', controller: controller1 },
+        { type: 'stream-chunks', chunks: [formatChunk({ type: 'start' })] },
+      ];
+
+      const finishPromise = createResolvablePromise<void>();
+      const toolCallPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        onToolCall: () => toolCallPromise.resolve(),
+        onFinish: () => finishPromise.resolve(),
+      });
+
+      chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      // start stream
+      controller1.write(formatChunk({ type: 'start' }));
+      controller1.write(formatChunk({ type: 'start-step' }));
+
+      // tool call
+      controller1.write(
+        formatChunk({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        }),
+      );
+
+      await toolCallPromise.promise;
+
+      // user submits the tool result
+      await chat.addToolResult({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-result',
+      });
+
+      // UI should show the tool result
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "errorText": undefined,
+                "input": {
+                  "testArg": "test-value",
+                },
+                "output": "test-result",
+                "providerExecuted": undefined,
+                "state": "output-available",
+                "toolCallId": "tool-call-0",
+                "type": "tool-test-tool",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      // should not have called the API yet
+      expect(server.calls.length).toBe(1);
+
+      // finish stream
+      controller1.write(formatChunk({ type: 'finish-step' }));
+      controller1.write(formatChunk({ type: 'finish' }));
+
+      await controller1.close();
+
+      await finishPromise.promise;
+
+      // 2nd call should happen after the stream is finished
+      // expect(server.calls.length).toBe(2); TODO
     });
   });
 });

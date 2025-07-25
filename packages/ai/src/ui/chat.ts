@@ -396,7 +396,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     tool: TOOL;
     toolCallId: string;
     output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
-  }) => {
+  }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
@@ -425,7 +425,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           );
       }
     });
-  };
 
   /**
    * Abort the current request immediately, keep the generated tokens if any.
