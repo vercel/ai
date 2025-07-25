@@ -158,5 +158,5 @@ export type AnthropicTool =
     };
 
 export type AnthropicToolChoice =
-  | { type: 'auto' | 'any' }
-  | { type: 'tool'; name: string };
+  | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
+  | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean };

@@ -470,6 +470,39 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    it('should pass disableParallelToolUse', async () => {
+      prepareJsonResponse({});
+
+      await model.doGenerate({
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            inputSchema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            disableParallelToolUse: true,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tool_choice: {
+          type: 'auto',
+          disable_parallel_tool_use: true,
+        },
+      });
+    });
+
     it('should pass headers', async () => {
       prepareJsonResponse({ content: [] });
 
