@@ -20,9 +20,11 @@ function isWebSearchTool(
 export function prepareTools({
   tools,
   toolChoice,
+  disableParallelToolUse,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  disableParallelToolUse?: boolean;
 }): {
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
@@ -139,7 +141,9 @@ export function prepareTools({
   if (toolChoice == null) {
     return {
       tools: anthropicTools,
-      toolChoice: undefined,
+      toolChoice: disableParallelToolUse
+        ? { type: 'auto', disable_parallel_tool_use: disableParallelToolUse }
+        : undefined,
       toolWarnings,
       betas,
     };
@@ -151,14 +155,20 @@ export function prepareTools({
     case 'auto':
       return {
         tools: anthropicTools,
-        toolChoice: { type: 'auto' },
+        toolChoice: {
+          type: 'auto',
+          disable_parallel_tool_use: disableParallelToolUse,
+        },
         toolWarnings,
         betas,
       };
     case 'required':
       return {
         tools: anthropicTools,
-        toolChoice: { type: 'any' },
+        toolChoice: {
+          type: 'any',
+          disable_parallel_tool_use: disableParallelToolUse,
+        },
         toolWarnings,
         betas,
       };
@@ -168,7 +178,11 @@ export function prepareTools({
     case 'tool':
       return {
         tools: anthropicTools,
-        toolChoice: { type: 'tool', name: toolChoice.toolName },
+        toolChoice: {
+          type: 'tool',
+          name: toolChoice.toolName,
+          disable_parallel_tool_use: disableParallelToolUse,
+        },
         toolWarnings,
         betas,
       };
