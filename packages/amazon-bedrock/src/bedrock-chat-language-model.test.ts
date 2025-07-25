@@ -1403,6 +1403,87 @@ describe('doStream', () => {
     // Should NOT contain reasoningConfig at the top level
     expect(requestBody).not.toHaveProperty('reasoningConfig');
   });
+
+  it('should handle JSON response format in streaming', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 0,
+            start: {
+              toolUse: { toolUseId: 'json-tool-id', name: 'json' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { toolUse: { input: '{"value":' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { toolUse: { input: '"test"}' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'tool_use',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Generate JSON' }] }],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "{"value":"test"}",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
+  });
 });
 
 describe('doGenerate', () => {
