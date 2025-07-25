@@ -192,13 +192,8 @@ describe('text stream', () => {
 
       await userEvent.click(screen.getByTestId('clear-button'));
 
-      await vi.waitFor(() => {
-        expect(screen.getByTestId('loading')).toHaveTextContent('false');
-      });
-
       await expect(controller.write('ello, world!"}')).rejects.toThrow();
       await expect(controller.close()).rejects.toThrow();
-      // await submitOperation;
 
       await waitFor(() => {
         expect(screen.getByTestId('loading')).toHaveTextContent('false');

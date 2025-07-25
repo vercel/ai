@@ -164,9 +164,9 @@ function useObject<
 
   const submit = async (input: INPUT) => {
     try {
-      mutate(undefined);
+      clearObject();
+
       setIsLoading(true);
-      setError(undefined);
 
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
@@ -246,7 +246,7 @@ function useObject<
 
   const clear = () => {
     stop();
-    mutate(undefined);
+    clearObject();
   };
 
   const clearObject = () => {

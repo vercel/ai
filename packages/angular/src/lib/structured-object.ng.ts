@@ -140,9 +140,9 @@ export class StructuredObject<
    */
   submit = async (input: INPUT) => {
     try {
-      this.#object.set(undefined);
+      this.#clearObject();
+
       this.#loading.set(true);
-      this.#error.set(undefined);
 
       const abortController = new AbortController();
       this.#abortController = abortController;
