@@ -21,7 +21,7 @@ export default function Chat() {
       async onToolCall({ toolCall }) {
         if (toolCall.toolName === 'showWeatherInformation') {
           // display tool. add tool result that informs the llm that the tool was executed.
-          await addToolResult({
+          addToolResult({
             tool: 'showWeatherInformation',
             toolCallId: toolCall.toolCallId,
             output: 'Weather information was shown to the user.',
