@@ -10,7 +10,9 @@ const comparisonFilterSchema = z.object({
 
 const compoundFilterSchema: z.ZodType<any> = z.object({
   type: z.enum(['and', 'or']),
-  filters: z.array(z.union([comparisonFilterSchema, z.lazy(() => compoundFilterSchema)])),
+  filters: z.array(
+    z.union([comparisonFilterSchema, z.lazy(() => compoundFilterSchema)]),
+  ),
 });
 
 const filtersSchema = z.union([comparisonFilterSchema, compoundFilterSchema]);
@@ -70,7 +72,7 @@ export const fileSearch = createProviderDefinedToolFactory<
     /**
      * A filter to apply based on file attributes.
      */
-    filters?: 
+    filters?:
       | {
           key: string;
           type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';

@@ -23,7 +23,7 @@ export interface OpenAIFileSearchTool {
   ranking_options?: {
     ranker?: 'auto' | 'keyword' | 'semantic';
   };
-  filters?: 
+  filters?:
     | {
         key: string;
         type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';

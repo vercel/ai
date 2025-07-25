@@ -86,7 +86,7 @@ export type OpenAIResponsesTool =
       ranking_options?: {
         ranker?: 'auto' | 'keyword' | 'semantic';
       };
-      filters?: 
+      filters?:
         | {
             key: string;
             type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
