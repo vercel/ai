@@ -1,19 +1,21 @@
 import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStreamResponse,
-  UIMessage,
   streamText,
   createUIMessageStream,
   convertToModelMessages,
+  stepCountIs,
 } from 'ai';
 import { processToolCalls } from './utils';
 import { tools } from './tools';
+import { HumanInTheLoopUIMessage } from './types';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages }: { messages: HumanInTheLoopUIMessage[] } =
+    await req.json();
 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
@@ -22,7 +24,7 @@ export async function POST(req: Request) {
       const processedMessages = await processToolCalls(
         {
           messages,
-          dataStream: writer,
+          writer,
           tools,
         },
         {
@@ -40,9 +42,12 @@ export async function POST(req: Request) {
         model: openai('gpt-4o'),
         messages: convertToModelMessages(processedMessages),
         tools,
+        stopWhen: stepCountIs(5),
       });
 
-      writer.merge(result.toUIMessageStream());
+      writer.merge(
+        result.toUIMessageStream({ originalMessages: processedMessages }),
+      );
     },
   });
 
