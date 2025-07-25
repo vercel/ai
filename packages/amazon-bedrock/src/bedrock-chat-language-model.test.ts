@@ -2007,4 +2007,123 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  it('should include toolConfig when conversation has tool calls but no active tools', async () => {
+    prepareJsonResponse({});
+
+    const conversationWithToolCalls: LanguageModelV2Prompt = [
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'What is the weather in Toronto?' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'tool-call-1',
+            toolName: 'weather',
+            input: { city: 'Toronto' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'tool-call-1',
+            toolName: 'weather',
+            output: {
+              type: 'text',
+              value: 'The weather in Toronto is 20°C.',
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Now give me a summary.' }],
+      },
+    ];
+
+    await model.doGenerate({
+      prompt: conversationWithToolCalls,
+      tools: [],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
+      {
+        "tools": [],
+      }
+    `);
+  });
+
+  it('should include toolConfig when conversation has tool calls but toolChoice is none', async () => {
+    prepareJsonResponse({});
+
+    const conversationWithToolCalls: LanguageModelV2Prompt = [
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'What is the weather in Toronto?' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'tool-call-1',
+            toolName: 'weather',
+            input: { city: 'Toronto' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'tool-call-1',
+            toolName: 'weather',
+            output: {
+              type: 'text',
+              value: 'The weather in Toronto is 20°C.',
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Now give me a summary.' }],
+      },
+    ];
+
+    await model.doGenerate({
+      prompt: conversationWithToolCalls,
+      tools: [
+        {
+          type: 'function',
+          name: 'weather',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      toolChoice: { type: 'none' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
+      {
+        "tools": [],
+      }
+    `);
+  });
 });
