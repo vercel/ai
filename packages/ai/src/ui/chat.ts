@@ -1,6 +1,7 @@
 import {
   generateId as generateIdFunc,
   IdGenerator,
+  Resolvable,
   StandardSchemaV1,
   Validator,
 } from '@ai-sdk/provider-utils';
@@ -150,6 +151,14 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    * @param data The data part that was received.
    */
   onData?: ChatOnDataCallback<UI_MESSAGE>;
+
+  /**
+   * When provided, this function will be called when the stream is finished or a tool call is added
+   * to determine if the current messages should be resubmitted.
+   */
+  sendAutomaticallyWhen?: (options: {
+    messages: UI_MESSAGE[];
+  }) => Resolvable<boolean>;
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
@@ -418,15 +427,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       }
     });
   };
-
-  /**
-   * Checks if the assistant message can be submitted, i.e. if it
-   * has tool calls and all tool calls have results.
-   *
-   * @returns {boolean} True if the assistant message can be submitted, false otherwise.
-   */
-  canAssistantMessageBeSubmitted = (): boolean =>
-    isAssistantMessageWithCompletedToolCalls(this.lastMessage);
 
   /**
    * Abort the current request immediately, keep the generated tokens if any.
