@@ -1,5 +1,5 @@
 import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { ImageProviderOptions } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../../src/error/no-image-generated-error';
 import {
   detectMediaType,
@@ -94,7 +94,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
      */
-  providerOptions?: ProviderOptions;
+  providerOptions?: ImageProviderOptions;
 
   /**
 Maximum number of retries per embedding model call. Set to 0 to disable retries.

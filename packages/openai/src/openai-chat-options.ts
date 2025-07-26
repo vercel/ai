@@ -1,4 +1,6 @@
 import { z } from 'zod/v4';
+import { OpenAIResponsesProviderOptions } from './internal';
+
 
 // https://platform.openai.com/docs/models
 export type OpenAIChatModelId =
@@ -128,3 +130,9 @@ export const openaiProviderOptions = z.object({
 });
 
 export type OpenAIProviderOptions = z.infer<typeof openaiProviderOptions>;
+
+declare module '@ai-sdk/provider' {
+  interface SharedV2ProviderOptions {
+    openai?: OpenAIResponsesProviderOptions & OpenAIProviderOptions;
+  }
+}
