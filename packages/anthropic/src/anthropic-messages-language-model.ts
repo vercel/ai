@@ -1089,7 +1089,7 @@ const anthropicMessagesResponseSchema = z.object({
     output_tokens: z.number(),
     cache_creation_input_tokens: z.number().nullish(),
     cache_read_input_tokens: z.number().nullish(),
-    cache_creation: z.record(z.string(), z.number()).nullish(),
+    cache_creation: z.record(z.string(), z.unknown()).nullish(),
     server_tool_use: z
       .object({
         web_search_requests: z.number(),
@@ -1111,7 +1111,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
-        cache_creation: z.record(z.string(), z.number()).nullish(),
+        cache_creation: z.record(z.string(), z.unknown()).nullish(),
       }),
     }),
   }),
