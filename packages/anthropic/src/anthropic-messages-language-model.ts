@@ -1140,7 +1140,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         type: z.literal('server_tool_use'),
         id: z.string(),
         name: z.string(),
-        input: z.record(z.string(), z.number()).nullish(),
+        input: z.record(z.string(), z.unknown()).nullish(),
       }),
       z.object({
         type: z.literal('web_search_tool_result'),
