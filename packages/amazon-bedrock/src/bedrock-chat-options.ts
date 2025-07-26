@@ -54,7 +54,7 @@ export const bedrockProviderOptions = z.object({
         z.literal('computer-use-2025-01-24'), // Compatible with Claude 3.7 Sonnet.
         z.literal('computer-use-2024-10-22'), // Compatible with Claude 3.5 Sonnet v2.
         z.literal('token-efficient-tools-2025-02-19'), // Compatible with Claude 3.7 Sonnet.
-        z.literal('Interleaved-thinking-2025-05-14'), // Compatible with Claude 4 models.
+        z.literal('interleaved-thinking-2025-05-14'), // Compatible with Claude 4 models.
         z.literal('output-128k-2025-02-19'), // Compatible with Claude 3.7 Sonnet.
         z.literal('dev-full-thinking-2025-05-14'), // Compatible with Claude 4 models only.
       ]),
