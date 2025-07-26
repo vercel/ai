@@ -992,14 +992,16 @@ describe('doStream', () => {
       includeRawChunks: false,
       providerOptions: {
         bedrock: {
-          foo: 'bar',
+          additionalModelRequestFields: {
+            foo: 'bar',
+          },
         },
       },
     });
 
-    // Verify the outgoing request body includes "foo" at the top level.
+    // Verify that the outgoing request body includes "foo" in additionalModelRequestFields.
     const body = await server.calls[0].requestBodyJson;
-    expect(body).toMatchObject({ foo: 'bar' });
+    expect(body.additionalModelRequestFields).toMatchObject({ foo: 'bar' });
   });
 
   it('should include cache token usage in providerMetadata', async () => {
@@ -1612,6 +1614,7 @@ describe('doGenerate', () => {
             },
           },
         ],
+        toolChoice: { auto: {} },
       },
     });
   });
@@ -1688,14 +1691,16 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
       providerOptions: {
         bedrock: {
-          foo: 'bar',
+          additionalModelRequestFields: {
+            foo: 'bar',
+          },
         },
       },
     });
 
-    // Verify that the outgoing request body includes "foo" at its top level.
+    // Verify that the outgoing request body includes "foo" in additionalModelRequestFields.
     const body = await server.calls[0].requestBodyJson;
-    expect(body).toMatchObject({ foo: 'bar' });
+    expect(body.additionalModelRequestFields).toMatchObject({ foo: 'bar' });
   });
 
   it('should include cache token usage in providerMetadata', async () => {
@@ -1917,5 +1922,188 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+});
+
+describe('Anthropic Provider-Defined Tools on Bedrock', () => {
+  function prepareJsonResponse() {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: 'Tool call response.' }],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 10, totalTokens: 20 },
+        stopReason: 'stop_sequence',
+      },
+    };
+  }
+
+  it('should include anthropic_beta flag in additionalModelRequestFields for doGenerate', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'anthropic.computer_20241022',
+          name: 'computer',
+          args: {
+            displayWidthPx: 1024,
+            displayHeightPx: 768,
+            displayNumber: 0,
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        anthropic_beta: ['computer-use-2024-10-22'],
+        tools: [
+          {
+            name: 'computer',
+            type: 'computer_20241022',
+            display_width_px: 1024,
+            display_height_px: 768,
+            display_number: 0,
+          },
+        ],
+      },
+    });
+  });
+
+  it('should include anthropic_beta flag in additionalModelRequestFields for doStream', async () => {
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: { contentBlockIndex: 0, delta: { text: 'Ok' } },
+        }) + '\n',
+        JSON.stringify({ messageStop: { stopReason: 'stop_sequence' } }) + '\n',
+      ],
+    };
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'anthropic.bash_20250124',
+          name: 'bash',
+          args: {},
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        anthropic_beta: ['computer-use-2025-01-24'],
+        tools: [{ name: 'bash', type: 'bash_20250124' }],
+      },
+    });
+  });
+
+  it('should merge beta flags with existing additionalModelRequestFields', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'anthropic.computer_20241022',
+          name: 'computer',
+          args: {},
+        },
+      ],
+      providerOptions: {
+        bedrock: {
+          additionalModelRequestFields: {
+            top_k: 50,
+            anthropic_beta: ['some-other-beta'],
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        top_k: 50,
+        anthropic_beta: ['some-other-beta', 'computer-use-2024-10-22'],
+        tools: [{ name: 'computer', type: 'computer_20241022' }],
+      },
+    });
+  });
+
+  it('should handle a mix of standard and Anthropic tools with a tool choice', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'A standard tool',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+          },
+        },
+        {
+          type: 'provider-defined',
+          id: 'anthropic.computer_20241022',
+          name: 'computer',
+          args: {
+            displayWidthPx: 1024,
+            displayHeightPx: 768,
+            displayNumber: 0,
+          },
+        },
+      ],
+      toolChoice: { type: 'auto' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    // FIX: Expect snake_case properties in the final request body
+    expect(requestBody).toMatchObject({
+      toolConfig: {
+        tools: [
+          {
+            toolSpec: {
+              name: 'get_weather',
+              description: 'A standard tool',
+              inputSchema: {
+                json: {
+                  type: 'object',
+                  properties: { location: { type: 'string' } },
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: { auto: {} },
+      },
+      additionalModelRequestFields: {
+        tools: [
+          {
+            name: 'computer',
+            type: 'computer_20241022',
+            display_width_px: 1024,
+            display_height_px: 768,
+            display_number: 0,
+          },
+        ],
+        anthropic_beta: ['computer-use-2024-10-22'],
+      },
+    });
   });
 });

@@ -24,6 +24,7 @@ import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
   BedrockConverseInput,
+  BedrockGuardrailConfiguration,
   BedrockStopReason,
 } from './bedrock-api-types';
 import {
@@ -46,6 +47,7 @@ type BedrockChatConfig = {
 export class BedrockChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
   readonly provider = 'amazon-bedrock';
+  readonly supportedUrls = {};
 
   constructor(
     readonly modelId: BedrockChatModelId,
@@ -135,14 +137,14 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       } else {
         inferenceConfig.maxOutputTokens = thinkingBudget + 4096; // Default + thinking budget maxOutputTokens = 4096, TODO update default in v5
       }
-      // Add them to additional model request fields
+
       // Add reasoning config to additionalModelRequestFields
-      bedrockOptions.additionalModelRequestFields = {
-        ...bedrockOptions.additionalModelRequestFields,
-        reasoningConfig: {
-          type: bedrockOptions.reasoningConfig?.type,
-          budget_tokens: thinkingBudget,
-        },
+      if (bedrockOptions.additionalModelRequestFields == null) {
+        bedrockOptions.additionalModelRequestFields = {};
+      }
+      bedrockOptions.additionalModelRequestFields.reasoningConfig = {
+        type: bedrockOptions.reasoningConfig?.type,
+        budget_tokens: thinkingBudget,
       };
     }
 
@@ -166,26 +168,81 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const { toolConfig, toolWarnings } = prepareTools({ tools, toolChoice });
+    const {
+      toolConfig,
+      anthropicTools,
+      toolWarnings,
+      betas: toolBetas,
+    } = prepareTools({
+      tools,
+      toolChoice,
+    });
+
+    warnings.push(...toolWarnings);
+
+    // Combine user-provided betas with tool-detected betas and existing betas
+    const existingBetas =
+      (bedrockOptions.additionalModelRequestFields?.anthropic_beta as
+        | string[]
+        | undefined) ?? [];
+
+    const combinedBetas = new Set([
+      ...existingBetas,
+      ...(bedrockOptions.anthropicBeta ?? []),
+      ...toolBetas,
+    ]);
+
+    if (anthropicTools) {
+      if (bedrockOptions.additionalModelRequestFields == null) {
+        bedrockOptions.additionalModelRequestFields = {};
+      }
+      // Combine with existing tools if any
+      const existingAnthropicTools =
+        (bedrockOptions.additionalModelRequestFields.tools as
+          | any[]
+          | undefined) ?? [];
+      bedrockOptions.additionalModelRequestFields.tools = [
+        ...existingAnthropicTools,
+        ...anthropicTools,
+      ];
+    }
+
+    if (combinedBetas.size > 0) {
+      if (bedrockOptions.additionalModelRequestFields == null) {
+        bedrockOptions.additionalModelRequestFields = {};
+      }
+      // The Set ensures the final array has no duplicates.
+      bedrockOptions.additionalModelRequestFields.anthropic_beta =
+        Array.from(combinedBetas);
+    }
+
+    const { additionalModelRequestFields, guardrailConfig } = bedrockOptions;
+
     return {
       command: {
         system,
         messages,
-        additionalModelRequestFields:
-          bedrockOptions.additionalModelRequestFields,
+
+        ...(guardrailConfig ? { guardrailConfig } : {}),
+
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
         }),
-        ...providerOptions?.bedrock,
-        ...(toolConfig.tools?.length ? { toolConfig } : {}),
+
+        // Add additionalModelRequestFields if it's not empty
+        ...(additionalModelRequestFields &&
+        Object.keys(additionalModelRequestFields).length > 0
+          ? { additionalModelRequestFields }
+          : {}),
+
+        // Add toolConfig only if it has tools or a toolChoice
+        ...(toolConfig.tools?.length || toolConfig.toolChoice
+          ? { toolConfig }
+          : {}),
       },
-      warnings: [...warnings, ...toolWarnings],
+      warnings,
     };
   }
-
-  readonly supportedUrls: Record<string, RegExp[]> = {
-    // no supported urls for bedrock
-  };
 
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
@@ -287,7 +344,9 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       usage: {
         inputTokens: response.usage?.inputTokens,
         outputTokens: response.usage?.outputTokens,
-        totalTokens: response.usage?.inputTokens + response.usage?.outputTokens,
+        totalTokens:
+          (response.usage?.inputTokens ?? 0) +
+          (response.usage?.outputTokens ?? 0),
         cachedInputTokens: response.usage?.cacheReadInputTokens ?? undefined,
       },
       response: {
