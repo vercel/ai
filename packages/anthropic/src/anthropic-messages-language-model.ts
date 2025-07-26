@@ -595,7 +595,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       warnings,
       providerMetadata: {
         anthropic: {
-          usage: response.usage,
+          usage: response.usage as Record<string, JSONValue>,
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
         },
@@ -972,7 +972,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                 providerMetadata = {
                   anthropic: {
-                    usage: value.message.usage,
+                    usage: value.message.usage as Record<string, JSONValue>,
                     cacheCreationInputTokens:
                       value.message.usage.cache_creation_input_tokens ?? null,
                   },
@@ -1084,7 +1084,7 @@ const anthropicMessagesResponseSchema = z.object({
     ]),
   ),
   stop_reason: z.string().nullish(),
-  usage: z.object({
+  usage: z.looseObject({
     input_tokens: z.number(),
     output_tokens: z.number(),
     cache_creation_input_tokens: z.number().nullish(),
@@ -1106,7 +1106,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
     message: z.object({
       id: z.string().nullish(),
       model: z.string().nullish(),
-      usage: z.object({
+      usage: z.looseObject({
         input_tokens: z.number(),
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
