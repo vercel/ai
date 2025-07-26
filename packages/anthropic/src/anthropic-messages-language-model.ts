@@ -76,7 +76,7 @@ export type AnthropicProviderMetadata = SharedV2ProviderMetadata & {
   usage?: Record<string, JSONValue>;
   /** @deprecated Access via usage instead. */
   cacheCreationInputTokens?: number;
-}
+};
 
 function processCitation(
   citation: Citation,

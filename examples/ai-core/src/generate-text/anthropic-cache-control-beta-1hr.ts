@@ -9,7 +9,7 @@ async function main() {
   const result = await generateText({
     model: anthropic('claude-3-5-sonnet-20240620'),
     headers: {
-      "anthropic-beta": "extended-cache-ttl-2025-04-11",
+      'anthropic-beta': 'extended-cache-ttl-2025-04-11',
     },
     messages: [
       {
@@ -41,11 +41,11 @@ async function main() {
   console.log();
 
   console.log('Usage information:', result.providerMetadata?.anthropic?.usage);
-  
+
   const cachedResult = await generateText({
     model: anthropic('claude-3-5-sonnet-20240620'),
     headers: {
-      "anthropic-beta": "extended-cache-ttl-2025-04-11",
+      'anthropic-beta': 'extended-cache-ttl-2025-04-11',
     },
     messages: [
       {
@@ -72,11 +72,14 @@ async function main() {
       },
     ],
   });
-  
+
   console.log(cachedResult.text);
   console.log();
 
-  console.log('Usage information:', cachedResult.providerMetadata?.anthropic?.usage);
+  console.log(
+    'Usage information:',
+    cachedResult.providerMetadata?.anthropic?.usage,
+  );
 }
 
 main().catch(console.error);
