@@ -9,47 +9,143 @@ Braintrust is an end-to-end platform for building AI applications. When building
 
 ## Setup
 
-### OpenTelemetry
+Braintrust natively supports OpenTelemetry and works out of the box with the AI SDK, either via Next.js or Node.js.
 
-Braintrust supports [AI SDK telemetry data](/docs/ai-sdk-core/telemetry).
-To set up Braintrust as an [OpenTelemetry](https://opentelemetry.io/docs/) backend, you'll need to route the traces to Braintrust's OpenTelemetry endpoint, set your API key, and specify a parent project or experiment.
+### Next.js
 
-Once you set up an [OpenTelemetry Protocol Exporter](https://opentelemetry.io/docs/languages/js/exporters/) (OTLP) to send traces to Braintrust, we automatically convert LLM calls into Braintrust `LLM` spans, which can be saved as [prompts](https://www.braintrust.dev/docs/guides/functions/prompts) and evaluated in the [playground](https://www.braintrust.dev/docs/guides/playground).
+If you are using Next.js, you can use the Braintrust exporter with `@vercel/otel` for the cleanest setup:
 
-To use the AI SDK to send telemetry data to Braintrust, set these environment variables in your Next.js app's `.env` file:
+```typescript
+import { registerOTel } from "@vercel/otel";
+import { BraintrustExporter } from "braintrust";
 
-```bash
+// In your instrumentation.ts file
+export function register() {
+  registerOTel({
+    serviceName: "my-braintrust-app",
+    traceExporter: new BraintrustExporter({
+      parent: "project_name:your-project-name",
+      filterAISpans: true, // Only send AI-related spans
+    }),
+  });
+}
+```
+
+Or set the following environment variables in your app's `.env` file, with your API key and project ID:
+
+```
 OTEL_EXPORTER_OTLP_ENDPOINT=https://api.braintrust.dev/otel
 OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your API Key>, x-bt-parent=project_id:<Your Project ID>"
 ```
 
-You can then use the `experimental_telemetry` option to enable telemetry on supported AI SDK function calls:
+Traced LLM calls will appear under the Braintrust project or experiment provided in the `x-bt-parent` header.
+
+When you call the AI SDK, make sure to set `experimental_telemetry`:
 
 ```typescript
-import { createOpenAI } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+const result = await generateText({
+  model: openai("gpt-4o-mini"),
+  prompt: "What is 2 + 2?",
+  experimental_telemetry: {
+    isEnabled: true,
+    metadata: {
+      query: "weather",
+      location: "San Francisco",
+    },
+  },
+});
+```
 
-const openai = createOpenAI();
+<Note>
+The integration supports streaming functions like `streamText`. Each streamed call will produce `ai.streamText` spans in Braintrust.
+
+```typescript
+import { openai } from "@ai-sdk/openai";
+import { streamText } from "ai";
+
+export async function POST(req: Request) {
+  const { prompt } = await req.json();
+
+  const result = await streamText({
+    model: openai("gpt-4o-mini"),
+    prompt,
+    experimental_telemetry: { isEnabled: true },
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+</Note>
+
+### Node.js
+
+If you are using Node.js without a framework, you must configure the `NodeSDK` directly. Here, it's more straightforward to use the `BraintrustSpanProcessor`.
+
+First, install the necessary dependencies:
+
+```bash
+npm install ai @ai-sdk/openai braintrust @opentelemetry/sdk-node @opentelemetry/sdk-trace-base zod
+```
+
+Then, set up the OpenTelemetry SDK:
+
+```typescript
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import { generateText, tool } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
+import { BraintrustSpanProcessor } from "braintrust";
+
+const sdk = new NodeSDK({
+  spanProcessors: [
+    new BraintrustSpanProcessor({
+      parent: "project_name:your-project-name",
+      filterAISpans: true,
+    }),
+  ],
+});
+
+sdk.start();
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-4o-mini'),
-    prompt: 'What is 2 + 2?',
+    model: openai("gpt-4o-mini"),
+    messages: [
+      {
+        role: "user",
+        content: "What are my orders and where are they? My user ID is 123",
+      },
+    ],
+    tools: {
+      listOrders: tool({
+        description: "list all orders",
+        parameters: z.object({ userId: z.string() }),
+        execute: async ({ userId }) =>
+          `User ${userId} has the following orders: 1`,
+      }),
+      viewTrackingInformation: tool({
+        description: "view tracking information for a specific order",
+        parameters: z.object({ orderId: z.string() }),
+        execute: async ({ orderId }) =>
+          `Here is the tracking information for ${orderId}`,
+      }),
+    },
     experimental_telemetry: {
       isEnabled: true,
+      functionId: "my-awesome-function",
       metadata: {
-        query: 'weather',
-        location: 'San Francisco',
+        something: "custom",
+        someOtherThing: "other-value",
       },
     },
+    maxSteps: 10,
   });
-  console.log(result);
+
+  await sdk.shutdown();
 }
 
-main();
+main().catch(console.error);
 ```
-
-Traced LLM calls will appear under the Braintrust project or experiment provided in the `x-bt-parent` header.
 
 ## Resources
 
