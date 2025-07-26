@@ -9,13 +9,6 @@ Braintrust is an end-to-end platform for building AI applications. When building
 
 ## Setup
 
-Braintrust offers two approaches for integrating with the AI SDK:
-
-1. **OpenTelemetry (OTel)**: Standards-based tracing that works with your existing observability infrastructure
-2. **Native Braintrust Wrapper**: Direct integration providing granular control and seamless access to Braintrust features
-
-Choose the approach that best fits your project's needs and existing infrastructure.
-
 ### OpenTelemetry
 
 Braintrust supports [AI SDK telemetry data](/docs/ai-sdk-core/telemetry).
@@ -57,81 +50,6 @@ main();
 ```
 
 Traced LLM calls will appear under the Braintrust project or experiment provided in the `x-bt-parent` header.
-
-### Native Braintrust Wrapper
-
-As an alternative to OpenTelemetry, you can use Braintrust's native wrapper to automatically log your AI SDK requests. This approach provides more granular control over tracing and seamless integration with Braintrust's features.
-
-```typescript
-import { initLogger, wrapAISDKModel } from 'braintrust';
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-
-// Initialize the Braintrust logger
-initLogger({
-  projectName: 'My Project',
-  apiKey: process.env.BRAINTRUST_API_KEY,
-});
-
-// Wrap the AI SDK model
-const model = wrapAISDKModel(openai('gpt-4o-mini'));
-
-async function main() {
-  // This will automatically log the request, response, and metrics to Braintrust
-  const result = await generateText({
-    model: model,
-    prompt: 'What is the capital of France?',
-  });
-  
-  console.log(result.text);
-}
-
-main();
-```
-
-#### Wrapping Tools
-
-You can also wrap tool implementations to log their executions:
-
-```typescript
-import { wrapTraced } from 'braintrust';
-import { tool } from 'ai';
-import { z } from 'zod';
-
-const weatherTool = wrapTraced(
-  tool({
-    description: 'Get the current weather for a location',
-    parameters: z.object({
-      location: z.string().describe('The location to get weather for'),
-    }),
-    execute: async ({ location }) => {
-      // Your tool implementation
-      return {
-        temperature: 72,
-        condition: 'sunny',
-        location,
-      };
-    },
-  }),
-  {
-    name: 'weather_tool',
-  }
-);
-```
-
-## Choosing Between OpenTelemetry and Native Wrapper
-
-- **Use OpenTelemetry** if you:
-  - Have existing OpenTelemetry infrastructure
-  - Want standards-based tracing
-  - Need to send traces to multiple backends
-  - Prefer minimal code changes
-
-- **Use Native Wrapper** if you:
-  - Want granular control over tracing
-  - Need tight integration with Braintrust features
-  - Want to wrap specific models or tools
-  - Prefer explicit logging control
 
 ## Resources
 
