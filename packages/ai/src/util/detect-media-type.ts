@@ -83,6 +83,11 @@ export const audioMediaTypeSignatures = [
     bytesPrefix: [0x66, 0x74, 0x79, 0x70],
     base64Prefix: 'ZnR5cA',
   },
+  {
+    mediaType: 'audio/webm',
+    bytesPrefix: [0x1a, 0x45, 0xdf, 0xa3],
+    base64Prefix: 'GkXf',
+  },
 ] as const;
 
 const stripID3 = (data: Uint8Array | string) => {
