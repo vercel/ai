@@ -575,6 +575,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }
     }
 
+    const rawProviderUsage =
+      typeof rawResponse === 'object' &&
+      rawResponse != null &&
+      'usage' in rawResponse
+        ? rawResponse.usage
+        : undefined;
+
     return {
       content,
       finishReason: mapAnthropicStopReason({
@@ -597,7 +604,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       warnings,
       providerMetadata: {
         anthropic: {
-          usage: response.usage,
+          usage:
+            typeof rawProviderUsage === 'object' && rawProviderUsage != null
+              ? { ...rawProviderUsage }
+              : {},
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
         },
@@ -972,9 +982,23 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 usage.cachedInputTokens =
                   value.message.usage.cache_read_input_tokens ?? undefined;
 
+                const rawProviderUsage =
+                  typeof chunk.rawValue === 'object' &&
+                  chunk.rawValue !== null &&
+                  'message' in chunk.rawValue &&
+                  typeof chunk.rawValue.message === 'object' &&
+                  chunk.rawValue.message !== null &&
+                  'usage' in chunk.rawValue.message
+                    ? chunk.rawValue.message.usage
+                    : undefined;
+
                 providerMetadata = {
                   anthropic: {
-                    usage: value.message.usage,
+                    usage:
+                      typeof rawProviderUsage === 'object' &&
+                      rawProviderUsage !== null
+                        ? { ...rawProviderUsage }
+                        : {},
                     cacheCreationInputTokens:
                       value.message.usage.cache_creation_input_tokens ?? null,
                   },
