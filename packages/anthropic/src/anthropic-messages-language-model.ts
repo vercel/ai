@@ -1,5 +1,5 @@
 import {
-  APICallError,
+  JSONValue,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -72,6 +72,9 @@ const documentCitationSchema = z.discriminatedUnion('type', [
 
 type Citation = z.infer<typeof citationSchema>;
 export type DocumentCitation = z.infer<typeof documentCitationSchema>;
+export type AnthropicProviderMetadata = SharedV2ProviderMetadata & {
+  usage?: Record<string, JSONValue>;
+};
 
 function processCitation(
   citation: Citation,
@@ -592,6 +595,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       warnings,
       providerMetadata: {
         anthropic: {
+          usage: response.usage as Record<string, JSONValue>,
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
         },
@@ -641,7 +645,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | { type: 'text' | 'reasoning' }
     > = {};
 
-    let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
+    let providerMetadata: AnthropicProviderMetadata | undefined = undefined;
 
     let blockType:
       | 'text'
@@ -968,6 +972,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                 providerMetadata = {
                   anthropic: {
+                    usage: value.message.usage as Record<string, JSONValue>,
                     cacheCreationInputTokens:
                       value.message.usage.cache_creation_input_tokens ?? null,
                   },
@@ -1079,11 +1084,12 @@ const anthropicMessagesResponseSchema = z.object({
     ]),
   ),
   stop_reason: z.string().nullish(),
-  usage: z.object({
+  usage: z.looseObject({
     input_tokens: z.number(),
     output_tokens: z.number(),
     cache_creation_input_tokens: z.number().nullish(),
     cache_read_input_tokens: z.number().nullish(),
+    cache_creation: z.record(z.string(), z.unknown()).nullish(),
     server_tool_use: z
       .object({
         web_search_requests: z.number(),
@@ -1092,7 +1098,7 @@ const anthropicMessagesResponseSchema = z.object({
   }),
 });
 
-// limited version of the schema, focussed on what is needed for the implementation
+// limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   z.object({
@@ -1100,11 +1106,12 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
     message: z.object({
       id: z.string().nullish(),
       model: z.string().nullish(),
-      usage: z.object({
+      usage: z.looseObject({
         input_tokens: z.number(),
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
+        cache_creation: z.record(z.string(), z.unknown()).nullish(),
       }),
     }),
   }),
