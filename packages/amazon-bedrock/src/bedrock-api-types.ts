@@ -13,8 +13,7 @@ export interface BedrockConverseInput {
   additionalModelRequestFields?: Record<string, unknown>;
   guardrailConfig?:
     | BedrockGuardrailConfiguration
-    | BedrockGuardrailStreamConfiguration
-    | undefined;
+    | BedrockGuardrailStreamConfiguration;
 }
 
 export type BedrockSystemMessages = Array<BedrockSystemContentBlock>;
@@ -41,26 +40,34 @@ export type BedrockCachePoint = { cachePoint: { type: 'default' } };
 export type BedrockSystemContentBlock = { text: string } | BedrockCachePoint;
 
 export interface BedrockGuardrailConfiguration {
-  guardrails?: Array<{
-    name: string;
-    description?: string;
-    parameters?: Record<string, unknown>;
-  }>;
+  guardrailIdentifier: string;
+  guardrailVersion: string;
+  trace?: 'enabled' | 'disabled';
 }
 
-export type BedrockGuardrailStreamConfiguration = BedrockGuardrailConfiguration;
+export type BedrockGuardrailStreamConfiguration =
+  BedrockGuardrailConfiguration & {
+    streamProcessingMode?: 'sync' | 'async';
+  };
 
 export interface BedrockToolInputSchema {
   json: Record<string, unknown>;
 }
 
-export interface BedrockTool {
-  toolSpec: {
-    name: string;
-    description?: string;
-    inputSchema: { json: JSONObject };
-  };
-}
+export type BedrockTool =
+  | {
+      toolSpec: {
+        name: string;
+        description?: string;
+        inputSchema: { json: JSONObject };
+      };
+    }
+  | {
+      tool: {
+        name: string;
+        type: string;
+      };
+    };
 
 export interface BedrockToolConfiguration {
   tools?: Array<BedrockTool | BedrockCachePoint>;

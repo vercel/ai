@@ -263,6 +263,190 @@ if (result.providerMetadata?.bedrock.trace) {
 
 See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html) for more information.
 
+### Anthropic Tool Calling
+
+When using compatible Anthropic Claude models on Bedrock, you can leverage three powerful, built-in tools that allow the model to interact with external systems in sophisticated ways. These tools are:
+
+1.  **Bash Tool**: Allows for the execution of bash commands.
+2.  **Text Editor Tool**: Provides functionality for viewing and editing text files.
+3.  **Computer Tool**: Enables control of keyboard and mouse actions on a computer.
+
+A key aspect of using these tools with the Bedrock provider is that they are defined and created using the main `@ai-sdk/anthropic` provider instance. Therefore, you must install the `@ai-sdk/anthropic` package alongside `@ai-sdk/amazon-bedrock` to use them.
+
+For more background, see [Anthropic's Computer Use documentation](https://docs.anthropic.com/en/docs/build-with-claude/computer-use).
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/anthropic" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/anthropic" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/anthropic" dark />
+  </Tab>
+</Tabs>
+
+#### Bash Tool
+
+The Bash Tool allows the model to run bash commands. Here's how to create and use it with a Bedrock model:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const bashTool = anthropic.tools.bash_20241022({
+  execute: async ({ command, restart }) => {
+    // Implement your bash command execution logic here
+    // Return the result of the command execution
+  },
+});
+
+const { text } = await generateText({
+  model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  prompt: 'List the files in the current directory.',
+  tools: { bash: bashTool },
+});
+```
+
+**Parameters:**
+
+- `command` (string): The bash command to run. This is required unless the tool is being restarted.
+- `restart` (boolean, optional): If set to `true`, this will restart the tool.
+
+#### Text Editor Tool
+
+The Text Editor Tool provides functionality for viewing and editing text files:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const textEditorTool = anthropic.tools.textEditor_20241022({
+  execute: async ({
+    command,
+    path,
+    file_text,
+    insert_line,
+    new_str,
+    old_str,
+    view_range,
+  }) => {
+    // Implement your text editing logic here
+    // Return the result of the text editing operation
+  },
+});
+
+const { text } = await generateText({
+  model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  prompt: "Create a new file called example.txt and write 'Hello World' to it.",
+  tools: { str_replace_editor: textEditorTool },
+});
+```
+
+**Parameters:**
+
+- `command` ('view' | 'create' | 'str_replace' | 'insert' | 'undo_edit'): The command to execute.
+- `path` (string): The absolute path to the file or directory (e.g., `/repo/file.py`).
+- `file_text` (string, optional): Required for the `create` command; contains the content for the new file.
+- `insert_line` (number, optional): Required for the `insert` command; specifies the line number after which to insert the new string.
+- `new_str` (string, optional): The new string for `str_replace` or `insert` commands.
+- `old_str` (string, optional): Required for the `str_replace` command; contains the string to be replaced.
+- `view_range` (number[], optional): Optional for the `view` command to specify a line range to display.
+
+Note that when using the Text Editor Tool, the key in the `tools` object must be `str_replace_editor`.
+
+#### Computer Tool
+
+The Computer Tool enables the model to control keyboard and mouse actions.
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+import fs from 'node:fs';
+
+const computerTool = anthropic.tools.computer_20241022({
+  displayWidthPx: 1920,
+  displayHeightPx: 1080,
+  displayNumber: 0, // Optional, for X11 environments
+
+  execute: async ({ action, coordinate, text }) => {
+    // Implement your computer control logic here
+    // Return the result of the action
+
+    // Example code:
+    switch (action) {
+      case 'screenshot': {
+        // multipart result:
+        return {
+          type: 'image',
+          data: fs
+            .readFileSync('./data/screenshot-editor.png')
+            .toString('base64'),
+        };
+      }
+      default: {
+        console.log('Action:', action);
+        console.log('Coordinate:', coordinate);
+        console.log('Text:', text);
+        return `executed ${action}`;
+      }
+    }
+  },
+
+  // map to tool result content for LLM consumption:
+  experimental_toToolResultContent(result) {
+    return typeof result === 'string'
+      ? [{ type: 'text', text: result }]
+      : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
+  },
+});
+```
+
+**Parameters:**
+
+- `action` ('key' | 'type' | 'mouse_move' | 'left_click' | 'left_click_drag' | 'right_click' | 'middle_click' | 'double_click' | 'screenshot' | 'cursor_position'): The action to perform.
+- `coordinate` (number[], optional): Required for `mouse_move` and `left_click_drag` actions, specifying the (x, y) coordinates.
+- `text` (string, optional): Required for `type` and `key` actions.
+
+#### Anthropic Beta Features
+
+Certain features for Anthropic models on Bedrock are in beta and require an explicit opt-in. You can enable them by passing a list of beta flags to the `anthropicBeta` provider option. When you use one of the tools described above, the AI SDK automatically adds the necessary beta flag for you.
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  prompt: 'A prompt that uses a beta feature.',
+  providerOptions: {
+    bedrock: {
+      // Opt-in to a beta feature
+      anthropicBeta: ['computer-use-2024-10-22'],
+    },
+  },
+});
+```
+
+The beta flags are:
+
+- `computer-use-2025-01-24`
+  - Enables Computer Use tools. Compatible with Claude 3.7 Sonnet.
+- `computer-use-2024-10-22`
+  - Enables Computer Use tools. Compatible with Claude 3.5 Sonnet v2.
+- `token-efficient-tools-2025-02-19`
+  - Enables more token-efficient tool use. Compatible with Claude 3.7 Sonnet.
+- `Interleaved-thinking-2025-05-14`
+  - Enables interleaved thinking. Compatible with Claude 4 models.
+- `output-128k-2025-02-19`
+  - Enables output tokens up to 128K. Compatible with Claude 3.7 Sonnet.
+- `dev-full-thinking-2025-05-14`
+  - Enables developer mode for raw thinking. Compatible with Claude 4 models only.
+
 ### Cache Points
 
 <Note>

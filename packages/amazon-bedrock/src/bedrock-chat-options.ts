@@ -44,10 +44,34 @@ export const bedrockProviderOptions = z.object({
    * supports in the inferenceConfig field
    */
   additionalModelRequestFields: z.record(z.string(), z.any()).optional(),
+  /**
+   * A list of strings of beta headers used to indicate opt-in to a
+   * particular set of beta features for Anthropic models.
+   */
+  anthropicBeta: z
+    .array(
+      z.union([
+        z.literal('computer-use-2025-01-24'), // Compatible with Claude 3.7 Sonnet.
+        z.literal('computer-use-2024-10-22'), // Compatible with Claude 3.5 Sonnet v2.
+        z.literal('token-efficient-tools-2025-02-19'), // Compatible with Claude 3.7 Sonnet.
+        z.literal('Interleaved-thinking-2025-05-14'), // Compatible with Claude 4 models.
+        z.literal('output-128k-2025-02-19'), // Compatible with Claude 3.7 Sonnet.
+        z.literal('dev-full-thinking-2025-05-14'), // Compatible with Claude 4 models only.
+      ]),
+    )
+    .optional(),
   reasoningConfig: z
     .object({
       type: z.union([z.literal('enabled'), z.literal('disabled')]).optional(),
       budgetTokens: z.number().optional(),
+    })
+    .optional(),
+  guardrailConfig: z
+    .object({
+      guardrailIdentifier: z.string(),
+      guardrailVersion: z.string(),
+      trace: z.enum(['enabled', 'disabled']).optional(),
+      streamProcessingMode: z.enum(['sync', 'async']).optional(),
     })
     .optional(),
 });
