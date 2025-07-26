@@ -5,7 +5,7 @@ import 'dotenv/config';
 
 async function main() {
   const { images } = await generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.imageModel('dall-e-3'),
     n: 3, // 3 calls; dall-e-3 can only generate 1 image at a time
     prompt: 'Santa Claus driving a Cadillac',
   });
