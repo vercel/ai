@@ -74,8 +74,6 @@ type Citation = z.infer<typeof citationSchema>;
 export type DocumentCitation = z.infer<typeof documentCitationSchema>;
 export type AnthropicProviderMetadata = SharedV2ProviderMetadata & {
   usage?: Record<string, JSONValue>;
-  /** @deprecated Access via usage instead. */
-  cacheCreationInputTokens?: number;
 };
 
 function processCitation(
@@ -575,13 +573,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }
     }
 
-    const rawProviderUsage =
-      typeof rawResponse === 'object' &&
-      rawResponse != null &&
-      'usage' in rawResponse
-        ? rawResponse.usage
-        : undefined;
-
     return {
       content,
       finishReason: mapAnthropicStopReason({
@@ -604,10 +595,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       warnings,
       providerMetadata: {
         anthropic: {
-          usage:
-            typeof rawProviderUsage === 'object' && rawProviderUsage != null
-              ? { ...rawProviderUsage }
-              : {},
+          usage: response.usage,
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
         },
@@ -982,23 +970,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 usage.cachedInputTokens =
                   value.message.usage.cache_read_input_tokens ?? undefined;
 
-                const rawProviderUsage =
-                  typeof chunk.rawValue === 'object' &&
-                  chunk.rawValue !== null &&
-                  'message' in chunk.rawValue &&
-                  typeof chunk.rawValue.message === 'object' &&
-                  chunk.rawValue.message !== null &&
-                  'usage' in chunk.rawValue.message
-                    ? chunk.rawValue.message.usage
-                    : undefined;
-
                 providerMetadata = {
                   anthropic: {
-                    usage:
-                      typeof rawProviderUsage === 'object' &&
-                      rawProviderUsage !== null
-                        ? { ...rawProviderUsage }
-                        : {},
+                    usage: value.message.usage,
                     cacheCreationInputTokens:
                       value.message.usage.cache_creation_input_tokens ?? null,
                   },
@@ -1115,6 +1089,7 @@ const anthropicMessagesResponseSchema = z.object({
     output_tokens: z.number(),
     cache_creation_input_tokens: z.number().nullish(),
     cache_read_input_tokens: z.number().nullish(),
+    cache_creation: z.record(z.string(), z.number()).nullish(),
     server_tool_use: z
       .object({
         web_search_requests: z.number(),
@@ -1123,7 +1098,7 @@ const anthropicMessagesResponseSchema = z.object({
   }),
 });
 
-// limited version of the schema, focussed on what is needed for the implementation
+// limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   z.object({
@@ -1136,6 +1111,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
+        cache_creation: z.record(z.string(), z.number()).nullish(),
       }),
     }),
   }),
@@ -1164,7 +1140,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         type: z.literal('server_tool_use'),
         id: z.string(),
         name: z.string(),
-        input: z.record(z.string(), z.unknown()).nullish(),
+        input: z.record(z.string(), z.number()).nullish(),
       }),
       z.object({
         type: z.literal('web_search_tool_result'),

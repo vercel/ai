@@ -234,9 +234,6 @@ Anthropic also supports a longer 1-hour cache duration. At time of writing,
 [this is currently in beta](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching#1-hour-cache-duration),
 so you must pass a `'anthropic-beta'` header set to `'extended-cache-ttl-2025-04-11'`.
 
-In `@ai-sdk/anthropic>=1.2.13`, detailed usage information on the specific type of cache created is
-available in `providerMetadata`.
-
 Here's an example:
 
 ```ts
@@ -262,20 +259,6 @@ const result = await generateText({
     },
   ],
 });
-
-console.log(result.providerMetadata?.anthropic);
-// e.g.
-// {
-//   cacheCreationInputTokens: 2118,
-//   usage: {
-//     input_tokens: 10,
-//     cache_creation_input_tokens: 2118,
-//     cache_read_input_tokens: 0,
-//     cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 2118 },
-//     output_tokens: 1,
-//     service_tier: 'standard'
-//   }
-// }
 ```
 
 #### Limitations
