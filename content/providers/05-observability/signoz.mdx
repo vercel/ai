@@ -33,18 +33,16 @@ npm install @vercel/otel @opentelemetry/api
 **Step 2.** Update **`next.config.mjs`** to include instrumentationHook
 
 > This step is only needed when using NextJs 14 and below
-> 
 
 ```jsx
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-	// include instrumentationHook experimental feature
-	experimental: {
-		instrumentationHook: true,
-	},
+  // include instrumentationHook experimental feature
+  experimental: {
+    instrumentationHook: true,
+  },
 };
 export default nextConfig;
-
 ```
 
 **Step 3.** Create **`instrumentation.ts`** file(in root project directory)
@@ -58,12 +56,11 @@ export function register() {
   registerOTel({
     serviceName: '<service_name>',
     traceExporter: new OTLPHttpJsonTraceExporter({
-        url: 'https://ingest.<region>.signoz.cloud:443/v1/traces',
-        headers: { 'signoz-ingestion-key': '<your-ingestion-key>' },
+      url: 'https://ingest.<region>.signoz.cloud:443/v1/traces',
+      headers: { 'signoz-ingestion-key': '<your-ingestion-key>' },
     }),
   });
 }
-
 ```
 
 - **`<service_name>`** is the name of your service
@@ -71,7 +68,6 @@ export function register() {
 - Replace **`<your-ingestion-key>`** with your SigNoz [**ingestion key**](https://signoz.io/docs/ingestion/signoz-cloud/keys/)
 
 > The instrumentation file should be in the root of your project and not inside the app or pages directory. If you're using the src folder, then place the file inside src alongside pages and app.
-> 
 
 Your Next.js app should be properly instrumented now.
 
@@ -91,7 +87,6 @@ const result = await generateText({
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: { isEnabled: true },
 });
-
 ```
 
 When telemetry is enabled, you can also control whether you want to record the input values and the output values for the function. By default, both are enabled. You can disable them by setting the `recordInputs` and `recordOutputs` options to `false`.
@@ -135,7 +130,6 @@ const result = await generateText({
     tracer: tracerProvider.getTracer('ai'),
   },
 });
-
 ```
 
 Your Vercel AI SDK commands should now automatically emit traces, spans, and events. You can find more details on the types of spans and events generated [here](https://ai-sdk.dev/docs/ai-sdk-core/telemetry#collected-data).
