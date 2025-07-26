@@ -312,6 +312,12 @@ Market Performance:",
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 2688,
+          "output_tokens": 2,
+        },
       },
     },
     "type": "finish",

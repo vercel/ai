@@ -585,6 +585,12 @@ describe('AnthropicMessagesLanguageModel', () => {
           "providerMetadata": {
             "anthropic": {
               "cacheCreationInputTokens": 10,
+              "usage": {
+                "cache_creation_input_tokens": 10,
+                "cache_read_input_tokens": 5,
+                "input_tokens": 20,
+                "output_tokens": 50,
+              },
             },
           },
           "request": {
@@ -1439,6 +1445,10 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+                  "usage": {
+                    "input_tokens": 441,
+                    "output_tokens": 2,
+                  },
                 },
               },
               "type": "finish",
@@ -1512,6 +1522,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
               },
             },
             "type": "finish",
@@ -1605,6 +1619,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
               },
             },
             "type": "finish",
@@ -1680,6 +1698,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
               },
             },
             "type": "finish",
@@ -1741,6 +1763,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
               },
             },
             "type": "finish",
@@ -1874,6 +1900,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "usage": {
+                  "input_tokens": 441,
+                  "output_tokens": 2,
+                },
               },
             },
             "type": "finish",
@@ -2077,6 +2107,12 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
+                "usage": {
+                  "cache_creation_input_tokens": 10,
+                  "cache_read_input_tokens": 5,
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
               },
             },
             "type": "finish",
@@ -2306,66 +2342,70 @@ describe('AnthropicMessagesLanguageModel', () => {
         const result = await convertReadableStreamToArray(stream);
 
         expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
-            "modelId": "claude-3-haiku-20240307",
-            "type": "response-metadata",
-          },
-          {
-            "id": "0",
-            "type": "text-start",
-          },
-          {
-            "delta": "Based on the document",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", results show growth.",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "id": "0",
-            "type": "text-end",
-          },
-          {
-            "filename": "financial-report.pdf",
-            "id": "id-0",
-            "mediaType": "application/pdf",
-            "providerMetadata": {
-              "anthropic": {
-                "citedText": "Revenue increased by 25% year over year",
-                "endPageNumber": 6,
-                "startPageNumber": 5,
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+              "modelId": "claude-3-haiku-20240307",
+              "type": "response-metadata",
+            },
+            {
+              "id": "0",
+              "type": "text-start",
+            },
+            {
+              "delta": "Based on the document",
+              "id": "0",
+              "type": "text-delta",
+            },
+            {
+              "delta": ", results show growth.",
+              "id": "0",
+              "type": "text-delta",
+            },
+            {
+              "id": "0",
+              "type": "text-end",
+            },
+            {
+              "filename": "financial-report.pdf",
+              "id": "id-0",
+              "mediaType": "application/pdf",
+              "providerMetadata": {
+                "anthropic": {
+                  "citedText": "Revenue increased by 25% year over year",
+                  "endPageNumber": 6,
+                  "startPageNumber": 5,
+                },
+              },
+              "sourceType": "document",
+              "title": "Financial Report 2023",
+              "type": "source",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": {
+                "anthropic": {
+                  "cacheCreationInputTokens": null,
+                  "usage": {
+                    "input_tokens": 17,
+                    "output_tokens": 1,
+                  },
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 17,
+                "outputTokens": 227,
+                "totalTokens": 244,
               },
             },
-            "sourceType": "document",
-            "title": "Financial Report 2023",
-            "type": "source",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": {
-              "anthropic": {
-                "cacheCreationInputTokens": null,
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 17,
-              "outputTokens": 227,
-              "totalTokens": 244,
-            },
-          },
-        ]
-      `);
+          ]
+        `);
       });
 
       describe('web search', () => {

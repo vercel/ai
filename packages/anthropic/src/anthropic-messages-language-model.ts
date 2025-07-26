@@ -1,5 +1,5 @@
 import {
-  APICallError,
+  JSONValue,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -72,6 +72,11 @@ const documentCitationSchema = z.discriminatedUnion('type', [
 
 type Citation = z.infer<typeof citationSchema>;
 export type DocumentCitation = z.infer<typeof documentCitationSchema>;
+export type AnthropicProviderMetadata = SharedV2ProviderMetadata & {
+  usage?: Record<string, JSONValue>;
+  /** @deprecated Access via usage instead. */
+  cacheCreationInputTokens?: number;
+}
 
 function processCitation(
   citation: Citation,
@@ -592,6 +597,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       warnings,
       providerMetadata: {
         anthropic: {
+          usage: response.usage,
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
         },
@@ -641,7 +647,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | { type: 'text' | 'reasoning' }
     > = {};
 
-    let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
+    let providerMetadata: AnthropicProviderMetadata | undefined = undefined;
 
     let blockType:
       | 'text'
@@ -968,6 +974,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                 providerMetadata = {
                   anthropic: {
+                    usage: value.message.usage,
                     cacheCreationInputTokens:
                       value.message.usage.cache_creation_input_tokens ?? null,
                   },
