@@ -73,6 +73,36 @@ describe('result.usage', () => {
   });
 });
 
+describe('result.providerMetadata', () => {
+  it('should include provider metadata when returned by the model', async () => {
+    const providerMetadata = {
+      gateway: {
+        routing: {
+          resolvedProvider: 'test-provider',
+        },
+      },
+    };
+
+    const result = await embed({
+      model: new MockEmbeddingModelV2({
+        doEmbed: mockEmbed(
+          [testValue],
+          [dummyEmbedding],
+          undefined,
+          {
+            headers: {},
+            body: {},
+          },
+          providerMetadata,
+        ),
+      }),
+      value: testValue,
+    });
+
+    expect(result.providerMetadata).toStrictEqual(providerMetadata);
+  });
+});
+
 describe('options.headers', () => {
   it('should set headers', async () => {
     const result = await embed({

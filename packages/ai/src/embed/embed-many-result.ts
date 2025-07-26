@@ -1,5 +1,6 @@
 import { Embedding } from '../types';
 import { EmbeddingModelUsage } from '../types/usage';
+import { ProviderMetadata } from '../types';
 
 /**
 The result of a `embedMany` call.
@@ -20,6 +21,11 @@ export interface EmbedManyResult<VALUE> {
   The embedding token usage.
     */
   readonly usage: EmbeddingModelUsage;
+
+  /**
+  Optional provider-specific metadata.
+     */
+  readonly providerMetadata?: ProviderMetadata;
 
   /**
   Optional raw response data.

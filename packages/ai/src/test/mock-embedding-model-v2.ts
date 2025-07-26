@@ -43,9 +43,12 @@ export function mockEmbed<VALUE>(
   response: Awaited<
     ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
   >['response'] = { headers: {}, body: {} },
+  providerMetadata?: Awaited<
+    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+  >['providerMetadata'],
 ): EmbeddingModelV2<VALUE>['doEmbed'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);
-    return { embeddings, usage, response };
+    return { embeddings, usage, response, providerMetadata };
   };
 }
