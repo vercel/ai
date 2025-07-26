@@ -83,6 +83,7 @@ async function main() {
     '@portkey-ai/vercel-provider',
     'workers-ai-provider',
     '@openrouter/ai-sdk-provider',
+    '@aihubmix/ai-sdk-provider',
   ];
   const results: Array<{
     package: string;
