@@ -195,8 +195,8 @@ describe('rerankingModel', () => {
       fallbackProvider: mockFallbackProvider,
     });
 
-    expect(provider.textEmbeddingModel('test-model')).toBe(mockEmbeddingModel);
-    expect(mockFallbackProvider.textEmbeddingModel).toHaveBeenCalledWith(
+    expect(provider.rerankingModel('test-model')).toBe(mockRerankingModel);
+    expect(mockFallbackProvider.rerankingModel).toHaveBeenCalledWith(
       'test-model',
     );
   });
@@ -204,7 +204,7 @@ describe('rerankingModel', () => {
   it('should throw NoSuchModelError if model not found and no fallback', () => {
     const provider = customProvider({});
 
-    expect(() => provider.textEmbeddingModel('test-model')).toThrow(
+    expect(() => provider.rerankingModel('test-model')).toThrow(
       NoSuchModelError,
     );
   });
