@@ -595,7 +595,7 @@ async function executeTools<TOOLS extends ToolSet>({
         tracer,
         fn: async span => {
           try {
-            const result = await tool.execute!(input, {
+            const output = await tool.execute!(input, {
               toolCallId,
               messages,
               abortSignal,
@@ -606,8 +606,8 @@ async function executeTools<TOOLS extends ToolSet>({
                 selectTelemetryAttributes({
                   telemetry,
                   attributes: {
-                    'ai.toolCall.result': {
-                      output: () => JSON.stringify(result),
+                    'ai.toolCall.output': {
+                      output: () => JSON.stringify(output),
                     },
                   },
                 }),
@@ -624,7 +624,7 @@ async function executeTools<TOOLS extends ToolSet>({
               toolCallId,
               toolName,
               input,
-              output: result,
+              output,
             } as ToolResultUnion<TOOLS>;
           } catch (error) {
             recordErrorOnSpan(span, error);
