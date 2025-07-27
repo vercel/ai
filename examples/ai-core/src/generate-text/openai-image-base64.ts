@@ -6,7 +6,7 @@ import fs from 'node:fs';
 async function main() {
   const result = await generateText({
     model: openai('gpt-4-turbo'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     messages: [
       {
         role: 'user',

@@ -1,9 +1,8 @@
 import {
-  JSONValue,
-  RequestOptions,
+  CompletionRequestOptions,
   UseCompletionOptions,
   callCompletionApi,
-} from '@ai-sdk/ui-utils';
+} from 'ai';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { throttle } from './throttle';
@@ -18,7 +17,7 @@ export type UseCompletionHelpers = {
    */
   complete: (
     prompt: string,
-    options?: RequestOptions,
+    options?: CompletionRequestOptions,
   ) => Promise<string | null | undefined>;
   /** The error object of the API request */
   error: undefined | Error;
@@ -60,8 +59,6 @@ export type UseCompletionHelpers = {
 
   /** Whether the API request is in progress */
   isLoading: boolean;
-  /** Additional data added on the server via StreamData */
-  data?: JSONValue[];
 };
 
 export function useCompletion({
@@ -74,7 +71,6 @@ export function useCompletion({
   body,
   streamProtocol = 'data',
   fetch,
-  onResponse,
   onFinish,
   onError,
   experimental_throttle: throttleWaitMs,
@@ -99,10 +95,6 @@ export function useCompletion({
     null,
   );
 
-  const { data: streamData, mutate: mutateStreamData } = useSWR<
-    JSONValue[] | undefined
-  >([completionId, 'streamData'], null);
-
   const [error, setError] = useState<undefined | Error>(undefined);
   const completion = data!;
 
@@ -125,7 +117,7 @@ export function useCompletion({
   }, [credentials, headers, body]);
 
   const triggerRequest = useCallback(
-    async (prompt: string, options?: RequestOptions) =>
+    async (prompt: string, options?: CompletionRequestOptions) =>
       callCompletionApi({
         api,
         prompt,
@@ -142,15 +134,9 @@ export function useCompletion({
           (completion: string) => mutate(completion, false),
           throttleWaitMs,
         ),
-        onData: throttle(
-          (data: JSONValue[]) =>
-            mutateStreamData([...(streamData ?? []), ...(data ?? [])], false),
-          throttleWaitMs,
-        ),
         setLoading: mutateLoading,
         setError,
         setAbortController,
-        onResponse,
         onFinish,
         onError,
       }),
@@ -160,14 +146,11 @@ export function useCompletion({
       api,
       extraMetadataRef,
       setAbortController,
-      onResponse,
       onFinish,
       onError,
       setError,
-      streamData,
       streamProtocol,
       fetch,
-      mutateStreamData,
       throttleWaitMs,
     ],
   );
@@ -221,6 +204,5 @@ export function useCompletion({
     handleInputChange,
     handleSubmit,
     isLoading,
-    data: streamData,
   };
 }

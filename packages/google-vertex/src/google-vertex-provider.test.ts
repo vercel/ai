@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createVertex } from './google-vertex-provider';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
+import { GoogleVertexImageModel } from './google-vertex-image-model';
 
 // Mock the imported modules
 vi.mock('@ai-sdk/provider-utils', () => ({
@@ -36,7 +37,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'test-model-id',
-      {},
       expect.objectContaining({
         provider: 'google.vertex.chat',
         baseURL:
@@ -64,7 +64,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
       'test-embedding-model',
-      {},
       expect.objectContaining({
         provider: 'google.vertex.embedding',
         headers: expect.any(Object),
@@ -85,7 +84,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       expect.anything(),
-      expect.anything(),
       expect.objectContaining({
         headers: customHeaders,
       }),
@@ -103,7 +101,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       expect.anything(),
-      expect.anything(),
       expect.objectContaining({
         generateId: customGenerateId,
       }),
@@ -115,11 +112,10 @@ describe('google-vertex-provider', () => {
       project: 'test-project',
       location: 'test-location',
     });
-    provider.languageModel('test-model-id', { structuredOutputs: true });
+    provider.languageModel('test-model-id');
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'test-model-id',
-      { structuredOutputs: true },
       expect.any(Object),
     );
   });
@@ -135,9 +131,100 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'test-model-id',
-      {},
       expect.objectContaining({
         baseURL: customBaseURL,
+      }),
+    );
+  });
+
+  it('should create an image model with default settings', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider.image('imagen-3.0-generate-002');
+
+    expect(GoogleVertexImageModel).toHaveBeenCalledWith(
+      'imagen-3.0-generate-002',
+      expect.objectContaining({
+        provider: 'google.vertex.image',
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
+        headers: expect.any(Object),
+      }),
+    );
+  });
+
+  it('should use correct URL for global region', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'global',
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        provider: 'google.vertex.chat',
+        baseURL:
+          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
+        headers: expect.any(Object),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should use correct URL for global region with embedding model', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'global',
+    });
+    provider.textEmbeddingModel('test-embedding-model');
+
+    expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
+      'test-embedding-model',
+      expect.objectContaining({
+        provider: 'google.vertex.embedding',
+        headers: expect.any(Object),
+        baseURL:
+          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
+      }),
+    );
+  });
+
+  it('should use correct URL for global region with image model', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'global',
+    });
+    provider.image('imagen-3.0-generate-002');
+
+    expect(GoogleVertexImageModel).toHaveBeenCalledWith(
+      'imagen-3.0-generate-002',
+      expect.objectContaining({
+        provider: 'google.vertex.image',
+        baseURL:
+          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
+        headers: expect.any(Object),
+      }),
+    );
+  });
+
+  it('should use region-prefixed URL for non-global regions', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'us-central1',
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        provider: 'google.vertex.chat',
+        baseURL:
+          'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google',
+        headers: expect.any(Object),
+        generateId: expect.any(Function),
       }),
     );
   });

@@ -1,7 +1,6 @@
 # AI SDK: Vue.js provider
 
-[Vue.js](https://vuejs.org/) UI components for the [AI SDK](https://sdk.vercel.ai/docs):
+[Vue.js](https://vuejs.org/) UI components for the [AI SDK](https://ai-sdk.dev/docs):
 
-- [`useChat`](https://sdk.vercel.ai/docs/reference/ai-sdk-ui/use-chat) composable
-- [`useCompletion`](https://sdk.vercel.ai/docs/reference/ai-sdk-ui/use-completion) composable
-- [`useAssistant`](https://sdk.vercel.ai/docs/reference/ai-sdk-ui/use-assistant) composable
+- [`useChat`](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat) composable
+- [`useCompletion`](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-completion) composable

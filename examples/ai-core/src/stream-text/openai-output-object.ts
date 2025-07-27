@@ -1,15 +1,15 @@
 import { openai } from '@ai-sdk/openai';
-import { Output, streamText, tool } from 'ai';
+import { stepCountIs, Output, streamText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const { experimental_partialOutputStream: partialOutputStream } = streamText({
-    model: openai('gpt-4o-mini', { structuredOutputs: true }),
+    model: openai('gpt-4o-mini'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         // location below is inferred to be a string:
@@ -30,7 +30,7 @@ async function main() {
         ),
       }),
     }),
-    maxSteps: 2,
+    stopWhen: stepCountIs(2),
     prompt:
       'What is the weather and the main tourist attraction in San Francisco, London Paris, and Berlin?',
   });

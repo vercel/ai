@@ -1,5 +1,741 @@
 # @ai-sdk/google
 
+## 2.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [ac34802]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- 75f03b1: Add Gemini 2.5 Flash Lite GA
+
+## 2.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [57edfcb]
+- Updated dependencies [383cbfa]
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+
+## 2.0.0-beta.12
+
+### Patch Changes
+
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+
+## 2.0.0-beta.11
+
+### Patch Changes
+
+- 6a16dcf: embed() now uses the single embeddings endpoint
+  No code updates are needed.
+
+  This is to make sure that users are not ratelimited when using the batch endpoint, since many models have different limits for batch and single embeddings.
+
+  Eg: Google has a limit of 150 RPM for batch requests, and 1500 RPM for single requests.
+
+  Before, AI SDK would always use the batch endpoint, even for embed() calls, which led to ratelimits.
+
+  This does not have any breaking functionality and is fully tested :)
+  if (values.length > 1) {
+  const batchResult = await this.doEmbedBatch({
+  values,
+  options,
+  });
+  return batchResult;
+  }
+
+## 2.0.0-beta.10
+
+### Patch Changes
+
+- 7badba2: fix(google): grounding streaming sources
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+
+## 2.0.0-beta.9
+
+### Patch Changes
+
+- 8af9e03: Added Image Models to the Google Provider for Imagen 3 Support
+
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- 2e06f14: feat (provider/google): Change to provider defined tools
+
+  - Change the google search tool to be a provider defined tool
+  - Added new URL context tool as a provider defined tool
+
+## 2.0.0-beta.7
+
+### Patch Changes
+
+- 19a4336: Expose raw usageMetadata returned from Google Generative AI in providerMetadata
+
+## 2.0.0-beta.6
+
+### Patch Changes
+
+- 878bf45: removes (unsupported) `additionalProperties` from the Schema sent in the request payloads to Google APIs
+
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- 42fcd32: feat(google): automatically handle system instructions for Gemma models
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- c68931f: Support tool schemas that allow additional properties (e.g `z.record(z.string())`)
+- 8e6b69d: feat(providers/google): Add support for Gemini 2.5 Pro and Gemini 2.5 Flash (now stable)
+
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- cb787ac: fix: remove non-functional models
+- d1a034f: feature: using Zod 4 for internal stuff
+- Updated dependencies [0571b98]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- a313780: fix: omit system message for gemma models
+
+## 2.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [742b7be]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [e025824]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [7435eb5]
+- Updated dependencies [cb68df0]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [44f4aba]
+- Updated dependencies [023ba40]
+- Updated dependencies [5e57fae]
+- Updated dependencies [71f938d]
+- Updated dependencies [28a5ed5]
+  - @ai-sdk/provider@2.0.0-beta.1
+  - @ai-sdk/provider-utils@3.0.0-beta.1
+
+## 2.0.0-alpha.15
+
+### Patch Changes
+
+- Updated dependencies [48d257a]
+- Updated dependencies [8ba77a7]
+  - @ai-sdk/provider@2.0.0-alpha.15
+  - @ai-sdk/provider-utils@3.0.0-alpha.15
+
+## 2.0.0-alpha.14
+
+### Patch Changes
+
+- Updated dependencies [b5da06a]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [2e13791]
+  - @ai-sdk/provider@2.0.0-alpha.14
+  - @ai-sdk/provider-utils@3.0.0-alpha.14
+
+## 2.0.0-alpha.13
+
+### Patch Changes
+
+- Updated dependencies [68ecf2f]
+  - @ai-sdk/provider@2.0.0-alpha.13
+  - @ai-sdk/provider-utils@3.0.0-alpha.13
+
+## 2.0.0-alpha.12
+
+### Patch Changes
+
+- e2aceaf: feat: add raw chunk support
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/provider@2.0.0-alpha.12
+  - @ai-sdk/provider-utils@3.0.0-alpha.12
+
+## 2.0.0-alpha.11
+
+### Patch Changes
+
+- Updated dependencies [c1e6647]
+  - @ai-sdk/provider@2.0.0-alpha.11
+  - @ai-sdk/provider-utils@3.0.0-alpha.11
+
+## 2.0.0-alpha.10
+
+### Patch Changes
+
+- 581a9be: fix (provider/google): prevent error when thinking signature is used
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 2.0.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies [811dff3]
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
+## 2.0.0-alpha.8
+
+### Patch Changes
+
+- 1a635b5: update supportedUrls to only support native URL
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+
+## 2.0.0-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [5c56081]
+  - @ai-sdk/provider@2.0.0-alpha.7
+  - @ai-sdk/provider-utils@3.0.0-alpha.7
+
+## 2.0.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [0d2c085]
+  - @ai-sdk/provider@2.0.0-alpha.6
+  - @ai-sdk/provider-utils@3.0.0-alpha.6
+
+## 2.0.0-alpha.4
+
+### Patch Changes
+
+- Updated dependencies [dc714f3]
+  - @ai-sdk/provider@2.0.0-alpha.4
+  - @ai-sdk/provider-utils@3.0.0-alpha.4
+
+## 2.0.0-alpha.3
+
+### Patch Changes
+
+- Updated dependencies [6b98118]
+  - @ai-sdk/provider@2.0.0-alpha.3
+  - @ai-sdk/provider-utils@3.0.0-alpha.3
+
+## 2.0.0-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [26535e0]
+  - @ai-sdk/provider@2.0.0-alpha.2
+  - @ai-sdk/provider-utils@3.0.0-alpha.2
+
+## 2.0.0-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [3f2f00c]
+  - @ai-sdk/provider@2.0.0-alpha.1
+  - @ai-sdk/provider-utils@3.0.0-alpha.1
+
+## 2.0.0-canary.20
+
+### Patch Changes
+
+- Updated dependencies [faf8446]
+  - @ai-sdk/provider-utils@3.0.0-canary.19
+
+## 2.0.0-canary.19
+
+### Patch Changes
+
+- Updated dependencies [40acf9b]
+  - @ai-sdk/provider-utils@3.0.0-canary.18
+
+## 2.0.0-canary.18
+
+### Patch Changes
+
+- f07a6d4: fix(providers/google): accept nullish in safetyRatings
+- Updated dependencies [ea7a7c9]
+  - @ai-sdk/provider-utils@3.0.0-canary.17
+
+## 2.0.0-canary.17
+
+### Patch Changes
+
+- Updated dependencies [87b828f]
+  - @ai-sdk/provider-utils@3.0.0-canary.16
+
+## 2.0.0-canary.16
+
+### Patch Changes
+
+- Updated dependencies [a571d6e]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [7979f7f]
+- Updated dependencies [41fa418]
+  - @ai-sdk/provider-utils@3.0.0-canary.15
+  - @ai-sdk/provider@2.0.0-canary.14
+
+## 2.0.0-canary.15
+
+### Patch Changes
+
+- Updated dependencies [957b739]
+- Updated dependencies [9bd5ab5]
+  - @ai-sdk/provider-utils@3.0.0-canary.14
+  - @ai-sdk/provider@2.0.0-canary.13
+
+## 2.0.0-canary.14
+
+### Patch Changes
+
+- f916255: feat (provider/google): add new gemini models
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [0ff02bb]
+  - @ai-sdk/provider@2.0.0-canary.12
+  - @ai-sdk/provider-utils@3.0.0-canary.13
+
+## 2.0.0-canary.13
+
+### Patch Changes
+
+- 7378473: chore(providers/google): switch to providerOptions
+- Updated dependencies [9bf7291]
+- Updated dependencies [4617fab]
+- Updated dependencies [e030615]
+  - @ai-sdk/provider@2.0.0-canary.11
+  - @ai-sdk/provider-utils@3.0.0-canary.12
+
+## 2.0.0-canary.12
+
+### Patch Changes
+
+- 888b750: feat(providers/google): Add taskType support for Text Embedding Models
+- 66962ed: fix(packages): export node10 compatible types
+- Updated dependencies [66962ed]
+- Updated dependencies [9301f86]
+- Updated dependencies [a3f768e]
+  - @ai-sdk/provider-utils@3.0.0-canary.11
+  - @ai-sdk/provider@2.0.0-canary.10
+
+## 2.0.0-canary.11
+
+### Patch Changes
+
+- Updated dependencies [e86be6f]
+  - @ai-sdk/provider@2.0.0-canary.9
+  - @ai-sdk/provider-utils@3.0.0-canary.10
+
+## 2.0.0-canary.10
+
+### Patch Changes
+
+- 3259565: feat (providers/google): add thinking config to provider options
+- fd98925: chore(providers/google): update embedding model to use providerOptions
+- Updated dependencies [95857aa]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
+## 2.0.0-canary.9
+
+### Patch Changes
+
+- Updated dependencies [5d142ab]
+- Updated dependencies [b6b43c7]
+- Updated dependencies [8aa9e20]
+- Updated dependencies [3795467]
+  - @ai-sdk/provider-utils@3.0.0-canary.8
+  - @ai-sdk/provider@2.0.0-canary.7
+
+## 2.0.0-canary.8
+
+### Patch Changes
+
+- 26735b5: chore(embedding-model): add v2 interface
+- 443d8ec: feat(embedding-model-v2): add response body field
+- fd65bc6: chore(embedding-model-v2): rename rawResponse to response
+- Updated dependencies [26735b5]
+- Updated dependencies [443d8ec]
+- Updated dependencies [14c9410]
+- Updated dependencies [d9c98f4]
+- Updated dependencies [c4a2fec]
+- Updated dependencies [0054544]
+- Updated dependencies [9e9c809]
+- Updated dependencies [32831c6]
+- Updated dependencies [d0f9495]
+- Updated dependencies [fd65bc6]
+- Updated dependencies [393138b]
+- Updated dependencies [7182d14]
+  - @ai-sdk/provider@2.0.0-canary.6
+  - @ai-sdk/provider-utils@3.0.0-canary.7
+
+## 2.0.0-canary.7
+
+### Patch Changes
+
+- f10304b: feat(tool-calling): don't require the user to have to pass parameters
+- Updated dependencies [411e483]
+- Updated dependencies [79457bd]
+- Updated dependencies [ad80501]
+- Updated dependencies [1766ede]
+- Updated dependencies [f10304b]
+  - @ai-sdk/provider@2.0.0-canary.5
+  - @ai-sdk/provider-utils@3.0.0-canary.6
+
+## 2.0.0-canary.6
+
+### Patch Changes
+
+- Updated dependencies [6f6bb89]
+  - @ai-sdk/provider@2.0.0-canary.4
+  - @ai-sdk/provider-utils@3.0.0-canary.5
+
+## 2.0.0-canary.5
+
+### Patch Changes
+
+- Updated dependencies [d1a1aa1]
+  - @ai-sdk/provider@2.0.0-canary.3
+  - @ai-sdk/provider-utils@3.0.0-canary.4
+
+## 2.0.0-canary.4
+
+### Patch Changes
+
+- Updated dependencies [a166433]
+- Updated dependencies [abf9a79]
+- Updated dependencies [9f95b35]
+- Updated dependencies [0a87932]
+- Updated dependencies [6dc848c]
+  - @ai-sdk/provider-utils@3.0.0-canary.3
+  - @ai-sdk/provider@2.0.0-canary.2
+
+## 2.0.0-canary.3
+
+### Patch Changes
+
+- Updated dependencies [c57e248]
+- Updated dependencies [33f4a6a]
+  - @ai-sdk/provider@2.0.0-canary.1
+  - @ai-sdk/provider-utils@3.0.0-canary.2
+
+## 2.0.0-canary.2
+
+### Patch Changes
+
+- 5cf30ea: fix (provider/google): allow "OFF" for Google HarmBlockThreshold
+
+## 2.0.0-canary.1
+
+### Patch Changes
+
+- 779d916: feat: add provider option schemas for vertex imagegen and google genai
+- Updated dependencies [060370c]
+- Updated dependencies [0c0c0b3]
+- Updated dependencies [63d791d]
+  - @ai-sdk/provider-utils@3.0.0-canary.1
+
+## 2.0.0-canary.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- Updated dependencies [d5f588f]
+  - @ai-sdk/provider-utils@3.0.0-canary.0
+  - @ai-sdk/provider@2.0.0-canary.0
+
+## 1.2.5
+
+### Patch Changes
+
+- Updated dependencies [28be004]
+  - @ai-sdk/provider-utils@2.2.3
+
+## 1.2.4
+
+### Patch Changes
+
+- Updated dependencies [b01120e]
+  - @ai-sdk/provider-utils@2.2.2
+
+## 1.2.3
+
+### Patch Changes
+
+- 871df87: feat (provider/google): add gemini-2.5-pro-exp-03-25 to model list
+
+## 1.2.2
+
+### Patch Changes
+
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+
+## 1.2.1
+
+### Patch Changes
+
+- 994a13b: feat (provider/google): support IMAGE_SAFETY finish reason
+
+## 1.2.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/provider@1.1.0
+  - @ai-sdk/provider-utils@2.2.0
+
+## 1.1.27
+
+### Patch Changes
+
+- d0c4659: feat (provider-utils): parseProviderOptions function
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+
+## 1.1.26
+
+### Patch Changes
+
+- 0bd5bc6: feat (ai): support model-generated files
+- Updated dependencies [0bd5bc6]
+  - @ai-sdk/provider@1.0.12
+  - @ai-sdk/provider-utils@2.1.14
+
+## 1.1.25
+
+### Patch Changes
+
+- Updated dependencies [2e1101a]
+  - @ai-sdk/provider@1.0.11
+  - @ai-sdk/provider-utils@2.1.13
+
+## 1.1.24
+
+### Patch Changes
+
+- 5261762: fix (provider/google): ensure correct finishReason for tool calls in streaming response
+
+## 1.1.23
+
+### Patch Changes
+
+- 413f5a7: feat (providers/google): add gemma 3 model id
+
+## 1.1.22
+
+### Patch Changes
+
+- 62f46fd: feat (provider/google): add support for dynamic retrieval
+
+## 1.1.21
+
+### Patch Changes
+
+- Updated dependencies [1531959]
+  - @ai-sdk/provider-utils@2.1.12
+
+## 1.1.20
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+  - @ai-sdk/provider-utils@2.1.11
+
+## 1.1.19
+
+### Patch Changes
+
+- 2c27583: fix (provider/google): support empty content in malformed function call responses
+
+## 1.1.18
+
+### Patch Changes
+
+- 5c8f512: feat (provider/google): add seed support
+
+## 1.1.17
+
+### Patch Changes
+
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/provider-utils@2.1.10
+
+## 1.1.16
+
+### Patch Changes
+
+- 1b2e2a0: fix (provider/google): add resilience against undefined parts
+
+## 1.1.15
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+
+## 1.1.14
+
+### Patch Changes
+
+- 08a3641: fix (provider/google): support nullable enums in schema
+
+## 1.1.13
+
+### Patch Changes
+
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+
+## 1.1.12
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+
+## 1.1.11
+
+### Patch Changes
+
+- 6eb7fc4: feat (ai/core): url source support
+
+## 1.1.10
+
+### Patch Changes
+
+- e5567f7: feat (provider/google): update model ids
+
+## 1.1.9
+
+### Patch Changes
+
+- b2573de: fix (provider/google): remove reasoning text following removal from Gemini API
+
+## 1.1.8
+
+### Patch Changes
+
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+
+## 1.1.7
+
+### Patch Changes
+
+- d399f25: feat (provider/google-vertex): support public file urls in messages
+
+## 1.1.6
+
+### Patch Changes
+
+- e012cd8: feat (provider/google): add reasoning support
+
+## 1.1.5
+
+### Patch Changes
+
+- Updated dependencies [3a602ca]
+  - @ai-sdk/provider-utils@2.1.5
+
+## 1.1.4
+
+### Patch Changes
+
+- Updated dependencies [066206e]
+  - @ai-sdk/provider-utils@2.1.4
+
+## 1.1.3
+
+### Patch Changes
+
+- Updated dependencies [39e5c1f]
+  - @ai-sdk/provider-utils@2.1.3
+
+## 1.1.2
+
+### Patch Changes
+
+- Updated dependencies [ed012d2]
+- Updated dependencies [3a58a2e]
+  - @ai-sdk/provider-utils@2.1.2
+  - @ai-sdk/provider@1.0.6
+
+## 1.1.1
+
+### Patch Changes
+
+- Updated dependencies [e7a9ec9]
+- Updated dependencies [0a699f1]
+  - @ai-sdk/provider-utils@2.1.1
+  - @ai-sdk/provider@1.0.5
+
+## 1.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+### Patch Changes
+
+- Updated dependencies [62ba5ad]
+  - @ai-sdk/provider-utils@2.1.0
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [00114c5]
+  - @ai-sdk/provider-utils@2.0.8
+
+## 1.0.16
+
+### Patch Changes
+
+- 4eb9b41: fix (provider/google): support conversion of string enums to openapi spec
+
+## 1.0.15
+
+### Patch Changes
+
+- 7611964: feat (provider/xai): Support structured output for latest models.
+
 ## 1.0.14
 
 ### Patch Changes

@@ -19,7 +19,7 @@ A helper function to create a streamable UI from LLM providers. This function is
 
 ## Import
 
-<Snippet text={`import { render } from "ai/rsc"`} prompt={false} />
+<Snippet text={`import { render } from "@ai-sdk/rsc"`} prompt={false} />
 
 ## API Signature
 
@@ -162,7 +162,7 @@ A helper function to create a streamable UI from LLM providers. This function is
     },
     {
       name: 'functions',
-      type: 'Record<string, Tool>',
+      type: 'ToolSet',
       isOptional: true,
       description:
         'Tools that are accessible to and can be called by the model.',
@@ -196,7 +196,7 @@ A helper function to create a streamable UI from LLM providers. This function is
     },
     {
       name: 'tools',
-      type: 'Record<string, Tool>',
+      type: 'ToolSet',
       isOptional: true,
       description:
         'Tools that are accessible to and can be called by the model.',

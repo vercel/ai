@@ -1,17 +1,17 @@
 import { openai } from '@ai-sdk/openai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
-import { streamText, tool } from 'ai';
-import { z } from 'zod';
+import { stepCountIs, streamText, tool } from 'ai';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamText({
     model: openai('gpt-4-turbo'),
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',
-        parameters: z.object({}),
+        inputSchema: z.object({}),
         execute: async () => {
           const locations = ['New York', 'London', 'Paris'];
           return {
@@ -27,25 +27,25 @@ async function main() {
   for await (const chunk of result.fullStream) {
     switch (chunk.type) {
       case 'text-delta': {
-        process.stdout.write(chunk.textDelta);
+        process.stdout.write(chunk.text);
         break;
       }
 
       case 'tool-call': {
         console.log(
-          `TOOL CALL ${chunk.toolName} ${JSON.stringify(chunk.args)}`,
+          `TOOL CALL ${chunk.toolName} ${JSON.stringify(chunk.input)}`,
         );
         break;
       }
 
       case 'tool-result': {
         console.log(
-          `TOOL RESULT ${chunk.toolName} ${JSON.stringify(chunk.result)}`,
+          `TOOL RESULT ${chunk.toolName} ${JSON.stringify(chunk.output)}`,
         );
         break;
       }
 
-      case 'step-finish': {
+      case 'finish-step': {
         console.log();
         console.log();
         console.log('STEP FINISH');
@@ -58,7 +58,7 @@ async function main() {
       case 'finish': {
         console.log('FINISH');
         console.log('Finish reason:', chunk.finishReason);
-        console.log('Usage:', chunk.usage);
+        console.log('Total Usage:', chunk.totalUsage);
         break;
       }
 

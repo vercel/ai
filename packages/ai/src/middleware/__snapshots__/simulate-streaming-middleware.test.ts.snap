@@ -1,0 +1,43 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
+[
+  {
+    "type": "start",
+  },
+  {
+    "request": {},
+    "type": "start-step",
+    "warnings": [],
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "id-6",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "finish-step",
+    "usage": {
+      "cachedInputTokens": undefined,
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "reasoningTokens": 3,
+      "totalTokens": 18,
+    },
+  },
+  {
+    "finishReason": "stop",
+    "totalUsage": {
+      "cachedInputTokens": undefined,
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "reasoningTokens": 3,
+      "totalTokens": 18,
+    },
+    "type": "finish",
+  },
+]
+`;

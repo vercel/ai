@@ -1,9 +1,9 @@
 'use client';
 
-import { useCompletion } from 'ai/react';
+import { useCompletion } from '@ai-sdk/react';
 
 export default function Chat() {
-  const { completion, input, handleInputChange, handleSubmit, error, data } =
+  const { completion, input, handleInputChange, handleSubmit, error } =
     useCompletion({
       api: '/api/use-completion-server-side-multi-step',
     });
@@ -13,11 +13,6 @@ export default function Chat() {
       <h4 className="pb-4 text-xl font-bold text-gray-900 md:text-xl">
         useCompletion Example
       </h4>
-      {data && (
-        <pre className="p-4 text-sm bg-gray-100">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      )}
       {error && (
         <div className="fixed top-0 left-0 w-full p-4 text-center text-white bg-red-500">
           {error.message}

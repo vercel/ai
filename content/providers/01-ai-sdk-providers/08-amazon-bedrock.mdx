@@ -5,7 +5,7 @@ description: Learn how to use the Amazon Bedrock provider.
 
 # Amazon Bedrock Provider
 
-The Amazon Bedrock provider for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Amazon Bedrock](https://aws.amazon.com/bedrock) APIs.
+The Amazon Bedrock provider for the [AI SDK](/docs) contains language model support for the [Amazon Bedrock](https://aws.amazon.com/bedrock) APIs.
 
 ## Setup
 
@@ -30,6 +30,8 @@ Access to Amazon Bedrock foundation models isn't granted by default. In order to
 See the [Model Access Docs](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html) for more information.
 
 ### Authentication
+
+#### Using IAM Access Key and Secret Key
 
 **Step 1: Creating AWS Access Key and Secret Key**
 
@@ -71,6 +73,36 @@ AWS_REGION=YOUR_REGION
 
 Remember to replace `YOUR_ACCESS_KEY_ID`, `YOUR_SECRET_ACCESS_KEY`, and `YOUR_REGION` with the actual values from your AWS account.
 
+#### Using AWS SDK Credentials Chain (instance profiles, instance roles, ECS roles, EKS Service Accounts, etc.)
+
+When using AWS SDK, the SDK will automatically use the credentials chain to determine the credentials to use. This includes instance profiles, instance roles, ECS roles, EKS Service Accounts, etc. A similar behavior is possible using the AI SDK by not specifying the `accessKeyId` and `secretAccessKey`, `sessionToken` properties in the provider settings and instead passing a `credentialProvider` property.
+
+_Usage:_
+
+`@aws-sdk/credential-providers` package provides a set of credential providers that can be used to create a credential provider chain.
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @aws-sdk/credential-providers" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @aws-sdk/credential-providers" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @aws-sdk/credential-providers" dark />
+  </Tab>
+</Tabs>
+
+```ts
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+
+const bedrock = createAmazonBedrock({
+  region: 'us-east-1',
+  credentialProvider: fromNodeProviderChain(),
+});
+```
+
 ## Provider Instance
 
 You can import the default provider instance `bedrock` from `@ai-sdk/amazon-bedrock`:
@@ -90,26 +122,15 @@ const bedrock = createAmazonBedrock({
   secretAccessKey: 'xxxxxxxxx',
   sessionToken: 'xxxxxxxxx',
 });
-
-// or with bedrockOptions
-const bedrock = createAmazonBedrock({
-  bedrockOptions: {
-    region: 'us-east-1',
-    credentials: {
-      // ...
-    },
-  },
-});
 ```
 
 <Note>
-  The top level credentials settings below fall back to environment variable
-  defaults. These may be set by your serverless environment without your
-  awareness, which can lead to merged/conflicting credential values and provider
-  errors around failed authentication. If you're experiencing issues try (1)
-  using the `bedrockOptions` object as it will take precedence over the other
-  settings and does not inherit environment variable values, or (2) explicitly
-  specifying all settings (even if `undefined`) to avoid any defaults.
+  The credentials settings fall back to environment variable defaults described
+  below. These may be set by your serverless environment without your awareness,
+  which can lead to merged/conflicting credential values and provider errors
+  around failed authentication. If you're experiencing issues be sure you are
+  explicitly specifying all settings (even if `undefined`) to avoid any
+  defaults.
 </Note>
 
 You can use the following optional settings to customize the Amazon Bedrock provider instance:
@@ -134,18 +155,10 @@ You can use the following optional settings to customize the Amazon Bedrock prov
   Optional. The AWS session token that you want to use for the API calls.
   It uses the `AWS_SESSION_TOKEN` environment variable by default.
 
-- **bedrockOptions** _object_
+- **credentialProvider** _() =&gt; Promise&lt;&#123; accessKeyId: string; secretAccessKey: string; sessionToken?: string; &#125;&gt;_
 
-  Optional. The configuration options used by the [Amazon Bedrock Library](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-client-bedrock-runtime/)
-  (`BedrockRuntimeClientConfig`), including:
-
-  - **region** _string_
-    The AWS region that you want to use for the API calls.
-
-  - **credentials** _object_
-    The AWS credentials that you want to use for the API calls.
-
-  When `bedrockOptions` are provided, the `region`, `accessKeyId`, and `secretAccessKey` settings are ignored.
+  Optional. The AWS credential provider chain that you want to use for the API calls.
+  It uses the specified credentials by default.
 
 ## Language Models
 
@@ -156,12 +169,19 @@ The first argument is the model id, e.g. `meta.llama3-70b-instruct-v1:0`.
 const model = bedrock('meta.llama3-70b-instruct-v1:0');
 ```
 
-Amazon Bedrock models also support some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
-You can pass them as an options argument:
+Amazon Bedrock models also support some model specific provider options that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
+You can pass them in the `providerOptions` argument:
 
 ```ts
-const model = bedrock('anthropic.claude-3-sonnet-20240229-v1:0', {
-  additionalModelRequestFields: { top_k: 350 },
+const model = bedrock('anthropic.claude-3-sonnet-20240229-v1:0');
+
+await generateText({
+  model,
+  providerOptions: {
+    anthropic: {
+      additionalModelRequestFields: { top_k: 350 },
+    },
+  },
 });
 ```
 
@@ -205,7 +225,7 @@ const result = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
         },
       ],
     },
@@ -215,12 +235,13 @@ const result = await generateText({
 
 ### Guardrails
 
-You can use the `bedrock` provider metadata to utilize [Amazon Bedrock Guardrails](https://aws.amazon.com/bedrock/guardrails/):
+You can use the `bedrock` provider options to utilize [Amazon Bedrock Guardrails](https://aws.amazon.com/bedrock/guardrails/):
 
 ```ts
 const result = await generateText({
-  bedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
-  experimental_providerMetadata: {
+  model: bedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
+  prompt: 'Write a story about space exploration.',
+  providerOptions: {
     bedrock: {
       guardrailConfig: {
         guardrailIdentifier: '1abcd2ef34gh',
@@ -236,12 +257,137 @@ const result = await generateText({
 Tracing information will be returned in the provider metadata if you have tracing enabled.
 
 ```ts
-if (result.experimental_providerMetadata?.bedrock.trace) {
+if (result.providerMetadata?.bedrock.trace) {
   // ...
 }
 ```
 
 See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html) for more information.
+
+### Cache Points
+
+<Note>
+  Amazon Bedrock prompt caching is currently in preview release. To request
+  access, visit the [Amazon Bedrock prompt caching
+  page](https://aws.amazon.com/bedrock/prompt-caching/).
+</Note>
+
+In messages, you can use the `providerOptions` property to set cache points. Set the `bedrock` property in the `providerOptions` object to `{ cachePoint: { type: 'default' } }` to create a cache point.
+
+Cache usage information is returned in the `providerMetadata` object`. See examples below.
+
+<Note>
+  Cache points have model-specific token minimums and limits. For example,
+  Claude 3.5 Sonnet v2 requires at least 1,024 tokens for a cache point and
+  allows up to 4 cache points. See the [Amazon Bedrock prompt caching
+  documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html)
+  for details on supported models, regions, and limits.
+</Note>
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const cyberpunkAnalysis =
+  '... literary analysis of cyberpunk themes and concepts ...';
+
+const result = await generateText({
+  model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  messages: [
+    {
+      role: 'system',
+      content: `You are an expert on William Gibson's cyberpunk literature and themes. You have access to the following academic analysis: ${cyberpunkAnalysis}`,
+      providerOptions: {
+        bedrock: { cachePoint: { type: 'default' } },
+      },
+    },
+    {
+      role: 'user',
+      content:
+        'What are the key cyberpunk themes that Gibson explores in Neuromancer?',
+    },
+  ],
+});
+
+console.log(result.text);
+console.log(result.providerMetadata?.bedrock?.usage);
+// Shows cache read/write token usage, e.g.:
+// {
+//   cacheReadInputTokens: 1337,
+//   cacheWriteInputTokens: 42,
+// }
+```
+
+Cache points also work with streaming responses:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { streamText } from 'ai';
+
+const cyberpunkAnalysis =
+  '... literary analysis of cyberpunk themes and concepts ...';
+
+const result = streamText({
+  model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  messages: [
+    {
+      role: 'assistant',
+      content: [
+        { type: 'text', text: 'You are an expert on cyberpunk literature.' },
+        { type: 'text', text: `Academic analysis: ${cyberpunkAnalysis}` },
+      ],
+      providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
+    },
+    {
+      role: 'user',
+      content:
+        'How does Gibson explore the relationship between humanity and technology?',
+    },
+  ],
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+console.log(
+  'Cache token usage:',
+  (await result.providerMetadata)?.bedrock?.usage,
+);
+// Shows cache read/write token usage, e.g.:
+// {
+//   cacheReadInputTokens: 1337,
+//   cacheWriteInputTokens: 42,
+// }
+```
+
+## Reasoning
+
+Amazon Bedrock has reasoning support for the `claude-3-7-sonnet-20250219` model.
+
+You can enable it using the `reasoningConfig` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const { text, reasoning, reasoningDetails } = await generateText({
+  model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    bedrock: {
+      reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
+    },
+  },
+});
+
+console.log(reasoning); // reasoning text
+console.log(reasoningDetails); // reasoning details including redacted reasoning
+console.log(text); // text response
+```
+
+See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
+on how to integrate reasoning into your chatbot.
 
 ### Model Capabilities
 
@@ -249,17 +395,23 @@ See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/be
 | ------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `amazon.titan-tg1-large`                    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `amazon.titan-text-express-v1`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `amazon.titan-text-lite-v1`                 | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `anthropic.claude-sonnet-4-20250514-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic.claude-opus-4-20250514-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic.claude-3-7-sonnet-20250219-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-5-sonnet-20241022-v2:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-5-sonnet-20240620-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic.claude-3-5-haiku-20241022-v1:0`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `anthropic.claude-3-5-haiku-20241022-v1:0`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `anthropic.claude-3-opus-20240229-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-sonnet-20240229-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-haiku-20240307-v1:0`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic.claude-v2`                       | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `anthropic.claude-v2:1`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `anthropic.claude-instant-v1`               | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `cohere.command-text-v14`                   | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `cohere.command-light-text-v14`             | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `cohere.command-r-v1:0`                     | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `cohere.command-r-plus-v1:0`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `meta.llama2-13b-chat-v1`                   | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `meta.llama2-70b-chat-v1`                   | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta.llama3-8b-instruct-v1:0`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta.llama3-70b-instruct-v1:0`             | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta.llama3-1-8b-instruct-v1:0`            | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
@@ -276,7 +428,7 @@ See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/be
 
 <Note>
   The table above lists popular models. Please see the [Amazon Bedrock
-  docs](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html#conversation-inference-supported-models-features)
+  docs](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference-supported-models-features.html)
   for a full list of available models. The table above lists popular models. You
   can also pass any available provider model ID as a string if needed.
 </Note>
@@ -284,23 +436,34 @@ See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/be
 ## Embedding Models
 
 You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html)
-using the `.embedding()` factory method.
+using the `.textEmbedding()` factory method.
 
 ```ts
-const model = bedrock.embedding('amazon.titan-embed-text-v1');
+const model = bedrock.textEmbedding('amazon.titan-embed-text-v1');
 ```
 
-Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several aditional settings.
+Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several additional settings.
 You can pass them as an options argument:
 
 ```ts
-const model = bedrock.embedding('amazon.titan-embed-text-v2:0', {
-  dimensions: 512 // optional, number of dimensions for the embedding
-  normalize: true // optional  normalize the output embeddings
-})
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { embed } from 'ai';
+
+const model = bedrock.textEmbedding('amazon.titan-embed-text-v2:0');
+
+const { embedding } = await embed({
+  model,
+  value: 'sunny day at the beach',
+  providerOptions: {
+    bedrock: {
+      dimensions: 512, // optional, number of dimensions for the embedding
+      normalize: true, // optional, normalize the output embeddings
+    },
+  },
+});
 ```
 
-The following optional settings are available for Bedrock Titan embedding models:
+The following optional provider options are available for Bedrock Titan embedding models:
 
 - **dimensions**: _number_
 
@@ -316,3 +479,192 @@ The following optional settings are available for Bedrock Titan embedding models
 | ------------------------------ | ------------------ | ------------------- |
 | `amazon.titan-embed-text-v1`   | 1536               | <Cross size={18} /> |
 | `amazon.titan-embed-text-v2:0` | 1024               | <Check size={18} /> |
+| `cohere.embed-english-v3`      | 1024               | <Cross size={18} /> |
+| `cohere.embed-multilingual-v3` | 1024               | <Cross size={18} /> |
+
+## Image Models
+
+You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/nova/latest/userguide/image-generation.html)
+using the `.image()` factory method.
+
+For more on the Amazon Nova Canvas image model, see the [Nova Canvas
+Overview](https://docs.aws.amazon.com/ai/responsible-ai/nova-canvas/overview.html).
+
+<Note>
+  The `amazon.nova-canvas-v1:0` model is available in the `us-east-1`,
+  `eu-west-1`, and `ap-northeast-1` regions.
+</Note>
+
+```ts
+const model = bedrock.image('amazon.nova-canvas-v1:0');
+```
+
+You can then generate images with the `experimental_generateImage` function:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: bedrock.image('amazon.nova-canvas-v1:0'),
+  prompt: 'A beautiful sunset over a calm ocean',
+  size: '512x512',
+  seed: 42,
+});
+```
+
+You can also pass the `providerOptions` object to the `generateImage` function to customize the generation behavior:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: bedrock.image('amazon.nova-canvas-v1:0'),
+  prompt: 'A beautiful sunset over a calm ocean',
+  size: '512x512',
+  seed: 42,
+  providerOptions: {
+    bedrock: {
+      quality: 'premium',
+      negativeText: 'blurry, low quality',
+      cfgScale: 7.5,
+      style: 'PHOTOREALISM',
+    },
+  },
+});
+```
+
+The following optional provider options are available for Amazon Nova Canvas:
+
+- **quality** _string_
+
+  The quality level for image generation. Accepts `'standard'` or `'premium'`.
+
+- **negativeText** _string_
+
+  Text describing what you don't want in the generated image.
+
+- **cfgScale** _number_
+
+  Controls how closely the generated image adheres to the prompt. Higher values result in images that are more closely aligned to the prompt.
+
+- **style** _string_
+
+  Predefined visual style for image generation.  
+  Accepts one of:
+  `3D_ANIMATED_FAMILY_FILM` · `DESIGN_SKETCH` · `FLAT_VECTOR_ILLUSTRATION` ·  
+  `GRAPHIC_NOVEL_ILLUSTRATION` · `MAXIMALISM` · `MIDCENTURY_RETRO` ·  
+  `PHOTOREALISM` · `SOFT_DIGITAL_PAINTING`.
+
+Documentation for additional settings can be found within the [Amazon Bedrock
+User Guide for Amazon Nova
+Documentation](https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html).
+
+### Image Model Settings
+
+You can customize the generation behavior with optional options:
+
+```ts
+await generateImage({
+  model: bedrock.image('amazon.nova-canvas-v1:0'),
+  prompt: 'A beautiful sunset over a calm ocean',
+  size: '512x512',
+  seed: 42,
+  maxImagesPerCall: 1, // Maximum number of images to generate per API call
+});
+```
+
+- **maxImagesPerCall** _number_
+
+  Override the maximum number of images generated per API call. Default can vary
+  by model, with 5 as a common default.
+
+### Model Capabilities
+
+The Amazon Nova Canvas model supports custom sizes with constraints as follows:
+
+- Each side must be between 320-4096 pixels, inclusive.
+- Each side must be evenly divisible by 16.
+- The aspect ratio must be between 1:4 and 4:1. That is, one side can't be more than 4 times longer than the other side.
+- The total pixel count must be less than 4,194,304.
+
+For more, see [Image generation access and
+usage](https://docs.aws.amazon.com/nova/latest/userguide/image-gen-access.html).
+
+| Model                     | Sizes                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `amazon.nova-canvas-v1:0` | Custom sizes: 320-4096px per side (must be divisible by 16), aspect ratio 1:4 to 4:1, max 4.2M pixels |
+
+## Response Headers
+
+The Amazon Bedrock provider will return the response headers associated with
+network requests made of the Bedrock servers.
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: bedrock('meta.llama3-70b-instruct-v1:0'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(result.response.headers);
+```
+
+Below is sample output where you can see the `x-amzn-requestid` header. This can
+be useful for correlating Bedrock API calls with requests made by the AI SDK:
+
+```js highlight="6"
+{
+  connection: 'keep-alive',
+  'content-length': '2399',
+  'content-type': 'application/json',
+  date: 'Fri, 07 Feb 2025 04:28:30 GMT',
+  'x-amzn-requestid': 'c9f3ace4-dd5d-49e5-9807-39aedfa47c8e'
+}
+```
+
+This information is also available with `streamText`:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: bedrock('meta.llama3-70b-instruct-v1:0'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+console.log('Response headers:', (await result.response).headers);
+```
+
+With sample output as:
+
+```js highlight="6"
+{
+  connection: 'keep-alive',
+  'content-type': 'application/vnd.amazon.eventstream',
+  date: 'Fri, 07 Feb 2025 04:33:37 GMT',
+  'transfer-encoding': 'chunked',
+  'x-amzn-requestid': 'a976e3fc-0e45-4241-9954-b9bdd80ab407'
+}
+```
+
+## Migrating to `@ai-sdk/amazon-bedrock` 2.x
+
+The Amazon Bedrock provider was rewritten in version 2.x to remove the
+dependency on the `@aws-sdk/client-bedrock-runtime` package.
+
+The `bedrockOptions` provider setting previously available has been removed. If
+you were using the `bedrockOptions` object, you should now use the `region`,
+`accessKeyId`, `secretAccessKey`, and `sessionToken` settings directly instead.
+
+Note that you may need to set all of these explicitly, e.g. even if you're not
+using `sessionToken`, set it to `undefined`. If you're running in a serverless
+environment, there may be default environment variables set by your containing
+environment that the Amazon Bedrock provider will then pick up and could
+conflict with the ones you're intending to use.

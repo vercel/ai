@@ -7,9 +7,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 async function main() {
   const result = await generateText({
-    model: anthropic('claude-3-5-sonnet-20240620', {
-      cacheControl: true,
-    }),
+    model: anthropic('claude-3-5-sonnet-20240620'),
     messages: [
       {
         role: 'user',
@@ -21,7 +19,7 @@ async function main() {
           {
             type: 'text',
             text: `Error message: ${errorMessage}`,
-            experimental_providerMetadata: {
+            providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
               },
@@ -37,8 +35,13 @@ async function main() {
   });
 
   console.log(result.text);
-  console.log(result.experimental_providerMetadata?.anthropic);
-  // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
+  console.log();
+
+  console.log('Cache read tokens:', result.usage.cachedInputTokens);
+  console.log(
+    'Cache write tokens:',
+    result.providerMetadata?.anthropic?.cacheCreationInputTokens,
+  );
 }
 
 main().catch(console.error);

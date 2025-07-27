@@ -1,24 +1,26 @@
 {
-  "name": "nuxt-openai",
+  "name": "@example/nuxt-openai",
   "private": true,
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "clean": "rm -rf .nuxt"
   },
   "dependencies": {
-    "@ai-sdk/vue": "1.0.9",
-    "@ai-sdk/openai": "1.0.16",
-    "ai": "4.0.31",
-    "zod": "3.23.8"
+    "@ai-sdk/vue": "workspace:*",
+    "@ai-sdk/openai": "workspace:*",
+    "ai": "workspace:*",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@nuxt/devtools": "1.6.3",
     "@nuxt/ui-templates": "1.3.4",
     "@nuxtjs/tailwindcss": "6.12.2",
-    "@types/node": "^18",
+    "@types/node": "20.17.24",
+    "@vercel/ai-tsconfig": "workspace:*",
     "@vue/reactivity": "3.5.13",
     "@vue/runtime-core": "3.5.12",
     "@vue/runtime-dom": "3.5.13",

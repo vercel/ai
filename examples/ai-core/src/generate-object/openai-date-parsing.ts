@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const {
@@ -19,7 +19,7 @@ async function main() {
         }),
       ),
     }),
-    prompt: 'List 5 important events from the the year 2000.',
+    prompt: 'List 5 important events from the year 2000.',
   });
 
   console.log(events);

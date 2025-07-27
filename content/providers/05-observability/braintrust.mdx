@@ -69,7 +69,6 @@ const model = wrapAISDKModel(openai.chat('gpt-3.5-turbo'));
 async function main() {
   // This will automatically log the request, response, and metrics to Braintrust
   const response = await model.doGenerate({
-    inputFormat: 'messages',
     mode: {
       type: 'regular',
     },

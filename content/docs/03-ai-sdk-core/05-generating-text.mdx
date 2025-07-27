@@ -23,7 +23,7 @@ You can generate text using the [`generateText`](/docs/reference/ai-sdk-core/gen
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -34,7 +34,7 @@ You can use more [advanced prompts](./prompts) to generate text with more comple
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   system:
     'You are a professional writer. ' +
     'You write simple, clear, and concise content.',
@@ -44,13 +44,45 @@ const { text } = await generateText({
 
 The result object of `generateText` contains several promises that resolve when all required data is available:
 
+- `result.content`: The content that was generated in the last step.
 - `result.text`: The generated text.
+- `result.reasoning`: The full reasoning that the model has generated in the last step.
+- `result.reasoningText`: The reasoning text of the model (only available for some models).
+- `result.files`: The files that were generated in the last step.
+- `result.sources`: Sources that have been used as references in the last step (only available for some models).
+- `result.toolCalls`: The tool calls that were made in the last step.
+- `result.toolResults`: The results of the tool calls from the last step.
 - `result.finishReason`: The reason the model finished generating text.
-- `result.usage`: The usage of the model during text generation.
+- `result.usage`: The usage of the model during the final step of text generation.
+- `result.totalUsage`: The total usage across all steps (for multi-step generations).
+- `result.warnings`: Warnings from the model provider (e.g. unsupported settings).
+- `result.request`: Additional request information.
+- `result.response`: Additional response information, including response messages and body.
+- `result.providerMetadata`: Additional provider-specific metadata.
+- `result.steps`: Details for all steps, useful for getting information about intermediate steps.
+- `result.experimental_output`: The generated structured output using the `experimental_output` specification.
+
+### Accessing response headers & body
+
+Sometimes you need access to the full response from the model provider,
+e.g. to access some provider-specific headers or body content.
+
+You can access the raw response headers and body using the `response` property:
+
+```ts
+import { generateText } from 'ai';
+
+const result = await generateText({
+  // ...
+});
+
+console.log(JSON.stringify(result.response.headers, null, 2));
+console.log(JSON.stringify(result.response.body, null, 2));
+```
 
 ## `streamText`
 
-Depending on your model and prompt, it can take a large language model (LLM) up to a minute to finish generating it's response. This delay can be unacceptable for interactive use cases such as chatbots or real-time applications, where users expect immediate responses.
+Depending on your model and prompt, it can take a large language model (LLM) up to a minute to finish generating its response. This delay can be unacceptable for interactive use cases such as chatbots or real-time applications, where users expect immediate responses.
 
 AI SDK Core provides the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which simplifies streaming text from LLMs:
 
@@ -58,7 +90,7 @@ AI SDK Core provides the [`streamText`](/docs/reference/ai-sdk-core/stream-text)
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
@@ -72,13 +104,18 @@ for await (const textPart of result.textStream) {
   `result.textStream` is both a `ReadableStream` and an `AsyncIterable`.
 </Note>
 
-You can use `streamText` on it's own or in combination with [AI SDK
+<Note type="warning">
+  `streamText` immediately starts streaming and suppresses errors to prevent
+  server crashes. Use the `onError` callback to log errors.
+</Note>
+
+You can use `streamText` on its own or in combination with [AI SDK
 UI](/examples/next-pages/basics/streaming-text-generation) and [AI SDK
 RSC](/examples/next-app/basics/streaming-text-generation).
 The result object contains several helper functions to make the integration into [AI SDK UI](/docs/ai-sdk-ui) easier:
 
-- `result.toDataStreamResponse()`: Creates a data stream HTTP response (with tool calls etc.) that can be used in a Next.js App Router API route.
-- `result.pipeDataStreamToResponse()`: Writes data stream delta output to a Node.js response-like object.
+- `result.toUIMessageStreamResponse()`: Creates a UI Message stream HTTP response (with tool calls etc.) that can be used in a Next.js App Router API route.
+- `result.pipeUIMessageStreamToResponse()`: Writes UI Message stream delta output to a Node.js response-like object.
 - `result.toTextStreamResponse()`: Creates a simple text stream HTTP response.
 - `result.pipeTextStreamToResponse()`: Writes text delta output to a Node.js response-like object.
 
@@ -89,9 +126,41 @@ The result object contains several helper functions to make the integration into
 
 It also provides several promises that resolve when the stream is finished:
 
+- `result.content`: The content that was generated in the last step.
 - `result.text`: The generated text.
+- `result.reasoning`: The full reasoning that the model has generated.
+- `result.reasoningText`: The reasoning text of the model (only available for some models).
+- `result.files`: Files that have been generated by the model in the last step.
+- `result.sources`: Sources that have been used as references in the last step (only available for some models).
+- `result.toolCalls`: The tool calls that have been executed in the last step.
+- `result.toolResults`: The tool results that have been generated in the last step.
 - `result.finishReason`: The reason the model finished generating text.
-- `result.usage`: The usage of the model during text generation.
+- `result.usage`: The usage of the model during the final step of text generation.
+- `result.totalUsage`: The total usage across all steps (for multi-step generations).
+- `result.warnings`: Warnings from the model provider (e.g. unsupported settings).
+- `result.steps`: Details for all steps, useful for getting information about intermediate steps.
+- `result.request`: Additional request information from the last step.
+- `result.response`: Additional response information from the last step.
+- `result.providerMetadata`: Additional provider-specific metadata from the last step.
+
+### `onError` callback
+
+`streamText` immediately starts streaming to enable sending data without waiting for the model.
+Errors become part of the stream and are not thrown to prevent e.g. servers from crashing.
+
+To log errors, you can provide an `onError` callback that is triggered when an error occurs.
+
+```tsx highlight="6-8"
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-4.1',
+  prompt: 'Invent a new holiday and describe its traditions.',
+  onError({ error }) {
+    console.error(error); // your error logging logic here
+  },
+});
+```
 
 ### `onChunk` callback
 
@@ -99,21 +168,24 @@ When using `streamText`, you can provide an `onChunk` callback that is triggered
 
 It receives the following chunk types:
 
-- `text-delta`
+- `text`
+- `reasoning`
+- `source`
 - `tool-call`
+- `tool-input-start`
+- `tool-input-delta`
 - `tool-result`
-- `tool-call-streaming-start` (when `experimental_toolCallStreaming` is enabled)
-- `tool-call-delta` (when `experimental_toolCallStreaming` is enabled)
+- `raw`
 
 ```tsx highlight="6-11"
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   prompt: 'Invent a new holiday and describe its traditions.',
   onChunk({ chunk }) {
     // implement your own logic here, e.g.:
-    if (chunk.type === 'text-delta') {
+    if (chunk.type === 'text') {
       console.log(chunk.text);
     }
   },
@@ -125,15 +197,15 @@ const result = streamText({
 When using `streamText`, you can provide an `onFinish` callback that is triggered when the stream is finished (
 [API Reference](/docs/reference/ai-sdk-core/stream-text#on-finish)
 ).
-It contains the text, usage information, finish reason, messages, and more:
+It contains the text, usage information, finish reason, messages, steps, total usage, and more:
 
 ```tsx highlight="6-8"
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   prompt: 'Invent a new holiday and describe its traditions.',
-  onFinish({ text, finishReason, usage, response }) {
+  onFinish({ text, finishReason, usage, response, steps, totalUsage }) {
     // your own logic, e.g. for saving the chat history or recording usage
 
     const messages = response.messages; // messages that were generated
@@ -152,10 +224,10 @@ import { streamText } from 'ai';
 import { z } from 'zod';
 
 const result = streamText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   tools: {
     cityAttractions: {
-      parameters: z.object({ city: z.string() }),
+      inputSchema: z.object({ city: z.string() }),
       execute: async ({ city }) => ({
         attractions: ['attraction1', 'attraction2', 'attraction3'],
       }),
@@ -166,8 +238,44 @@ const result = streamText({
 
 for await (const part of result.fullStream) {
   switch (part.type) {
+    case 'start': {
+      // handle start of stream
+      break;
+    }
+    case 'start-step': {
+      // handle start of step
+      break;
+    }
+    case 'text-start': {
+      // handle text start
+      break;
+    }
     case 'text-delta': {
       // handle text delta here
+      break;
+    }
+    case 'text-end': {
+      // handle text end
+      break;
+    }
+    case 'reasoning-start': {
+      // handle reasoning start
+      break;
+    }
+    case 'reasoning-delta': {
+      // handle reasoning delta here
+      break;
+    }
+    case 'reasoning-end': {
+      // handle reasoning end
+      break;
+    }
+    case 'source': {
+      // handle source here
+      break;
+    }
+    case 'file': {
+      // handle file here
       break;
     }
     case 'tool-call': {
@@ -179,6 +287,18 @@ for await (const part of result.fullStream) {
       }
       break;
     }
+    case 'tool-input-start': {
+      // handle tool input start
+      break;
+    }
+    case 'tool-input-delta': {
+      // handle tool input delta
+      break;
+    }
+    case 'tool-input-end': {
+      // handle tool input end
+      break;
+    }
     case 'tool-result': {
       switch (part.toolName) {
         case 'cityAttractions': {
@@ -188,12 +308,24 @@ for await (const part of result.fullStream) {
       }
       break;
     }
+    case 'tool-error': {
+      // handle tool error
+      break;
+    }
+    case 'finish-step': {
+      // handle finish step
+      break;
+    }
     case 'finish': {
       // handle finish here
       break;
     }
     case 'error': {
       // handle error here
+      break;
+    }
+    case 'raw': {
+      // handle raw value
       break;
     }
   }
@@ -235,59 +367,162 @@ all text to uppercase:
 
 ```ts
 const upperCaseTransform =
-  <TOOLS extends Record<string, CoreTool>>() =>
-  (options: { tools: TOOLS }) =>
+  <TOOLS extends ToolSet>() =>
+  (options: { tools: TOOLS; stopStream: () => void }) =>
     new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       transform(chunk, controller) {
         controller.enqueue(
-          // for text-delta chunks, convert the text to uppercase:
-          chunk.type === 'text-delta'
-            ? { ...chunk, textDelta: chunk.textDelta.toUpperCase() }
+          // for text chunks, convert the text to uppercase:
+          chunk.type === 'text'
+            ? { ...chunk, text: chunk.text.toUpperCase() }
             : chunk,
         );
       },
     });
 ```
 
-## Generating Long Text
+You can also stop the stream using the `stopStream` function.
+This is e.g. useful if you want to stop the stream when model guardrails are violated, e.g. by generating inappropriate content.
 
-Most language models have an output limit that is much shorter than their context window.
-This means that you cannot generate long text in one go,
-but it is possible to add responses back to the input and continue generating
-to create longer text.
+When you invoke `stopStream`, it is important to simulate the `step-finish` and `finish` events to guarantee that a well-formed stream is returned
+and all callbacks are invoked.
 
-`generateText` and `streamText` support such continuations for long text generation using the experimental `continueSteps` setting:
+```ts
+const stopWordTransform =
+  <TOOLS extends ToolSet>() =>
+  ({ stopStream }: { stopStream: () => void }) =>
+    new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+      // note: this is a simplified transformation for testing;
+      // in a real-world version more there would need to be
+      // stream buffering and scanning to correctly emit prior text
+      // and to detect all STOP occurrences.
+      transform(chunk, controller) {
+        if (chunk.type !== 'text') {
+          controller.enqueue(chunk);
+          return;
+        }
 
-```tsx highlight="5-6,9-10"
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+        if (chunk.text.includes('STOP')) {
+          // stop the stream
+          stopStream();
 
-const {
-  text, // combined text
-  usage, // combined usage of all steps
-} = await generateText({
-  model: openai('gpt-4o'), // 4096 output tokens
-  maxSteps: 5, // enable multi-step calls
-  experimental_continueSteps: true,
-  prompt:
-    'Write a book about Roman history, ' +
-    'from the founding of the city of Rome ' +
-    'to the fall of the Western Roman Empire. ' +
-    'Each chapter MUST HAVE at least 1000 words.',
+          // simulate the finish-step event
+          controller.enqueue({
+            type: 'finish-step',
+            finishReason: 'stop',
+            logprobs: undefined,
+            usage: {
+              completionTokens: NaN,
+              promptTokens: NaN,
+              totalTokens: NaN,
+            },
+            request: {},
+            response: {
+              id: 'response-id',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            warnings: [],
+            isContinued: false,
+          });
+
+          // simulate the finish event
+          controller.enqueue({
+            type: 'finish',
+            finishReason: 'stop',
+            logprobs: undefined,
+            usage: {
+              completionTokens: NaN,
+              promptTokens: NaN,
+              totalTokens: NaN,
+            },
+            response: {
+              id: 'response-id',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+          });
+
+          return;
+        }
+
+        controller.enqueue(chunk);
+      },
+    });
+```
+
+#### Multiple transformations
+
+You can also provide multiple transformations. They are applied in the order they are provided.
+
+```tsx highlight="4"
+const result = streamText({
+  model,
+  prompt,
+  experimental_transform: [firstTransform, secondTransform],
 });
 ```
 
-<Note>
-  When `experimental_continueSteps` is enabled, only full words are streamed in
-  `streamText`, and both `generateText` and `streamText` might drop the trailing
-  tokens of some calls to prevent whitespace issues.
-</Note>
+## Sources
 
-<Note type="warning">
-  Some models might not always stop correctly on their own and keep generating
-  until `maxSteps` is reached. You can hint the model to stop by e.g. using a
-  system message such as "Stop when sufficient information was provided."
-</Note>
+Some providers such as [Perplexity](/providers/ai-sdk-providers/perplexity#sources) and
+[Google Generative AI](/providers/ai-sdk-providers/google-generative-ai#sources) include sources in the response.
+
+Currently sources are limited to web pages that ground the response.
+You can access them using the `sources` property of the result.
+
+Each `url` source contains the following properties:
+
+- `id`: The ID of the source.
+- `url`: The URL of the source.
+- `title`: The optional title of the source.
+- `providerMetadata`: Provider metadata for the source.
+
+When you use `generateText`, you can access the sources using the `sources` property:
+
+```ts
+const result = await generateText({
+  model: google('gemini-2.5-flash'),
+  tools: {
+    google_search: google.tools.googleSearch({}),
+  },
+  prompt: 'List the top 5 San Francisco news from the past week.',
+});
+
+for (const source of result.sources) {
+  if (source.sourceType === 'url') {
+    console.log('ID:', source.id);
+    console.log('Title:', source.title);
+    console.log('URL:', source.url);
+    console.log('Provider metadata:', source.providerMetadata);
+    console.log();
+  }
+}
+```
+
+When you use `streamText`, you can access the sources using the `fullStream` property:
+
+```tsx
+const result = streamText({
+  model: google('gemini-2.5-flash'),
+  tools: {
+    google_search: google.tools.googleSearch({}),
+  },
+  prompt: 'List the top 5 San Francisco news from the past week.',
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'source' && part.sourceType === 'url') {
+    console.log('ID:', part.id);
+    console.log('Title:', part.title);
+    console.log('URL:', part.url);
+    console.log('Provider metadata:', part.providerMetadata);
+    console.log();
+  }
+}
+```
+
+The sources are also available in the `result.sources` promise.
 
 ## Examples
 

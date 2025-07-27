@@ -5,7 +5,7 @@ import { streamText } from 'ai';
 async function main() {
   const result = streamText({
     model: cohere('command-r-plus'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

@@ -5,7 +5,6 @@ import 'dotenv/config';
 async function main() {
   const result = await generateText({
     model: anthropic('claude-3-5-sonnet-20240620'),
-    maxTokens: 512,
     messages: [
       {
         role: 'user',

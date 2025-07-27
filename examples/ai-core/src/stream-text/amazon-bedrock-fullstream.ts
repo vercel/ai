@@ -1,7 +1,7 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { streamText } from 'ai';
+import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
@@ -10,61 +10,59 @@ async function main() {
     tools: {
       weather: weatherTool,
       cityAttractions: {
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       },
     },
     prompt: 'What is the weather in San Francisco?',
+    stopWhen: stepCountIs(5),
   });
+
+  let enteredReasoning = false;
+  let enteredText = false;
+  const toolCalls: ToolCallPart[] = [];
+  const toolResponses: ToolResultPart[] = [];
 
   for await (const part of result.fullStream) {
     switch (part.type) {
+      case 'reasoning-delta': {
+        if (!enteredReasoning) {
+          enteredReasoning = true;
+          console.log('\nREASONING:\n');
+        }
+        process.stdout.write(part.text);
+        break;
+      }
+
       case 'text-delta': {
-        console.log('Text delta:', part.textDelta);
+        if (!enteredText) {
+          enteredText = true;
+          console.log('\nTEXT:\n');
+        }
+        process.stdout.write(part.text);
         break;
       }
 
       case 'tool-call': {
-        switch (part.toolName) {
-          case 'cityAttractions': {
-            console.log('TOOL CALL cityAttractions');
-            console.log(`city: ${part.args.city}`); // string
-            break;
-          }
+        toolCalls.push(part);
 
-          case 'weather': {
-            console.log('TOOL CALL weather');
-            console.log(`location: ${part.args.location}`); // string
-            break;
-          }
-        }
-
+        process.stdout.write(
+          `\nTool call: '${part.toolName}' ${JSON.stringify(part.input)}`,
+        );
         break;
       }
 
       case 'tool-result': {
-        switch (part.toolName) {
-          // NOT AVAILABLE (NO EXECUTE METHOD)
-          // case 'cityAttractions': {
-          //   console.log('TOOL RESULT cityAttractions');
-          //   console.log(`city: ${part.args.city}`); // string
-          //   console.log(`result: ${part.result}`);
-          //   break;
-          // }
+        const transformedPart: ToolResultPart = {
+          ...part,
+          output: { type: 'json', value: part.output },
+        };
+        toolResponses.push(transformedPart);
 
-          case 'weather': {
-            console.log('TOOL RESULT weather');
-            console.log(`location: ${part.args.location}`); // string
-            console.log(`temperature: ${part.result.temperature}`); // number
-            break;
-          }
-        }
-
+        process.stdout.write(
+          `\nTool response: '${part.toolName}' ${JSON.stringify(part.output)}`,
+        );
         break;
       }
-
-      case 'error':
-        console.error('Error:', part.error);
-        break;
     }
   }
 }

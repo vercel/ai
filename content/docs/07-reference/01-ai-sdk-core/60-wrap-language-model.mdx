@@ -5,29 +5,22 @@ description: Function for wrapping a language model with middleware (API Referen
 
 # `wrapLanguageModel()`
 
-<Note type="warning">
-  Language model middleware is an experimental feature.
-</Note>
-
-The `experimental_wrapLanguageModel` function provides a way to enhance the behavior of language models
+The `wrapLanguageModel` function provides a way to enhance the behavior of language models
 by wrapping them with middleware.
 See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more information on middleware.
 
 ```ts
-import { experimental_wrapLanguageModel as wrapLanguageModel } from 'ai';
+import { wrapLanguageModel } from 'ai';
 
 const wrappedLanguageModel = wrapLanguageModel({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   middleware: yourLanguageModelMiddleware,
 });
 ```
 
 ## Import
 
-<Snippet
-  text={`import { experimental_wrapLanguageModel as wrapLanguageModel } from "ai"`}
-  prompt={false}
-/>
+<Snippet text={`import { wrapLanguageModel } from "ai"`} prompt={false} />
 
 ## API Signature
 
@@ -37,13 +30,14 @@ const wrappedLanguageModel = wrapLanguageModel({
   content={[
     {
       name: 'model',
-      type: 'LanguageModelV1',
-      description: 'The original LanguageModelV1 instance to be wrapped.',
+      type: 'LanguageModelV2',
+      description: 'The original LanguageModelV2 instance to be wrapped.',
     },
     {
       name: 'middleware',
-      type: 'Experimental_LanguageModelV1Middleware',
-      description: 'The middleware to be applied to the language model.',
+      type: 'LanguageModelV2Middleware | LanguageModelV2Middleware[]',
+      description:
+        'The middleware to be applied to the language model. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.',
     },
     {
       name: 'modelId',
@@ -62,4 +56,4 @@ const wrappedLanguageModel = wrapLanguageModel({
 
 ### Returns
 
-A new `LanguageModelV1` instance with middleware applied.
+A new `LanguageModelV2` instance with middleware applied.

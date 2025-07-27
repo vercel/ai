@@ -1,7 +1,4 @@
-import { Inter } from 'next/font/google';
 import Link from 'next/link';
-
-const inter = Inter({ subsets: ['latin'] });
 
 const examples = [
   {
@@ -64,7 +61,7 @@ const examples = [
 
 export default function Home() {
   return (
-    <main className={`flex flex-col gap-2 p-2 ${inter.className}`}>
+    <main className={`flex flex-col gap-2 p-2`}>
       {examples.map((example, index) => (
         <Link key={example.link} className="flex flex-row" href={example.link}>
           <div className="w-8 text-zinc-400">{index + 1}.</div>

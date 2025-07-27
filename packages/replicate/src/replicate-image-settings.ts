@@ -27,10 +27,3 @@ export type ReplicateImageModelId =
   | 'stability-ai/stable-diffusion-3.5-medium'
   | 'tstramer/material-diffusion'
   | (string & {});
-
-export interface ReplicateImageSettings {
-  /**
-Override the maximum number of images per call (default 1)
-   */
-  maxImagesPerCall?: number;
-}

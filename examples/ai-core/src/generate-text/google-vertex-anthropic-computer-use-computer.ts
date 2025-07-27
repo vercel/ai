@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import fs from 'node:fs';
 
 async function main() {
@@ -33,16 +33,21 @@ async function main() {
         },
 
         // map to tool result content for LLM consumption:
-        experimental_toToolResultContent(result) {
-          return typeof result === 'string'
-            ? [{ type: 'text', text: result }]
-            : [{ type: 'image', data: result.data, mimeType: 'image/png' }];
+        toModelOutput(result) {
+          return {
+            type: 'content',
+            value: [
+              typeof result === 'string'
+                ? { type: 'text', text: result }
+                : { type: 'media', data: result.data, mediaType: 'image/png' },
+            ],
+          };
         },
       }),
     },
     prompt:
       'How can I switch to dark mode? Take a look at the screen and tell me.',
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   });
 
   console.log(result.text);

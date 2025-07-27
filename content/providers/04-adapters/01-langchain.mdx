@@ -13,12 +13,12 @@ However, LangChain does not provide a way to easily build UIs or a standard way 
 
 Here is a basic example that uses both the AI SDK and LangChain together with the [Next.js](https://nextjs.org/docs) App Router.
 
-The AI SDK [`LangChainAdapter`](/docs/reference/stream-helpers/langchain-adapter) uses the result from [LangChain ExpressionLanguage streaming](https://js.langchain.com/docs/expression_language/streaming) to pipe text to the client.
-`LangChainAdapter.toDataStreamResponse()` is compatible with the LangChain Expression Language `.stream()` function response.
+The [`@ai-sdk/langchain` package](/docs/reference/stream-helpers/langchain-adapter) uses the result from [LangChain ExpressionLanguage streaming](https://js.langchain.com/docs/expression_language/streaming) to pipe text to the client.
+`toDataStreamResponse()` is compatible with the LangChain Expression Language `.stream()` function response.
 
 ```tsx filename="app/api/completion/route.ts" highlight={"16"}
 import { ChatOpenAI } from '@langchain/openai';
-import { LangChainAdapter } from 'ai';
+import { toDataStreamResponse } from '@ai-sdk/langchain';
 
 export const maxDuration = 60;
 
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
   const stream = await model.stream(prompt);
 
-  return LangChainAdapter.toDataStreamResponse(stream);
+  return toDataStreamResponse(stream);
 }
 ```
 
@@ -41,7 +41,7 @@ Then, we use the AI SDK's [`useCompletion`](/docs/ai-sdk-ui/completion) method i
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useCompletion } from 'ai/react';
+import { useCompletion } from '@ai-sdk/react';
 
 export default function Chat() {
   const { completion, input, handleInputChange, handleSubmit } =

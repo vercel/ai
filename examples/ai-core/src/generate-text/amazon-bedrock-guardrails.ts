@@ -9,7 +9,7 @@ async function main() {
       'Invent a new fake holiday and describe its traditions. ' +
       'You are a comedian and should insult the audience as much as possible.',
 
-    experimental_providerMetadata: {
+    providerOptions: {
       bedrock: {
         guardrailConfig: {
           guardrailIdentifier: '<your-guardrail-identifier>',
@@ -23,13 +23,7 @@ async function main() {
 
   console.log(result.text);
   console.log();
-  console.log(
-    JSON.stringify(
-      result.experimental_providerMetadata?.bedrock.trace,
-      null,
-      2,
-    ),
-  );
+  console.log(JSON.stringify(result.providerMetadata?.bedrock.trace, null, 2));
 }
 
 main().catch(console.error);

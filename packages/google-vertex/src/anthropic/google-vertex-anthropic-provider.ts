@@ -1,7 +1,7 @@
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -12,28 +12,18 @@ import {
 import {
   anthropicTools,
   AnthropicMessagesLanguageModel,
-  AnthropicMessagesModelId,
 } from '@ai-sdk/anthropic/internal';
-import {
-  GoogleVertexAnthropicMessagesModelId,
-  GoogleVertexAnthropicMessagesSettings,
-} from './google-vertex-anthropic-messages-settings';
-export interface GoogleVertexAnthropicProvider extends ProviderV1 {
+import { GoogleVertexAnthropicMessagesModelId } from './google-vertex-anthropic-messages-options';
+export interface GoogleVertexAnthropicProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */
-  (
-    modelId: GoogleVertexAnthropicMessagesModelId,
-    settings?: GoogleVertexAnthropicMessagesSettings,
-  ): LanguageModelV1;
+  (modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV2;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(
-    modelId: GoogleVertexAnthropicMessagesModelId,
-    settings?: GoogleVertexAnthropicMessagesSettings,
-  ): LanguageModelV1;
+  languageModel(modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV2;
 
   /**
 Anthropic-specific computer use tool.
@@ -84,61 +74,56 @@ export function createVertexAnthropic(
     settingValue: options.project,
     environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
   });
+
   const baseURL =
     withoutTrailingSlash(options.baseURL) ??
-    `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`;
+    `https://${location === 'global' ? '' : location + '-'}aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`;
 
-  const createChatModel = (
-    modelId: GoogleVertexAnthropicMessagesModelId,
-    settings: GoogleVertexAnthropicMessagesSettings = {},
-  ) =>
-    new AnthropicMessagesLanguageModel(
-      modelId as AnthropicMessagesModelId,
-      settings,
-      {
-        provider: 'vertex.anthropic.messages',
-        baseURL,
-        headers: options.headers ?? {},
-        fetch: options.fetch,
-        buildRequestUrl: (baseURL, isStreaming) =>
-          `${baseURL}/${modelId}:${
-            isStreaming ? 'streamRawPredict' : 'rawPredict'
-          }`,
-        transformRequestBody: args => {
-          // Remove model from args and add anthropic version
-          const { model, ...rest } = args;
-          return {
-            ...rest,
-            anthropic_version: 'vertex-2023-10-16',
-          };
-        },
+  const createChatModel = (modelId: GoogleVertexAnthropicMessagesModelId) =>
+    new AnthropicMessagesLanguageModel(modelId, {
+      provider: 'vertex.anthropic.messages',
+      baseURL,
+      headers: options.headers ?? {},
+      fetch: options.fetch,
+
+      buildRequestUrl: (baseURL, isStreaming) =>
+        `${baseURL}/${modelId}:${
+          isStreaming ? 'streamRawPredict' : 'rawPredict'
+        }`,
+      transformRequestBody: args => {
+        // Remove model from args and add anthropic version
+        const { model, ...rest } = args;
+        return {
+          ...rest,
+          anthropic_version: 'vertex-2023-10-16',
+        };
       },
-    );
+      // Google Vertex Anthropic doesn't support URL sources, force download and base64 conversion
+      supportedUrls: () => ({}),
+    });
 
-  const provider = function (
-    modelId: GoogleVertexAnthropicMessagesModelId,
-    settings?: GoogleVertexAnthropicMessagesSettings,
-  ) {
+  const provider = function (modelId: GoogleVertexAnthropicMessagesModelId) {
     if (new.target) {
       throw new Error(
         'The Anthropic model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId, settings);
+    return createChatModel(modelId);
   };
 
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
+
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
-  provider.rerankingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
   provider.tools = anthropicTools;
 
-  return provider as GoogleVertexAnthropicProvider;
+  return provider;
 }

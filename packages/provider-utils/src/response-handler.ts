@@ -1,11 +1,8 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
-import {
-  EventSourceParserStream,
-  EventSourceMessage,
-} from 'eventsource-parser/stream';
-import { ZodSchema } from 'zod';
+import { ZodType } from 'zod/v4';
 import { extractResponseHeaders } from './extract-response-headers';
-import { ParseResult, parseJSON, safeParseJSON } from './parse-json';
+import { parseJSON, ParseResult, safeParseJSON } from './parse-json';
+import { parseJsonEventStream } from './parse-json-event-stream';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
@@ -13,6 +10,7 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
   response: Response;
 }) => PromiseLike<{
   value: RETURN_TYPE;
+  rawValue?: unknown;
   responseHeaders?: Record<string, string>;
 }>;
 
@@ -22,7 +20,7 @@ export const createJsonErrorResponseHandler =
     errorToMessage,
     isRetryable,
   }: {
-    errorSchema: ZodSchema<T>;
+    errorSchema: ZodType<T>;
     errorToMessage: (error: T) => string;
     isRetryable?: (response: Response, error?: T) => boolean;
   }): ResponseHandler<APICallError> =>
@@ -48,7 +46,7 @@ export const createJsonErrorResponseHandler =
 
     // resilient parsing in case the response is not JSON or does not match the schema:
     try {
-      const parsedError = parseJSON({
+      const parsedError = await parseJSON({
         text: responseBody,
         schema: errorSchema,
       });
@@ -84,7 +82,7 @@ export const createJsonErrorResponseHandler =
 
 export const createEventSourceResponseHandler =
   <T>(
-    chunkSchema: ZodSchema<T>,
+    chunkSchema: ZodType<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
     const responseHeaders = extractResponseHeaders(response);
@@ -95,32 +93,16 @@ export const createEventSourceResponseHandler =
 
     return {
       responseHeaders,
-      value: response.body
-        .pipeThrough(new TextDecoderStream())
-        .pipeThrough(new EventSourceParserStream())
-        .pipeThrough(
-          new TransformStream<EventSourceMessage, ParseResult<T>>({
-            transform({ data }, controller) {
-              // ignore the 'DONE' event that e.g. OpenAI sends:
-              if (data === '[DONE]') {
-                return;
-              }
-
-              controller.enqueue(
-                safeParseJSON({
-                  text: data,
-                  schema: chunkSchema,
-                }),
-              );
-            },
-          }),
-        ),
+      value: parseJsonEventStream({
+        stream: response.body,
+        schema: chunkSchema,
+      }),
     };
   };
 
 export const createJsonStreamResponseHandler =
   <T>(
-    chunkSchema: ZodSchema<T>,
+    chunkSchema: ZodType<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
     const responseHeaders = extractResponseHeaders(response);
@@ -135,10 +117,10 @@ export const createJsonStreamResponseHandler =
       responseHeaders,
       value: response.body.pipeThrough(new TextDecoderStream()).pipeThrough(
         new TransformStream<string, ParseResult<T>>({
-          transform(chunkText, controller) {
+          async transform(chunkText, controller) {
             if (chunkText.endsWith('\n')) {
               controller.enqueue(
-                safeParseJSON({
+                await safeParseJSON({
                   text: buffer + chunkText,
                   schema: chunkSchema,
                 }),
@@ -154,11 +136,11 @@ export const createJsonStreamResponseHandler =
   };
 
 export const createJsonResponseHandler =
-  <T>(responseSchema: ZodSchema<T>): ResponseHandler<T> =>
+  <T>(responseSchema: ZodType<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
 
-    const parsedResult = safeParseJSON({
+    const parsedResult = await safeParseJSON({
       text: responseBody,
       schema: responseSchema,
     });
@@ -180,5 +162,60 @@ export const createJsonResponseHandler =
     return {
       responseHeaders,
       value: parsedResult.value,
+      rawValue: parsedResult.rawValue,
+    };
+  };
+
+export const createBinaryResponseHandler =
+  (): ResponseHandler<Uint8Array> =>
+  async ({ response, url, requestBodyValues }) => {
+    const responseHeaders = extractResponseHeaders(response);
+
+    if (!response.body) {
+      throw new APICallError({
+        message: 'Response body is empty',
+        url,
+        requestBodyValues,
+        statusCode: response.status,
+        responseHeaders,
+        responseBody: undefined,
+      });
+    }
+
+    try {
+      const buffer = await response.arrayBuffer();
+      return {
+        responseHeaders,
+        value: new Uint8Array(buffer),
+      };
+    } catch (error) {
+      throw new APICallError({
+        message: 'Failed to read response as array buffer',
+        url,
+        requestBodyValues,
+        statusCode: response.status,
+        responseHeaders,
+        responseBody: undefined,
+        cause: error,
+      });
+    }
+  };
+
+export const createStatusCodeErrorResponseHandler =
+  (): ResponseHandler<APICallError> =>
+  async ({ response, url, requestBodyValues }) => {
+    const responseHeaders = extractResponseHeaders(response);
+    const responseBody = await response.text();
+
+    return {
+      responseHeaders,
+      value: new APICallError({
+        message: response.statusText,
+        url,
+        requestBodyValues: requestBodyValues as Record<string, unknown>,
+        statusCode: response.status,
+        responseHeaders,
+        responseBody,
+      }),
     };
   };

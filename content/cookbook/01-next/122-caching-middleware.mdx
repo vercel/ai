@@ -6,16 +6,18 @@ tags: ['next', 'streaming', 'caching', 'middleware']
 
 # Caching Middleware
 
+<Note type="warning">This example is not yet updated to v5.</Note>
+
 Let's create a simple chat interface that uses [`LanguageModelMiddleware`](/docs/ai-sdk-core/middleware) to cache the assistant's responses in fast KV storage.
 
 ## Client
 
-Let's create a simple chat interface that allows users to send messages to the assistant and receive responses. You will integrate the `useChat` hook from `ai/react` to stream responses.
+Let's create a simple chat interface that allows users to send messages to the assistant and receive responses. You will integrate the `useChat` hook from `@ai-sdk/react` to stream responses.
 
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, error } = useChat();
@@ -64,10 +66,10 @@ You can control the initial delay and delay between chunks by adjusting the `ini
 
 ```tsx filename='ai/middleware.ts'
 import { Redis } from '@upstash/redis';
-import type {
-  LanguageModelV1,
-  Experimental_LanguageModelV1Middleware as LanguageModelV1Middleware,
-  LanguageModelV1StreamPart,
+import {
+  type LanguageModelV1,
+  type LanguageModelV2Middleware,
+  type LanguageModelV1StreamPart,
   simulateReadableStream,
 } from 'ai';
 
@@ -76,7 +78,7 @@ const redis = new Redis({
   token: process.env.KV_TOKEN,
 });
 
-export const cacheMiddleware: LanguageModelV1Middleware = {
+export const cacheMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     const cacheKey = JSON.stringify(params);
 
@@ -122,7 +124,6 @@ export const cacheMiddleware: LanguageModelV1Middleware = {
           chunkDelayInMs: 10,
           chunks: formattedChunks,
         }),
-        rawCall: { rawPrompt: null, rawSettings: {} },
       };
     }
 
@@ -165,11 +166,7 @@ Finally, you will create an API route for `api/chat` to handle the assistant's m
 ```tsx filename='app/api/chat/route.ts'
 import { cacheMiddleware } from '@/ai/middleware';
 import { openai } from '@ai-sdk/openai';
-import {
-  experimental_wrapLanguageModel as wrapLanguageModel,
-  streamText,
-  tool,
-} from 'ai';
+import { wrapLanguageModel, streamText, tool } from 'ai';
 import { z } from 'zod';
 
 const wrappedModel = wrapLanguageModel({
@@ -196,6 +193,6 @@ export async function POST(req: Request) {
       }),
     },
   });
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```

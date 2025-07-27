@@ -16,7 +16,7 @@ import { openai } from '@ai-sdk/openai';
 import { embedMany } from 'ai';
 
 const { embeddings } = await embedMany({
-  model: openai.embedding('text-embedding-3-small'),
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
   values: [
     'sunny day at the beach',
     'rainy afternoon in the city',
@@ -39,7 +39,7 @@ const { embeddings } = await embedMany({
       name: 'model',
       type: 'EmbeddingModel',
       description:
-        "The embedding model to use. Example: openai.embedding('text-embedding-3-small')",
+        "The embedding model to use. Example: openai.textEmbeddingModel('text-embedding-3-small')",
     },
     {
       name: 'values',
@@ -111,6 +111,12 @@ const { embeddings } = await embedMany({
               description:
                 'Additional information to include in the telemetry data.',
             },
+            {
+              name: 'tracer',
+              type: 'Tracer',
+              isOptional: true,
+              description: 'A custom tracer to use for the telemetry data.',
+            },
           ],
         },
       ],
@@ -134,20 +140,27 @@ const { embeddings } = await embedMany({
     },
     {
       name: 'usage',
-      type: 'EmbeddingTokenUsage',
+      type: 'EmbeddingModelUsage',
       description: 'The token usage for generating the embeddings.',
       properties: [
         {
-          type: 'EmbeddingTokenUsage',
+          type: 'EmbeddingModelUsage',
           parameters: [
             {
               name: 'tokens',
               type: 'number',
               description: 'The total number of input tokens.',
             },
+            {
+              name: 'body',
+              type: 'unknown',
+              isOptional: true,
+              description: 'The response body.',
+            },
           ],
         },
       ],
     },
-  ]}
+
+]}
 />

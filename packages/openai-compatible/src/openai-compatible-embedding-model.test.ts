@@ -1,5 +1,5 @@
-import { EmbeddingModelV1Embedding } from '@ai-sdk/provider';
-import { JsonTestServer } from '@ai-sdk/provider-utils/test';
+import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from './openai-compatible-provider';
 
 const dummyEmbeddings = [
@@ -17,27 +17,33 @@ const provider = createOpenAICompatible({
 });
 const model = provider.textEmbeddingModel('text-embedding-3-large');
 
+const server = createTestServer({
+  'https://my.api.com/v1/embeddings': {},
+});
+
 describe('doEmbed', () => {
-  const server = new JsonTestServer('https://my.api.com/v1/embeddings');
-
-  server.setupTestEnvironment();
-
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
     usage = { prompt_tokens: 8, total_tokens: 8 },
+    headers,
   }: {
-    embeddings?: EmbeddingModelV1Embedding[];
+    embeddings?: EmbeddingModelV2Embedding[];
     usage?: { prompt_tokens: number; total_tokens: number };
+    headers?: Record<string, string>;
   } = {}) {
-    server.responseBodyJson = {
-      object: 'list',
-      data: embeddings.map((embedding, i) => ({
-        object: 'embedding',
-        index: i,
-        embedding,
-      })),
-      model: 'text-embedding-3-large',
-      usage,
+    server.urls['https://my.api.com/v1/embeddings'].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        object: 'list',
+        data: embeddings.map((embedding, i) => ({
+          object: 'embedding',
+          index: i,
+          embedding,
+        })),
+        model: 'text-embedding-3-large',
+        usage,
+      },
     };
   }
 
@@ -50,15 +56,13 @@ describe('doEmbed', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareJsonResponse();
+    prepareJsonResponse({
+      headers: { 'test-header': 'test-value' },
+    });
 
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+    const { response } = await model.doEmbed({ values: testValues });
 
-    const { rawResponse } = await model.doEmbed({ values: testValues });
-
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '236',
       'content-type': 'application/json',
@@ -83,7 +87,7 @@ describe('doEmbed', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'text-embedding-3-large',
       input: testValues,
       encoding_format: 'float',
@@ -93,11 +97,16 @@ describe('doEmbed', () => {
   it('should pass the dimensions setting', async () => {
     prepareJsonResponse();
 
-    await provider
-      .textEmbeddingModel('text-embedding-3-large', { dimensions: 64 })
-      .doEmbed({ values: testValues });
+    await provider.textEmbeddingModel('text-embedding-3-large').doEmbed({
+      values: testValues,
+      providerOptions: {
+        'openai-compatible': {
+          dimensions: 64,
+        },
+      },
+    });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'text-embedding-3-large',
       input: testValues,
       encoding_format: 'float',
@@ -124,9 +133,7 @@ describe('doEmbed', () => {
       },
     });
 
-    const requestHeaders = await server.getRequestHeaders();
-
-    expect(requestHeaders).toStrictEqual({
+    expect(server.calls[0].requestHeaders).toStrictEqual({
       authorization: 'Bearer test-api-key',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',

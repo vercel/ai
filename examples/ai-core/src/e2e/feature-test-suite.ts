@@ -1,22 +1,23 @@
-import { z } from 'zod';
+import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import type {
+  EmbeddingModelV2,
+  ImageModelV2,
+  LanguageModelV2,
+} from '@ai-sdk/provider';
 import {
-  experimental_generateImage as generateImage,
-  generateText,
-  generateObject,
-  streamText,
-  streamObject,
+  APICallError,
   embed,
   embedMany,
-  APICallError,
+  experimental_generateImage as generateImage,
+  generateObject,
+  generateText,
+  stepCountIs,
+  streamObject,
+  streamText,
 } from 'ai';
 import fs from 'fs';
 import { describe, expect, it, vi } from 'vitest';
-import type {
-  EmbeddingModelV1,
-  ImageModelV1,
-  LanguageModelV1,
-} from '@ai-sdk/provider';
-import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { z } from 'zod/v4';
 
 export type Capability =
   | 'audioInput'
@@ -49,34 +50,35 @@ export const defaultChatModelCapabilities: ModelCapabilities = [
 ];
 
 export const createLanguageModelWithCapabilities = (
-  model: LanguageModelV1,
+  model: LanguageModelV2,
   capabilities: ModelCapabilities = defaultChatModelCapabilities,
-): ModelWithCapabilities<LanguageModelV1> => ({
+): ModelWithCapabilities<LanguageModelV2> => ({
   model,
   capabilities,
 });
 
 export const createEmbeddingModelWithCapabilities = (
-  model: EmbeddingModelV1<string>,
+  model: EmbeddingModelV2<string>,
   capabilities: ModelCapabilities = ['embedding'],
-): ModelWithCapabilities<EmbeddingModelV1<string>> => ({
+): ModelWithCapabilities<EmbeddingModelV2<string>> => ({
   model,
   capabilities,
 });
 
 export const createImageModelWithCapabilities = (
-  model: ImageModelV1,
+  model: ImageModelV2,
   capabilities: ModelCapabilities = ['imageGeneration'],
-): ModelWithCapabilities<ImageModelV1> => ({
+): ModelWithCapabilities<ImageModelV2> => ({
   model,
   capabilities,
 });
 
 export interface ModelVariants {
-  invalidModel?: LanguageModelV1;
-  languageModels?: ModelWithCapabilities<LanguageModelV1>[];
-  embeddingModels?: ModelWithCapabilities<EmbeddingModelV1<string>>[];
-  imageModels?: ModelWithCapabilities<ImageModelV1>[];
+  invalidModel?: LanguageModelV2;
+  languageModels?: ModelWithCapabilities<LanguageModelV2>[];
+  embeddingModels?: ModelWithCapabilities<EmbeddingModelV2<string>>[];
+  invalidImageModel?: ImageModelV2;
+  imageModels?: ModelWithCapabilities<ImageModelV2>[];
 }
 
 export interface TestSuiteOptions {
@@ -314,24 +316,6 @@ export function createFeatureTestSuite({
                 expect(result.object.items).toHaveLength(3);
                 expect(result.object.items[0].name).toBeTruthy();
                 expect(typeof result.object.items[0].quantity).toBe('number');
-              });
-
-              it('should generate object with complex fields', async () => {
-                const result = await generateObject({
-                  model,
-                  schema: z.object({
-                    title: z.string(),
-                    description: z.string(),
-                    price: z.number().min(0),
-                    isAvailable: z.boolean(),
-                  }),
-                  prompt: 'Generate details for a product listing.',
-                });
-
-                expect(result.object.title).toBeTruthy();
-                expect(result.object.description.length).toBeGreaterThan(10);
-                expect(result.object.price).toBeGreaterThan(0);
-                expect(typeof result.object.isAvailable).toBe('boolean');
               });
 
               it('should generate nested objects', async () => {
@@ -591,6 +575,8 @@ export function createFeatureTestSuite({
 
                   const result = await generateObject({
                     model,
+                    schemaName: 'product',
+                    schemaDescription: 'A product listing',
                     schema: ProductSchema,
                     messages: [
                       {
@@ -628,7 +614,7 @@ export function createFeatureTestSuite({
                     'What is 2+2? Use the calculator tool to compute this.',
                   tools: {
                     calculator: {
-                      parameters: z.object({
+                      inputSchema: z.object({
                         expression: z
                           .string()
                           .describe('The mathematical expression to evaluate'),
@@ -641,25 +627,29 @@ export function createFeatureTestSuite({
 
                 expect(result.toolCalls?.[0]).toMatchObject({
                   toolName: 'calculator',
-                  args: { expression: '2+2' },
+                  input: { expression: '2+2' },
                 });
-                expect(result.toolResults?.[0].result).toBe('4');
+                expect(result.toolResults?.[0].output).toBe('4');
                 if (!customAssertions.skipUsage) {
                   expect(result.usage?.totalTokens).toBeGreaterThan(0);
                 }
               });
 
               it('should stream text with tool calls', async () => {
+                let toolCallCount = 0;
                 const result = streamText({
                   model,
-                  prompt: 'Calculate 5+7 and 3*4 using the calculator tool.',
+                  prompt:
+                    'What is 2+2? Use the calculator tool to compute this.',
                   tools: {
                     calculator: {
-                      parameters: z.object({
+                      inputSchema: z.object({
                         expression: z.string(),
                       }),
-                      execute: async ({ expression }) =>
-                        eval(expression).toString(),
+                      execute: async ({ expression }) => {
+                        toolCallCount++;
+                        return eval(expression).toString();
+                      },
                     },
                   },
                 });
@@ -672,9 +662,58 @@ export function createFeatureTestSuite({
                 expect(parts.some(part => part.type === 'tool-call')).toBe(
                   true,
                 );
+                expect(toolCallCount).toBe(1);
                 if (!customAssertions.skipUsage) {
                   expect((await result.usage).totalTokens).toBeGreaterThan(0);
                 }
+              });
+
+              it('should handle multiple sequential tool calls', async () => {
+                let weatherCalls = 0;
+                let musicCalls = 0;
+                const sfTemp = 15;
+                const result = await generateText({
+                  model,
+                  prompt:
+                    'Check the temperature in San Francisco and play music that matches the weather. Be sure to report the chosen song name.',
+                  tools: {
+                    getTemperature: {
+                      inputSchema: z.object({
+                        city: z
+                          .string()
+                          .describe('The city to check temperature for'),
+                      }),
+                      execute: async ({ city }) => {
+                        weatherCalls++;
+                        return `${sfTemp}`;
+                      },
+                    },
+                    playWeatherMusic: {
+                      inputSchema: z.object({
+                        temperature: z
+                          .number()
+                          .describe('Temperature in Celsius'),
+                      }),
+                      execute: async ({ temperature }) => {
+                        musicCalls++;
+                        if (temperature <= 10) {
+                          return 'Playing "Winter Winds" by Mumford & Sons';
+                        } else if (temperature <= 20) {
+                          return 'Playing "Foggy Day" by Frank Sinatra';
+                        } else if (temperature <= 30) {
+                          return 'Playing "Here Comes the Sun" by The Beatles';
+                        } else {
+                          return 'Playing "Hot Hot Hot" by Buster Poindexter';
+                        }
+                      },
+                    },
+                  },
+                  stopWhen: stepCountIs(10),
+                });
+
+                expect(weatherCalls).toBe(1);
+                expect(musicCalls).toBe(1);
+                expect(result.text).toContain('Foggy Day');
               });
             },
           );
@@ -825,7 +864,7 @@ export function createFeatureTestSuite({
                         data: fs
                           .readFileSync('./data/ai.pdf')
                           .toString('base64'),
-                        mimeType: 'application/pdf',
+                        mediaType: 'application/pdf',
                       },
                     ],
                   },
@@ -859,7 +898,7 @@ export function createFeatureTestSuite({
                           data: Buffer.from(
                             fs.readFileSync('./data/galileo.mp3'),
                           ),
-                          mimeType: 'audio/mpeg',
+                          mediaType: 'audio/mpeg',
                         },
                       ],
                     },
@@ -887,8 +926,9 @@ export function createFeatureTestSuite({
                 expect(result.text.toLowerCase()).toContain('tokyo');
                 expect(result.usage?.totalTokens).toBeGreaterThan(0);
 
-                const metadata = result.experimental_providerMetadata
-                  ?.google as GoogleGenerativeAIProviderMetadata | undefined;
+                const metadata = result.providerMetadata?.google as
+                  | GoogleGenerativeAIProviderMetadata
+                  | undefined;
                 verifyGroundingMetadata(metadata?.groundingMetadata);
               });
 
@@ -903,8 +943,9 @@ export function createFeatureTestSuite({
                   chunks.push(chunk);
                 }
 
-                const metadata = (await result.experimental_providerMetadata)
-                  ?.google as GoogleGenerativeAIProviderMetadata | undefined;
+                const metadata = (await result.providerMetadata)?.google as
+                  | GoogleGenerativeAIProviderMetadata
+                  | undefined;
 
                 const completeText = chunks.join('');
                 expect(completeText).toBeTruthy();
@@ -920,8 +961,9 @@ export function createFeatureTestSuite({
                   prompt: 'What is the current population of Tokyo?',
                 });
 
-                const metadata = result.experimental_providerMetadata
-                  ?.google as GoogleGenerativeAIProviderMetadata | undefined;
+                const metadata = result.providerMetadata?.google as
+                  | GoogleGenerativeAIProviderMetadata
+                  | undefined;
                 verifySafetyRatings(metadata?.safetyRatings ?? []);
               });
 
@@ -935,8 +977,9 @@ export function createFeatureTestSuite({
                   // consume the stream
                 }
 
-                const metadata = (await result.experimental_providerMetadata)
-                  ?.google as GoogleGenerativeAIProviderMetadata | undefined;
+                const metadata = (await result.providerMetadata)?.google as
+                  | GoogleGenerativeAIProviderMetadata
+                  | undefined;
 
                 verifySafetyRatings(metadata?.safetyRatings ?? []);
               });
@@ -975,6 +1018,24 @@ export function createFeatureTestSuite({
 
               // If we reach here, the test should fail
               expect(true).toBe(false); // Force test to fail if no error is thrown
+            } catch (error) {
+              expect(error).toBeInstanceOf(APICallError);
+              errorValidator(error as APICallError);
+            }
+          });
+        });
+      }
+
+      if (models.invalidImageModel) {
+        describe('Image Model Error Handling:', () => {
+          const invalidModel = models.invalidImageModel!;
+
+          it('should throw error on generate image attempt with invalid model ID', async () => {
+            try {
+              await generateImage({
+                model: invalidModel,
+                prompt: 'This should fail',
+              });
             } catch (error) {
               expect(error).toBeInstanceOf(APICallError);
               errorValidator(error as APICallError);

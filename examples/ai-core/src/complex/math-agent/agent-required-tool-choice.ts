@@ -1,24 +1,24 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool } from 'ai';
+import { generateText, stepCountIs, tool } from 'ai';
 import 'dotenv/config';
 import * as mathjs from 'mathjs';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const { toolCalls } = await generateText({
-    model: openai('gpt-4o-2024-08-06', { structuredOutputs: true }),
+    model: openai('gpt-4o-2024-08-06'),
     tools: {
       calculate: tool({
         description:
           'A tool for evaluating mathematical expressions. Example expressions: ' +
           "'1.2 * (2 + 4.5)', '12.7 cm to inch', 'sin(45 deg) ^ 2'.",
-        parameters: z.object({ expression: z.string() }),
+        inputSchema: z.object({ expression: z.string() }),
         execute: async ({ expression }) => mathjs.evaluate(expression),
       }),
       // answer tool: the LLM will provide a structured answer
       answer: tool({
         description: 'A tool for providing the final answer.',
-        parameters: z.object({
+        inputSchema: z.object({
           steps: z.array(
             z.object({
               calculation: z.string(),
@@ -31,7 +31,7 @@ async function main() {
       }),
     },
     toolChoice: 'required',
-    maxSteps: 10,
+    stopWhen: stepCountIs(10),
     onStepFinish: async ({ toolResults }) => {
       console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
     },

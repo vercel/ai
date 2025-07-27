@@ -1,38 +1,28 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool, ToolExecutionError } from 'ai';
+import { generateText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
-  try {
-    const result = await generateText({
-      model: openai('gpt-4o-mini', { structuredOutputs: true }),
-      tools: {
-        weather: tool({
-          description: 'Get the weather in a location',
-          parameters: z.object({
-            location: z
-              .string()
-              .describe('The location to get the weather for'),
-          }),
-          execute: async ({ location }): Promise<{ temperature: number }> => {
-            throw new Error('could not get weather');
-          },
+  const result = await generateText({
+    model: openai('gpt-4o-mini'),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location',
+        inputSchema: z.object({
+          location: z.string().describe('The location to get the weather for'),
         }),
-      },
-      prompt: 'What is the weather in San Francisco?',
-    });
-  } catch (error) {
-    if (ToolExecutionError.isInstance(error)) {
-      console.error('Tool execution error: ' + error.message);
-      console.error('Tool name: ' + error.toolName);
-      console.error('Tool args: ' + JSON.stringify(error.toolArgs));
-      console.error('Cause: ' + error.cause);
-    } else {
-      console.error('Unexpected error:');
-      console.error(error);
-    }
-  }
+        execute: async ({ location }): Promise<{ temperature: number }> => {
+          throw new Error('could not get weather');
+        },
+      }),
+    },
+    prompt: 'What is the weather in San Francisco?',
+  });
+
+  console.log(JSON.stringify(result.content, null, 2));
+
+  console.log(JSON.stringify(result.response.messages, null, 2));
 }
 
 main().catch(console.error);

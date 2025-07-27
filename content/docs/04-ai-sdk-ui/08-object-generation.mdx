@@ -13,7 +13,7 @@ In this guide, you will learn how to use the `useObject` hook in your applicatio
 
 ## Example
 
-The example shows a small notfications demo app that generates fake notifications in real-time.
+The example shows a small notifications demo app that generates fake notifications in real-time.
 
 ### Schema
 
@@ -43,7 +43,7 @@ Please note the code for handling `undefined` values in the JSX.
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { experimental_useObject as useObject } from 'ai/react';
+import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { notificationSchema } from './api/notifications/schema';
 
 export default function Page() {
@@ -85,10 +85,68 @@ export async function POST(req: Request) {
   const context = await req.json();
 
   const result = streamObject({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4.1'),
     schema: notificationSchema,
     prompt:
       `Generate 3 notifications for a messages app in this context:` + context,
+  });
+
+  return result.toTextStreamResponse();
+}
+```
+
+## Enum Output Mode
+
+When you need to classify or categorize input into predefined options, you can use the `enum` output mode with `useObject`. This requires a specific schema structure where the object has `enum` as a key with `z.enum` containing your possible values.
+
+### Example: Text Classification
+
+This example shows how to build a simple text classifier that categorizes statements as true or false.
+
+#### Client
+
+When using `useObject` with enum output mode, your schema must be an object with `enum` as the key:
+
+```tsx filename='app/classify/page.tsx'
+'use client';
+
+import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { z } from 'zod';
+
+export default function ClassifyPage() {
+  const { object, submit, isLoading } = useObject({
+    api: '/api/classify',
+    schema: z.object({ enum: z.enum(['true', 'false']) }),
+  });
+
+  return (
+    <>
+      <button onClick={() => submit('The earth is flat')} disabled={isLoading}>
+        Classify statement
+      </button>
+
+      {object && <div>Classification: {object.enum}</div>}
+    </>
+  );
+}
+```
+
+#### Server
+
+On the server, use `streamObject` with `output: 'enum'` to stream the classification result:
+
+```typescript filename='app/api/classify/route.ts'
+import { openai } from '@ai-sdk/openai';
+import { streamObject } from 'ai';
+
+export async function POST(req: Request) {
+  const context = await req.json();
+
+  const result = streamObject({
+    model: openai('gpt-4.1'),
+    output: 'enum',
+    enum: ['true', 'false'],
+    prompt: `Classify this statement as true or false: ${context}`,
   });
 
   return result.toTextStreamResponse();
@@ -110,7 +168,7 @@ purposes:
 ```tsx filename='app/page.tsx' highlight="6,13-20,24"
 'use client';
 
-import { useObject } from 'ai/react';
+import { useObject } from '@ai-sdk/react';
 
 export default function Page() {
   const { isLoading, object, submit } = useObject({
@@ -147,7 +205,7 @@ The `stop` function can be used to stop the object generation process. This can 
 ```tsx filename='app/page.tsx' highlight="6,14-16"
 'use client';
 
-import { useObject } from 'ai/react';
+import { useObject } from '@ai-sdk/react';
 
 export default function Page() {
   const { isLoading, stop, object, submit } = useObject({
@@ -192,7 +250,7 @@ It can be used to display an error message, or to disable the submit button:
 ```tsx file="app/page.tsx" highlight="6,13"
 'use client';
 
-import { useObject } from 'ai/react';
+import { useObject } from '@ai-sdk/react';
 
 export default function Page() {
   const { error, object, submit } = useObject({
@@ -231,7 +289,7 @@ These callbacks can be used to trigger additional actions, such as logging, anal
 ```tsx filename='app/page.tsx' highlight="10-20"
 'use client';
 
-import { experimental_useObject as useObject } from 'ai/react';
+import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { notificationSchema } from './api/notifications/schema';
 
 export default function Page() {
@@ -270,7 +328,7 @@ export default function Page() {
 
 ## Configure Request Options
 
-You can configure the API endpoint and optional headers using the `api` and `headers` settings.
+You can configure the API endpoint, optional headers and credentials using the `api`, `headers` and `credentials` settings.
 
 ```tsx highlight="2-5"
 const { submit, object } = useObject({
@@ -278,6 +336,7 @@ const { submit, object } = useObject({
   headers: {
     'X-Custom-Header': 'CustomValue',
   },
+  credentials: 'include',
   schema: yourSchema,
 });
 ```

@@ -1,12 +1,12 @@
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamObject({
-    model: openai('gpt-4-turbo', { logprobs: 2 }),
-    maxTokens: 2000,
+    model: openai('gpt-4o'),
+    maxOutputTokens: 2000,
     schema: z.object({
       characters: z.array(
         z.object({
@@ -18,7 +18,11 @@ async function main() {
         }),
       ),
     }),
-    mode: 'json',
+    providerOptions: {
+      openai: {
+        logprobs: 2,
+      },
+    },
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
   });
@@ -32,7 +36,7 @@ async function main() {
 
       case 'finish': {
         console.log('Finish reason:', part.finishReason);
-        console.log('Logprobs:', part.logprobs);
+        console.log('Logprobs:', part.providerMetadata?.openai.logprobs);
         console.log('Usage:', part.usage);
         break;
       }

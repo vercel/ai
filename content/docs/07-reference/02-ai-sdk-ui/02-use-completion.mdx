@@ -9,17 +9,17 @@ Allows you to create text completion based capabilities for your application. It
 
 ## Import
 
-<Tabs items={['React', 'Svelte', 'Vue', 'Solid']}>
+<Tabs items={['React', 'Svelte', 'Vue']}>
   <Tab>
     <Snippet
-      text="import { useCompletion } from 'ai/react'"
+      text="import { useCompletion } from '@ai-sdk/react'"
       dark
       prompt={false}
     />
   </Tab>
   <Tab>
     <Snippet
-      text="import { useCompletion } from '@ai-sdk/svelte'"
+      text="import { Completion } from '@ai-sdk/svelte'"
       dark
       prompt={false}
     />
@@ -31,13 +31,7 @@ Allows you to create text completion based capabilities for your application. It
       prompt={false}
     />
   </Tab>
-  <Tab>
-    <Snippet
-      text="import { useCompletion } from '@ai-sdk/solid'"
-      dark
-      prompt={false}
-    />
-  </Tab>
+
 </Tabs>
 
 ## API Signature
@@ -105,12 +99,6 @@ Allows you to create text completion based capabilities for your application. It
         'An optional literal that sets the mode of credentials to be used on the request. Defaults to same-origin.',
     },
     {
-      name: 'sendExtraMessageFields',
-      type: 'boolean',
-      description:
-        "An optional boolean that determines whether to send extra fields you've added to `messages`. Defaults to `false` and only the `content` and `role` fields will be sent to the API endpoint.",
-    },
-    {
       name: 'streamProtocol',
       type: "'text' | 'data'",
       isOptional: true,
@@ -131,7 +119,8 @@ Allows you to create text completion based capabilities for your application. It
       description:
         'React only. Custom throttle wait time in milliseconds for the completion and data updates. When specified, throttles how often the UI updates during streaming. Default is undefined, which disables throttling.',
     },
-  ]}
+
+]}
 />
 
 ### Returns

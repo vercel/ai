@@ -1,26 +1,12 @@
-import {
-  APICallError,
-  ImageModelV1,
-  ImageModelV1CallWarning,
-} from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  extractResponseHeaders,
+  createBinaryResponseHandler,
+  createStatusCodeErrorResponseHandler,
   FetchFunction,
   postJsonToApi,
-  ResponseHandler,
 } from '@ai-sdk/provider-utils';
-
-// https://fireworks.ai/models?type=image
-export type FireworksImageModelId =
-  | 'accounts/fireworks/models/flux-1-dev-fp8'
-  | 'accounts/fireworks/models/flux-1-schnell-fp8'
-  | 'accounts/fireworks/models/playground-v2-5-1024px-aesthetic'
-  | 'accounts/fireworks/models/japanese-stable-diffusion-xl'
-  | 'accounts/fireworks/models/playground-v2-1024px-aesthetic'
-  | 'accounts/fireworks/models/SSD-1B'
-  | 'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0'
-  | (string & {});
+import { FireworksImageModelId } from './fireworks-image-options';
 
 interface FireworksImageModelBackendConfig {
   urlFormat: 'workflows' | 'image_generation';
@@ -76,108 +62,18 @@ interface FireworksImageModelConfig {
   baseURL: string;
   headers: () => Record<string, string>;
   fetch?: FetchFunction;
-}
-
-const createBinaryResponseHandler =
-  (): ResponseHandler<ArrayBuffer> =>
-  async ({ response, url, requestBodyValues }) => {
-    const responseHeaders = extractResponseHeaders(response);
-
-    if (!response.body) {
-      throw new APICallError({
-        message: 'Response body is empty',
-        url,
-        requestBodyValues,
-        statusCode: response.status,
-        responseHeaders,
-        responseBody: undefined,
-      });
-    }
-
-    try {
-      const buffer = await response.arrayBuffer();
-      return {
-        responseHeaders,
-        value: buffer,
-      };
-    } catch (error) {
-      throw new APICallError({
-        message: 'Failed to read response as array buffer',
-        url,
-        requestBodyValues,
-        statusCode: response.status,
-        responseHeaders,
-        responseBody: undefined,
-        cause: error,
-      });
-    }
+  _internal?: {
+    currentDate?: () => Date;
   };
-
-const statusCodeErrorResponseHandler: ResponseHandler<APICallError> = async ({
-  response,
-  url,
-  requestBodyValues,
-}) => {
-  const responseHeaders = extractResponseHeaders(response);
-  const responseBody = await response.text();
-
-  return {
-    responseHeaders,
-    value: new APICallError({
-      message: response.statusText,
-      url,
-      requestBodyValues: requestBodyValues as Record<string, unknown>,
-      statusCode: response.status,
-      responseHeaders,
-      responseBody,
-    }),
-  };
-};
-
-interface ImageRequestParams {
-  baseUrl: string;
-  modelId: FireworksImageModelId;
-  prompt: string;
-  aspectRatio?: string;
-  size?: string;
-  seed?: number;
-  providerOptions: Record<string, unknown>;
-  headers: Record<string, string | undefined>;
-  abortSignal?: AbortSignal;
-  fetch?: FetchFunction;
 }
 
-async function postImageToApi(
-  params: ImageRequestParams,
-): Promise<ArrayBuffer> {
-  const splitSize = params.size?.split('x');
-  const { value: response } = await postJsonToApi({
-    url: getUrlForModel(params.baseUrl, params.modelId),
-    headers: params.headers,
-    body: {
-      prompt: params.prompt,
-      aspect_ratio: params.aspectRatio,
-      seed: params.seed,
-      ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
-      ...(params.providerOptions.fireworks ?? {}),
-    },
-    failedResponseHandler: statusCodeErrorResponseHandler,
-    successfulResponseHandler: createBinaryResponseHandler(),
-    abortSignal: params.abortSignal,
-    fetch: params.fetch,
-  });
-
-  return response;
-}
-
-export class FireworksImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
+export class FireworksImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
   }
-
-  readonly maxImagesPerCall = 1;
 
   constructor(
     readonly modelId: FireworksImageModelId,
@@ -193,10 +89,10 @@ export class FireworksImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     const backendConfig = modelToBackendConfig[this.modelId];
     if (!backendConfig?.supportsSize && size != null) {
@@ -218,19 +114,33 @@ export class FireworksImageModel implements ImageModelV1 {
       });
     }
 
-    const response = await postImageToApi({
-      baseUrl: this.config.baseURL,
-      prompt,
-      aspectRatio,
-      size,
-      seed,
-      modelId: this.modelId,
-      providerOptions,
+    const splitSize = size?.split('x');
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { value: response, responseHeaders } = await postJsonToApi({
+      url: getUrlForModel(this.config.baseURL, this.modelId),
       headers: combineHeaders(this.config.headers(), headers),
+      body: {
+        prompt,
+        aspect_ratio: aspectRatio,
+        seed,
+        samples: n,
+        ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
+        ...(providerOptions.fireworks ?? {}),
+      },
+      failedResponseHandler: createStatusCodeErrorResponseHandler(),
+      successfulResponseHandler: createBinaryResponseHandler(),
       abortSignal,
       fetch: this.config.fetch,
     });
 
-    return { images: [new Uint8Array(response)], warnings };
+    return {
+      images: [response],
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
   }
 }

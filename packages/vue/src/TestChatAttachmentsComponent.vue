@@ -1,44 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useChat } from './use-chat';
-import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
+import { generateId } from 'ai';
+import { mockId } from 'ai/test';
+import { computed, ref } from 'vue';
+import { Chat } from './chat.vue';
 
-const { messages, handleSubmit, handleInputChange, isLoading, input } = useChat();
-const attachments = ref<FileList>();
+const chat = new Chat({
+  id: generateId(),
+  generateId: mockId(),
+});
+const files = ref<FileList>();
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const isLoading = computed(() => chat.status !== 'ready');
+const input = ref('');
 </script>
 
 <template>
   <div>
-    <div v-for="(m, idx) in messages" :key="m.id" :data-testid="`message-${idx}`">
-      {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ m.content }}
-      <template v-if="m.experimental_attachments">
-        <template v-for="attachment in m.experimental_attachments" :key="attachment.name">
-          <img
-            v-if="attachment.contentType?.startsWith('image/')"
-            :src="attachment.url"
-            :alt="attachment.name"
-            :data-testid="`attachment-${idx}`"
-          />
-          <div
-            v-else-if="attachment.contentType?.startsWith('text/')"
-            :data-testid="`attachment-${idx}`"
-          >
-            {{ getTextFromDataUrl(attachment.url) }}
-          </div>
-        </template>
-      </template>
+    <div data-testid="messages">
+      {{ JSON.stringify(chat.messages, null, 2) }}
     </div>
 
     <form
       @submit="
-        (event) => {
-          handleSubmit(event, {
-            allowEmptySubmit: true,
-            experimental_attachments: attachments,
-          });
-          attachments = undefined;
+        event => {
+          chat.sendMessage({ text: input, files });
+          files = undefined;
           if (fileInputRef) {
             fileInputRef.value = '';
           }
@@ -49,9 +35,9 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
       <input
         type="file"
         @change="
-          (event) => {
-            if (event.target.files) {
-              attachments = event.target.files;
+          event => {
+            if (event.target != null && 'files' in event.target) {
+              files = event.target.files as FileList;
             }
           }
         "

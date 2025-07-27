@@ -8,7 +8,13 @@ export class NoSuchModelError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   readonly modelId: string;
-  readonly modelType: 'languageModel' | 'textEmbeddingModel' | 'rerankingModel';
+  readonly modelType:
+    | 'languageModel'
+    | 'textEmbeddingModel'
+    | 'imageModel'
+    | 'transcriptionModel'
+    | 'speechModel'
+    | 'rerankingModel';
 
   constructor({
     errorName = name,
@@ -18,7 +24,13 @@ export class NoSuchModelError extends AISDKError {
   }: {
     errorName?: string;
     modelId: string;
-    modelType: 'languageModel' | 'textEmbeddingModel' | 'rerankingModel';
+    modelType:
+      | 'languageModel'
+      | 'textEmbeddingModel'
+      | 'imageModel'
+      | 'transcriptionModel'
+      | 'speechModel'
+      | 'rerankingModel';
     message?: string;
   }) {
     super({ name: errorName, message });

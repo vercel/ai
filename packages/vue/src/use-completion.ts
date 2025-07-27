@@ -1,9 +1,5 @@
-import type {
-  JSONValue,
-  RequestOptions,
-  UseCompletionOptions,
-} from '@ai-sdk/ui-utils';
-import { callCompletionApi } from '@ai-sdk/ui-utils';
+import type { CompletionRequestOptions, UseCompletionOptions } from 'ai';
+import { callCompletionApi } from 'ai';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
 import { ref, unref } from 'vue';
@@ -20,7 +16,7 @@ export type UseCompletionHelpers = {
    */
   complete: (
     prompt: string,
-    options?: RequestOptions,
+    options?: CompletionRequestOptions,
   ) => Promise<string | null | undefined>;
   /**
    * Abort the current API request but keep the generated tokens.
@@ -44,15 +40,12 @@ export type UseCompletionHelpers = {
   handleSubmit: (event?: { preventDefault?: () => void }) => void;
   /** Whether the API request is in progress */
   isLoading: Ref<boolean | undefined>;
-
-  /** Additional data added on the server via StreamData */
-  data: Ref<JSONValue[] | undefined>;
 };
 
 let uniqueId = 0;
 
 // @ts-expect-error - some issues with the default export of useSWRV
-const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv;
+const useSWRV = (swrv.default as (typeof import('swrv'))['default']) || swrv;
 const store: Record<string, any> = {};
 
 export function useCompletion({
@@ -64,7 +57,6 @@ export function useCompletion({
   headers,
   body,
   streamProtocol,
-  onResponse,
   onFinish,
   onError,
   fetch,
@@ -85,10 +77,6 @@ export function useCompletion({
 
   isLoading.value ??= false;
 
-  const { data: streamData, mutate: mutateStreamData } = useSWRV<
-    JSONValue[] | undefined
-  >(`${completionId}-data`, null);
-
   // Force the `data` to be `initialCompletion` if it's `undefined`.
   data.value ||= initialCompletion;
 
@@ -104,8 +92,10 @@ export function useCompletion({
 
   let abortController: AbortController | null = null;
 
-  async function triggerRequest(prompt: string, options?: RequestOptions) {
-    const existingData = (streamData.value ?? []) as JSONValue[];
+  async function triggerRequest(
+    prompt: string,
+    options?: CompletionRequestOptions,
+  ) {
     return callCompletionApi({
       api,
       prompt,
@@ -127,12 +117,8 @@ export function useCompletion({
       setAbortController: controller => {
         abortController = controller;
       },
-      onResponse,
       onFinish,
       onError,
-      onData: data => {
-        mutateStreamData(() => [...existingData, ...(data ?? [])]);
-      },
       fetch,
     });
   }
@@ -172,6 +158,5 @@ export function useCompletion({
     input,
     handleSubmit,
     isLoading,
-    data: streamData,
   };
 }

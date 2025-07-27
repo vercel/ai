@@ -1,17 +1,17 @@
 import { mistral } from '@ai-sdk/mistral';
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = await generateText({
     model: mistral('mistral-large-latest'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       }),
     },
     toolChoice: {

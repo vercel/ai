@@ -5,8 +5,6 @@ description: Custom provider that uses models from a different provider (API Ref
 
 # `customProvider()`
 
-<Note type="warning">Provider management is an experimental feature.</Note>
-
 With a custom provider, you can map ids to any model.
 This allows you to set up custom model configurations, alias names, and more.
 The custom provider also supports a fallback provider, which is useful for
@@ -14,19 +12,41 @@ wrapping existing providers and adding additional functionality.
 
 ### Example: custom model settings
 
-You can create a custom provider using `experiental_createCustomProvider`.
+You can create a custom provider using `customProvider`.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { experimental_customProvider as customProvider } from 'ai';
+import { customProvider } from 'ai';
 
 // custom provider with different model settings:
 export const myOpenAI = customProvider({
   languageModels: {
     // replacement model with custom settings:
-    'gpt-4': openai('gpt-4', { structuredOutputs: true }),
+    'gpt-4': wrapLanguageModel({
+      model: openai('gpt-4'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            },
+          },
+        },
+      }),
+    }),
     // alias model with custom settings:
-    'gpt-4o-structured': openai('gpt-4o', { structuredOutputs: true }),
+    'gpt-4o-reasoning-high': wrapLanguageModel({
+      model: openai('gpt-4o'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            },
+          },
+        },
+      }),
+    }),
   },
   fallbackProvider: openai,
 });
@@ -34,10 +54,7 @@ export const myOpenAI = customProvider({
 
 ## Import
 
-<Snippet
-  text={`import { experimental_customProvider as customProvider } from "ai"`}
-  prompt={false}
-/>
+<Snippet text={`import {  customProvider } from "ai"`} prompt={false} />
 
 ## API Signature
 
@@ -54,10 +71,17 @@ export const myOpenAI = customProvider({
     },
     {
       name: 'textEmbeddingModels',
-      type: 'Record<string, EmbeddingModelV1<string>>',
+      type: 'Record<string, EmbeddingModel<string>>',
       isOptional: true,
       description:
         'A record of text embedding models, where keys are model IDs and values are EmbeddingModel<string> instances.',
+    },
+    {
+      name: 'imageModels',
+      type: 'Record<string, ImageModel>',
+      isOptional: true,
+      description:
+        'A record of image models, where keys are model IDs and values are ImageModelV2 instances.',
     },
     {
       name: 'fallbackProvider',
@@ -71,7 +95,7 @@ export const myOpenAI = customProvider({
 
 ### Returns
 
-The `createCustomProvider` function returns a `Provider` instance. It has the following methods:
+The `customProvider` function returns a `Provider` instance. It has the following methods:
 
 <PropertiesTable
   content={[
@@ -86,6 +110,12 @@ The `createCustomProvider` function returns a `Provider` instance. It has the fo
       type: '(id: string) => EmbeddingModel<string>',
       description:
         'A function that returns a text embedding model by its id (format: providerId:modelId)',
+    },
+    {
+      name: 'imageModel',
+      type: '(id: string) => ImageModel',
+      description:
+        'A function that returns an image model by its id (format: providerId:modelId)',
     },
   ]}
 />

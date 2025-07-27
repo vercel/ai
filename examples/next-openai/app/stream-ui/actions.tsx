@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, generateId } from 'ai';
+import { ModelMessage, generateId } from 'ai';
 import {
   createAI,
   createStreamableValue,
   getMutableAIState as $getMutableAIState,
   streamUI,
-} from 'ai/rsc';
+} from '@ai-sdk/rsc';
 import { Message, BotMessage } from './message';
 import { z } from 'zod';
 
@@ -41,7 +41,7 @@ export async function submitUserMessage(content: string) {
     system: 'You are a weather assistant.',
     messages: aiState
       .get()
-      .messages.map(({ role, content }) => ({ role, content } as CoreMessage)),
+      .messages.map(({ role, content }) => ({ role, content }) as ModelMessage),
 
     text: ({ content, done, delta }) => {
       if (!textStream) {
@@ -67,7 +67,7 @@ export async function submitUserMessage(content: string) {
     tools: {
       get_current_weather: {
         description: 'Get the current weather',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string(),
         }),
         generate: async function* ({ location }) {
@@ -98,7 +98,7 @@ export async function submitUserMessage(content: string) {
   };
 }
 
-export type ClientMessage = CoreMessage & {
+export type ClientMessage = ModelMessage & {
   id: string;
 };
 

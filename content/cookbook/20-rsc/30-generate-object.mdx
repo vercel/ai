@@ -93,7 +93,7 @@ export async function getNotifications(input: string) {
   'use server';
 
   const { object: notifications } = await generateObject({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4.1'),
     system: 'You generate three notifications for a messages app.',
     prompt: input,
     schema: z.object({

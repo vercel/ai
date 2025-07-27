@@ -1,60 +1,62 @@
 {
-    "name": "@ai-sdk/codemod",
-    "version": "1.0.3",
-    "license": "Apache-2.0",
-    "sideEffects": false,
-    "files": [
-        "dist/**/*",
-        "CHANGELOG.md"
-    ],
-    "scripts": {
-        "build": "tsup",
-        "clean": "rm -rf dist",
-        "dev": "tsup --watch",
-        "lint": "eslint \"./**/*.ts*\"",
-        "type-check": "tsc --noEmit",
-        "prettier-check": "prettier --check \"./**/*.ts*\"",
-        "test": "vitest --config vitest.config.ts --run",
-        "test:watch": "vitest",
-        "scaffold": "tsx scripts/scaffold-codemod.ts"
-    },
-    "devDependencies": {
-        "@types/cli-progress": "^3.11.6",
-        "@types/debug": "^4.1.12",
-        "@types/jscodeshift": "^0.12.0",
-        "@types/node": "^18.19.54",
-        "@types/semver": "^7.5.8",
-        "@vercel/ai-tsconfig": "workspace:*",
-        "msw": "2.6.4",
-        "tsup": "^8",
-        "tsx": "4.19.2",
-        "typescript": "5.6.3",
-        "vitest": "2.1.4"
-    },
-    "bin": {
-        "codemod": "./dist/bin/codemod.js"
-    },
-    "engines": {
-        "node": ">=18"
-    },
-    "publishConfig": {
-        "access": "public"
-    },
-    "homepage": "https://sdk.vercel.ai/docs",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/vercel/ai.git"
-    },
-    "bugs": {
-        "url": "https://github.com/vercel/ai/issues"
-    },
-    "keywords": [
-        "ai"
-    ],
-    "dependencies": {
-        "cli-progress": "^3.12.0",
-        "commander": "^12.1.0",
-        "debug": "^4.3.7",
-        "jscodeshift": "^17.1.1"
-    }
+  "name": "@ai-sdk/codemod",
+  "version": "2.0.0-beta.4",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "pnpm generate-readme && prettier --write \"README.md\" && pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "dev": "tsup --watch",
+    "lint": "eslint \"./**/*.ts*\"",
+    "type-check": "tsc --build",
+    "prettier-check": "prettier --check \"./**/*.ts*\"",
+    "test": "vitest --config vitest.config.ts --run",
+    "test:watch": "vitest",
+    "scaffold": "tsx scripts/scaffold-codemod.ts",
+    "generate-readme": "tsx scripts/generate-readme.ts"
+  },
+  "devDependencies": {
+    "ai": "workspace:*",
+    "@types/cli-progress": "^3.11.6",
+    "@types/debug": "^4.1.12",
+    "@types/jscodeshift": "^0.12.0",
+    "@types/node": "20.17.24",
+    "@types/semver": "^7.5.8",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "msw": "2.6.4",
+    "tsup": "^8",
+    "tsx": "4.19.2",
+    "typescript": "5.8.3",
+    "vitest": "2.1.4"
+  },
+  "bin": {
+    "codemod": "./dist/bin/codemod.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://ai-sdk.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vercel/ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  },
+  "keywords": [
+    "ai"
+  ],
+  "dependencies": {
+    "cli-progress": "^3.12.0",
+    "commander": "^12.1.0",
+    "debug": "^4.3.7",
+    "jscodeshift": "^17.1.1"
+  }
 }

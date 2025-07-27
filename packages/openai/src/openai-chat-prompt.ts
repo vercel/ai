@@ -5,8 +5,7 @@ export type ChatCompletionMessage =
   | ChatCompletionDeveloperMessage
   | ChatCompletionUserMessage
   | ChatCompletionAssistantMessage
-  | ChatCompletionToolMessage
-  | ChatCompletionFunctionMessage;
+  | ChatCompletionToolMessage;
 
 export interface ChatCompletionSystemMessage {
   role: 'system';
@@ -26,7 +25,8 @@ export interface ChatCompletionUserMessage {
 export type ChatCompletionContentPart =
   | ChatCompletionContentPartText
   | ChatCompletionContentPartImage
-  | ChatCompletionContentPartInputAudio;
+  | ChatCompletionContentPartInputAudio
+  | ChatCompletionContentPartFile;
 
 export interface ChatCompletionContentPartText {
   type: 'text';
@@ -43,18 +43,15 @@ export interface ChatCompletionContentPartInputAudio {
   input_audio: { data: string; format: 'wav' | 'mp3' };
 }
 
+export interface ChatCompletionContentPartFile {
+  type: 'file';
+  file: { filename: string; file_data: string };
+}
+
 export interface ChatCompletionAssistantMessage {
   role: 'assistant';
   content?: string | null;
   tool_calls?: Array<ChatCompletionMessageToolCall>;
-  /**
-   * Legacy function calling interface.
-   * @deprecated this API is supported but deprecated by OpenAI.
-   */
-  function_call?: {
-    arguments: string;
-    name: string;
-  };
 }
 
 export interface ChatCompletionMessageToolCall {
@@ -70,14 +67,4 @@ export interface ChatCompletionToolMessage {
   role: 'tool';
   content: string;
   tool_call_id: string;
-}
-
-/**
- * Legacy function calling interface.
- * @deprecated this API is supported but deprecated by OpenAI.
- */
-export interface ChatCompletionFunctionMessage {
-  role: 'function';
-  content: string;
-  name: string;
 }

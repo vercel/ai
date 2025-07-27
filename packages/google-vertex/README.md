@@ -1,6 +1,6 @@
 # AI SDK - Google Vertex AI Provider
 
-The **[Google Vertex provider](https://sdk.vercel.ai/providers/ai-sdk-providers/google-vertex)** for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
+The **[Google Vertex provider](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
 
 This library includes a Google Vertex Anthropic provider. This provider closely follows the core Google Vertex library's usage patterns. See more in the [Google Vertex Anthropic Provider](#google-vertex-anthropic-provider) section below.
 
@@ -76,6 +76,60 @@ const { text } = await generateText({
   model: vertexAnthropic('claude-3-5-sonnet@20240620'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
+```
+
+## Prompt Caching Support for Anthropic Claude Models
+
+The Google Vertex Anthropic provider supports prompt caching for Anthropic Claude models. Prompt caching can help reduce latency and costs by reusing cached results for identical requests. Caches are unique to Google Cloud projects and have a five-minute lifetime.
+
+### Enabling Prompt Caching
+
+To enable prompt caching, you can use the `cacheControl` property in the settings. Here is an example demonstrating how to enable prompt caching:
+
+```ts
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { generateText } from 'ai';
+import fs from 'node:fs';
+
+const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
+
+async function main() {
+  const result = await generateText({
+    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022', {
+      cacheControl: true,
+    }),
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'You are a JavaScript expert.',
+          },
+          {
+            type: 'text',
+            text: `Error message: ${errorMessage}`,
+            providerOptions: {
+              anthropic: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+          {
+            type: 'text',
+            text: 'Explain the error message.',
+          },
+        ],
+      },
+    ],
+  });
+
+  console.log(result.text);
+  console.log(result.providerMetadata?.anthropic);
+  // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
+}
+
+main().catch(console.error);
 ```
 
 ## Custom Provider Configuration
@@ -164,4 +218,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[Google Vertex provider](https://sdk.vercel.ai/providers/ai-sdk-providers/google-vertex)** for more information.
+Please check out the **[Google Vertex provider](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex)** for more information.

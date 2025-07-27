@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - v5
     paths:
       - '.changeset/**'
       - '.github/workflows/release.yml'
@@ -18,19 +19,19 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9.12.3
+          version: 10.11.0
 
-      - name: Setup Node.js 18.x
-        uses: actions/setup-node@v2
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 22
 
       - name: Install Dependencies
         run: pnpm i
@@ -39,7 +40,6 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          # This expects you to have a script called release which does a build for your packages and calls changeset publish
           version: pnpm ci:version
           publish: pnpm ci:release
         env:

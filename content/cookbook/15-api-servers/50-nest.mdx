@@ -40,12 +40,12 @@ export class AppController {
 
 ### Sending Custom Data
 
-`createDataStream` can be used to send custom data to the client.
+`pipeDataStreamToResponse` can be used to send custom data to the client.
 
 ```ts filename='app.controller.ts' highlight="10-12,19"
 import { Controller, Post, Res } from '@nestjs/common';
 import { openai } from '@ai-sdk/openai';
-import { createDataStream, streamText } from 'ai';
+import { pipeDataStreamToResponse, streamText } from 'ai';
 import { Response } from 'express';
 
 @Controller()
@@ -96,3 +96,7 @@ export class AppController {
   }
 }
 ```
+
+## Troubleshooting
+
+- Streaming not working when [proxied](/docs/troubleshooting/streaming-not-working-when-proxied)

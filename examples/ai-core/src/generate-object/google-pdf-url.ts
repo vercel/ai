@@ -1,7 +1,7 @@
 import { google } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const { object: summary } = await generateObject({
@@ -24,7 +24,7 @@ async function main() {
             data:
               'https://user.phil.hhu.de/~cwurm/wp-content/uploads/' +
               '2020/01/7181-attention-is-all-you-need.pdf',
-            mimeType: 'application/pdf',
+            mediaType: 'application/pdf',
           },
         ],
       },

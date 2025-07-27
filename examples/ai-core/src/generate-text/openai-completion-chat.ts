@@ -5,7 +5,7 @@ import 'dotenv/config';
 async function main() {
   const result = await generateText({
     model: openai('gpt-3.5-turbo-instruct'),
-    maxTokens: 1024,
+    maxOutputTokens: 1024,
     system: 'You are a helpful chatbot.',
     messages: [
       {

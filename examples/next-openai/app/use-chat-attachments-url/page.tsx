@@ -1,41 +1,46 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import { useChat } from 'ai/react';
-import { useRef, useState } from 'react';
+import { useChat } from '@ai-sdk/react';
 import { upload } from '@vercel/blob/client';
-import { Attachment } from '@ai-sdk/ui-utils';
+import { FileUIPart } from 'ai';
+import { useRef, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } =
-    useChat({
-      api: '/api/chat',
-    });
+  const [input, setInput] = useState('');
+  const { messages, sendMessage, status } = useChat();
 
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [files, setFiles] = useState<FileUIPart[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-col p-2 gap-2">
+      <div className="flex flex-col gap-2 p-2">
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
-            <div className="w-24 text-zinc-500 flex-shrink-0">{`${message.role}: `}</div>
+            <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
 
             <div className="flex flex-col gap-2">
-              {message.content}
-
-              <div className="flex flex-row gap-2">
-                {message.experimental_attachments?.map((attachment, index) => (
-                  <img
-                    key={`${message.id}-${index}`}
-                    className="w-24 rounded-md"
-                    src={attachment.url}
-                    alt={attachment.name}
-                  />
-                ))}
-              </div>
+              {message.parts.map((part, index) => {
+                if (part.type === 'text') {
+                  return <div key={index}>{part.text}</div>;
+                }
+                if (
+                  part.type === 'file' &&
+                  part.mediaType?.startsWith('image/')
+                ) {
+                  return (
+                    <div key={index}>
+                      <img
+                        className="rounded-md w-60"
+                        src={part.url}
+                        alt={part.filename}
+                      />
+                    </div>
+                  );
+                }
+              })}
             </div>
           </div>
         ))}
@@ -48,29 +53,27 @@ export default function Page() {
             return;
           }
 
-          handleSubmit(event, {
-            experimental_attachments: attachments,
-          });
-
-          setAttachments([]);
+          sendMessage({ text: input, files });
+          setInput('');
+          setFiles([]);
 
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
           }
         }}
-        className="flex flex-col gap-2 fixed bottom-0 p-2 w-full"
+        className="fixed bottom-0 flex flex-col w-full gap-2 p-2"
       >
-        <div className="flex flex-row gap-2 fixed right-2 bottom-14 items-end">
-          {Array.from(attachments)
-            .filter(attachment => attachment.contentType?.startsWith('image/'))
-            .map(attachment => (
-              <div key={attachment.name}>
+        <div className="fixed flex flex-row items-end gap-2 right-2 bottom-14">
+          {Array.from(files)
+            .filter(file => file.mediaType?.startsWith('image/'))
+            .map(file => (
+              <div key={file.url}>
                 <img
                   className="w-24 rounded-md"
-                  src={attachment.url}
-                  alt={attachment.name}
+                  src={file.url}
+                  alt={file.filename}
                 />
-                <span className="text-sm text-zinc-500">{attachment.name}</span>
+                <span className="text-sm text-zinc-500">{file.filename}</span>
               </div>
             ))}
         </div>
@@ -86,11 +89,12 @@ export default function Page() {
                   handleUploadUrl: '/api/files',
                 });
 
-                setAttachments(prevAttachments => [
-                  ...prevAttachments,
+                setFiles(prevFiles => [
+                  ...prevFiles,
                   {
-                    name: file.name,
-                    contentType: blob.contentType,
+                    type: 'file' as const,
+                    filename: file.name,
+                    mediaType: blob.contentType ?? '*/*',
                     url: blob.url,
                   },
                 ]);
@@ -105,9 +109,9 @@ export default function Page() {
         <input
           value={input}
           placeholder="Send message..."
-          onChange={handleInputChange}
-          className="bg-zinc-100 w-full p-2"
-          disabled={isLoading}
+          onChange={e => setInput(e.target.value)}
+          className="w-full p-2 bg-zinc-100"
+          disabled={status !== 'ready'}
         />
       </form>
     </div>

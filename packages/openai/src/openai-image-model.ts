@@ -1,26 +1,26 @@
-import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
+import {
+  OpenAIImageModelId,
+  modelMaxImagesPerCall,
+  hasDefaultResponseFormat,
+} from './openai-image-settings';
 
-export type OpenAIImageModelId = 'dall-e-3' | 'dall-e-2' | (string & {});
+interface OpenAIImageModelConfig extends OpenAIConfig {
+  _internal?: {
+    currentDate?: () => Date;
+  };
+}
 
-// https://platform.openai.com/docs/guides/images
-const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
-  'dall-e-3': 1,
-  'dall-e-2': 10,
-};
-
-export class OpenAIImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
-  readonly modelId: OpenAIImageModelId;
-
-  private readonly config: OpenAIConfig;
+export class OpenAIImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
 
   get maxImagesPerCall(): number {
     return modelMaxImagesPerCall[this.modelId] ?? 1;
@@ -30,10 +30,10 @@ export class OpenAIImageModel implements ImageModelV1 {
     return this.config.provider;
   }
 
-  constructor(modelId: OpenAIImageModelId, config: OpenAIConfig) {
-    this.modelId = modelId;
-    this.config = config;
-  }
+  constructor(
+    readonly modelId: OpenAIImageModelId,
+    private readonly config: OpenAIImageModelConfig,
+  ) {}
 
   async doGenerate({
     prompt,
@@ -44,10 +44,10 @@ export class OpenAIImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
@@ -62,7 +62,8 @@ export class OpenAIImageModel implements ImageModelV1 {
       warnings.push({ type: 'unsupported-setting', setting: 'seed' });
     }
 
-    const { value: response } = await postJsonToApi({
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { value: response, responseHeaders } = await postJsonToApi({
       url: this.config.url({
         path: '/images/generations',
         modelId: this.modelId,
@@ -74,7 +75,9 @@ export class OpenAIImageModel implements ImageModelV1 {
         n,
         size,
         ...(providerOptions.openai ?? {}),
-        response_format: 'b64_json',
+        ...(!hasDefaultResponseFormat.has(this.modelId)
+          ? { response_format: 'b64_json' }
+          : {}),
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -87,6 +90,22 @@ export class OpenAIImageModel implements ImageModelV1 {
     return {
       images: response.data.map(item => item.b64_json),
       warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+      providerMetadata: {
+        openai: {
+          images: response.data.map(item =>
+            item.revised_prompt
+              ? {
+                  revisedPrompt: item.revised_prompt,
+                }
+              : null,
+          ),
+        },
+      },
     };
   }
 }
@@ -94,5 +113,7 @@ export class OpenAIImageModel implements ImageModelV1 {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiImageResponseSchema = z.object({
-  data: z.array(z.object({ b64_json: z.string() })),
+  data: z.array(
+    z.object({ b64_json: z.string(), revised_prompt: z.string().optional() }),
+  ),
 });

@@ -1,11 +1,11 @@
 import { xai } from '@ai-sdk/xai';
 import { streamObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamObject({
-    model: xai('grok-2-1212'),
+    model: xai('grok-3-beta'),
     schema: z.object({
       characters: z.array(
         z.object({

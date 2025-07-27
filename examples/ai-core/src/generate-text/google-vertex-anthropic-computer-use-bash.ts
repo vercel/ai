@@ -1,6 +1,6 @@
-import 'dotenv/config';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
+import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
@@ -22,7 +22,7 @@ async function main() {
       }),
     },
     prompt: 'List the files in my home directory.',
-    maxSteps: 2,
+    stopWhen: stepCountIs(2),
   });
 
   console.log(result.text);

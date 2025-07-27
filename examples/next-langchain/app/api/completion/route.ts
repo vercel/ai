@@ -1,5 +1,6 @@
+import { toUIMessageStream } from '@ai-sdk/langchain';
 import { ChatOpenAI } from '@langchain/openai';
-import { LangChainAdapter } from 'ai';
+import { createUIMessageStreamResponse } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -14,5 +15,7 @@ export async function POST(req: Request) {
 
   const stream = await model.stream(prompt);
 
-  return LangChainAdapter.toDataStreamResponse(stream);
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream(stream),
+  });
 }

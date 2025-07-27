@@ -1,2 +1,3 @@
 export * from '../google-generative-ai-language-model';
-export type { InternalGoogleGenerativeAISettings } from '../google-generative-ai-settings';
+export { googleTools } from '../google-tools';
+export type { GoogleGenerativeAIModelId } from '../google-generative-ai-options';

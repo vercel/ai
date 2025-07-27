@@ -1,8 +1,8 @@
-import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
 
 export function mapCohereFinishReason(
   finishReason: string | null | undefined,
-): LanguageModelV1FinishReason {
+): LanguageModelV2FinishReason {
   switch (finishReason) {
     case 'COMPLETE':
     case 'STOP_SEQUENCE':
@@ -12,14 +12,10 @@ export function mapCohereFinishReason(
       return 'length';
 
     case 'ERROR':
-    case 'ERROR_LIMIT':
       return 'error';
 
-    case 'ERROR_TOXIC':
-      return 'content-filter';
-
-    case 'USER_CANCEL':
-      return 'other';
+    case 'TOOL_CALL':
+      return 'tool-calls';
 
     default:
       return 'unknown';

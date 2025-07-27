@@ -1,5 +1,5 @@
-import { EmbeddingModelV1Embedding } from '@ai-sdk/provider';
-import { JsonTestServer } from '@ai-sdk/provider-utils/test';
+import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createCohere } from './cohere-provider';
 
 const dummyEmbeddings = [
@@ -11,23 +11,29 @@ const testValues = ['sunny day at the beach', 'rainy day in the city'];
 const provider = createCohere({ apiKey: 'test-api-key' });
 const model = provider.textEmbeddingModel('embed-english-v3.0');
 
+const server = createTestServer({
+  'https://api.cohere.com/v2/embed': {},
+});
+
 describe('doEmbed', () => {
-  const server = new JsonTestServer('https://api.cohere.com/v2/embed');
-
-  server.setupTestEnvironment();
-
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
     meta = { billed_units: { input_tokens: 8 } },
+    headers,
   }: {
-    embeddings?: EmbeddingModelV1Embedding[];
+    embeddings?: EmbeddingModelV2Embedding[];
     meta?: { billed_units: { input_tokens: number } };
+    headers?: Record<string, string>;
   } = {}) {
-    server.responseBodyJson = {
-      id: 'test-id',
-      texts: testValues,
-      embeddings: { float: embeddings },
-      meta,
+    server.urls['https://api.cohere.com/v2/embed'].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        id: 'test-id',
+        texts: testValues,
+        embeddings: { float: embeddings },
+        meta,
+      },
     };
   }
 
@@ -39,16 +45,14 @@ describe('doEmbed', () => {
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
 
-  it('should expose the raw response headers', async () => {
-    prepareJsonResponse();
+  it('should expose the raw response', async () => {
+    prepareJsonResponse({
+      headers: { 'test-header': 'test-value' },
+    });
 
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+    const { response } = await model.doEmbed({ values: testValues });
 
-    const { rawResponse } = await model.doEmbed({ values: testValues });
-
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '185',
       'content-type': 'application/json',
@@ -56,6 +60,7 @@ describe('doEmbed', () => {
       // custom header
       'test-header': 'test-value',
     });
+    expect(response).toMatchSnapshot();
   });
 
   it('should extract usage', async () => {
@@ -73,7 +78,7 @@ describe('doEmbed', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'embed-english-v3.0',
       embedding_types: ['float'],
       texts: testValues,
@@ -84,13 +89,16 @@ describe('doEmbed', () => {
   it('should pass the input_type setting', async () => {
     prepareJsonResponse();
 
-    await provider
-      .textEmbeddingModel('embed-english-v3.0', {
-        inputType: 'search_document',
-      })
-      .doEmbed({ values: testValues });
+    await provider.textEmbeddingModel('embed-english-v3.0').doEmbed({
+      values: testValues,
+      providerOptions: {
+        cohere: {
+          inputType: 'search_document',
+        },
+      },
+    });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'embed-english-v3.0',
       embedding_types: ['float'],
       texts: testValues,
@@ -115,7 +123,7 @@ describe('doEmbed', () => {
       },
     });
 
-    const requestHeaders = await server.getRequestHeaders();
+    const requestHeaders = server.calls[0].requestHeaders;
 
     expect(requestHeaders).toStrictEqual({
       authorization: 'Bearer test-api-key',

@@ -144,24 +144,24 @@ const runCompletion = async () =>
         content: `What book is the following text from?: <text>${longPrompt}</text>`,
       },
     ],
-    experimental_providerMetadata: {
+    providerOptions: {
       openai: { maxCompletionTokens: 100 },
     },
   });
 
 async function main() {
   let start = performance.now();
-  const { text, usage, experimental_providerMetadata } = await runCompletion();
+  const { text, usage, providerMetadata } = await runCompletion();
   let end = performance.now();
 
   console.log(
-    `PLEASE NOTE caching behavior is transparent and difficult to test. 
+    `PLEASE NOTE caching behavior is transparent and difficult to test.
     If you don't get a cache hit the first time, try several additional times.`,
   );
 
   console.log(`First pass text:`, text);
   console.log(`First pass usage:`, usage);
-  console.log(`First pass provider metadata:`, experimental_providerMetadata);
+  console.log(`First pass provider metadata:`, providerMetadata);
   console.log(`First pass time: ${Math.floor(end - start)} ms`);
 
   console.log();
@@ -172,13 +172,13 @@ async function main() {
   const {
     text: text2,
     usage: usage2,
-    experimental_providerMetadata: experimental_providerMetadata2,
+    providerMetadata: providerMetadata2,
   } = await runCompletion();
   end = performance.now();
 
   console.log(`Second pass text:`, text2);
   console.log(`Second pass usage:`, usage2);
-  console.log(`Second pass provider metadata:`, experimental_providerMetadata2);
+  console.log(`Second pass provider metadata:`, providerMetadata2);
   console.log(`First pass time: ${Math.floor(end - start)} ms`);
 }
 

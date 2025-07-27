@@ -1,59 +1,53 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, setInput, append, isLoading } = useChat({
-    api: '/api/chat',
-  });
+  const { messages, sendMessage, status } = useChat();
+  const [input, setInput] = useState('');
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-col p-2 gap-2">
+      <div className="flex flex-col gap-2 p-2">
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
-            <div className="w-24 text-zinc-500 flex-shrink-0">{`${message.role}: `}</div>
+            <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
 
             <div className="flex flex-col gap-2">
-              {message.content}
-
-              <div className="flex flex-row gap-2">
-                {message.experimental_attachments?.map((attachment, index) =>
-                  attachment.contentType?.includes('image/') ? (
-                    <img
-                      key={`${message.id}-${index}`}
-                      className="w-24 rounded-md"
-                      src={attachment.url}
-                      alt={attachment.name}
-                    />
-                  ) : attachment.contentType?.includes('text/') ? (
-                    <div className="w-32 h-24 rounded-md text-xs ellipsis overflow-hidden p-2 text-zinc-500 border">
-                      {getTextFromDataUrl(attachment.url)}
+              {message.parts.map((part, index) => {
+                if (part.type === 'text') {
+                  return <div key={index}>{part.text}</div>;
+                }
+                if (
+                  part.type === 'file' &&
+                  part.mediaType?.startsWith('image/')
+                ) {
+                  return (
+                    <div key={index}>
+                      <img
+                        className="rounded-md w-60"
+                        src={part.url}
+                        alt={part.filename}
+                      />
                     </div>
-                  ) : null,
-                )}
-              </div>
+                  );
+                }
+              })}
             </div>
           </div>
         ))}
       </div>
 
       <form
-        onSubmit={event => {
+        onSubmit={async event => {
           event.preventDefault();
 
-          append(
-            { role: 'user', content: input },
-            {
-              experimental_attachments: files,
-            },
-          );
+          sendMessage({ text: input, files });
 
           setFiles(undefined);
           setInput('');
@@ -62,9 +56,9 @@ export default function Page() {
             fileInputRef.current.value = '';
           }
         }}
-        className="flex flex-col gap-2 fixed bottom-0 p-2 w-full"
+        className="fixed bottom-0 flex flex-col w-full gap-2 p-2"
       >
-        <div className="flex flex-row gap-2 fixed right-2 bottom-14 items-end">
+        <div className="fixed flex flex-row items-end gap-2 right-2 bottom-14">
           {files
             ? Array.from(files).map(attachment => {
                 const { type } = attachment;
@@ -80,16 +74,6 @@ export default function Page() {
                       <span className="text-sm text-zinc-500">
                         {attachment.name}
                       </span>
-                    </div>
-                  );
-                } else if (type.startsWith('text/')) {
-                  return (
-                    <div
-                      key={attachment.name}
-                      className="w-24 text-zinc-500 flex-shrink-0 text-sm flex flex-col gap-1"
-                    >
-                      <div className="w-16 h-20 bg-zinc-100 rounded-md" />
-                      {attachment.name}
                     </div>
                   );
                 }
@@ -109,11 +93,9 @@ export default function Page() {
         <input
           value={input}
           placeholder="Send message..."
-          onChange={event => {
-            setInput(event.target.value);
-          }}
-          className="bg-zinc-100 w-full p-2"
-          disabled={isLoading}
+          onChange={e => setInput(e.target.value)}
+          className="w-full p-2 bg-zinc-100"
+          disabled={status !== 'ready'}
         />
       </form>
     </div>

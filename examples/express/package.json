@@ -1,21 +1,22 @@
 {
-  "name": "ai-sdk-express-example",
+  "name": "@example/express",
   "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "tsx src/server.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --build"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.0.16",
-    "ai": "4.0.31",
+    "@ai-sdk/openai": "workspace:*",
+    "ai": "workspace:*",
     "dotenv": "16.4.5",
     "express": "5.0.1"
   },
   "devDependencies": {
     "@types/express": "5.0.0",
-    "@types/node": "20.11.20",
+    "@types/node": "20.17.24",
     "tsx": "4.19.2",
-    "typescript": "5.6.3"
+    "typescript": "5.8.3",
+    "@vercel/ai-tsconfig": "workspace:*"
   }
 }

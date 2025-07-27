@@ -1,0 +1,68 @@
+{
+  "compilerOptions": {
+    "composite": true
+  },
+  "references": [
+    {
+      "path": "./"
+    },
+    {
+      "path": "examples/ai-core"
+    },
+    {
+      "path": "examples/angular"
+    },
+    {
+      "path": "examples/express"
+    },
+    {
+      "path": "examples/fastify"
+    },
+    {
+      "path": "examples/hono"
+    },
+    {
+      "path": "examples/mcp"
+    },
+    {
+      "path": "examples/nest"
+    },
+    {
+      "path": "examples/next"
+    },
+    {
+      "path": "examples/next-fastapi"
+    },
+    {
+      "path": "examples/next-google-vertex"
+    },
+    {
+      "path": "examples/next-langchain"
+    },
+    {
+      "path": "examples/next-openai"
+    },
+    {
+      "path": "examples/next-openai-kasada-bot-protection"
+    },
+    {
+      "path": "examples/next-openai-pages"
+    },
+    {
+      "path": "examples/next-openai-telemetry-sentry"
+    },
+    {
+      "path": "examples/next-openai-telemetry"
+    },
+    {
+      "path": "examples/next-openai-upstash-rate-limits"
+    },
+    {
+      "path": "examples/node-http-server"
+    },
+    {
+      "path": "examples/nuxt-openai"
+    }
+  ],
+  "include": []
+}

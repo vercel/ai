@@ -1,26 +1,27 @@
-import 'dotenv/config';
 import { fireworks } from '@ai-sdk/fireworks';
 import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
+import { presentImages } from '../lib/present-image';
+import 'dotenv/config';
 
 async function main() {
-  const { image } = await generateImage({
-    model: fireworks.image('accounts/fireworks/models/flux-1-dev-fp8'),
+  const result = await generateImage({
+    model: fireworks.image(
+      'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0',
+    ),
     prompt: 'A burrito launched through a tunnel',
-    aspectRatio: '4:3',
-    seed: 0, // 0 is random seed for this model
+    size: '1024x1024',
+    seed: 0,
+    n: 2,
     providerOptions: {
       fireworks: {
-        // https://fireworks.ai/models/fireworks/flux-1-dev-fp8/playground
-        guidance_scale: 10,
-        num_inference_steps: 10,
+        // https://fireworks.ai/models/fireworks/stable-diffusion-xl-1024-v1-0/playground
+        cfg_scale: 10,
+        steps: 30,
       },
     },
   });
 
-  const filename = `image-${Date.now()}.png`;
-  fs.writeFileSync(filename, image.uint8Array);
-  console.log(`Image saved to ${filename}`);
+  await presentImages(result.images);
 }
 
 main().catch(console.error);

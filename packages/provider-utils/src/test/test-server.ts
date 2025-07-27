@@ -1,42 +1,87 @@
-import { HttpResponse, JsonBodyType, http } from 'msw';
+import { http, HttpResponse, JsonBodyType } from 'msw';
 import { setupServer } from 'msw/node';
 import { convertArrayToReadableStream } from './convert-array-to-readable-stream';
 
-export type TestServerJsonBodyType = JsonBodyType;
-
-export type TestServerResponse = {
-  url: string;
-  headers?: Record<string, string>;
-} & (
+export type UrlResponse =
   | {
       type: 'json-value';
-      content: TestServerJsonBodyType;
+      headers?: Record<string, string>;
+      body: JsonBodyType;
     }
   | {
-      type: 'stream-values';
-      content: Array<string>;
+      type: 'stream-chunks';
+      headers?: Record<string, string>;
+      chunks: Array<string>;
     }
   | {
-      type: 'controlled-stream';
-      id?: string;
+      type: 'binary';
+      headers?: Record<string, string>;
+      body: Buffer;
+    }
+  | {
+      type: 'empty';
+      headers?: Record<string, string>;
+      status?: number;
     }
   | {
       type: 'error';
-      status: number;
-      content?: string;
+      headers?: Record<string, string>;
+      status?: number;
+      body?: string;
     }
-);
+  | {
+      type: 'controlled-stream';
+      headers?: Record<string, string>;
+      controller: TestResponseController;
+    }
+  | undefined;
+
+type UrlResponseParameter =
+  | UrlResponse
+  | UrlResponse[]
+  | ((options: { callNumber: number }) => UrlResponse);
+
+export type UrlHandler = {
+  response: UrlResponseParameter;
+};
+
+export type UrlHandlers<
+  URLS extends {
+    [url: string]: {
+      response?: UrlResponseParameter;
+    };
+  },
+> = {
+  [url in keyof URLS]: UrlHandler;
+};
 
 class TestServerCall {
   constructor(private request: Request) {}
 
-  async getRequestBodyJson() {
-    expect(this.request).toBeDefined();
-    return JSON.parse(await this.request!.text());
+  get requestBodyJson() {
+    return this.request!.text().then(JSON.parse);
   }
 
-  getRequestHeaders() {
-    expect(this.request).toBeDefined();
+  get requestBodyMultipart() {
+    return this.request!.headers.get('content-type')?.startsWith(
+      'multipart/form-data',
+    )
+      ? // For multipart/form-data, return the form data entries as an object
+        this.request!.formData().then(formData => {
+          const entries: Record<string, any> = {};
+          formData.forEach((value, key) => {
+            entries[key] = value;
+          });
+          return entries;
+        })
+      : null;
+  }
+
+  get requestCredentials() {
+    return this.request!.credentials;
+  }
+
+  get requestHeaders() {
     const requestHeaders = this.request!.headers;
 
     // convert headers to object for easier comparison
@@ -48,79 +93,56 @@ class TestServerCall {
     return headersObject;
   }
 
-  getRequestUrlSearchParams() {
-    expect(this.request).toBeDefined();
+  get requestUrlSearchParams() {
     return new URL(this.request!.url).searchParams;
+  }
+
+  get requestUrl() {
+    return this.request!.url;
+  }
+
+  get requestMethod() {
+    return this.request!.method;
   }
 }
 
-function createServer({
-  responses,
-  pushCall,
-  pushController,
-}: {
-  responses: Array<TestServerResponse> | TestServerResponse;
-  pushCall: (call: TestServerCall) => void;
-  pushController: (
-    id: string,
-    controller: () => ReadableStreamDefaultController<string>,
-  ) => void;
-}) {
-  // group responses by url
-  const responsesArray = Array.isArray(responses) ? responses : [responses];
-  const responsesByUrl = responsesArray.reduce((responsesByUrl, response) => {
-    if (!responsesByUrl[response.url]) {
-      responsesByUrl[response.url] = [];
-    }
-    responsesByUrl[response.url].push(response);
-    return responsesByUrl;
-  }, {} as Record<string, Array<TestServerResponse>>);
+export function createTestServer<
+  URLS extends {
+    [url: string]: {
+      response?: UrlResponseParameter;
+    };
+  },
+>(
+  routes: URLS,
+): {
+  urls: UrlHandlers<URLS>;
+  calls: TestServerCall[];
+} {
+  const originalRoutes = structuredClone(routes); // deep copy
 
-  // create stream/streamController pairs for controlled-stream responses
-  const streams = {} as Record<string, ReadableStream<string>>;
-  responsesArray
-    .filter(
-      (
-        response,
-      ): response is TestServerResponse & { type: 'controlled-stream' } =>
-        response.type === 'controlled-stream',
-    )
-    .forEach(response => {
-      let streamController: ReadableStreamDefaultController<string>;
+  const mswServer = setupServer(
+    ...Object.entries(routes).map(([url, handler]) => {
+      return http.all(url, ({ request }) => {
+        const callNumber = calls.length;
 
-      const stream = new ReadableStream<string>({
-        start(controller) {
-          streamController = controller;
-        },
-      });
+        calls.push(new TestServerCall(request));
 
-      pushController(response.id ?? '', () => streamController);
-      streams[response.id ?? ''] = stream;
-    });
-
-  // keep track of url invocation counts:
-  // TODO bug needs reset after each test
-  const urlInvocationCounts = Object.fromEntries(
-    Object.entries(responsesByUrl).map(([url]) => [url, 0]),
-  );
-
-  return setupServer(
-    ...Object.entries(responsesByUrl).map(([url, responses]) => {
-      return http.post(url, ({ request }) => {
-        pushCall(new TestServerCall(request));
-
-        const invocationCount = urlInvocationCounts[url]++;
         const response =
-          responses[
-            // TODO bug needs to be >=
-            invocationCount > responses.length
-              ? responses.length - 1
-              : invocationCount
-          ];
+          typeof handler.response === 'function'
+            ? handler.response({ callNumber })
+            : Array.isArray(handler.response)
+              ? handler.response[callNumber]
+              : handler.response;
 
-        switch (response.type) {
+        if (response === undefined) {
+          return HttpResponse.json({ error: 'Not Found' }, { status: 404 });
+        }
+
+        const handlerType = response.type;
+
+        switch (handlerType) {
           case 'json-value':
-            return HttpResponse.json(response.content, {
+            return HttpResponse.json(response.body, {
               status: 200,
               headers: {
                 'Content-Type': 'application/json',
@@ -128,9 +150,9 @@ function createServer({
               },
             });
 
-          case 'stream-values':
+          case 'stream-chunks':
             return new HttpResponse(
-              convertArrayToReadableStream(response.content).pipeThrough(
+              convertArrayToReadableStream(response.chunks).pipeThrough(
                 new TextEncoderStream(),
               ),
               {
@@ -145,8 +167,16 @@ function createServer({
             );
 
           case 'controlled-stream': {
+            if (request.signal) {
+              request.signal.addEventListener('abort', () => {
+                response.controller.error(
+                  new DOMException('Aborted', 'AbortError'),
+                );
+              });
+            }
+
             return new HttpResponse(
-              streams[response.id ?? ''].pipeThrough(new TextEncoderStream()),
+              response.controller.stream.pipeThrough(new TextEncoderStream()),
               {
                 status: 200,
                 headers: {
@@ -159,111 +189,84 @@ function createServer({
             );
           }
 
-          case 'error':
-            return HttpResponse.text(response.content ?? 'Error', {
-              status: response.status,
-              headers: {
-                ...response.headers,
-              },
+          case 'binary': {
+            return HttpResponse.arrayBuffer(response.body, {
+              status: 200,
+              headers: response.headers,
             });
+          }
+
+          case 'error':
+            return HttpResponse.text(response.body ?? 'Error', {
+              status: response.status ?? 500,
+              headers: response.headers,
+            });
+
+          case 'empty':
+            return new HttpResponse(null, {
+              status: response.status ?? 200,
+            });
+
+          default: {
+            const _exhaustiveCheck: never = handlerType;
+            throw new Error(`Unknown response type: ${_exhaustiveCheck}`);
+          }
         }
       });
     }),
   );
-}
 
-export function withTestServer(
-  responses: Array<TestServerResponse> | TestServerResponse,
-  testFunction: (options: {
-    calls: () => Array<TestServerCall>;
-    call: (index: number) => TestServerCall;
-    getStreamController: (
-      id: string,
-    ) => ReadableStreamDefaultController<string>;
-    streamController: ReadableStreamDefaultController<string>;
-  }) => Promise<void>,
-) {
-  return async () => {
-    const calls: Array<TestServerCall> = [];
-    const controllers: Record<
-      string,
-      () => ReadableStreamDefaultController<string>
-    > = {};
-    const server = createServer({
-      responses,
-      pushCall: call => calls.push(call),
-      pushController: (id, controller) => {
-        controllers[id] = controller;
-      },
+  let calls: TestServerCall[] = [];
+
+  beforeAll(() => {
+    mswServer.listen();
+  });
+
+  beforeEach(() => {
+    mswServer.resetHandlers();
+
+    // set the responses back to the original values
+    Object.entries(originalRoutes).forEach(([url, handler]) => {
+      routes[url].response = handler.response;
     });
 
-    try {
-      server.listen();
+    calls = [];
+  });
 
-      await testFunction({
-        calls: () => calls,
-        call: (index: number) => calls[index],
-        getStreamController: (id: string) => {
-          return controllers[id]();
-        },
-        get streamController() {
-          return controllers['']();
-        },
-      });
-    } finally {
-      server.close();
-    }
+  afterAll(() => {
+    mswServer.close();
+  });
+
+  return {
+    urls: routes as UrlHandlers<URLS>,
+    get calls() {
+      return calls;
+    },
   };
 }
 
-export function describeWithTestServer(
-  description: string,
-  responses: Array<TestServerResponse> | TestServerResponse,
-  testFunction: (options: {
-    calls: () => Array<TestServerCall>;
-    call: (index: number) => TestServerCall;
-    getStreamController: (
-      id: string,
-    ) => ReadableStreamDefaultController<string>;
-    streamController: ReadableStreamDefaultController<string>;
-  }) => void,
-) {
-  describe(description, () => {
-    let calls: Array<TestServerCall>;
-    let controllers: Record<
-      string,
-      () => ReadableStreamDefaultController<string>
-    >;
-    let server: ReturnType<typeof setupServer>;
+export class TestResponseController {
+  private readonly transformStream: TransformStream;
+  private readonly writer: WritableStreamDefaultWriter;
 
-    beforeAll(() => {
-      server = createServer({
-        responses,
-        pushCall: call => calls.push(call),
-        pushController: (id, controller) => {
-          controllers[id] = controller;
-        },
-      });
-      server.listen();
-    });
+  constructor() {
+    this.transformStream = new TransformStream();
+    this.writer = this.transformStream.writable.getWriter();
+  }
 
-    beforeEach(() => {
-      calls = [];
-      controllers = {};
-      server.resetHandlers();
-    });
+  get stream(): ReadableStream {
+    return this.transformStream.readable;
+  }
 
-    afterAll(() => {
-      server.close();
-    });
+  async write(chunk: string): Promise<void> {
+    await this.writer.write(chunk);
+  }
 
-    testFunction({
-      calls: () => calls,
-      call: (index: number) => calls[index],
-      getStreamController: (id: string) => controllers[id](),
-      get streamController() {
-        return controllers['']();
-      },
-    });
-  });
+  async error(error: Error): Promise<void> {
+    await this.writer.abort(error);
+  }
+
+  async close(): Promise<void> {
+    await this.writer.close();
+  }
 }

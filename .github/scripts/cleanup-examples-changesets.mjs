@@ -46,5 +46,5 @@ for (const app of readdirSync(fileURLToPath(examplesUrl))) {
 // next test server
 cleanup(
   '.',
-  new URL('../../packages/ai/tests/e2e/next-server', import.meta.url),
+  new URL('../../packages/rsc/tests/e2e/next-server', import.meta.url),
 );

@@ -1,6 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
-import { z } from 'zod';
+import { convertToModelMessages, stepCountIs, streamText } from 'ai';
+import { z } from 'zod/v4';
 
 export default defineLazyEventHandler(async () => {
   const openai = createOpenAI({
@@ -11,15 +11,14 @@ export default defineLazyEventHandler(async () => {
     const { messages } = await readBody(event);
 
     const result = streamText({
-      model: openai('gpt-4-turbo'),
-      messages,
-      experimental_toolCallStreaming: true,
-      maxSteps: 5, // multi-steps for server-side tools
+      model: openai('gpt-4o'),
+      messages: convertToModelMessages(messages),
+      stopWhen: stepCountIs(5), // multi-steps for server-side tools
       tools: {
         // server-side tool with execute function:
         getWeatherInformation: {
           description: 'show the weather in a given city to the user',
-          parameters: z.object({ city: z.string() }),
+          inputSchema: z.object({ city: z.string() }),
           execute: async ({}: { city: string }) => {
             // Add artificial delay of 2 seconds
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -39,7 +38,7 @@ export default defineLazyEventHandler(async () => {
         // client-side tool that starts user interaction:
         askForConfirmation: {
           description: 'Ask the user for confirmation.',
-          parameters: z.object({
+          inputSchema: z.object({
             message: z
               .string()
               .describe('The message to ask for confirmation.'),
@@ -49,11 +48,11 @@ export default defineLazyEventHandler(async () => {
         getLocation: {
           description:
             'Get the user location. Always ask for confirmation before using this tool.',
-          parameters: z.object({}),
+          inputSchema: z.object({}),
         },
       },
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   });
 });

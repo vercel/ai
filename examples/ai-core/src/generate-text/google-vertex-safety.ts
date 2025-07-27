@@ -4,14 +4,17 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: vertex('gemini-1.5-pro', {
-      safetySettings: [
-        {
-          category: 'HARM_CATEGORY_UNSPECIFIED',
-          threshold: 'BLOCK_LOW_AND_ABOVE',
-        },
-      ],
-    }),
+    model: vertex('gemini-1.5-pro'),
+    providerOptions: {
+      google: {
+        safetySettings: [
+          {
+            category: 'HARM_CATEGORY_UNSPECIFIED',
+            threshold: 'BLOCK_LOW_AND_ABOVE',
+          },
+        ],
+      },
+    },
     prompt: 'tell me a joke about a clown',
   });
 

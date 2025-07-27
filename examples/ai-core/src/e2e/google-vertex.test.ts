@@ -1,12 +1,9 @@
+import { vertex as vertexNode } from '@ai-sdk/google-vertex';
+import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
+import { ImageModelV2, LanguageModelV2 } from '@ai-sdk/provider';
+import { APICallError, experimental_generateImage as generateImage } from 'ai';
 import 'dotenv/config';
 import { describe, expect, it, vi } from 'vitest';
-import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
-import { vertex as vertexNode } from '@ai-sdk/google-vertex';
-import {
-  APICallError,
-  LanguageModelV1,
-  experimental_generateImage as generateImage,
-} from 'ai';
 import {
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
@@ -15,7 +12,8 @@ import {
   defaultChatModelCapabilities,
   ModelWithCapabilities,
 } from './feature-test-suite';
-import { ImageModelV1 } from '@ai-sdk/provider';
+import { wrapLanguageModel } from 'ai';
+import { defaultSettingsMiddleware } from 'ai';
 
 const RUNTIME_VARIANTS = {
   edge: {
@@ -31,7 +29,7 @@ const RUNTIME_VARIANTS = {
 const createBaseModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1> =>
+): ModelWithCapabilities<LanguageModelV2> =>
   createLanguageModelWithCapabilities(vertex(modelId), [
     ...defaultChatModelCapabilities,
     'audioInput',
@@ -40,16 +38,25 @@ const createBaseModel = (
 const createSearchGroundedModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1> => ({
-  model: vertex(modelId, {
-    useSearchGrounding: true,
+): ModelWithCapabilities<LanguageModelV2> => ({
+  model: wrapLanguageModel({
+    model: vertex(modelId),
+    middleware: defaultSettingsMiddleware({
+      settings: {
+        providerOptions: {
+          google: {
+            useSearchGrounding: true,
+          },
+        },
+      },
+    }),
   }),
   capabilities: [...defaultChatModelCapabilities, 'searchGrounding'],
 });
 
 const createModelObject = (
-  imageModel: ImageModelV1,
-): { model: ImageModelV1; modelId: string } => ({
+  imageModel: ImageModelV2,
+): { model: ImageModelV2; modelId: string } => ({
   model: imageModel,
   modelId: imageModel.modelId,
 });
@@ -57,8 +64,8 @@ const createModelObject = (
 const createImageModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-  additionalTests: ((model: ImageModelV1) => void)[] = [],
-): ModelWithCapabilities<ImageModelV1> => {
+  additionalTests: ((model: ImageModelV2) => void)[] = [],
+): ModelWithCapabilities<ImageModelV2> => {
   const model = vertex.image(modelId);
 
   if (additionalTests.length > 0) {
@@ -75,7 +82,7 @@ const createImageModel = (
 const createModelVariants = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1>[] => [
+): ModelWithCapabilities<LanguageModelV2>[] => [
   createBaseModel(vertex, modelId),
   createSearchGroundedModel(vertex, modelId),
 ];
@@ -101,7 +108,7 @@ const createModelsForRuntime = (
   ],
   imageModels: [
     createImageModel(vertex, 'imagen-3.0-fast-generate-001', [imageTest]),
-    createImageModel(vertex, 'imagen-3.0-generate-001', [imageTest]),
+    createImageModel(vertex, 'imagen-3.0-generate-002', [imageTest]),
   ],
 });
 
@@ -122,29 +129,29 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
   },
 );
 
-const mimeTypeSignatures = [
-  { mimeType: 'image/gif' as const, bytes: [0x47, 0x49, 0x46] },
-  { mimeType: 'image/png' as const, bytes: [0x89, 0x50, 0x4e, 0x47] },
-  { mimeType: 'image/jpeg' as const, bytes: [0xff, 0xd8] },
-  { mimeType: 'image/webp' as const, bytes: [0x52, 0x49, 0x46, 0x46] },
+const mediaTypeSignatures = [
+  { mediaType: 'image/gif' as const, bytes: [0x47, 0x49, 0x46] },
+  { mediaType: 'image/png' as const, bytes: [0x89, 0x50, 0x4e, 0x47] },
+  { mediaType: 'image/jpeg' as const, bytes: [0xff, 0xd8] },
+  { mediaType: 'image/webp' as const, bytes: [0x52, 0x49, 0x46, 0x46] },
 ];
 
-function detectImageMimeType(
+function detectImageMediaType(
   image: Uint8Array,
 ): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' | undefined {
-  for (const { bytes, mimeType } of mimeTypeSignatures) {
+  for (const { bytes, mediaType } of mediaTypeSignatures) {
     if (
       image.length >= bytes.length &&
       bytes.every((byte, index) => image[index] === byte)
     ) {
-      return mimeType;
+      return mediaType;
     }
   }
 
   return undefined;
 }
 
-const imageTest = (model: ImageModelV1) => {
+const imageTest = (model: ImageModelV2) => {
   vi.setConfig({ testTimeout: 10000 });
 
   it('should generate an image with correct dimensions and format', async () => {
@@ -166,8 +173,8 @@ const imageTest = (model: ImageModelV1) => {
     expect(image.uint8Array.length).toBeLessThan(10 * 1024 * 1024);
 
     // Verify PNG format
-    const mimeType = detectImageMimeType(image.uint8Array);
-    expect(mimeType).toBe('image/png');
+    const mediaType = detectImageMediaType(image.uint8Array);
+    expect(mediaType).toBe('image/png');
 
     // Create a temporary buffer to verify image dimensions
     const tempBuffer = Buffer.from(image.uint8Array);

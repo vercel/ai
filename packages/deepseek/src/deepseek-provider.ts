@@ -1,18 +1,16 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  DeepSeekChatModelId,
-  DeepSeekChatSettings,
-} from './deepseek-chat-settings';
+import { DeepSeekChatModelId } from './deepseek-chat-options';
+import { deepSeekMetadataExtractor } from './deepseek-metadata-extractor';
 
 export interface DeepSeekProviderSettings {
   /**
@@ -34,30 +32,21 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface DeepSeekProvider extends ProviderV1 {
+export interface DeepSeekProvider extends ProviderV2 {
   /**
 Creates a DeepSeek model for text generation.
 */
-  (
-    modelId: DeepSeekChatModelId,
-    settings?: DeepSeekChatSettings,
-  ): LanguageModelV1;
+  (modelId: DeepSeekChatModelId): LanguageModelV2;
 
   /**
 Creates a DeepSeek model for text generation.
 */
-  languageModel(
-    modelId: DeepSeekChatModelId,
-    settings?: DeepSeekChatSettings,
-  ): LanguageModelV1;
+  languageModel(modelId: DeepSeekChatModelId): LanguageModelV2;
 
   /**
 Creates a DeepSeek chat model for text generation.
 */
-  chat(
-    modelId: DeepSeekChatModelId,
-    settings?: DeepSeekChatSettings,
-  ): LanguageModelV1;
+  chat(modelId: DeepSeekChatModelId): LanguageModelV2;
 }
 
 export function createDeepSeek(
@@ -75,34 +64,30 @@ export function createDeepSeek(
     ...options.headers,
   });
 
-  const createLanguageModel = (
-    modelId: DeepSeekChatModelId,
-    settings: DeepSeekChatSettings = {},
-  ) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
+  const createLanguageModel = (modelId: DeepSeekChatModelId) => {
+    return new OpenAICompatibleChatLanguageModel(modelId, {
       provider: `deepseek.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      defaultObjectGenerationMode: 'json',
+      metadataExtractor: deepSeekMetadataExtractor,
     });
   };
 
-  const provider = (
-    modelId: DeepSeekChatModelId,
-    settings?: DeepSeekChatSettings,
-  ) => createLanguageModel(modelId, settings);
+  const provider = (modelId: DeepSeekChatModelId) =>
+    createLanguageModel(modelId);
 
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
+
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
-  provider.rerankingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
-  return provider as DeepSeekProvider;
+  return provider;
 }
 
 export const deepseek = createDeepSeek();

@@ -1,6 +1,6 @@
 # AI SDK - Replicate Provider
 
-The **[Replicate provider](https://sdk.vercel.ai/providers/ai-sdk-providers/replicate)** for the [AI SDK](https://sdk.vercel.ai/docs) contains image model support for the Replicate API.
+The **[Replicate provider](https://ai-sdk.dev/providers/ai-sdk-providers/replicate)** for the [AI SDK](https://ai-sdk.dev/docs) contains image model support for the Replicate API.
 
 ## Setup
 
@@ -43,4 +43,4 @@ const { image } = await generateImage({
 
 ## Documentation
 
-Please check out the **[Replicate provider](https://sdk.vercel.ai/providers/ai-sdk-providers/replicate)** for more information.
+Please check out the **[Replicate provider](https://ai-sdk.dev/providers/ai-sdk-providers/replicate)** for more information.

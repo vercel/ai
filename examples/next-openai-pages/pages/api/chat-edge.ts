@@ -11,5 +11,5 @@ export default async function handler(req: Request) {
     messages,
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }

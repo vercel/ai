@@ -56,7 +56,7 @@ AI SDK RSC simplifies managing AI and UI state across your application by provid
 
 Notably, this means you do not have to pass the message history to the server explicitly for each request. You also can access and update your application state in any child component of the context provider. As you begin building [multistep generative interfaces](/docs/ai-sdk-rsc/multistep-interfaces), this will be particularly helpful.
 
-To use `ai/rsc` to manage AI and UI State in your application, you can create a React context using [`createAI`](/docs/reference/ai-sdk-rsc/create-ai):
+To use `@ai-sdk/rsc` to manage AI and UI State in your application, you can create a React context using [`createAI`](/docs/reference/ai-sdk-rsc/create-ai):
 
 ```tsx filename='app/actions.tsx'
 // Define the AI state and UI state types
@@ -78,7 +78,7 @@ export const sendMessage = async (input: string): Promise<ClientMessage> => {
 ```
 
 ```tsx filename='app/ai.ts'
-import { createAI } from 'ai/rsc';
+import { createAI } from '@ai-sdk/rsc';
 import { ClientMessage, ServerMessage, sendMessage } from './actions';
 
 export type AIState = ServerMessage[];
@@ -124,7 +124,7 @@ The UI state can be accessed in Client Components using the [`useUIState`](/docs
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { useUIState } from 'ai/rsc';
+import { useUIState } from '@ai-sdk/rsc';
 
 export default function Page() {
   const [messages, setMessages] = useUIState();
@@ -146,7 +146,7 @@ The AI state can be accessed in Client Components using the [`useAIState`](/docs
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { useAIState } from 'ai/rsc';
+import { useAIState } from '@ai-sdk/rsc';
 
 export default function Page() {
   const [messages, setMessages] = useAIState();
@@ -166,7 +166,7 @@ export default function Page() {
 The AI State can be accessed within any Server Action provided to the `createAI` context using the [`getAIState`](/docs/reference/ai-sdk-rsc/get-ai-state) function. It returns the current AI state as a read-only value:
 
 ```tsx filename='app/actions.ts'
-import { getAIState } from 'ai/rsc';
+import { getAIState } from '@ai-sdk/rsc';
 
 export async function sendMessage(message: string) {
   'use server';
@@ -192,7 +192,7 @@ export async function sendMessage(message: string) {
 The AI State can also be updated from within your Server Action with the [`getMutableAIState`](/docs/reference/ai-sdk-rsc/get-mutable-ai-state) function. This function is similar to `getAIState`, but it returns the state with methods to read and update it:
 
 ```tsx filename='app/actions.ts'
-import { getMutableAIState } from 'ai/rsc';
+import { getMutableAIState } from '@ai-sdk/rsc';
 
 export async function sendMessage(message: string) {
   'use server';
@@ -226,7 +226,7 @@ To call the `sendMessage` action from the client, you can use the [`useActions`]
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { useActions, useUIState } from 'ai/rsc';
+import { useActions, useUIState } from '@ai-sdk/rsc';
 import { AI } from './ai';
 
 export default function Page() {
@@ -272,8 +272,8 @@ When the user submits a message, the `sendMessage` action is called with the mes
   Action otherwise the streamed component will not show in the UI.
 </Note>
 
-To learn more, check out this [example](/examples/next-app/state-management/ai-ui-states) on managing AI and UI state using `ai/rsc`.
+To learn more, check out this [example](/examples/next-app/state-management/ai-ui-states) on managing AI and UI state using `@ai-sdk/rsc`.
 
 ---
 
-Next, you will learn how you can save and restore state with `ai/rsc`.
+Next, you will learn how you can save and restore state with `@ai-sdk/rsc`.

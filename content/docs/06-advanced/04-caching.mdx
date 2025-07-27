@@ -17,10 +17,10 @@ Let's see how you can use language model middleware to cache responses.
 
 ```ts filename="ai/middleware.ts"
 import { Redis } from '@upstash/redis';
-import type {
-  LanguageModelV1,
-  Experimental_LanguageModelV1Middleware as LanguageModelV1Middleware,
-  LanguageModelV1StreamPart,
+import {
+  type LanguageModelV2,
+  type LanguageModelV2Middleware,
+  type LanguageModelV2StreamPart,
   simulateReadableStream,
 } from 'ai';
 
@@ -29,12 +29,12 @@ const redis = new Redis({
   token: process.env.KV_TOKEN,
 });
 
-export const cacheMiddleware: LanguageModelV1Middleware = {
+export const cacheMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     const cacheKey = JSON.stringify(params);
 
     const cached = (await redis.get(cacheKey)) as Awaited<
-      ReturnType<LanguageModelV1['doGenerate']>
+      ReturnType<LanguageModelV2['doGenerate']>
     > | null;
 
     if (cached !== null) {
@@ -64,7 +64,7 @@ export const cacheMiddleware: LanguageModelV1Middleware = {
     // If cached, return a simulated ReadableStream that yields the cached result
     if (cached !== null) {
       // Format the timestamps in the cached response
-      const formattedChunks = (cached as LanguageModelV1StreamPart[]).map(p => {
+      const formattedChunks = (cached as LanguageModelV2StreamPart[]).map(p => {
         if (p.type === 'response-metadata' && p.timestamp) {
           return { ...p, timestamp: new Date(p.timestamp) };
         } else return p;
@@ -75,18 +75,17 @@ export const cacheMiddleware: LanguageModelV1Middleware = {
           chunkDelayInMs: 10,
           chunks: formattedChunks,
         }),
-        rawCall: { rawPrompt: null, rawSettings: {} },
       };
     }
 
     // If not cached, proceed with streaming
     const { stream, ...rest } = await doStream();
 
-    const fullResponse: LanguageModelV1StreamPart[] = [];
+    const fullResponse: LanguageModelV2StreamPart[] = [];
 
     const transformStream = new TransformStream<
-      LanguageModelV1StreamPart,
-      LanguageModelV1StreamPart
+      LanguageModelV2StreamPart,
+      LanguageModelV2StreamPart
     >({
       transform(chunk, controller) {
         fullResponse.push(chunk);
@@ -127,7 +126,7 @@ This example uses [Upstash Redis](https://upstash.com/docs/redis/overall/getstar
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { formatDataStreamPart, streamText } from 'ai';
+import { formatDataStreamPart, streamText, UIMessage } from 'ai';
 import { Redis } from '@upstash/redis';
 
 // Allow streaming responses up to 30 seconds
@@ -139,7 +138,7 @@ const redis = new Redis({
 });
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   // come up with a key based on the request:
   const key = JSON.stringify(messages);
@@ -156,7 +155,7 @@ export async function POST(req: Request) {
   // Call the language model:
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
     async onFinish({ text }) {
       // Cache the response text:
       await redis.set(key, text);
@@ -165,6 +164,6 @@ export async function POST(req: Request) {
   });
 
   // Respond with the stream
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```

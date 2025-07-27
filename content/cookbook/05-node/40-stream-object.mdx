@@ -19,7 +19,7 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const { partialObjectStream } = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   schema: z.object({
     recipe: z.object({
       name: z.string(),

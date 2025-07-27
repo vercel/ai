@@ -1,35 +1,22 @@
 import {
   InvalidPromptError,
-  LanguageModelV1Prompt,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 
 export function convertToOpenAICompatibleCompletionPrompt({
   prompt,
-  inputFormat,
   user = 'user',
   assistant = 'assistant',
 }: {
-  prompt: LanguageModelV1Prompt;
-  inputFormat: 'prompt' | 'messages';
+  prompt: LanguageModelV2Prompt;
   user?: string;
   assistant?: string;
 }): {
   prompt: string;
   stopSequences?: string[];
 } {
-  // When the user supplied a prompt input, we don't transform it:
-  if (
-    inputFormat === 'prompt' &&
-    prompt.length === 1 &&
-    prompt[0].role === 'user' &&
-    prompt[0].content.length === 1 &&
-    prompt[0].content[0].type === 'text'
-  ) {
-    return { prompt: prompt[0].content[0].text };
-  }
-
-  // otherwise transform to a chat message format:
+  // transform to a chat message format:
   let text = '';
 
   // if first message is a system message, add it to the text:
@@ -54,13 +41,9 @@ export function convertToOpenAICompatibleCompletionPrompt({
               case 'text': {
                 return part.text;
               }
-              case 'image': {
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'images',
-                });
-              }
             }
           })
+          .filter(Boolean)
           .join('');
 
         text += `${user}:\n${userMessage}\n\n`;

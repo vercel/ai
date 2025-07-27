@@ -1,46 +1,35 @@
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { OpenAIConfig } from './openai-config';
 import {
   OpenAIEmbeddingModelId,
-  OpenAIEmbeddingSettings,
-} from './openai-embedding-settings';
+  openaiEmbeddingProviderOptions,
+} from './openai-embedding-options';
 import { openaiFailedResponseHandler } from './openai-error';
 
-export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
-  readonly specificationVersion = 'v1';
+export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
+  readonly specificationVersion = 'v2';
   readonly modelId: OpenAIEmbeddingModelId;
+  readonly maxEmbeddingsPerCall = 2048;
+  readonly supportsParallelCalls = true;
 
   private readonly config: OpenAIConfig;
-  private readonly settings: OpenAIEmbeddingSettings;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxEmbeddingsPerCall(): number {
-    return this.settings.maxEmbeddingsPerCall ?? 2048;
-  }
-
-  get supportsParallelCalls(): boolean {
-    return this.settings.supportsParallelCalls ?? true;
-  }
-
-  constructor(
-    modelId: OpenAIEmbeddingModelId,
-    settings: OpenAIEmbeddingSettings,
-    config: OpenAIConfig,
-  ) {
+  constructor(modelId: OpenAIEmbeddingModelId, config: OpenAIConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -48,8 +37,9 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
     values,
     headers,
     abortSignal,
-  }: Parameters<EmbeddingModelV1<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>
+    providerOptions,
+  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
@@ -60,7 +50,19 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
       });
     }
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    // Parse provider options
+    const openaiOptions =
+      (await parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiEmbeddingProviderOptions,
+      })) ?? {};
+
+    const {
+      responseHeaders,
+      value: response,
+      rawValue,
+    } = await postJsonToApi({
       url: this.config.url({
         path: '/embeddings',
         modelId: this.modelId,
@@ -70,8 +72,8 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
         model: this.modelId,
         input: values,
         encoding_format: 'float',
-        dimensions: this.settings.dimensions,
-        user: this.settings.user,
+        dimensions: openaiOptions.dimensions,
+        user: openaiOptions.user,
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -86,7 +88,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }
         : undefined,
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders, body: rawValue },
     };
   }
 }

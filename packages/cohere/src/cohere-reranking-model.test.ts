@@ -1,35 +1,49 @@
+import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createCohere } from './cohere-provider';
-import { JsonTestServer } from '@ai-sdk/provider-utils/test';
-import { RerankingModelV1DocumentIndex } from '@ai-sdk/provider';
+import { RerankingModelV2Result } from '@ai-sdk/provider';
 
-const dummyDocumentsIndices = [1, 0];
-const dummyDocuments = ['sunny day at the beach', 'rainy day in the city'];
+const dummyResultIndices = [
+  {
+    index: 1,
+    relevance_score: 0.45028743,
+  },
+  {
+    index: 0,
+    relevance_score: 0.0926305,
+  },
+];
+const testDocuments = ['sunny day at the beach', 'rainy day in the city'];
 
-const provider = createCohere({
-  baseURL: 'https://api.cohere.com/v1',
-  apiKey: 'test-api-key',
+const provider = createCohere({ apiKey: 'test-api-key' });
+const model = provider.rerankingModel('rerank-english-v3.0');
+const server = createTestServer({
+  'https://api.cohere.com/v2/rerank': {},
 });
-const model = provider.reranking('rerank-english-v3.0');
 
 describe('doRerank', () => {
-  const server = new JsonTestServer('https://api.cohere.com/v1/rerank');
-
-  server.setupTestEnvironment();
-
   function prepareJsonResponse({
-    rerankedIndices = dummyDocumentsIndices,
-    meta = { billed_units: { input_tokens: 8 } },
+    rerankedIndices = dummyResultIndices,
+    meta = {
+      billed_units: { search_units: 1 },
+      api_version: { version: 'v1' },
+    },
+    headers,
   }: {
-    rerankedIndices?: RerankingModelV1DocumentIndex[];
-    meta?: { billed_units: { input_tokens: number } };
+    rerankedIndices?: RerankingModelV2Result[];
+    meta?: {
+      billed_units: { search_units: number };
+      api_version?: { version: string };
+    };
+    headers?: Record<string, string>;
   } = {}) {
-    server.responseBodyJson = {
-      id: 'test-id',
-      results: rerankedIndices.map(index => ({
-        index,
-        document: { text: dummyDocuments[index] },
-      })),
-      meta,
+    server.urls['https://api.cohere.com/v2/rerank'].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        id: 'test-id',
+        results: rerankedIndices,
+        meta,
+      },
     };
   }
 
@@ -37,47 +51,45 @@ describe('doRerank', () => {
     prepareJsonResponse();
 
     const { rerankedIndices } = await model.doRerank({
-      values: dummyDocuments,
+      values: testDocuments,
       query: 'rainy day',
       topK: 2,
     });
 
-    expect(rerankedIndices).toStrictEqual(dummyDocumentsIndices);
+    expect(rerankedIndices).toStrictEqual(dummyResultIndices);
   });
 
   it('should rerank documents and return documents', async () => {
     prepareJsonResponse();
 
     const { rerankedIndices, rerankedDocuments } = await model.doRerank({
-      values: dummyDocuments,
+      values: testDocuments,
       query: 'rainy day',
       topK: 2,
       returnDocuments: true,
     });
 
     expect(rerankedDocuments).toStrictEqual(
-      dummyDocumentsIndices.map(index => dummyDocuments[index]),
+      dummyResultIndices.map(result => testDocuments[result.index]),
     );
 
-    expect(rerankedIndices).toStrictEqual(dummyDocumentsIndices);
+    expect(rerankedIndices).toStrictEqual(dummyResultIndices);
   });
 
   it('should expose the raw response headers', async () => {
-    prepareJsonResponse();
+    prepareJsonResponse({
+      headers: { 'test-header': 'test-value' },
+    });
 
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
-
-    const { rawResponse } = await model.doRerank({
-      values: dummyDocuments,
+    const { response } = await model.doRerank({
+      values: testDocuments,
       query: 'rainy day',
       topK: 2,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
-      'content-length': '184',
+      'content-length': '183',
       'content-type': 'application/json',
 
       // custom header
@@ -87,65 +99,59 @@ describe('doRerank', () => {
 
   it('should extract usage', async () => {
     prepareJsonResponse({
-      meta: { billed_units: { input_tokens: 20 } },
+      meta: {
+        billed_units: { search_units: 1 },
+        api_version: { version: 'v1' },
+      },
     });
 
     const { usage } = await model.doRerank({
-      values: dummyDocuments,
+      values: testDocuments,
       query: 'rainy day',
       topK: 2,
     });
 
-    expect(usage).toStrictEqual({ tokens: 20 });
+    expect(usage).toStrictEqual({ tokens: 1 });
   });
 
   it('should pass the model and the values', async () => {
     prepareJsonResponse();
 
     await model.doRerank({
-      values: dummyDocuments,
+      values: testDocuments,
       query: 'rainy day',
       topK: 2,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'rerank-english-v3.0',
-      documents: dummyDocuments,
+      documents: testDocuments,
       query: 'rainy day',
+      max_tokens_per_doc: 4096,
       top_n: 2,
     });
   });
 
-  it('should pass the input_type setting', async () => {
+  it('should pass the maxTokensPerDoc setting', async () => {
     prepareJsonResponse();
 
-    await provider
-      .reranking('rerank-english-v3.0', {
-        max_chunks_per_document: 2,
-      })
-      .doRerank({ values: dummyDocuments, query: 'rainy day', topK: 2 });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'rerank-english-v3.0',
-      documents: dummyDocuments,
-      query: 'rainy day',
-      top_n: 2,
-      max_chunks_per_doc: 2,
-    });
-
-    await provider.reranking('rerank-english-v3.0').doRerank({
-      values: dummyDocuments,
+    await provider.rerankingModel('rerank-english-v3.0').doRerank({
+      values: testDocuments,
       query: 'rainy day',
       topK: 2,
-      returnDocuments: true,
+      providerOptions: {
+        cohere: {
+          maxTokensPerDoc: 1000,
+        },
+      },
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'rerank-english-v3.0',
-      documents: dummyDocuments,
+      documents: testDocuments,
       query: 'rainy day',
       top_n: 2,
-      return_documents: true,
+      max_tokens_per_doc: 1000,
     });
   });
 
@@ -153,15 +159,14 @@ describe('doRerank', () => {
     prepareJsonResponse();
 
     const provider = createCohere({
-      baseURL: 'https://api.cohere.com/v1',
       apiKey: 'test-api-key',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
       },
     });
 
-    await provider.reranking('rerank-english-v3.0').doRerank({
-      values: dummyDocuments,
+    await provider.rerankingModel('rerank-english-v3.0').doRerank({
+      values: testDocuments,
       query: 'rainy day',
       topK: 2,
       headers: {
@@ -169,7 +174,7 @@ describe('doRerank', () => {
       },
     });
 
-    const requestHeaders = await server.getRequestHeaders();
+    const requestHeaders = server.calls[0].requestHeaders;
 
     expect(requestHeaders).toStrictEqual({
       authorization: 'Bearer test-api-key',

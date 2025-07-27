@@ -1,12 +1,13 @@
-import {
-  generateAuthToken,
-  GoogleCredentials,
-} from './google-vertex-auth-edge';
+import { resolve } from '@ai-sdk/provider-utils';
 import {
   createVertex as createVertexOriginal,
   GoogleVertexProvider,
   GoogleVertexProviderSettings as GoogleVertexProviderSettingsOriginal,
 } from '../google-vertex-provider';
+import {
+  generateAuthToken,
+  GoogleCredentials,
+} from './google-vertex-auth-edge';
 
 export type { GoogleVertexProvider };
 
@@ -25,13 +26,12 @@ export function createVertex(
 ): GoogleVertexProvider {
   return createVertexOriginal({
     ...options,
-    headers:
-      options.headers ??
-      (async () => ({
-        Authorization: `Bearer ${await generateAuthToken(
-          options.googleCredentials,
-        )}`,
-      })),
+    headers: async () => ({
+      Authorization: `Bearer ${await generateAuthToken(
+        options.googleCredentials,
+      )}`,
+      ...(await resolve(options.headers)),
+    }),
   });
 }
 

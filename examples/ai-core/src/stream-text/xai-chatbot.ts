@@ -1,15 +1,15 @@
 import { xai } from '@ai-sdk/xai';
-import { CoreMessage, streamText, tool } from 'ai';
+import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const terminal = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {
@@ -18,11 +18,11 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: xai('grok-2-1212'),
+      model: xai('grok-3-beta'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',
-          parameters: z.object({
+          inputSchema: z.object({
             location: z
               .string()
               .describe('The location to get the weather for'),
@@ -33,7 +33,7 @@ async function main() {
           }),
         }),
       },
-      maxSteps: 5,
+      stopWhen: stepCountIs(5),
       messages,
     });
 

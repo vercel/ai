@@ -52,7 +52,7 @@ You can create [FriendliAI models](https://friendli.ai/docs/guides/serverless_en
 The first argument is the model id, e.g. `meta-llama-3.1-8b-instruct`.
 
 ```ts
-const model = friendli('meta-llama-3.1-70b-instruct');
+const model = friendli('meta-llama-3.1-8b-instruct');
 ```
 
 ### Example: Generating text
@@ -69,6 +69,26 @@ const { text } = await generateText({
 });
 
 console.log(text);
+```
+
+### Example: Reasoning
+
+FriendliAI exposes the thinking of `deepseek-r1` in the generated text using the `<think>` tag.
+You can use the `extractReasoningMiddleware` to extract this reasoning and expose it as a `reasoning` property on the result:
+
+```ts
+import { friendli } from '@friendliai/ai-provider';
+import { wrapLanguageModel, extractReasoningMiddleware } from 'ai';
+
+const enhancedModel = wrapLanguageModel({
+  model: friendli('deepseek-r1'),
+  middleware: extractReasoningMiddleware({ tagName: 'think' }),
+});
+
+const { text, reasoning } = await generateText({
+  model: enhancedModel,
+  prompt: 'Explain quantum entanglement.',
+});
 ```
 
 ### Example: Structured Outputs (regex)
@@ -106,7 +126,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: friendli('meta-llama-3.1-70b-instruct'),
+  model: friendli('meta-llama-3.3-70b-instruct'),
   schemaName: 'CalendarEvent',
   schema: z.object({
     name: z.string(),
@@ -133,7 +153,7 @@ import { friendli } from '@friendliai/ai-provider';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: friendli('meta-llama-3.1-70b-instruct', {
+  model: friendli('meta-llama-3.3-70b-instruct', {
     tools: [{ type: 'web:search' }, { type: 'math:calculator' }],
   }),
   prompt:
@@ -177,16 +197,16 @@ const { text } = await generateText({
 console.log(text);
 ```
 
-FriendliAI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions.
-(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+FriendliAI language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions.
+(see [AI SDK Core](/docs/ai-sdk-core)).
 
 ### Model Capabilities
 
 | Model                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `meta-llama-3.1-70b-instruct` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-r1`                 | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `meta-llama-3.3-70b-instruct` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `meta-llama-3.1-8b-instruct`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mixtral-8x7b-instruct-v0-1`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   To access [more models](https://friendli.ai/models), visit the [Friendli

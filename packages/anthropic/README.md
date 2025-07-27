@@ -1,6 +1,6 @@
 # AI SDK - Anthropic Provider
 
-The **[Anthropic provider](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic)** for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post).
+The **[Anthropic provider](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post).
 
 ## Setup
 
@@ -32,4 +32,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[Anthropic provider documentation](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic)** for more information.
+Please check out the **[Anthropic provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic)** for more information.

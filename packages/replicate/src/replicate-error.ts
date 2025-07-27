@@ -1,5 +1,5 @@
 import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const replicateErrorSchema = z.object({
   detail: z.string().optional(),

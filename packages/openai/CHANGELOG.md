@@ -1,5 +1,788 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.12
+
+### Patch Changes
+
+- d521cda: feat(openai): add file_search filters and update field names
+- 0059ee2: fix(openai): update file_search fields to match API changes
+- Updated dependencies [ac34802]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+
+## 2.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [57edfcb]
+- Updated dependencies [383cbfa]
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+
+## 2.0.0-beta.10
+
+### Patch Changes
+
+- 0fa7414: chore (provider/openai): standardize on itemId in provider metadata
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+
+## 2.0.0-beta.9
+
+### Patch Changes
+
+- faea29f: fix (provider/openai): multi-step reasoning with text
+
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- db64cbe: fix (provider/openai): multi-step reasoning with tool calls
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+
+## 2.0.0-beta.7
+
+### Patch Changes
+
+- 209256d: Add missing file_search tool support to OpenAI Responses API
+
+## 2.0.0-beta.6
+
+### Patch Changes
+
+- 0eee6a8: Fix streaming and reconstruction of reasoning summary parts
+- b5a0e32: fix (provider/openai): correct default for chat model strict mode
+- c7d3b2e: fix (provider/openai): push first reasoning chunk in output item added event
+
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- 48249c4: Do not warn if empty text is the first part of a reasoning sequence
+- e497698: fix (provider/openai): handle responses api errors
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- b3c3450: feat (provider/openai): add support for encrypted_reasoning to responses api
+- ad2a3d5: feat(provider/openai): add missing reasoning models to responses API
+
+## 2.0.0-beta.3
+
+### Major Changes
+
+- efc3a62: fix (provider/openai): default strict mode to false
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- d1a034f: feature: using Zod 4 for internal stuff
+- Updated dependencies [0571b98]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+
+## 2.0.0-beta.1
+
+### Major Changes
+
+- cc62234: chore (provider/openai): switch default to openai responses api
+
+### Patch Changes
+
+- 5d959e7: refactor: updated openai + anthropic tool use server side
+- Updated dependencies [742b7be]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [e025824]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [7435eb5]
+- Updated dependencies [cb68df0]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [44f4aba]
+- Updated dependencies [023ba40]
+- Updated dependencies [5e57fae]
+- Updated dependencies [71f938d]
+- Updated dependencies [28a5ed5]
+  - @ai-sdk/provider@2.0.0-beta.1
+  - @ai-sdk/provider-utils@3.0.0-beta.1
+
+## 2.0.0-alpha.15
+
+### Patch Changes
+
+- Updated dependencies [48d257a]
+- Updated dependencies [8ba77a7]
+  - @ai-sdk/provider@2.0.0-alpha.15
+  - @ai-sdk/provider-utils@3.0.0-alpha.15
+
+## 2.0.0-alpha.14
+
+### Patch Changes
+
+- Updated dependencies [b5da06a]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [2e13791]
+  - @ai-sdk/provider@2.0.0-alpha.14
+  - @ai-sdk/provider-utils@3.0.0-alpha.14
+
+## 2.0.0-alpha.13
+
+### Patch Changes
+
+- Updated dependencies [68ecf2f]
+  - @ai-sdk/provider@2.0.0-alpha.13
+  - @ai-sdk/provider-utils@3.0.0-alpha.13
+
+## 2.0.0-alpha.12
+
+### Patch Changes
+
+- 2f542fa: Add reasoning-part-finish parts for reasoning models in the responses API
+- e2aceaf: feat: add raw chunk support
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/provider@2.0.0-alpha.12
+  - @ai-sdk/provider-utils@3.0.0-alpha.12
+
+## 2.0.0-alpha.11
+
+### Patch Changes
+
+- 8d12da5: feat(provider/openai): add serviceTier option for flex processing
+- Updated dependencies [c1e6647]
+  - @ai-sdk/provider@2.0.0-alpha.11
+  - @ai-sdk/provider-utils@3.0.0-alpha.11
+
+## 2.0.0-alpha.10
+
+### Patch Changes
+
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 2.0.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies [811dff3]
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
+## 2.0.0-alpha.8
+
+### Patch Changes
+
+- 4af5233: Fix PDF file parts when passed as a string url or Uint8Array
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+
+## 2.0.0-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [5c56081]
+  - @ai-sdk/provider@2.0.0-alpha.7
+  - @ai-sdk/provider-utils@3.0.0-alpha.7
+
+## 2.0.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [0d2c085]
+  - @ai-sdk/provider@2.0.0-alpha.6
+  - @ai-sdk/provider-utils@3.0.0-alpha.6
+
+## 2.0.0-alpha.4
+
+### Patch Changes
+
+- Updated dependencies [dc714f3]
+  - @ai-sdk/provider@2.0.0-alpha.4
+  - @ai-sdk/provider-utils@3.0.0-alpha.4
+
+## 2.0.0-alpha.3
+
+### Patch Changes
+
+- Updated dependencies [6b98118]
+  - @ai-sdk/provider@2.0.0-alpha.3
+  - @ai-sdk/provider-utils@3.0.0-alpha.3
+
+## 2.0.0-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [26535e0]
+  - @ai-sdk/provider@2.0.0-alpha.2
+  - @ai-sdk/provider-utils@3.0.0-alpha.2
+
+## 2.0.0-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [3f2f00c]
+  - @ai-sdk/provider@2.0.0-alpha.1
+  - @ai-sdk/provider-utils@3.0.0-alpha.1
+
+## 2.0.0-canary.20
+
+### Patch Changes
+
+- Updated dependencies [faf8446]
+  - @ai-sdk/provider-utils@3.0.0-canary.19
+
+## 2.0.0-canary.19
+
+### Patch Changes
+
+- Updated dependencies [40acf9b]
+  - @ai-sdk/provider-utils@3.0.0-canary.18
+
+## 2.0.0-canary.18
+
+### Major Changes
+
+- 516be5b: ### Move Image Model Settings into generate options
+
+  Image Models no longer have settings. Instead, `maxImagesPerCall` can be passed directly to `generateImage()`. All other image settings can be passed to `providerOptions[provider]`.
+
+  Before
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1', {
+      maxImagesPerCall: 5,
+      pollIntervalMillis: 500,
+    }),
+    prompt,
+    n: 10,
+  });
+  ```
+
+  After
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1'),
+    prompt,
+    n: 10,
+    maxImagesPerCall: 5,
+    providerOptions: {
+      luma: { pollIntervalMillis: 5 },
+    },
+  });
+  ```
+
+  Pull Request: https://github.com/vercel/ai/pull/6180
+
+### Patch Changes
+
+- Updated dependencies [ea7a7c9]
+  - @ai-sdk/provider-utils@3.0.0-canary.17
+
+## 2.0.0-canary.17
+
+### Patch Changes
+
+- 52ce942: chore(providers/openai): remove & enable strict compatibility by default
+- Updated dependencies [87b828f]
+  - @ai-sdk/provider-utils@3.0.0-canary.16
+
+## 2.0.0-canary.16
+
+### Patch Changes
+
+- 928fadf: fix(providers/openai): logprobs for stream alongside completion model
+- 6f231db: fix(providers): always use optional instead of mix of nullish for providerOptions
+- Updated dependencies [a571d6e]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [7979f7f]
+- Updated dependencies [41fa418]
+  - @ai-sdk/provider-utils@3.0.0-canary.15
+  - @ai-sdk/provider@2.0.0-canary.14
+
+## 2.0.0-canary.15
+
+### Patch Changes
+
+- 136819b: chore(providers/openai): re-introduce logprobs as providerMetadata
+- 9bd5ab5: feat (provider): add providerMetadata to ImageModelV2 interface (#5977)
+
+  The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
+
+  ```js
+  const prompt = 'Santa Claus driving a Cadillac';
+
+  const { providerMetadata } = await experimental_generateImage({
+    model: openai.image('dall-e-3'),
+    prompt,
+  });
+
+  const revisedPrompt = providerMetadata.openai.images[0]?.revisedPrompt;
+
+  console.log({
+    prompt,
+    revisedPrompt,
+  });
+  ```
+
+- 284353f: fix(providers/openai): zod parse error with function
+- Updated dependencies [957b739]
+- Updated dependencies [9bd5ab5]
+  - @ai-sdk/provider-utils@3.0.0-canary.14
+  - @ai-sdk/provider@2.0.0-canary.13
+
+## 2.0.0-canary.14
+
+### Patch Changes
+
+- fa758ea: feat(provider/openai): add o3 & o4-mini with developer systemMessageMode
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [0ff02bb]
+  - @ai-sdk/provider@2.0.0-canary.12
+  - @ai-sdk/provider-utils@3.0.0-canary.13
+
+## 2.0.0-canary.13
+
+### Patch Changes
+
+- 177526b: chore(providers/openai-transcription): switch to providerOptions
+- c15dfbf: feat (providers/openai): add gpt-image-1 model id to image settings
+- 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
+- 4617fab: chore(embedding-models): remove remaining settings
+- Updated dependencies [9bf7291]
+- Updated dependencies [4617fab]
+- Updated dependencies [e030615]
+  - @ai-sdk/provider@2.0.0-canary.11
+  - @ai-sdk/provider-utils@3.0.0-canary.12
+
+## 2.0.0-canary.12
+
+### Patch Changes
+
+- db72adc: chore(providers/openai): update completion model to use providerOptions
+- 66962ed: fix(packages): export node10 compatible types
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+- 7df7a25: feat (providers/openai): support gpt-image-1 image generation
+- Updated dependencies [66962ed]
+- Updated dependencies [9301f86]
+- Updated dependencies [a3f768e]
+  - @ai-sdk/provider-utils@3.0.0-canary.11
+  - @ai-sdk/provider@2.0.0-canary.10
+
+## 2.0.0-canary.11
+
+### Patch Changes
+
+- 8493141: feat (providers/openai): add support for reasoning summaries
+- Updated dependencies [e86be6f]
+  - @ai-sdk/provider@2.0.0-canary.9
+  - @ai-sdk/provider-utils@3.0.0-canary.10
+
+## 2.0.0-canary.10
+
+### Patch Changes
+
+- 3bd3c0b: chore(providers/openai): update embedding model to use providerOptions
+- Updated dependencies [95857aa]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
+## 2.0.0-canary.9
+
+### Patch Changes
+
+- d63bcbc: feat (provider/openai): o4 updates for responses api
+- d2af019: feat (providers/openai): add gpt-4.1 models
+- 870c5c0: feat (providers/openai): add o3 and o4-mini models
+- 06bac05: fix (openai): structure output for responses model
+
+## 2.0.0-canary.8
+
+### Patch Changes
+
+- 8aa9e20: feat: add speech with experimental_generateSpeech
+- Updated dependencies [5d142ab]
+- Updated dependencies [b6b43c7]
+- Updated dependencies [8aa9e20]
+- Updated dependencies [3795467]
+  - @ai-sdk/provider-utils@3.0.0-canary.8
+  - @ai-sdk/provider@2.0.0-canary.7
+
+## 2.0.0-canary.7
+
+### Patch Changes
+
+- 26735b5: chore(embedding-model): add v2 interface
+- 443d8ec: feat(embedding-model-v2): add response body field
+- fd65bc6: chore(embedding-model-v2): rename rawResponse to response
+- Updated dependencies [26735b5]
+- Updated dependencies [443d8ec]
+- Updated dependencies [14c9410]
+- Updated dependencies [d9c98f4]
+- Updated dependencies [c4a2fec]
+- Updated dependencies [0054544]
+- Updated dependencies [9e9c809]
+- Updated dependencies [32831c6]
+- Updated dependencies [d0f9495]
+- Updated dependencies [fd65bc6]
+- Updated dependencies [393138b]
+- Updated dependencies [7182d14]
+  - @ai-sdk/provider@2.0.0-canary.6
+  - @ai-sdk/provider-utils@3.0.0-canary.7
+
+## 2.0.0-canary.6
+
+### Patch Changes
+
+- 948b755: chore(providers/openai): convert to providerOptions
+- 3b1ea10: adding support for gpt-4o-search-preview and handling unsupported parameters
+- 442be08: fix: propagate openai transcription fixes
+- 5147e6e: chore(openai): remove simulateStreaming
+- c2b92cc: chore(openai): remove legacy function calling
+- f10304b: feat(tool-calling): don't require the user to have to pass parameters
+- Updated dependencies [411e483]
+- Updated dependencies [79457bd]
+- Updated dependencies [ad80501]
+- Updated dependencies [1766ede]
+- Updated dependencies [f10304b]
+  - @ai-sdk/provider@2.0.0-canary.5
+  - @ai-sdk/provider-utils@3.0.0-canary.6
+
+## 2.0.0-canary.5
+
+### Patch Changes
+
+- Updated dependencies [6f6bb89]
+  - @ai-sdk/provider@2.0.0-canary.4
+  - @ai-sdk/provider-utils@3.0.0-canary.5
+
+## 2.0.0-canary.4
+
+### Patch Changes
+
+- Updated dependencies [d1a1aa1]
+  - @ai-sdk/provider@2.0.0-canary.3
+  - @ai-sdk/provider-utils@3.0.0-canary.4
+
+## 2.0.0-canary.3
+
+### Patch Changes
+
+- a166433: feat: add transcription with experimental_transcribe
+- 0a87932: core (ai): change transcription model mimeType to mediaType
+- 0a87932: fix (provider/openai): increase transcription model resilience
+- Updated dependencies [a166433]
+- Updated dependencies [abf9a79]
+- Updated dependencies [9f95b35]
+- Updated dependencies [0a87932]
+- Updated dependencies [6dc848c]
+  - @ai-sdk/provider-utils@3.0.0-canary.3
+  - @ai-sdk/provider@2.0.0-canary.2
+
+## 2.0.0-canary.2
+
+### Patch Changes
+
+- Updated dependencies [c57e248]
+- Updated dependencies [33f4a6a]
+  - @ai-sdk/provider@2.0.0-canary.1
+  - @ai-sdk/provider-utils@3.0.0-canary.2
+
+## 2.0.0-canary.1
+
+### Patch Changes
+
+- Updated dependencies [060370c]
+- Updated dependencies [0c0c0b3]
+- Updated dependencies [63d791d]
+  - @ai-sdk/provider-utils@3.0.0-canary.1
+
+## 2.0.0-canary.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- Updated dependencies [d5f588f]
+  - @ai-sdk/provider-utils@3.0.0-canary.0
+  - @ai-sdk/provider@2.0.0-canary.0
+
+## 1.3.6
+
+### Patch Changes
+
+- Updated dependencies [28be004]
+  - @ai-sdk/provider-utils@2.2.3
+
+## 1.3.5
+
+### Patch Changes
+
+- 52ed95f: fix (provider/openai): force web search tool
+- Updated dependencies [b01120e]
+  - @ai-sdk/provider-utils@2.2.2
+
+## 1.3.4
+
+### Patch Changes
+
+- b520dba: feat (provider/openai): add chatgpt-4o-latest model
+
+## 1.3.3
+
+### Patch Changes
+
+- 24befd8: feat (provider/openai): add instructions to providerOptions
+
+## 1.3.2
+
+### Patch Changes
+
+- db15028: feat (provider/openai): expose type for validating OpenAI responses provider options
+
+## 1.3.1
+
+### Patch Changes
+
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+
+## 1.3.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/provider@1.1.0
+  - @ai-sdk/provider-utils@2.2.0
+
+## 1.2.8
+
+### Patch Changes
+
+- 9f4f1bc: feat (provider/openai): pdf support for chat language models
+
+## 1.2.7
+
+### Patch Changes
+
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+
+## 1.2.6
+
+### Patch Changes
+
+- Updated dependencies [0bd5bc6]
+  - @ai-sdk/provider@1.0.12
+  - @ai-sdk/provider-utils@2.1.14
+
+## 1.2.5
+
+### Patch Changes
+
+- 2e1101a: feat (provider/openai): pdf input support
+- Updated dependencies [2e1101a]
+  - @ai-sdk/provider@1.0.11
+  - @ai-sdk/provider-utils@2.1.13
+
+## 1.2.4
+
+### Patch Changes
+
+- 523f128: feat (provider/openai): add strictSchemas option to responses model
+
+## 1.2.3
+
+### Patch Changes
+
+- Updated dependencies [1531959]
+  - @ai-sdk/provider-utils@2.1.12
+
+## 1.2.2
+
+### Patch Changes
+
+- e3a389e: feat (provider/openai): support responses api
+
+## 1.2.1
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+  - @ai-sdk/provider-utils@2.1.11
+
+## 1.2.0
+
+### Minor Changes
+
+- ede6d1b: feat (provider/azure): Add Azure image model support
+
+## 1.1.15
+
+### Patch Changes
+
+- d8216f8: feat (provider/openai): add gpt-4.5-preview to model id set
+
+## 1.1.14
+
+### Patch Changes
+
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/provider-utils@2.1.10
+
+## 1.1.13
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+
+## 1.1.12
+
+### Patch Changes
+
+- ea159cb: chore (provider/openai): remove default streaming simulation for o1
+
+## 1.1.11
+
+### Patch Changes
+
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+
+## 1.1.10
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+
+## 1.1.9
+
+### Patch Changes
+
+- c55b81a: fix (provider/openai): fix o3-mini streaming
+
+## 1.1.8
+
+### Patch Changes
+
+- 161be90: fix (provider/openai): fix model id typo
+
+## 1.1.7
+
+### Patch Changes
+
+- 0a2f026: feat (provider/openai): add o3-mini
+
+## 1.1.6
+
+### Patch Changes
+
+- d89c3b9: feat (provider): add image model support to provider specification
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+
+## 1.1.5
+
+### Patch Changes
+
+- Updated dependencies [3a602ca]
+  - @ai-sdk/provider-utils@2.1.5
+
+## 1.1.4
+
+### Patch Changes
+
+- Updated dependencies [066206e]
+  - @ai-sdk/provider-utils@2.1.4
+
+## 1.1.3
+
+### Patch Changes
+
+- Updated dependencies [39e5c1f]
+  - @ai-sdk/provider-utils@2.1.3
+
+## 1.1.2
+
+### Patch Changes
+
+- 3a58a2e: feat (ai/core): throw NoImageGeneratedError from generateImage when no predictions are returned.
+- Updated dependencies [ed012d2]
+- Updated dependencies [3a58a2e]
+  - @ai-sdk/provider-utils@2.1.2
+  - @ai-sdk/provider@1.0.6
+
+## 1.1.1
+
+### Patch Changes
+
+- e7a9ec9: feat (provider-utils): include raw value in json parse results
+- Updated dependencies [e7a9ec9]
+- Updated dependencies [0a699f1]
+  - @ai-sdk/provider-utils@2.1.1
+  - @ai-sdk/provider@1.0.5
+
+## 1.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+### Patch Changes
+
+- Updated dependencies [62ba5ad]
+  - @ai-sdk/provider-utils@2.1.0
+
+## 1.0.20
+
+### Patch Changes
+
+- Updated dependencies [00114c5]
+  - @ai-sdk/provider-utils@2.0.8
+
+## 1.0.19
+
+### Patch Changes
+
+- 218d001: feat (provider): Add maxImagesPerCall setting to all image providers.
+
+## 1.0.18
+
+### Patch Changes
+
+- fe816e4: fix (provider/openai): streamObject with o1
+
+## 1.0.17
+
+### Patch Changes
+
+- ba62cf2: feat (provider/openai): automatically map maxTokens to max_completion_tokens for reasoning models
+- 3c3fae8: fix (provider/openai): add o1-mini-2024-09-12 and o1-preview-2024-09-12 configurations
+
 ## 1.0.16
 
 ### Patch Changes

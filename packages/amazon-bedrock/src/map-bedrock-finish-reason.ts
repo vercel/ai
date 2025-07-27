@@ -1,9 +1,9 @@
-import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
-import { StopReason } from '@aws-sdk/client-bedrock-runtime';
+import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
+import { BedrockStopReason } from './bedrock-api-types';
 
 export function mapBedrockFinishReason(
-  finishReason?: StopReason,
-): LanguageModelV1FinishReason {
+  finishReason?: BedrockStopReason,
+): LanguageModelV2FinishReason {
   switch (finishReason) {
     case 'stop_sequence':
     case 'end_turn':

@@ -1,5 +1,5 @@
 {
-  "name": "next-openai",
+  "name": "@example/next-openai",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -9,20 +9,34 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.0.16",
-    "@ai-sdk/ui-utils": "1.0.8",
-    "@ai-sdk/react": "1.0.9",
+    "@ai-sdk/amazon-bedrock": "workspace:*",
+    "@ai-sdk/anthropic": "workspace:*",
+    "@ai-sdk/cohere": "workspace:*",
+    "@ai-sdk/deepseek": "workspace:*",
+    "@ai-sdk/fireworks": "workspace:*",
+    "@ai-sdk/openai": "workspace:*",
+    "@ai-sdk/mistral": "workspace:*",
+    "@ai-sdk/google": "workspace:*",
+    "@ai-sdk/google-vertex": "workspace:*",
+    "@ai-sdk/groq": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "@ai-sdk/perplexity": "workspace:*",
+    "@ai-sdk/react": "workspace:*",
+    "@ai-sdk/xai": "workspace:*",
+    "@ai-sdk/rsc": "workspace:*",
+    "@ai-sdk/provider-utils": "workspace:*",
     "@vercel/blob": "^0.26.0",
-    "ai": "4.0.31",
+    "ai": "workspace:*",
     "next": "latest",
-    "openai": "4.52.6",
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "9.0.1",
-    "zod": "3.23.8"
+    "redis": "^4.7.0",
+    "resumable-stream": "^2.2.0",
+    "zod": "3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^17.0.12",
+    "@types/node": "20.17.24",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",
@@ -30,6 +44,7 @@
     "eslint-config-next": "14.2.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
-    "typescript": "5.6.3"
+    "typescript": "5.8.3",
+    "@vercel/ai-tsconfig": "workspace:*"
   }
 }

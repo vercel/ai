@@ -37,7 +37,7 @@ The `streamUI` function executes as part of a server action as illustrated below
 
 ```tsx filename="@/app/actions.tsx"
 import { openai } from '@ai-sdk/openai';
-import { getMutableAIState, streamUI } from 'ai/rsc';
+import { getMutableAIState, streamUI } from '@ai-sdk/rsc';
 
 export async function sendMessage(message: string) {
   'use server';
@@ -70,7 +70,7 @@ The chat interface calls the server action. The response is then saved using the
 'use client';
 
 import { useState, ReactNode } from 'react';
-import { useActions, useUIState } from 'ai/rsc';
+import { useActions, useUIState } from '@ai-sdk/rsc';
 
 export default function Page() {
   const { sendMessage } = useActions();
@@ -117,7 +117,7 @@ export async function POST(request) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -126,7 +126,7 @@ export async function POST(request) {
 ```tsx filename="@/app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const { messages, input, setInput, handleSubmit } = useChat();
@@ -175,7 +175,7 @@ The `streamUI` function uses `tools` as a way to execute functions based on user
 
 ```tsx filename="@/app/actions.tsx"
 import { z } from 'zod';
-import { streamUI } from 'ai/rsc';
+import { streamUI } from '@ai-sdk/rsc';
 import { openai } from '@ai-sdk/openai';
 import { getWeather } from '@/utils/queries';
 import { Weather } from '@/components/weather';
@@ -240,7 +240,7 @@ export async function POST(request) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -249,7 +249,7 @@ export async function POST(request) {
 ```tsx filename="@/app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { Weather } from '@/components/weather';
 
 export default function Page() {
@@ -314,7 +314,7 @@ With AI SDK RSC, components streamed to the client can trigger subsequent genera
 ```tsx filename="@/app/components/list-flights.tsx"
 'use client';
 
-import { useActions, useUIState } from 'ai/rsc';
+import { useActions, useUIState } from '@ai-sdk/rsc';
 
 export function ListFlights({ flights }) {
   const { sendMessage } = useActions();
@@ -348,7 +348,7 @@ After switching to AI SDK UI, these messages are synced by initializing the `use
 ```tsx filename="@/app/components/list-flights.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export function ListFlights({ chatId, flights }) {
   const { append } = useChat({
@@ -385,7 +385,7 @@ In AI SDK RSC, you can use the `initial` parameter of `streamUI` to define the c
 
 ```tsx filename="@/app/actions.tsx"
 import { openai } from '@ai-sdk/openai';
-import { streamUI } from 'ai/rsc';
+import { streamUI } from '@ai-sdk/rsc';
 
 const { value: stream } = await streamUI({
   model: openai('gpt-4o'),
@@ -457,7 +457,7 @@ Before implementing `streamUI` as a server action, you should create an `<AI/>` 
 #### Before: Save chats using callback function of context provider
 
 ```ts filename="@/app/actions.ts"
-import { createAI } from 'ai/rsc';
+import { createAI } from '@ai-sdk/rsc';
 import { saveChat } from '@/utils/queries';
 
 export const AI = createAI({
@@ -483,12 +483,12 @@ With AI SDK UI, you will save chats using the `onFinish` callback function of `s
 ```ts filename="@/app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
 import { saveChat } from '@/utils/queries';
-import { streamText, convertToCoreMessages } from 'ai';
+import { streamText, convertToModelMessages } from 'ai';
 
 export async function POST(request) {
   const { id, messages } = await request.json();
 
-  const coreMessages = convertToCoreMessages(messages);
+  const coreMessages = convertToModelMessages(messages);
 
   const result = streamText({
     model: openai('gpt-4o'),
@@ -506,7 +506,7 @@ export async function POST(request) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -519,7 +519,7 @@ Similar to how you typically save chats in AI SDK RSC, you should use the `onGet
 #### Before: Load chat from database using callback function of context provider
 
 ```ts filename="@/app/actions.ts"
-import { createAI } from 'ai/rsc';
+import { createAI } from '@ai-sdk/rsc';
 import { loadChatFromDB, convertToUIState } from '@/utils/queries';
 
 export const AI = createAI({
@@ -569,7 +569,7 @@ export default async function Page({ params }: { params: any }) {
 'use client';
 
 import { Message } from 'ai';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export function Chat({
   id,
@@ -605,7 +605,7 @@ The `createStreamableValue` function streams any serializable data from the serv
 ```ts filename="@/app/actions.ts"
 import { streamObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { createStreamableValue } from 'ai/rsc';
+import { createStreamableValue } from '@ai-sdk/rsc';
 import { notificationsSchema } from '@/utils/schemas';
 
 export async function generateSampleNotifications() {
@@ -638,7 +638,7 @@ export async function generateSampleNotifications() {
 'use client';
 
 import { useState } from 'react';
-import { readStreamableValue } from 'ai/rsc';
+import { readStreamableValue } from '@ai-sdk/rsc';
 import { generateSampleNotifications } from '@/app/actions';
 
 export default function Page() {
@@ -680,7 +680,7 @@ export async function POST(req: Request) {
   const context = await req.json();
 
   const result = streamObject({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4.1'),
     schema: notificationSchema,
     prompt:
       `Generate 3 notifications for a messages app in this context:` + context,
@@ -695,7 +695,7 @@ export async function POST(req: Request) {
 ```tsx filename="@/app/page.tsx"
 'use client';
 
-import { useObject } from 'ai/react';
+import { useObject } from '@ai-sdk/react';
 import { notificationSchema } from '@/utils/schemas';
 
 export default function Page() {

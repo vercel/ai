@@ -37,3 +37,5 @@ export interface CohereToolMessage {
   content: string;
   tool_call_id: string;
 }
+
+export type CohereToolChoice = 'NONE' | 'REQUIRED' | undefined;

@@ -7,9 +7,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 async function main() {
   const result = await generateText({
-    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022', {
-      cacheControl: true,
-    }),
+    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     messages: [
       {
         role: 'user',
@@ -21,7 +19,7 @@ async function main() {
           {
             type: 'text',
             text: `Error message: ${errorMessage}`,
-            experimental_providerMetadata: {
+            providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
               },
@@ -37,7 +35,7 @@ async function main() {
   });
 
   console.log(result.text);
-  console.log(result.experimental_providerMetadata?.anthropic);
+  console.log(result.providerMetadata?.anthropic);
   // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
 }
 

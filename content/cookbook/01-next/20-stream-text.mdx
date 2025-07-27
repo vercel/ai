@@ -14,12 +14,12 @@ Text generation can sometimes take a long time to complete, especially when you'
 
 ## Client
 
-Let's create a simple React component that imports the `useCompletion` hook from the `ai/react` module. The `useCompletion` hook will call the `/api/completion` endpoint when a button is clicked. The endpoint will generate text based on the input prompt and stream it to the client.
+Let's create a simple React component that imports the `useCompletion` hook from the `@ai-sdk/react` module. The `useCompletion` hook will call the `/api/completion` endpoint when a button is clicked. The endpoint will generate text based on the input prompt and stream it to the client.
 
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useCompletion } from 'ai/react';
+import { useCompletion } from '@ai-sdk/react';
 
 export default function Page() {
   const { completion, complete } = useCompletion({
@@ -47,8 +47,8 @@ export default function Page() {
 Let's create a route handler for `/api/completion` that will generate text based on the input prompt. The route will call the `streamText` function from the `ai` module, which will then generate text based on the input prompt and stream it to the client.
 
 ```typescript filename='app/api/completion/route.ts'
-import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 
 export async function POST(req: Request) {
   const { prompt }: { prompt: string } = await req.json();
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     prompt,
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 

@@ -1,9 +1,11 @@
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, isToolUIPart } from 'ai';
+import { useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: '/api/call-tool',
-    maxSteps: 2,
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({ api: '/api/call-tool' }),
   });
 
   return (
@@ -11,26 +13,32 @@ export default function Page() {
       <div className="flex flex-col gap-2 p-2">
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
-            <div className="w-24 text-zinc-500">{`${
-              message.toolInvocations ? 'tool' : message.role
-            }: `}</div>
-            <div className="w-full">
-              {message.toolInvocations
-                ? message.toolInvocations.map(
-                    tool => `${tool.toolName}(${JSON.stringify(tool.args)})`,
-                  )
-                : message.content}
-            </div>
+            <strong>{`${message.role}: `}</strong>
+
+            {message.parts.map((part, index) => {
+              if (part.type === 'text') {
+                return <div key={index}>{part.text}</div>;
+              } else if (isToolUIPart(part)) {
+                return <div key={index}>{JSON.stringify(part.input)}</div>;
+              }
+            })}
           </div>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="fixed bottom-0 w-full p-2">
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+        className="fixed bottom-0 p-2 w-full"
+      >
         <input
           value={input}
           placeholder="Send message..."
-          onChange={handleInputChange}
-          className="w-full p-2 bg-zinc-100"
+          onChange={e => setInput(e.target.value)}
+          className="p-2 w-full bg-zinc-100"
         />
       </form>
     </div>

@@ -1,5 +1,5 @@
 {
-  "name": "next-openai-pages",
+  "name": "@example/next-openai-pages",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -9,17 +9,16 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.0.16",
-    "@ai-sdk/react": "1.0.9",
-    "ai": "4.0.31",
+    "@ai-sdk/openai": "workspace:*",
+    "@ai-sdk/react": "workspace:*",
+    "ai": "workspace:*",
     "next": "latest",
-    "openai": "4.52.6",
     "react": "^18",
     "react-dom": "^18",
-    "zod": "3.23.8"
+    "zod": "3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^20.12.7",
+    "@types/node": "20.17.24",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",
@@ -27,6 +26,7 @@
     "eslint-config-next": "14.2.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
-    "typescript": "5.4.5"
+    "typescript": "5.4.5",
+    "@vercel/ai-tsconfig": "workspace:*"
   }
 }

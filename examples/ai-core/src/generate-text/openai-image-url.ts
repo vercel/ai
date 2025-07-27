@@ -14,6 +14,11 @@ async function main() {
             type: 'image',
             image:
               'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+
+            // OpenAI specific option - image detail:
+            providerOptions: {
+              openai: { imageDetail: 'low' },
+            },
           },
         ],
       },
@@ -21,6 +26,9 @@ async function main() {
   });
 
   console.log(result.text);
+  console.log();
+  console.log('REQUEST');
+  console.log(JSON.stringify(result.request!.body, null, 2));
 }
 
 main().catch(console.error);

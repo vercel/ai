@@ -1,4 +1,4 @@
-import { z, ZodSchema } from 'zod';
+import { z, ZodType } from 'zod/v4';
 
 export const openaiCompatibleErrorDataSchema = z.object({
   error: z.object({
@@ -18,7 +18,7 @@ export type OpenAICompatibleErrorData = z.infer<
 >;
 
 export type ProviderErrorStructure<T> = {
-  errorSchema: ZodSchema<T>;
+  errorSchema: ZodType<T>;
   errorToMessage: (error: T) => string;
   isRetryable?: (response: Response, error?: T) => boolean;
 };

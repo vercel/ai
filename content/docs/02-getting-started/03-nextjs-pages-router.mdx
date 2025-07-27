@@ -38,7 +38,7 @@ Navigate to the newly created directory:
 
 ### Install dependencies
 
-Install `ai` and `@ai-sdk/openai`, the AI SDK's OpenAI provider.
+Install `ai`, `@ai-sdk/react`, and `@ai-sdk/openai`, the AI package, AI SDK's React hooks, and AI SDK's [ OpenAI provider ](/providers/ai-sdk-providers/openai) respectively.
 
 <Note>
   The AI SDK is designed to be a unified interface to interact with any large
@@ -50,22 +50,27 @@ Install `ai` and `@ai-sdk/openai`, the AI SDK's OpenAI provider.
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm add ai @ai-sdk/openai zod" dark />
+      <Snippet
+        text="pnpm add ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta zod"
+        dark
+      />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai @ai-sdk/openai zod" dark />
+      <Snippet
+        text="npm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta zod"
+        dark
+      />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai @ai-sdk/openai zod" dark />
+      <Snippet
+        text="yarn add ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta zod"
+        dark
+      />
     </Tab>
   </Tabs>
 </div>
 
-<Note type="secondary" fill>
-  Make sure you are using `ai` version 3.1 or higher.
-</Note>
-
-### Configure OpenAI API Key
+### Configure OpenAI API key
 
 Create a `.env.local` file in your project root and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
 
@@ -96,28 +101,28 @@ Create a Route Handler (`app/api/chat/route.ts`) and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, UIMessage, convertToModelMessages } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
 Let's take a look at what is happening in this code:
 
-1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the chatbot and provides the chatbot with the necessary context to make the next generation.
-2. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 1). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
-3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toDataStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-data-stream-response) function which converts the result to a streamed response object.
+1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the chatbot and provides the chatbot with the necessary context to make the next generation. The `messages` are of UIMessage type, which are designed for use in application UI - they contain the entire message history and associated metadata like timestamps.
+2. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 1). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour. The `messages` key expects a `ModelMessage[]` array. This type is different from `UIMessage` in that it does not include metadata, such as timestamps or sender information. To convert between these types, we use the `convertToModelMessages` function, which strips the UI-specific metadata and transforms the `UIMessage[]` array into the `ModelMessage[]` format that the model expects.
+3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toUIMessageStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-data-stream-response) function which converts the result to a streamed response object.
 4. Finally, return the result to the client to stream the response.
 
 This Route Handler creates a POST request endpoint at `/api/chat`.
@@ -129,25 +134,38 @@ Now that you have an API route that can query an LLM, it's time to setup your fr
 Update your root page (`pages/index.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
 ```tsx filename="pages/index.tsx"
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
+import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
+      {messages.map(message => (
+        <div key={message.id} className="whitespace-pre-wrap">
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.parts.map((part, i) => {
+            switch (part.type) {
+              case 'text':
+                return <div key={`${message.id}-${i}`}>{part.text}</div>;
+            }
+          })}
         </div>
       ))}
 
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+      >
         <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          className="fixed dark:bg-zinc-900 bottom-0 w-full max-w-md p-2 mb-8 border border-zinc-300 dark:border-zinc-800 rounded shadow-xl"
           value={input}
           placeholder="Say something..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.currentTarget.value)}
         />
       </form>
     </div>
@@ -157,10 +175,12 @@ export default function Chat() {
 
 This page utilizes the `useChat` hook, which will, by default, use the `POST` API route you created earlier (`/api/chat`). The hook provides functions and state for handling user input and form submission. The `useChat` hook provides multiple utility functions and state variables:
 
-- `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
-- `input` - the current value of the user's input field.
-- `handleInputChange` and `handleSubmit` - functions to handle user interactions (typing into the input field and submitting the form, respectively).
-- `isLoading` - boolean that indicates whether the API request is in progress.
+- `messages` - the current chat messages (an array of objects with `id`, `role`, and `parts` properties).
+- `sendMessage` - a function to send a message to the chat API.
+
+The component uses local state (`useState`) to manage the input field value, and handles form submission by calling `sendMessage` with the input text and then clearing the input field.
+
+The LLM's response is accessed through the message `parts` array. Each message contains an ordered array of `parts` that represents everything the model generated in its response. These parts can include plain text, reasoning tokens, and more that you will see later. The `parts` array preserves the sequence of the model's outputs, allowing you to display or process each component in the order it was generated.
 
 ## Running Your Application
 
@@ -178,29 +198,151 @@ Tools are actions that an LLM can invoke. The results of these actions can be re
 
 For example, if a user asks about the current weather, without tools, the model would only be able to provide general information based on its training data. But with a weather tool, it can fetch and provide up-to-date, location-specific weather information.
 
-Let's enhance your chatbot by adding a simple weather tool.
+### Update Your Route Handler
+
+Let's start by giving your chatbot a weather tool. Update your Route Handler (`app/api/chat/route.ts`):
+
+```tsx filename="app/api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
+import { z } from 'zod';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location',
+        inputSchema: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => ({
+          location,
+          temperature: 72 + Math.floor(Math.random() * 21) - 10,
+        }),
+      }),
+    },
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+In this updated code:
+
+1. You import the `tool` function from the `ai` package and `z` from `zod` for schema validation.
+2. You define a `tools` object with a `weather` tool. This tool:
+
+   - Has a description that helps the model understand when to use it.
+   - Defines `inputSchema` using a Zod schema, specifying that it requires a `location` string to execute this tool. The model will attempt to extract this input from the context of the conversation. If it can't, it will ask the user for the missing information.
+   - Defines an `execute` function that simulates getting weather data (in this case, it returns a random temperature). This is an asynchronous function running on the server so you can fetch real data from an external API.
+
+Now your chatbot can "fetch" weather information for any location the user asks about. When the model determines it needs to use the weather tool, it will generate a tool call with the necessary input. The `execute` function will then be automatically run, and the tool output will be added to the `messages` as a `tool` message.
+
+Try asking something like "What's the weather in New York?" and see how the model uses the new tool.
+
+Notice the blank response in the UI? This is because instead of generating a text response, the model generated a tool call. You can access the tool call and subsequent tool result on the client via the `tool-weather` part of the `message.parts` array.
+
+<Note>
+  Tool parts are always named `tool-{toolName}`, where `{toolName}` is the key
+  you used when defining the tool. In this case, since we defined the tool as
+  `weather`, the part type is `tool-weather`.
+</Note>
+
+### Update the UI
+
+To display the tool invocations in your UI, update your `pages/index.tsx` file:
+
+```tsx filename="pages/index.tsx" highlight="16-21"
+import { useChat } from '@ai-sdk/react';
+import { useState } from 'react';
+
+export default function Chat() {
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat();
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(message => (
+        <div key={message.id} className="whitespace-pre-wrap">
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.parts.map((part, i) => {
+            switch (part.type) {
+              case 'text':
+                return <div key={`${message.id}-${i}`}>{part.text}</div>;
+              case 'tool-weather':
+                return (
+                  <pre key={`${message.id}-${i}`}>
+                    {JSON.stringify(part, null, 2)}
+                  </pre>
+                );
+            }
+          })}
+        </div>
+      ))}
+
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+      >
+        <input
+          className="fixed dark:bg-zinc-900 bottom-0 w-full max-w-md p-2 mb-8 border border-zinc-300 dark:border-zinc-800 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={e => setInput(e.currentTarget.value)}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+With this change, you're updating the UI to handle different message parts. For text parts, you display the text content as before. For weather tool invocations, you display a JSON representation of the tool call and its result.
+
+Now, when you ask about the weather, you'll see the tool call and its result displayed in your chat interface.
+
+## Enabling Multi-Step Tool Calls
+
+You may have noticed that while the tool is now visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
+
+To solve this, you can enable multi-step tool calls using `stopWhen`. By default, `stopWhen` is set to `stepCountIs(1)`, which means generation stops after the first step when there are tool results. By changing this condition, you can allow the model to automatically send tool results back to itself to trigger additional generations until your specified stopping condition is met. In this case, you want the model to continue generating so it can use the weather tool results to answer your original question.
 
 ### Update Your Route Handler
 
-Modify your `app/api/chat/route.ts` file to include the new weather tool:
+Modify your `app/api/chat/route.ts` file to include the `stopWhen` condition:
 
-```tsx filename="app/api/chat/route.ts" highlight="2,13-27"
+```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
 import { z } from 'zod';
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => {
@@ -214,111 +356,42 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse();
-}
-```
-
-In this updated code:
-
-1. You import the `tool` function from the `ai` package and `z` from `zod` for schema validation.
-2. You define a `tools` object with a `weather` tool. This tool:
-
-   - Has a description that helps the model understand when to use it.
-   - Defines parameters using a Zod schema, specifying that it requires a `location` string to execute this tool. The model will attempt to extract this parameter from the context of the conversation. If it can't, it will ask the user for the missing information.
-   - Defines an `execute` function that simulates getting weather data (in this case, it returns a random temperature). This is an asynchronous function running on the server so you can fetch real data from an external API.
-
-   Now your chatbot can "fetch" weather information for any location the user asks about. When the model determines it needs to use the weather tool, it will generate a tool call with the necessary parameters. The `execute` function will then be automatically run, and you can access the results via `toolInvocations` that is available on the message object.
-
-Try asking something like "What's the weather in New York?" and see how the model uses the new tool.
-
-Notice the blank response in the UI? This is because instead of generating a text response, the model generated a tool call. You can access the tool call and subsequent tool result in the `toolInvocations` key of the message object.
-
-### Update the UI
-
-To display the tool invocations in your UI, update your `pages/index.tsx` file:
-
-```tsx filename="pages/index.tsx" highlight="11-15"
-import { useChat } from 'ai/react';
-
-export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
-  return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.toolInvocations ? (
-            <pre>{JSON.stringify(m.toolInvocations, null, 2)}</pre>
-          ) : (
-            <p>{m.content}</p>
-          )}
-        </div>
-      ))}
-
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-      </form>
-    </div>
-  );
-}
-```
-
-With this change, you check each message for any tool calls (`toolInvocations`). These tool calls will be displayed as stringified JSON. Otherwise, you show the message content as before.
-
-Now, when you ask about the weather, you'll see the tool invocation and its result displayed in your chat interface.
-
-## Enabling Multi-Step Tool Calls
-
-You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
-
-To solve this, you can enable multi-step tool calls using the `maxSteps` option in your `useChat` hook. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
-
-### Update Your Client-Side Code
-
-Modify your `pages/index.tsx` file to include the `maxSteps` option:
-
-```tsx filename="pages/index.tsx" highlight="6"
-import { useChat } from 'ai/react';
-
-export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    maxSteps: 5,
-  });
-
-  // ... rest of your component code
+  return result.toUIMessageStreamResponse();
 }
 ```
 
 Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
 
-By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
+By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Celsius to Fahrenheit.
 
-### Update Your Route Handler
+### Add another tool
 
 Update your `app/api/chat/route.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
 ```tsx filename="app/api/chat/route.ts" highlight="27-40"
 import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
 import { z } from 'zod';
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => {
@@ -331,7 +404,7 @@ export async function POST(req: Request) {
       }),
       convertFahrenheitToCelsius: tool({
         description: 'Convert a temperature in fahrenheit to celsius',
-        parameters: z.object({
+        inputSchema: z.object({
           temperature: z
             .number()
             .describe('The temperature in fahrenheit to convert'),
@@ -346,14 +419,67 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
+
+### Update Your Frontend
+
+Update your `pages/index.tsx` file to render the new temperature conversion tool:
+
+```tsx filename="pages/index.tsx" highlight="21"
+import { useChat } from '@ai-sdk/react';
+import { useState } from 'react';
+
+export default function Chat() {
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat();
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(message => (
+        <div key={message.id} className="whitespace-pre-wrap">
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.parts.map((part, i) => {
+            switch (part.type) {
+              case 'text':
+                return <div key={`${message.id}-${i}`}>{part.text}</div>;
+              case 'tool-weather':
+              case 'tool-convertFahrenheitToCelsius':
+                return (
+                  <pre key={`${message.id}-${i}`}>
+                    {JSON.stringify(part, null, 2)}
+                  </pre>
+                );
+            }
+          })}
+        </div>
+      ))}
+
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+      >
+        <input
+          className="fixed dark:bg-zinc-900 bottom-0 w-full max-w-md p-2 mb-8 border border-zinc-300 dark:border-zinc-800 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={e => setInput(e.currentTarget.value)}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+This update handles the new `tool-convertFahrenheitToCelsius` part type, displaying the temperature conversion tool calls and results in the UI.
 
 Now, when you ask "What's the weather in New York in celsius?", you should see a more complete interaction:
 
 1. The model will call the weather tool for New York.
-2. You'll see the tool result displayed.
+2. You'll see the tool output displayed.
 3. It will then call the temperature conversion tool to convert the temperature from Fahrenheit to Celsius.
 4. The model will then use that information to provide a natural language response about the weather in New York.
 

@@ -1,0 +1,22 @@
+name: Assign Team Pull Requests to Author
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    # Only assign pull requests by team members, ignore pull requests from forks
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assign pull request to author
+        run: gh pr edit $PULL_REQUEST_URL --add-assignee $AUTHOR_LOGIN
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_REQUEST_URL: ${{ github.event.pull_request.html_url }}
+          AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}

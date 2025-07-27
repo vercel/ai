@@ -6,7 +6,7 @@ describe('system messages', () => {
       prompt: [{ role: 'system', content: 'You are a helpful assistant.' }],
     });
 
-    expect(result).toEqual([
+    expect(result.messages).toEqual([
       { role: 'system', content: 'You are a helpful assistant.' },
     ]);
   });
@@ -17,7 +17,7 @@ describe('system messages', () => {
       systemMessageMode: 'developer',
     });
 
-    expect(result).toEqual([
+    expect(result.messages).toEqual([
       { role: 'developer', content: 'You are a helpful assistant.' },
     ]);
   });
@@ -28,7 +28,7 @@ describe('system messages', () => {
       systemMessageMode: 'remove',
     });
 
-    expect(result).toEqual([]);
+    expect(result.messages).toEqual([]);
   });
 });
 
@@ -43,7 +43,7 @@ describe('user messages', () => {
       ],
     });
 
-    expect(result).toEqual([{ role: 'user', content: 'Hello' }]);
+    expect(result.messages).toEqual([{ role: 'user', content: 'Hello' }]);
   });
 
   it('should convert messages with image parts', async () => {
@@ -54,16 +54,16 @@ describe('user messages', () => {
           content: [
             { type: 'text', text: 'Hello' },
             {
-              type: 'image',
-              image: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'image/png',
+              type: 'file',
+              mediaType: 'image/png',
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
             },
           ],
         },
       ],
     });
 
-    expect(result).toEqual([
+    expect(result.messages).toEqual([
       {
         role: 'user',
         content: [
@@ -84,10 +84,10 @@ describe('user messages', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'image/png',
-              providerMetadata: {
+              type: 'file',
+              mediaType: 'image/png',
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+              providerOptions: {
                 openai: {
                   imageDetail: 'low',
                 },
@@ -98,7 +98,7 @@ describe('user messages', () => {
       ],
     });
 
-    expect(result).toEqual([
+    expect(result.messages).toEqual([
       {
         role: 'user',
         content: [
@@ -122,14 +122,16 @@ describe('user messages', () => {
             {
               role: 'user',
               content: [
-                { type: 'file', data: 'AAECAw==', mimeType: 'image/png' },
+                {
+                  type: 'file',
+                  data: 'AAECAw==',
+                  mediaType: 'application/something',
+                },
               ],
             },
           ],
         }),
-      ).toThrow(
-        "'File content part type image/png in user messages' functionality not supported.",
-      );
+      ).toThrow('file part media type application/something');
     });
 
     it('should throw for URL data', () => {
@@ -142,15 +144,13 @@ describe('user messages', () => {
                 {
                   type: 'file',
                   data: new URL('https://example.com/foo.wav'),
-                  mimeType: 'audio/wav',
+                  mediaType: 'audio/wav',
                 },
               ],
             },
           ],
         }),
-      ).toThrow(
-        "'File content parts with URL data' functionality not supported.",
-      );
+      ).toThrow('audio file parts with URLs');
     });
 
     it('should add audio content for audio/wav file parts', () => {
@@ -162,14 +162,14 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'AAECAw==',
-                mimeType: 'audio/wav',
+                mediaType: 'audio/wav',
               },
             ],
           },
         ],
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           role: 'user',
           content: [
@@ -191,14 +191,14 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'AAECAw==',
-                mimeType: 'audio/mpeg',
+                mediaType: 'audio/mpeg',
               },
             ],
           },
         ],
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           role: 'user',
           content: [
@@ -220,14 +220,14 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'AAECAw==',
-                mimeType: 'audio/mp3', // not official but sometimes used
+                mediaType: 'audio/mp3', // not official but sometimes used
               },
             ],
           },
         ],
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           role: 'user',
           content: [
@@ -238,6 +238,155 @@ describe('user messages', () => {
           ],
         },
       ]);
+    });
+
+    it('should convert messages with PDF file parts', async () => {
+      const base64Data = 'AQIDBAU='; // Base64 encoding of pdfData
+
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: base64Data,
+                filename: 'document.pdf',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                filename: 'document.pdf',
+                file_data: 'data:application/pdf;base64,AQIDBAU=',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert messages with binary PDF file parts', async () => {
+      const data = Uint8Array.from([1, 2, 3, 4, 5]);
+
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data,
+                filename: 'document.pdf',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                filename: 'document.pdf',
+                file_data: 'data:application/pdf;base64,AQIDBAU=',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should use default filename for PDF file parts when not provided', async () => {
+      const base64Data = 'AQIDBAU=';
+
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: base64Data,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                filename: 'part-0.pdf',
+                file_data: 'data:application/pdf;base64,AQIDBAU=',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should throw error for unsupported file types', async () => {
+      const base64Data = 'AQIDBAU=';
+
+      expect(() => {
+        convertToOpenAIChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'text/plain',
+                  data: base64Data,
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+      }).toThrow('file part media type text/plain');
+    });
+
+    it('should throw error for file URLs', async () => {
+      expect(() => {
+        convertToOpenAIChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: new URL('https://example.com/document.pdf'),
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+      }).toThrow('PDF file parts with URLs');
     });
   });
 });
@@ -251,7 +400,7 @@ describe('tool calls', () => {
           content: [
             {
               type: 'tool-call',
-              args: { foo: 'bar123' },
+              input: { foo: 'bar123' },
               toolCallId: 'quux',
               toolName: 'thwomp',
             },
@@ -264,14 +413,14 @@ describe('tool calls', () => {
               type: 'tool-result',
               toolCallId: 'quux',
               toolName: 'thwomp',
-              result: { oof: '321rab' },
+              output: { type: 'json', value: { oof: '321rab' } },
             },
           ],
         },
       ],
     });
 
-    expect(result).toEqual([
+    expect(result.messages).toEqual([
       {
         role: 'assistant',
         content: '',
@@ -294,49 +443,42 @@ describe('tool calls', () => {
     ]);
   });
 
-  it('should convert tool calls to function calls with useLegacyFunctionCalling', () => {
+  it('should handle different tool output types', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
-        {
-          role: 'assistant',
-          content: [
-            {
-              type: 'tool-call',
-              args: { foo: 'bar123' },
-              toolCallId: 'quux',
-              toolName: 'thwomp',
-            },
-          ],
-        },
         {
           role: 'tool',
           content: [
             {
               type: 'tool-result',
-              toolCallId: 'quux',
-              toolName: 'thwomp',
-              result: { oof: '321rab' },
+              toolCallId: 'text-tool',
+              toolName: 'text-tool',
+              output: { type: 'text', value: 'Hello world' },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'error-tool',
+              toolName: 'error-tool',
+              output: { type: 'error-text', value: 'Something went wrong' },
             },
           ],
         },
       ],
-      useLegacyFunctionCalling: true,
     });
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: '',
-        function_call: {
-          name: 'thwomp',
-          arguments: JSON.stringify({ foo: 'bar123' }),
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "Hello world",
+          "role": "tool",
+          "tool_call_id": "text-tool",
         },
-      },
-      {
-        role: 'function',
-        content: JSON.stringify({ oof: '321rab' }),
-        name: 'thwomp',
-      },
-    ]);
+        {
+          "content": "Something went wrong",
+          "role": "tool",
+          "tool_call_id": "error-tool",
+        },
+      ]
+    `);
   });
 });

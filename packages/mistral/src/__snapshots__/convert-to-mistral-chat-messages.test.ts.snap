@@ -20,28 +20,20 @@ exports[`assistant messages > should add prefix true to trailing assistant messa
 ]
 `;
 
-exports[`tool calls > should stringify arguments to tool calls 1`] = `
+exports[`user messages > should convert messages with PDF file parts using URL 1`] = `
 [
   {
-    "content": "",
-    "prefix": undefined,
-    "role": "assistant",
-    "tool_calls": [
+    "content": [
       {
-        "function": {
-          "arguments": "{"key":"arg-value"}",
-          "name": "tool-1",
-        },
-        "id": "tool-call-id-1",
-        "type": "function",
+        "text": "Please analyze this document",
+        "type": "text",
+      },
+      {
+        "document_url": "https://example.com/document.pdf",
+        "type": "document_url",
       },
     ],
-  },
-  {
-    "content": "{"key":"result-value"}",
-    "name": "tool-1",
-    "role": "tool",
-    "tool_call_id": "tool-call-id-1",
+    "role": "user",
   },
 ]
 `;

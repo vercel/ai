@@ -5,11 +5,19 @@ description: Learn how to write a custom provider for the AI SDK
 
 # Writing a Custom Provider
 
-The AI SDK provides a [Language Model Specification](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v1).
-You can write your own provider that adheres to the specification and it will be compatible with the AI SDK.
+<Note type="warning">
+  AI SDK 5 is currently in Beta. The specification may change up until GA.
+</Note>
 
-You can find the Language Model Specification in the [AI SDK repository](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v1).
-It can be imported from `'@ai-sdk/provider'`. We also provide utilities that make it easier to implement a custom provider. You can find them in the `@ai-sdk/provider-utils` package ([source code](https://github.com/vercel/ai/tree/main/packages/provider-utils)).
+The AI SDK provides a [Language Model Specification](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v2) that enables you to create custom providers compatible with the AI SDK. This specification ensures consistency across different providers.
+
+## Publishing Your Provider
+
+Please publish your custom provider in your own GitHub repository and as an NPM package. You are responsible for hosting and maintaining your provider. Once published, you can submit a PR to the AI SDK repository to add your provider to the [Community Providers](/providers/community-providers) documentation section. Use the [OpenRouter provider documentation](https://github.com/vercel/ai/blob/main/content/providers/03-community-providers/13-openrouter.mdx) as a template for your documentation.
+
+## Why the Language Model Specification?
+
+The Language Model Specification V2 is a standardized specification for interacting with language models that provides a unified abstraction layer across all AI providers. This specification creates a consistent interface that works seamlessly with different language models, ensuring that developers can interact with any provider using the same patterns and methods. It enables:
 
 <Note>
   If you open-source a provider, we'd love to promote it here. Please send us a
@@ -17,7 +25,399 @@ It can be imported from `'@ai-sdk/provider'`. We also provide utilities that mak
   section.
 </Note>
 
+## Understanding the V2 Specification
+
+The Language Model Specification V2 creates a robust abstraction layer that works across all current and future AI providers. By establishing a standardized interface, it provides the flexibility to support emerging LLM capabilities while ensuring your application code remains provider-agnostic and future-ready.
+
+### Architecture
+
+At its heart, the V2 specification defines three main interfaces:
+
+1. **ProviderV2**: The top-level interface that serves as a factory for different model types
+2. **LanguageModelV2**: The primary interface for text generation models
+3. **EmbeddingModelV2** and **ImageModelV2**: Interfaces for embeddings and image generation
+
+### `ProviderV2`
+
+The `ProviderV2` interface acts as the entry point:
+
+```ts
+interface ProviderV2 {
+  languageModel(modelId: string): LanguageModelV2;
+  textEmbeddingModel(modelId: string): EmbeddingModelV2<string>;
+  imageModel(modelId: string): ImageModelV2;
+}
+```
+
+### `LanguageModelV2`
+
+The `LanguageModelV2` interface defines the methods your provider must implement:
+
+```ts
+interface LanguageModelV2 {
+  specificationVersion: 'V2';
+  provider: string;
+  modelId: string;
+  supportedUrls: Record<string, RegExp[]>;
+
+  doGenerate(options: LanguageModelV2CallOptions): Promise<GenerateResult>;
+  doStream(options: LanguageModelV2CallOptions): Promise<StreamResult>;
+}
+```
+
+Key aspects:
+
+- **specificationVersion**: Must be 'V2'
+- **supportedUrls**: Declares which URLs (for file parts) the provider can handle natively
+- **doGenerate/doStream**: methods for non-streaming and streaming generation
+
+### Understanding Input vs Output
+
+Before diving into the details, it's important to understand the distinction between two key concepts in the V2 specification:
+
+1. **LanguageModelV2Content**: The specification for what the models generate
+2. **LanguageModelV2Prompt**: The specification for what you send to the model
+
+### `LanguageModelV2Content`
+
+The V2 specification supports five distinct content types that models can generate, each designed for specific use cases:
+
+#### Text Content
+
+The fundamental building block for all text generation:
+
+```ts
+type LanguageModelV2Text = {
+  type: 'text';
+  text: string;
+};
+```
+
+This is used for standard model responses, system messages, and any plain text output.
+
+#### Tool Calls
+
+Enable models to invoke functions with structured arguments:
+
+```ts
+type LanguageModelV2ToolCall = {
+  type: 'tool-call';
+  toolCallType: 'function';
+  toolCallId: string;
+  toolName: string;
+  args: string;
+};
+```
+
+The `toolCallId` is crucial for correlating tool results back to their calls, especially in streaming scenarios.
+
+#### File Generation
+
+Support for multimodal output generation:
+
+```ts
+type LanguageModelV2File = {
+  type: 'file';
+  mediaType: string; // IANA media type (e.g., 'image/png', 'audio/mp3')
+  data: string | Uint8Array; // Generated file data as base64 encoded strings or binary data
+};
+```
+
+This enables models to generate images, audio, documents, and other file types directly.
+
+#### Reasoning
+
+Dedicated support for chain-of-thought reasoning (essential for models like OpenAI's o1):
+
+```ts
+type LanguageModelV2Reasoning = {
+  type: 'reasoning';
+  text: string;
+
+  /**
+   * Optional provider-specific metadata for the reasoning part.
+   */
+  providerMetadata?: SharedV2ProviderMetadata;
+};
+```
+
+Reasoning content is tracked separately from regular text, allowing for proper token accounting and UI presentation.
+
+#### Sources
+
+```ts
+type LanguageModelV2Source = {
+  type: 'source';
+  sourceType: 'url';
+  id: string;
+  url: string;
+  title?: string;
+  providerMetadata?: SharedV2ProviderMetadata;
+};
+```
+
+### `LanguageModelV2Prompt`
+
+The V2 prompt format (`LanguageModelV2Prompt`) is designed as a flexible message array that supports multimodal inputs:
+
+#### Message Roles
+
+Each message has a specific role with allowed content types:
+
+- **System**: Model instructions (text only)
+
+  ```ts
+  { role: 'system', content: string }
+  ```
+
+- **User**: Human inputs supporting text and files
+
+  ```ts
+  { role: 'user', content: Array<LanguageModelV2TextPart | LanguageModelV2FilePart> }
+  ```
+
+- **Assistant**: Model outputs with full content type support
+
+  ```ts
+  { role: 'assistant', content: Array<LanguageModelV2TextPart | LanguageModelV2FilePart | LanguageModelV2ReasoningPart | LanguageModelV2ToolCallPart> }
+  ```
+
+- **Tool**: Results from tool executions
+  ```ts
+  { role: 'tool', content: Array<LanguageModelV2ToolResultPart> }
+  ```
+
+#### Prompt Parts
+
+Prompt parts are the building blocks of messages in the prompt structure. While `LanguageModelV2Content` represents the model's output content, prompt parts are specifically designed for constructing input messages. Each message role supports different types of prompt parts:
+
+- **System messages**: Only support text content
+- **User messages**: Support text and file parts
+- **Assistant messages**: Support text, file, reasoning, and tool call parts
+- **Tool messages**: Only support tool result parts
+
+Let's explore each prompt part type:
+
+##### Text Parts
+
+The most basic prompt part, containing plain text content:
+
+```ts
+interface LanguageModelV2TextPart {
+  type: 'text';
+  text: string;
+  providerOptions?: SharedV2ProviderOptions;
+}
+```
+
+##### Reasoning Parts
+
+Used in assistant messages to capture the model's reasoning process:
+
+```ts
+interface LanguageModelV2ReasoningPart {
+  type: 'reasoning';
+  text: string;
+  providerOptions?: SharedV2ProviderOptions;
+}
+```
+
+##### File Parts
+
+Enable multimodal inputs by including files in prompts:
+
+```ts
+interface LanguageModelV2FilePart {
+  type: 'file';
+  filename?: string;
+  data: LanguageModelV2DataContent;
+  mediaType: string;
+  providerOptions?: SharedV2ProviderOptions;
+}
+```
+
+The `data` field offers flexibility:
+
+- **Uint8Array**: Direct binary data
+- **string**: Base64-encoded data
+- **URL**: Reference to external content (if supported by provider via `supportedUrls`)
+
+##### Tool Call Parts
+
+Represent tool calls made by the assistant:
+
+```ts
+interface LanguageModelV2ToolCallPart {
+  type: 'tool-call';
+  toolCallId: string;
+  toolName: string;
+  args: unknown;
+  providerOptions?: SharedV2ProviderOptions;
+}
+```
+
+##### Tool Result Parts
+
+Contain the results of executed tool calls:
+
+```ts
+interface LanguageModelV2ToolResultPart {
+  type: 'tool-result';
+  toolCallId: string;
+  toolName: string;
+  result: unknown;
+  isError?: boolean;
+  content?: Array<{
+    type: 'text' | 'image';
+    text?: string;
+    data?: string; // base64 encoded image data
+    mediaType?: string;
+  }>;
+  providerOptions?: SharedV2ProviderOptions;
+}
+```
+
+The optional `content` field enables rich tool results including images, providing more flexibility than the basic `result` field.
+
+### Streaming
+
+#### Stream Parts
+
+The streaming system uses typed events for different stages:
+
+1. **Stream Lifecycle Events**:
+
+   - `stream-start`: Initial event with any warnings about unsupported features
+   - `response-metadata`: Model information and response headers
+   - `finish`: Final event with usage statistics and finish reason
+   - `error`: Error events that can occur at any point
+
+2. **Content Events**:
+   - All content types (`text`, `file`, `reasoning`, `source`, `tool-call`) stream directly
+   - `tool-call-delta`: Incremental updates for tool call arguments
+   - `reasoning-part-finish`: Explicit marker for reasoning section completion
+
+Example stream sequence:
+
+```ts
+{ type: 'stream-start', warnings: [] }
+{ type: 'text', text: 'Hello' }
+{ type: 'text', text: ' world' }
+{ type: 'tool-call', toolCallId: '1', toolName: 'search', args: {...} }
+{ type: 'response-metadata', modelId: 'gpt-4.1', ... }
+{ type: 'finish', usage: { inputTokens: 10, outputTokens: 20 }, finishReason: 'stop' }
+```
+
+#### Usage Tracking
+
+Enhanced usage information:
+
+```ts
+type LanguageModelV2Usage = {
+  inputTokens: number | undefined;
+  outputTokens: number | undefined;
+  totalTokens: number | undefined;
+  reasoningTokens?: number | undefined;
+  cachedInputTokens?: number | undefined;
+};
+```
+
+### Tools
+
+The V2 specification supports two types of tools:
+
+#### Function Tools
+
+Standard user-defined functions with JSON Schema validation:
+
+```ts
+type LanguageModelV2FunctionTool = {
+  type: 'function';
+  name: string;
+  description?: string;
+  parameters: JSONSchema7; // Full JSON Schema support
+};
+```
+
+#### Provider-Defined Client Tools
+
+Native provider capabilities exposed as tools:
+
+```ts
+export type LanguageModelV2ProviderClientDefinedTool = {
+  type: 'provider-defined-client';
+  id: string; // e.g., 'anthropic.computer-use'
+  name: string; // Human-readable name
+  args: Record<string, unknown>;
+};
+```
+
+Tool choice can be controlled via:
+
+```ts
+toolChoice: 'auto' | 'none' | 'required' | { type: 'tool', toolName: string };
+```
+
+### Native URL Support
+
+Providers can declare URLs they can access directly:
+
+```ts
+supportedUrls: {
+  'image/*': [/^https:\/\/cdn\.example\.com\/.*/],
+  'application/pdf': [/^https:\/\/docs\.example\.com\/.*/],
+  'audio/*': [/^https:\/\/media\.example\.com\/.*/]
+}
+```
+
+The AI SDK checks these patterns before downloading any URL-based content.
+
+### Provider Options
+
+The specification includes a flexible system for provider-specific features without breaking the standard interface:
+
+```ts
+providerOptions: {
+  anthropic: {
+    cacheControl: true,
+    maxTokens: 4096
+  },
+  openai: {
+    parallelToolCalls: false,
+    responseFormat: { type: 'json_object' }
+  }
+}
+```
+
+Provider options can be specified at multiple levels:
+
+- **Call level**: In `LanguageModelV2CallOptions`
+- **Message level**: On individual messages
+- **Part level**: On specific content parts (text, file, etc.)
+
+This layered approach allows fine-grained control while maintaining compatibility.
+
+### Error Handling
+
+The V2 specification emphasizes robust error handling:
+
+1. **Streaming Errors**: Can be emitted at any point via `{ type: 'error', error: unknown }`
+2. **Warnings**: Non-fatal issues reported in `stream-start` and response objects
+3. **Finish Reasons**: Clear indication of why generation stopped:
+   - `'stop'`: Natural completion
+   - `'length'`: Hit max tokens
+   - `'content-filter'`: Safety filtering
+   - `'tool-calls'`: Stopped to execute tools
+   - `'error'`: Generation failed
+   - `'other'`: Provider-specific reasons
+
 ## Provider Implementation Guide
+
+To implement a custom language model provider, you'll need to install the required packages:
+
+```bash
+npm install @ai-sdk/provider @ai-sdk/provider-utils
+```
 
 Implementing a custom language model provider involves several steps:
 
@@ -27,68 +427,64 @@ Implementing a custom language model provider involves several steps:
 - Processing the results (generate, streaming, tool calls)
 - Supporting object generation
 
-The best way to get started is to copy a reference implementation and modify it to fit your needs.
-Check out the [Mistral reference implementation](https://github.com/vercel/ai/tree/main/packages/mistral)
-to see how the project is structured, and feel free to copy the setup.
+<Note>
+  The best way to get started is to use the [Mistral
+  provider](https://github.com/vercel/ai/tree/main/packages/mistral) as a
+  reference implementation.
+</Note>
 
-### Creating an Entry Point
+### Step 1: Create the Provider Entry Point
 
-Each AI SDK provider should follow the pattern of using a factory function that returns a provider instance
-and provide a default instance.
+Start by creating a `provider.ts` file that exports a factory function and a default instance:
 
-```ts filename="custom-provider.ts"
+```ts filename="provider.ts"
 import {
   generateId,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
+import { ProviderV2 } from '@ai-sdk/provider';
 import { CustomChatLanguageModel } from './custom-chat-language-model';
-import { CustomChatModelId, CustomChatSettings } from './custom-chat-settings';
 
-// model factory function with additional methods and properties
-export interface CustomProvider {
-  (
-    modelId: CustomChatModelId,
-    settings?: CustomChatSettings,
-  ): CustomChatLanguageModel;
+// Define your provider interface extending ProviderV2
+interface CustomProvider extends ProviderV2 {
+  (modelId: string, settings?: CustomChatSettings): CustomChatLanguageModel;
 
-  // explicit method for targeting a specific API in case there are several
-  chat(
-    modelId: CustomChatModelId,
+  // Add specific methods for different model types
+  languageModel(
+    modelId: string,
     settings?: CustomChatSettings,
   ): CustomChatLanguageModel;
 }
 
-// optional settings for the provider
-export interface CustomProviderSettings {
+// Provider settings
+interface CustomProviderSettings {
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers.
+   * Base URL for API calls
    */
   baseURL?: string;
 
   /**
-API key.
+   * API key for authentication
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers for requests
+   */
   headers?: Record<string, string>;
 }
 
-// provider factory function
-export function createCustomProvider(
-  options: CustomProviderSettings = {},
-): CustomProvider {
-  const createModel = (
-    modelId: CustomChatModelId,
+// Factory function to create provider instance
+function createCustom(options: CustomProviderSettings = {}): CustomProvider {
+  const createChatModel = (
+    modelId: string,
     settings: CustomChatSettings = {},
   ) =>
     new CustomChatLanguageModel(modelId, settings, {
-      provider: 'custom.chat',
+      provider: 'custom',
       baseURL:
-        withoutTrailingSlash(options.baseURL) ?? 'https://custom.ai/api/v1',
+        withoutTrailingSlash(options.baseURL) ?? 'https://api.custom.ai/v1',
       headers: () => ({
         Authorization: `Bearer ${loadApiKey({
           apiKey: options.apiKey,
@@ -100,54 +496,292 @@ export function createCustomProvider(
       generateId: options.generateId ?? generateId,
     });
 
-  const provider = function (
-    modelId: CustomChatModelId,
-    settings?: CustomChatSettings,
-  ) {
+  const provider = function (modelId: string, settings?: CustomChatSettings) {
     if (new.target) {
       throw new Error(
         'The model factory function cannot be called with the new keyword.',
       );
     }
 
-    return createModel(modelId, settings);
+    return createChatModel(modelId, settings);
   };
 
-  provider.chat = createModel;
+  provider.languageModel = createChatModel;
 
   return provider as CustomProvider;
 }
 
-/**
- * Default custom provider instance.
- */
-export const customProvider = createCustomProvider();
+// Export default provider instance
+const custom = createCustom();
 ```
 
-### Implementing the Language Model
+### Step 2: Implement the Language Model
 
-A [language model](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v1/language-model-v1.ts) needs to implement:
+Create a `custom-chat-language-model.ts` file that implements `LanguageModelV2`:
 
-- metadata fields
-  - `specificationVersion: 'v1'` - always `'v1'`
-  - `provider: string` - name of the provider
-  - `modelId: string` - unique identifier of the model
-  - `defaultObjectGenerationMode` - default object generation mode, e.g. "json"
-- `doGenerate` method
-- `doStream` method
+```ts filename="custom-chat-language-model.ts"
+import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { postJsonToApi } from '@ai-sdk/provider-utils';
 
-Check out the [Mistral language model](https://github.com/vercel/ai/blob/main/packages/mistral/src/mistral-chat-language-model.ts) as an example.
+class CustomChatLanguageModel implements LanguageModelV2 {
+  readonly specificationVersion = 'V2';
+  readonly provider: string;
+  readonly modelId: string;
 
-At a high level, both `doGenerate` and `doStream` methods should:
+  constructor(
+    modelId: string,
+    settings: CustomChatSettings,
+    config: CustomChatConfig,
+  ) {
+    this.provider = config.provider;
+    this.modelId = modelId;
+    // Initialize with settings and config
+  }
 
-1. **Map the prompt and the settings to the format required by the provider API.** This can be extracted, e.g. the Mistral provider contains a `getArgs` method.
-2. **Call the provider API.** You could e.g. use fetch calls or a library offered by the provider.
-3. **Process the results.** You need to convert the response to the format required by the AI SDK.
+  // Convert AI SDK prompt to provider format
+  private getArgs(options: LanguageModelV2CallOptions) {
+    const warnings: LanguageModelV2CallWarning[] = [];
 
-### Errors
+    // Map messages to provider format
+    const messages = this.convertToProviderMessages(options.prompt);
 
-The AI SDK provides [standardized errors](https://github.com/vercel/ai/tree/main/packages/provider/src/errors) that should be used by providers where possible. This will make it easy for user to debug them.
+    // Handle tools if provided
+    const tools = options.tools
+      ? this.prepareTools(options.tools, options.toolChoice)
+      : undefined;
 
-### Retries, timeouts, and abort signals
+    // Build request body
+    const body = {
+      model: this.modelId,
+      messages,
+      temperature: options.temperature,
+      max_tokens: options.maxOutputTokens,
+      stop: options.stopSequences,
+      tools,
+      // ... other parameters
+    };
 
-The AI SDK will handle retries, timeouts, and aborting requests in a unified way. The model classes should not implement retries or timeouts themselves. Instead, they should use the `abortSignal` parameter to determine when the call should be aborted, and they should throw `ApiCallErrors` (or similar) with a correct `isRetryable` flag when errors such as network errors occur.
+    return { args: body, warnings };
+  }
+
+  async doGenerate(options: LanguageModelV2CallOptions) {
+    const { args, warnings } = this.getArgs(options);
+
+    // Make API call
+    const response = await postJsonToApi({
+      url: `${this.config.baseURL}/chat/completions`,
+      headers: this.config.headers(),
+      body: args,
+      abortSignal: options.abortSignal,
+    });
+
+    // Convert provider response to AI SDK format
+    const content: LanguageModelV2Content[] = [];
+
+    // Extract text content
+    if (response.choices[0].message.content) {
+      content.push({
+        type: 'text',
+        text: response.choices[0].message.content,
+      });
+    }
+
+    // Extract tool calls
+    if (response.choices[0].message.tool_calls) {
+      for (const toolCall of response.choices[0].message.tool_calls) {
+        content.push({
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: toolCall.id,
+          toolName: toolCall.function.name,
+          args: JSON.stringify(toolCall.function.arguments),
+        });
+      }
+    }
+
+    return {
+      content,
+      finishReason: this.mapFinishReason(response.choices[0].finish_reason),
+      usage: {
+        inputTokens: response.usage?.prompt_tokens,
+        outputTokens: response.usage?.completion_tokens,
+        totalTokens: response.usage?.total_tokens,
+      },
+      request: { body: args },
+      response: { body: response },
+      warnings,
+    };
+  }
+
+  async doStream(options: LanguageModelV2CallOptions) {
+    const { args, warnings } = this.getArgs(options);
+
+    // Create streaming response
+    const response = await fetch(`${this.config.baseURL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        ...this.config.headers(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ...args, stream: true }),
+      signal: options.abortSignal,
+    });
+
+    // Transform stream to AI SDK format
+    const stream = response
+      .body!.pipeThrough(new TextDecoderStream())
+      .pipeThrough(this.createParser())
+      .pipeThrough(this.createTransformer(warnings));
+
+    return { stream, warnings };
+  }
+
+  // Supported URL patterns for native file handling
+  get supportedUrls() {
+    return {
+      'image/*': [/^https:\/\/example\.com\/images\/.*/],
+    };
+  }
+}
+```
+
+### Step 3: Implement Message Conversion
+
+Map AI SDK messages to your provider's format:
+
+```ts filename="custom-chat-language-model.ts#L50-100"
+private convertToProviderMessages(prompt: LanguageModelV2Prompt) {
+  return prompt.map((message) => {
+    switch (message.role) {
+      case 'system':
+        return { role: 'system', content: message.content };
+
+      case 'user':
+        return {
+          role: 'user',
+          content: message.content.map((part) => {
+            switch (part.type) {
+              case 'text':
+                return { type: 'text', text: part.text };
+              case 'file':
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url: this.convertFileToUrl(part.data),
+                  },
+                };
+              default:
+                throw new Error(`Unsupported part type: ${part.type}`);
+            }
+          }),
+        };
+
+      case 'assistant':
+        // Handle assistant messages with text, tool calls, etc.
+        return this.convertAssistantMessage(message);
+
+      case 'tool':
+        // Handle tool results
+        return this.convertToolMessage(message);
+
+      default:
+        throw new Error(`Unsupported message role: ${message.role}`);
+    }
+  });
+}
+```
+
+### Step 4: Implement Streaming
+
+Create a streaming transformer that converts provider chunks to AI SDK stream parts:
+
+```ts filename="custom-chat-language-model.ts#L150-200"
+private createTransformer(warnings: LanguageModelV2CallWarning[]) {
+  let isFirstChunk = true;
+
+  return new TransformStream<ParsedChunk, LanguageModelV2StreamPart>({
+    async transform(chunk, controller) {
+      // Send warnings with first chunk
+      if (isFirstChunk) {
+        controller.enqueue({ type: 'stream-start', warnings });
+        isFirstChunk = false;
+      }
+
+      // Handle different chunk types
+      if (chunk.choices?.[0]?.delta?.content) {
+        controller.enqueue({
+          type: 'text',
+          text: chunk.choices[0].delta.content,
+        });
+      }
+
+      if (chunk.choices?.[0]?.delta?.tool_calls) {
+        for (const toolCall of chunk.choices[0].delta.tool_calls) {
+          controller.enqueue({
+            type: 'tool-call-delta',
+            toolCallType: 'function',
+            toolCallId: toolCall.id,
+            toolName: toolCall.function.name,
+            argsTextDelta: toolCall.function.arguments,
+          });
+        }
+      }
+
+      // Handle finish reason
+      if (chunk.choices?.[0]?.finish_reason) {
+        controller.enqueue({
+          type: 'finish',
+          finishReason: this.mapFinishReason(chunk.choices[0].finish_reason),
+          usage: {
+            inputTokens: chunk.usage?.prompt_tokens,
+            outputTokens: chunk.usage?.completion_tokens,
+            totalTokens: chunk.usage?.total_tokens,
+          },
+        });
+      }
+    },
+  });
+}
+```
+
+### Step 5: Handle Errors
+
+Use standardized AI SDK errors for consistent error handling:
+
+```ts filename="custom-chat-language-model.ts#L250-280"
+import {
+  APICallError,
+  InvalidResponseDataError,
+  TooManyRequestsError,
+} from '@ai-sdk/provider';
+
+private handleError(error: unknown): never {
+  if (error instanceof Response) {
+    const status = error.status;
+
+    if (status === 429) {
+      throw new TooManyRequestsError({
+        cause: error,
+        retryAfter: this.getRetryAfter(error),
+      });
+    }
+
+    throw new APICallError({
+      statusCode: status,
+      statusText: error.statusText,
+      cause: error,
+      isRetryable: status >= 500 && status < 600,
+    });
+  }
+
+  throw error;
+}
+```
+
+## Next Steps
+
+- Dig into the [Language Model Specification V2](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/V2)
+- Check out the [Mistral provider](https://github.com/vercel/ai/tree/main/packages/mistral) reference implementation
+- Check out [provider utilities](https://github.com/vercel/ai/tree/main/packages/provider-utils) for helpful functions
+- Test your provider with the AI SDK's built-in examples
+- Explore the V2 types in detail at [`@ai-sdk/provider`](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/V2)

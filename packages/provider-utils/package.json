@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "2.0.7",
+  "version": "3.0.0-beta.6",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,17 +8,19 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "test/dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "test.d.ts"
   ],
   "scripts": {
-    "build": "tsup",
-    "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf test/dist",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsup --watch",
+    "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
+    "test:update": "pnpm test:node -u",
+    "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
     "test:node": "vitest --config vitest.node.config.js --run"
   },
@@ -30,33 +32,28 @@
       "require": "./dist/index.js"
     },
     "./test": {
-      "types": "./test/dist/index.d.ts",
-      "import": "./test/dist/index.mjs",
-      "module": "./test/dist/index.mjs",
-      "require": "./test/dist/index.js"
+      "types": "./dist/test/index.d.ts",
+      "import": "./dist/test/index.mjs",
+      "module": "./dist/test/index.mjs",
+      "require": "./dist/test/index.js"
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.0.4",
-    "eventsource-parser": "^3.0.0",
-    "nanoid": "^3.3.8",
-    "secure-json-parse": "^2.7.0"
+    "@ai-sdk/provider": "workspace:*",
+    "@standard-schema/spec": "^1.0.0",
+    "zod-to-json-schema": "^3.24.1",
+    "eventsource-parser": "^3.0.3"
   },
   "devDependencies": {
-    "@types/node": "^18",
+    "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "msw": "2.7.0",
     "tsup": "^8",
-    "typescript": "5.6.3",
-    "zod": "3.23.8"
+    "typescript": "5.8.3",
+    "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.0.0"
-  },
-  "peerDependenciesMeta": {
-    "zod": {
-      "optional": true
-    }
+    "zod": "^3.25.76 || ^4"
   },
   "engines": {
     "node": ">=18"
@@ -64,7 +61,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://sdk.vercel.ai/docs",
+  "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git"

@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createVertexAnthropic } from './google-vertex-anthropic-provider-edge';
-import * as baseProvider from '../google-vertex-anthropic-provider';
+import { resolve } from '@ai-sdk/provider-utils';
 import * as edgeAuth from '../../edge/google-vertex-auth-edge';
+import { createVertexAnthropic as createVertexAnthropicOriginal } from '../google-vertex-anthropic-provider';
+import { createVertexAnthropic as createVertexAnthropicEdge } from './google-vertex-anthropic-provider-edge';
 
 // Mock the imported modules
 vi.mock('../../edge/google-vertex-auth-edge', () => ({
@@ -19,77 +19,68 @@ describe('google-vertex-anthropic-provider-edge', () => {
     vi.clearAllMocks();
   });
 
-  it('should set up default auth token header when no headers provided', () => {
-    createVertexAnthropic({ project: 'test-project' });
+  it('default headers function should return auth token', async () => {
+    createVertexAnthropicEdge({ project: 'test-project' });
 
-    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
-    const passedOptions = mockCreateProvider.mock.calls[0][0];
+    const mockCreateVertex = vi.mocked(createVertexAnthropicOriginal);
+    const passedOptions = mockCreateVertex.mock.calls[0][0];
 
-    expect(mockCreateProvider).toHaveBeenCalledTimes(1);
+    expect(mockCreateVertex).toHaveBeenCalledTimes(1);
     expect(typeof passedOptions?.headers).toBe('function');
-  });
 
-  it('default headers function should return auth token and anthropic version', async () => {
-    createVertexAnthropic({ project: 'test-project' });
-
-    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
-    const passedOptions = mockCreateProvider.mock.calls[0][0];
-    const headersFunction = passedOptions?.headers as () => Promise<
-      Record<string, string>
-    >;
-    const headers = await headersFunction();
-
-    expect(headers).toEqual({
+    expect(await resolve(passedOptions?.headers)).toStrictEqual({
       Authorization: 'Bearer mock-auth-token',
     });
   });
 
-  it('should pass through custom headers when provided', () => {
-    const customHeaders = async () => ({
+  it('should use custom headers in addition to auth token when provided', async () => {
+    createVertexAnthropicEdge({
+      project: 'test-project',
+      headers: async () => ({
+        'Custom-Header': 'custom-value',
+      }),
+    });
+
+    const mockCreateVertex = vi.mocked(createVertexAnthropicOriginal);
+    const passedOptions = mockCreateVertex.mock.calls[0][0];
+
+    expect(mockCreateVertex).toHaveBeenCalledTimes(1);
+    expect(typeof passedOptions?.headers).toBe('function');
+    expect(await resolve(passedOptions?.headers)).toEqual({
+      Authorization: 'Bearer mock-auth-token',
       'Custom-Header': 'custom-value',
     });
+  });
 
-    createVertexAnthropic({
+  it('should use edge auth token generator', async () => {
+    createVertexAnthropicEdge({ project: 'test-project' });
+
+    const mockCreateVertex = vi.mocked(createVertexAnthropicOriginal);
+    const passedOptions = mockCreateVertex.mock.calls[0][0];
+
+    // Verify the headers function actually calls generateAuthToken by checking its result
+    expect(passedOptions?.headers).toBeDefined();
+    await resolve(passedOptions?.headers);
+    expect(edgeAuth.generateAuthToken).toHaveBeenCalled();
+  });
+
+  it('passes googleCredentials to generateAuthToken', async () => {
+    createVertexAnthropicEdge({
       project: 'test-project',
-      headers: customHeaders,
+      googleCredentials: {
+        clientEmail: 'test@example.com',
+        privateKey: 'test-key',
+      },
     });
 
-    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
-    const passedOptions = mockCreateProvider.mock.calls[0][0];
+    const mockCreateVertex = vi.mocked(createVertexAnthropicOriginal);
+    const passedOptions = mockCreateVertex.mock.calls[0][0];
 
-    expect(mockCreateProvider).toHaveBeenCalledTimes(1);
-    expect(passedOptions?.headers).toBe(customHeaders);
-  });
+    await resolve(passedOptions?.headers); // call the headers function
 
-  it('should use edge auth token generator', () => {
-    createVertexAnthropic({ project: 'test-project' });
-
-    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
-    const passedOptions = mockCreateProvider.mock.calls[0][0];
-
-    expect(passedOptions?.headers).toBeDefined();
-    expect(passedOptions?.headers?.toString()).toContain('generateAuthToken');
-  });
-
-  it('should call generateAuthToken with provided googleCredentials', async () => {
-    const mockCredentials = {
+    expect(edgeAuth.generateAuthToken).toHaveBeenCalledWith({
       clientEmail: 'test@example.com',
       privateKey: 'test-key',
-    };
-
-    createVertexAnthropic({
-      project: 'test-project',
-      googleCredentials: mockCredentials,
     });
-
-    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
-    const passedOptions = mockCreateProvider.mock.calls[0][0];
-    const headersFunction = passedOptions?.headers as () => Promise<
-      Record<string, string>
-    >;
-
-    await headersFunction();
-
-    expect(edgeAuth.generateAuthToken).toHaveBeenCalledWith(mockCredentials);
   });
 });

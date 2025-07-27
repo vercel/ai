@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import 'dotenv/config';
 import fs from 'node:fs';
@@ -15,9 +15,14 @@ async function main() {
         ],
       },
     ],
+    providerOptions: {
+      google: {
+        responseModalities: ['TEXT', 'IMAGE'],
+      } satisfies GoogleGenerativeAIProviderOptions,
+    },
   });
 
-  console.log(result.text);
+  console.log(result.content);
 }
 
 main().catch(console.error);

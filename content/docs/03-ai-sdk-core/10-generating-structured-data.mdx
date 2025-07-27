@@ -14,10 +14,15 @@ However, you need to manually provide schemas and then validate the generated da
 The AI SDK standardises structured object generation across model providers
 with the [`generateObject`](/docs/reference/ai-sdk-core/generate-object)
 and [`streamObject`](/docs/reference/ai-sdk-core/stream-object) functions.
-You can use both functions with different output strategies, e.g. `array`, `object`, or `no-schema`,
+You can use both functions with different output strategies, e.g. `array`, `object`, `enum`, or `no-schema`,
 and with different generation modes, e.g. `auto`, `tool`, or `json`.
-You can use [Zod schemas](./schemas-and-zod) or [JSON schemas](/docs/reference/ai-sdk-core/json-schema) to specify the shape of the data that you want,
+You can use [Zod schemas](/docs/reference/ai-sdk-core/zod-schema), [Valibot](/docs/reference/ai-sdk-core/valibot-schema), or [JSON schemas](/docs/reference/ai-sdk-core/json-schema) to specify the shape of the data that you want,
 and the AI model will generate data that conforms to that structure.
+
+<Note>
+  You can pass Zod objects directly to the AI SDK functions or use the
+  `zodSchema` helper function.
+</Note>
 
 ## Generate Object
 
@@ -29,7 +34,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -39,6 +44,28 @@ const { object } = await generateObject({
   }),
   prompt: 'Generate a lasagna recipe.',
 });
+```
+
+<Note>
+  See `generateObject` in action with [these examples](#more-examples)
+</Note>
+
+### Accessing response headers & body
+
+Sometimes you need access to the full response from the model provider,
+e.g. to access some provider-specific headers or body content.
+
+You can access the raw response headers and body using the `response` property:
+
+```ts
+import { generateObject } from 'ai';
+
+const result = await generateObject({
+  // ...
+});
+
+console.log(JSON.stringify(result.response.headers, null, 2));
+console.log(JSON.stringify(result.response.body, null, 2));
 ```
 
 ## Stream Object
@@ -61,9 +88,29 @@ for await (const partialObject of partialObjectStream) {
 
 You can use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](../ai-sdk-rsc))) or the [`useObject`](/docs/reference/ai-sdk-ui/use-object) hook.
 
+<Note>See `streamObject` in action with [these examples](#more-examples)</Note>
+
+### `onError` callback
+
+`streamObject` immediately starts streaming.
+Errors become part of the stream and are not thrown to prevent e.g. servers from crashing.
+
+To log errors, you can provide an `onError` callback that is triggered when an error occurs.
+
+```tsx highlight="5-7"
+import { streamObject } from 'ai';
+
+const result = streamObject({
+  // ...
+  onError({ error }) {
+    console.error(error); // your error logging logic here
+  },
+});
+```
+
 ## Output Strategy
 
-You can use both functions with different output strategies, e.g. `array`, `object`, or `no-schema`.
+You can use both functions with different output strategies, e.g. `array`, `object`, `enum`, or `no-schema`.
 
 ### Object
 
@@ -82,7 +129,7 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const { elementStream } = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -111,7 +158,7 @@ and provide a list of possible values in the `enum` parameter.
 import { generateObject } from 'ai';
 
 const { object } = await generateObject({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   output: 'enum',
   enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
   prompt:
@@ -133,24 +180,11 @@ import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 
 const { object } = await generateObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
 ```
-
-## Generation Mode
-
-While some models (like OpenAI) natively support object generation, others require alternative methods, like modified [tool calling](/docs/ai-sdk-core/tools-and-tool-calling). The `generateObject` function allows you to specify the method it will use to return structured data.
-
-- `auto`: The provider will choose the best mode for the model. This recommended mode is used by default.
-- `tool`: A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- `json`: The response format is set to JSON when supported by the provider, e.g. via json modes or grammar-guided generation. If grammar-guided generation is not supported, the JSON schema and instructions to generate JSON that conforms to the schema are injected into the system prompt.
-
-<Note>
-  Please note that not every provider supports all generation modes. Some
-  providers do not support object generation at all.
-</Note>
 
 ## Schema Name and Description
 
@@ -161,7 +195,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   schemaName: 'Recipe',
   schemaDescription: 'A recipe for a dish.',
   schema: z.object({
@@ -205,6 +239,33 @@ try {
     console.log('Usage:', error.usage);
   }
 }
+```
+
+## Repairing Invalid or Malformed JSON
+
+<Note type="warning">
+  The `repairText` function is experimental and may change in the future.
+</Note>
+
+Sometimes the model will generate invalid or malformed JSON.
+You can use the `repairText` function to attempt to repair the JSON.
+
+It receives the error, either a `JSONParseError` or a `TypeValidationError`,
+and the text that was generated by the model.
+You can then attempt to repair the text and return the repaired text.
+
+```ts highlight="7-10"
+import { generateObject } from 'ai';
+
+const { object } = await generateObject({
+  model,
+  schema,
+  prompt,
+  experimental_repairText: async ({ text, error }) => {
+    // example: add a closing brace to the text
+    return text + '}';
+  },
+});
 ```
 
 ## Structured outputs with `generateText` and `streamText`

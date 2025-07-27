@@ -1,0 +1,25 @@
+---
+title: AI_NoAudioGeneratedError
+description: Learn how to fix AI_NoAudioGeneratedError
+---
+
+# AI_NoAudioGeneratedError
+
+This error occurs when no audio could be generated from the input.
+
+## Properties
+
+- `responses`: Array of responses
+- `message`: The error message
+
+## Checking for this Error
+
+You can check if an error is an instance of `AI_NoAudioGeneratedError` using:
+
+```typescript
+import { NoAudioGeneratedError } from 'ai';
+
+if (NoAudioGeneratedError.isInstance(error)) {
+  // Handle the error
+}
+```

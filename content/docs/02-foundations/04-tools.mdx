@@ -24,7 +24,7 @@ and [`streamText`](/docs/reference/ai-sdk-core/stream-text) by passing one or mo
 A tool consists of three properties:
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
-- **`parameters`**: A [Zod schema](/docs/foundations/tools#schema-specification-and-validation-with-zod) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the parameters. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
+- **`inputSchema`**: A [Zod schema](/docs/foundations/tools#schema-specification-and-validation-with-zod) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the input required for the tool to run. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
 - **`execute`**: An optional async function that is called with the arguments from the tool call.
 
 <Note>
@@ -34,7 +34,7 @@ A tool consists of three properties:
 
 If the LLM decides to use a tool, it will generate a tool call.
 Tools with an `execute` function are run automatically when these calls are generated.
-The results of the tool calls are returned using tool result objects.
+The output of the tool calls are returned using tool result objects.
 
 You can automatically pass tool results back to the LLM
 using [multi-step calls](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) with `streamText` and `generateText`.
@@ -43,9 +43,11 @@ using [multi-step calls](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-cal
 
 Schemas are used to define the parameters for tools and to validate the [tool calls](/docs/ai-sdk-core/tools-and-tool-calling).
 
-The AI SDK supports both raw JSON schemas (using the `jsonSchema` function) and [Zod](https://zod.dev/) schemas.
-[Zod](https://zod.dev/) is the most popular JavaScript schema validation library.
-You can install Zod with:
+The AI SDK supports both raw JSON schemas (using the [`jsonSchema` function](/docs/reference/ai-sdk-core/json-schema))
+and [Zod](https://zod.dev/) schemas (either directly or using the [`zodSchema` function](/docs/reference/ai-sdk-core/zod-schema)).
+
+[Zod](https://zod.dev/) is a popular TypeScript schema validation library.
+You can install it with:
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
@@ -90,9 +92,18 @@ When you work with tools, you typically need a mix of application specific tools
 There are several providers that offer pre-built tools as **toolkits** that you can use out of the box:
 
 - **[agentic](https://github.com/transitive-bullshit/agentic)** - A collection of 20+ tools. Most tools connect to access external APIs such as [Exa](https://exa.ai/) or [E2B](https://e2b.dev/).
-- **[browserbase](https://github.com/browserbase/js-sdk?tab=readme-ov-file#vercel-ai-sdk-integration)** - Browser tool that runs a headless browser
+- **[browserbase](https://docs.browserbase.com/integrations/vercel/introduction#vercel-ai-integration)** - Browser tool that runs a headless browser
+- **[browserless](https://docs.browserless.io/ai-integrations/vercel-ai-sdk)** - Browser automation service with AI integration - self hosted or cloud based
+- **[Smithery](https://smithery.ai/docs/use/connect)** - Smithery provides an open marketplace of 6K+ MCPs, including [Browserbase](https://browserbase.com/) and [Exa](https://exa.ai/).
 - **[Stripe agent tools](https://docs.stripe.com/agents)** - Tools for interacting with Stripe.
+- **[StackOne ToolSet](https://docs.stackone.com/agents)** - Agentic integrations for hundreds of [enterprise SaaS](https://www.stackone.com/integrations)
 - **[Toolhouse](https://docs.toolhouse.ai/toolhouse/using-vercel-ai)** - AI function-calling in 3 lines of code for over 25 different actions.
+- **[Agent Tools](https://ai-sdk-agents.vercel.app/?item=introduction)** - A collection of tools for agents.
+- **[AI Tool Maker](https://github.com/nihaocami/ai-tool-maker)** - A CLI utility to generate AI SDK tools from OpenAPI specs.
+- **[Composio](https://docs.composio.dev/javascript/vercel)** - Composio provides 250+ tools like GitHub, Gmail, Salesforce and [more](https://composio.dev/tools).
+- **[Interlify](https://www.interlify.com/docs/integrate-with-vercel-ai)** - Convert APIs into tools so that AI can connect to your backend in minutes.
+- **[Freestyle](https://docs.freestyle.sh/integrations/vercel)** - Tool for your AI to execute JavaScript or TypeScript with arbitrary node modules.
+- **[JigsawStack](http://www.jigsawstack.com/docs/integration/vercel)** - JigsawStack provides over 30+ small custom fine tuned models available for specific uses.
 
 <Note>
   Do you have open source tools or tool libraries that are compatible with the
@@ -103,4 +114,4 @@ There are several providers that offer pre-built tools as **toolkits** that you 
 ## Learn more
 
 The AI SDK Core [Tool Calling](/docs/ai-sdk-core/tools-and-tool-calling)
-and [Agents](/docs/ai-sdk-core/agents) documentation has more information about tools and tool calling.
+and [Agents](/docs/foundations/agents) documentation has more information about tools and tool calling.

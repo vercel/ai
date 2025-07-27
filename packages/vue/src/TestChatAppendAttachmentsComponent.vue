@@ -1,44 +1,36 @@
 <script setup lang="ts">
-import { useChat } from './use-chat';
+import { generateId } from 'ai';
+import { mockId } from 'ai/test';
+import { Chat } from './chat.vue';
 
-const { messages, append } = useChat();
+const chat = new Chat({
+  id: generateId(),
+  generateId: mockId(),
+});
 </script>
 
 <template>
   <div>
-    <div v-for="(m, idx) in messages" :key="m.id" :data-testid="`message-${idx}`">
-      {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ m.content }}
-      <template v-if="m.experimental_attachments">
-        <template v-for="attachment in m.experimental_attachments" :key="attachment.name">
-          <img
-            v-if="attachment.contentType?.startsWith('image/')"
-            :src="attachment.url"
-            :alt="attachment.name"
-            :data-testid="`attachment-${idx}`"
-          />
-        </template>
-      </template>
+    <div data-testid="messages">
+      {{ JSON.stringify(chat.messages, null, 2) }}
     </div>
 
     <button
       data-testid="do-append"
       @click="
-        append(
-          {
-            role: 'user',
-            content: 'Message with image attachment',
-          },
-          {
-            experimental_attachments: [
-              {
-                name: 'test.png',
-                contentType: 'image/png',
-                url: 'https://example.com/image.png',
-              },
-            ],
-          },
-        )
+        chat.sendMessage({
+          parts: [
+            {
+              type: 'file',
+              url: 'https://example.com/image.png',
+              mediaType: 'image/png',
+            },
+            {
+              type: 'text',
+              text: 'Message with image attachment',
+            },
+          ],
+        })
       "
     />
   </div>

@@ -20,22 +20,25 @@ createFeatureTestSuite({
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
-      // createChatModel('grok-beta'),
+      createChatModel('grok-4'),
+      createChatModel('grok-3-beta'),
+      createChatModel('grok-3-fast-beta'),
+      createChatModel('grok-3-mini-beta'),
+      createChatModel('grok-3-mini-fast-beta'),
+      createChatModel('grok-beta'),
       createChatModel('grok-2-1212'),
-      // createChatModel('grok-vision-beta'),
+      createChatModel('grok-vision-beta'),
       createChatModel('grok-2-vision-1212'),
-      // createCompletionModel('grok-beta'),
+      createCompletionModel('grok-beta'),
       createCompletionModel('grok-2-1212'),
-      // createCompletionModel('grok-vision-beta'),
+      createCompletionModel('grok-vision-beta'),
       createCompletionModel('grok-2-vision-1212'),
     ],
   },
   timeout: 30000,
   customAssertions: {
     errorValidator: (error: APICallError) => {
-      expect((error.data as XaiErrorData).code).toBe(
-        'Some requested entity was not found',
-      );
+      expect((error.data as XaiErrorData).error.message).toContain('model');
     },
   },
 })();

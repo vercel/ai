@@ -1,5 +1,5 @@
-import { EmbeddingModelV1Embedding } from '@ai-sdk/provider';
-import { JsonTestServer } from '@ai-sdk/provider-utils/test';
+import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createMistral } from './mistral-provider';
 
 const dummyEmbeddings = [
@@ -9,30 +9,36 @@ const dummyEmbeddings = [
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
 const provider = createMistral({ apiKey: 'test-api-key' });
-const model = provider.embedding('mistral-embed');
+const model = provider.textEmbeddingModel('mistral-embed');
+
+const server = createTestServer({
+  'https://api.mistral.ai/v1/embeddings': {},
+});
 
 describe('doEmbed', () => {
-  const server = new JsonTestServer('https://api.mistral.ai/v1/embeddings');
-
-  server.setupTestEnvironment();
-
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
     usage = { prompt_tokens: 8, total_tokens: 8 },
+    headers,
   }: {
-    embeddings?: EmbeddingModelV1Embedding[];
+    embeddings?: EmbeddingModelV2Embedding[];
     usage?: { prompt_tokens: number; total_tokens: number };
+    headers?: Record<string, string>;
   } = {}) {
-    server.responseBodyJson = {
-      id: 'b322cfc2b9d34e2f8e14fc99874faee5',
-      object: 'list',
-      data: embeddings.map((embedding, i) => ({
-        object: 'embedding',
-        embedding,
-        index: i,
-      })),
-      model: 'mistral-embed',
-      usage,
+    server.urls['https://api.mistral.ai/v1/embeddings'].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        id: 'b322cfc2b9d34e2f8e14fc99874faee5',
+        object: 'list',
+        data: embeddings.map((embedding, i) => ({
+          object: 'embedding',
+          embedding,
+          index: i,
+        })),
+        model: 'mistral-embed',
+        usage,
+      },
     };
   }
 
@@ -54,16 +60,14 @@ describe('doEmbed', () => {
     expect(usage).toStrictEqual({ tokens: 20 });
   });
 
-  it('should expose the raw response headers', async () => {
-    prepareJsonResponse();
+  it('should expose the raw response', async () => {
+    prepareJsonResponse({
+      headers: { 'test-header': 'test-value' },
+    });
 
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+    const { response } = await model.doEmbed({ values: testValues });
 
-    const { rawResponse } = await model.doEmbed({ values: testValues });
-
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '267',
       'content-type': 'application/json',
@@ -71,6 +75,7 @@ describe('doEmbed', () => {
       // custom header
       'test-header': 'test-value',
     });
+    expect(response).toMatchSnapshot();
   });
 
   it('should pass the model and the values', async () => {
@@ -78,7 +83,7 @@ describe('doEmbed', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'mistral-embed',
       input: testValues,
       encoding_format: 'float',
@@ -102,7 +107,7 @@ describe('doEmbed', () => {
       },
     });
 
-    const requestHeaders = await server.getRequestHeaders();
+    const requestHeaders = server.calls[0].requestHeaders;
 
     expect(requestHeaders).toStrictEqual({
       authorization: 'Bearer test-api-key',

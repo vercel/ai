@@ -1,5 +1,6 @@
 import {
   FetchFunction,
+  InferSchema,
   isAbortError,
   safeValidateTypes,
 } from '@ai-sdk/provider-utils';
@@ -9,15 +10,19 @@ import {
   isDeepEqualData,
   parsePartialJson,
   Schema,
-} from '@ai-sdk/ui-utils';
+} from 'ai';
 import { useCallback, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
-import z from 'zod';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
-export type Experimental_UseObjectOptions<RESULT> = {
+export type Experimental_UseObjectOptions<
+  SCHEMA extends z4.core.$ZodType | z3.Schema | Schema,
+  RESULT,
+> = {
   /**
    * The API endpoint. It should stream JSON that matches the schema as chunked text.
    */
@@ -26,7 +31,7 @@ export type Experimental_UseObjectOptions<RESULT> = {
   /**
    * A Zod schema that defines the shape of the complete object.
    */
-  schema: z.Schema<RESULT, z.ZodTypeDef, any> | Schema<RESULT>;
+  schema: SCHEMA;
 
   /**
    * An unique identifier. If not provided, a random one will be
@@ -71,6 +76,13 @@ Optional error object. This is e.g. a TypeValidationError when the final object 
    * Additional HTTP headers to be included in the request.
    */
   headers?: Record<string, string> | Headers;
+
+  /**
+   * The credentials mode to be used for the fetch request.
+   * Possible values are: 'omit', 'same-origin', 'include'.
+   * Defaults to 'same-origin'.
+   */
+  credentials?: RequestCredentials;
 };
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
@@ -98,9 +110,18 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
    * Abort the current request immediately, keep the current partial object if any.
    */
   stop: () => void;
+
+  /**
+   * Clear the object state.
+   */
+  clear: () => void;
 };
 
-function useObject<RESULT, INPUT = any>({
+function useObject<
+  SCHEMA extends z4.core.$ZodType | z3.Schema | Schema,
+  RESULT = InferSchema<SCHEMA>,
+  INPUT = any,
+>({
   api,
   id,
   schema, // required, in the future we will use it for validation
@@ -109,10 +130,11 @@ function useObject<RESULT, INPUT = any>({
   onError,
   onFinish,
   headers,
-}: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
-  RESULT,
-  INPUT
-> {
+  credentials,
+}: Experimental_UseObjectOptions<
+  SCHEMA,
+  RESULT
+>): Experimental_UseObjectHelpers<RESULT, INPUT> {
   // Generate an unique id if not provided.
   const hookId = useId();
   const completionId = id ?? hookId;
@@ -142,9 +164,9 @@ function useObject<RESULT, INPUT = any>({
 
   const submit = async (input: INPUT) => {
     try {
-      mutate(undefined); // reset the data
+      clearObject();
+
       setIsLoading(true);
-      setError(undefined);
 
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
@@ -156,6 +178,7 @@ function useObject<RESULT, INPUT = any>({
           'Content-Type': 'application/json',
           ...headers,
         },
+        credentials,
         signal: abortController.signal,
         body: JSON.stringify(input),
       });
@@ -175,10 +198,10 @@ function useObject<RESULT, INPUT = any>({
 
       await response.body.pipeThrough(new TextDecoderStream()).pipeTo(
         new WritableStream<string>({
-          write(chunk) {
+          async write(chunk) {
             accumulatedText += chunk;
 
-            const { value } = parsePartialJson(accumulatedText);
+            const { value } = await parsePartialJson(accumulatedText);
             const currentObject = value as DeepPartial<RESULT>;
 
             if (!isDeepEqualData(latestObject, currentObject)) {
@@ -188,12 +211,12 @@ function useObject<RESULT, INPUT = any>({
             }
           },
 
-          close() {
+          async close() {
             setIsLoading(false);
             abortControllerRef.current = null;
 
             if (onFinish != null) {
-              const validationResult = safeValidateTypes({
+              const validationResult = await safeValidateTypes({
                 value: latestObject,
                 schema: asSchema(schema),
               });
@@ -221,12 +244,24 @@ function useObject<RESULT, INPUT = any>({
     }
   };
 
+  const clear = () => {
+    stop();
+    clearObject();
+  };
+
+  const clearObject = () => {
+    setError(undefined);
+    setIsLoading(false);
+    mutate(undefined);
+  };
+
   return {
     submit,
     object: data,
     error,
     isLoading,
     stop,
+    clear,
   };
 }
 

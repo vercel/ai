@@ -1,10 +1,26 @@
 import { TypeValidationError } from '@ai-sdk/provider';
-import { z } from 'zod';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
+
 import { validateTypes, safeValidateTypes } from './validate-types';
 import { validator } from './validator';
 
-const zodSchema = z.object({ name: z.string(), age: z.number() });
-const customValidator = validator<{ name: string; age: number }>(value =>
+const customSchema: StandardSchemaV1<{ name: string; age: number }> = {
+  '~standard': {
+    version: 1,
+    vendor: 'custom',
+    validate: async (value: any) => {
+      return typeof value === 'object' &&
+        value !== null &&
+        'name' in value &&
+        typeof value.name === 'string' &&
+        'age' in value &&
+        typeof value.age === 'number'
+        ? { value }
+        : { issues: [new Error('Invalid input')] };
+    },
+  },
+};
+const customValidator = validator<{ name: string; age: number }>(async value =>
   typeof value === 'object' &&
   value !== null &&
   'name' in value &&
@@ -12,24 +28,33 @@ const customValidator = validator<{ name: string; age: number }>(value =>
   'age' in value &&
   typeof value.age === 'number'
     ? { success: true, value: value as { name: string; age: number } }
-    : { success: false, error: new Error('Invalid input') },
+    : {
+        success: false,
+        error: new TypeValidationError({
+          value,
+          cause: [new Error('Invalid input')],
+        }),
+      },
 );
 
 describe('validateTypes', () => {
   describe.each([
-    ['Zod schema', zodSchema],
+    ['Custom schema', customSchema],
     ['Custom validator', customValidator],
   ])('using %s', (_, schema) => {
-    it('should return validated object for valid input', () => {
+    it('should return validated object for valid input', async () => {
       const input = { name: 'John', age: 30 };
-      expect(validateTypes({ value: input, schema })).toEqual(input);
+      expect(await validateTypes({ value: input, schema })).toEqual(input);
     });
 
-    it('should throw TypeValidationError for invalid input', () => {
+    it('should throw TypeValidationError for invalid input', async () => {
       const input = { name: 'John', age: '30' };
 
       try {
-        validateTypes({ value: input, schema });
+        await validateTypes({
+          value: input,
+          schema,
+        });
         expect.fail('Expected TypeValidationError to be thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(TypeValidationError);
@@ -44,7 +69,7 @@ describe('validateTypes', () => {
         }).toStrictEqual({
           name: 'AI_TypeValidationError',
           value: input,
-          cause: expect.any(Error),
+          cause: [expect.any(Error)],
           message: expect.stringContaining('Type validation failed'),
         });
       }
@@ -54,22 +79,26 @@ describe('validateTypes', () => {
 
 describe('safeValidateTypes', () => {
   describe.each([
-    ['Zod schema', zodSchema],
+    ['Custom schema', customSchema],
     ['Custom validator', customValidator],
   ])('using %s', (_, schema) => {
-    it('should return validated object for valid input', () => {
+    it('should return validated object for valid input', async () => {
       const input = { name: 'John', age: 30 };
-      const result = safeValidateTypes({ value: input, schema });
-      expect(result).toEqual({ success: true, value: input });
+      const result = await safeValidateTypes({ value: input, schema });
+      expect(result).toEqual({ success: true, value: input, rawValue: input });
     });
 
-    it('should return error object for invalid input', () => {
+    it('should return error object for invalid input', async () => {
       const input = { name: 'John', age: '30' };
-      const result = safeValidateTypes({ value: input, schema });
+      const result = await safeValidateTypes({
+        value: input,
+        schema,
+      });
 
       expect(result).toEqual({
         success: false,
         error: expect.any(TypeValidationError),
+        rawValue: input,
       });
 
       if (!result.success) {

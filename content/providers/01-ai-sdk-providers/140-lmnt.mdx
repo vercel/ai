@@ -1,0 +1,136 @@
+---
+title: LMNT
+description: Learn how to use the LMNT provider for the AI SDK.
+---
+
+# LMNT Provider
+
+The [LMNT](https://lmnt.com/) provider contains language model support for the LMNT transcription API.
+
+## Setup
+
+The LMNT provider is available in the `@ai-sdk/lmnt` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/lmnt" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/lmnt" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/lmnt" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `lmnt` from `@ai-sdk/lmnt`:
+
+```ts
+import { lmnt } from '@ai-sdk/lmnt';
+```
+
+If you need a customized setup, you can import `createLMNT` from `@ai-sdk/lmnt` and create a provider instance with your settings:
+
+```ts
+import { createLMNT } from '@ai-sdk/lmnt';
+
+const lmnt = createLMNT({
+  // custom settings, e.g.
+  fetch: customFetch,
+});
+```
+
+You can use the following optional settings to customize the LMNT provider instance:
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `LMNT_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Speech Models
+
+You can create models that call the [LMNT speech API](https://docs.lmnt.com/api-reference/speech/synthesize-speech-bytes)
+using the `.speech()` factory method.
+
+The first argument is the model id e.g. `aurora`.
+
+```ts
+const model = lmnt.speech('aurora');
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying a voice to use for the generated audio.
+
+```ts highlight="6"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { lmnt } from '@ai-sdk/lmnt';
+
+const result = await generateSpeech({
+  model: lmnt.speech('aurora'),
+  text: 'Hello, world!',
+  language: 'en', // Standardized language parameter
+});
+```
+
+### Provider Options
+
+The LMNT provider accepts the following options:
+
+- **model** _'aurora' | 'blizzard'_
+
+  The LMNT model to use. Defaults to `'aurora'`.
+
+- **language** _'auto' | 'en' | 'es' | 'pt' | 'fr' | 'de' | 'zh' | 'ko' | 'hi' | 'ja' | 'ru' | 'it' | 'tr'_
+
+  The language to use for speech synthesis. Defaults to `'auto'`.
+
+- **format** _'aac' | 'mp3' | 'mulaw' | 'raw' | 'wav'_
+
+  The audio format to return. Defaults to `'mp3'`.
+
+- **sampleRate** _number_
+
+  The sample rate of the audio in Hz. Defaults to `24000`.
+
+- **speed** _number_
+
+  The speed of the speech. Must be between 0.25 and 2. Defaults to `1`.
+
+- **seed** _number_
+
+  An optional seed for deterministic generation.
+
+- **conversational** _boolean_
+
+  Whether to use a conversational style. Defaults to `false`.
+
+- **length** _number_
+
+  Maximum length of the audio in seconds. Maximum value is 300.
+
+- **topP** _number_
+
+  Top-p sampling parameter. Must be between 0 and 1. Defaults to `1`.
+
+- **temperature** _number_
+
+  Temperature parameter for sampling. Must be at least 0. Defaults to `1`.
+
+### Model Capabilities
+
+| Model      | Instructions        |
+| ---------- | ------------------- |
+| `aurora`   | <Check size={18} /> |
+| `blizzard` | <Check size={18} /> |

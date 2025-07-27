@@ -1,0 +1,43 @@
+---
+title: generateId
+description: Generate a unique identifier (API Reference)
+---
+
+# `generateId()`
+
+Generates a unique identifier. You can optionally provide the length of the ID.
+
+This is the same id generator used by the AI SDK.
+
+```ts
+import { generateId } from 'ai';
+
+const id = generateId();
+```
+
+## Import
+
+<Snippet text={`import { generateId } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'size',
+      type: 'number',
+      description:
+        'The length of the generated ID. It defaults to 16. This parameter is deprecated and will be removed in the next major version.',
+    },
+  ]}
+/>
+
+### Returns
+
+A string representing the generated ID.
+
+## See also
+
+- [`createIdGenerator()`](/docs/reference/ai-sdk-core/create-id-generator)

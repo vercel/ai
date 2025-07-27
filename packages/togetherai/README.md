@@ -1,6 +1,6 @@
 # AI SDK - Together.ai Provider
 
-The **[Together.ai provider](https://sdk.vercel.ai/providers/ai-sdk-providers/togetherai)** for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Together.ai](https://together.ai) platform.
+The **[Together.ai provider](https://ai-sdk.dev/providers/ai-sdk-providers/togetherai)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Together.ai](https://together.ai) platform.
 
 ## Setup
 
@@ -32,4 +32,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[Together.ai provider](https://sdk.vercel.ai/providers/ai-sdk-providers/togetherai)** for more information.
+Please check out the **[Together.ai provider](https://ai-sdk.dev/providers/ai-sdk-providers/togetherai)** for more information.

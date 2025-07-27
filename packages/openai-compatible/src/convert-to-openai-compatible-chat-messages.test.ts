@@ -19,9 +19,9 @@ describe('user messages', () => {
         content: [
           { type: 'text', text: 'Hello' },
           {
-            type: 'image',
-            image: new Uint8Array([0, 1, 2, 3]),
-            mimeType: 'image/png',
+            type: 'file',
+            data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            mediaType: 'image/png',
           },
         ],
       },
@@ -47,9 +47,9 @@ describe('user messages', () => {
         role: 'user',
         content: [
           {
-            type: 'image',
-            image: new URL('https://example.com/image.jpg'),
-            mimeType: 'image/jpeg',
+            type: 'file',
+            data: new URL('https://example.com/image.jpg'),
+            mediaType: 'image/*',
           },
         ],
       },
@@ -77,7 +77,7 @@ describe('tool calls', () => {
         content: [
           {
             type: 'tool-call',
-            args: { foo: 'bar123' },
+            input: { foo: 'bar123' },
             toolCallId: 'quux',
             toolName: 'thwomp',
           },
@@ -90,7 +90,7 @@ describe('tool calls', () => {
             type: 'tool-result',
             toolCallId: 'quux',
             toolName: 'thwomp',
-            result: { oof: '321rab' },
+            output: { type: 'json', value: { oof: '321rab' } },
           },
         ],
       },
@@ -118,6 +118,55 @@ describe('tool calls', () => {
       },
     ]);
   });
+
+  it('should handle text output type in tool results', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: { query: 'weather' },
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            output: { type: 'text', value: 'It is sunny today' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-1',
+            function: {
+              name: 'getWeather',
+              arguments: JSON.stringify({ query: 'weather' }),
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: 'It is sunny today',
+        tool_call_id: 'call-1',
+      },
+    ]);
+  });
 });
 
 describe('provider-specific metadata merging', () => {
@@ -126,7 +175,7 @@ describe('provider-specific metadata merging', () => {
       {
         role: 'system',
         content: 'You are a helpful assistant.',
-        providerMetadata: {
+        providerOptions: {
           openaiCompatible: {
             cacheControl: { type: 'ephemeral' },
           },
@@ -151,7 +200,7 @@ describe('provider-specific metadata merging', () => {
           {
             type: 'text',
             text: 'Hello',
-            providerMetadata: {
+            providerOptions: {
               openaiCompatible: {
                 cacheControl: { type: 'ephemeral' },
               },
@@ -174,7 +223,7 @@ describe('provider-specific metadata merging', () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
-        providerMetadata: {
+        providerOptions: {
           openaiCompatible: {
             messageLevel: true,
           },
@@ -183,7 +232,7 @@ describe('provider-specific metadata merging', () => {
           {
             type: 'text',
             text: 'Hello',
-            providerMetadata: {
+            providerOptions: {
               openaiCompatible: {
                 contentLevel: true,
               },
@@ -211,8 +260,8 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'call1',
             toolName: 'calculator',
-            args: { x: 1, y: 2 },
-            providerMetadata: {
+            input: { x: 1, y: 2 },
+            providerOptions: {
               openaiCompatible: {
                 cacheControl: { type: 'ephemeral' },
               },
@@ -248,10 +297,10 @@ describe('provider-specific metadata merging', () => {
         role: 'user',
         content: [
           {
-            type: 'image',
-            image: imageUrl,
-            mimeType: 'image/jpeg',
-            providerMetadata: {
+            type: 'file',
+            data: imageUrl,
+            mediaType: 'image/*',
+            providerOptions: {
               openaiCompatible: {
                 cacheControl: { type: 'ephemeral' },
               },
@@ -280,7 +329,7 @@ describe('provider-specific metadata merging', () => {
       {
         role: 'system',
         content: 'Hello',
-        providerMetadata: {
+        providerOptions: {
           someOtherProvider: {
             shouldBeIgnored: true,
           },
@@ -304,21 +353,21 @@ describe('provider-specific metadata merging', () => {
           {
             type: 'text',
             text: 'Hello from part 1',
-            providerMetadata: {
+            providerOptions: {
               openaiCompatible: { sentiment: 'positive' },
               leftoverKey: { foo: 'some leftover data' },
             },
           },
           {
-            type: 'image',
-            image: new Uint8Array([0, 1, 2, 3]),
-            mimeType: 'image/png',
-            providerMetadata: {
+            type: 'file',
+            data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            mediaType: 'image/png',
+            providerOptions: {
               openaiCompatible: { alt_text: 'A sample image' },
             },
           },
         ],
-        providerMetadata: {
+        providerOptions: {
           openaiCompatible: { priority: 'high' },
         },
       },
@@ -327,7 +376,7 @@ describe('provider-specific metadata merging', () => {
     expect(result).toEqual([
       {
         role: 'user',
-        priority: 'high', // hoisted from message-level providerMetadata
+        priority: 'high', // hoisted from message-level providerOptions
         content: [
           {
             type: 'text',
@@ -379,8 +428,8 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'call1',
             toolName: 'searchTool',
-            args: { query: 'Weather' },
-            providerMetadata: {
+            input: { query: 'Weather' },
+            providerOptions: {
               openaiCompatible: { function_call_reason: 'user request' },
             },
           },
@@ -389,7 +438,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'call2',
             toolName: 'mapsTool',
-            args: { location: 'Paris' },
+            input: { location: 'Paris' },
           },
         ],
       },
@@ -426,7 +475,7 @@ describe('provider-specific metadata merging', () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'tool',
-        providerMetadata: {
+        providerOptions: {
           // this just gets omitted as we prioritize content-level metadata
           openaiCompatible: { responseTier: 'detailed' },
         },
@@ -435,16 +484,16 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-result',
             toolCallId: 'call123',
             toolName: 'calculator',
-            result: { stepOne: 'data chunk 1' },
+            output: { type: 'json', value: { stepOne: 'data chunk 1' } },
           },
           {
             type: 'tool-result',
             toolCallId: 'call123',
             toolName: 'calculator',
-            providerMetadata: {
+            providerOptions: {
               openaiCompatible: { partial: true },
             },
-            result: { stepTwo: 'data chunk 2' },
+            output: { type: 'json', value: { stepTwo: 'data chunk 2' } },
           },
         ],
       },
@@ -469,7 +518,7 @@ describe('provider-specific metadata merging', () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
-        providerMetadata: {
+        providerOptions: {
           openaiCompatible: { messageLevel: 'global-metadata' },
           leftoverForMessage: { x: 123 },
         },
@@ -477,16 +526,16 @@ describe('provider-specific metadata merging', () => {
           {
             type: 'text',
             text: 'Part A',
-            providerMetadata: {
+            providerOptions: {
               openaiCompatible: { textPartLevel: 'localized' },
               leftoverForText: { info: 'text leftover' },
             },
           },
           {
-            type: 'image',
-            image: new Uint8Array([9, 8, 7, 6]),
-            mimeType: 'image/png',
-            providerMetadata: {
+            type: 'file',
+            data: Buffer.from([9, 8, 7, 6]).toString('base64'),
+            mediaType: 'image/png',
+            providerOptions: {
               openaiCompatible: { imagePartLevel: 'image-data' },
             },
           },
@@ -520,7 +569,7 @@ describe('provider-specific metadata merging', () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'assistant',
-        providerMetadata: {
+        providerOptions: {
           openaiCompatible: { globalPriority: 'high' },
         },
         content: [
@@ -529,8 +578,8 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'callXYZ',
             toolName: 'awesomeTool',
-            args: { param: 'someValue' },
-            providerMetadata: {
+            input: { param: 'someValue' },
+            providerOptions: {
               openaiCompatible: {
                 toolPriority: 'critical',
               },
@@ -564,7 +613,7 @@ describe('provider-specific metadata merging', () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'assistant',
-        providerMetadata: {
+        providerOptions: {
           openaiCompatible: {
             cacheControl: { type: 'default' },
             sharedKey: 'assistantLevel',
@@ -575,8 +624,8 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'collisionToolCall',
             toolName: 'collider',
-            args: { num: 42 },
-            providerMetadata: {
+            input: { num: 42 },
+            providerOptions: {
               openaiCompatible: {
                 cacheControl: { type: 'ephemeral' }, // overwrites top-level
                 sharedKey: 'toolLevel',

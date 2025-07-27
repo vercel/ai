@@ -1,136 +1,88 @@
 import {
-  JSONSchema7,
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
+  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { OpenAITools, OpenAIToolChoice } from './openai-types';
+import { fileSearchArgsSchema } from './tool/file-search';
+import { webSearchPreviewArgsSchema } from './tool/web-search-preview';
 
 export function prepareTools({
-  mode,
-  useLegacyFunctionCalling = false,
+  tools,
+  toolChoice,
   structuredOutputs,
+  strictJsonSchema,
 }: {
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  };
-  useLegacyFunctionCalling: boolean | undefined;
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   structuredOutputs: boolean;
+  strictJsonSchema: boolean;
 }): {
-  tools?: {
-    type: 'function';
-    function: {
-      name: string;
-      description: string | undefined;
-      parameters: JSONSchema7;
-      strict?: boolean;
-    };
-  }[];
-  tool_choice?:
-    | 'auto'
-    | 'none'
-    | 'required'
-    | { type: 'function'; function: { name: string } };
-
-  // legacy support
-  functions?: {
-    name: string;
-    description: string | undefined;
-    parameters: JSONSchema7;
-  }[];
-  function_call?: { name: string };
-
-  toolWarnings: LanguageModelV1CallWarning[];
+  tools?: OpenAITools;
+  toolChoice?: OpenAIToolChoice;
+  toolWarnings: Array<LanguageModelV2CallWarning>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
+  tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV1CallWarning[] = [];
+  const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   if (tools == null) {
-    return { tools: undefined, tool_choice: undefined, toolWarnings };
+    return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const toolChoice = mode.toolChoice;
-
-  if (useLegacyFunctionCalling) {
-    const openaiFunctions: Array<{
-      name: string;
-      description: string | undefined;
-      parameters: JSONSchema7;
-    }> = [];
-
-    for (const tool of tools) {
-      if (tool.type === 'provider-defined') {
-        toolWarnings.push({ type: 'unsupported-tool', tool });
-      } else {
-        openaiFunctions.push({
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.parameters,
-        });
-      }
-    }
-
-    if (toolChoice == null) {
-      return {
-        functions: openaiFunctions,
-        function_call: undefined,
-        toolWarnings,
-      };
-    }
-
-    const type = toolChoice.type;
-
-    switch (type) {
-      case 'auto':
-      case 'none':
-      case undefined:
-        return {
-          functions: openaiFunctions,
-          function_call: undefined,
-          toolWarnings,
-        };
-      case 'required':
-        throw new UnsupportedFunctionalityError({
-          functionality: 'useLegacyFunctionCalling and toolChoice: required',
-        });
-      default:
-        return {
-          functions: openaiFunctions,
-          function_call: { name: toolChoice.toolName },
-          toolWarnings,
-        };
-    }
-  }
-
-  const openaiTools: Array<{
-    type: 'function';
-    function: {
-      name: string;
-      description: string | undefined;
-      parameters: JSONSchema7;
-      strict: boolean | undefined;
-    };
-  }> = [];
+  const openaiTools: OpenAITools = [];
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined') {
-      toolWarnings.push({ type: 'unsupported-tool', tool });
-    } else {
-      openaiTools.push({
-        type: 'function',
-        function: {
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.parameters,
-          strict: structuredOutputs ? true : undefined,
-        },
-      });
+    switch (tool.type) {
+      case 'function':
+        openaiTools.push({
+          type: 'function',
+          function: {
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.inputSchema,
+            strict: structuredOutputs ? strictJsonSchema : undefined,
+          },
+        });
+        break;
+      case 'provider-defined':
+        switch (tool.id) {
+          case 'openai.file_search': {
+            const args = fileSearchArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'file_search',
+              vector_store_ids: args.vectorStoreIds,
+              max_num_results: args.maxNumResults,
+              ranking_options: args.ranking
+                ? { ranker: args.ranking.ranker }
+                : undefined,
+              filters: args.filters,
+            });
+            break;
+          }
+          case 'openai.web_search_preview': {
+            const args = webSearchPreviewArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'web_search_preview',
+              search_context_size: args.searchContextSize,
+              user_location: args.userLocation,
+            });
+            break;
+          }
+          default:
+            toolWarnings.push({ type: 'unsupported-tool', tool });
+            break;
+        }
+        break;
+      default:
+        toolWarnings.push({ type: 'unsupported-tool', tool });
+        break;
     }
   }
 
   if (toolChoice == null) {
-    return { tools: openaiTools, tool_choice: undefined, toolWarnings };
+    return { tools: openaiTools, toolChoice: undefined, toolWarnings };
   }
 
   const type = toolChoice.type;
@@ -139,11 +91,11 @@ export function prepareTools({
     case 'auto':
     case 'none':
     case 'required':
-      return { tools: openaiTools, tool_choice: type, toolWarnings };
+      return { tools: openaiTools, toolChoice: type, toolWarnings };
     case 'tool':
       return {
         tools: openaiTools,
-        tool_choice: {
+        toolChoice: {
           type: 'function',
           function: {
             name: toolChoice.toolName,
@@ -154,7 +106,7 @@ export function prepareTools({
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
-        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
+        functionality: `tool choice type: ${_exhaustiveCheck}`,
       });
     }
   }

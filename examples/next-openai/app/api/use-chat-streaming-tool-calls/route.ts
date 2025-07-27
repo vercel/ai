@@ -1,17 +1,32 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
-import { z } from 'zod';
+import { convertToModelMessages, streamText, UIDataTypes, UIMessage } from 'ai';
+import { z } from 'zod/v4';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
+
+export type StreamingToolCallsMessage = UIMessage<
+  never,
+  UIDataTypes,
+  {
+    showWeatherInformation: {
+      input: {
+        city: string;
+        weather: string;
+        temperature: number;
+        typicalWeather: string;
+      };
+      output: string;
+    };
+  }
+>;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
-    messages,
-    experimental_toolCallStreaming: true,
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
     system:
       'You are a helpful assistant that answers questions about the weather in a given city.' +
       'You use the showWeatherInformation tool to show the weather information to the user instead of talking about it.',
@@ -19,7 +34,7 @@ export async function POST(req: Request) {
       // server-side tool with execute function:
       getWeatherInformation: {
         description: 'show the weather in a given city to the user',
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
         execute: async ({}: { city: string }) => {
           const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
           return {
@@ -33,7 +48,7 @@ export async function POST(req: Request) {
       showWeatherInformation: {
         description:
           'Show the weather information to the user. Always use this tool to tell weather information to the user.',
-        parameters: z.object({
+        inputSchema: z.object({
           city: z.string(),
           weather: z.string(),
           temperature: z.number(),
@@ -47,5 +62,5 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }

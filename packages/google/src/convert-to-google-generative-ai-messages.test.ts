@@ -24,16 +24,129 @@ describe('system messages', () => {
   });
 });
 
+describe('Gemma model system instructions', () => {
+  it('should prepend system instruction to first user message for Gemma models', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+      { isGemmaModel: true },
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "You are a helpful assistant.
+
+      ",
+              },
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
+  it('should handle multiple system messages for Gemma models', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        { role: 'system', content: 'You are helpful.' },
+        { role: 'system', content: 'Be concise.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hi' }] },
+      ],
+      { isGemmaModel: true },
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "You are helpful.
+
+      Be concise.
+
+      ",
+              },
+              {
+                "text": "Hi",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
+  it('should not affect non-Gemma models', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        { role: 'system', content: 'You are helpful.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+      { isGemmaModel: false },
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "systemInstruction": {
+          "parts": [
+            {
+              "text": "You are helpful.",
+            },
+          ],
+        },
+      }
+    `);
+  });
+
+  it('should handle Gemma model with system instruction but no user messages', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [{ role: 'system', content: 'You are helpful.' }],
+      { isGemmaModel: true },
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+});
+
 describe('user messages', () => {
-  it('should add image parts for UInt8Array images', async () => {
+  it('should add image parts', async () => {
     const result = convertToGoogleGenerativeAIMessages([
       {
         role: 'user',
         content: [
           {
-            type: 'image',
-            image: new Uint8Array([0, 1, 2, 3]),
-            mimeType: 'image/png',
+            type: 'file',
+            data: 'AAECAw==',
+            mediaType: 'image/png',
           },
         ],
       },
@@ -61,7 +174,7 @@ describe('user messages', () => {
     const result = convertToGoogleGenerativeAIMessages([
       {
         role: 'user',
-        content: [{ type: 'file', data: 'AAECAw==', mimeType: 'image/png' }],
+        content: [{ type: 'file', data: 'AAECAw==', mediaType: 'image/png' }],
       },
     ]);
 
@@ -94,7 +207,7 @@ describe('tool messages', () => {
             type: 'tool-result',
             toolName: 'testFunction',
             toolCallId: 'testCallId',
-            result: { someData: 'test result' },
+            output: { type: 'json', value: { someData: 'test result' } },
           },
         ],
       },
@@ -119,5 +232,63 @@ describe('tool messages', () => {
         },
       ],
     });
+  });
+});
+
+describe('assistant messages', () => {
+  it('should add PNG image parts for base64 encoded files', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [{ type: 'file', data: 'AAECAw==', mediaType: 'image/png' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'model',
+          parts: [
+            {
+              inlineData: {
+                data: 'AAECAw==',
+                mimeType: 'image/png',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should throw error for non-PNG images in assistant messages', async () => {
+    expect(() =>
+      convertToGoogleGenerativeAIMessages([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'file', data: 'AAECAw==', mediaType: 'image/jpeg' },
+          ],
+        },
+      ]),
+    ).toThrow('Only PNG images are supported in assistant messages');
+  });
+
+  it('should throw error for URL file data in assistant messages', async () => {
+    expect(() =>
+      convertToGoogleGenerativeAIMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              data: new URL('https://example.com/image.png'),
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow('File data URLs in assistant messages are not supported');
   });
 });

@@ -2,9 +2,9 @@
 
 # AI SDK
 
-The [AI SDK](https://sdk.vercel.ai/docs) is a TypeScript toolkit designed to help you build AI-powered applications using popular frameworks like Next.js, React, Svelte, Vue and runtimes like Node.js.
+The [AI SDK](https://ai-sdk.dev/docs) is a TypeScript toolkit designed to help you build AI-powered applications using popular frameworks like Next.js, React, Svelte, Vue and runtimes like Node.js.
 
-To learn more about how to use the AI SDK, check out our [API Reference](https://sdk.vercel.ai/docs/reference) and [Documentation](https://sdk.vercel.ai/docs).
+To learn more about how to use the AI SDK, check out our [API Reference](https://ai-sdk.dev/docs/reference) and [Documentation](https://ai-sdk.dev/docs).
 
 ## Installation
 
@@ -18,7 +18,7 @@ npm install ai
 
 ### AI SDK Core
 
-The [AI SDK Core](https://sdk.vercel.ai/docs/ai-sdk-core/overview) module provides a unified API to interact with model providers like [OpenAI](https://sdk.vercel.ai/providers/ai-sdk-providers/openai), [Anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic), [Google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai), and more.
+The [AI SDK Core](https://ai-sdk.dev/docs/ai-sdk-core/overview) module provides a unified API to interact with model providers like [OpenAI](https://ai-sdk.dev/providers/ai-sdk-providers/openai), [Anthropic](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic), [Google](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai), and more.
 
 You will then install the model provider of your choice.
 
@@ -43,25 +43,38 @@ console.log(text);
 
 ### AI SDK UI
 
-The [AI SDK UI](https://sdk.vercel.ai/docs/ai-sdk-ui/overview) module provides a set of hooks that help you build chatbots and generative user interfaces. These hooks are framework agnostic, so they can be used in Next.js, React, Svelte, Vue, and SolidJS.
+The [AI SDK UI](https://ai-sdk.dev/docs/ai-sdk-ui/overview) module provides a set of hooks that help you build chatbots and generative user interfaces. These hooks are framework agnostic, so they can be used in Next.js, React, Svelte, and Vue.
+
+You need to install the package for your framework:
+
+```shell
+npm install @ai-sdk/react
+```
 
 ###### @/app/page.tsx (Next.js App Router)
 
 ```tsx
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } =
+  const { messages, input, handleSubmit, handleInputChange, status } =
     useChat();
 
   return (
     <div>
       {messages.map(message => (
         <div key={message.id}>
-          <div>{message.role}</div>
-          <div>{message.content}</div>
+          <strong>{`${message.role}: `}</strong>
+          {message.parts.map((part, index) => {
+            switch (part.type) {
+              case 'text':
+                return <span key={index}>{part.text}</span>;
+
+              // other cases can handle images, tool calls, etc
+            }
+          })}
         </div>
       ))}
 
@@ -70,7 +83,7 @@ export default function Page() {
           value={input}
           placeholder="Send a message..."
           onChange={handleInputChange}
-          disabled={isLoading}
+          disabled={status !== 'ready'}
         />
       </form>
     </div>
@@ -93,7 +106,7 @@ export async function POST(req: Request) {
     messages,
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 

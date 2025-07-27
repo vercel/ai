@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
@@ -10,10 +10,9 @@ async function main() {
     tools: {
       weather: weatherTool,
       cityAttractions: {
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       },
     },
-    experimental_toolCallStreaming: true,
     onChunk(chunk) {
       console.log('onChunk', chunk);
     },

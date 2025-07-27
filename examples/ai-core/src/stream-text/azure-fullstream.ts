@@ -1,7 +1,7 @@
 import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
@@ -10,7 +10,7 @@ async function main() {
     tools: {
       weather: weatherTool,
       cityAttractions: {
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       },
     },
     prompt: 'What is the weather in San Francisco?',
@@ -19,7 +19,7 @@ async function main() {
   for await (const part of result.fullStream) {
     switch (part.type) {
       case 'text-delta': {
-        console.log('Text delta:', part.textDelta);
+        console.log('Text:', part.text);
         break;
       }
 
@@ -27,13 +27,13 @@ async function main() {
         switch (part.toolName) {
           case 'cityAttractions': {
             console.log('TOOL CALL cityAttractions');
-            console.log(`city: ${part.args.city}`); // string
+            console.log(`city: ${part.input.city}`); // string
             break;
           }
 
           case 'weather': {
             console.log('TOOL CALL weather');
-            console.log(`location: ${part.args.location}`); // string
+            console.log(`location: ${part.input.location}`); // string
             break;
           }
         }
@@ -46,15 +46,15 @@ async function main() {
           // NOT AVAILABLE (NO EXECUTE METHOD)
           // case 'cityAttractions': {
           //   console.log('TOOL RESULT cityAttractions');
-          //   console.log(`city: ${part.args.city}`); // string
+          //   console.log(`city: ${part.input.city}`); // string
           //   console.log(`result: ${part.result}`);
           //   break;
           // }
 
           case 'weather': {
             console.log('TOOL RESULT weather');
-            console.log(`location: ${part.args.location}`); // string
-            console.log(`temperature: ${part.result.temperature}`); // number
+            console.log(`location: ${part.input.location}`); // string
+            console.log(`temperature: ${part.output.temperature}`); // number
             break;
           }
         }

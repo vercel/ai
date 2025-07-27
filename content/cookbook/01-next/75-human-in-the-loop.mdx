@@ -1,0 +1,787 @@
+---
+title: Human-in-the-Loop Agent with Next.js
+description: Add a human approval step to your agentic system with Next.js and the AI SDK
+tags: ['next', 'agents', 'tool use']
+---
+
+# Human-in-the-Loop with Next.js
+
+When building agentic systems, it's important to add human-in-the-loop (HITL) functionality to ensure that users can approve actions before the system executes them. This recipe will describe how to [build a low-level solution](#adding-a-confirmation-step) and then provide an [example abstraction](#building-your-own-abstraction) you could implement and customise based on your needs.
+
+## Background
+
+To understand how to implement this functionality, let's look at how tool calling works in a simple Next.js chatbot application with the AI SDK.
+
+On the frontend, use the `useChat` hook to manage the message state and user interaction.
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
+
+export default function Chat() {
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
+  const [input, setInput] = useState('');
+
+  return (
+    <div>
+      <div>
+        {messages?.map(m => (
+          <div key={m.id}>
+            <strong>{`${m.role}: `}</strong>
+            {m.parts?.map((part, i) => {
+              switch (part.type) {
+                case 'text':
+                  return <div key={i}>{part.text}</div>;
+              }
+            })}
+            <br />
+          </div>
+        ))}
+      </div>
+
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          if (input.trim()) {
+            sendMessage({ text: input });
+            setInput('');
+          }
+        }}
+      >
+        <input
+          value={input}
+          placeholder="Say something..."
+          onChange={e => setInput(e.target.value)}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+On the backend, create a route handler (API Route) that returns a `UIMessageStreamResponse`. Within the execute function of `createUIMessageStream`, call `streamText` and pass in the converted `messages` (sent from the client). Finally, merge the resulting generation into the `UIMessageStream`.
+
+```ts filename="api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import {
+  createUIMessageStreamResponse,
+  createUIMessageStream,
+  streamText,
+  tool,
+  convertToModelMessages,
+  stepCountIs,
+  UIMessage,
+} from 'ai';
+import { z } from 'zod';
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages: convertToModelMessages(messages),
+        tools: {
+          getWeatherInformation: tool({
+            description: 'show the weather in a given city to the user',
+            inputSchema: z.object({ city: z.string() }),
+            outputSchema: z.string(),
+            execute: async ({ city }) => {
+              const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy'];
+              return weatherOptions[
+                Math.floor(Math.random() * weatherOptions.length)
+              ];
+            },
+          }),
+        },
+        stopWhen: stepCountIs(5),
+      });
+
+      writer.merge(result.toUIMessageStream({ originalMessages: messages }));
+    },
+  });
+
+  return createUIMessageStreamResponse(stream);
+}
+```
+
+What happens if you ask the LLM for the weather in New York?
+
+The LLM has one tool available, `weather`, which requires a `location` to run. This tool will, as stated in the tool's `description`, "show the weather in a given city to the user". If the LLM decides that the `weather` tool could answer the user's query, it would generate a `ToolCall`, extracting the `location` from the context. The AI SDK would then run the associated `execute` function, passing in the `location` parameter, and finally returning a tool result.
+
+To introduce a HITL step you will add a confirmation step to this process in between the tool call and the tool result.
+
+## Adding a Confirmation Step
+
+At a high level, you will:
+
+1. Intercept tool calls before they are executed
+2. Render a confirmation UI with Yes/No buttons
+3. Send a temporary tool result indicating whether the user confirmed or declined
+4. On the server, check for the confirmation state in the tool result:
+   - If confirmed, execute the tool and update the result
+   - If declined, update the result with an error message
+5. Send the updated tool result back to the client to maintain state consistency
+
+### Forward Tool Call To The Client
+
+To implement HITL functionality, you start by omitting the `execute` function from the tool definition. This allows the frontend to intercept the tool call and handle the responsibility of adding the final tool result to the tool call.
+
+```ts filename="api/chat/route.ts" highlight="18"
+import { openai } from '@ai-sdk/openai';
+import {
+  createUIMessageStreamResponse,
+  createUIMessageStream,
+  streamText,
+  tool,
+  convertToModelMessages,
+  stepCountIs,
+} from 'ai';
+import { z } from 'zod';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages: convertToModelMessages(messages),
+        tools: {
+          getWeatherInformation: tool({
+            description: 'show the weather in a given city to the user',
+            inputSchema: z.object({ city: z.string() }),
+            outputSchema: z.string(),
+            // execute function removed to stop automatic execution
+          }),
+        },
+        stopWhen: stepCountIs(5),
+      });
+
+      writer.merge(result.toUIMessageStream({ originalMessages: messages })); // pass in original messages to avoid duplicate assistant messages
+    },
+  });
+
+  return createUIMessageStreamResponse(stream);
+}
+```
+
+<Note type="warning">
+  Each tool call must have a corresponding tool result. If you do not add a tool
+  result, all subsequent generations will fail.
+</Note>
+
+### Intercept Tool Call
+
+On the frontend, you map through the messages, either rendering the message content or checking for tool invocations and rendering custom UI.
+
+You can check if the tool requiring confirmation has been called and, if so, present options to either confirm or deny the proposed tool call. This confirmation is done using the `addToolResult` function to create a tool result and append it to the associated tool call.
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  isToolUIPart,
+  getToolName,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+import { useState } from 'react';
+
+export default function Chat() {
+  const { messages, addToolResult, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+  });
+  const [input, setInput] = useState('');
+
+  return (
+    <div>
+      <div>
+        {messages?.map(m => (
+          <div key={m.id}>
+            <strong>{`${m.role}: `}</strong>
+            {m.parts?.map((part, i) => {
+              if (part.type === 'text') {
+                return <div key={i}>{part.text}</div>;
+              }
+              if (isToolUIPart(part)) {
+                const toolName = getToolName(part);
+                const toolCallId = part.toolCallId;
+
+                // render confirmation tool (client-side tool with user interaction)
+                if (
+                  toolName === 'getWeatherInformation' &&
+                  part.state === 'input-available'
+                ) {
+                  return (
+                    <div key={toolCallId}>
+                      Get weather information for {part.input.city}?
+                      <div>
+                        <button
+                          onClick={async () => {
+                            await addToolResult({
+                              toolCallId,
+                              tool: toolName,
+                              output: 'Yes, confirmed.',
+                            });
+                            sendMessage();
+                          }}
+                        >
+                          Yes
+                        </button>
+                        <button
+                          onClick={async () => {
+                            await addToolResult({
+                              toolCallId,
+                              tool: toolName,
+                              output: 'No, denied.',
+                            });
+                            sendMessage();
+                          }}
+                        >
+                          No
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+              }
+            })}
+            <br />
+          </div>
+        ))}
+      </div>
+
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          if (input.trim()) {
+            sendMessage({ text: input });
+            setInput('');
+          }
+        }}
+      >
+        <input
+          value={input}
+          placeholder="Say something..."
+          onChange={e => setInput(e.target.value)}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+<Note>
+  The `sendMessage()` function after `addToolResult` will trigger a call to your
+  route handler. In this example, `sendMessage()` is called automatically when
+  tool calls are complete because we set `sendAutomaticallyWhen:
+  lastAssistantMessageIsCompleteWithToolCalls`. Without this option, you would
+  need to manually call `sendMessage()` after `await addToolResult()`.
+</Note>
+
+### Handle Confirmation Response
+
+Adding a tool result and sending the message will trigger another call to your route handler. Before sending the new messages to the language model, you pull out the last message and map through the message parts to see if the tool requiring confirmation was called and whether it's in a "result" state. If those conditions are met, you check the confirmation state (the tool result state that you set on the frontend with the `addToolResult` function).
+
+```ts filename="api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import {
+  createUIMessageStreamResponse,
+  createUIMessageStream,
+  streamText,
+  tool,
+  convertToModelMessages,
+  stepCountIs,
+  isToolUIPart,
+  getToolName,
+  UIMessage,
+} from 'ai';
+import { z } from 'zod';
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      // pull out last message
+      const lastMessage = messages[messages.length - 1];
+
+      lastMessage.parts = await Promise.all(
+        // map through all message parts
+        lastMessage.parts?.map(async part => {
+          if (!isToolUIPart(part)) {
+            return part;
+          }
+          const toolName = getToolName(part);
+          // return if tool isn't weather tool or in a output-available state
+          if (
+            toolName !== 'getWeatherInformation' ||
+            part.state !== 'output-available'
+          ) {
+            return part;
+          }
+
+          // switch through tool output states (set on the frontend)
+          switch (part.output) {
+            case 'Yes, confirmed.': {
+              const result = await executeWeatherTool(part.input);
+
+              // forward updated tool result to the client:
+              writer.write({
+                type: 'tool-output-available',
+                toolCallId: part.toolCallId,
+                output: result,
+              });
+
+              // update the message part:
+              return { ...part, output: result };
+            }
+            case 'No, denied.': {
+              const result = 'Error: User denied access to weather information';
+
+              // forward updated tool result to the client:
+              writer.write({
+                type: 'tool-output-available',
+                toolCallId: part.toolCallId,
+                output: result,
+              });
+
+              // update the message part:
+              return { ...part, output: result };
+            }
+            default:
+              return part;
+          }
+        }) ?? [],
+      );
+
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages: convertToModelMessages(messages),
+        tools: {
+          getWeatherInformation: tool({
+            description: 'show the weather in a given city to the user',
+            inputSchema: z.object({ city: z.string() }),
+            outputSchema: z.string(),
+          }),
+        },
+        stopWhen: stepCountIs(5),
+      });
+
+      writer.merge(result.toUIMessageStream({ originalMessages: messages }));
+    },
+  });
+
+  return createUIMessageStreamResponse(stream);
+}
+
+async function executeWeatherTool({ city }: { city: string }) {
+  const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy'];
+  return weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
+}
+```
+
+In this implementation, you use simple strings like "Yes, the user confirmed" or "No, the user declined" as states. If confirmed, you execute the tool. If declined, you do not execute the tool. In both cases, you update the tool result from the arbitrary data you sent with the `addToolResult` function to either the result of the execute function or an "Execution declined" statement. You send the updated tool result back to the frontend to maintain state synchronization.
+
+After handling the tool result, your API route continues. This triggers another generation with the updated tool result, allowing the LLM to continue attempting to solve the query.
+
+## Building your own abstraction
+
+The solution above is low-level and not very friendly to use in a production environment. You can build your own abstraction using these concepts
+
+## Move tool declarations to their own file
+
+First, you will need to move tool declarations to their own file:
+
+```ts filename="tools.ts"
+import { tool, ToolSet } from 'ai';
+import { z } from 'zod';
+
+const getWeatherInformation = tool({
+  description: 'show the weather in a given city to the user',
+  inputSchema: z.object({ city: z.string() }),
+  outputSchema: z.string(), // must define outputSchema
+  // no execute function, we want human in the loop
+});
+
+const getLocalTime = tool({
+  description: 'get the local time for a specified location',
+  inputSchema: z.object({ location: z.string() }),
+  outputSchema: z.string(),
+  // including execute function -> no confirmation required
+  execute: async ({ location }) => {
+    console.log(`Getting local time for ${location}`);
+    return '10am';
+  },
+});
+
+export const tools = {
+  getWeatherInformation,
+  getLocalTime,
+} satisfies ToolSet;
+```
+
+In this file, you have two tools, `getWeatherInformation` (requires confirmation to run) and `getLocalTime`.
+
+### Create Type Definitions
+
+Create a types file to define a custom message type:
+
+```ts filename="types.ts"
+import { InferUITools, UIDataTypes, UIMessage } from 'ai';
+import { tools } from './tools';
+
+export type MyTools = InferUITools<typeof tools>;
+
+// Define custom message type
+export type HumanInTheLoopUIMessage = UIMessage<
+  never, // metadata type
+  UIDataTypes, // data parts type
+  MyTools // tools type
+>;
+```
+
+### Create Utility Functions
+
+```ts filename="utils.ts"
+import {
+  convertToModelMessages,
+  Tool,
+  ToolCallOptions,
+  ToolSet,
+  UIMessageStreamWriter,
+  getToolName,
+  isToolUIPart,
+} from 'ai';
+import { HumanInTheLoopUIMessage } from './types';
+
+// Approval string to be shared across frontend and backend
+export const APPROVAL = {
+  YES: 'Yes, confirmed.',
+  NO: 'No, denied.',
+} as const;
+
+function isValidToolName<K extends PropertyKey, T extends object>(
+  key: K,
+  obj: T,
+): key is K & keyof T {
+  return key in obj;
+}
+
+/**
+ * Processes tool invocations where human input is required, executing tools when authorized.
+ *
+ * @param options - The function options
+ * @param options.tools - Map of tool names to Tool instances that may expose execute functions
+ * @param options.writer - UIMessageStream writer for sending results back to the client
+ * @param options.messages - Array of messages to process
+ * @param executionFunctions - Map of tool names to execute functions
+ * @returns Promise resolving to the processed messages
+ */
+export async function processToolCalls<
+  Tools extends ToolSet,
+  ExecutableTools extends {
+    [Tool in keyof Tools as Tools[Tool] extends { execute: Function }
+      ? never
+      : Tool]: Tools[Tool];
+  },
+>(
+  {
+    writer,
+    messages,
+  }: {
+    tools: Tools; // used for type inference
+    writer: UIMessageStreamWriter;
+    messages: HumanInTheLoopUIMessage[];
+  },
+  executeFunctions: {
+    [K in keyof Tools & keyof ExecutableTools]?: (
+      args: any,
+      context: ToolCallOptions,
+    ) => Promise<any>;
+  },
+): Promise<HumanInTheLoopUIMessage[]> {
+  const lastMessage = messages[messages.length - 1];
+  const parts = lastMessage.parts;
+  if (!parts) return messages;
+
+  const processedParts = await Promise.all(
+    parts.map(async part => {
+      // Only process tool invocations parts
+      if (!isToolUIPart(part)) return part;
+
+      const toolName = getToolName(part);
+
+      // Only continue if we have an execute function for the tool (meaning it requires confirmation) and it's in a 'output-available' state
+      if (!(toolName in executeFunctions) || part.state !== 'output-available')
+        return part;
+
+      let result;
+
+      if (part.output === APPROVAL.YES) {
+        // Get the tool and check if the tool has an execute function.
+        if (
+          !isValidToolName(toolName, executeFunctions) ||
+          part.state !== 'output-available'
+        ) {
+          return part;
+        }
+
+        const toolInstance = executeFunctions[toolName] as Tool['execute'];
+        if (toolInstance) {
+          result = await toolInstance(part.input, {
+            messages: convertToModelMessages(messages),
+            toolCallId: part.toolCallId,
+          });
+        } else {
+          result = 'Error: No execute function found on tool';
+        }
+      } else if (part.output === APPROVAL.NO) {
+        result = 'Error: User denied access to tool execution';
+      } else {
+        // For any unhandled responses, return the original part.
+        return part;
+      }
+
+      // Forward updated tool result to the client.
+      writer.write({
+        type: 'tool-output-available',
+        toolCallId: part.toolCallId,
+        output: result,
+      });
+
+      // Return updated toolInvocation with the actual result.
+      return {
+        ...part,
+        output: result,
+      };
+    }),
+  );
+
+  // Finally return the processed messages
+  return [...messages.slice(0, -1), { ...lastMessage, parts: processedParts }];
+}
+
+export function getToolsRequiringConfirmation<T extends ToolSet>(
+  tools: T,
+): string[] {
+  return (Object.keys(tools) as (keyof T)[]).filter(key => {
+    const maybeTool = tools[key];
+    return typeof maybeTool.execute !== 'function';
+  }) as string[];
+}
+```
+
+In this file, you first declare the confirmation strings as constants so we can share them across the frontend and backend (reducing possible errors). Next, we create function called `processToolCalls` which takes in the `messages`, `tools`, and the `writer`. It also takes in a second parameter, `executeFunction`, which is an object that maps `toolName` to the functions that will be run upon human confirmation. This function is strongly typed so:
+
+- it autocompletes `executableTools` - these are tools without an execute function
+- provides full type-safety for arguments and options available within the `execute` function
+
+Unlike the low-level example, this will return a modified array of `messages` that can be passed directly to the LLM.
+
+Finally, you declare a function called `getToolsRequiringConfirmation` that takes your tools as an argument and then will return the names of your tools without execute functions (in an array of strings). This avoids the need to manually write out and check for `toolName`'s on the frontend.
+
+### Update Route Handler
+
+Update your route handler to use the `processToolCalls` utility function.
+
+```ts filename="app/api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import {
+  createUIMessageStreamResponse,
+  createUIMessageStream,
+  streamText,
+  convertToModelMessages,
+  stepCountIs,
+} from 'ai';
+import { processToolCalls } from './utils';
+import { tools } from './tools';
+import { HumanInTheLoopUIMessage } from './types';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { messages }: { messages: HumanInTheLoopUIMessage[] } =
+    await req.json();
+
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      // Utility function to handle tools that require human confirmation
+      // Checks for confirmation in last message and then runs associated tool
+      const processedMessages = await processToolCalls(
+        {
+          messages,
+          writer,
+          tools,
+        },
+        {
+          // type-safe object for tools without an execute function
+          getWeatherInformation: async ({ city }) => {
+            const conditions = ['sunny', 'cloudy', 'rainy', 'snowy'];
+            return `The weather in ${city} is ${
+              conditions[Math.floor(Math.random() * conditions.length)]
+            }.`;
+          },
+        },
+      );
+
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages: convertToModelMessages(processedMessages),
+        tools,
+        stopWhen: stepCountIs(5),
+      });
+
+      writer.merge(
+        result.toUIMessageStream({ originalMessages: processedMessages }),
+      );
+    },
+  });
+
+  return createUIMessageStreamResponse({ stream });
+}
+```
+
+### Update Frontend
+
+Finally, update the frontend to use the new `getToolsRequiringConfirmation` function and the `APPROVAL` values:
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  getToolName,
+  isToolUIPart,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+import { tools } from '../api/chat/tools';
+import { APPROVAL, getToolsRequiringConfirmation } from '../api/chat/utils';
+import { useState } from 'react';
+import { HumanInTheLoopUIMessage, MyTools } from '../api/chat/types';
+
+export default function Chat() {
+  const { messages, addToolResult, sendMessage } =
+    useChat<HumanInTheLoopUIMessage>({
+      transport: new DefaultChatTransport({
+        api: '/api/chat',
+      }),
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    });
+  const [input, setInput] = useState('');
+
+  const toolsRequiringConfirmation = getToolsRequiringConfirmation(tools);
+
+  // used to disable input while confirmation is pending
+  const pendingToolCallConfirmation = messages.some(m =>
+    m.parts?.some(
+      part =>
+        isToolUIPart(part) &&
+        part.state === 'input-available' &&
+        toolsRequiringConfirmation.includes(getToolName(part)),
+    ),
+  );
+
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages?.map(m => (
+        <div key={m.id} className="whitespace-pre-wrap">
+          <strong>{`${m.role}: `}</strong>
+          {m.parts?.map((part, i) => {
+            if (part.type === 'text') {
+              return <div key={i}>{part.text}</div>;
+            }
+            if (isToolUIPart<MyTools>(part)) {
+              const toolName = getToolName(part);
+              const toolCallId = part.toolCallId;
+              const dynamicInfoStyles = 'font-mono bg-zinc-100 p-1 text-sm';
+
+              // render confirmation tool (client-side tool with user interaction)
+              if (
+                toolsRequiringConfirmation.includes(toolName) &&
+                part.state === 'input-available'
+              ) {
+                return (
+                  <div key={toolCallId}>
+                    Run <span className={dynamicInfoStyles}>{toolName}</span>{' '}
+                    with args: <br />
+                    <span className={dynamicInfoStyles}>
+                      {JSON.stringify(part.input, null, 2)}
+                    </span>
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
+                        onClick={async () => {
+                          await addToolResult({
+                            toolCallId,
+                            tool: toolName,
+                            output: APPROVAL.YES,
+                          });
+                          sendMessage();
+                        }}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
+                        onClick={async () => {
+                          await addToolResult({
+                            toolCallId,
+                            tool: toolName,
+                            output: APPROVAL.NO,
+                          });
+                          sendMessage();
+                        }}
+                      >
+                        No
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+            }
+          })}
+          <br />
+        </div>
+      ))}
+
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          if (input.trim()) {
+            sendMessage({ text: input });
+            setInput('');
+          }
+        }}
+      >
+        <input
+          disabled={pendingToolCallConfirmation}
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-zinc-300 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={e => setInput(e.target.value)}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+## Full Example
+
+To see this code in action, check out the [`next-openai` example](https://github.com/vercel/ai/tree/main/examples/next-openai) in the AI SDK repository. Navigate to the `/use-chat-human-in-the-loop` page and associated route handler.

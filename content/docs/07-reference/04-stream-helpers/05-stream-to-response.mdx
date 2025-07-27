@@ -33,7 +33,7 @@ import { createServer } from 'http';
 
 createServer(async (req, res) => {
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4.1'),
     prompt: 'What is the weather in San Francisco?',
   });
 

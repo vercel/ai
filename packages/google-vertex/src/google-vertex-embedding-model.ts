@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -8,41 +8,33 @@ import {
   postJsonToApi,
   resolve,
   Resolvable,
+  parseProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
   GoogleVertexEmbeddingModelId,
-  GoogleVertexEmbeddingSettings,
-} from './google-vertex-embedding-settings';
+  googleVertexEmbeddingProviderOptions,
+} from './google-vertex-embedding-options';
 import { GoogleVertexConfig } from './google-vertex-config';
 
-export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
-  readonly specificationVersion = 'v1';
+export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
+  readonly specificationVersion = 'v2';
   readonly modelId: GoogleVertexEmbeddingModelId;
+  readonly maxEmbeddingsPerCall = 2048;
+  readonly supportsParallelCalls = true;
 
   private readonly config: GoogleVertexConfig;
-  private readonly settings: GoogleVertexEmbeddingSettings;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxEmbeddingsPerCall(): number {
-    return 2048;
-  }
-
-  get supportsParallelCalls(): boolean {
-    return true;
-  }
-
   constructor(
     modelId: GoogleVertexEmbeddingModelId,
-    settings: GoogleVertexEmbeddingSettings,
     config: GoogleVertexConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -50,9 +42,18 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
     values,
     headers,
     abortSignal,
-  }: Parameters<EmbeddingModelV1<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>
+    providerOptions,
+  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
+    // Parse provider options
+    const googleOptions =
+      (await parseProviderOptions({
+        provider: 'google',
+        providerOptions,
+        schema: googleVertexEmbeddingProviderOptions,
+      })) ?? {};
+
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,
@@ -68,13 +69,17 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
     );
 
     const url = `${this.config.baseURL}/models/${this.modelId}:predict`;
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue,
+    } = await postJsonToApi({
       url,
       headers: mergedHeaders,
       body: {
         instances: values.map(value => ({ content: value })),
         parameters: {
-          outputDimensionality: this.settings.outputDimensionality,
+          outputDimensionality: googleOptions.outputDimensionality,
         },
       },
       failedResponseHandler: googleVertexFailedResponseHandler,
@@ -96,7 +101,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
           0,
         ),
       },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders, body: rawValue },
     };
   }
 }

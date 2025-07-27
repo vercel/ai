@@ -1,5 +1,5 @@
-import { EmbeddingModelV1Embedding } from '@ai-sdk/provider';
-import { JsonTestServer } from '@ai-sdk/provider-utils/test';
+import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from './openai-provider';
 
 const dummyEmbeddings = [
@@ -11,27 +11,33 @@ const testValues = ['sunny day at the beach', 'rainy day in the city'];
 const provider = createOpenAI({ apiKey: 'test-api-key' });
 const model = provider.embedding('text-embedding-3-large');
 
+const server = createTestServer({
+  'https://api.openai.com/v1/embeddings': {},
+});
+
 describe('doEmbed', () => {
-  const server = new JsonTestServer('https://api.openai.com/v1/embeddings');
-
-  server.setupTestEnvironment();
-
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
     usage = { prompt_tokens: 8, total_tokens: 8 },
+    headers,
   }: {
-    embeddings?: EmbeddingModelV1Embedding[];
+    embeddings?: EmbeddingModelV2Embedding[];
     usage?: { prompt_tokens: number; total_tokens: number };
+    headers?: Record<string, string>;
   } = {}) {
-    server.responseBodyJson = {
-      object: 'list',
-      data: embeddings.map((embedding, i) => ({
-        object: 'embedding',
-        index: i,
-        embedding,
-      })),
-      model: 'text-embedding-3-large',
-      usage,
+    server.urls['https://api.openai.com/v1/embeddings'].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        object: 'list',
+        data: embeddings.map((embedding, i) => ({
+          object: 'embedding',
+          index: i,
+          embedding,
+        })),
+        model: 'text-embedding-3-large',
+        usage,
+      },
     };
   }
 
@@ -43,16 +49,16 @@ describe('doEmbed', () => {
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
 
-  it('should expose the raw response headers', async () => {
-    prepareJsonResponse();
+  it('should expose the raw response', async () => {
+    prepareJsonResponse({
+      headers: {
+        'test-header': 'test-value',
+      },
+    });
 
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+    const { response } = await model.doEmbed({ values: testValues });
 
-    const { rawResponse } = await model.doEmbed({ values: testValues });
-
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '236',
       'content-type': 'application/json',
@@ -60,6 +66,7 @@ describe('doEmbed', () => {
       // custom header
       'test-header': 'test-value',
     });
+    expect(response).toMatchSnapshot();
   });
 
   it('should extract usage', async () => {
@@ -77,7 +84,7 @@ describe('doEmbed', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'text-embedding-3-large',
       input: testValues,
       encoding_format: 'float',
@@ -87,11 +94,12 @@ describe('doEmbed', () => {
   it('should pass the dimensions setting', async () => {
     prepareJsonResponse();
 
-    await provider
-      .embedding('text-embedding-3-large', { dimensions: 64 })
-      .doEmbed({ values: testValues });
+    await provider.embedding('text-embedding-3-large').doEmbed({
+      values: testValues,
+      providerOptions: { openai: { dimensions: 64 } },
+    });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'text-embedding-3-large',
       input: testValues,
       encoding_format: 'float',
@@ -118,9 +126,7 @@ describe('doEmbed', () => {
       },
     });
 
-    const requestHeaders = await server.getRequestHeaders();
-
-    expect(requestHeaders).toStrictEqual({
+    expect(server.calls[0].requestHeaders).toStrictEqual({
       authorization: 'Bearer test-api-key',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',

@@ -23,11 +23,35 @@ curl -X POST http://localhost:8080
 
 **Full example**: [github.com/vercel/ai/examples/hono](https://github.com/vercel/ai/tree/main/examples/hono)
 
-### Data Stream
+### UI Message Stream
 
-You can use the `toDataStream` method to get a data stream from the result and then pipe it to the response.
+You can use the `toUIMessageStreamResponse` method to create a properly formatted streaming response.
 
 ```ts filename='index.ts'
+import { openai } from '@ai-sdk/openai';
+import { serve } from '@hono/node-server';
+import { streamText } from 'ai';
+import { Hono } from 'hono';
+
+const app = new Hono();
+
+app.post('/', async c => {
+  const result = streamText({
+    model: openai('gpt-4o'),
+    prompt: 'Invent a new holiday and describe its traditions.',
+  });
+
+  return result.toUIMessageStreamResponse();
+});
+
+serve({ fetch: app.fetch, port: 8080 });
+```
+
+### Text Stream
+
+You can use the `textStream` property to get a text stream from the result and then pipe it to the response.
+
+```ts filename='index.ts' highlight="17"
 import { openai } from '@ai-sdk/openai';
 import { serve } from '@hono/node-server';
 import { streamText } from 'ai';
@@ -42,11 +66,9 @@ app.post('/', async c => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  // Mark the response as a v1 data stream:
-  c.header('X-Vercel-AI-Data-Stream', 'v1');
   c.header('Content-Type', 'text/plain; charset=utf-8');
 
-  return stream(c, stream => stream.pipe(result.toDataStream()));
+  return stream(c, stream => stream.pipe(result.textStream));
 });
 
 serve({ fetch: app.fetch, port: 8080 });
@@ -97,29 +119,6 @@ app.post('/stream-data', async c => {
 serve({ fetch: app.fetch, port: 8080 });
 ```
 
-### Text Stream
+## Troubleshooting
 
-You can use the `textStream` property to get a text stream from the result and then pipe it to the response.
-
-```ts filename='index.ts' highlight="17"
-import { openai } from '@ai-sdk/openai';
-import { serve } from '@hono/node-server';
-import { streamText } from 'ai';
-import { Hono } from 'hono';
-import { stream } from 'hono/streaming';
-
-const app = new Hono();
-
-app.post('/', async c => {
-  const result = streamText({
-    model: openai('gpt-4o'),
-    prompt: 'Invent a new holiday and describe its traditions.',
-  });
-
-  c.header('Content-Type', 'text/plain; charset=utf-8');
-
-  return stream(c, stream => stream.pipe(result.textStream));
-});
-
-serve({ fetch: app.fetch, port: 8080 });
-```
+- Streaming not working when [proxied](/docs/troubleshooting/streaming-not-working-when-proxied)

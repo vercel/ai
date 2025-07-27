@@ -11,8 +11,8 @@ Below we focus on the general setup and provider instance creation. You can also
 
 We provide detailed documentation for the following OpenAI compatible providers:
 
-- [Perplexity](/providers/openai-compatible-providers/perplexity)
 - [LM Studio](/providers/openai-compatible-providers/lmstudio)
+- [NIM](/providers/openai-compatible-providers/nim)
 - [Baseten](/providers/openai-compatible-providers/baseten)
 
 The general setup and provider instance creation is the same for all of these providers.
@@ -44,8 +44,41 @@ const provider = createOpenAICompatible({
   name: 'provider-name',
   apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
+  includeUsage: true, // Include usage information in streaming responses
 });
 ```
+
+You can use the following optional settings to customize the provider instance:
+
+- **baseURL** _string_
+
+  Set the URL prefix for API calls.
+
+- **apiKey** _string_
+
+  API key for authenticating requests. If specified, adds an `Authorization`
+  header to request headers with the value `Bearer <apiKey>`. This will be added
+  before any headers potentially specified in the `headers` option.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Optional custom headers to include in requests. These will be added to request headers
+  after any headers potentially added by use of the `apiKey` option.
+
+- **queryParams** _Record&lt;string,string&gt;_
+
+  Optional custom url query parameters to include in request urls.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+- **includeUsage** _boolean_
+
+  Include usage information in streaming responses. When enabled, usage data will be included in the response metadata for streaming requests. Defaults to `undefined` (`false`).
 
 ## Language Models
 
@@ -61,19 +94,19 @@ const model = provider('model-id');
 You can use provider language models to generate text with the `generateText` function:
 
 ```ts
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
-import { generateText } from 'ai'
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
 
 const provider = createOpenAICompatible({
   name: 'provider-name',
   apiKey: process.env.PROVIDER_API_KEY,
-  baseURL: 'https://api.provider.com/v1'
-})
+  baseURL: 'https://api.provider.com/v1',
+});
 
 const { text } = await generateText({
-  model: provider('model-id')
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
-})
+  model: provider('model-id'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 ```
 
 ### Including model ids for auto-completion
@@ -116,3 +149,146 @@ const { text } = await generateText({
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
+
+### Custom query parameters
+
+Some providers may require custom query parameters. An example is the [Azure AI
+Model Inference
+API](https://learn.microsoft.com/en-us/azure/machine-learning/reference-model-inference-chat-completions?view=azureml-api-2)
+which requires an `api-version` query parameter.
+
+You can set these via the optional `queryParams` provider setting. These will be
+added to all requests made by the provider.
+
+```ts highlight="7-9"
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const provider = createOpenAICompatible({
+  name: 'provider-name',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+  queryParams: {
+    'api-version': '1.0.0',
+  },
+});
+```
+
+For example, with the above configuration, API requests would include the query parameter in the URL like:
+`https://api.provider.com/v1/chat/completions?api-version=1.0.0`.
+
+## Provider-specific options
+
+The OpenAI Compatible provider supports adding provider-specific options to the request body. These are specified with the `providerOptions` field in the request body.
+
+For example, if you create a provider instance with the name `provider-name`, you can add a `custom-option` field to the request body like this:
+
+```ts
+const provider = createOpenAICompatible({
+  name: 'provider-name',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+});
+
+const { text } = await generateText({
+  model: provider('model-id'),
+  prompt: 'Hello',
+  providerOptions: {
+    'provider-name': { customOption: 'magic-value' },
+  },
+});
+```
+
+The request body sent to the provider will include the `customOption` field with the value `magic-value`. This gives you an easy way to add provider-specific options to requests without having to modify the provider or AI SDK code.
+
+## Custom Metadata Extraction
+
+The OpenAI Compatible provider supports extracting provider-specific metadata from API responses through metadata extractors.
+These extractors allow you to capture additional information returned by the provider beyond the standard response format.
+
+Metadata extractors receive the raw, unprocessed response data from the provider, giving you complete flexibility
+to extract any custom fields or experimental features that the provider may include.
+This is particularly useful when:
+
+- Working with providers that include non-standard response fields
+- Experimenting with beta or preview features
+- Capturing provider-specific metrics or debugging information
+- Supporting rapid provider API evolution without SDK changes
+
+Metadata extractors work with both streaming and non-streaming chat completions and consist of two main components:
+
+1. A function to extract metadata from complete responses
+2. A streaming extractor that can accumulate metadata across chunks in a streaming response
+
+Here's an example metadata extractor that captures both standard and custom provider data:
+
+```typescript
+const myMetadataExtractor: MetadataExtractor = {
+  // Process complete, non-streaming responses
+  extractMetadata: ({ parsedBody }) => {
+    // You have access to the complete raw response
+    // Extract any fields the provider includes
+    return {
+      myProvider: {
+        standardUsage: parsedBody.usage,
+        experimentalFeatures: parsedBody.beta_features,
+        customMetrics: {
+          processingTime: parsedBody.server_timing?.total_ms,
+          modelVersion: parsedBody.model_version,
+          // ... any other provider-specific data
+        },
+      },
+    };
+  },
+
+  // Process streaming responses
+  createStreamExtractor: () => {
+    let accumulatedData = {
+      timing: [],
+      customFields: {},
+    };
+
+    return {
+      // Process each chunk's raw data
+      processChunk: parsedChunk => {
+        if (parsedChunk.server_timing) {
+          accumulatedData.timing.push(parsedChunk.server_timing);
+        }
+        if (parsedChunk.custom_data) {
+          Object.assign(accumulatedData.customFields, parsedChunk.custom_data);
+        }
+      },
+      // Build final metadata from accumulated data
+      buildMetadata: () => ({
+        myProvider: {
+          streamTiming: accumulatedData.timing,
+          customData: accumulatedData.customFields,
+        },
+      }),
+    };
+  },
+};
+```
+
+You can provide a metadata extractor when creating your provider instance:
+
+```typescript
+const provider = createOpenAICompatible({
+  name: 'my-provider',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+  metadataExtractor: myMetadataExtractor,
+});
+```
+
+The extracted metadata will be included in the response under the `providerMetadata` field:
+
+```typescript
+const { text, providerMetadata } = await generateText({
+  model: provider('model-id'),
+  prompt: 'Hello',
+});
+
+console.log(providerMetadata.myProvider.customMetric);
+```
+
+This allows you to access provider-specific information while maintaining a consistent interface across different providers.

@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const { request } = await generateObject({
-    model: openai('gpt-4o-mini', { structuredOutputs: true }),
+    model: openai('gpt-4o-mini'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),

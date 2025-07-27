@@ -39,7 +39,7 @@ async function main() {
         content: code,
       },
     ],
-    experimental_providerMetadata: {
+    providerOptions: {
       openai: {
         prediction: {
           type: 'content',
@@ -54,7 +54,7 @@ async function main() {
   }
 
   const usage = await result.usage;
-  const openaiMetadata = (await result.experimental_providerMetadata)?.openai;
+  const openaiMetadata = (await result.providerMetadata)?.openai;
 
   console.log();
   console.log('Token usage:', {

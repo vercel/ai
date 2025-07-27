@@ -1,9 +1,44 @@
 {
-  "extends": "./node_modules/@vercel/ai-tsconfig/react-library.json",
   "compilerOptions": {
-    "target": "ES2018",
-    "stripInternal": true
+    "allowJs": true,
+    "checkJs": true,
+    "composite": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "moduleResolution": "bundler",
+    "module": "esnext",
+    "target": "esnext",
+    "declaration": true,
+    "declarationMap": true,
+    "stripInternal": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "types": ["vitest/globals"],
+    "rootDir": "src",
+    "outDir": "dist"
   },
-  "include": ["."],
-  "exclude": ["*/dist", "dist", "build", "node_modules"]
+  "references": [
+    {
+      "path": "../provider-utils"
+    },
+    {
+      "path": "../ai"
+    }
+  ],
+  "include": [
+    "./src/**/*.js",
+    "./src/**/*.ts",
+    "./src/**/*.svelte"
+  ],
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules",
+    "tsup.config.ts"
+  ]
 }

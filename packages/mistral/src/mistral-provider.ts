@@ -1,8 +1,8 @@
 import {
-  EmbeddingModelV1,
-  LanguageModelV1,
+  EmbeddingModelV2,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -10,58 +10,36 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
-import {
-  MistralChatModelId,
-  MistralChatSettings,
-} from './mistral-chat-settings';
+import { MistralChatModelId } from './mistral-chat-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
-import {
-  MistralEmbeddingModelId,
-  MistralEmbeddingSettings,
-} from './mistral-embedding-settings';
+import { MistralEmbeddingModelId } from './mistral-embedding-options';
 
-export interface MistralProvider extends ProviderV1 {
-  (
-    modelId: MistralChatModelId,
-    settings?: MistralChatSettings,
-  ): LanguageModelV1;
+export interface MistralProvider extends ProviderV2 {
+  (modelId: MistralChatModelId): LanguageModelV2;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(
-    modelId: MistralChatModelId,
-    settings?: MistralChatSettings,
-  ): LanguageModelV1;
+  languageModel(modelId: MistralChatModelId): LanguageModelV2;
 
   /**
 Creates a model for text generation.
 */
-  chat(
-    modelId: MistralChatModelId,
-    settings?: MistralChatSettings,
-  ): LanguageModelV1;
+  chat(modelId: MistralChatModelId): LanguageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel()` instead.
    */
-  embedding(
-    modelId: MistralEmbeddingModelId,
-    settings?: MistralEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV2<string>;
 
   /**
 @deprecated Use `textEmbeddingModel()` instead.
    */
-  textEmbedding(
-    modelId: MistralEmbeddingModelId,
-    settings?: MistralEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV2<string>;
 
   textEmbeddingModel: (
     modelId: MistralEmbeddingModelId,
-    settings?: MistralEmbeddingSettings,
-  ) => EmbeddingModelV1<string>;
+  ) => EmbeddingModelV2<string>;
 }
 
 export interface MistralProviderSettings {
@@ -107,39 +85,30 @@ export function createMistral(
     ...options.headers,
   });
 
-  const createChatModel = (
-    modelId: MistralChatModelId,
-    settings: MistralChatSettings = {},
-  ) =>
-    new MistralChatLanguageModel(modelId, settings, {
+  const createChatModel = (modelId: MistralChatModelId) =>
+    new MistralChatLanguageModel(modelId, {
       provider: 'mistral.chat',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: MistralEmbeddingModelId,
-    settings: MistralEmbeddingSettings = {},
-  ) =>
-    new MistralEmbeddingModel(modelId, settings, {
+  const createEmbeddingModel = (modelId: MistralEmbeddingModelId) =>
+    new MistralEmbeddingModel(modelId, {
       provider: 'mistral.embedding',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
-  const provider = function (
-    modelId: MistralChatModelId,
-    settings?: MistralChatSettings,
-  ) {
+  const provider = function (modelId: MistralChatModelId) {
     if (new.target) {
       throw new Error(
         'The Mistral model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId, settings);
+    return createChatModel(modelId);
   };
 
   provider.languageModel = createChatModel;
@@ -147,11 +116,12 @@ export function createMistral(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
-  provider.rerankingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
-  return provider as MistralProvider;
+  return provider;
 }
 
 /**

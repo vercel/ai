@@ -5,7 +5,7 @@ description: Learn how to use the Cohere provider for the AI SDK.
 
 # Cohere Provider
 
-The [Cohere](https://cohere.com/) provider contains language and emdedding model support for the Cohere chat API.
+The [Cohere](https://cohere.com/) provider contains language and embedding model support for the Cohere chat API.
 
 ## Setup
 
@@ -89,13 +89,24 @@ const { text } = await generateText({
 });
 ```
 
-Cohere language models can also be used in the `streamText` function (see [AI SDK Core](/docs/ai-sdk-core)).
+Cohere language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+(see [AI SDK Core](/docs/ai-sdk-core).
 
 ### Model Capabilities
 
-| Model            | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ---------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `command-r-plus` | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                    | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `command-a-03-2025`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-r7b-12-2024`    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-r-plus-04-2024` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-r-plus`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-r-08-2024`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-r-03-2024`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-r`              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command`                | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `command-nightly`        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `command-light`          | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `command-light-nightly`  | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Cohere
@@ -107,21 +118,48 @@ Cohere language models can also be used in the `streamText` function (see [AI SD
 ## Embedding Models
 
 You can create models that call the [Cohere embed API](https://docs.cohere.com/v2/reference/embed)
-using the `.embedding()` factory method.
+using the `.textEmbedding()` factory method.
 
 ```ts
-const model = cohere.embedding('embed-english-v3.0');
+const model = cohere.textEmbedding('embed-english-v3.0');
 ```
 
-Cohere embedding models support additional settings. You can pass them as an options argument:
+You can use Cohere embedding models to generate embeddings with the `embed` function:
 
 ```ts
-const model = cohere.embedding('embed-english-v3.0', {
-  inputType: 'search_document',
+import { cohere } from '@ai-sdk/cohere';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: cohere.textEmbedding('embed-english-v3.0'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    cohere: {
+      inputType: 'search_document',
+    },
+  },
 });
 ```
 
-The following optional settings are available for Cohere embedding models:
+Cohere embedding models support additional provider options that can be passed via `providerOptions.cohere`:
+
+```ts
+import { cohere } from '@ai-sdk/cohere';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: cohere.textEmbedding('embed-english-v3.0'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    cohere: {
+      inputType: 'search_document',
+      truncate: 'END',
+    },
+  },
+});
+```
+
+The following provider options are available:
 
 - **inputType** _'search_document' | 'search_query' | 'classification' | 'clustering'_
 

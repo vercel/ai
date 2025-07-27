@@ -1,5 +1,5 @@
 import { TypeValidationError } from '@ai-sdk/provider';
-import { z } from 'zod';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { Validator, asValidator } from './validator';
 
 /**
@@ -9,16 +9,16 @@ import { Validator, asValidator } from './validator';
  * @template T - The type of the object to validate.
  * @param {string} options.value - The object to validate.
  * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
- * @returns {T} - The typed object.
+ * @returns {Promise<T>} - The typed object.
  */
-export function validateTypes<T>({
+export async function validateTypes<OBJECT>({
   value,
-  schema: inputSchema,
+  schema,
 }: {
   value: unknown;
-  schema: z.Schema<T, z.ZodTypeDef, any> | Validator<T>;
-}): T {
-  const result = safeValidateTypes({ value, schema: inputSchema });
+  schema: StandardSchemaV1<unknown, OBJECT> | Validator<OBJECT>;
+}): Promise<OBJECT> {
+  const result = await safeValidateTypes({ value, schema });
 
   if (!result.success) {
     throw TypeValidationError.wrap({ value, cause: result.error });
@@ -36,36 +36,47 @@ export function validateTypes<T>({
  * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
-export function safeValidateTypes<T>({
+export async function safeValidateTypes<OBJECT>({
   value,
   schema,
 }: {
   value: unknown;
-  schema: z.Schema<T, z.ZodTypeDef, any> | Validator<T>;
-}):
-  | { success: true; value: T }
-  | { success: false; error: TypeValidationError } {
+  schema: StandardSchemaV1<unknown, OBJECT> | Validator<OBJECT>;
+}): Promise<
+  | {
+      success: true;
+      value: OBJECT;
+      rawValue: unknown;
+    }
+  | {
+      success: false;
+      error: TypeValidationError;
+      rawValue: unknown;
+    }
+> {
   const validator = asValidator(schema);
 
   try {
     if (validator.validate == null) {
-      return { success: true, value: value as T };
+      return { success: true, value: value as OBJECT, rawValue: value };
     }
 
-    const result = validator.validate(value);
+    const result = await validator.validate(value);
 
     if (result.success) {
-      return result;
+      return { success: true, value: result.value, rawValue: value };
     }
 
     return {
       success: false,
       error: TypeValidationError.wrap({ value, cause: result.error }),
+      rawValue: value,
     };
   } catch (error) {
     return {
       success: false,
       error: TypeValidationError.wrap({ value, cause: error }),
+      rawValue: value,
     };
   }
 }

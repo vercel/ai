@@ -1,5 +1,5 @@
 {
-  "name": "next-openai-telemetry",
+  "name": "@example/next-openai-telemetry",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -9,21 +9,20 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.0.16",
-    "@ai-sdk/react": "1.0.9",
+    "@ai-sdk/openai": "workspace:*",
+    "@ai-sdk/react": "workspace:*",
     "@opentelemetry/api-logs": "0.55.0",
     "@opentelemetry/sdk-logs": "0.55.0",
     "@opentelemetry/instrumentation": "0.52.1",
     "@vercel/otel": "1.10.0",
-    "ai": "4.0.31",
+    "ai": "workspace:*",
     "next": "latest",
-    "openai": "4.52.6",
     "react": "^18",
     "react-dom": "^18",
-    "zod": "3.23.8"
+    "zod": "3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^18",
+    "@types/node": "20.17.24",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",

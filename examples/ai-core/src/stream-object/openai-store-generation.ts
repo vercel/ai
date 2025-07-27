@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamObject({
@@ -19,7 +19,7 @@ async function main() {
     }),
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
-    experimental_providerMetadata: {
+    providerOptions: {
       openai: {
         store: true,
         metadata: {

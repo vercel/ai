@@ -15,7 +15,7 @@ In our previous example we've been streaming react components from the server to
 
 import { useState } from 'react';
 import { ClientMessage } from './actions';
-import { useActions, useUIState } from 'ai/rsc';
+import { useActions, useUIState } from '@ai-sdk/rsc';
 import { generateId } from 'ai';
 
 // Allow streaming responses up to 30 seconds
@@ -72,7 +72,7 @@ export default function Home() {
 ```tsx filename='app/actions.tsx'
 'use server';
 
-import { getMutableAIState, streamUI } from 'ai/rsc';
+import { getMutableAIState, streamUI } from '@ai-sdk/rsc';
 import { openai } from '@ai-sdk/openai';
 import { ReactNode } from 'react';
 import { z } from 'zod';
@@ -137,7 +137,7 @@ export async function continueConversation(
 ```
 
 ```typescript filename='app/ai.ts'
-import { createAI } from 'ai/rsc';
+import { createAI } from '@ai-sdk/rsc';
 import { ServerMessage, ClientMessage, continueConversation } from './actions';
 
 export const AI = createAI<ServerMessage[], ClientMessage[]>({

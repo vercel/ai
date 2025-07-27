@@ -1,34 +1,55 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
+  JSONObject,
+  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
-  Tool,
-  ToolConfiguration,
-  ToolInputSchema,
-} from '@aws-sdk/client-bedrock-runtime';
+import { BedrockTool, BedrockToolConfiguration } from './bedrock-api-types';
 
-export function prepareTools(
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-): {
-  toolConfig: ToolConfiguration; // note: do not rename, name required by Bedrock
-  toolWarnings: LanguageModelV1CallWarning[];
+/**
+ * Check if the conversation contains any tool calls or tool results.
+ * Bedrock requires toolConfig to be present when messages contain toolUse or toolResult blocks.
+ */
+function promptContainsToolContent(prompt: LanguageModelV2Prompt): boolean {
+  return prompt.some(message => {
+    if ('content' in message && Array.isArray(message.content)) {
+      return message.content.some(
+        part => part.type === 'tool-call' || part.type === 'tool-result',
+      );
+    }
+    return false;
+  });
+}
+
+export function prepareTools({
+  tools,
+  toolChoice,
+  prompt,
+}: {
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  prompt: LanguageModelV2Prompt;
+}): {
+  toolConfig: BedrockToolConfiguration; // note: do not rename, name required by Bedrock
+  toolWarnings: LanguageModelV2CallWarning[];
 } {
-  // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
+  tools = tools?.length ? tools : undefined;
+
+  const hasToolContent = promptContainsToolContent(prompt);
 
   if (tools == null) {
     return {
-      toolConfig: { tools: undefined, toolChoice: undefined },
+      toolConfig: {
+        tools: hasToolContent ? [] : undefined,
+        toolChoice: undefined,
+      },
       toolWarnings: [],
     };
   }
 
-  const toolWarnings: LanguageModelV1CallWarning[] = [];
-  const bedrockTools: Tool[] = [];
+  const toolWarnings: LanguageModelV2CallWarning[] = [];
+  const bedrockTools: BedrockTool[] = [];
 
   for (const tool of tools) {
     if (tool.type === 'provider-defined') {
@@ -39,14 +60,12 @@ export function prepareTools(
           name: tool.name,
           description: tool.description,
           inputSchema: {
-            json: tool.parameters,
-          } as ToolInputSchema,
+            json: tool.inputSchema as JSONObject,
+          },
         },
       });
     }
   }
-
-  const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
     return {
@@ -69,9 +88,13 @@ export function prepareTools(
         toolWarnings,
       };
     case 'none':
-      // Bedrock does not support 'none' tool choice, so we remove the tools:
+      // Bedrock does not support 'none' tool choice, so we remove the tools.
+      // However, if conversation contains tool content, we need empty tools array for API.
       return {
-        toolConfig: { tools: undefined, toolChoice: undefined },
+        toolConfig: {
+          tools: hasToolContent ? [] : undefined,
+          toolChoice: undefined,
+        },
         toolWarnings,
       };
     case 'tool':
@@ -85,7 +108,7 @@ export function prepareTools(
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
-        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
+        functionality: `tool choice type: ${_exhaustiveCheck}`,
       });
     }
   }

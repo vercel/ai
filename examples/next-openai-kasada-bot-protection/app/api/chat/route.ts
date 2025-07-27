@@ -15,5 +15,5 @@ export async function POST(req: Request) {
   });
 
   // Respond with the stream
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }

@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 
 async function main() {
   let editorContent = `
@@ -35,7 +35,7 @@ This is a test file.
       }),
     },
     prompt: 'Update my README file to talk about AI.',
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   });
 
   console.log('TEXT', result.text);

@@ -1,16 +1,16 @@
 import { cohere } from '@ai-sdk/cohere';
-import { streamText, CoreMessage, ToolCallPart, ToolResultPart } from 'ai';
+import { streamText, ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   let toolResponseAvailable = false;
 
   const result = streamText({
     model: cohere('command-r-plus'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
     },
@@ -27,8 +27,8 @@ async function main() {
 
     switch (delta.type) {
       case 'text-delta': {
-        fullResponse += delta.textDelta;
-        process.stdout.write(delta.textDelta);
+        fullResponse += delta.text;
+        process.stdout.write(delta.text);
         break;
       }
 
@@ -36,17 +36,22 @@ async function main() {
         toolCalls.push(delta);
 
         process.stdout.write(
-          `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.args)}`,
+          `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.input)}`,
         );
         break;
       }
 
       case 'tool-result': {
-        toolResponses.push(delta);
+        // Transform to new format
+        const transformedDelta: ToolResultPart = {
+          ...delta,
+          output: { type: 'json', value: delta.output },
+        };
+        toolResponses.push(transformedDelta);
 
         process.stdout.write(
           `\nTool response: '${delta.toolName}' ${JSON.stringify(
-            delta.result,
+            delta.output,
           )}`,
         );
         break;

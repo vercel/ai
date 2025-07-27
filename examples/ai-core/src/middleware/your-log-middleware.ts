@@ -1,9 +1,9 @@
-import type {
-  Experimental_LanguageModelV1Middleware as LanguageModelV1Middleware,
-  LanguageModelV1StreamPart,
-} from 'ai';
+import {
+  LanguageModelV2Middleware,
+  LanguageModelV2StreamPart,
+} from '@ai-sdk/provider';
 
-export const yourLogMiddleware: LanguageModelV1Middleware = {
+export const yourLogMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     console.log('doGenerate called');
     console.log(`params: ${JSON.stringify(params, null, 2)}`);
@@ -11,7 +11,7 @@ export const yourLogMiddleware: LanguageModelV1Middleware = {
     const result = await doGenerate();
 
     console.log('doGenerate finished');
-    console.log(`generated text: ${result.text}`);
+    console.log(`generated content: ${JSON.stringify(result.content)}`);
 
     return result;
   },
@@ -25,12 +25,12 @@ export const yourLogMiddleware: LanguageModelV1Middleware = {
     let generatedText = '';
 
     const transformStream = new TransformStream<
-      LanguageModelV1StreamPart,
-      LanguageModelV1StreamPart
+      LanguageModelV2StreamPart,
+      LanguageModelV2StreamPart
     >({
       transform(chunk, controller) {
         if (chunk.type === 'text-delta') {
-          generatedText += chunk.textDelta;
+          generatedText += chunk.delta;
         }
 
         controller.enqueue(chunk);

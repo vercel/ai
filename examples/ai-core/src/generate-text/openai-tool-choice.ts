@@ -1,17 +1,17 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = await generateText({
     model: openai('gpt-3.5-turbo'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       }),
     },
     toolChoice: {

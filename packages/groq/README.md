@@ -1,6 +1,6 @@
 # AI SDK - Groq Provider
 
-The **[Groq provider](https://sdk.vercel.ai/providers/ai-sdk-providers/groq)** for the [AI SDK](https://sdk.vercel.ai/docs)
+The **[Groq provider](https://ai-sdk.dev/providers/ai-sdk-providers/groq)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains language model support for the Groq chat and completion APIs and embedding model support for the Groq embeddings API.
 
 ## Setup
@@ -33,4 +33,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[Groq provider documentation](https://sdk.vercel.ai/providers/ai-sdk-providers/groq)** for more information.
+Please check out the **[Groq provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/groq)** for more information.

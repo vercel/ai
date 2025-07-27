@@ -5,7 +5,7 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { streamObject } from 'ai';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const sdk = new NodeSDK({
   traceExporter: new ConsoleSpanExporter(),
@@ -16,7 +16,7 @@ sdk.start();
 
 async function main() {
   const result = streamObject({
-    model: openai('gpt-4o-mini', { structuredOutputs: true }),
+    model: openai('gpt-4o-mini'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),

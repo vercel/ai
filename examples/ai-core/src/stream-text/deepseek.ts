@@ -8,7 +8,6 @@ async function main() {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  console.log(result);
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }

@@ -1,0 +1,191 @@
+---
+title: Web Search Agent
+description: Learn how to build an agent that has access to web with the AI SDK and Node
+tags: ['node', 'tool use', 'agent', 'web']
+---
+
+# Web Search Agent
+
+There are two approaches you can take to building a web search agent with the AI SDK:
+
+1. Use a model that has native web-searching capabilities
+2. Create a tool to access the web and return search results.
+
+Both approaches have their advantages and disadvantages. Models with native search capabilities tend to be faster and there is no additional cost to make the search. The disadvantage is that you have less control over what is being searched, and the functionality is limited to models that support it.
+
+instead, by creating a tool, you can achieve more flexibility and greater control over your search queries. It allows you to customize your search strategy, specify search parameters, and you can use it with any LLM that supports tool calling. This approach will incur additional costs for the search API you use, but gives you complete control over the search experience.
+
+## Using native web-search
+
+There are several models that offer native web-searching capabilities (Perplexity, OpenAI, Gemini). Let's look at how you could build a Web Search Agent across providers.
+
+### OpenAI Responses API
+
+OpenAI's Responses API has a built-in web search tool that can be used to search the web and return search results. This tool is called `web_search_preview` and is accessed via the `openai` provider.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: openai.responses('gpt-4o-mini'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    web_search_preview: openai.tools.webSearchPreview({}),
+  },
+});
+
+console.log(text);
+console.log(sources);
+```
+
+### Perplexity
+
+Perplexity's Sonar models combines real-time web search with natural language processing. Each response is grounded in current web data and includes detailed citations.
+
+```ts
+import { perplexity } from '@ai-sdk/perplexity';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: perplexity('sonar-pro'),
+  prompt: 'What are the latest developments in quantum computing?',
+});
+
+console.log(text);
+console.log(sources);
+```
+
+### Gemini
+
+With compatible Gemini models, you can enable search grounding to give the model access to the latest information using Google search.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, sources, providerMetadata } = await generateText({
+  model: google('gemini-2.5-flash'),
+  tools: {
+    google_search: google.tools.googleSearch({}),
+  },
+  prompt:
+    'List the top 5 San Francisco news from the past week.' +
+    'You must include the date of each article.',
+});
+
+console.log(text);
+console.log(sources);
+
+// access the grounding metadata.
+const metadata = providerMetadata?.google;
+const groundingMetadata = metadata?.groundingMetadata;
+const safetyRatings = metadata?.safetyRatings;
+```
+
+## Building a web search tool
+
+Let's look at how you can build tools that search the web and return results. These tools can be used with any model that supports tool calling, giving you maximum flexibility and control over your search experience. We'll examine several search API options that can be integrated as tools in your agent.
+
+Unlike the native web search examples where searching is built into the model, using web search tools requires multiple steps. The language model will make two generations - the first to call the relevant web search tool (extracting search queries from the context), and the second to process the results and generate a response. This multi-step process is handled automatically when you set `stopWhen: stepCountIs()` to a value greater than 1.
+
+<Note>
+  By using `stopWhen`, you can automatically send tool results back to the
+  language model alongside the original question, enabling the model to respond
+  with information relevant to the user's query based on the search results.
+  This creates a seamless experience where the agent can search the web and
+  incorporate those findings into its response.
+</Note>
+
+### Exa
+
+[Exa](https://exa.ai/) is a search API designed for AI. Let's look at how you could implement a search tool using Exa:
+
+```ts
+import { generateText, tool, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import Exa from 'exa-js';
+
+export const exa = new Exa(process.env.EXA_API_KEY);
+
+export const webSearch = tool({
+  description: 'Search the web for up-to-date information',
+  inputSchema: z.object({
+    query: z.string().min(1).max(100).describe('The search query'),
+  }),
+  execute: async ({ query }) => {
+    const { results } = await exa.searchAndContents(query, {
+      livecrawl: 'always',
+      numResults: 3,
+    });
+    return results.map(result => ({
+      title: result.title,
+      url: result.url,
+      content: result.text.slice(0, 1000), // take just the first 1000 characters
+      publishedDate: result.publishedDate,
+    }));
+  },
+});
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'), // can be any model that supports tools
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    webSearch,
+  },
+  stopWhen: stepCountIs(5),
+});
+```
+
+### Firecrawl
+
+[Firecrawl](https://firecrawl.dev) provides an API for web scraping and crawling. Let's look at how you could implement a scraping tool using Firecrawl:
+
+```ts
+import { generateText, tool, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import FirecrawlApp from '@mendable/firecrawl-js';
+import 'dotenv/config';
+
+const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
+
+export const webSearch = tool({
+  description: 'Search the web for up-to-date information',
+  inputSchema: z.object({
+    urlToCrawl: z
+      .string()
+      .url()
+      .min(1)
+      .max(100)
+      .describe('The URL to crawl (including http:// or https://)'),
+  }),
+  execute: async ({ urlToCrawl }) => {
+    const crawlResponse = await app.crawlUrl(urlToCrawl, {
+      limit: 1,
+      scrapeOptions: {
+        formats: ['markdown', 'html'],
+      },
+    });
+    if (!crawlResponse.success) {
+      throw new Error(`Failed to crawl: ${crawlResponse.error}`);
+    }
+    return crawlResponse.data;
+  },
+});
+
+const main = async () => {
+  const { text } = await generateText({
+    model: openai('gpt-4o-mini'), // can be any model that supports tools
+    prompt: 'Get the latest blog post from vercel.com/blog',
+    tools: {
+      webSearch,
+    },
+    stopWhen: stepCountIs(5),
+  });
+  console.log(text);
+};
+
+main();
+```

@@ -1,24 +1,18 @@
-import { ToolInvocation, streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  toolInvocations?: ToolInvocation[];
-}
+import { z } from 'zod/v4';
 
 export async function POST(req: Request) {
-  const { messages }: { messages: Message[] } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4'),
     system: 'You are a helpful assistant.',
-    messages,
+    messages: convertToModelMessages(messages),
     tools: {
       celsiusToFahrenheit: {
         description: 'Converts celsius to fahrenheit',
-        parameters: z.object({
+        inputSchema: z.object({
           value: z.string().describe('The value in celsius'),
         }),
         execute: async ({ value }) => {
@@ -30,5 +24,5 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }

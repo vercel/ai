@@ -1,32 +1,53 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
-import type { RequestHandler } from './$types';
-
 import { env } from '$env/dynamic/private';
+import { createOpenAI } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText } from 'ai';
+import { z } from 'zod/v4';
 
-// You may want to replace the above with a static private env variable
-// for dead-code elimination and build-time type-checking:
-// import { OPENAI_API_KEY } from '$env/static/private'
-
-// Create an OpenAI Provider instance
 const openai = createOpenAI({
-  apiKey: env.OPENAI_API_KEY ?? '',
+  apiKey: env?.OPENAI_API_KEY,
 });
 
-export const POST = (async ({ request }) => {
-  // Extract the `prompt` from the body of the request
+export const POST = async ({ request }) => {
   const { messages } = await request.json();
 
-  // Call the language model
   const result = streamText({
-    model: openai('gpt-4-turbo'),
-    messages,
-    async onFinish({ text, toolCalls, toolResults, usage, finishReason }) {
-      // implement your own logic here, e.g. for storing messages
-      // or recording token usage
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
+    toolCallStreaming: true,
+    maxSteps: 5, // multi-steps for server-side tools
+    tools: {
+      // server-side tool with execute function:
+      getWeatherInformation: {
+        description: 'show the weather in a given city to the user',
+        inputSchema: z.object({ city: z.string() }),
+        execute: async ({ city: _ }: { city: string }) => {
+          // Add artificial delay of 2 seconds
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
+          return weatherOptions[
+            Math.floor(Math.random() * weatherOptions.length)
+          ];
+        },
+      },
+      // client-side tool that starts user interaction:
+      askForConfirmation: {
+        description: 'Ask the user for confirmation.',
+        inputSchema: z.object({
+          message: z.string().describe('The message to ask for confirmation.'),
+        }),
+      },
+      // client-side tool that is automatically executed on the client:
+      getLocation: {
+        description:
+          'Get the user location. Always ask for confirmation before using this tool.',
+        inputSchema: z.object({}),
+      },
+    },
+    onError: error => {
+      console.error(error);
     },
   });
 
-  // Respond with the stream
-  return result.toDataStreamResponse();
-}) satisfies RequestHandler;
+  return result.toUIMessageStreamResponse();
+};

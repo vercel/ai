@@ -20,7 +20,7 @@ To handle errors while generating UI, the [`streamableUI`](/docs/reference/ai-sd
 ```tsx filename='app/actions.tsx'
 'use server';
 
-import { createStreamableUI } from 'ai/rsc';
+import { createStreamableUI } from '@ai-sdk/rsc';
 
 export async function getStreamedUI() {
   const ui = createStreamableUI();
@@ -65,12 +65,12 @@ export default function Page() {
 
 ## Handling Other Errors
 
-To handle other errors while streaming, you can return an error object that the reciever can use to determine why the failure occurred.
+To handle other errors while streaming, you can return an error object that the receiver can use to determine why the failure occurred.
 
 ```tsx filename='app/actions.tsx'
 'use server';
 
-import { createStreamableValue } from 'ai/rsc';
+import { createStreamableValue } from '@ai-sdk/rsc';
 import { fetchData, emptyData } from '../utils/data';
 
 export const getStreamedData = async () => {

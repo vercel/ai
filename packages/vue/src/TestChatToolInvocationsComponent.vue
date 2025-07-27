@@ -1,37 +1,49 @@
 <script setup lang="ts">
-import { useChat } from './use-chat';
+import { isToolUIPart } from 'ai';
+import { Chat } from './chat.vue';
 
-const { messages, append, addToolResult } = useChat();
+const chat = new Chat({
+  maxSteps: 5,
+});
 </script>
 
 <template>
   <div>
     <div
-      v-for="(m, idx) in messages"
-      key="m.id"
+      v-for="(m, idx) in chat.messages"
+      :key="m.id"
       :data-testid="`message-${idx}`"
     >
       <div
-        v-for="(toolInvocation, toolIdx) in m.toolInvocations"
-        :key="toolInvocation.toolCallId"
+        v-for="(toolPart, toolIdx) in m.parts.filter(isToolUIPart)"
+        :key="toolPart.toolCallId"
       >
-        {{ JSON.stringify(toolInvocation) }}
+        {{ JSON.stringify(toolPart) }}
         <button
-          v-if="toolInvocation.state === 'call'"
+          v-if="toolPart.state === 'input-available'"
           :data-testid="`add-result-${toolIdx}`"
           @click="
-            addToolResult({
-              toolCallId: toolInvocation.toolCallId,
-              result: 'test-result',
+            chat.addToolResult({
+              toolCallId: toolPart.toolCallId,
+              output: 'test-result',
             })
           "
         />
+      </div>
+      <div :data-testid="`text-${idx}`">
+        {{
+          m.parts.map(part => (part.type === 'text' ? part.text : '')).join('')
+        }}
       </div>
     </div>
 
     <button
       data-testid="do-append"
-      @click="append({ role: 'user', content: 'hi' })"
+      @click="
+        chat.sendMessage({
+          text: 'hi',
+        })
+      "
     />
   </div>
 </template>

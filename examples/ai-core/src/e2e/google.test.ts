@@ -1,26 +1,41 @@
+import { GoogleErrorData, google as provider } from '@ai-sdk/google';
+import { APICallError, ImageModelV2, LanguageModelV2 } from '@ai-sdk/provider';
 import 'dotenv/config';
 import { expect } from 'vitest';
-import { GoogleErrorData, google as provider } from '@ai-sdk/google';
-import { APICallError, LanguageModelV1 } from 'ai';
 import {
   ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
+  createImageModelWithCapabilities,
   defaultChatModelCapabilities,
 } from './feature-test-suite';
+import { wrapLanguageModel } from 'ai';
+import { defaultSettingsMiddleware } from 'ai';
 
 const createChatModel = (
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1> =>
+): ModelWithCapabilities<LanguageModelV2> =>
   createLanguageModelWithCapabilities(provider.chat(modelId));
+
+const createImageModel = (
+  modelId: string,
+): ModelWithCapabilities<ImageModelV2> =>
+  createImageModelWithCapabilities(provider.image(modelId));
 
 const createSearchGroundedModel = (
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1> => {
-  const model = provider.chat(modelId, { useSearchGrounding: true });
+): ModelWithCapabilities<LanguageModelV2> => {
+  const model = provider.chat(modelId);
   return {
-    model,
+    model: wrapLanguageModel({
+      model,
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: { google: { useSearchGrounding: true } },
+        },
+      }),
+    }),
     capabilities: [...defaultChatModelCapabilities, 'searchGrounding'],
   };
 };
@@ -43,8 +58,9 @@ createFeatureTestSuite({
         provider.textEmbeddingModel('text-embedding-004'),
       ),
     ],
+    imageModels: [createImageModel('imagen-3.0-generate-002')],
   },
-  timeout: 10000,
+  timeout: 20000,
   customAssertions: {
     skipUsage: true,
     errorValidator: (error: APICallError) => {

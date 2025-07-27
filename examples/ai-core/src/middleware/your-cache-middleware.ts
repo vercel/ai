@@ -1,8 +1,8 @@
-import type { Experimental_LanguageModelV1Middleware as LanguageModelV1Middleware } from 'ai';
+import { LanguageModelV2Middleware } from '@ai-sdk/provider';
 
 const cache = new Map<string, any>();
 
-export const yourCacheMiddleware: LanguageModelV1Middleware = {
+export const yourCacheMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     const cacheKey = JSON.stringify(params);
 

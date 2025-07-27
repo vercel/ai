@@ -1,0 +1,95 @@
+{
+  "name": "@ai-sdk/rsc",
+  "version": "1.0.0-beta.28",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "main": "./dist/rsc-client.mjs",
+  "module": "./dist/rsc-client.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm build --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint \"./**/*.ts*\"",
+    "type-check": "tsc --noEmit",
+    "prettier-check": "prettier --check \"./**/*.ts*\"",
+    "test:watch": "vitest --config vitest.config.js",
+    "test": "pnpm test:node && pnpm test:ui && pnpm test:e2e && pnpm test:edge",
+    "test:e2e": "playwright test",
+    "test:edge": "vitest --config vitest.edge.config.js --run",
+    "test:edge:watch": "vitest --config vitest.edge.config.js",
+    "test:node": "vitest --config vitest.node.config.js --run",
+    "test:node:watch": "vitest --config vitest.node.config.js",
+    "test:ui": "pnpm test:ui:react",
+    "test:ui:react": "vitest --config vitest.ui.react.config.js --run",
+    "test:ui:react:watch": "vitest --config vitest.ui.react.config.js"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "react-server": "./dist/rsc-server.mjs",
+      "module": "./dist/rsc-client.mjs",
+      "import": "./dist/rsc-client.mjs"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {
+    "ai": "workspace:*",
+    "@ai-sdk/provider": "workspace:*",
+    "@ai-sdk/provider-utils": "workspace:*",
+    "jsondiffpatch": "0.6.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/user-event": "^14.5.2",
+    "@testing-library/react": "^16.0.1",
+    "@types/node": "20.17.24",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@vitejs/plugin-react": "4.3.3",
+    "react-dom": "^18",
+    "react": "^18",
+    "react-server-dom-webpack": "18.3.0-canary-eb33bd747-20240312",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "eslint": "8.57.1",
+    "eslint-config-vercel-ai": "workspace:*",
+    "jsdom": "^24.0.0",
+    "msw": "2.6.4",
+    "tsup": "^7.2.0",
+    "typescript": "5.8.3",
+    "zod": "3.25.76"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19 || ^19.0.0-rc",
+    "zod": "^3.25.76 || ^4"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://ai-sdk.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vercel/ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "react",
+    "rsc",
+    "server-components"
+  ]
+}

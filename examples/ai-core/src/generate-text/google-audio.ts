@@ -13,7 +13,7 @@ async function main() {
           { type: 'text', text: 'What is the audio saying?' },
           {
             type: 'file',
-            mimeType: 'audio/mpeg',
+            mediaType: 'audio/mpeg',
             data: fs.readFileSync('./data/galileo.mp3'),
           },
         ],

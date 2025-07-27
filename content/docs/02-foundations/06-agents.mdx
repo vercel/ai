@@ -1,0 +1,535 @@
+---
+title: Agents
+description: Learn how to build agents with AI SDK Core.
+---
+
+# Agents
+
+When building AI applications, you often need **systems that can understand context and take meaningful actions**. When building these systems, the key consideration is finding the right balance between flexibility and control. Let's explore different approaches and patterns for building these systems, with a focus on helping you match capabilities to your needs.
+
+## Building Blocks
+
+When building AI systems, you can combine these fundamental components:
+
+### Single-Step LLM Generation
+
+The basic building block - one call to an LLM to get a response. Useful for straightforward tasks like classification or text generation.
+
+### Tool Usage
+
+Enhanced capabilities through tools (like calculators, APIs, or databases) that the LLM can use to accomplish tasks. Tools provide a controlled way to extend what the LLM can do.
+
+When solving complex problems, **an LLM can make multiple tool calls across multiple steps without you explicity specifying the order** - for example, looking up information in a database, using that to make calculations, and then storing results. The AI SDK makes this [multi-step tool usage](#multi-step-tool-usage) straightforward through the `stopWhen` parameter.
+
+### Multi-Agent Systems
+
+Multiple LLMs working together, each specialized for different aspects of a complex task. This enables sophisticated behaviors while keeping individual components focused.
+
+## Patterns
+
+These building blocks can be combined with workflow patterns that help manage complexity:
+
+- [Sequential Processing](#sequential-processing-chains) - Steps executed in order
+- [Parallel Processing](#parallel-processing) - Independent tasks run simultaneously
+- [Evaluation/Feedback Loops](#evaluator-optimizer) - Results checked and improved iteratively
+- [Orchestration](#orchestrator-worker) - Coordinating multiple components
+- [Routing](#routing) - Directing work based on context
+
+## Choosing Your Approach
+
+The key factors to consider:
+
+- **Flexibility vs Control** - How much freedom does the LLM need vs how tightly must you constrain its actions?
+- **Error Tolerance** - What are the consequences of mistakes in your use case?
+- **Cost Considerations** - More complex systems typically mean more LLM calls and higher costs
+- **Maintenance** - Simpler architectures are easier to debug and modify
+
+**Start with the simplest approach that meets your needs**. Add complexity only when required by:
+
+1. Breaking down tasks into clear steps
+2. Adding tools for specific capabilities
+3. Implementing feedback loops for quality control
+4. Introducing multiple agents for complex workflows
+
+Let's look at examples of these patterns in action.
+
+## Patterns with Examples
+
+The following patterns, adapted from [Anthropic's guide on building effective agents](https://www.anthropic.com/research/building-effective-agents), serve as building blocks that can be combined to create comprehensive workflows. Each pattern addresses specific aspects of task execution, and by combining them thoughtfully, you can build reliable solutions for complex problems.
+
+### Sequential Processing (Chains)
+
+The simplest workflow pattern executes steps in a predefined order. Each step's output becomes input for the next step, creating a clear chain of operations. This pattern is ideal for tasks with well-defined sequences, like content generation pipelines or data transformation processes.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText, generateObject } from 'ai';
+import { z } from 'zod';
+
+async function generateMarketingCopy(input: string) {
+  const model = openai('gpt-4o');
+
+  // First step: Generate marketing copy
+  const { text: copy } = await generateText({
+    model,
+    prompt: `Write persuasive marketing copy for: ${input}. Focus on benefits and emotional appeal.`,
+  });
+
+  // Perform quality check on copy
+  const { object: qualityMetrics } = await generateObject({
+    model,
+    schema: z.object({
+      hasCallToAction: z.boolean(),
+      emotionalAppeal: z.number().min(1).max(10),
+      clarity: z.number().min(1).max(10),
+    }),
+    prompt: `Evaluate this marketing copy for:
+    1. Presence of call to action (true/false)
+    2. Emotional appeal (1-10)
+    3. Clarity (1-10)
+
+    Copy to evaluate: ${copy}`,
+  });
+
+  // If quality check fails, regenerate with more specific instructions
+  if (
+    !qualityMetrics.hasCallToAction ||
+    qualityMetrics.emotionalAppeal < 7 ||
+    qualityMetrics.clarity < 7
+  ) {
+    const { text: improvedCopy } = await generateText({
+      model,
+      prompt: `Rewrite this marketing copy with:
+      ${!qualityMetrics.hasCallToAction ? '- A clear call to action' : ''}
+      ${qualityMetrics.emotionalAppeal < 7 ? '- Stronger emotional appeal' : ''}
+      ${qualityMetrics.clarity < 7 ? '- Improved clarity and directness' : ''}
+
+      Original copy: ${copy}`,
+    });
+    return { copy: improvedCopy, qualityMetrics };
+  }
+
+  return { copy, qualityMetrics };
+}
+```
+
+### Routing
+
+This pattern allows the model to make decisions about which path to take through a workflow based on context and intermediate results. The model acts as an intelligent router, directing the flow of execution between different branches of your workflow. This is particularly useful when handling varied inputs that require different processing approaches. In the example below, the results of the first LLM call change the properties of the second LLM call like model size and system prompt.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateObject, generateText } from 'ai';
+import { z } from 'zod';
+
+async function handleCustomerQuery(query: string) {
+  const model = openai('gpt-4o');
+
+  // First step: Classify the query type
+  const { object: classification } = await generateObject({
+    model,
+    schema: z.object({
+      reasoning: z.string(),
+      type: z.enum(['general', 'refund', 'technical']),
+      complexity: z.enum(['simple', 'complex']),
+    }),
+    prompt: `Classify this customer query:
+    ${query}
+
+    Determine:
+    1. Query type (general, refund, or technical)
+    2. Complexity (simple or complex)
+    3. Brief reasoning for classification`,
+  });
+
+  // Route based on classification
+  // Set model and system prompt based on query type and complexity
+  const { text: response } = await generateText({
+    model:
+      classification.complexity === 'simple'
+        ? openai('gpt-4o-mini')
+        : openai('o3-mini'),
+    system: {
+      general:
+        'You are an expert customer service agent handling general inquiries.',
+      refund:
+        'You are a customer service agent specializing in refund requests. Follow company policy and collect necessary information.',
+      technical:
+        'You are a technical support specialist with deep product knowledge. Focus on clear step-by-step troubleshooting.',
+    }[classification.type],
+    prompt: query,
+  });
+
+  return { response, classification };
+}
+```
+
+### Parallel Processing
+
+Some tasks can be broken down into independent subtasks that can be executed simultaneously. This pattern takes advantage of parallel execution to improve efficiency while maintaining the benefits of structured workflows. For example, analyzing multiple documents or processing different aspects of a single input concurrently (like code review).
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText, generateObject } from 'ai';
+import { z } from 'zod';
+
+// Example: Parallel code review with multiple specialized reviewers
+async function parallelCodeReview(code: string) {
+  const model = openai('gpt-4o');
+
+  // Run parallel reviews
+  const [securityReview, performanceReview, maintainabilityReview] =
+    await Promise.all([
+      generateObject({
+        model,
+        system:
+          'You are an expert in code security. Focus on identifying security vulnerabilities, injection risks, and authentication issues.',
+        schema: z.object({
+          vulnerabilities: z.array(z.string()),
+          riskLevel: z.enum(['low', 'medium', 'high']),
+          suggestions: z.array(z.string()),
+        }),
+        prompt: `Review this code:
+      ${code}`,
+      }),
+
+      generateObject({
+        model,
+        system:
+          'You are an expert in code performance. Focus on identifying performance bottlenecks, memory leaks, and optimization opportunities.',
+        schema: z.object({
+          issues: z.array(z.string()),
+          impact: z.enum(['low', 'medium', 'high']),
+          optimizations: z.array(z.string()),
+        }),
+        prompt: `Review this code:
+      ${code}`,
+      }),
+
+      generateObject({
+        model,
+        system:
+          'You are an expert in code quality. Focus on code structure, readability, and adherence to best practices.',
+        schema: z.object({
+          concerns: z.array(z.string()),
+          qualityScore: z.number().min(1).max(10),
+          recommendations: z.array(z.string()),
+        }),
+        prompt: `Review this code:
+      ${code}`,
+      }),
+    ]);
+
+  const reviews = [
+    { ...securityReview.object, type: 'security' },
+    { ...performanceReview.object, type: 'performance' },
+    { ...maintainabilityReview.object, type: 'maintainability' },
+  ];
+
+  // Aggregate results using another model instance
+  const { text: summary } = await generateText({
+    model,
+    system: 'You are a technical lead summarizing multiple code reviews.',
+    prompt: `Synthesize these code review results into a concise summary with key actions:
+    ${JSON.stringify(reviews, null, 2)}`,
+  });
+
+  return { reviews, summary };
+}
+```
+
+### Orchestrator-Worker
+
+In this pattern, a primary model (orchestrator) coordinates the execution of specialized workers. Each worker is optimized for a specific subtask, while the orchestrator maintains overall context and ensures coherent results. This pattern excels at complex tasks requiring different types of expertise or processing.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+async function implementFeature(featureRequest: string) {
+  // Orchestrator: Plan the implementation
+  const { object: implementationPlan } = await generateObject({
+    model: openai('o3-mini'),
+    schema: z.object({
+      files: z.array(
+        z.object({
+          purpose: z.string(),
+          filePath: z.string(),
+          changeType: z.enum(['create', 'modify', 'delete']),
+        }),
+      ),
+      estimatedComplexity: z.enum(['low', 'medium', 'high']),
+    }),
+    system:
+      'You are a senior software architect planning feature implementations.',
+    prompt: `Analyze this feature request and create an implementation plan:
+    ${featureRequest}`,
+  });
+
+  // Workers: Execute the planned changes
+  const fileChanges = await Promise.all(
+    implementationPlan.files.map(async file => {
+      // Each worker is specialized for the type of change
+      const workerSystemPrompt = {
+        create:
+          'You are an expert at implementing new files following best practices and project patterns.',
+        modify:
+          'You are an expert at modifying existing code while maintaining consistency and avoiding regressions.',
+        delete:
+          'You are an expert at safely removing code while ensuring no breaking changes.',
+      }[file.changeType];
+
+      const { object: change } = await generateObject({
+        model: openai('gpt-4o'),
+        schema: z.object({
+          explanation: z.string(),
+          code: z.string(),
+        }),
+        system: workerSystemPrompt,
+        prompt: `Implement the changes for ${file.filePath} to support:
+        ${file.purpose}
+
+        Consider the overall feature context:
+        ${featureRequest}`,
+      });
+
+      return {
+        file,
+        implementation: change,
+      };
+    }),
+  );
+
+  return {
+    plan: implementationPlan,
+    changes: fileChanges,
+  };
+}
+```
+
+### Evaluator-Optimizer
+
+This pattern introduces quality control into workflows by having dedicated evaluation steps that assess intermediate results. Based on the evaluation, the workflow can either proceed, retry with adjusted parameters, or take corrective action. This creates more robust workflows capable of self-improvement and error recovery.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText, generateObject } from 'ai';
+import { z } from 'zod';
+
+async function translateWithFeedback(text: string, targetLanguage: string) {
+  let currentTranslation = '';
+  let iterations = 0;
+  const MAX_ITERATIONS = 3;
+
+  // Initial translation
+  const { text: translation } = await generateText({
+    model: openai('gpt-4o-mini'), // use small model for first attempt
+    system: 'You are an expert literary translator.',
+    prompt: `Translate this text to ${targetLanguage}, preserving tone and cultural nuances:
+    ${text}`,
+  });
+
+  currentTranslation = translation;
+
+  // Evaluation-optimization loop
+  while (iterations < MAX_ITERATIONS) {
+    // Evaluate current translation
+    const { object: evaluation } = await generateObject({
+      model: openai('gpt-4o'), // use a larger model to evaluate
+      schema: z.object({
+        qualityScore: z.number().min(1).max(10),
+        preservesTone: z.boolean(),
+        preservesNuance: z.boolean(),
+        culturallyAccurate: z.boolean(),
+        specificIssues: z.array(z.string()),
+        improvementSuggestions: z.array(z.string()),
+      }),
+      system: 'You are an expert in evaluating literary translations.',
+      prompt: `Evaluate this translation:
+
+      Original: ${text}
+      Translation: ${currentTranslation}
+
+      Consider:
+      1. Overall quality
+      2. Preservation of tone
+      3. Preservation of nuance
+      4. Cultural accuracy`,
+    });
+
+    // Check if quality meets threshold
+    if (
+      evaluation.qualityScore >= 8 &&
+      evaluation.preservesTone &&
+      evaluation.preservesNuance &&
+      evaluation.culturallyAccurate
+    ) {
+      break;
+    }
+
+    // Generate improved translation based on feedback
+    const { text: improvedTranslation } = await generateText({
+      model: openai('gpt-4o'), // use a larger model
+      system: 'You are an expert literary translator.',
+      prompt: `Improve this translation based on the following feedback:
+      ${evaluation.specificIssues.join('\n')}
+      ${evaluation.improvementSuggestions.join('\n')}
+
+      Original: ${text}
+      Current Translation: ${currentTranslation}`,
+    });
+
+    currentTranslation = improvedTranslation;
+    iterations++;
+  }
+
+  return {
+    finalTranslation: currentTranslation,
+    iterationsRequired: iterations,
+  };
+}
+```
+
+## Multi-Step Tool Usage
+
+If your use case involves solving problems where the solution path is poorly defined or too complex to map out as a workflow in advance, you may want to provide the LLM with a set of lower-level tools and allow it to break down the task into small pieces that it can solve on its own iteratively, without discrete instructions. To implement this kind of agentic pattern, you need to call an LLM in a loop until a task is complete. The AI SDK makes this simple with the `stopWhen` parameter.
+
+The AI SDK gives you control over the stopping conditions, enabling you to keep the LLM running until one of the conditions are met. The SDK automatically triggers an additional request to the model after every tool result (each request is considered a "step"), continuing until the model does not generate a tool call or other stopping conditions (e.g. `stepCountIs`) you define are satisfied.
+
+<Note>`stopWhen` can be used with both `generateText` and `streamText`</Note>
+
+### Using `stopWhen`
+
+This example demonstrates how to create an agent that solves math problems.
+It has a calculator tool (using [math.js](https://mathjs.org/)) that it can call to evaluate mathematical expressions.
+
+```ts file='main.ts'
+import { openai } from '@ai-sdk/openai';
+import { generateText, tool, stepCountIs } from 'ai';
+import * as mathjs from 'mathjs';
+import { z } from 'zod';
+
+const { text: answer } = await generateText({
+  model: openai('gpt-4o-2024-08-06'),
+  tools: {
+    calculate: tool({
+      description:
+        'A tool for evaluating mathematical expressions. ' +
+        'Example expressions: ' +
+        "'1.2 * (2 + 4.5)', '12.7 cm to inch', 'sin(45 deg) ^ 2'.",
+      inputSchema: z.object({ expression: z.string() }),
+      execute: async ({ expression }) => mathjs.evaluate(expression),
+    }),
+  },
+  stopWhen: stepCountIs(10),
+  system:
+    'You are solving math problems. ' +
+    'Reason step by step. ' +
+    'Use the calculator when necessary. ' +
+    'When you give the final answer, ' +
+    'provide an explanation for how you arrived at it.',
+  prompt:
+    'A taxi driver earns $9461 per 1-hour of work. ' +
+    'If he works 12 hours a day and in 1 hour ' +
+    'he uses 12 liters of petrol with a price  of $134 for 1 liter. ' +
+    'How much money does he earn in one day?',
+});
+
+console.log(`ANSWER: ${answer}`);
+```
+
+### Structured Answers
+
+When building an agent for tasks like mathematical analysis or report generation, it's often useful to have the agent's final output structured in a consistent format that your application can process. You can use an **answer tool** and the `toolChoice: 'required'` setting to force the LLM to answer with a structured output that matches the schema of the answer tool. The answer tool has no `execute` function, so invoking it will terminate the agent.
+
+```ts highlight="6,16-29,31,45"
+import { openai } from '@ai-sdk/openai';
+import { generateText, tool, stepCountIs } from 'ai';
+import 'dotenv/config';
+import { z } from 'zod';
+
+const { toolCalls } = await generateText({
+  model: openai('gpt-4o-2024-08-06'),
+  tools: {
+    calculate: tool({
+      description:
+        'A tool for evaluating mathematical expressions. Example expressions: ' +
+        "'1.2 * (2 + 4.5)', '12.7 cm to inch', 'sin(45 deg) ^ 2'.",
+      inputSchema: z.object({ expression: z.string() }),
+      execute: async ({ expression }) => mathjs.evaluate(expression),
+    }),
+    // answer tool: the LLM will provide a structured answer
+    answer: tool({
+      description: 'A tool for providing the final answer.',
+      inputSchema: z.object({
+        steps: z.array(
+          z.object({
+            calculation: z.string(),
+            reasoning: z.string(),
+          }),
+        ),
+        answer: z.string(),
+      }),
+      // no execute function - invoking it will terminate the agent
+    }),
+  },
+  toolChoice: 'required',
+  stopWhen: stepCountIs(10),
+  system:
+    'You are solving math problems. ' +
+    'Reason step by step. ' +
+    'Use the calculator when necessary. ' +
+    'The calculator can only do simple additions, subtractions, multiplications, and divisions. ' +
+    'When you give the final answer, provide an explanation for how you got it.',
+  prompt:
+    'A taxi driver earns $9461 per 1-hour work. ' +
+    'If he works 12 hours a day and in 1 hour he uses 14-liters petrol with price $134 for 1-liter. ' +
+    'How much money does he earn in one day?',
+});
+
+console.log(`FINAL TOOL CALLS: ${JSON.stringify(toolCalls, null, 2)}`);
+```
+
+<Note>
+  You can also use the
+  [`experimental_output`](/docs/ai-sdk-core/generating-structured-data#structured-output-with-generatetext)
+  setting for `generateText` to generate structured outputs.
+</Note>
+
+### Accessing all steps
+
+Calling `generateText` with `stopWhen` can result in several calls to the LLM (steps).
+You can access information from all steps by using the `steps` property of the response.
+
+```ts highlight="3,9-10"
+import { generateText, stepCountIs } from 'ai';
+
+const { steps } = await generateText({
+  model: openai('gpt-4o'),
+  stopWhen: stepCountIs(10),
+  // ...
+});
+
+// extract all tool calls from the steps:
+const allToolCalls = steps.flatMap(step => step.toolCalls);
+```
+
+### Getting notified on each completed step
+
+You can use the `onStepFinish` callback to get notified on each completed step.
+It is triggered when a step is finished,
+i.e. all text deltas, tool calls, and tool results for the step are available.
+
+```tsx highlight="6-8"
+import { generateText, stepCountIs } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-4.1',
+  stopWhen: stepCountIs(10),
+  onStepFinish({ text, toolCalls, toolResults, finishReason, usage }) {
+    // your own logic, e.g. for saving the chat history or recording usage
+  },
+  // ...
+});
+```

@@ -1,34 +1,32 @@
 <script setup lang="ts">
-import { useChat } from './use-chat';
+import { generateId } from 'ai';
+import { mockId } from 'ai/test';
+import { computed, ref } from 'vue';
+import { Chat } from './chat.vue';
 
-const { messages, handleSubmit, isLoading, input } = useChat();
+const chat = new Chat({
+  id: generateId(),
+  generateId: mockId(),
+});
+const isLoading = computed(() => chat.status !== 'ready');
+const input = ref('');
 </script>
 
 <template>
   <div>
-    <div v-for="(m, idx) in messages" :key="m.id" :data-testid="`message-${idx}`">
-      {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ m.content }}
-      <template v-if="m.experimental_attachments">
-        <template v-for="attachment in m.experimental_attachments" :key="attachment.name">
-          <img
-            v-if="attachment.contentType?.startsWith('image/')"
-            :src="attachment.url"
-            :alt="attachment.name"
-            :data-testid="`attachment-${idx}`"
-          />
-        </template>
-      </template>
+    <div data-testid="messages">
+      {{ JSON.stringify(chat.messages, null, 2) }}
     </div>
 
     <form
       @submit="
-        (event) => {
-          handleSubmit(event, {
-            experimental_attachments: [
+        event => {
+          chat.sendMessage({
+            text: input,
+            files: [
               {
-                name: 'test.png',
-                contentType: 'image/png',
+                type: 'file',
+                mediaType: 'image/png',
                 url: 'https://example.com/image.png',
               },
             ],

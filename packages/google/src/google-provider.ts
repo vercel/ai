@@ -1,70 +1,68 @@
 import {
+  EmbeddingModelV2,
+  LanguageModelV2,
+  ProviderV2,
+  ImageModelV2,
+} from '@ai-sdk/provider';
+import {
   FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
-import {
-  GoogleGenerativeAIModelId,
-  GoogleGenerativeAISettings,
-} from './google-generative-ai-settings';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
+import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
+import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
+import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import { googleTools } from './google-tools';
+
 import {
-  GoogleGenerativeAIEmbeddingModelId,
-  GoogleGenerativeAIEmbeddingSettings,
-} from './google-generative-ai-embedding-settings';
-import {
-  EmbeddingModelV1,
-  LanguageModelV1,
-  NoSuchModelError,
-  ProviderV1,
-} from '@ai-sdk/provider';
+  GoogleGenerativeAIImageSettings,
+  GoogleGenerativeAIImageModelId,
+} from './google-generative-ai-image-settings';
+import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 
-export interface GoogleGenerativeAIProvider extends ProviderV1 {
-  (
-    modelId: GoogleGenerativeAIModelId,
-    settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
+import { isSupportedFileUrl } from './google-supported-file-url';
 
-  languageModel(
-    modelId: GoogleGenerativeAIModelId,
-    settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
+export interface GoogleGenerativeAIProvider extends ProviderV2 {
+  (modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
-  chat(
-    modelId: GoogleGenerativeAIModelId,
-    settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
+  languageModel(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
+
+  chat(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
+
+  /**
+Creates a model for image generation.
+ */
+  image(
+    modelId: GoogleGenerativeAIImageModelId,
+    settings?: GoogleGenerativeAIImageSettings,
+  ): ImageModelV2;
 
   /**
    * @deprecated Use `chat()` instead.
    */
-  generativeAI(
-    modelId: GoogleGenerativeAIModelId,
-    settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
+  generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel()` instead.
    */
   embedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   /**
 @deprecated Use `textEmbeddingModel()` instead.
  */
   textEmbedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
+
+  tools: typeof googleTools;
 }
 
 export interface GoogleGenerativeAIProviderSettings {
@@ -116,40 +114,49 @@ export function createGoogleGenerativeAI(
     ...options.headers,
   });
 
-  const createChatModel = (
-    modelId: GoogleGenerativeAIModelId,
-    settings: GoogleGenerativeAISettings = {},
-  ) =>
-    new GoogleGenerativeAILanguageModel(modelId, settings, {
+  const createChatModel = (modelId: GoogleGenerativeAIModelId) =>
+    new GoogleGenerativeAILanguageModel(modelId, {
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
+      supportedUrls: () => ({
+        '*': [
+          // Only allow requests to the Google Generative Language "files" endpoint
+          // e.g. https://generativelanguage.googleapis.com/v1beta/files/...
+          new RegExp(`^${baseURL}/files/.*$`),
+        ],
+      }),
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings: GoogleGenerativeAIEmbeddingSettings = {},
-  ) =>
-    new GoogleGenerativeAIEmbeddingModel(modelId, settings, {
+  const createEmbeddingModel = (modelId: GoogleGenerativeAIEmbeddingModelId) =>
+    new GoogleGenerativeAIEmbeddingModel(modelId, {
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
-  const provider = function (
-    modelId: GoogleGenerativeAIModelId,
-    settings?: GoogleGenerativeAISettings,
-  ) {
+  const createImageModel = (
+    modelId: GoogleGenerativeAIImageModelId,
+    settings: GoogleGenerativeAIImageSettings = {},
+  ) =>
+    new GoogleGenerativeAIImageModel(modelId, settings, {
+      provider: 'google.generative-ai',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const provider = function (modelId: GoogleGenerativeAIModelId) {
     if (new.target) {
       throw new Error(
         'The Google Generative AI model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId, settings);
+    return createChatModel(modelId);
   };
 
   provider.languageModel = createChatModel;
@@ -158,10 +165,9 @@ export function createGoogleGenerativeAI(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
-  provider.rerankingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
-  };
-
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
+  provider.tools = googleTools;
   return provider as GoogleGenerativeAIProvider;
 }
 

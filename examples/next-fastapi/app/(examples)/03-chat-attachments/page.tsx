@@ -2,15 +2,12 @@
 
 import { Card } from '@/app/components';
 /* eslint-disable @next/next/no-img-element */
-import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } =
-    useChat({
-      streamProtocol: 'data',
-    });
+  const [input, setInput] = useState('');
+  const { messages, sendMessage, status } = useChat();
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -21,26 +18,22 @@ export default function Page() {
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
             <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
-
             <div className="flex flex-col gap-2">
-              {message.content}
-
-              <div className="flex flex-row gap-2">
-                {message.experimental_attachments?.map((attachment, index) =>
-                  attachment.contentType?.includes('image/') ? (
-                    <img
-                      key={`${message.id}-${index}`}
-                      className="w-24 rounded-md"
-                      src={attachment.url}
-                      alt={attachment.name}
-                    />
-                  ) : attachment.contentType?.includes('text/') ? (
-                    <div className="w-32 h-24 p-2 overflow-hidden text-xs border rounded-md ellipsis text-zinc-500">
-                      {getTextFromDataUrl(attachment.url)}
+              {message.parts.map((part, index) => {
+                if (part.type === 'text') {
+                  return <div key={index}>{part.text}</div>;
+                }
+                if (
+                  part.type === 'file' &&
+                  part.mediaType?.startsWith('image/')
+                ) {
+                  return (
+                    <div key={index}>
+                      <img className="rounded-md w-60" src={part.url} />
                     </div>
-                  ) : null,
-                )}
-              </div>
+                  );
+                }
+              })}
             </div>
           </div>
         ))}
@@ -50,9 +43,8 @@ export default function Page() {
 
       <form
         onSubmit={event => {
-          handleSubmit(event, {
-            experimental_attachments: files,
-          });
+          sendMessage({ text: input, files });
+          setInput('');
           setFiles(undefined);
 
           if (fileInputRef.current) {
@@ -106,9 +98,9 @@ export default function Page() {
         <input
           value={input}
           placeholder="What's the weather in San Francisco?"
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           className="w-full bg-transparent outline-none"
-          disabled={isLoading}
+          disabled={status !== 'ready'}
         />
       </form>
     </div>

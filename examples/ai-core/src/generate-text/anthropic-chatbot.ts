@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { CoreMessage, generateText } from 'ai';
+import { ModelMessage, generateText } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
@@ -9,7 +9,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   let toolResponseAvailable = false;
@@ -33,15 +33,15 @@ async function main() {
       process.stdout.write(`\nAssistant: ${text}`);
     }
 
-    for (const { toolName, args } of toolCalls) {
+    for (const { toolName, input } of toolCalls) {
       process.stdout.write(
-        `\nTool call: '${toolName}' ${JSON.stringify(args)}`,
+        `\nTool call: '${toolName}' ${JSON.stringify(input)}`,
       );
     }
 
-    for (const { toolName, result } of toolResults) {
+    for (const { toolName, output } of toolResults) {
       process.stdout.write(
-        `\nTool response: '${toolName}' ${JSON.stringify(result)}`,
+        `\nTool response: '${toolName}' ${JSON.stringify(output)}`,
       );
     }
 

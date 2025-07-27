@@ -1,17 +1,18 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
-import { customAlphabet } from 'nanoid/non-secure';
 
 /**
- * Creates an ID generator. The total length of the ID is the sum of the prefix, separator, and random part length.
- *
- * @param alphabet - The alphabet to use for the ID. Default: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.
- * @param prefix - The prefix of the ID to generate. Default: ''.
- * @param separator - The separator between the prefix and the random part of the ID. Default: '-'.
- * @param size - The size of the random part of the ID to generate. Default: 16.
+Creates an ID generator.
+The total length of the ID is the sum of the prefix, separator, and random part length.
+Not cryptographically secure.
+
+@param alphabet - The alphabet to use for the ID. Default: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.
+@param prefix - The prefix of the ID to generate. Optional.
+@param separator - The separator between the prefix and the random part of the ID. Default: '-'.
+@param size - The size of the random part of the ID to generate. Default: 16.
  */
 export const createIdGenerator = ({
   prefix,
-  size: defaultSize = 16,
+  size = 16,
   alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
   separator = '-',
 }: {
@@ -19,8 +20,15 @@ export const createIdGenerator = ({
   separator?: string;
   size?: number;
   alphabet?: string;
-} = {}): ((size?: number) => string) => {
-  const generator = customAlphabet(alphabet, defaultSize);
+} = {}): IdGenerator => {
+  const generator = () => {
+    const alphabetLength = alphabet.length;
+    const chars = new Array(size);
+    for (let i = 0; i < size; i++) {
+      chars[i] = alphabet[(Math.random() * alphabetLength) | 0];
+    }
+    return chars.join('');
+  };
 
   if (prefix == null) {
     return generator;
@@ -34,12 +42,16 @@ export const createIdGenerator = ({
     });
   }
 
-  return size => `${prefix}${separator}${generator(size)}`;
+  return () => `${prefix}${separator}${generator()}`;
 };
 
 /**
- * Generates a 16-character random string to use for IDs. Not secure.
- *
- * @param size - The size of the ID to generate. Default: 16.
+A function that generates an ID.
+ */
+export type IdGenerator = () => string;
+
+/**
+Generates a 16-character random string to use for IDs.
+Not cryptographically secure.
  */
 export const generateId = createIdGenerator();

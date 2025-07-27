@@ -38,19 +38,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9.12.3
+          version: 10.11.0
 
-      - name: Setup Node.js 18.x
-        uses: actions/setup-node@v2
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 22
 
       - name: Add npm auth token to pnpm
         run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN_ELEVATED}"

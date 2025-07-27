@@ -1,26 +1,29 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2Content,
+  LanguageModelV2FinishReason,
+  LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
+  parseProviderOptions,
+  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
+import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
   MistralChatModelId,
-  MistralChatSettings,
-} from './mistral-chat-settings';
+  mistralProviderOptions,
+} from './mistral-chat-options';
 import { mistralFailedResponseHandler } from './mistral-error';
-import { getResponseMetadata } from './get-response-metadata';
 import { prepareTools } from './mistral-prepare-tools';
 
 type MistralChatConfig = {
@@ -30,23 +33,15 @@ type MistralChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class MistralChatLanguageModel implements LanguageModelV1 {
-  readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'json';
-  readonly supportsImageUrls = false;
+export class MistralChatLanguageModel implements LanguageModelV2 {
+  readonly specificationVersion = 'v2';
 
   readonly modelId: MistralChatModelId;
-  readonly settings: MistralChatSettings;
 
   private readonly config: MistralChatConfig;
 
-  constructor(
-    modelId: MistralChatModelId,
-    settings: MistralChatSettings,
-    config: MistralChatConfig,
-  ) {
+  constructor(modelId: MistralChatModelId, config: MistralChatConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -54,10 +49,13 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
-  private getArgs({
-    mode,
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    'application/pdf': [/^https:\/\/.*$/],
+  };
+
+  private async getArgs({
     prompt,
-    maxTokens,
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -66,10 +64,18 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
-    const type = mode.type;
+    providerOptions,
+    tools,
+    toolChoice,
+  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
+    const warnings: LanguageModelV2CallWarning[] = [];
 
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const options =
+      (await parseProviderOptions({
+        provider: 'mistral',
+        providerOptions,
+        schema: mistralProviderOptions,
+      })) ?? {};
 
     if (topK != null) {
       warnings.push({
@@ -116,10 +122,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       model: this.modelId,
 
       // model specific settings:
-      safe_prompt: this.settings.safePrompt,
+      safe_prompt: options.safePrompt,
 
       // standardized settings:
-      max_tokens: maxTokens,
+      max_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
       random_seed: seed,
@@ -128,57 +134,46 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       response_format:
         responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
+      // mistral-specific provider options:
+      document_image_limit: options.documentImageLimit,
+      document_page_limit: options.documentPageLimit,
+
       // messages:
       messages: convertToMistralChatMessages(prompt),
     };
 
-    switch (type) {
-      case 'regular': {
-        const { tools, tool_choice, toolWarnings } = prepareTools(mode);
+    const {
+      tools: mistralTools,
+      toolChoice: mistralToolChoice,
+      toolWarnings,
+    } = prepareTools({
+      tools,
+      toolChoice,
+    });
 
-        return {
-          args: { ...baseArgs, tools, tool_choice },
-          warnings: [...warnings, ...toolWarnings],
-        };
-      }
-
-      case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            response_format: { type: 'json_object' },
-          },
-          warnings,
-        };
-      }
-
-      case 'object-tool': {
-        return {
-          args: {
-            ...baseArgs,
-            tool_choice: 'any',
-            tools: [{ type: 'function', function: mode.tool }],
-          },
-          warnings,
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
+    return {
+      args: {
+        ...baseArgs,
+        tools: mistralTools,
+        tool_choice: mistralToolChoice,
+      },
+      warnings: [...warnings, ...toolWarnings],
+    };
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    const { args: body, warnings } = await this.getArgs(options);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: args,
+      body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         mistralChatResponseSchema,
@@ -187,14 +182,16 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
-    let text = choice.message.content ?? undefined;
+    const content: Array<LanguageModelV2Content> = [];
+
+    // text content:
+    let text = extractTextContent(choice.message.content);
 
     // when there is a trailing assistant message, mistral will send the
     // content of that message again. we skip this repeated content to
     // avoid duplication, e.g. in continuation mode.
-    const lastMessage = rawPrompt[rawPrompt.length - 1];
+    const lastMessage = body.messages[body.messages.length - 1];
     if (
       lastMessage.role === 'assistant' &&
       text?.startsWith(lastMessage.content)
@@ -202,32 +199,44 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       text = text.slice(lastMessage.content.length);
     }
 
+    if (text != null && text.length > 0) {
+      content.push({ type: 'text', text });
+    }
+
+    // tool calls:
+    if (choice.message.tool_calls != null) {
+      for (const toolCall of choice.message.tool_calls) {
+        content.push({
+          type: 'tool-call',
+          toolCallId: toolCall.id,
+          toolName: toolCall.function.name,
+          input: toolCall.function.arguments!,
+        });
+      }
+    }
+
     return {
-      text,
-      toolCalls: choice.message.tool_calls?.map(toolCall => ({
-        toolCallType: 'function',
-        toolCallId: toolCall.id,
-        toolName: toolCall.function.name,
-        args: toolCall.function.arguments!,
-      })),
+      content,
       finishReason: mapMistralFinishReason(choice.finish_reason),
       usage: {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
+        inputTokens: response.usage.prompt_tokens,
+        outputTokens: response.usage.completion_tokens,
+        totalTokens: response.usage.total_tokens,
       },
-      rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
-      request: { body: JSON.stringify(args) },
-      response: getResponseMetadata(response),
+      request: { body },
+      response: {
+        ...getResponseMetadata(response),
+        headers: responseHeaders,
+        body: rawResponse,
+      },
       warnings,
     };
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
-
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+    const { args, warnings } = await this.getArgs(options);
     const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -242,33 +251,42 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
-
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
-    let usage: { promptTokens: number; completionTokens: number } = {
-      promptTokens: Number.NaN,
-      completionTokens: Number.NaN,
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
     };
-    let chunkNumber = 0;
-    let trimLeadingSpace = false;
+
+    let isFirstChunk = true;
+    let activeText = false;
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof mistralChatChunkSchema>>,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
+            // Emit raw chunk if requested (before anything else)
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             if (!chunk.success) {
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
 
-            chunkNumber++;
-
             const value = chunk.value;
 
-            if (chunkNumber === 1) {
+            if (isFirstChunk) {
+              isFirstChunk = false;
+
               controller.enqueue({
                 type: 'response-metadata',
                 ...getResponseMetadata(value),
@@ -276,89 +294,150 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
             }
 
             if (value.usage != null) {
-              usage = {
-                promptTokens: value.usage.prompt_tokens,
-                completionTokens: value.usage.completion_tokens,
-              };
+              usage.inputTokens = value.usage.prompt_tokens;
+              usage.outputTokens = value.usage.completion_tokens;
+              usage.totalTokens = value.usage.total_tokens;
             }
 
             const choice = value.choices[0];
-
-            if (choice?.finish_reason != null) {
-              finishReason = mapMistralFinishReason(choice.finish_reason);
-            }
-
-            if (choice?.delta == null) {
-              return;
-            }
-
             const delta = choice.delta;
 
-            // when there is a trailing assistant message, mistral will send the
-            // content of that message again. we skip this repeated content to
-            // avoid duplication, e.g. in continuation mode.
-            if (chunkNumber <= 2) {
-              const lastMessage = rawPrompt[rawPrompt.length - 1];
+            const textContent = extractTextContent(delta.content);
 
-              if (
-                lastMessage.role === 'assistant' &&
-                delta.content === lastMessage.content.trimEnd()
-              ) {
-                // Mistral moves the trailing space from the prefix to the next chunk.
-                // We trim the leading space to avoid duplication.
-                if (delta.content.length < lastMessage.content.length) {
-                  trimLeadingSpace = true;
-                }
-
-                // skip the repeated content:
-                return;
+            if (textContent != null && textContent.length > 0) {
+              if (!activeText) {
+                controller.enqueue({ type: 'text-start', id: '0' });
+                activeText = true;
               }
-            }
 
-            if (delta.content != null) {
               controller.enqueue({
                 type: 'text-delta',
-                textDelta: trimLeadingSpace
-                  ? delta.content.trimStart()
-                  : delta.content,
+                id: '0',
+                delta: textContent,
               });
-
-              trimLeadingSpace = false;
             }
 
-            if (delta.tool_calls != null) {
+            if (delta?.tool_calls != null) {
               for (const toolCall of delta.tool_calls) {
-                // mistral tool calls come in one piece:
+                const toolCallId = toolCall.id;
+                const toolName = toolCall.function.name;
+                const input = toolCall.function.arguments;
+
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  argsTextDelta: toolCall.function.arguments,
+                  type: 'tool-input-start',
+                  id: toolCallId,
+                  toolName,
                 });
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCallId,
+                  delta: input,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: toolCallId,
+                });
+
                 controller.enqueue({
                   type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  args: toolCall.function.arguments,
+                  toolCallId,
+                  toolName,
+                  input,
                 });
               }
+            }
+
+            if (choice.finish_reason != null) {
+              finishReason = mapMistralFinishReason(choice.finish_reason);
             }
           },
 
           flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            if (activeText) {
+              controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              usage,
+            });
           },
         }),
       ),
-      rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
-      request: { body: JSON.stringify(body) },
-      warnings,
+      request: { body },
+      response: { headers: responseHeaders },
     };
   }
 }
+
+function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (content == null) {
+    return undefined;
+  }
+
+  const textContent: string[] = [];
+
+  for (const chunk of content) {
+    const { type } = chunk;
+
+    switch (type) {
+      case 'text':
+        textContent.push(chunk.text);
+        break;
+      case 'image_url':
+      case 'reference':
+        // image content or reference content is currently ignored.
+        break;
+      default: {
+        const _exhaustiveCheck: never = type;
+        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
+      }
+    }
+  }
+
+  return textContent.length ? textContent.join('') : undefined;
+}
+
+const mistralContentSchema = z
+  .union([
+    z.string(),
+    z.array(
+      z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('text'),
+          text: z.string(),
+        }),
+        z.object({
+          type: z.literal('image_url'),
+          image_url: z.union([
+            z.string(),
+            z.object({
+              url: z.string(),
+              detail: z.string().nullable(),
+            }),
+          ]),
+        }),
+        z.object({
+          type: z.literal('reference'),
+          reference_ids: z.array(z.number()),
+        }),
+      ]),
+    ),
+  ])
+  .nullish();
+
+const mistralUsageSchema = z.object({
+  prompt_tokens: z.number(),
+  completion_tokens: z.number(),
+  total_tokens: z.number(),
+});
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -370,7 +449,7 @@ const mistralChatResponseSchema = z.object({
     z.object({
       message: z.object({
         role: z.literal('assistant'),
-        content: z.string().nullable(),
+        content: mistralContentSchema,
         tool_calls: z
           .array(
             z.object({
@@ -385,10 +464,7 @@ const mistralChatResponseSchema = z.object({
     }),
   ),
   object: z.literal('chat.completion'),
-  usage: z.object({
-    prompt_tokens: z.number(),
-    completion_tokens: z.number(),
-  }),
+  usage: mistralUsageSchema,
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -401,7 +477,7 @@ const mistralChatChunkSchema = z.object({
     z.object({
       delta: z.object({
         role: z.enum(['assistant']).optional(),
-        content: z.string().nullish(),
+        content: mistralContentSchema,
         tool_calls: z
           .array(
             z.object({
@@ -415,10 +491,5 @@ const mistralChatChunkSchema = z.object({
       index: z.number(),
     }),
   ),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      completion_tokens: z.number(),
-    })
-    .nullish(),
+  usage: mistralUsageSchema.nullish(),
 });

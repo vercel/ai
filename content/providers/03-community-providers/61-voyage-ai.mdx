@@ -5,6 +5,13 @@ description: Learn how to use the Voyage AI provider.
 
 # Voyage AI Provider
 
+<Note type="warning">
+  This community provider is not yet compatible with AI SDK 5. It uses the
+  deprecated `.embedding()` method instead of the standard
+  `.textEmbeddingModel()` method. Please wait for the provider to be updated or
+  consider using an [AI SDK 5 compatible provider](/providers/ai-sdk-providers).
+</Note>
+
 [patelvivekdev/voyage-ai-provider](https://github.com/patelvivekdev/voyageai-ai-provider) is a community provider that uses [Voyage AI](https://www.voyageai.com) to provide Embedding support for the AI SDK.
 
 ## Setup
@@ -60,7 +67,7 @@ using the `.embedding()` factory method.
 ```ts
 import { voyage } from 'voyage-ai-provider';
 
-const embeddingModel = voyage.textEmbeddingModel('voyage-3');
+const embeddingModel = voyage.embedding('voyage-3');
 ```
 
 You can find more models on the [Voyage Library](https://docs.voyageai.com/docs/embeddings) homepage.
@@ -91,11 +98,11 @@ The settings object should contain the settings you want to add to the model.
 ```ts
 import { voyage } from 'voyage-ai-provider';
 
-const embeddingModel = voyage.textEmbeddingModel('voyage-3', {
+const embeddingModel = voyage.embedding('voyage-3', {
   inputType: 'document', // 'document' or 'query'
   truncation: false,
-  outputDimension: '1024', // the new model voyage-code-3, voyage-3-large has 4 different output dimensions: 256, 512, 1024 (default), 2048
-  output_dtype: 'float', // output data types - int8, uint8, binary, ubinary are supported by the new model voyage-code-3, voyage-3-large
+  outputDimension: 1024, // the new model voyage-code-3, voyage-3-large has 4 different output dimensions: 256, 512, 1024 (default), 2048
+  outputDtype: 'float', // output data types - int8, uint8, binary, ubinary are supported by the new model voyage-code-3, voyage-3-large
 });
 ```
 

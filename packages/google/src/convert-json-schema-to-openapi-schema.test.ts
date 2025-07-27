@@ -23,6 +23,33 @@ it('should remove additionalProperties and $schema', () => {
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
 
+it('should remove additionalProperties object from nested object schemas', function () {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      keys: {
+        type: 'object',
+        additionalProperties: { type: 'string' },
+        description: 'Description for the key',
+      },
+    },
+    additionalProperties: false,
+    $schema: 'http://json-schema.org/draft-07/schema#',
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      keys: {
+        type: 'object',
+        description: 'Description for the key',
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
 it('should handle nested objects and arrays', () => {
   const input: JSONSchema7 = {
     type: 'object',
@@ -479,17 +506,77 @@ it('should return undefined for empty object schemas', () => {
 });
 
 it('should handle non-empty object schemas', () => {
-  const nonEmptySchema = {
+  const nonEmptySchema: JSONSchema7 = {
     type: 'object',
     properties: {
       name: { type: 'string' },
     },
-  } as const;
+  };
 
   expect(convertJSONSchemaToOpenAPISchema(nonEmptySchema)).toEqual({
     type: 'object',
     properties: {
       name: { type: 'string' },
+    },
+  });
+});
+
+it('should convert string enum properties', () => {
+  const schemaWithEnumProperty: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      kind: {
+        type: 'string',
+        enum: ['text', 'code', 'image'],
+      },
+    },
+    required: ['kind'],
+    additionalProperties: false,
+    $schema: 'http://json-schema.org/draft-07/schema#',
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(schemaWithEnumProperty)).toEqual({
+    type: 'object',
+    properties: {
+      kind: {
+        type: 'string',
+        enum: ['text', 'code', 'image'],
+      },
+    },
+    required: ['kind'],
+  });
+});
+
+it('should convert nullable string enum', () => {
+  const schemaWithEnumProperty: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      fieldD: {
+        anyOf: [
+          {
+            type: 'string',
+            enum: ['a', 'b', 'c'],
+          },
+          {
+            type: 'null',
+          },
+        ],
+      },
+    },
+    required: ['fieldD'],
+    additionalProperties: false,
+    $schema: 'http://json-schema.org/draft-07/schema#',
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(schemaWithEnumProperty)).toEqual({
+    required: ['fieldD'],
+    type: 'object',
+    properties: {
+      fieldD: {
+        nullable: true,
+        type: 'string',
+        enum: ['a', 'b', 'c'],
+      },
     },
   });
 });

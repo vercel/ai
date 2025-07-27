@@ -1,0 +1,202 @@
+---
+title: Rev.ai
+description: Learn how to use the Rev.ai provider for the AI SDK.
+---
+
+# Rev.ai Provider
+
+The [Rev.ai](https://www.rev.ai/) provider contains language model support for the Rev.ai transcription API.
+
+## Setup
+
+The Rev.ai provider is available in the `@ai-sdk/revai` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/revai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/revai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/revai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `revai` from `@ai-sdk/revai`:
+
+```ts
+import { revai } from '@ai-sdk/revai';
+```
+
+If you need a customized setup, you can import `createRevai` from `@ai-sdk/revai` and create a provider instance with your settings:
+
+```ts
+import { createRevai } from '@ai-sdk/revai';
+
+const revai = createRevai({
+  // custom settings, e.g.
+  fetch: customFetch,
+});
+```
+
+You can use the following optional settings to customize the Rev.ai provider instance:
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `REVAI_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Transcription Models
+
+You can create models that call the [Rev.ai transcription API](https://www.rev.ai/docs/api/transcription)
+using the `.transcription()` factory method.
+
+The first argument is the model id e.g. `machine`.
+
+```ts
+const model = revai.transcription('machine');
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format can sometimes improve transcription performance if known beforehand.
+
+```ts highlight="6"
+import { experimental_transcribe as transcribe } from 'ai';
+import { revai } from '@ai-sdk/revai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: revai.transcription('machine'),
+  audio: await readFile('audio.mp3'),
+  providerOptions: { revai: { language: 'en' } },
+});
+```
+
+The following provider options are available:
+
+- **metadata** _string_
+
+  Optional metadata that was provided during job submission.
+
+- **notification_config** _object_
+
+  Optional configuration for a callback url to invoke when processing is complete.
+
+  - **url** _string_ - Callback url to invoke when processing is complete.
+  - **auth_headers** _object_ - Optional authorization headers, if needed to invoke the callback.
+    - **Authorization** _string_ - Authorization header value.
+
+- **delete_after_seconds** _integer_
+
+  Amount of time after job completion when job is auto-deleted.
+
+- **verbatim** _boolean_
+
+  Configures the transcriber to transcribe every syllable, including all false starts and disfluencies.
+
+- **rush** _boolean_
+
+  [HIPAA Unsupported] Only available for human transcriber option. When set to true, your job is given higher priority.
+
+- **skip_diarization** _boolean_
+
+  Specify if speaker diarization will be skipped by the speech engine.
+
+- **skip_postprocessing** _boolean_
+
+  Only available for English and Spanish languages. User-supplied preference on whether to skip post-processing operations.
+
+- **skip_punctuation** _boolean_
+
+  Specify if "punct" type elements will be skipped by the speech engine.
+
+- **remove_disfluencies** _boolean_
+
+  When set to true, disfluencies (like 'ums' and 'uhs') will not appear in the transcript.
+
+- **remove_atmospherics** _boolean_
+
+  When set to true, atmospherics (like `<laugh>`, `<affirmative>`) will not appear in the transcript.
+
+- **filter_profanity** _boolean_
+
+  When enabled, profanities will be filtered by replacing characters with asterisks except for the first and last.
+
+- **speaker_channels_count** _integer_
+
+  Only available for English, Spanish and French languages. Specify the total number of unique speaker channels in the audio.
+
+- **speakers_count** _integer_
+
+  Only available for English, Spanish and French languages. Specify the total number of unique speakers in the audio.
+
+- **diarization_type** _string_
+
+  Specify diarization type. Possible values: "standard" (default), "premium".
+
+- **custom_vocabulary_id** _string_
+
+  Supply the id of a pre-completed custom vocabulary submitted through the Custom Vocabularies API.
+
+- **custom_vocabularies** _Array_
+
+  Specify a collection of custom vocabulary to be used for this job.
+
+- **strict_custom_vocabulary** _boolean_
+
+  If true, only exact phrases will be used as custom vocabulary.
+
+- **summarization_config** _object_
+
+  Specify summarization options.
+
+  - **model** _string_ - Model type for summarization. Possible values: "standard" (default), "premium".
+  - **type** _string_ - Summarization formatting type. Possible values: "paragraph" (default), "bullets".
+  - **prompt** _string_ - Custom prompt for flexible summaries (mutually exclusive with type).
+
+- **translation_config** _object_
+
+  Specify translation options.
+
+  - **target_languages** _Array_ - Array of target languages for translation.
+  - **model** _string_ - Model type for translation. Possible values: "standard" (default), "premium".
+
+- **language** _string_
+
+  Language is provided as a ISO 639-1 language code. Default is "en".
+
+- **forced_alignment** _boolean_
+
+  When enabled, provides improved accuracy for per-word timestamps for a transcript.
+  Default is `false`.
+
+  Currently supported languages:
+
+  - English (en, en-us, en-gb)
+  - French (fr)
+  - Italian (it)
+  - German (de)
+  - Spanish (es)
+
+  Note: This option is not available in low-cost environment.
+
+### Model Capabilities
+
+| Model      | Transcription       | Duration            | Segments            | Language            |
+| ---------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `machine`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `low_cost` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `fusion`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

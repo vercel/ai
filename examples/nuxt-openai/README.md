@@ -1,6 +1,6 @@
 # AI SDK, Nuxt and OpenAI Chat Example
 
-This example shows how to use the [AI SDK](https://sdk.vercel.ai/docs) with [Nuxt](https://nuxt.com/), and [OpenAI](https://openai.com) to create a ChatGPT-like AI-powered streaming chat bot.
+This example shows how to use the [AI SDK](https://ai-sdk.dev/docs) with [Nuxt](https://nuxt.com/), and [OpenAI](https://openai.com) to create a ChatGPT-like AI-powered streaming chat bot.
 
 ## Deploy your own
 
@@ -10,10 +10,10 @@ Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_mediu
 
 ## How to use
 
-Execute `nuxi` to bootstrap the example:
+Execute `create-nuxt` to bootstrap the example:
 
 ```bash
-npx nuxi@latest init -t github:vercel/ai/examples/nuxt-openai nuxt-openai
+npx create-nuxt -t github:vercel/ai/examples/nuxt-openai nuxt-openai
 ```
 
 To run the example locally you need to:
@@ -41,7 +41,7 @@ You can use different providers, such as `vercel` by modifying your `nuxt.config
 
 To learn more about OpenAI, Nuxt, and the AI SDK take a look at the following resources:
 
-- [AI SDK docs](https://sdk.vercel.ai/docs) - learn mode about the AI SDK
-- [Vercel AI Playground](https://play.vercel.ai) - compare and tune 20+ AI models side-by-side
+- [AI SDK docs](https://ai-sdk.dev/docs) - learn mode about the AI SDK
+- [Vercel AI Playground](https://ai-sdk.dev/playground) - compare and tune 20+ AI models side-by-side
 - [OpenAI Documentation](https://platform.openai.com/docs) - learn about OpenAI features and API.
 - [Nuxt Documentation](https://nuxt.com/docs) - learn about Nuxt features and API.

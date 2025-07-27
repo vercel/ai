@@ -20,7 +20,7 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const result = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -45,7 +45,7 @@ import { streamObject, TokenUsage } from 'ai';
 import { z } from 'zod';
 
 const result = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -58,12 +58,12 @@ const result = streamObject({
 
 // your custom function to record token usage:
 function recordTokenUsage({
-  promptTokens,
-  completionTokens,
+  inputTokens,
+  outputTokens,
   totalTokens,
 }: TokenUsage) {
-  console.log('Prompt tokens:', promptTokens);
-  console.log('Completion tokens:', completionTokens);
+  console.log('Prompt tokens:', inputTokens);
+  console.log('Completion tokens:', outputTokens);
   console.log('Total tokens:', totalTokens);
 }
 

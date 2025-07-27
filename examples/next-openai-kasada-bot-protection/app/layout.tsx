@@ -1,9 +1,6 @@
 import './globals.css';
-import { Inter } from 'next/font/google';
 import Toaster from './toaster';
 import { KasadaClient } from '@/kasada/kasada-client';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'Create Next App',
@@ -19,7 +16,7 @@ export default function RootLayout({
     <html lang="en">
       <Toaster />
       <KasadaClient />
-      <body className={inter.className}>{children}</body>
+      <body>{children}</body>
     </html>
   );
 }

@@ -1,52 +1,38 @@
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
+  generateId,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
-import {
-  AnthropicMessagesModelId,
-  AnthropicMessagesSettings,
-} from './anthropic-messages-settings';
+import { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
 
-export interface AnthropicProvider extends ProviderV1 {
+export interface AnthropicProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */
-  (
-    modelId: AnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
-  ): LanguageModelV1;
+  (modelId: AnthropicMessagesModelId): LanguageModelV2;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(
-    modelId: AnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
-  ): LanguageModelV1;
+  languageModel(modelId: AnthropicMessagesModelId): LanguageModelV2;
 
   /**
 @deprecated Use `.languageModel()` instead.
 */
-  chat(
-    modelId: AnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
-  ): LanguageModelV1;
+  chat(modelId: AnthropicMessagesModelId): LanguageModelV2;
 
   /**
 @deprecated Use `.languageModel()` instead.
    */
-  messages(
-    modelId: AnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
-  ): LanguageModelV1;
+  messages(modelId: AnthropicMessagesModelId): LanguageModelV2;
 
   /**
 Anthropic-specific computer use tool.
@@ -100,43 +86,43 @@ export function createAnthropic(
     ...options.headers,
   });
 
-  const createChatModel = (
-    modelId: AnthropicMessagesModelId,
-    settings: AnthropicMessagesSettings = {},
-  ) =>
-    new AnthropicMessagesLanguageModel(modelId, settings, {
+  const createChatModel = (modelId: AnthropicMessagesModelId) =>
+    new AnthropicMessagesLanguageModel(modelId, {
       provider: 'anthropic.messages',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
+      generateId: options.generateId ?? generateId,
+      supportedUrls: () => ({
+        'image/*': [/^https?:\/\/.*$/],
+      }),
     });
 
-  const provider = function (
-    modelId: AnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
-  ) {
+  const provider = function (modelId: AnthropicMessagesModelId) {
     if (new.target) {
       throw new Error(
         'The Anthropic model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId, settings);
+    return createChatModel(modelId);
   };
 
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
+
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
-  provider.rerankingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
   provider.tools = anthropicTools;
 
-  return provider as AnthropicProvider;
+  return provider;
 }
 
 /**

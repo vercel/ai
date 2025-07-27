@@ -5,7 +5,9 @@ description: Welcome to the AI SDK quickstart guide for Node.js!
 
 # Node.js Quickstart
 
-In this quickstart tutorial, you'll build a simple AI chatbot with a streaming user interface. Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
+The AI SDK is a powerful Typescript library designed to help developers build AI-powered applications.
+
+In this quickstart tutorial, you'll build a simple AI-chatbot with a streaming user interface. Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
 
 If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Streaming](/docs/advanced/why-streaming), you can optionally read these documents first.
 
@@ -41,19 +43,15 @@ Install `ai` and `@ai-sdk/openai`, the AI SDK's OpenAI provider, along with othe
 </Note>
 
 ```bash
-pnpm add ai @ai-sdk/openai zod dotenv
+pnpm add ai@beta @ai-sdk/openai@beta zod dotenv
 pnpm add -D @types/node tsx typescript
 ```
-
-<Note type="secondary" fill>
-  Make sure you are using `ai` version 3.1 or higher.
-</Note>
 
 The `ai` and `@ai-sdk/openai` packages contain the AI SDK and the [ AI SDK OpenAI provider](/providers/ai-sdk-providers/openai), respectively. You will use `zod` to define type-safe schemas that you will pass to the large language model (LLM). You will use `dotenv` to access environment variables (your OpenAI key) within your application. There are also three development dependencies, installed with the `-D` flag, that are necessary to run your Typescript code.
 
 ### Configure OpenAI API key
 
-Create a `.env` file in your project root and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
+Create a `.env` file in your project's root directory and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
 
 <Snippet text="touch .env" />
 
@@ -76,18 +74,16 @@ Create an `index.ts` file in the root of your project and add the following code
 
 ```ts filename="index.ts"
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, streamText } from 'ai';
-import dotenv from 'dotenv';
+import { ModelMessage, streamText } from 'ai';
+import 'dotenv/config';
 import * as readline from 'node:readline/promises';
-
-dotenv.config();
 
 const terminal = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {
@@ -117,7 +113,7 @@ main().catch(console.error);
 
 Let's take a look at what is happening in this code:
 
-1. Set up a readline interface for taking input from the terminal, enabling interactive sessions directly from the command line.
+1. Set up a readline interface to take input from the terminal, enabling interactive sessions directly from the command line.
 2. Initialize an array called `messages` to store the history of your conversation. This history allows the model to maintain context in ongoing dialogues.
 3. In the `main` function:
 
@@ -149,21 +145,19 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `index.ts` file to include the new weather tool:
 
-```ts filename="index.ts" highlight="2,4,25-36"
+```ts filename="index.ts" highlight="2,4,25-38"
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, streamText, tool } from 'ai';
-import dotenv from 'dotenv';
+import { ModelMessage, streamText, tool } from 'ai';
+import 'dotenv/config';
 import { z } from 'zod';
 import * as readline from 'node:readline/promises';
-
-dotenv.config();
 
 const terminal = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {
@@ -176,16 +170,19 @@ async function main() {
       messages,
       tools: {
         weather: tool({
-          description: 'Get the weather in a location (in Celsius)',
-          parameters: z.object({
+          description: 'Get the weather in a location (fahrenheit)',
+          inputSchema: z.object({
             location: z
               .string()
               .describe('The location to get the weather for'),
           }),
-          execute: async ({ location }) => ({
-            location,
-            temperature: Math.round((Math.random() * 30 + 5) * 10) / 10, // Random temp between 5°C and 35°C
-          }),
+          execute: async ({ location }) => {
+            const temperature = Math.round(Math.random() * (90 - 32) + 32);
+            return {
+              location,
+              temperature,
+            };
+          },
         }),
       },
     });
@@ -209,9 +206,10 @@ In this updated code:
 
 1. You import the `tool` function from the `ai` package.
 2. You define a `tools` object with a `weather` tool. This tool:
+
    - Has a description that helps the model understand when to use it.
-   - Defines parameters using a Zod schema, specifying that it requires a `location` string to execute this tool.
-   - Defines an `execute` function that simulates getting weather data (in this case, it returns a random temperature). This is an asynchronous function, so you could fetch real data from an external API.
+   - Defines `inputSchema` using a Zod schema, specifying that it requires a `location` string to execute this tool. The model will attempt to extract this input from the context of the conversation. If it can't, it will ask the user for the missing information.
+   - Defines an `execute` function that simulates getting weather data (in this case, it returns a random temperature). This is an asynchronous function running on the server so you can fetch real data from an external API.
 
 Now your chatbot can "fetch" weather information for any location the user asks about. When the model determines it needs to use the weather tool, it will generate a tool call with the necessary parameters. The `execute` function will then be automatically run, and the results will be used by the model to generate its response.
 
@@ -221,19 +219,17 @@ Notice the blank "assistant" response? This is because instead of generating a t
 
 ```typescript highlight="47-48"
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, streamText, tool } from 'ai';
-import dotenv from 'dotenv';
+import { ModelMessage, streamText, tool } from 'ai';
+import 'dotenv/config';
 import { z } from 'zod';
 import * as readline from 'node:readline/promises';
-
-dotenv.config();
 
 const terminal = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {
@@ -246,16 +242,19 @@ async function main() {
       messages,
       tools: {
         weather: tool({
-          description: 'Get the weather in a location (in Celsius)',
-          parameters: z.object({
+          description: 'Get the weather in a location (fahrenheit)',
+          inputSchema: z.object({
             location: z
               .string()
               .describe('The location to get the weather for'),
           }),
-          execute: async ({ location }) => ({
-            location,
-            temperature: Math.round((Math.random() * 30 + 5) * 10) / 10, // Random temp between 5°C and 35°C
-          }),
+          execute: async ({ location }) => {
+            const temperature = Math.round(Math.random() * (90 - 32) + 32);
+            return {
+              location,
+              temperature,
+            };
+          },
         }),
       },
     });
@@ -283,27 +282,25 @@ Now, when you ask about the weather, you'll see the tool call and its result dis
 
 You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
-To solve this, you can enable multi-step tool calls using `maxSteps`. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
+To solve this, you can enable multi-step tool calls using `stopWhen`. This feature will automatically send tool results back to the model to trigger an additional generation until the stopping condition you define is met. In this case, you want the model to answer your question using the results from the weather tool.
 
 ### Update Your Application
 
-Modify your `index.ts` file to include the `maxSteps` option:
+Modify your `index.ts` file to configure stopping conditions with `stopWhen`:
 
-```ts filename="index.ts" highlight="37-40"
+```ts filename="index.ts" highlight="39-42"
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, streamText, tool } from 'ai';
-import dotenv from 'dotenv';
+import { ModelMessage, streamText, tool, stepCountIs } from 'ai';
+import 'dotenv/config';
 import { z } from 'zod';
 import * as readline from 'node:readline/promises';
-
-dotenv.config();
 
 const terminal = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {
@@ -316,21 +313,26 @@ async function main() {
       messages,
       tools: {
         weather: tool({
-          description: 'Get the weather in a location (in Celsius)',
-          parameters: z.object({
+          description: 'Get the weather in a location (fahrenheit)',
+          inputSchema: z.object({
             location: z
               .string()
               .describe('The location to get the weather for'),
           }),
-          execute: async ({ location }) => ({
-            location,
-            temperature: Math.round((Math.random() * 30 + 5) * 10) / 10, // Random temp between 5°C and 35°C
-          }),
+          execute: async ({ location }) => {
+            const temperature = Math.round(Math.random() * (90 - 32) + 32);
+            return {
+              location,
+              temperature,
+            };
+          },
         }),
       },
-      maxSteps: 5,
-      onStepFinish: step => {
-        console.log(JSON.stringify(step, null, 2));
+      stopWhen: stepCountIs(5),
+      onStepFinish: async ({ toolResults }) => {
+        if (toolResults.length) {
+          console.log(JSON.stringify(toolResults, null, 2));
+        }
       },
     });
 
@@ -351,32 +353,30 @@ main().catch(console.error);
 
 In this updated code:
 
-1. You set `maxSteps` to 5, allowing the model to use up to 5 "steps" for any given generation.
-2. You add an `onStepFinish` callback to log each step of the interaction, helping you understand the model's tool usage. This means we can also delete the `toolCall` and `toolResult` `console.log` statements from the previous example.
+1. You set `stopWhen` to be when `stepCountIs` 5, allowing the model to use up to 5 "steps" for any given generation.
+2. You add an `onStepFinish` callback to log any `toolResults` from each step of the interaction, helping you understand the model's tool usage. This means we can also delete the `toolCall` and `toolResult` `console.log` statements from the previous example.
 
 Now, when you ask about the weather in a location, you should see the model using the weather tool results to answer your question.
 
-By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Celsius to Fahrenheit.
+By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Celsius to Fahrenheit.
 
 ### Adding a second tool
 
 Update your `index.ts` file to add a new tool to convert the temperature from Celsius to Fahrenheit:
 
-```ts filename="index.ts" highlight="36-45"
+```ts filename="index.ts" highlight="38-49"
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, streamText, tool } from 'ai';
-import dotenv from 'dotenv';
+import { ModelMessage, streamText, tool, stepCountIs } from 'ai';
+import 'dotenv/config';
 import { z } from 'zod';
 import * as readline from 'node:readline/promises';
-
-dotenv.config();
 
 const terminal = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {
@@ -389,33 +389,40 @@ async function main() {
       messages,
       tools: {
         weather: tool({
-          description: 'Get the weather in a location (in Celsius)',
-          parameters: z.object({
+          description: 'Get the weather in a location (fahrenheit)',
+          inputSchema: z.object({
             location: z
               .string()
               .describe('The location to get the weather for'),
           }),
-          execute: async ({ location }) => ({
-            location,
-            temperature: Math.round((Math.random() * 30 + 5) * 10) / 10, // Random temp between 5°C and 35°C
-          }),
+          execute: async ({ location }) => {
+            const temperature = Math.round(Math.random() * (90 - 32) + 32);
+            return {
+              location,
+              temperature,
+            };
+          },
         }),
-        convertCelsiusToFahrenheit: tool({
-          description: 'Convert a temperature from Celsius to Fahrenheit',
-          parameters: z.object({
-            celsius: z
+        convertFahrenheitToCelsius: tool({
+          description: 'Convert a temperature in fahrenheit to celsius',
+          inputSchema: z.object({
+            temperature: z
               .number()
-              .describe('The temperature in Celsius to convert'),
+              .describe('The temperature in fahrenheit to convert'),
           }),
-          execute: async ({ celsius }) => {
-            const fahrenheit = (celsius * 9) / 5 + 32;
-            return { fahrenheit: Math.round(fahrenheit * 100) / 100 };
+          execute: async ({ temperature }) => {
+            const celsius = Math.round((temperature - 32) * (5 / 9));
+            return {
+              celsius,
+            };
           },
         }),
       },
-      maxSteps: 5,
-      onStepFinish: step => {
-        console.log(JSON.stringify(step, null, 2));
+      stopWhen: stepCountIs(5),
+      onStepFinish: async ({ toolResults }) => {
+        if (toolResults.length) {
+          console.log(JSON.stringify(toolResults, null, 2));
+        }
       },
     });
 
@@ -434,16 +441,16 @@ async function main() {
 main().catch(console.error);
 ```
 
-Now, when you ask "What's the weather in New York in Celsius?", you should see a more complete interaction:
+Now, when you ask "What's the weather in New York in celsius?", you should see a more complete interaction:
 
 1. The model will call the weather tool for New York.
 2. You'll see the tool result logged.
-3. It will then call the temperature conversion tool to convert the temperature from Celsius to Fahrenheit.
+3. It will then call the temperature conversion tool to convert the temperature from Fahrenheit to Celsius.
 4. The model will then use that information to provide a natural language response about the weather in New York.
 
 This multi-step approach allows the model to gather information and use it to provide more accurate and contextual responses, making your chatbot considerably more useful.
 
-This example shows how tools can expand the model's capabilities. You can create more complex tools to integrate with real APIs, databases, or any other external systems, allowing the model to access and process real-world data in real-time. Tools bridge the gap between the model's knowledge cutoff and current information.
+This example demonstrates how tools can expand your model's capabilities. You can create more complex tools to integrate with real APIs, databases, or any other external systems, allowing the model to access and process real-world data in real-time and perform actions that interact with the outside world. Tools bridge the gap between the model's knowledge cutoff and current information, while also enabling it to take meaningful actions beyond just generating text responses.
 
 ## Where to Next?
 

@@ -6,7 +6,7 @@ async function main() {
   const { text, usage } = await generateText({
     model: openai('gpt-4o-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
-    experimental_providerMetadata: {
+    providerOptions: {
       openai: {
         store: true,
         metadata: {

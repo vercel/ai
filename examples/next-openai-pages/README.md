@@ -1,6 +1,6 @@
 # AI SDK, Next.js (Pages router), and OpenAI Chat Example
 
-This example shows how to use the [AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) (pages router) and [OpenAI](https://openai.com) to create a ChatGPT-like AI-powered streaming chat bot.
+This example shows how to use the [AI SDK](https://ai-sdk.dev/docs) with [Next.js](https://nextjs.org/) (pages router) and [OpenAI](https://openai.com) to create a ChatGPT-like AI-powered streaming chat bot.
 
 ## Deploy your own
 
@@ -36,7 +36,7 @@ To run the example locally you need to:
 
 To learn more about OpenAI, Next.js, and the AI SDK take a look at the following resources:
 
-- [AI SDK docs](https://sdk.vercel.ai/docs)
-- [Vercel AI Playground](https://play.vercel.ai)
+- [AI SDK docs](https://ai-sdk.dev/docs)
+- [Vercel AI Playground](https://ai-sdk.dev/playground)
 - [OpenAI Documentation](https://platform.openai.com/docs) - learn about OpenAI features and API.
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.

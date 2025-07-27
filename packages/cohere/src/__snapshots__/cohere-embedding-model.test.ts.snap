@@ -1,0 +1,41 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`doEmbed > should expose the raw response 1`] = `
+{
+  "body": {
+    "embeddings": {
+      "float": [
+        [
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5,
+        ],
+        [
+          0.6,
+          0.7,
+          0.8,
+          0.9,
+          1,
+        ],
+      ],
+    },
+    "id": "test-id",
+    "meta": {
+      "billed_units": {
+        "input_tokens": 8,
+      },
+    },
+    "texts": [
+      "sunny day at the beach",
+      "rainy day in the city",
+    ],
+  },
+  "headers": {
+    "content-length": "185",
+    "content-type": "application/json",
+    "test-header": "test-value",
+  },
+}
+`;

@@ -1,15 +1,17 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
+  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { CohereToolChoice } from './cohere-chat-prompt';
 
-// For reference: https://docs.cohere.com/docs/parameter-types-in-tool-use
-export function prepareTools(
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-): {
+export function prepareTools({
+  tools,
+  toolChoice,
+}: {
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+}): {
   tools:
     | Array<{
         type: 'function';
@@ -20,19 +22,16 @@ export function prepareTools(
         };
       }>
     | undefined;
-  tool_choice:
-    | { type: 'function'; function: { name: string } }
-    | 'auto'
-    | 'none'
-    | 'any'
-    | undefined;
-  toolWarnings: LanguageModelV1CallWarning[];
+  toolChoice: CohereToolChoice;
+  toolWarnings: LanguageModelV2CallWarning[];
 } {
-  const tools = mode.tools?.length ? mode.tools : undefined;
-  const toolWarnings: LanguageModelV1CallWarning[] = [];
+  // when the tools array is empty, change it to undefined to prevent errors:
+  tools = tools?.length ? tools : undefined;
+
+  const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   if (tools == null) {
-    return { tools: undefined, tool_choice: undefined, toolWarnings };
+    return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
   const cohereTools: Array<{
@@ -53,39 +52,41 @@ export function prepareTools(
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.parameters,
+          parameters: tool.inputSchema,
         },
       });
     }
   }
 
-  const toolChoice = mode.toolChoice;
-
   if (toolChoice == null) {
-    return { tools: cohereTools, tool_choice: undefined, toolWarnings };
+    return { tools: cohereTools, toolChoice: undefined, toolWarnings };
   }
 
   const type = toolChoice.type;
 
   switch (type) {
     case 'auto':
-      return { tools: cohereTools, tool_choice: type, toolWarnings };
+      return { tools: cohereTools, toolChoice: undefined, toolWarnings };
 
     case 'none':
-      // Cohere does not support 'none' tool choice, so we remove the tools.
-      return { tools: undefined, tool_choice: 'any', toolWarnings };
+      return { tools: cohereTools, toolChoice: 'NONE', toolWarnings };
 
     case 'required':
+      return { tools: cohereTools, toolChoice: 'REQUIRED', toolWarnings };
+
     case 'tool':
-      // Cohere does not support forcing tool calls
-      throw new UnsupportedFunctionalityError({
-        functionality: `Unsupported tool choice type: ${type}`,
-      });
+      return {
+        tools: cohereTools.filter(
+          tool => tool.function.name === toolChoice.toolName,
+        ),
+        toolChoice: 'REQUIRED',
+        toolWarnings,
+      };
 
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
-        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
+        functionality: `tool choice type: ${_exhaustiveCheck}`,
       });
     }
   }

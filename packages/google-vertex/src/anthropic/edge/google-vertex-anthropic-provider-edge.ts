@@ -1,3 +1,4 @@
+import { resolve } from '@ai-sdk/provider-utils';
 import {
   generateAuthToken,
   GoogleCredentials,
@@ -25,13 +26,12 @@ export function createVertexAnthropic(
 ): GoogleVertexAnthropicProvider {
   return createVertexAnthropicOriginal({
     ...options,
-    headers:
-      options.headers ??
-      (async () => ({
-        Authorization: `Bearer ${await generateAuthToken(
-          options.googleCredentials,
-        )}`,
-      })),
+    headers: async () => ({
+      Authorization: `Bearer ${await generateAuthToken(
+        options.googleCredentials,
+      )}`,
+      ...(await resolve(options.headers)),
+    }),
   });
 }
 

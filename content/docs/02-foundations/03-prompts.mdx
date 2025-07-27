@@ -11,7 +11,7 @@ It's like when you ask someone for directions; the clearer your question, the be
 Many LLM providers offer complex interfaces for specifying prompts. They involve different roles and message types.
 While these interfaces are powerful, they can be hard to use and understand.
 
-In order to simplify prompting, the AI SDK support text, message, and system prompts.
+In order to simplify prompting, the AI SDK supports text, message, and system prompts.
 
 ## Text Prompts
 
@@ -24,7 +24,7 @@ You can structure the text in any way and inject variables, e.g. using a templat
 
 ```ts highlight="3"
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 ```
@@ -33,7 +33,7 @@ You can also use template literals to provide dynamic data to your prompt.
 
 ```ts highlight="3-5"
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   prompt:
     `I am planning a trip to ${destination} for ${lengthOfStay} days. ` +
     `Please suggest the best tourist activities for me to do.`,
@@ -48,7 +48,7 @@ System prompts work with both the `prompt` and the `messages` properties.
 
 ```ts highlight="3-6"
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   system:
     `You help planning travel itineraries. ` +
     `Respond to the users' request with a list ` +
@@ -73,8 +73,8 @@ You can use the `messages` property to set message prompts.
 Each message has a `role` and a `content` property. The content can either be text (for user and assistant messages), or an array of relevant parts (data) for that message type.
 
 ```ts highlight="3-7"
-const result = await streamUI({
-  model: yourModel,
+const result = await generateText({
+  model: 'openai/gpt-4.1',
   messages: [
     { role: 'user', content: 'Hi!' },
     { role: 'assistant', content: 'Hello, how can I help?' },
@@ -92,6 +92,88 @@ Instead of sending a text in the `content` property, you can send an array of pa
   models](./providers-and-models#model-capabilities).
 </Note>
 
+### Provider Options
+
+You can pass through additional provider-specific metadata to enable provider-specific functionality at 3 levels.
+
+#### Function Call Level
+
+Functions like [`streamText`](/docs/reference/ai-sdk-core/stream-text#provider-options) or [`generateText`](/docs/reference/ai-sdk-core/generate-text#provider-options) accept a `providerOptions` property.
+
+Adding provider options at the function call level should be used when you do not need granular control over where the provider options are applied.
+
+```ts
+const { text } = await generateText({
+  model: azure('your-deployment-name'),
+  providerOptions: {
+    openai: {
+      reasoningEffort: 'low',
+    },
+  },
+});
+```
+
+#### Message Level
+
+For granular control over applying provider options at the message level, you can pass `providerOptions` to the message object:
+
+```ts
+import { ModelMessage } from 'ai';
+
+const messages: ModelMessage[] = [
+  {
+    role: 'system',
+    content: 'Cached system message',
+    providerOptions: {
+      // Sets a cache control breakpoint on the system message
+      anthropic: { cacheControl: { type: 'ephemeral' } },
+    },
+  },
+];
+```
+
+#### Message Part Level
+
+Certain provider-specific options require configuration at the message part level:
+
+```ts
+import { ModelMessage } from 'ai';
+
+const messages: ModelMessage[] = [
+  {
+    role: 'user',
+    content: [
+      {
+        type: 'text',
+        text: 'Describe the image in detail.',
+        providerOptions: {
+          openai: { imageDetail: 'low' },
+        },
+      },
+      {
+        type: 'image',
+        image:
+          'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+        // Sets image detail configuration for image part:
+        providerOptions: {
+          openai: { imageDetail: 'low' },
+        },
+      },
+    ],
+  },
+];
+```
+
+<Note type="warning">
+  AI SDK UI hooks like [`useChat`](/docs/reference/ai-sdk-ui/use-chat) return
+  arrays of `UIMessage` objects, which do not support provider options. We
+  recommend using the
+  [`convertToModelMessages`](/docs/reference/ai-sdk-ui/convert-to-core-messages)
+  function to convert `UIMessage` objects to
+  [`ModelMessage`](/docs/reference/ai-sdk-core/model-message) objects before
+  applying or appending message(s) or message parts with `providerOptions`.
+</Note>
+
 ### User Messages
 
 #### Text Parts
@@ -99,11 +181,11 @@ Instead of sending a text in the `content` property, you can send an array of pa
 Text content is the most common type of content. It is a string that is passed to the model.
 
 If you only need to send text content in a message, the `content` property can be a string,
-but you can also use the `parts` property to send multiple parts of content.
+but you can also use it to send multiple content parts.
 
 ```ts highlight="7-10"
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   messages: [
     {
       role: 'user',
@@ -157,7 +239,7 @@ const result = await generateText({
 
 ```ts highlight="8-11"
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   messages: [
     {
       role: 'user',
@@ -177,7 +259,7 @@ const result = await generateText({
 
 ```ts highlight="8-12"
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   messages: [
     {
       role: 'user',
@@ -201,8 +283,8 @@ const result = await generateText({
   Generative AI](/providers/ai-sdk-providers/google-generative-ai), [Google
   Vertex AI](/providers/ai-sdk-providers/google-vertex),
   [OpenAI](/providers/ai-sdk-providers/openai) (for `wav` and `mp3` audio with
-  `gpt-4o-audio-preview`), [Anthropic](/providers/ai-sdk-providers/anthropic)
-  (for `pdf`).
+  `gpt-4o-audio-preview`), [Anthropic](/providers/ai-sdk-providers/anthropic),
+  [OpenAI](/providers/ai-sdk-providers/openai) (for `pdf`).
 </Note>
 
 User messages can include file parts. A file can be one of the following:
@@ -222,7 +304,7 @@ You need to specify the MIME type of the file you are sending.
 
 ##### Example: PDF file from Buffer
 
-```ts highlight="12-14"
+```ts highlight="12-15"
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
@@ -235,8 +317,9 @@ const result = await generateText({
         { type: 'text', text: 'What is the file about?' },
         {
           type: 'file',
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
           data: fs.readFileSync('./data/example.pdf'),
+          filename: 'example.pdf', // optional, not used by all providers
         },
       ],
     },
@@ -259,7 +342,7 @@ const result = await generateText({
         { type: 'text', text: 'What is the audio saying?' },
         {
           type: 'file',
-          mimeType: 'audio/mpeg',
+          mediaType: 'audio/mpeg',
           data: fs.readFileSync('./data/galileo.mp3'),
         },
       ],
@@ -271,13 +354,14 @@ const result = await generateText({
 ### Assistant Messages
 
 Assistant messages are messages that have a role of `assistant`.
-They are typically previous responses from the assistant and can contain text and tool call parts.
+They are typically previous responses from the assistant
+and can contain text, reasoning, and tool call parts.
 
-#### Example: Assistant message with text
+#### Example: Assistant message with text content
 
 ```ts highlight="5"
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   messages: [
     { role: 'user', content: 'Hi!' },
     { role: 'assistant', content: 'Hello, how can I help?' },
@@ -285,18 +369,64 @@ const result = await generateText({
 });
 ```
 
-#### Example: Assistant message with tool call
+#### Example: Assistant message with text content in array
 
-```ts highlight="5-10"
+```ts highlight="7"
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
+  messages: [
+    { role: 'user', content: 'Hi!' },
+    {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Hello, how can I help?' }],
+    },
+  ],
+});
+```
+
+#### Example: Assistant message with tool call content
+
+```ts highlight="7-14"
+const result = await generateText({
+  model: 'openai/gpt-4.1',
   messages: [
     { role: 'user', content: 'How many calories are in this block of cheese?' },
     {
-      type: 'tool-call',
-      toolCallId: '12345',
-      toolName: 'get-nutrition-data',
-      args: { cheese: 'Roquefort' },
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: '12345',
+          toolName: 'get-nutrition-data',
+          input: { cheese: 'Roquefort' },
+        },
+      ],
+    },
+  ],
+});
+```
+
+#### Example: Assistant message with file content
+
+<Note>
+  This content part is for model-generated files. Only a few models support
+  this, and only for file types that they can generate.
+</Note>
+
+```ts highlight="9-11"
+const result = await generateText({
+  model: 'openai/gpt-4.1',
+  messages: [
+    { role: 'user', content: 'Generate an image of a roquefort cheese!' },
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: fs.readFileSync('./data/roquefort.jpg'),
+        },
+      ],
     },
   ],
 });
@@ -306,17 +436,17 @@ const result = await generateText({
 
 <Note>
   [Tools](/docs/foundations/tools) (also known as function calling) are programs
-  that you can provide an LLM to extend it's built-in functionality. This can be
+  that you can provide an LLM to extend its built-in functionality. This can be
   anything from calling an external API to calling functions within your UI.
   Learn more about Tools in [the next section](/docs/foundations/tools).
 </Note>
 
-For models that support [tool](/docs/foundations/tools) calls, assistant messages can contain tool call parts, and tool messages can contain tool result parts.
+For models that support [tool](/docs/foundations/tools) calls, assistant messages can contain tool call parts, and tool messages can contain tool output parts.
 A single assistant message can call multiple tools, and a single tool message can contain multiple tool results.
 
 ```ts highlight="14-42"
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   messages: [
     {
       role: 'user',
@@ -335,7 +465,7 @@ const result = await generateText({
           type: 'tool-call',
           toolCallId: '12345',
           toolName: 'get-nutrition-data',
-          args: { cheese: 'Roquefort' },
+          input: { cheese: 'Roquefort' },
         },
         // there could be more tool calls here (parallel calling)
       ],
@@ -347,11 +477,14 @@ const result = await generateText({
           type: 'tool-result',
           toolCallId: '12345', // needs to match the tool call id
           toolName: 'get-nutrition-data',
-          result: {
-            name: 'Cheese, roquefort',
-            calories: 369,
-            fat: 31,
-            protein: 22,
+          output: {
+            type: 'json',
+            value: {
+              name: 'Cheese, roquefort',
+              calories: 369,
+              fat: 31,
+              protein: 22,
+            },
           },
         },
         // there could be more tool results here (parallel calling)
@@ -372,7 +505,7 @@ You can use the `experimental_content` property on tool parts to specify multi-p
 
 ```ts highlight="20-32"
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   messages: [
     // ...
     {
@@ -383,26 +516,39 @@ const result = await generateText({
           toolCallId: '12345', // needs to match the tool call id
           toolName: 'get-nutrition-data',
           // for models that do not support multi-part tool results,
-          // you can include a regular result part:
-          result: {
-            name: 'Cheese, roquefort',
-            calories: 369,
-            fat: 31,
-            protein: 22,
+          // you can include a regular output part:
+          output: {
+            type: 'json',
+            value: {
+              name: 'Cheese, roquefort',
+              calories: 369,
+              fat: 31,
+              protein: 22,
+            },
           },
+        },
+        {
+          type: 'tool-result',
+          toolCallId: '12345', // needs to match the tool call id
+          toolName: 'get-nutrition-data',
           // for models that support multi-part tool results,
           // you can include a multi-part content part:
-          content: [
-            {
-              type: 'text',
-              text: 'Here is an image of the nutrition data for the cheese:',
-            },
-            {
-              type: 'image',
-              data: fs.readFileSync('./data/roquefort-nutrition-data.png'),
-              mimeType: 'image/png',
-            },
-          ],
+          output: {
+            type: 'content',
+            value: [
+              {
+                type: 'text',
+                text: 'Here is an image of the nutrition data for the cheese:',
+              },
+              {
+                type: 'media',
+                data: fs
+                  .readFileSync('./data/roquefort-nutrition-data.png')
+                  .toString('base64'),
+                mediaType: 'image/png',
+              },
+            ],
+          },
         },
       ],
     },
@@ -417,7 +563,7 @@ You can alternatively use the `system` property.
 
 ```ts highlight="4"
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   messages: [
     { role: 'system', content: 'You help planning travel itineraries.' },
     {

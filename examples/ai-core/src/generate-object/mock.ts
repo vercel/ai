@@ -1,17 +1,20 @@
 import { generateObject } from 'ai';
-import { MockLanguageModelV1 } from 'ai/test';
+import { MockLanguageModelV2 } from 'ai/test';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const { object, usage } = await generateObject({
-    model: new MockLanguageModelV1({
-      defaultObjectGenerationMode: 'json',
+    model: new MockLanguageModelV2({
       doGenerate: async () => ({
-        rawCall: { rawPrompt: null, rawSettings: {} },
+        content: [{ type: 'text', text: `{"content":"Hello, world!"}` }],
         finishReason: 'stop',
-        usage: { promptTokens: 10, completionTokens: 20 },
-        text: `{"content":"Hello, world!"}`,
+        usage: {
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
+        warnings: [],
       }),
     }),
     schema: z.object({ content: z.string() }),

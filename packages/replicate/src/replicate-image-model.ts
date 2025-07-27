@@ -1,51 +1,40 @@
-import type { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
   combineHeaders,
+  createBinaryResponseHandler,
   createJsonResponseHandler,
+  getFromApi,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
-import {
-  ReplicateImageModelId,
-  ReplicateImageSettings,
-} from './replicate-image-settings';
+import { ReplicateImageModelId } from './replicate-image-settings';
 
 interface ReplicateImageModelConfig {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
+  _internal?: {
+    currentDate?: () => Date;
+  };
 }
 
-export class ReplicateImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
-
-  readonly modelId: ReplicateImageModelId;
-  readonly settings: ReplicateImageSettings;
-
-  private readonly config: ReplicateImageModelConfig;
+export class ReplicateImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 1;
-  }
-
   constructor(
-    modelId: ReplicateImageModelId,
-    settings: ReplicateImageSettings,
-    config: ReplicateImageModelConfig,
-  ) {
-    this.modelId = modelId;
-    this.settings = settings;
-    this.config = config;
-  }
+    readonly modelId: ReplicateImageModelId,
+    private readonly config: ReplicateImageModelConfig,
+  ) {}
 
   async doGenerate({
     prompt,
@@ -56,18 +45,29 @@ export class ReplicateImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
+
+    const [modelId, version] = this.modelId.split(':');
+
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const {
       value: { output },
+      responseHeaders,
     } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}/predictions`,
+      url:
+        // different endpoints for versioned vs unversioned models:
+        version != null
+          ? `${this.config.baseURL}/predictions`
+          : `${this.config.baseURL}/models/${modelId}/predictions`,
+
       headers: combineHeaders(await resolve(this.config.headers), headers, {
         prefer: 'wait',
       }),
+
       body: {
         input: {
           prompt,
@@ -77,11 +77,14 @@ export class ReplicateImageModel implements ImageModelV1 {
           num_outputs: n,
           ...(providerOptions.replicate ?? {}),
         },
+        // for versioned models, include the version in the body:
+        ...(version != null ? { version } : {}),
       },
-      failedResponseHandler: replicateFailedResponseHandler,
+
       successfulResponseHandler: createJsonResponseHandler(
         replicateImageResponseSchema,
       ),
+      failedResponseHandler: replicateFailedResponseHandler,
       abortSignal,
       fetch: this.config.fetch,
     });
@@ -90,12 +93,26 @@ export class ReplicateImageModel implements ImageModelV1 {
     const outputArray = Array.isArray(output) ? output : [output];
     const images = await Promise.all(
       outputArray.map(async url => {
-        const response = await fetch(url);
-        return new Uint8Array(await response.arrayBuffer());
+        const { value: image } = await getFromApi({
+          url,
+          successfulResponseHandler: createBinaryResponseHandler(),
+          failedResponseHandler: replicateFailedResponseHandler,
+          abortSignal,
+          fetch: this.config.fetch,
+        });
+        return image;
       }),
     );
 
-    return { images, warnings };
+    return {
+      images,
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
   }
 }
 

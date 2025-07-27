@@ -40,7 +40,7 @@ console.log(images);
   content={[
     {
       name: 'model',
-      type: 'ImageModelV1',
+      type: 'ImageModelV2',
       description: 'The image model to use.',
     },
     {
@@ -76,7 +76,7 @@ console.log(images);
     },
     {
       name: 'providerOptions',
-      type: 'Record<string, Record<string, JSONValue>>',
+      type: 'ProviderOptions',
       isOptional: true,
       description: 'Additional provider-specific options.',
     },
@@ -107,11 +107,11 @@ console.log(images);
   content={[
     {
       name: 'image',
-      type: 'GeneratedImage',
+      type: 'GeneratedFile',
       description: 'The first image that was generated.',
       properties: [
         {
-          type: 'GeneratedImage',
+          type: 'GeneratedFile',
           parameters: [
             {
               name: 'base64',
@@ -122,6 +122,11 @@ console.log(images);
               name: 'uint8Array',
               type: 'Uint8Array',
               description: 'Image as a Uint8Array.',
+            },
+            {
+              name: 'mediaType',
+              type: 'string',
+              description: 'The IANA media type of the image.',
             },
           ],
         },
@@ -129,11 +134,11 @@ console.log(images);
     },
     {
       name: 'images',
-      type: 'Array<GeneratedImage>',
+      type: 'Array<GeneratedFile>',
       description: 'All images that were generated.',
       properties: [
         {
-          type: 'GeneratedImage',
+          type: 'GeneratedFile',
           parameters: [
             {
               name: 'base64',
@@ -144,6 +149,11 @@ console.log(images);
               name: 'uint8Array',
               type: 'Uint8Array',
               description: 'Image as a Uint8Array.',
+            },
+            {
+              name: 'mediaType',
+              type: 'string',
+              description: 'The IANA media type of the image.',
             },
           ],
         },
@@ -154,6 +164,43 @@ console.log(images);
       type: 'ImageGenerationWarning[]',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ImageModelProviderMetadata',
+      isOptional: true,
+      description:
+        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. An `images` key is always present in the metadata and is an array with the same length as the top level `images` key. Details depend on the provider.',
+    },
+    {
+      name: 'responses',
+      type: 'Array<ImageModelResponseMetadata>',
+      description:
+        'Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.',
+      properties: [
+        {
+          type: 'ImageModelResponseMetadata',
+          parameters: [
+            {
+              name: 'timestamp',
+              type: 'Date',
+              description: 'Timestamp for the start of the generated response.',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description:
+                'The ID of the response model that was used to generate the response.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              isOptional: true,
+              description: 'Response headers.',
+            },
+          ],
+        },
+      ],
     },
   ]}
 />

@@ -1,6 +1,6 @@
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 
@@ -10,7 +10,7 @@ async function main() {
     tools: {
       weather: weatherTool,
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       }),
     },
     prompt:
@@ -21,12 +21,12 @@ async function main() {
   for (const toolCall of result.toolCalls) {
     switch (toolCall.toolName) {
       case 'cityAttractions': {
-        toolCall.args.city; // string
+        toolCall.input.city; // string
         break;
       }
 
       case 'weather': {
-        toolCall.args.location; // string
+        toolCall.input.location; // string
         break;
       }
     }
@@ -37,15 +37,15 @@ async function main() {
     switch (toolResult.toolName) {
       // NOT AVAILABLE (NO EXECUTE METHOD)
       // case 'cityAttractions': {
-      //   toolResult.args.city; // string
+      //   toolResult.input.city; // string
       //   toolResult.result;
       //   break;
       // }
 
       case 'weather': {
-        toolResult.args.location; // string
-        toolResult.result.location; // string
-        toolResult.result.temperature; // number
+        toolResult.input.location; // string
+        toolResult.output.location; // string
+        toolResult.output.temperature; // number
         break;
       }
     }
@@ -53,6 +53,7 @@ async function main() {
 
   console.log(result.text);
   console.log(JSON.stringify(result.toolCalls, null, 2));
+  console.log(JSON.stringify(result.toolResults, null, 2));
 }
 
 main().catch(console.error);

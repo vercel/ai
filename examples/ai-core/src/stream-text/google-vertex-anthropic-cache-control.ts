@@ -7,9 +7,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 async function main() {
   const result = streamText({
-    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022', {
-      cacheControl: true,
-    }),
+    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     messages: [
       {
         role: 'user',
@@ -21,7 +19,7 @@ async function main() {
           {
             type: 'text',
             text: `Error message: ${errorMessage}`,
-            experimental_providerMetadata: {
+            providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
               },
@@ -34,10 +32,10 @@ async function main() {
         ],
       },
     ],
-    onFinish({ experimental_providerMetadata }) {
+    onFinish({ providerMetadata }) {
       console.log();
       console.log('=== onFinish ===');
-      console.log(experimental_providerMetadata?.anthropic);
+      console.log(providerMetadata?.anthropic);
     },
   });
 
@@ -46,7 +44,7 @@ async function main() {
   }
 
   console.log('=== providerMetadata Promise ===');
-  console.log((await result.experimental_providerMetadata)?.anthropic);
+  console.log((await result.providerMetadata)?.anthropic);
   // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
 }
 

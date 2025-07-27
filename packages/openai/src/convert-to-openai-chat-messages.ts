@@ -1,20 +1,23 @@
 import {
-  LanguageModelV1Prompt,
+  LanguageModelV2CallWarning,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToOpenAIChatMessages({
   prompt,
-  useLegacyFunctionCalling = false,
   systemMessageMode = 'system',
 }: {
-  prompt: LanguageModelV1Prompt;
-  useLegacyFunctionCalling?: boolean;
+  prompt: LanguageModelV2Prompt;
   systemMessageMode?: 'system' | 'developer' | 'remove';
-}): OpenAIChatPrompt {
+}): {
+  messages: OpenAIChatPrompt;
+  warnings: Array<LanguageModelV2CallWarning>;
+} {
   const messages: OpenAIChatPrompt = [];
+  const warnings: Array<LanguageModelV2CallWarning> = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -29,6 +32,10 @@ export function convertToOpenAIChatMessages({
             break;
           }
           case 'remove': {
+            warnings.push({
+              type: 'other',
+              message: 'system messages are removed for this model',
+            });
             break;
           }
           default: {
@@ -49,55 +56,82 @@ export function convertToOpenAIChatMessages({
 
         messages.push({
           role: 'user',
-          content: content.map(part => {
+          content: content.map((part, index) => {
             switch (part.type) {
               case 'text': {
                 return { type: 'text', text: part.text };
               }
-              case 'image': {
-                return {
-                  type: 'image_url',
-                  image_url: {
-                    url:
-                      part.image instanceof URL
-                        ? part.image.toString()
-                        : `data:${
-                            part.mimeType ?? 'image/jpeg'
-                          };base64,${convertUint8ArrayToBase64(part.image)}`,
-
-                    // OpenAI specific extension: image detail
-                    detail: part.providerMetadata?.openai?.imageDetail,
-                  },
-                };
-              }
               case 'file': {
-                if (part.data instanceof URL) {
-                  throw new UnsupportedFunctionalityError({
-                    functionality:
-                      "'File content parts with URL data' functionality not supported.",
-                  });
-                }
+                if (part.mediaType.startsWith('image/')) {
+                  const mediaType =
+                    part.mediaType === 'image/*'
+                      ? 'image/jpeg'
+                      : part.mediaType;
 
-                switch (part.mimeType) {
-                  case 'audio/wav': {
-                    return {
-                      type: 'input_audio',
-                      input_audio: { data: part.data, format: 'wav' },
-                    };
-                  }
-                  case 'audio/mp3':
-                  case 'audio/mpeg': {
-                    return {
-                      type: 'input_audio',
-                      input_audio: { data: part.data, format: 'mp3' },
-                    };
-                  }
+                  return {
+                    type: 'image_url',
+                    image_url: {
+                      url:
+                        part.data instanceof URL
+                          ? part.data.toString()
+                          : `data:${mediaType};base64,${convertToBase64(part.data)}`,
 
-                  default: {
+                      // OpenAI specific extension: image detail
+                      detail: part.providerOptions?.openai?.imageDetail,
+                    },
+                  };
+                } else if (part.mediaType.startsWith('audio/')) {
+                  if (part.data instanceof URL) {
                     throw new UnsupportedFunctionalityError({
-                      functionality: `File content part type ${part.mimeType} in user messages`,
+                      functionality: 'audio file parts with URLs',
                     });
                   }
+
+                  switch (part.mediaType) {
+                    case 'audio/wav': {
+                      return {
+                        type: 'input_audio',
+                        input_audio: {
+                          data: convertToBase64(part.data),
+                          format: 'wav',
+                        },
+                      };
+                    }
+                    case 'audio/mp3':
+                    case 'audio/mpeg': {
+                      return {
+                        type: 'input_audio',
+                        input_audio: {
+                          data: convertToBase64(part.data),
+                          format: 'mp3',
+                        },
+                      };
+                    }
+
+                    default: {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: `audio content parts with media type ${part.mediaType}`,
+                      });
+                    }
+                  }
+                } else if (part.mediaType === 'application/pdf') {
+                  if (part.data instanceof URL) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'PDF file parts with URLs',
+                    });
+                  }
+
+                  return {
+                    type: 'file',
+                    file: {
+                      filename: part.filename ?? `part-${index}.pdf`,
+                      file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                    },
+                  };
+                } else {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: `file part media type ${part.mediaType}`,
+                  });
                 }
               }
             }
@@ -127,58 +161,45 @@ export function convertToOpenAIChatMessages({
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.args),
+                  arguments: JSON.stringify(part.input),
                 },
               });
               break;
             }
-            default: {
-              const _exhaustiveCheck: never = part;
-              throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
-            }
           }
         }
 
-        if (useLegacyFunctionCalling) {
-          if (toolCalls.length > 1) {
-            throw new UnsupportedFunctionalityError({
-              functionality:
-                'useLegacyFunctionCalling with multiple tool calls in one message',
-            });
-          }
-
-          messages.push({
-            role: 'assistant',
-            content: text,
-            function_call:
-              toolCalls.length > 0 ? toolCalls[0].function : undefined,
-          });
-        } else {
-          messages.push({
-            role: 'assistant',
-            content: text,
-            tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
-          });
-        }
+        messages.push({
+          role: 'assistant',
+          content: text,
+          tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+        });
 
         break;
       }
 
       case 'tool': {
         for (const toolResponse of content) {
-          if (useLegacyFunctionCalling) {
-            messages.push({
-              role: 'function',
-              name: toolResponse.toolName,
-              content: JSON.stringify(toolResponse.result),
-            });
-          } else {
-            messages.push({
-              role: 'tool',
-              tool_call_id: toolResponse.toolCallId,
-              content: JSON.stringify(toolResponse.result),
-            });
+          const output = toolResponse.output;
+
+          let contentValue: string;
+          switch (output.type) {
+            case 'text':
+            case 'error-text':
+              contentValue = output.value;
+              break;
+            case 'content':
+            case 'json':
+            case 'error-json':
+              contentValue = JSON.stringify(output.value);
+              break;
           }
+
+          messages.push({
+            role: 'tool',
+            tool_call_id: toolResponse.toolCallId,
+            content: contentValue,
+          });
         }
         break;
       }
@@ -190,5 +211,5 @@ export function convertToOpenAIChatMessages({
     }
   }
 
-  return messages;
+  return { messages, warnings };
 }

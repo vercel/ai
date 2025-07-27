@@ -4,10 +4,10 @@ import { JSONSchema7Definition } from '@ai-sdk/provider';
  * Converts JSON Schema 7 to OpenAPI Schema 3.0
  */
 export function convertJSONSchemaToOpenAPISchema(
-  jsonSchema: JSONSchema7Definition,
+  jsonSchema: JSONSchema7Definition | undefined,
 ): unknown {
   // parameters need to be undefined if they are empty objects:
-  if (isEmptyObjectSchema(jsonSchema)) {
+  if (jsonSchema == null || isEmptyObjectSchema(jsonSchema)) {
     return undefined;
   }
 
@@ -27,6 +27,7 @@ export function convertJSONSchemaToOpenAPISchema(
     format,
     const: constValue,
     minLength,
+    enum: enumValues,
   } = jsonSchema;
 
   const result: Record<string, unknown> = {};
@@ -55,6 +56,11 @@ export function convertJSONSchemaToOpenAPISchema(
     }
   }
 
+  // Handle enum
+  if (enumValues !== undefined) {
+    result.enum = enumValues;
+  }
+
   if (properties != null) {
     result.properties = Object.entries(properties).reduce(
       (acc, [key, value]) => {
@@ -75,13 +81,39 @@ export function convertJSONSchemaToOpenAPISchema(
     result.allOf = allOf.map(convertJSONSchemaToOpenAPISchema);
   }
   if (anyOf) {
-    result.anyOf = anyOf.map(convertJSONSchemaToOpenAPISchema);
+    // Handle cases where anyOf includes a null type
+    if (
+      anyOf.some(
+        schema => typeof schema === 'object' && schema?.type === 'null',
+      )
+    ) {
+      const nonNullSchemas = anyOf.filter(
+        schema => !(typeof schema === 'object' && schema?.type === 'null'),
+      );
+
+      if (nonNullSchemas.length === 1) {
+        // If there's only one non-null schema, convert it and make it nullable
+        const converted = convertJSONSchemaToOpenAPISchema(nonNullSchemas[0]);
+        if (typeof converted === 'object') {
+          result.nullable = true;
+          Object.assign(result, converted);
+        }
+      } else {
+        // If there are multiple non-null schemas, keep them in anyOf
+        result.anyOf = nonNullSchemas.map(convertJSONSchemaToOpenAPISchema);
+        result.nullable = true;
+      }
+    } else {
+      result.anyOf = anyOf.map(convertJSONSchemaToOpenAPISchema);
+    }
   }
   if (oneOf) {
     result.oneOf = oneOf.map(convertJSONSchemaToOpenAPISchema);
   }
 
-  if (minLength !== undefined) result.minLength = minLength;
+  if (minLength !== undefined) {
+    result.minLength = minLength;
+  }
 
   return result;
 }
@@ -92,6 +124,7 @@ function isEmptyObjectSchema(jsonSchema: JSONSchema7Definition): boolean {
     typeof jsonSchema === 'object' &&
     jsonSchema.type === 'object' &&
     (jsonSchema.properties == null ||
-      Object.keys(jsonSchema.properties).length === 0)
+      Object.keys(jsonSchema.properties).length === 0) &&
+    !jsonSchema.additionalProperties
   );
 }

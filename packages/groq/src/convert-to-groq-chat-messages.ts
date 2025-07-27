@@ -1,12 +1,11 @@
 import {
-  LanguageModelV1Prompt,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { GroqChatPrompt } from './groq-api-types';
 
 export function convertToGroqChatMessages(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): GroqChatPrompt {
   const messages: GroqChatPrompt = [];
 
@@ -30,23 +29,25 @@ export function convertToGroqChatMessages(
               case 'text': {
                 return { type: 'text', text: part.text };
               }
-              case 'image': {
+              case 'file': {
+                if (!part.mediaType.startsWith('image/')) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'Non-image file content parts',
+                  });
+                }
+
+                const mediaType =
+                  part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
+
                 return {
                   type: 'image_url',
                   image_url: {
                     url:
-                      part.image instanceof URL
-                        ? part.image.toString()
-                        : `data:${
-                            part.mimeType ?? 'image/jpeg'
-                          };base64,${convertUint8ArrayToBase64(part.image)}`,
+                      part.data instanceof URL
+                        ? part.data.toString()
+                        : `data:${mediaType};base64,${part.data}`,
                   },
                 };
-              }
-              case 'file': {
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'File content parts in user messages',
-                });
               }
             }
           }),
@@ -75,14 +76,10 @@ export function convertToGroqChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.args),
+                  arguments: JSON.stringify(part.input),
                 },
               });
               break;
-            }
-            default: {
-              const _exhaustiveCheck: never = part;
-              throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
             }
           }
         }
@@ -98,10 +95,25 @@ export function convertToGroqChatMessages(
 
       case 'tool': {
         for (const toolResponse of content) {
+          const output = toolResponse.output;
+
+          let contentValue: string;
+          switch (output.type) {
+            case 'text':
+            case 'error-text':
+              contentValue = output.value;
+              break;
+            case 'content':
+            case 'json':
+            case 'error-json':
+              contentValue = JSON.stringify(output.value);
+              break;
+          }
+
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
-            content: JSON.stringify(toolResponse.result),
+            content: contentValue,
           });
         }
         break;

@@ -1,15 +1,12 @@
 import { openai } from '@ai-sdk/openai';
-import {
-  generateText,
-  Experimental_LanguageModelV1Middleware as LanguageModelV1Middleware,
-  experimental_wrapLanguageModel as wrapLanguageModel,
-} from 'ai';
+import { LanguageModelV2Middleware } from '@ai-sdk/provider';
+import { generateText, wrapLanguageModel } from 'ai';
 import 'dotenv/config';
 
-const logProviderMetadataMiddleware: LanguageModelV1Middleware = {
+const logProviderMetadataMiddleware: LanguageModelV2Middleware = {
   transformParams: async ({ params }) => {
     console.log(
-      'providerMetadata: ' + JSON.stringify(params.providerMetadata, null, 2),
+      'providerOptions: ' + JSON.stringify(params.providerOptions, null, 2),
     );
     return params;
   },
@@ -21,7 +18,7 @@ async function main() {
       model: openai('gpt-4o'),
       middleware: logProviderMetadataMiddleware,
     }),
-    experimental_providerMetadata: {
+    providerOptions: {
       myMiddleware: {
         example: 'value',
       },

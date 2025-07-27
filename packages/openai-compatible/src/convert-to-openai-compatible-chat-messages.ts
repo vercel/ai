@@ -1,19 +1,18 @@
 import {
-  LanguageModelV1Prompt,
-  LanguageModelV1ProviderMetadata,
+  LanguageModelV2Prompt,
+  SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 
 function getOpenAIMetadata(message: {
-  providerMetadata?: LanguageModelV1ProviderMetadata;
+  providerOptions?: SharedV2ProviderMetadata;
 }) {
-  return message?.providerMetadata?.openaiCompatible ?? {};
+  return message?.providerOptions?.openaiCompatible ?? {};
 }
 
 export function convertToOpenAICompatibleChatMessages(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): OpenAICompatibleChatPrompt {
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {
@@ -42,24 +41,28 @@ export function convertToOpenAICompatibleChatMessages(
               case 'text': {
                 return { type: 'text', text: part.text, ...partMetadata };
               }
-              case 'image': {
-                return {
-                  type: 'image_url',
-                  image_url: {
-                    url:
-                      part.image instanceof URL
-                        ? part.image.toString()
-                        : `data:${
-                            part.mimeType ?? 'image/jpeg'
-                          };base64,${convertUint8ArrayToBase64(part.image)}`,
-                  },
-                  ...partMetadata,
-                };
-              }
               case 'file': {
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'File content parts in user messages',
-                });
+                if (part.mediaType.startsWith('image/')) {
+                  const mediaType =
+                    part.mediaType === 'image/*'
+                      ? 'image/jpeg'
+                      : part.mediaType;
+
+                  return {
+                    type: 'image_url',
+                    image_url: {
+                      url:
+                        part.data instanceof URL
+                          ? part.data.toString()
+                          : `data:${mediaType};base64,${part.data}`,
+                    },
+                    ...partMetadata,
+                  };
+                } else {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: `file part media type ${part.mediaType}`,
+                  });
+                }
               }
             }
           }),
@@ -90,15 +93,11 @@ export function convertToOpenAICompatibleChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.args),
+                  arguments: JSON.stringify(part.input),
                 },
                 ...partMetadata,
               });
               break;
-            }
-            default: {
-              const _exhaustiveCheck: never = part;
-              throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
             }
           }
         }
@@ -115,11 +114,26 @@ export function convertToOpenAICompatibleChatMessages(
 
       case 'tool': {
         for (const toolResponse of content) {
+          const output = toolResponse.output;
+
+          let contentValue: string;
+          switch (output.type) {
+            case 'text':
+            case 'error-text':
+              contentValue = output.value;
+              break;
+            case 'content':
+            case 'json':
+            case 'error-json':
+              contentValue = JSON.stringify(output.value);
+              break;
+          }
+
           const toolResponseMetadata = getOpenAIMetadata(toolResponse);
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
-            content: JSON.stringify(toolResponse.result),
+            content: contentValue,
             ...toolResponseMetadata,
           });
         }

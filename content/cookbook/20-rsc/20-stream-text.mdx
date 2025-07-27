@@ -20,14 +20,14 @@ Text generation can sometimes take a long time to complete, especially when you'
 
 ## Client
 
-Let's create a simple React component that will call the `generate` function when a button is clicked. The `generate` function will call the `streamText` function, which will then generate text based on the input prompt. To consume the stream of text in the client, we will use the `readStreamableValue` function from the `ai/rsc` module.
+Let's create a simple React component that will call the `generate` function when a button is clicked. The `generate` function will call the `streamText` function, which will then generate text based on the input prompt. To consume the stream of text in the client, we will use the `readStreamableValue` function from the `@ai-sdk/rsc` module.
 
 ```tsx filename="app/page.tsx"
 'use client';
 
 import { useState } from 'react';
 import { generate } from './actions';
-import { readStreamableValue } from 'ai/rsc';
+import { readStreamableValue } from '@ai-sdk/rsc';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -57,7 +57,7 @@ export default function Home() {
 
 ## Server
 
-On the server side, we need to implement the `generate` function, which will call the `streamText` function. The `streamText` function will generate text based on the input prompt. In order to stream the text generation to the client, we will use `createStreamableValue` that can wrap any changable value and stream it to the client.
+On the server side, we need to implement the `generate` function, which will call the `streamText` function. The `streamText` function will generate text based on the input prompt. In order to stream the text generation to the client, we will use `createStreamableValue` that can wrap any changeable value and stream it to the client.
 
 Using DevTools, we can see the text generation being streamed to the client in real-time.
 
@@ -66,7 +66,7 @@ Using DevTools, we can see the text generation being streamed to the client in r
 
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { createStreamableValue } from 'ai/rsc';
+import { createStreamableValue } from '@ai-sdk/rsc';
 
 export async function generate(input: string) {
   const stream = createStreamableValue('');

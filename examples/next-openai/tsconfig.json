@@ -6,10 +6,9 @@
     "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -20,9 +19,45 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": ["./*"],
+      "@component/*": ["./component/*"],
+      "@util/*": ["./util/*"]
+    },
+    "composite": true,
+    "noEmit": true
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "references": [
+    {
+      "path": "../../packages/ai"
+    },
+    {
+      "path": "../../packages/rsc"
+    },
+    {
+      "path": "../../packages/anthropic"
+    },
+    {
+      "path": "../../packages/deepseek"
+    },
+    {
+      "path": "../../packages/fireworks"
+    },
+    {
+      "path": "../../packages/google"
+    },
+    {
+      "path": "../../packages/google-vertex"
+    },
+    {
+      "path": "../../packages/openai"
+    },
+    {
+      "path": "../../packages/perplexity"
+    },
+    {
+      "path": "../../packages/react"
+    }
+  ]
 }

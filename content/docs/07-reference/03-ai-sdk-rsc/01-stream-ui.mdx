@@ -17,7 +17,7 @@ To see `streamUI` in action, check out [these examples](#examples).
 
 ## Import
 
-<Snippet text={`import { streamUI } from "ai/rsc"`} prompt={false} />
+<Snippet text={`import { streamUI } from "@ai-sdk/rsc"`} prompt={false} />
 
 ## Parameters
 
@@ -26,7 +26,7 @@ To see `streamUI` in action, check out [these examples](#examples).
     {
       name: 'model',
       type: 'LanguageModel',
-      description: 'The language model to use. Example: openai("gpt-4-turbo")',
+      description: 'The language model to use. Example: openai("gpt-4.1")',
     },
     {
       name: 'initial',
@@ -109,10 +109,11 @@ To see `streamUI` in action, check out [these examples](#examples).
                         'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
                     },
                     {
-                      name: 'mimeType',
+                      name: 'mediaType',
                       type: 'string',
                       isOptional: true,
-                      description: 'The mime type of the image. Optional.',
+                      description:
+                        'The IANA media type of the image. Optional.',
                     },
                   ],
                 },
@@ -131,9 +132,9 @@ To see `streamUI` in action, check out [these examples](#examples).
                         'The file content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
                     },
                     {
-                      name: 'mimeType',
+                      name: 'mediaType',
                       type: 'string',
-                      description: 'The mime type of the file.',
+                      description: 'The IANA media type of the file.',
                     },
                   ],
                 },
@@ -255,7 +256,7 @@ To see `streamUI` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'maxTokens',
+      name: 'maxOutputTokens',
       type: 'number',
       isOptional: true,
       description: 'Maximum number of tokens to generate.',
@@ -332,7 +333,7 @@ To see `streamUI` in action, check out [these examples](#examples).
     },
     {
       name: 'tools',
-      type: 'Record<string, Tool>',
+      type: 'ToolSet',
       description:
         'Tools that are accessible to and can be called by the model.',
       properties: [
@@ -391,11 +392,11 @@ To see `streamUI` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_providerMetadata',
+      name: 'providerOptions',
       type: 'Record<string,Record<string,JSONValue>> | undefined',
       isOptional: true,
       description:
-        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+        'Provider-specific options. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
       name: 'onFinish',
@@ -447,12 +448,12 @@ To see `streamUI` in action, check out [these examples](#examples).
                 'Warnings from the model provider (e.g. unsupported settings).',
             },
             {
-              name: 'rawResponse',
-              type: 'RawResponse',
-              description: 'Optional raw response data.',
+              name: 'response',
+              type: 'Response',
+              description: 'Optional response data.',
               properties: [
                 {
-                  type: 'RawResponse',
+                  type: 'Response',
                   parameters: [
                     {
                       name: 'headers',
@@ -481,13 +482,13 @@ To see `streamUI` in action, check out [these examples](#examples).
       description: 'The user interface based on the stream output.',
     },
     {
-      name: 'rawResponse',
-      type: 'RawResponse',
+      name: 'response',
+      type: 'Response',
       isOptional: true,
-      description: 'Optional raw response data.',
+      description: 'Optional response data.',
       properties: [
         {
-          type: 'RawResponse',
+          type: 'Response',
           parameters: [
             {
               name: 'headers',

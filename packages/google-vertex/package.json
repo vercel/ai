@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "2.0.15",
+  "version": "3.0.0-beta.17",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,19 +8,21 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "edge/dist/**/*",
-    "anthropic/dist/**/*",
-    "anthropic/edge/dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "edge.d.ts",
+    "anthropic/edge.d.ts",
+    "anthropic/index.d.ts"
   ],
   "scripts": {
-    "build": "tsup",
-    "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf edge/dist && rm -rf anthropic/dist && rm -rf anthropic/edge/dist",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsup --watch",
+    "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
+    "test:update": "pnpm test:node -u",
+    "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
     "test:node": "vitest --config vitest.node.config.js --run"
   },
@@ -32,37 +34,37 @@
       "require": "./dist/index.js"
     },
     "./edge": {
-      "types": "./edge/dist/index.d.ts",
-      "import": "./edge/dist/index.mjs",
-      "require": "./edge/dist/index.js"
+      "types": "./dist/edge/index.d.ts",
+      "import": "./dist/edge/index.mjs",
+      "require": "./dist/edge/index.js"
     },
     "./anthropic": {
-      "types": "./anthropic/dist/index.d.ts",
-      "import": "./anthropic/dist/index.mjs",
-      "require": "./anthropic/dist/index.js"
+      "types": "./dist/anthropic/index.d.ts",
+      "import": "./dist/anthropic/index.mjs",
+      "require": "./dist/anthropic/index.js"
     },
     "./anthropic/edge": {
-      "types": "./anthropic/edge/dist/index.d.ts",
-      "import": "./anthropic/edge/dist/index.mjs",
-      "require": "./anthropic/edge/dist/index.js"
+      "types": "./dist/anthropic/edge/index.d.ts",
+      "import": "./dist/anthropic/edge/index.mjs",
+      "require": "./dist/anthropic/edge/index.js"
     }
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "1.0.8",
-    "@ai-sdk/google": "1.0.14",
-    "@ai-sdk/provider": "1.0.4",
-    "@ai-sdk/provider-utils": "2.0.7",
+    "@ai-sdk/anthropic": "workspace:*",
+    "@ai-sdk/google": "workspace:*",
+    "@ai-sdk/provider": "workspace:*",
+    "@ai-sdk/provider-utils": "workspace:*",
     "google-auth-library": "^9.15.0"
   },
   "devDependencies": {
-    "@types/node": "^18",
+    "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
-    "typescript": "5.6.3",
-    "zod": "3.23.8"
+    "typescript": "5.8.3",
+    "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.0.0"
+    "zod": "^3.25.76 || ^4"
   },
   "engines": {
     "node": ">=18"
@@ -70,7 +72,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://sdk.vercel.ai/docs",
+  "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git"

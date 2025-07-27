@@ -15,6 +15,7 @@ packages/example/
 │   ├── example-chat-settings.ts       # Chat model types and settings
 │   ├── example-completion-settings.ts # Completion model types and settings
 │   ├── example-embedding-settings.ts  # Embedding model types and settings
+│   ├── example-image-settings.ts      # Image model types and settings
 │   ├── example-provider.ts            # Main provider implementation
 │   ├── example-provider.test.ts       # Provider tests
 │   └── index.ts                       # Public exports
@@ -29,28 +30,23 @@ packages/example/
 1. **example-chat-settings.ts** - Define chat model IDs and settings:
 
 ```ts
-import { OpenAICompatibleChatSettings } from '@ai-sdk/openai-compatible';
-
 export type ExampleChatModelId =
   | 'example/chat-model-1'
   | 'example/chat-model-2'
   | (string & {});
-
-export interface ExampleChatSettings extends OpenAICompatibleChatSettings {
-  // Add any custom settings here
-}
 ```
 
-The completion and embedding settings are implemented similarly to the chat settings.
+The completion, embedding, and image settings are implemented similarly to the chat settings.
 
 2. **example-provider.ts** - Main provider implementation:
 
 ```ts
-import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
+import { LanguageModelV1, EmbeddingModelV2 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
+  OpenAICompatibleImageModel,
 } from '@ai-sdk/openai-compatible';
 import {
   FetchFunction,
@@ -72,6 +68,10 @@ Base URL for the API calls.
 Custom headers to include in the requests.
 */
   headers?: Record<string, string>;
+  /**
+Optional custom url query parameters to include in request urls.
+*/
+  queryParams?: Record<string, string>;
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
@@ -110,7 +110,15 @@ Creates a text embedding model for text generation.
   textEmbeddingModel(
     modelId: ExampleEmbeddingModelId,
     settings?: ExampleEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
+
+  /**
+Creates an image model for image generation.
+*/
+  imageModel(
+    modelId: ExampleImageModelId,
+    settings?: ExampleImageSettings,
+  ): ImageModelV2;
 }
 
 export function createExample(
@@ -137,7 +145,13 @@ export function createExample(
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `example.${modelType}`,
-    url: ({ path }) => `${baseURL}${path}`,
+    url: ({ path }) => {
+      const url = new URL(`${baseURL}${path}`);
+      if (options.queryParams) {
+        url.search = new URLSearchParams(options.queryParams).toString();
+      }
+      return url.toString();
+    },
     headers: getHeaders,
     fetch: options.fetch,
   });
@@ -146,10 +160,11 @@ export function createExample(
     modelId: ExampleChatModelId,
     settings: ExampleChatSettings = {},
   ) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
-      ...getCommonModelConfig('chat'),
-      defaultObjectGenerationMode: 'tool',
-    });
+    return new OpenAICompatibleChatLanguageModel(
+      modelId,
+      settings,
+      getCommonModelConfig('chat'),
+    );
   };
 
   const createCompletionModel = (
@@ -172,6 +187,16 @@ export function createExample(
       getCommonModelConfig('embedding'),
     );
 
+  const createImageModel = (
+    modelId: ExampleImageModelId,
+    settings: ExampleImageSettings = {},
+  ) =>
+    new OpenAICompatibleImageModel(
+      modelId,
+      settings,
+      getCommonModelConfig('image'),
+    );
+
   const provider = (
     modelId: ExampleChatModelId,
     settings?: ExampleChatSettings,
@@ -180,8 +205,9 @@ export function createExample(
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.imageModel = createImageModel;
 
-  return provider as ExampleProvider;
+  return provider;
 }
 
 // Export default instance

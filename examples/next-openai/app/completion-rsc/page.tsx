@@ -1,6 +1,6 @@
 'use client';
 
-import { readStreamableValue } from 'ai/rsc';
+import { readStreamableValue } from '@ai-sdk/rsc';
 import { useState } from 'react';
 import { generateCompletion } from './generate-completion';
 

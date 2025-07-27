@@ -1,18 +1,19 @@
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
   FetchFunction,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   CohereEmbeddingModelId,
-  CohereEmbeddingSettings,
-} from './cohere-embedding-settings';
+  cohereEmbeddingOptions,
+} from './cohere-embedding-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 
 type CohereEmbeddingConfig = {
@@ -22,23 +23,17 @@ type CohereEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class CohereEmbeddingModel implements EmbeddingModelV1<string> {
-  readonly specificationVersion = 'v1';
+export class CohereEmbeddingModel implements EmbeddingModelV2<string> {
+  readonly specificationVersion = 'v2';
   readonly modelId: CohereEmbeddingModelId;
 
   readonly maxEmbeddingsPerCall = 96;
   readonly supportsParallelCalls = true;
 
   private readonly config: CohereEmbeddingConfig;
-  private readonly settings: CohereEmbeddingSettings;
 
-  constructor(
-    modelId: CohereEmbeddingModelId,
-    settings: CohereEmbeddingSettings,
-    config: CohereEmbeddingConfig,
-  ) {
+  constructor(modelId: CohereEmbeddingModelId, config: CohereEmbeddingConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -50,9 +45,16 @@ export class CohereEmbeddingModel implements EmbeddingModelV1<string> {
     values,
     headers,
     abortSignal,
-  }: Parameters<EmbeddingModelV1<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>
+    providerOptions,
+  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
+    const embeddingOptions = await parseProviderOptions({
+      provider: 'cohere',
+      providerOptions,
+      schema: cohereEmbeddingOptions,
+    });
+
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,
@@ -62,7 +64,11 @@ export class CohereEmbeddingModel implements EmbeddingModelV1<string> {
       });
     }
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue,
+    } = await postJsonToApi({
       url: `${this.config.baseURL}/embed`,
       headers: combineHeaders(this.config.headers(), headers),
       body: {
@@ -72,8 +78,8 @@ export class CohereEmbeddingModel implements EmbeddingModelV1<string> {
         // https://docs.cohere.com/v2/reference/embed#request.body.embedding_types
         embedding_types: ['float'],
         texts: values,
-        input_type: this.settings.inputType ?? 'search_query',
-        truncate: this.settings.truncate,
+        input_type: embeddingOptions?.inputType ?? 'search_query',
+        truncate: embeddingOptions?.truncate,
       },
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -86,7 +92,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV1<string> {
     return {
       embeddings: response.embeddings.float,
       usage: { tokens: response.meta.billed_units.input_tokens },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders, body: rawValue },
     };
   }
 }
