@@ -1,13 +1,13 @@
 import { LanguageModelV2ToolCall } from '@ai-sdk/provider';
 import {
   asSchema,
+  ModelMessage,
   safeParseJSON,
   safeValidateTypes,
 } from '@ai-sdk/provider-utils';
-import { InvalidToolInputError } from '../../src/error/invalid-tool-input-error';
-import { NoSuchToolError } from '../../src/error/no-such-tool-error';
-import { ToolCallRepairError } from '../../src/error/tool-call-repair-error';
-import { ModelMessage } from '../prompt';
+import { InvalidToolInputError } from '../error/invalid-tool-input-error';
+import { NoSuchToolError } from '../error/no-such-tool-error';
+import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
