@@ -1,24 +1,30 @@
 import { openai } from '@ai-sdk/openai';
-import { dynamicTool, generateText, stepCountIs } from 'ai';
+import { dynamicTool, generateText, stepCountIs, ToolSet } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
+
+function dynamicToolSet(): ToolSet {
+  return {
+    currentLocation: dynamicTool({
+      description: 'Get the current location.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        const locations = ['New York', 'London', 'Paris'];
+        return {
+          location: locations[Math.floor(Math.random() * locations.length)],
+        };
+      },
+    }),
+  };
+}
 
 async function main() {
   const result = await generateText({
     model: openai('gpt-4o'),
     stopWhen: stepCountIs(5),
     tools: {
-      currentLocation: dynamicTool({
-        description: 'Get the current location.',
-        inputSchema: z.object({}),
-        execute: async () => {
-          const locations = ['New York', 'London', 'Paris'];
-          return {
-            location: locations[Math.floor(Math.random() * locations.length)],
-          };
-        },
-      }),
+      ...dynamicToolSet(),
       weather: weatherTool,
     },
     prompt: 'What is the weather in my current location?',
