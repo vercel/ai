@@ -169,6 +169,8 @@ writer.write({
 });
 
 // client
+const [notification, setNotification] = useState();
+
 const { messages } = useChat({
   onData: ({ data, type }) => {
     if (type === 'data-notification') {
