@@ -1,4 +1,5 @@
 import {
+  JSONObject,
   JSONValue,
   LanguageModelV2,
   LanguageModelV2CallWarning,
@@ -595,7 +596,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       warnings,
       providerMetadata: {
         anthropic: {
-          usage: response.usage as Record<string, JSONValue>,
+          usage: response.usage as JSONObject,
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
         },
@@ -972,7 +973,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                 providerMetadata = {
                   anthropic: {
-                    usage: value.message.usage as Record<string, JSONValue>,
+                    usage: value.message.usage as JSONObject,
                     cacheCreationInputTokens:
                       value.message.usage.cache_creation_input_tokens ?? null,
                   },
@@ -1089,12 +1090,6 @@ const anthropicMessagesResponseSchema = z.object({
     output_tokens: z.number(),
     cache_creation_input_tokens: z.number().nullish(),
     cache_read_input_tokens: z.number().nullish(),
-    cache_creation: z.record(z.string(), z.unknown()).nullish(),
-    server_tool_use: z
-      .object({
-        web_search_requests: z.number(),
-      })
-      .nullish(),
   }),
 });
 
@@ -1111,7 +1106,6 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
-        cache_creation: z.record(z.string(), z.unknown()).nullish(),
       }),
     }),
   }),
