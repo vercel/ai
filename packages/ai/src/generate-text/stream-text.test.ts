@@ -7798,9 +7798,9 @@ describe('streamText', () => {
               "attributes": {
                 "ai.operationId": "ai.toolCall",
                 "ai.toolCall.id": "call-1",
-                "ai.toolCall.input": "{"value":"value"}",
+                "ai.toolCall.args": "{"value":"value"}",
                 "ai.toolCall.name": "tool1",
-                "ai.toolCall.output": ""result1"",
+                "ai.toolCall.result": ""result1"",
                 "operation.name": "ai.toolCall",
               },
               "events": [],

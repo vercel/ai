@@ -587,7 +587,7 @@ async function executeTools<TOOLS extends ToolSet>({
             }),
             'ai.toolCall.name': toolName,
             'ai.toolCall.id': toolCallId,
-            'ai.toolCall.input': {
+            'ai.toolCall.args': {
               output: () => JSON.stringify(input),
             },
           },
@@ -606,7 +606,7 @@ async function executeTools<TOOLS extends ToolSet>({
                 selectTelemetryAttributes({
                   telemetry,
                   attributes: {
-                    'ai.toolCall.output': {
+                    'ai.toolCall.result': {
                       output: () => JSON.stringify(output),
                     },
                   },
