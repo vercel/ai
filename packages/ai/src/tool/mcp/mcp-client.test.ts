@@ -45,6 +45,8 @@ describe('MCPClient', () => {
         },
       },
     });
+    expect(tool).toHaveProperty('type');
+    expect(tool.type).toBe('dynamic');
 
     const toolCall = tool.execute;
     expect(toolCall).toBeDefined();

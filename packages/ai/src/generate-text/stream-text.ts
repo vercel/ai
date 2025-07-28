@@ -1271,7 +1271,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                         });
                       }
 
-                      controller.enqueue(chunk);
+                      controller.enqueue({
+                        ...chunk,
+                        dynamic: tool?.type === 'dynamic',
+                      });
                       break;
                     }
 
@@ -1755,7 +1758,10 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-input-start',
                 toolCallId: part.id,
                 toolName: part.toolName,
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
               });
               break;
             }
@@ -1775,8 +1781,13 @@ However, the LLM results are expected to be small enough to not cause issues.
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
                 input: part.input,
-                providerExecuted: part.providerExecuted,
-                providerMetadata: part.providerMetadata,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
+                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
               });
               break;
             }
@@ -1786,7 +1797,10 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
                 output: part.output,
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
               });
               break;
             }
@@ -1796,7 +1810,10 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,
                 errorText: onError(part.error),
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
               });
               break;
             }

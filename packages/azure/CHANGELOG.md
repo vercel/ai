@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 2.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+  - @ai-sdk/openai@2.0.0-beta.13
+
 ## 2.0.0-beta.12
 
 ### Patch Changes
