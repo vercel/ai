@@ -41,7 +41,7 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { CallWarning, LanguageModel } from '../types/language-model';
+import { CallWarning, FinishReason, LanguageModel } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
@@ -358,6 +358,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     new DelayedPromise<LanguageModelRequestMetadata>();
   private readonly _response =
     new DelayedPromise<LanguageModelResponseMetadata>();
+  private readonly _finishReason = new DelayedPromise<FinishReason>();
 
   private readonly baseStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
 
@@ -702,6 +703,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                       ...fullResponse,
                       headers: response?.headers,
                     });
+                    self._finishReason.resolve(finishReason ?? 'unknown');
 
                     // resolve the object promise with the latest object:
                     const validationResult =
@@ -868,6 +870,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
   get response() {
     return this._response.promise;
+  }
+
+  get finishReason() {
+    return this._finishReason.promise;
   }
 
   get partialObjectStream(): AsyncIterableStream<PARTIAL> {
