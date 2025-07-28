@@ -2091,7 +2091,7 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should include toolConfig when conversation has tool calls but no active tools', async () => {
+  it('should omit toolConfig when conversation has tool calls but no active tools', async () => {
     prepareJsonResponse({});
 
     const conversationWithToolCalls: LanguageModelV2Prompt = [
@@ -2137,11 +2137,12 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
-      {
-        "tools": [],
-      }
-    `);
+    // toolConfig should include placeholder tool when conversation has tool content
+    expect(requestBody.toolConfig).toBeDefined();
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+      '_ai_sdk_placeholder',
+    );
   });
 
   it('should handle JSON response format with schema', async () => {
@@ -2256,7 +2257,7 @@ describe('doGenerate', () => {
     ]);
   });
 
-  it('should include toolConfig when conversation has tool calls but toolChoice is none', async () => {
+  it('should omit toolConfig when conversation has tool calls but toolChoice is none', async () => {
     prepareJsonResponse({});
 
     const conversationWithToolCalls: LanguageModelV2Prompt = [
@@ -2315,10 +2316,11 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
-      {
-        "tools": [],
-      }
-    `);
+    // toolConfig should include placeholder tool when conversation has tool content
+    expect(requestBody.toolConfig).toBeDefined();
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+      '_ai_sdk_placeholder',
+    );
   });
 });

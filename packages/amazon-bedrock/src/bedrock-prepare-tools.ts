@@ -39,9 +39,43 @@ export function prepareTools({
   const hasToolContent = promptContainsToolContent(prompt);
 
   if (tools == null) {
+    if (hasToolContent) {
+      // When conversation has tool content, Bedrock requires toolConfig to be present.
+      // Provide a placeholder tool that won't interfere with the conversation.
+      return {
+        toolConfig: {
+          tools: [
+            {
+              toolSpec: {
+                name: '_ai_sdk_placeholder',
+                description: 'Internal placeholder tool - do not use.',
+                inputSchema: {
+                  json: {
+                    type: 'object',
+                    properties: {},
+                    additionalProperties: false,
+                  },
+                },
+              },
+            },
+          ],
+          toolChoice: undefined,
+        },
+        toolWarnings: [
+          {
+            type: 'unsupported-setting',
+            setting: 'tools',
+            details:
+              'Amazon Bedrock requires toolConfig when conversation contains tool content. Added placeholder tool.',
+          },
+        ],
+      };
+    }
+
+    // No tool content, can omit toolConfig entirely
     return {
       toolConfig: {
-        tools: hasToolContent ? [] : undefined,
+        tools: undefined,
         toolChoice: undefined,
       },
       toolWarnings: [],
@@ -88,15 +122,49 @@ export function prepareTools({
         toolWarnings,
       };
     case 'none':
-      // Bedrock does not support 'none' tool choice, so we remove the tools.
-      // However, if conversation contains tool content, we need empty tools array for API.
-      return {
-        toolConfig: {
-          tools: hasToolContent ? [] : undefined,
-          toolChoice: undefined,
-        },
-        toolWarnings,
-      };
+      // Bedrock does not support 'none' tool choice.
+      if (hasToolContent) {
+        // When conversation has tool content, provide a placeholder tool.
+        return {
+          toolConfig: {
+            tools: [
+              {
+                toolSpec: {
+                  name: '_ai_sdk_placeholder',
+                  description: 'Internal placeholder tool - do not use.',
+                  inputSchema: {
+                    json: {
+                      type: 'object',
+                      properties: {},
+                      additionalProperties: false,
+                    },
+                  },
+                },
+              },
+            ],
+            toolChoice: undefined,
+          },
+          toolWarnings: [
+            ...toolWarnings,
+            {
+              type: 'unsupported-setting',
+              setting: 'toolChoice',
+              details:
+                'Amazon Bedrock requires toolConfig when conversation contains tool content. Added placeholder tool.',
+            },
+          ],
+        };
+      } else {
+        // No tool content, can omit toolConfig entirely
+        return {
+          toolConfig: {
+            tools: undefined,
+            toolChoice: undefined,
+          },
+          toolWarnings,
+        };
+      }
+      break;
     case 'tool':
       return {
         toolConfig: {
