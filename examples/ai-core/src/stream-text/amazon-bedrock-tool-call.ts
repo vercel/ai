@@ -41,6 +41,10 @@ async function main() {
       }
 
       case 'tool-result': {
+        if (delta.dynamic) {
+          continue;
+        }
+
         // Transform to new format
         const transformedDelta: ToolResultPart = {
           ...delta,

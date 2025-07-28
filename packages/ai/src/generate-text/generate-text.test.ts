@@ -460,7 +460,10 @@ describe('generateText', () => {
       });
 
       // test type inference
-      if (result.toolResults[0].toolName === 'tool1') {
+      if (
+        result.toolResults[0].toolName === 'tool1' &&
+        !result.toolResults[0].dynamic
+      ) {
         assertType<string>(result.toolResults[0].output);
       }
 

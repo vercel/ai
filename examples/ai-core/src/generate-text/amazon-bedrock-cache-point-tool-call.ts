@@ -154,6 +154,10 @@ async function main() {
 
   // typed tool results for tools with execute method:
   for (const toolResult of result.toolResults) {
+    if (toolResult.dynamic) {
+      continue;
+    }
+
     switch (toolResult.toolName) {
       case 'weather': {
         toolResult.input.location; // string

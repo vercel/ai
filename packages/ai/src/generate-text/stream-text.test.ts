@@ -6832,7 +6832,7 @@ describe('streamText', () => {
           TextStreamPart<{ tool1: Tool<{ value: string }, string> }>
         >({
           transform(chunk, controller) {
-            if (chunk.type === 'tool-result') {
+            if (chunk.type === 'tool-result' && !chunk.dynamic) {
               chunk.output = chunk.output.toUpperCase();
               chunk.input = {
                 ...chunk.input,
@@ -9512,7 +9512,7 @@ describe('streamText', () => {
               };
             }
 
-            if (chunk.type === 'tool-result') {
+            if (chunk.type === 'tool-result' && !chunk.dynamic) {
               chunk.output = chunk.output.toUpperCase();
               chunk.input = {
                 ...chunk.input,

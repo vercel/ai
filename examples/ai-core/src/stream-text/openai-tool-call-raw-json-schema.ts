@@ -64,6 +64,10 @@ async function main() {
       }
 
       case 'tool-result': {
+        if (part.dynamic) {
+          continue;
+        }
+
         switch (part.toolName) {
           // NOT AVAILABLE (NO EXECUTE METHOD)
           // case 'cityAttractions': {
