@@ -5,7 +5,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > onSte
   DefaultStepResult {
     "content": [
       {
-        "dynamic": false,
         "input": {
           "value": "value",
         },
@@ -197,7 +196,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
   DefaultStepResult {
     "content": [
       {
-        "dynamic": false,
         "input": {
           "value": "value",
         },
@@ -345,7 +343,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
   DefaultStepResult {
     "content": [
       {
-        "dynamic": false,
         "input": {
           "value": "value",
         },
@@ -537,7 +534,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
   DefaultStepResult {
     "content": [
       {
-        "dynamic": false,
         "input": {
           "value": "value",
         },

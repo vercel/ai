@@ -556,7 +556,6 @@ describe('simulateStreamingMiddleware', () => {
             "type": "text-end",
           },
           {
-            "dynamic": false,
             "input": {
               "expression": "2+2",
             },
@@ -567,7 +566,6 @@ describe('simulateStreamingMiddleware', () => {
             "type": "tool-call",
           },
           {
-            "dynamic": false,
             "input": {
               "location": "New York",
             },

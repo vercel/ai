@@ -29,7 +29,6 @@ describe('parseToolCall', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "dynamic": false,
         "input": {
           "param1": "test",
           "param2": 42,
@@ -71,7 +70,6 @@ describe('parseToolCall', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "dynamic": false,
         "input": {
           "param1": "test",
           "param2": 42,
@@ -109,7 +107,6 @@ describe('parseToolCall', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "dynamic": false,
         "input": {},
         "providerExecuted": undefined,
         "providerMetadata": undefined,
@@ -140,7 +137,6 @@ describe('parseToolCall', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "dynamic": false,
         "input": {},
         "providerExecuted": undefined,
         "providerMetadata": undefined,
@@ -262,7 +258,6 @@ describe('parseToolCall', () => {
       // Verify the repaired result was used
       expect(result).toMatchInlineSnapshot(`
         {
-          "dynamic": false,
           "input": {
             "param1": "test",
             "param2": 42,

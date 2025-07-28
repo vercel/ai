@@ -1195,7 +1195,6 @@ describe('streamText', () => {
               "type": "tool-input-end",
             },
             {
-              "dynamic": false,
               "input": {
                 "value": "Sparkle Day",
               },
@@ -4081,7 +4080,6 @@ describe('streamText', () => {
       expect(await result.toolCalls).toMatchInlineSnapshot(`
         [
           {
-            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -4128,7 +4126,6 @@ describe('streamText', () => {
       expect(await result.toolResults).toMatchInlineSnapshot(`
         [
           {
-            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -4267,7 +4264,6 @@ describe('streamText', () => {
             "url": "https://example.com",
           },
           {
-            "dynamic": false,
             "input": {
               "value": "test",
             },
@@ -4282,7 +4278,6 @@ describe('streamText', () => {
             "type": "tool-call",
           },
           {
-            "dynamic": false,
             "input": {
               "value": "test",
             },
@@ -4390,7 +4385,6 @@ describe('streamText', () => {
               "type": "text",
             },
             {
-              "dynamic": false,
               "input": {
                 "value": "value",
               },
@@ -4401,7 +4395,6 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
-              "dynamic": false,
               "input": {
                 "value": "value",
               },
@@ -4477,7 +4470,6 @@ describe('streamText', () => {
                   "type": "text",
                 },
                 {
-                  "dynamic": false,
                   "input": {
                     "value": "value",
                   },
@@ -4488,7 +4480,6 @@ describe('streamText', () => {
                   "type": "tool-call",
                 },
                 {
-                  "dynamic": false,
                   "input": {
                     "value": "value",
                   },
@@ -4564,7 +4555,6 @@ describe('streamText', () => {
           "text": "Hello, world!",
           "toolCalls": [
             {
-              "dynamic": false,
               "input": {
                 "value": "value",
               },
@@ -4577,7 +4567,6 @@ describe('streamText', () => {
           ],
           "toolResults": [
             {
-              "dynamic": false,
               "input": {
                 "value": "value",
               },
@@ -5368,7 +5357,6 @@ describe('streamText', () => {
                 "type": "reasoning-end",
               },
               {
-                "dynamic": false,
                 "input": {
                   "value": "value",
                 },
@@ -5379,7 +5367,6 @@ describe('streamText', () => {
                 "type": "tool-call",
               },
               {
-                "dynamic": false,
                 "input": {
                   "value": "value",
                 },
@@ -5555,7 +5542,6 @@ describe('streamText', () => {
                       "type": "reasoning",
                     },
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -5566,7 +5552,6 @@ describe('streamText', () => {
                       "type": "tool-call",
                     },
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -5742,7 +5727,6 @@ describe('streamText', () => {
                     "type": "reasoning",
                   },
                   {
-                    "dynamic": false,
                     "input": {
                       "value": "value",
                     },
@@ -5753,7 +5737,6 @@ describe('streamText', () => {
                     "type": "tool-call",
                   },
                   {
-                    "dynamic": false,
                     "input": {
                       "value": "value",
                     },
@@ -5948,7 +5931,6 @@ describe('streamText', () => {
                     "type": "reasoning",
                   },
                   {
-                    "dynamic": false,
                     "input": {
                       "value": "value",
                     },
@@ -5959,7 +5941,6 @@ describe('streamText', () => {
                     "type": "tool-call",
                   },
                   {
-                    "dynamic": false,
                     "input": {
                       "value": "value",
                     },
@@ -6489,7 +6470,6 @@ describe('streamText', () => {
                 DefaultStepResult {
                   "content": [
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -6500,7 +6480,6 @@ describe('streamText', () => {
                       "type": "tool-call",
                     },
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -6675,7 +6654,6 @@ describe('streamText', () => {
                 DefaultStepResult {
                   "content": [
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -6686,7 +6664,6 @@ describe('streamText', () => {
                       "type": "tool-call",
                     },
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -6965,7 +6942,6 @@ describe('streamText', () => {
                 "type": "reasoning-end",
               },
               {
-                "dynamic": false,
                 "input": {
                   "value": "value",
                 },
@@ -6976,7 +6952,6 @@ describe('streamText', () => {
                 "type": "tool-call",
               },
               {
-                "dynamic": false,
                 "input": {
                   "value": "VALUE",
                 },
@@ -7152,7 +7127,6 @@ describe('streamText', () => {
                       "type": "reasoning",
                     },
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -7163,7 +7137,6 @@ describe('streamText', () => {
                       "type": "tool-call",
                     },
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "VALUE",
                       },
@@ -7339,7 +7312,6 @@ describe('streamText', () => {
                     "type": "reasoning",
                   },
                   {
-                    "dynamic": false,
                     "input": {
                       "value": "value",
                     },
@@ -7350,7 +7322,6 @@ describe('streamText', () => {
                     "type": "tool-call",
                   },
                   {
-                    "dynamic": false,
                     "input": {
                       "value": "VALUE",
                     },
@@ -7545,7 +7516,6 @@ describe('streamText', () => {
                     "type": "reasoning",
                   },
                   {
-                    "dynamic": false,
                     "input": {
                       "value": "value",
                     },
@@ -7556,7 +7526,6 @@ describe('streamText', () => {
                     "type": "tool-call",
                   },
                   {
-                    "dynamic": false,
                     "input": {
                       "value": "VALUE",
                     },
@@ -7795,7 +7764,7 @@ describe('streamText', () => {
                 "ai.response.msToFirstChunk": 100,
                 "ai.response.text": "",
                 "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-                "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"},"dynamic":false}]",
+                "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
                 "ai.settings.maxRetries": 2,
                 "ai.usage.inputTokens": 3,
                 "ai.usage.outputTokens": 10,
@@ -8067,7 +8036,6 @@ describe('streamText', () => {
                       "type": "reasoning",
                     },
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -8078,7 +8046,6 @@ describe('streamText', () => {
                       "type": "tool-call",
                     },
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -8159,7 +8126,6 @@ describe('streamText', () => {
                       "type": "reasoning",
                     },
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -8170,7 +8136,6 @@ describe('streamText', () => {
                       "type": "tool-call",
                     },
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -8366,7 +8331,6 @@ describe('streamText', () => {
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {
-              "dynamic": false,
               "input": {
                 "value": "value",
               },
@@ -8387,7 +8351,6 @@ describe('streamText', () => {
               "type": "tool-result",
             },
             {
-              "dynamic": false,
               "input": {
                 "value": "value",
               },
@@ -8439,7 +8402,6 @@ describe('streamText', () => {
                 "type": "tool-input-end",
               },
               {
-                "dynamic": false,
                 "input": {
                   "value": "value",
                 },
@@ -8460,7 +8422,6 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
               {
-                "dynamic": false,
                 "input": {
                   "value": "value",
                 },
@@ -9271,7 +9232,6 @@ describe('streamText', () => {
               "warnings": [],
             },
             {
-              "dynamic": false,
               "input": {
                 "value": "value",
               },
@@ -9282,7 +9242,6 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
-              "dynamic": false,
               "error": [Error: test error],
               "input": {
                 "value": "value",
@@ -9334,7 +9293,6 @@ describe('streamText', () => {
           DefaultStepResult {
             "content": [
               {
-                "dynamic": false,
                 "input": {
                   "value": "value",
                 },
@@ -9345,7 +9303,6 @@ describe('streamText', () => {
                 "type": "tool-call",
               },
               {
-                "dynamic": false,
                 "error": [Error: test error],
                 "input": {
                   "value": "value",
@@ -9703,7 +9660,6 @@ describe('streamText', () => {
         expect(await result.toolCalls).toMatchInlineSnapshot(`
           [
             {
-              "dynamic": false,
               "input": {
                 "value": "VALUE",
               },
@@ -9753,7 +9709,6 @@ describe('streamText', () => {
         expect(await result.toolResults).toMatchInlineSnapshot(`
           [
             {
-              "dynamic": false,
               "input": {
                 "value": "VALUE",
               },
@@ -9817,7 +9772,6 @@ describe('streamText', () => {
                   "type": "text",
                 },
                 {
-                  "dynamic": false,
                   "input": {
                     "value": "VALUE",
                   },
@@ -9828,7 +9782,6 @@ describe('streamText', () => {
                   "type": "tool-call",
                 },
                 {
-                  "dynamic": false,
                   "input": {
                     "value": "VALUE",
                   },
@@ -10031,7 +9984,6 @@ describe('streamText', () => {
                 "type": "text",
               },
               {
-                "dynamic": false,
                 "input": {
                   "value": "VALUE",
                 },
@@ -10042,7 +9994,6 @@ describe('streamText', () => {
                 "type": "tool-call",
               },
               {
-                "dynamic": false,
                 "input": {
                   "value": "VALUE",
                 },
@@ -10118,7 +10069,6 @@ describe('streamText', () => {
                     "type": "text",
                   },
                   {
-                    "dynamic": false,
                     "input": {
                       "value": "VALUE",
                     },
@@ -10129,7 +10079,6 @@ describe('streamText', () => {
                     "type": "tool-call",
                   },
                   {
-                    "dynamic": false,
                     "input": {
                       "value": "VALUE",
                     },
@@ -10205,7 +10154,6 @@ describe('streamText', () => {
             "text": "HELLO, WORLD!",
             "toolCalls": [
               {
-                "dynamic": false,
                 "input": {
                   "value": "VALUE",
                 },
@@ -10218,7 +10166,6 @@ describe('streamText', () => {
             ],
             "toolResults": [
               {
-                "dynamic": false,
                 "input": {
                   "value": "VALUE",
                 },
@@ -10309,7 +10256,6 @@ describe('streamText', () => {
                 "type": "text",
               },
               {
-                "dynamic": false,
                 "input": {
                   "value": "VALUE",
                 },
@@ -10320,7 +10266,6 @@ describe('streamText', () => {
                 "type": "tool-call",
               },
               {
-                "dynamic": false,
                 "input": {
                   "value": "VALUE",
                 },
@@ -10541,7 +10486,6 @@ describe('streamText', () => {
               "type": "tool-input-delta",
             },
             {
-              "dynamic": false,
               "input": {
                 "value": "TEST",
               },
@@ -10552,7 +10496,6 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
-              "dynamic": false,
               "input": {
                 "value": "TEST",
               },
@@ -12124,7 +12067,6 @@ describe('streamText', () => {
                 DefaultStepResult {
                   "content": [
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -12135,7 +12077,6 @@ describe('streamText', () => {
                       "type": "tool-call",
                     },
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -12215,7 +12156,6 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
-                "dynamic": false,
                 "input": {
                   "value": "value",
                 },
@@ -12226,7 +12166,6 @@ describe('streamText', () => {
                 "type": "tool-call",
               },
               {
-                "dynamic": false,
                 "input": {
                   "value": "value",
                 },

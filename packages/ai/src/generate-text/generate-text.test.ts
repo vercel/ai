@@ -183,7 +183,6 @@ describe('generateText', () => {
             "type": "reasoning",
           },
           {
-            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -387,7 +386,6 @@ describe('generateText', () => {
       expect(result.toolCalls).toMatchInlineSnapshot(`
         [
           {
-            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -914,7 +912,6 @@ describe('generateText', () => {
                 DefaultStepResult {
                   "content": [
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1097,7 +1094,6 @@ describe('generateText', () => {
                 DefaultStepResult {
                   "content": [
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1494,7 +1490,6 @@ describe('generateText', () => {
                 DefaultStepResult {
                   "content": [
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1573,7 +1568,6 @@ describe('generateText', () => {
                 DefaultStepResult {
                   "content": [
                     {
-                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -2230,7 +2224,6 @@ describe('generateText', () => {
       expect(result.toolCalls).toMatchInlineSnapshot(`
         [
           {
-            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -2305,7 +2298,6 @@ describe('generateText', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "dynamic": false,
               "input": {
                 "value": "value",
               },
@@ -2316,7 +2308,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
-              "dynamic": false,
+              "dynamic": undefined,
               "input": {
                 "value": "value",
               },
@@ -2327,7 +2319,6 @@ describe('generateText', () => {
               "type": "tool-result",
             },
             {
-              "dynamic": false,
               "input": {
                 "value": "value",
               },
@@ -2338,7 +2329,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
-              "dynamic": false,
+              "dynamic": undefined,
               "error": "ERROR",
               "input": {
                 "value": "value",
@@ -2607,7 +2598,6 @@ describe('generateText', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -2715,7 +2705,6 @@ describe('generateText', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "dynamic": false,
             "input": {
               "value": "test",
             },
@@ -2726,7 +2715,7 @@ describe('generateText', () => {
             "type": "tool-call",
           },
           {
-            "dynamic": false,
+            "dynamic": undefined,
             "input": {
               "value": "test",
             },
@@ -2745,7 +2734,7 @@ describe('generateText', () => {
       expect(result.toolResults).toMatchInlineSnapshot(`
         [
           {
-            "dynamic": false,
+            "dynamic": undefined,
             "input": {
               "value": "test",
             },
