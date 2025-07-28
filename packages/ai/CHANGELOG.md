@@ -1,5 +1,15 @@
 # ai
 
+## 5.0.0-beta.29
+
+### Patch Changes
+
+- e7fcc86: feat (ai): introduce dynamic tools
+- d92b9a8: fix(ai): add support for MCP protocol version 2025-06-18
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+  - @ai-sdk/gateway@1.0.0-beta.15
+
 ## 5.0.0-beta.28
 
 ### Patch Changes

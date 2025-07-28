@@ -1,5 +1,13 @@
 # @ai-sdk/fireworks
 
+## 1.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+  - @ai-sdk/openai-compatible@1.0.0-beta.10
+
 ## 1.0.0-beta.9
 
 ### Patch Changes
