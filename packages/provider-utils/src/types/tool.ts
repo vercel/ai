@@ -185,3 +185,18 @@ export function tool(tool: Tool<never, never>): Tool<never, never>;
 export function tool(tool: any): any {
   return tool;
 }
+
+/**
+Helper function for defining a dynamic tool.
+ */
+export function dynamicTool(tool: {
+  description?: string;
+  providerOptions?: ProviderOptions;
+  inputSchema: FlexibleSchema<unknown>;
+  execute: ToolExecuteFunction<unknown, unknown>;
+  toModelOutput?: (output: unknown) => LanguageModelV2ToolResultPart['output'];
+}): Tool<unknown, unknown> & {
+  type: 'dynamic';
+} {
+  return { ...tool, type: 'dynamic' };
+}
