@@ -197,37 +197,31 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     let filteredPrompt = prompt;
 
     if (activeTools.length === 0) {
-      const hasToolContent = prompt.some(message => {
-        if ('content' in message && Array.isArray(message.content)) {
-          return message.content.some(
+      const hasToolContent = prompt.some(
+        message =>
+          'content' in message &&
+          Array.isArray(message.content) &&
+          message.content.some(
             part => part.type === 'tool-call' || part.type === 'tool-result',
-          );
-        }
-        return false;
-      });
+          ),
+      );
 
       if (hasToolContent) {
         filteredPrompt = prompt
-          .map(message => {
-            if (message.role === 'system') {
-              return message;
-            }
-
-            if ('content' in message && Array.isArray(message.content)) {
-              const filteredContent = message.content.filter(
-                part =>
-                  part.type !== 'tool-call' && part.type !== 'tool-result',
-              );
-              return { ...message, content: filteredContent } as typeof message;
-            }
-            return message;
-          })
-          .filter(message => {
-            if ('content' in message && Array.isArray(message.content)) {
-              return message.content.length > 0;
-            }
-            return true;
-          }) as typeof prompt;
+          .map(message =>
+            message.role === 'system'
+              ? message
+              : {
+                  ...message,
+                  content: message.content.filter(
+                    part =>
+                      part.type !== 'tool-call' && part.type !== 'tool-result',
+                  ),
+                },
+          )
+          .filter(
+            message => message.role === 'system' || message.content.length > 0,
+          ) as typeof prompt;
 
         warnings.push({
           type: 'unsupported-setting',
