@@ -143,12 +143,6 @@ Allows you to easily create a conversational user interface for your chatbot app
       description: 'Initial chat messages to populate the conversation with.',
     },
     {
-      name: 'maxSteps',
-      type: 'number',
-      isOptional: true,
-      description: 'Maximum number of sequential tool execution steps per assistant message. Defaults to 1.',
-    },
-    {
       name: 'onToolCall',
       type: '({toolCall: ToolCall}) => void | Promise<void>',
       isOptional: true,
