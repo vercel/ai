@@ -16,6 +16,7 @@ import { parsePartialJson } from '../util/parse-partial-json';
 import { UIDataTypesToSchemas } from './chat';
 import {
   DataUIPart,
+  DynamicToolUIPart,
   getToolName,
   InferUIMessageData,
   InferUIMessageMetadata,
@@ -96,7 +97,41 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(chunk, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
-          function updateToolInvocationPart(
+          function getToolInvocation(toolCallId: string) {
+            const toolInvocations = state.message.parts.filter(isToolUIPart);
+
+            const toolInvocation = toolInvocations.find(
+              invocation => invocation.toolCallId === toolCallId,
+            );
+
+            if (toolInvocation == null) {
+              throw new Error(
+                'tool-output-error must be preceded by a tool-input-available',
+              );
+            }
+
+            return toolInvocation;
+          }
+
+          function getDynamicToolInvocation(toolCallId: string) {
+            const toolInvocations = state.message.parts.filter(
+              part => part.type === 'dynamic-tool',
+            ) as DynamicToolUIPart[];
+
+            const toolInvocation = toolInvocations.find(
+              invocation => invocation.toolCallId === toolCallId,
+            );
+
+            if (toolInvocation == null) {
+              throw new Error(
+                'tool-output-error must be preceded by a tool-input-available',
+              );
+            }
+
+            return toolInvocation;
+          }
+
+          function updateToolPart(
             options: {
               toolName: keyof InferUIMessageTools<UI_MESSAGE> & string;
               toolCallId: string;
@@ -164,6 +199,71 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   ? { callProviderMetadata: anyOptions.providerMetadata }
                   : {}),
               } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>);
+            }
+          }
+
+          function updateDynamicToolPart(
+            options: {
+              toolName: keyof InferUIMessageTools<UI_MESSAGE> & string;
+              toolCallId: string;
+              providerExecuted?: boolean;
+            } & (
+              | {
+                  state: 'input-streaming';
+                  input: unknown;
+                }
+              | {
+                  state: 'input-available';
+                  input: unknown;
+                  providerMetadata?: ProviderMetadata;
+                }
+              | {
+                  state: 'output-available';
+                  input: unknown;
+                  output: unknown;
+                }
+              | {
+                  state: 'output-error';
+                  input: unknown;
+                  errorText: string;
+                }
+            ),
+          ) {
+            const part = state.message.parts.find(
+              part =>
+                part.type === 'dynamic-tool' &&
+                part.toolCallId === options.toolCallId,
+            ) as DynamicToolUIPart | undefined;
+
+            const anyOptions = options as any;
+            const anyPart = part as any;
+
+            if (part != null) {
+              part.state = options.state;
+              anyPart.toolName = options.toolName;
+              anyPart.input = anyOptions.input;
+              anyPart.output = anyOptions.output;
+              anyPart.errorText = anyOptions.errorText;
+
+              if (
+                anyOptions.providerMetadata != null &&
+                part.state === 'input-available'
+              ) {
+                part.callProviderMetadata = anyOptions.providerMetadata;
+              }
+            } else {
+              state.message.parts.push({
+                type: 'dynamic-tool',
+                toolName: options.toolName,
+                toolCallId: options.toolCallId,
+                state: options.state,
+                input: anyOptions.input,
+                output: anyOptions.output,
+                errorText: anyOptions.errorText,
+                ...(anyOptions.providerMetadata != null
+                  ? { callProviderMetadata: anyOptions.providerMetadata }
+                  : {}),
+              } as DynamicToolUIPart);
             }
           }
 
@@ -300,13 +400,22 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 index: toolInvocations.length,
               };
 
-              updateToolInvocationPart({
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
-                state: 'input-streaming',
-                input: undefined,
-                providerExecuted: chunk.providerExecuted,
-              });
+              if (chunk.dynamic) {
+                updateDynamicToolPart({
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                  state: 'input-streaming',
+                  input: undefined,
+                });
+              } else {
+                updateToolPart({
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                  state: 'input-streaming',
+                  input: undefined,
+                  providerExecuted: chunk.providerExecuted,
+                });
+              }
 
               write();
               break;
@@ -321,26 +430,45 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 partialToolCall.text,
               );
 
-              updateToolInvocationPart({
-                toolCallId: chunk.toolCallId,
-                toolName: partialToolCall.toolName,
-                state: 'input-streaming',
-                input: partialArgs,
-              });
+              if (chunk.dynamic) {
+                updateDynamicToolPart({
+                  toolCallId: chunk.toolCallId,
+                  toolName: partialToolCall.toolName,
+                  state: 'input-streaming',
+                  input: partialArgs,
+                });
+              } else {
+                updateToolPart({
+                  toolCallId: chunk.toolCallId,
+                  toolName: partialToolCall.toolName,
+                  state: 'input-streaming',
+                  input: partialArgs,
+                });
+              }
 
               write();
               break;
             }
 
             case 'tool-input-available': {
-              updateToolInvocationPart({
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
-                state: 'input-available',
-                input: chunk.input,
-                providerExecuted: chunk.providerExecuted,
-                providerMetadata: chunk.providerMetadata,
-              });
+              if (chunk.dynamic) {
+                updateDynamicToolPart({
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                  state: 'input-available',
+                  input: chunk.input,
+                  providerMetadata: chunk.providerMetadata,
+                });
+              } else {
+                updateToolPart({
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                  state: 'input-available',
+                  input: chunk.input,
+                  providerExecuted: chunk.providerExecuted,
+                  providerMetadata: chunk.providerMetadata,
+                });
+              }
 
               write();
 
@@ -348,7 +476,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // In the future we should make this non-blocking, which
               // requires additional state management for error handling etc.
               // Skip calling onToolCall for provider-executed tools since they are already executed
-              if (onToolCall && !chunk.providerExecuted) {
+              if (onToolCall && !chunk.providerExecuted && !chunk.dynamic) {
                 await onToolCall({
                   toolCall: chunk as InferUIMessageToolCall<UI_MESSAGE>,
                 });
@@ -357,72 +485,59 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-output-available': {
-              const toolInvocations = state.message.parts.filter(isToolUIPart);
-
-              if (toolInvocations == null) {
-                throw new Error('tool_result must be preceded by a tool_call');
-              }
-
-              // find if there is any tool invocation with the same toolCallId
-              // and replace it with the result
-              const toolInvocationIndex = toolInvocations.findIndex(
-                invocation => invocation.toolCallId === chunk.toolCallId,
-              );
-
-              if (toolInvocationIndex === -1) {
-                throw new Error(
-                  'tool_result must be preceded by a tool_call with the same toolCallId',
+              if (chunk.dynamic) {
+                const toolInvocation = getDynamicToolInvocation(
+                  chunk.toolCallId,
                 );
+
+                updateDynamicToolPart({
+                  toolCallId: chunk.toolCallId,
+                  toolName: toolInvocation.toolName,
+                  state: 'output-available',
+                  input: (toolInvocation as any).input,
+                  output: chunk.output,
+                });
+              } else {
+                const toolInvocation = getToolInvocation(chunk.toolCallId);
+
+                updateToolPart({
+                  toolCallId: chunk.toolCallId,
+                  toolName: getToolName(toolInvocation),
+                  state: 'output-available',
+                  input: (toolInvocation as any).input,
+                  output: chunk.output,
+                  providerExecuted: chunk.providerExecuted,
+                });
               }
-
-              const toolName = getToolName(
-                toolInvocations[toolInvocationIndex],
-              );
-
-              updateToolInvocationPart({
-                toolCallId: chunk.toolCallId,
-                toolName,
-                state: 'output-available',
-                input: (toolInvocations[toolInvocationIndex] as any).input,
-                output: chunk.output,
-                providerExecuted: chunk.providerExecuted,
-              });
 
               write();
               break;
             }
 
             case 'tool-output-error': {
-              const toolInvocations = state.message.parts.filter(isToolUIPart);
-
-              if (toolInvocations == null) {
-                throw new Error('tool_result must be preceded by a tool_call');
-              }
-
-              // find if there is any tool invocation with the same toolCallId
-              // and replace it with the result
-              const toolInvocationIndex = toolInvocations.findIndex(
-                invocation => invocation.toolCallId === chunk.toolCallId,
-              );
-
-              if (toolInvocationIndex === -1) {
-                throw new Error(
-                  'tool_result must be preceded by a tool_call with the same toolCallId',
+              if (chunk.dynamic) {
+                const toolInvocation = getDynamicToolInvocation(
+                  chunk.toolCallId,
                 );
+
+                updateDynamicToolPart({
+                  toolCallId: chunk.toolCallId,
+                  toolName: toolInvocation.toolName,
+                  state: 'output-error',
+                  input: (toolInvocation as any).input,
+                  errorText: chunk.errorText,
+                });
+              } else {
+                const toolInvocation = getToolInvocation(chunk.toolCallId);
+
+                updateToolPart({
+                  toolCallId: chunk.toolCallId,
+                  toolName: getToolName(toolInvocation),
+                  state: 'output-error',
+                  input: (toolInvocation as any).input,
+                  errorText: chunk.errorText,
+                });
               }
-
-              const toolName = getToolName(
-                toolInvocations[toolInvocationIndex],
-              );
-
-              updateToolInvocationPart({
-                toolCallId: chunk.toolCallId,
-                toolName,
-                state: 'output-error',
-                input: (toolInvocations[toolInvocationIndex] as any).input,
-                errorText: chunk.errorText,
-                providerExecuted: chunk.providerExecuted,
-              });
 
               write();
               break;
