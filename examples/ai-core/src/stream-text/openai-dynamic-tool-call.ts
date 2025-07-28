@@ -1,27 +1,33 @@
 import { openai } from '@ai-sdk/openai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
-import { stepCountIs, streamText, dynamicTool } from 'ai';
+import { stepCountIs, streamText, dynamicTool, ToolSet } from 'ai';
 import { z } from 'zod/v4';
+
+function dynamicToolSet(): ToolSet {
+  return {
+    currentLocation: dynamicTool({
+      description: 'Get the current location.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        const locations = ['New York', 'London', 'Paris'];
+        return {
+          location: locations[Math.floor(Math.random() * locations.length)],
+        };
+      },
+    }),
+  };
+}
 
 async function main() {
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4o'),
     stopWhen: stepCountIs(5),
     tools: {
-      currentLocation: dynamicTool({
-        description: 'Get the current location.',
-        inputSchema: z.object({}),
-        execute: async () => {
-          const locations = ['New York', 'London', 'Paris'];
-          return {
-            location: locations[Math.floor(Math.random() * locations.length)],
-          };
-        },
-      }),
+      ...dynamicToolSet(),
       weather: weatherTool,
     },
-    prompt: 'What is the weather in my current location and in Rome?',
+    prompt: 'What is the weather in my current location?',
   });
 
   for await (const chunk of result.fullStream) {
@@ -32,16 +38,38 @@ async function main() {
       }
 
       case 'tool-call': {
-        console.log(
-          `TOOL CALL ${chunk.toolName} ${JSON.stringify(chunk.input)}`,
-        );
+        if (chunk.dynamic) {
+          console.log('DYNAMIC CALL', JSON.stringify(chunk, null, 2));
+          continue;
+        }
+
+        switch (chunk.toolName) {
+          case 'weather': {
+            console.log('STATIC CALL', JSON.stringify(chunk, null, 2));
+            chunk.input.location; // string
+            break;
+          }
+        }
+
         break;
       }
 
       case 'tool-result': {
-        console.log(
-          `TOOL RESULT ${chunk.toolName} ${JSON.stringify(chunk.output)}`,
-        );
+        if (chunk.dynamic) {
+          console.log('DYNAMIC RESULT', JSON.stringify(chunk, null, 2));
+          continue;
+        }
+
+        switch (chunk.toolName) {
+          case 'weather': {
+            console.log('STATIC RESULT', JSON.stringify(chunk, null, 2));
+            chunk.input.location; // string
+            chunk.output.location; // string
+            chunk.output.temperature; // number
+            break;
+          }
+        }
+
         break;
       }
 
