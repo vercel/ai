@@ -5,7 +5,12 @@ import {
   LanguageModelV2ProviderDefinedTool,
   LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
-import { jsonSchema, ModelMessage, tool } from '@ai-sdk/provider-utils';
+import {
+  dynamicTool,
+  jsonSchema,
+  ModelMessage,
+  tool,
+} from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod/v4';
@@ -2730,7 +2735,7 @@ describe('generateText', () => {
         ]
       `);
 
-      // tool results should be empty since the tool wasn't executed
+      // tool results should include the result from the provider
       expect(result.toolResults).toMatchInlineSnapshot(`
         [
           {
@@ -2744,6 +2749,72 @@ describe('generateText', () => {
             "providerExecuted": true,
             "toolCallId": "call-1",
             "toolName": "providerTool",
+            "type": "tool-result",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('dynamic tools', () => {
+    it('should execute dynamic tools', async () => {
+      let toolExecuted = false;
+
+      const result = await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'dynamicTool',
+                input: `{ "value": "test" }`,
+              },
+            ],
+            finishReason: 'tool-calls',
+          }),
+        }),
+        tools: {
+          dynamicTool: dynamicTool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => {
+              toolExecuted = true;
+              return { value: 'test-result' };
+            },
+          }),
+        },
+        prompt: 'test-input',
+      });
+
+      // tool should be executed by client
+      expect(toolExecuted).toBe(true);
+
+      // tool call should be included in content
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "dynamic": true,
+            "input": {
+              "value": "test",
+            },
+            "providerExecuted": undefined,
+            "providerMetadata": undefined,
+            "toolCallId": "call-1",
+            "toolName": "dynamicTool",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": true,
+            "input": {
+              "value": "test",
+            },
+            "output": {
+              "value": "test-result",
+            },
+            "toolCallId": "call-1",
+            "toolName": "dynamicTool",
             "type": "tool-result",
           },
         ]
