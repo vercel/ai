@@ -2091,7 +2091,7 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should omit toolConfig when conversation has tool calls but no active tools', async () => {
+  it('should omit toolConfig and filter tool content when conversation has tool calls but no active tools', async () => {
     prepareJsonResponse({});
 
     const conversationWithToolCalls: LanguageModelV2Prompt = [
@@ -2130,32 +2130,41 @@ describe('doGenerate', () => {
       },
     ];
 
-    await model.doGenerate({
+    const result = await model.doGenerate({
       prompt: conversationWithToolCalls,
       tools: [],
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    // toolConfig should include placeholder tool when conversation has tool content
-    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
-      {
-        "tools": [
-          {
-            "toolSpec": {
-              "description": "Internal placeholder tool - do not use.",
-              "inputSchema": {
-                "json": {
-                  "additionalProperties": false,
-                  "properties": {},
-                  "type": "object",
-                },
-              },
-              "name": "_ai_sdk_placeholder",
+    // toolConfig should be omitted entirely when no active tools
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
+    
+    expect(requestBody.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "What is the weather in Toronto?",
             },
-          },
-        ],
-      }
+            {
+              "text": "Now give me a summary.",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+
+    // Should include warning about filtered tool content
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.",
+          "setting": "tool-content",
+          "type": "unsupported-setting",
+        },
+      ]
     `);
   });
 
@@ -2330,11 +2339,7 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    // toolConfig should include placeholder tool when conversation has tool content
-    expect(requestBody.toolConfig).toBeDefined();
-    expect(requestBody.toolConfig.tools).toHaveLength(1);
-    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
-      '_ai_sdk_placeholder',
-    );
+    // toolConfig should be omitted entirely when toolChoice is 'none'
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
   });
 });

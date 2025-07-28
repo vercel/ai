@@ -143,8 +143,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           }
         : undefined;
 
-    const { system, messages } = await convertToBedrockChatMessages(prompt);
-
     const isThinking = bedrockOptions.reasoningConfig?.type === 'enabled';
     const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
 
@@ -193,13 +191,57 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
+    // Filter tool content from prompt when no tools are available
+    const activeTools = jsonResponseTool != null ? [jsonResponseTool] : (tools ?? []);
+    let filteredPrompt = prompt;
+    
+    if (activeTools.length === 0) {
+      const hasToolContent = prompt.some(message => {
+        if ('content' in message && Array.isArray(message.content)) {
+          return message.content.some(
+            part => part.type === 'tool-call' || part.type === 'tool-result',
+          );
+        }
+        return false;
+      });
+      
+      if (hasToolContent) {
+        filteredPrompt = prompt.map(message => {
+          if (message.role === 'system') {
+            return message;
+          }
+          
+          if ('content' in message && Array.isArray(message.content)) {
+            const filteredContent = message.content.filter(
+              part => part.type !== 'tool-call' && part.type !== 'tool-result',
+            );
+            return { ...message, content: filteredContent } as typeof message;
+          }
+          return message;
+        }).filter(message => {
+          if ('content' in message && Array.isArray(message.content)) {
+            return message.content.length > 0;
+          }
+          return true;
+        }) as typeof prompt;
+        
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'tool-content',
+          details: 'Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.',
+        });
+      }
+    }
+
+    const { system, messages } = await convertToBedrockChatMessages(filteredPrompt);
+
     const { toolConfig, toolWarnings } = prepareTools({
-      tools: jsonResponseTool != null ? [jsonResponseTool] : (tools ?? []),
+      tools: activeTools,
       toolChoice:
         jsonResponseTool != null
           ? { type: 'tool', toolName: jsonResponseTool.name }
           : toolChoice,
-      prompt,
+      prompt: filteredPrompt,
     });
 
     // Filter out reasoningConfig from providerOptions.bedrock to prevent sending it to Bedrock API
