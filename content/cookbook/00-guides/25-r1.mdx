@@ -200,10 +200,10 @@ export default function Page() {
         </div>
       ))}
       <form onSubmit={handleSubmit}>
-        <input 
-          name="prompt" 
-          value={input} 
-          onChange={(e) => setInput(e.target.value)} 
+        <input
+          name="prompt"
+          value={input}
+          onChange={e => setInput(e.target.value)}
         />
         <button type="submit">Submit</button>
       </form>
@@ -213,8 +213,8 @@ export default function Page() {
 ```
 
 <Note>
-  You can access the model's reasoning tokens through the `parts` array on
-  the `message` object, where reasoning parts have `type: 'reasoning'`.
+  You can access the model's reasoning tokens through the `parts` array on the
+  `message` object, where reasoning parts have `type: 'reasoning'`.
 </Note>
 
 The useChat hook on your root page (`app/page.tsx`) will make a request to your AI provider endpoint (`app/api/chat/route.ts`) whenever the user submits a message. The messages are then displayed in the chat UI.
