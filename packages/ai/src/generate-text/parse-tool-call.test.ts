@@ -1,10 +1,10 @@
+import { dynamicTool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { InvalidToolInputError } from '../../src/error/invalid-tool-input-error';
-import { NoSuchToolError } from '../../src/error/no-such-tool-error';
+import { InvalidToolInputError } from '../error/invalid-tool-input-error';
+import { NoSuchToolError } from '../error/no-such-tool-error';
+import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import { tool } from '../tool';
 import { parseToolCall } from './parse-tool-call';
-import { ToolCallRepairError } from '../../src/error/tool-call-repair-error';
-import { dynamicTool } from '../../../provider-utils/src/types/tool';
 
 describe('parseToolCall', () => {
   it('should successfully parse a valid tool call', async () => {
