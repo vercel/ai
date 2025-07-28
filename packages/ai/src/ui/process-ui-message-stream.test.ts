@@ -4859,7 +4859,6 @@ describe('processUIMessageStream', () => {
           type: 'tool-input-delta',
           toolCallId: 'tool-call-1',
           inputTextDelta: '{ "query": "test" }',
-          dynamic: true,
         },
         {
           type: 'tool-input-available',

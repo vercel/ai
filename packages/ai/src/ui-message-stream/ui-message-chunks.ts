@@ -43,7 +43,6 @@ export const uiMessageChunkSchema = z.union([
     type: z.literal('tool-input-delta'),
     toolCallId: z.string(),
     inputTextDelta: z.string(),
-    dynamic: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-input-available'),
@@ -226,7 +225,6 @@ export type UIMessageChunk<
       type: 'tool-input-delta';
       toolCallId: string;
       inputTextDelta: string;
-      dynamic?: boolean;
     }
   | {
       type: 'source-url';
