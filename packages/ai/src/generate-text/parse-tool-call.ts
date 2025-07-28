@@ -114,5 +114,6 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     input: parseResult.value,
     providerExecuted: toolCall.providerExecuted,
     providerMetadata: toolCall.providerMetadata,
+    dynamic: tool.type === 'dynamic',
   };
 }

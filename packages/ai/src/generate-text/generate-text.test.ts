@@ -183,6 +183,7 @@ describe('generateText', () => {
             "type": "reasoning",
           },
           {
+            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -197,6 +198,7 @@ describe('generateText', () => {
             "type": "text",
           },
           {
+            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -382,6 +384,7 @@ describe('generateText', () => {
       expect(result.toolCalls).toMatchInlineSnapshot(`
         [
           {
+            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -458,15 +461,20 @@ describe('generateText', () => {
         assertType<string>(result.toolResults[0].output);
       }
 
-      expect(result.toolResults).toStrictEqual([
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          input: { value: 'value' },
-          output: 'result1',
-        },
-      ]);
+      expect(result.toolResults).toMatchInlineSnapshot(`
+        [
+          {
+            "dynamic": false,
+            "input": {
+              "value": "value",
+            },
+            "output": "result1",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+        ]
+      `);
     });
   });
 
@@ -900,6 +908,7 @@ describe('generateText', () => {
                 DefaultStepResult {
                   "content": [
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -910,6 +919,7 @@ describe('generateText', () => {
                       "type": "tool-call",
                     },
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1081,6 +1091,7 @@ describe('generateText', () => {
                 DefaultStepResult {
                   "content": [
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1091,6 +1102,7 @@ describe('generateText', () => {
                       "type": "tool-call",
                     },
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1476,6 +1488,7 @@ describe('generateText', () => {
                 DefaultStepResult {
                   "content": [
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1486,6 +1499,7 @@ describe('generateText', () => {
                       "type": "tool-call",
                     },
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1553,6 +1567,7 @@ describe('generateText', () => {
                 DefaultStepResult {
                   "content": [
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1563,6 +1578,7 @@ describe('generateText', () => {
                       "type": "tool-call",
                     },
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -2205,6 +2221,7 @@ describe('generateText', () => {
       expect(result.toolCalls).toMatchInlineSnapshot(`
         [
           {
+            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -2279,6 +2296,7 @@ describe('generateText', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
+              "dynamic": false,
               "input": {
                 "value": "value",
               },
@@ -2289,6 +2307,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
+              "dynamic": false,
               "input": {
                 "value": "value",
               },
@@ -2299,6 +2318,7 @@ describe('generateText', () => {
               "type": "tool-result",
             },
             {
+              "dynamic": false,
               "input": {
                 "value": "value",
               },
@@ -2309,6 +2329,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
+              "dynamic": false,
               "error": "ERROR",
               "input": {
                 "value": "value",
@@ -2577,6 +2598,7 @@ describe('generateText', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -2587,6 +2609,7 @@ describe('generateText', () => {
             "type": "tool-call",
           },
           {
+            "dynamic": false,
             "error": [Error: test error],
             "input": {
               "value": "value",
@@ -2683,6 +2706,7 @@ describe('generateText', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "dynamic": false,
             "input": {
               "value": "test",
             },
@@ -2693,6 +2717,7 @@ describe('generateText', () => {
             "type": "tool-call",
           },
           {
+            "dynamic": false,
             "input": {
               "value": "test",
             },
@@ -2711,6 +2736,7 @@ describe('generateText', () => {
       expect(result.toolResults).toMatchInlineSnapshot(`
         [
           {
+            "dynamic": false,
             "input": {
               "value": "test",
             },

@@ -110,6 +110,7 @@ describe('runToolsTransformation', () => {
       .toMatchInlineSnapshot(`
         [
           {
+            "dynamic": false,
             "input": {
               "value": "test",
             },
@@ -120,6 +121,7 @@ describe('runToolsTransformation', () => {
             "type": "tool-call",
           },
           {
+            "dynamic": false,
             "input": {
               "value": "test",
             },
@@ -182,6 +184,7 @@ describe('runToolsTransformation', () => {
       .toMatchInlineSnapshot(`
         [
           {
+            "dynamic": false,
             "input": {
               "value": "test",
             },
@@ -192,6 +195,7 @@ describe('runToolsTransformation', () => {
             "type": "tool-call",
           },
           {
+            "dynamic": false,
             "input": {
               "value": "test",
             },
@@ -258,6 +262,7 @@ describe('runToolsTransformation', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
+          "dynamic": false,
           "input": {
             "value": "test",
           },
@@ -268,6 +273,7 @@ describe('runToolsTransformation', () => {
           "type": "tool-call",
         },
         {
+          "dynamic": false,
           "input": {
             "value": "test",
           },
@@ -340,6 +346,7 @@ describe('runToolsTransformation', () => {
       .toMatchInlineSnapshot(`
         [
           {
+            "dynamic": false,
             "input": {
               "value": "test",
             },
@@ -350,6 +357,7 @@ describe('runToolsTransformation', () => {
             "type": "tool-call",
           },
           {
+            "dynamic": false,
             "input": {
               "value": "test",
             },

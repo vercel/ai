@@ -27,12 +27,20 @@ describe('parseToolCall', () => {
       system: undefined,
     });
 
-    expect(result).toEqual({
-      type: 'tool-call',
-      toolCallId: '123',
-      toolName: 'testTool',
-      input: { param1: 'test', param2: 42 },
-    });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "dynamic": false,
+        "input": {
+          "param1": "test",
+          "param2": 42,
+        },
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
   });
 
   it('should successfully parse a valid tool call with provider metadata', async () => {
@@ -63,6 +71,7 @@ describe('parseToolCall', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
+        "dynamic": false,
         "input": {
           "param1": "test",
           "param2": 42,
@@ -98,12 +107,17 @@ describe('parseToolCall', () => {
       system: undefined,
     });
 
-    expect(result).toEqual({
-      type: 'tool-call',
-      toolCallId: '123',
-      toolName: 'testTool',
-      input: {},
-    });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "dynamic": false,
+        "input": {},
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
   });
 
   it('should successfully process empty object tool calls for tools that have no inputSchema', async () => {
@@ -124,12 +138,17 @@ describe('parseToolCall', () => {
       system: undefined,
     });
 
-    expect(result).toEqual({
-      type: 'tool-call',
-      toolCallId: '123',
-      toolName: 'testTool',
-      input: {},
-    });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "dynamic": false,
+        "input": {},
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
   });
 
   it('should throw NoSuchToolError when tools is null', async () => {
@@ -241,12 +260,20 @@ describe('parseToolCall', () => {
       });
 
       // Verify the repaired result was used
-      expect(result).toEqual({
-        type: 'tool-call',
-        toolCallId: '123',
-        toolName: 'testTool',
-        input: { param1: 'test', param2: 42 },
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "dynamic": false,
+          "input": {
+            "param1": "test",
+            "param2": 42,
+          },
+          "providerExecuted": undefined,
+          "providerMetadata": undefined,
+          "toolCallId": "123",
+          "toolName": "testTool",
+          "type": "tool-call",
+        }
+      `);
     });
 
     it('should re-throw error if tool call repair returns null', async () => {

@@ -625,6 +625,7 @@ async function executeTools<TOOLS extends ToolSet>({
               toolName,
               input,
               output: result,
+              dynamic: tool.type === 'dynamic',
             } as ToolResultUnion<TOOLS>;
           } catch (error) {
             recordErrorOnSpan(span, error);
@@ -634,6 +635,7 @@ async function executeTools<TOOLS extends ToolSet>({
               toolName,
               input,
               error,
+              dynamic: tool.type === 'dynamic',
             } as ToolErrorUnion<TOOLS>;
           }
         },
@@ -808,6 +810,7 @@ function asContent<TOOLS extends ToolSet>({
               input: toolCall.input,
               error: part.result,
               providerExecuted: true,
+              dynamic: toolCall.dynamic,
             } as ToolErrorUnion<TOOLS>;
           }
 
@@ -818,6 +821,7 @@ function asContent<TOOLS extends ToolSet>({
             input: toolCall.input,
             output: part.result,
             providerExecuted: true,
+            dynamic: toolCall.dynamic,
           } as ToolResultUnion<TOOLS>;
         }
       }

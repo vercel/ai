@@ -39,7 +39,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "ai.response.msToFirstChunk": 100,
       "ai.response.text": "",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"},"dynamic":false}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
@@ -144,7 +144,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.response.finishReason": "stop",
       "ai.response.providerMetadata": "{"testProvider":{"testKey":"TEST VALUE"}}",
       "ai.response.text": "HELLO, WORLD!",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"VALUE"}}]",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"VALUE"},"dynamic":false}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
@@ -173,7 +173,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
       "ai.response.text": "Hello, world!",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"VALUE"}}]",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"VALUE"},"dynamic":false}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
@@ -246,6 +246,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "warnings": [],
   },
   {
+    "dynamic": false,
     "input": {
       "value": "value",
     },
@@ -256,6 +257,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "type": "tool-call",
   },
   {
+    "dynamic": false,
     "input": {
       "value": "value",
     },
@@ -309,6 +311,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "warnings": [],
   },
   {
+    "dynamic": false,
     "input": {
       "value": "value",
     },
@@ -365,6 +368,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "warnings": [],
   },
   {
+    "dynamic": false,
     "input": {
       "value": "value",
     },
@@ -375,6 +379,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "type": "tool-call",
   },
   {
+    "dynamic": false,
     "input": {
       "value": "value",
     },
@@ -783,7 +788,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.prompt": "{"prompt":"test-input"}",
       "ai.response.finishReason": "stop",
       "ai.response.text": "",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"},"dynamic":false}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
@@ -811,7 +816,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.response.msToFirstChunk": 100,
       "ai.response.text": "",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"},"dynamic":false}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
@@ -970,6 +975,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "warnings": [],
   },
   {
+    "dynamic": false,
     "input": {
       "value": "value",
     },
