@@ -2337,7 +2337,6 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    // toolConfig should be omitted entirely when toolChoice is 'none'
     expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
   });
 });
