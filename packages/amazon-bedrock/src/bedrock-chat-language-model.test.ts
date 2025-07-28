@@ -2159,7 +2159,7 @@ describe('doGenerate', () => {
       [
         {
           "details": "Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.",
-          "setting": "tool-content",
+          "setting": "toolContent",
           "type": "unsupported-setting",
         },
       ]

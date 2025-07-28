@@ -231,7 +231,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
         warnings.push({
           type: 'unsupported-setting',
-          setting: 'tool-content',
+          setting: 'toolContent',
           details:
             'Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.',
         });
