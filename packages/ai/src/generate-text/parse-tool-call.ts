@@ -107,13 +107,22 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
-  return {
-    type: 'tool-call',
-    toolCallId: toolCall.toolCallId,
-    toolName,
-    input: parseResult.value,
-    providerExecuted: toolCall.providerExecuted,
-    providerMetadata: toolCall.providerMetadata,
-    dynamic: tool.type === 'dynamic',
-  };
+  return tool.type === 'dynamic'
+    ? {
+        type: 'tool-call',
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: parseResult.value,
+        providerExecuted: toolCall.providerExecuted,
+        providerMetadata: toolCall.providerMetadata,
+        dynamic: true,
+      }
+    : {
+        type: 'tool-call',
+        toolCallId: toolCall.toolCallId,
+        toolName,
+        input: parseResult.value,
+        providerExecuted: toolCall.providerExecuted,
+        providerMetadata: toolCall.providerMetadata,
+      };
 }

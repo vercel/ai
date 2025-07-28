@@ -140,6 +140,10 @@ async function main() {
 
   // typed tool calls:
   for (const toolCall of result.toolCalls) {
+    if (toolCall.dynamic) {
+      continue;
+    }
+
     switch (toolCall.toolName) {
       case 'weather': {
         toolCall.input.location; // string

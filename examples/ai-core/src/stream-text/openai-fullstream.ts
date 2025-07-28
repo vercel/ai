@@ -24,6 +24,10 @@ async function main() {
       }
 
       case 'tool-call': {
+        if (part.dynamic) {
+          continue;
+        }
+
         switch (part.toolName) {
           case 'cityAttractions': {
             console.log('TOOL CALL cityAttractions');
