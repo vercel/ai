@@ -340,6 +340,26 @@ const { text: meatLasangaRecipe } = await generateText({
 });
 ```
 
+### Code Execution
+
+With [Code Execution](https://ai.google.dev/gemini-api/docs/code-execution), certain models can generate and execute Python code to perform calculations, solve problems, or provide more accurate information.
+
+You can enable code execution by adding the `code_execution` tool to your request.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { googleTools } from '@ai-sdk/google/internal';
+import { generateText } from 'ai';
+
+const { text, toolCalls, toolResults } = await generateText({
+  model: google('gemini-2.5-pro'),
+  tools: { code_execution: google.tools.codeExecution({}) },
+  prompt: 'Use python to calculate the 20th fibonacci number.',
+});
+```
+
+The response will contain the tool calls and results from the code execution.
+
 ### Google Search
 
 With [search grounding](https://ai.google.dev/gemini-api/docs/google-search),

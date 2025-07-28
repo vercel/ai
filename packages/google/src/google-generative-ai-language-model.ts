@@ -216,7 +216,34 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     // Build content array from all parts
     for (const part of parts) {
-      if ('text' in part && part.text != null && part.text.length > 0) {
+      if ('executableCode' in part && part.executableCode?.code) {
+        content.push({
+          type: 'tool-call',
+          toolCallId: this.config.generateId(), // Generate a unique ID
+          toolName: 'code_execution',
+          input: JSON.stringify(part.executableCode),
+          providerExecuted: true,
+        });
+      } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
+        content.push({
+          type: 'tool-result',
+          // This is a limitation of the non-streaming API format.
+          // We find the last code execution tool call that hasn't received a result yet.
+          toolCallId: (
+            [...content]
+              .reverse()
+              .find(
+                c => c.type === 'tool-call' && c.toolName === 'code_execution',
+              ) as any
+          )?.toolCallId,
+          toolName: 'code_execution',
+          result: {
+            outcome: part.codeExecutionResult.outcome,
+            output: part.codeExecutionResult.output,
+          },
+          providerExecuted: true,
+        });
+      } else if ('text' in part && part.text != null && part.text.length > 0) {
         if (part.thought === true) {
           content.push({ type: 'reasoning', text: part.text });
         } else {
@@ -319,6 +346,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     // Track emitted sources to prevent duplicates
     const emittedSourceUrls = new Set<string>();
+    const pendingCodeExecutionToolCallIds: string[] = [];
 
     return {
       stream: response.pipeThrough(
@@ -385,7 +413,38 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               // Process text parts individually to handle reasoning parts
               const parts = content.parts ?? [];
               for (const part of parts) {
-                if (
+                if ('executableCode' in part && part.executableCode?.code) {
+                  const toolCallId = generateId();
+                  pendingCodeExecutionToolCallIds.push(toolCallId);
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName: 'code_execution',
+                    input: JSON.stringify(part.executableCode),
+                    providerExecuted: true,
+                  });
+
+                  hasToolCalls = true;
+                } else if (
+                  'codeExecutionResult' in part &&
+                  part.codeExecutionResult
+                ) {
+                  const toolCallId = pendingCodeExecutionToolCallIds.shift();
+
+                  if (toolCallId) {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId,
+                      toolName: 'code_execution',
+                      result: {
+                        outcome: part.codeExecutionResult.outcome,
+                        output: part.codeExecutionResult.output,
+                      },
+                      providerExecuted: true,
+                    });
+                  }
+                } else if (
                   'text' in part &&
                   part.text != null &&
                   part.text.length > 0
@@ -625,6 +684,18 @@ const contentSchema = z.object({
           }),
         }),
         z.object({
+          executableCode: z
+            .object({
+              language: z.string(),
+              code: z.string(),
+            })
+            .nullish(),
+          codeExecutionResult: z
+            .object({
+              outcome: z.string(),
+              output: z.string(),
+            })
+            .nullish(),
           text: z.string().nullish(),
           thought: z.boolean().nullish(),
         }),
