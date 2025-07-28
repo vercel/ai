@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
-import { stepCountIs, streamText, tool } from 'ai';
+import { stepCountIs, streamText, dynamicTool } from 'ai';
 import { z } from 'zod/v4';
 
 async function main() {
@@ -9,7 +9,7 @@ async function main() {
     model: openai('gpt-4-turbo'),
     stopWhen: stepCountIs(5),
     tools: {
-      currentLocation: tool({
+      currentLocation: dynamicTool({
         description: 'Get the current location.',
         inputSchema: z.object({}),
         execute: async () => {
@@ -21,7 +21,7 @@ async function main() {
       }),
       weather: weatherTool,
     },
-    prompt: 'What is the weather in my current location?',
+    prompt: 'What is the weather in my current location and in Rome?',
   });
 
   for await (const chunk of result.fullStream) {
@@ -42,23 +42,6 @@ async function main() {
         console.log(
           `TOOL RESULT ${chunk.toolName} ${JSON.stringify(chunk.output)}`,
         );
-        break;
-      }
-
-      case 'finish-step': {
-        console.log();
-        console.log();
-        console.log('STEP FINISH');
-        console.log('Finish reason:', chunk.finishReason);
-        console.log('Usage:', chunk.usage);
-        console.log();
-        break;
-      }
-
-      case 'finish': {
-        console.log('FINISH');
-        console.log('Finish reason:', chunk.finishReason);
-        console.log('Total Usage:', chunk.totalUsage);
         break;
       }
 
