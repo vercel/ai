@@ -2137,7 +2137,6 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    // toolConfig should be omitted entirely when no active tools
     expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
 
     expect(requestBody.messages).toMatchInlineSnapshot(`
@@ -2156,7 +2155,6 @@ describe('doGenerate', () => {
       ]
     `);
 
-    // Should include warning about filtered tool content
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
