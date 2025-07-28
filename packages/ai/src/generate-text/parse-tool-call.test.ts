@@ -4,6 +4,7 @@ import { NoSuchToolError } from '../../src/error/no-such-tool-error';
 import { tool } from '../tool';
 import { parseToolCall } from './parse-tool-call';
 import { ToolCallRepairError } from '../../src/error/tool-call-repair-error';
+import { dynamicTool } from '../../../provider-utils/src/types/tool';
 
 describe('parseToolCall', () => {
   it('should successfully parse a valid tool call', async () => {
@@ -334,5 +335,43 @@ describe('parseToolCall', () => {
       });
       expect(repairToolCall).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('should set dynamic to true for dynamic tools', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{"param1": "test", "param2": 42}',
+      },
+      tools: {
+        testTool: dynamicTool({
+          inputSchema: z.object({
+            param1: z.string(),
+            param2: z.number(),
+          }),
+          execute: async () => 'result',
+        }),
+      } as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "dynamic": true,
+        "input": {
+          "param1": "test",
+          "param2": 42,
+        },
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
   });
 });
