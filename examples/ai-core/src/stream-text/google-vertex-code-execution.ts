@@ -40,7 +40,7 @@ async function main() {
       case 'tool-result': {
         const transformedDelta: ToolResultPart = {
           ...delta,
-          output: { type: 'json', value: delta.output },
+          output: { type: 'json', value: delta.output as any },
         };
         toolResponses.push(transformedDelta);
 
