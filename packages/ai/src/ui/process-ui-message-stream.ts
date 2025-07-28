@@ -36,7 +36,7 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   activeReasoningParts: Record<string, ReasoningUIPart>;
   partialToolCalls: Record<
     string,
-    { text: string; index: number; toolName: string }
+    { text: string; index: number; toolName: string; dynamic?: boolean }
   >;
 };
 
@@ -398,6 +398,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 text: '',
                 toolName: chunk.toolName,
                 index: toolInvocations.length,
+                dynamic: chunk.dynamic,
               };
 
               if (chunk.dynamic) {
@@ -430,7 +431,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 partialToolCall.text,
               );
 
-              if (chunk.dynamic) {
+              if (partialToolCall.dynamic) {
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
