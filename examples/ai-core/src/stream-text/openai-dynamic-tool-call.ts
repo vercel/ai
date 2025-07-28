@@ -4,7 +4,7 @@ import { weatherTool } from '../tools/weather-tool';
 import { stepCountIs, streamText, dynamicTool, ToolSet } from 'ai';
 import { z } from 'zod/v4';
 
-function dynamicToolSet(): ToolSet {
+function dynamicTools(): ToolSet {
   return {
     currentLocation: dynamicTool({
       description: 'Get the current location.',
@@ -24,7 +24,7 @@ async function main() {
     model: openai('gpt-4o'),
     stopWhen: stepCountIs(5),
     tools: {
-      ...dynamicToolSet(),
+      ...dynamicTools(),
       weather: weatherTool,
     },
     prompt: 'What is the weather in my current location?',
