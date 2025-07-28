@@ -2139,7 +2139,7 @@ describe('doGenerate', () => {
 
     // toolConfig should be omitted entirely when no active tools
     expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
-    
+
     expect(requestBody.messages).toMatchInlineSnapshot(`
       [
         {

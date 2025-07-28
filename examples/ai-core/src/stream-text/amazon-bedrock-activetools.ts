@@ -35,7 +35,9 @@ async function main() {
         console.log('Step started');
         break;
       case 'tool-call':
-        console.log(`Tool call: ${part.toolName}(${JSON.stringify(part.input)})`);
+        console.log(
+          `Tool call: ${part.toolName}(${JSON.stringify(part.input)})`,
+        );
         break;
       case 'tool-result':
         console.log(`Tool result: ${JSON.stringify(part.output)}`);
@@ -56,4 +58,4 @@ async function main() {
   console.log('Usage:', await result.usage);
 }
 
-main().catch(console.error); 
+main().catch(console.error);
