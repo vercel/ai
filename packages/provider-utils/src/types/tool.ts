@@ -126,13 +126,20 @@ If not provided, the tool will not be executed automatically.
   (
     | {
         /**
-Function tool.
+Tool with user-defined input and output schemas.
      */
         type?: undefined | 'function';
       }
     | {
         /**
-Provider-defined tool.
+Tool that is defined at runtime (e.g. an MCP tool).
+The types of input and output are not known at development time.
+       */
+        type: 'dynamic';
+      }
+    | {
+        /**
+Tool with provider-defined input and output schemas.
      */
         type: 'provider-defined';
 
