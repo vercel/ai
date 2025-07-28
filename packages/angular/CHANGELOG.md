@@ -1,5 +1,23 @@
 # @ai-sdk/angular
 
+## 1.0.0-beta.11
+
+### Patch Changes
+
+- ac34802: Add clear object function to React and Angular packages
+- Updated dependencies [ac34802]
+- Updated dependencies [84343eb]
+- Updated dependencies [a753b3a]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+  - ai@5.0.0-beta.28
+
+## 1.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [d5ae088]
+  - ai@5.0.0-beta.27
+
 ## 1.0.0-beta.9
 
 ### Patch Changes

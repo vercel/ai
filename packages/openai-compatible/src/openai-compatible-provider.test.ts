@@ -179,4 +179,80 @@ describe('OpenAICompatibleProvider', () => {
       );
     });
   });
+
+  describe('includeUsage setting', () => {
+    it('should pass includeUsage: true to all model types when specified in provider settings', () => {
+      const options = {
+        baseURL: 'https://api.example.com',
+        name: 'test-provider',
+        includeUsage: true,
+      };
+      const provider = createOpenAICompatible(options);
+
+      provider.chatModel('chat-model');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0][1].includeUsage,
+      ).toBe(true);
+
+      provider.completionModel('completion-model');
+      expect(
+        OpenAICompatibleCompletionLanguageModelMock.mock.calls[0][1]
+          .includeUsage,
+      ).toBe(true);
+
+      provider('model-id');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[1][1].includeUsage,
+      ).toBe(true);
+    });
+
+    it('should pass includeUsage: false to all model types when specified in provider settings', () => {
+      const options = {
+        baseURL: 'https://api.example.com',
+        name: 'test-provider',
+        includeUsage: false,
+      };
+      const provider = createOpenAICompatible(options);
+
+      provider.chatModel('chat-model');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0][1].includeUsage,
+      ).toBe(false);
+
+      provider.completionModel('completion-model');
+      expect(
+        OpenAICompatibleCompletionLanguageModelMock.mock.calls[0][1]
+          .includeUsage,
+      ).toBe(false);
+
+      provider('model-id');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[1][1].includeUsage,
+      ).toBe(false);
+    });
+
+    it('should pass includeUsage: undefined to all model types when not specified in provider settings', () => {
+      const options = {
+        baseURL: 'https://api.example.com',
+        name: 'test-provider',
+      };
+      const provider = createOpenAICompatible(options);
+
+      provider.chatModel('chat-model');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0][1].includeUsage,
+      ).toBeUndefined();
+
+      provider.completionModel('completion-model');
+      expect(
+        OpenAICompatibleCompletionLanguageModelMock.mock.calls[0][1]
+          .includeUsage,
+      ).toBeUndefined();
+
+      provider('model-id');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[1][1].includeUsage,
+      ).toBeUndefined();
+    });
+  });
 });

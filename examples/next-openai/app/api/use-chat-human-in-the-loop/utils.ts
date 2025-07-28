@@ -3,9 +3,11 @@ import {
   Tool,
   ToolCallOptions,
   ToolSet,
-  UIMessage,
   UIMessageStreamWriter,
+  getToolName,
+  isToolUIPart,
 } from 'ai';
+import { HumanInTheLoopUIMessage } from './types';
 
 // Approval string to be shared across frontend and backend
 export const APPROVAL = {
@@ -25,7 +27,7 @@ function isValidToolName<K extends PropertyKey, T extends object>(
  *
  * @param options - The function options
  * @param options.tools - Map of tool names to Tool instances that may expose execute functions
- * @param options.dataStream - Data stream for sending results back to the client
+ * @param options.writer - UIMessageStream writer for sending results back to the client
  * @param options.messages - Array of messages to process
  * @param executionFunctions - Map of tool names to execute functions
  * @returns Promise resolving to the processed messages
@@ -39,12 +41,12 @@ export async function processToolCalls<
   },
 >(
   {
-    dataStream,
+    writer,
     messages,
   }: {
     tools: Tools; // used for type inference
-    dataStream: UIMessageStreamWriter;
-    messages: UIMessage[];
+    writer: UIMessageStreamWriter;
+    messages: HumanInTheLoopUIMessage[]; // IMPORTANT: replace with your message type
   },
   executeFunctions: {
     [K in keyof Tools & keyof ExecutableTools]?: (
@@ -52,7 +54,7 @@ export async function processToolCalls<
       context: ToolCallOptions,
     ) => Promise<any>;
   },
-): Promise<UIMessage[]> {
+): Promise<HumanInTheLoopUIMessage[]> {
   const lastMessage = messages[messages.length - 1];
   const parts = lastMessage.parts;
   if (!parts) return messages;
@@ -60,36 +62,35 @@ export async function processToolCalls<
   const processedParts = await Promise.all(
     parts.map(async part => {
       // Only process tool invocations parts
-      if (part.type !== 'tool-invocation') return part;
+      if (!isToolUIPart(part)) return part;
 
-      const { toolInvocation } = part;
-      const toolName = toolInvocation.toolName;
+      const toolName = getToolName(part);
 
       // Only continue if we have an execute function for the tool (meaning it requires confirmation) and it's in a 'result' state
-      if (!(toolName in executeFunctions) || toolInvocation.state !== 'result')
+      if (!(toolName in executeFunctions) || part.state !== 'output-available')
         return part;
 
       let result;
 
-      if (toolInvocation.result === APPROVAL.YES) {
+      if (part.output === APPROVAL.YES) {
         // Get the tool and check if the tool has an execute function.
         if (
           !isValidToolName(toolName, executeFunctions) ||
-          toolInvocation.state !== 'result'
+          part.state !== 'output-available'
         ) {
           return part;
         }
 
-        const toolInstance = executeFunctions[toolName];
+        const toolInstance = executeFunctions[toolName] as Tool['execute'];
         if (toolInstance) {
-          result = await toolInstance(toolInvocation.args, {
+          result = await toolInstance(part.input, {
             messages: convertToModelMessages(messages),
-            toolCallId: toolInvocation.toolCallId,
+            toolCallId: part.toolCallId,
           });
         } else {
           result = 'Error: No execute function found on tool';
         }
-      } else if (toolInvocation.result === APPROVAL.NO) {
+      } else if (part.output === APPROVAL.NO) {
         result = 'Error: User denied access to tool execution';
       } else {
         // For any unhandled responses, return the original part.
@@ -97,19 +98,16 @@ export async function processToolCalls<
       }
 
       // Forward updated tool result to the client.
-      dataStream.write({
-        type: 'tool-result',
-        toolCallId: toolInvocation.toolCallId,
-        result,
+      writer.write({
+        type: 'tool-output-available',
+        toolCallId: part.toolCallId,
+        output: result,
       });
 
       // Return updated toolInvocation with the actual result.
       return {
         ...part,
-        toolInvocation: {
-          ...toolInvocation,
-          result,
-        },
+        output: result,
       };
     }),
   );

@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-beta.6
+
+### Patch Changes
+
+- ac34802: Add clear object function to StructuredObject
+
 ## 3.0.0-beta.5
 
 ### Patch Changes

@@ -1007,6 +1007,7 @@ describe('streamText', () => {
                   required: ['value'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
             ]);
 
@@ -5245,6 +5246,7 @@ describe('streamText', () => {
                     "type": "object",
                   },
                   "name": "tool1",
+                  "providerOptions": undefined,
                   "type": "function",
                 },
               ],
@@ -5319,6 +5321,7 @@ describe('streamText', () => {
                     "type": "object",
                   },
                   "name": "tool1",
+                  "providerOptions": undefined,
                   "type": "function",
                 },
               ],
@@ -6373,6 +6376,7 @@ describe('streamText', () => {
                     "type": "object",
                   },
                   "name": "tool1",
+                  "providerOptions": undefined,
                   "type": "function",
                 },
               ],
@@ -9071,6 +9075,7 @@ describe('streamText', () => {
                   required: ['value'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
             ]);
             expect(toolChoice).toStrictEqual({ type: 'required' });
@@ -11244,6 +11249,7 @@ describe('streamText', () => {
               "type": "object",
             },
             "name": "tool1",
+            "providerOptions": undefined,
             "type": "function",
           },
         ]

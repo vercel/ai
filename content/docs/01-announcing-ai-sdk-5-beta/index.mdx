@@ -335,7 +335,6 @@ const { messages, sendMessage } = useChat({
     api: '/api/chat', // your chat endpoint
     headers: { 'Custom-Header': 'value' },
   }),
-  maxSteps: 5,
 });
 ```
 
@@ -364,7 +363,7 @@ The `prepareStep` function gives you fine-grained control over each step in a mu
 ```ts
 const result = await generateText({
   // ...
-  experimental_prepareStep: async ({ model, stepNumber, maxSteps, steps }) => {
+  prepareStep: async ({ model, stepNumber, steps }) => {
     if (stepNumber === 0) {
       return {
         // use a different model for this step:
@@ -372,7 +371,7 @@ const result = await generateText({
         // force a tool choice for this step:
         toolChoice: { type: 'tool', toolName: 'tool1' },
         // limit the tools that are available for this step:
-        experimental_activeTools: ['tool1'],
+        activeTools: ['tool1'],
       };
     }
     // when nothing is returned, the default settings are used

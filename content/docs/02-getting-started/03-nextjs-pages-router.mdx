@@ -313,32 +313,21 @@ Now, when you ask about the weather, you'll see the tool call and its result dis
 
 You may have noticed that while the tool is now visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
-To solve this, you can enable multi-step tool calls using the `maxSteps` option in your `useChat` hook. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
-
-### Update Your Client-Side Code
-
-Modify your `pages/index.tsx` file to include the `maxSteps` option:
-
-```tsx filename="pages/index.tsx"
-import { useChat } from '@ai-sdk/react';
-import { useState } from 'react';
-
-export default function Chat() {
-  const [input, setInput] = useState('');
-  const { messages, sendMessage } = useChat({
-    maxSteps: 5,
-  });
-  // ... rest of your component
-}
-```
+To solve this, you can enable multi-step tool calls using `stopWhen`. By default, `stopWhen` is set to `stepCountIs(1)`, which means generation stops after the first step when there are tool results. By changing this condition, you can allow the model to automatically send tool results back to itself to trigger additional generations until your specified stopping condition is met. In this case, you want the model to continue generating so it can use the weather tool results to answer your original question.
 
 ### Update Your Route Handler
 
-Let's also add another tool to demonstrate multi-step tool calls. Update your `app/api/chat/route.ts` file:
+Modify your `app/api/chat/route.ts` file to include the `stopWhen` condition:
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
 import { z } from 'zod';
 
 export const maxDuration = 30;
@@ -349,6 +338,56 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o'),
     messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location (fahrenheit)',
+        inputSchema: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          const temperature = Math.round(Math.random() * (90 - 32) + 32);
+          return {
+            location,
+            temperature,
+          };
+        },
+      }),
+    },
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
+
+By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Celsius to Fahrenheit.
+
+### Add another tool
+
+Update your `app/api/chat/route.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
+
+```tsx filename="app/api/chat/route.ts" highlight="27-40"
+import { openai } from '@ai-sdk/openai';
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
+import { z } from 'zod';
+
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
@@ -394,9 +433,7 @@ import { useState } from 'react';
 
 export default function Chat() {
   const [input, setInput] = useState('');
-  const { messages, sendMessage } = useChat({
-    maxSteps: 3,
-  });
+  const { messages, sendMessage } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(message => (

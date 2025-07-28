@@ -1,6 +1,22 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
+// Filter schemas
+const comparisonFilterSchema = z.object({
+  key: z.string(),
+  type: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte']),
+  value: z.union([z.string(), z.number(), z.boolean()]),
+});
+
+const compoundFilterSchema: z.ZodType<any> = z.object({
+  type: z.enum(['and', 'or']),
+  filters: z.array(
+    z.union([comparisonFilterSchema, z.lazy(() => compoundFilterSchema)]),
+  ),
+});
+
+const filtersSchema = z.union([comparisonFilterSchema, compoundFilterSchema]);
+
 // Args validation schema
 export const fileSearchArgsSchema = z.object({
   /**
@@ -11,12 +27,21 @@ export const fileSearchArgsSchema = z.object({
   /**
    * Maximum number of search results to return. Defaults to 10.
    */
-  maxResults: z.number().optional(),
+  maxNumResults: z.number().optional(),
 
   /**
-   * Type of search to perform. Defaults to 'auto'.
+   * Ranking options for the search.
    */
-  searchType: z.enum(['auto', 'keyword', 'semantic']).optional(),
+  ranking: z
+    .object({
+      ranker: z.enum(['auto', 'keyword', 'semantic']).optional(),
+    })
+    .optional(),
+
+  /**
+   * A filter to apply based on file attributes.
+   */
+  filters: filtersSchema.optional(),
 });
 
 export const fileSearch = createProviderDefinedToolFactory<
@@ -35,12 +60,28 @@ export const fileSearch = createProviderDefinedToolFactory<
     /**
      * Maximum number of search results to return. Defaults to 10.
      */
-    maxResults?: number;
+    maxNumResults?: number;
 
     /**
-     * Type of search to perform. Defaults to 'auto'.
+     * Ranking options for the search.
      */
-    searchType?: 'auto' | 'keyword' | 'semantic';
+    ranking?: {
+      ranker?: 'auto' | 'keyword' | 'semantic';
+    };
+
+    /**
+     * A filter to apply based on file attributes.
+     */
+    filters?:
+      | {
+          key: string;
+          type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
+          value: string | number | boolean;
+        }
+      | {
+          type: 'and' | 'or';
+          filters: any[];
+        };
   }
 >({
   id: 'openai.file_search',

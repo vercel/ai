@@ -18,8 +18,10 @@ async function main() {
   });
 
   const openaiFileSearch = openai.tools.fileSearch({
-    maxResults: 5,
-    searchType: 'semantic',
+    maxNumResults: 5,
+    ranking: {
+      ranker: 'semantic',
+    },
   });
 
   console.log('OpenAI Web Search Tool created successfully');

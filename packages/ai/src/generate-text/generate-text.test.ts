@@ -320,6 +320,7 @@ describe('generateText', () => {
                   required: ['value'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
               {
                 type: 'function',
@@ -332,6 +333,7 @@ describe('generateText', () => {
                   required: ['somethingElse'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
             ]);
 
@@ -411,6 +413,7 @@ describe('generateText', () => {
                   required: ['value'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
             ]);
 
@@ -627,6 +630,7 @@ describe('generateText', () => {
                         required: ['value'],
                         type: 'object',
                       },
+                      providerOptions: undefined,
                     },
                   ]);
 
@@ -1262,6 +1266,7 @@ describe('generateText', () => {
                     "type": "object",
                   },
                   "name": "tool1",
+                  "providerOptions": undefined,
                   "type": "function",
                 },
               ],
@@ -1769,6 +1774,7 @@ describe('generateText', () => {
             "type": "object",
           },
           "name": "tool1",
+          "providerOptions": undefined,
           "type": "function",
         },
       ]
@@ -2124,6 +2130,7 @@ describe('generateText', () => {
                   required: ['value'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
               {
                 type: 'function',
@@ -2135,6 +2142,7 @@ describe('generateText', () => {
                   required: ['somethingElse'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
             ]);
 
