@@ -2138,11 +2138,25 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
 
     // toolConfig should include placeholder tool when conversation has tool content
-    expect(requestBody.toolConfig).toBeDefined();
-    expect(requestBody.toolConfig.tools).toHaveLength(1);
-    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
-      '_ai_sdk_placeholder',
-    );
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
+      {
+        "tools": [
+          {
+            "toolSpec": {
+              "description": "Internal placeholder tool - do not use.",
+              "inputSchema": {
+                "json": {
+                  "additionalProperties": false,
+                  "properties": {},
+                  "type": "object",
+                },
+              },
+              "name": "_ai_sdk_placeholder",
+            },
+          },
+        ],
+      }
+    `);
   });
 
   it('should handle JSON response format with schema', async () => {
