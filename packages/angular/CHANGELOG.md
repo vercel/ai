@@ -1,5 +1,14 @@
 # @ai-sdk/angular
 
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [bc24722]
+- Updated dependencies [13b4f46]
+- Updated dependencies [56c232b]
+  - ai@5.0.0-beta.32
+
 ## 1.0.0-beta.14
 
 ### Patch Changes
