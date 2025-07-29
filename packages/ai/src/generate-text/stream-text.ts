@@ -133,8 +133,8 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
     TextStreamPart<TOOLS>,
     {
       type:
-        | 'text'
-        | 'reasoning'
+        | 'text-delta'
+        | 'reasoning-delta'
         | 'source'
         | 'tool-call'
         | 'tool-input-start'
@@ -461,7 +461,7 @@ function createOutputTransformStream<
   }) {
     controller.enqueue({
       part: {
-        type: 'text',
+        type: 'text-delta',
         id: firstTextChunkId!,
         text: textChunk,
       },
@@ -481,7 +481,7 @@ function createOutputTransformStream<
       }
 
       if (
-        chunk.type !== 'text' &&
+        chunk.type !== 'text-delta' &&
         chunk.type !== 'text-start' &&
         chunk.type !== 'text-end'
       ) {
@@ -658,8 +658,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         const { part } = chunk;
 
         if (
-          part.type === 'text' ||
-          part.type === 'reasoning' ||
+          part.type === 'text-delta' ||
+          part.type === 'reasoning-delta' ||
           part.type === 'source' ||
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
@@ -684,7 +684,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(activeTextContent[part.id]);
         }
 
-        if (part.type === 'text') {
+        if (part.type === 'text-delta') {
           const activeText = activeTextContent[part.id];
 
           if (activeText == null) {
@@ -717,7 +717,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(activeReasoningContent[part.id]);
         }
 
-        if (part.type === 'reasoning') {
+        if (part.type === 'reasoning-delta') {
           const activeReasoning = activeReasoningContent[part.id];
 
           if (activeReasoning == null) {
@@ -1175,7 +1175,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'text-delta': {
                       if (chunk.delta.length > 0) {
                         controller.enqueue({
-                          type: 'text',
+                          type: 'text-delta',
                           id: chunk.id,
                           text: chunk.delta,
                           providerMetadata: chunk.providerMetadata,
@@ -1193,7 +1193,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'reasoning-delta': {
                       controller.enqueue({
-                        type: 'reasoning',
+                        type: 'reasoning-delta',
                         id: chunk.id,
                         text: chunk.delta,
                         providerMetadata: chunk.providerMetadata,
@@ -1271,7 +1271,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                         });
                       }
 
-                      controller.enqueue(chunk);
+                      controller.enqueue({
+                        ...chunk,
+                        dynamic: tool?.type === 'dynamic',
+                      });
                       break;
                     }
 
@@ -1553,7 +1556,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       this.teeStream().pipeThrough(
         new TransformStream<EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>, string>({
           transform({ part }, controller) {
-            if (part.type === 'text') {
+            if (part.type === 'text-delta') {
               controller.enqueue(part.text);
             }
           },
@@ -1654,7 +1657,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'text': {
+            case 'text-delta': {
               controller.enqueue({
                 type: 'text-delta',
                 id: part.id,
@@ -1688,7 +1691,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'reasoning': {
+            case 'reasoning-delta': {
               if (sendReasoning) {
                 controller.enqueue({
                   type: 'reasoning-delta',
@@ -1755,7 +1758,10 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-input-start',
                 toolCallId: part.id,
                 toolName: part.toolName,
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
               });
               break;
             }
@@ -1775,8 +1781,13 @@ However, the LLM results are expected to be small enough to not cause issues.
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
                 input: part.input,
-                providerExecuted: part.providerExecuted,
-                providerMetadata: part.providerMetadata,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
+                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
               });
               break;
             }
@@ -1786,7 +1797,10 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
                 output: part.output,
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
               });
               break;
             }
@@ -1796,7 +1810,10 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,
                 errorText: onError(part.error),
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
               });
               break;
             }

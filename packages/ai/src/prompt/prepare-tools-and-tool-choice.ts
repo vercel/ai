@@ -42,12 +42,14 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
       const toolType = tool.type;
       switch (toolType) {
         case undefined:
+        case 'dynamic':
         case 'function':
           return {
             type: 'function' as const,
             name,
             description: tool.description,
             inputSchema: asSchema(tool.inputSchema).jsonSchema,
+            providerOptions: tool.providerOptions,
           };
         case 'provider-defined':
           return {

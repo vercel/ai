@@ -6,6 +6,7 @@ import {
 } from './gateway-provider';
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
 import { NoSuchModelError } from '@ai-sdk/provider';
+import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
 import { GatewayLanguageModel } from './gateway-language-model';
@@ -121,14 +122,15 @@ describe('GatewayProvider', () => {
       );
     });
 
-    it('should throw NoSuchModelError for textEmbeddingModel', () => {
+    it('should create GatewayEmbeddingModel for textEmbeddingModel', () => {
       const provider = createGatewayProvider({
         baseURL: 'https://api.example.com',
       });
 
-      expect(() => {
-        provider.textEmbeddingModel('test-model');
-      }).toThrow(NoSuchModelError);
+      const model = provider.textEmbeddingModel(
+        'openai/text-embedding-3-small',
+      );
+      expect(model).toBeInstanceOf(GatewayEmbeddingModel);
     });
 
     it('should fetch available models', async () => {
@@ -257,7 +259,7 @@ describe('GatewayProvider', () => {
     it('should not include undefined o11y headers', async () => {
       const originalEnv = process.env;
       process.env = { ...originalEnv };
-      process.env.DEPLOYMENT_ID = undefined;
+      process.env.VERCEL_DEPLOYMENT_ID = undefined;
       process.env.VERCEL_ENV = undefined;
       process.env.VERCEL_REGION = undefined;
 

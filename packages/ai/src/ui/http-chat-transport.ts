@@ -13,10 +13,7 @@ export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
     headers: HeadersInit | undefined;
     api: string;
   } & {
-    trigger:
-      | 'submit-user-message'
-      | 'submit-tool-result'
-      | 'regenerate-assistant-message';
+    trigger: 'submit-message' | 'regenerate-message';
     messageId: string | undefined;
   },
 ) =>

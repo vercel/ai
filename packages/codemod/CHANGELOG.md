@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- df983e6: feat(codemods): added v4→v5 migration codemods
+
 ## 2.0.0-beta.3
 
 ### Patch Changes

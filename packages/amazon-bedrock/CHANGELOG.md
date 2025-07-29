@@ -1,5 +1,27 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.0-beta.12
+
+### Patch Changes
+
+- 0893170: fix(amazon-bedrock): handle empty activeTools with tool conversation history
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- a89add7: fix(amazon-bedrock): add structured output support for claude models
+
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- b652872: fix(provider/bedrock): include toolConfig when conversation contains tool content
+- Updated dependencies [ac34802]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+
 ## 3.0.0-beta.9
 
 ### Patch Changes

@@ -1,4 +1,3 @@
-import type { LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
@@ -15,8 +14,15 @@ import {
   type GatewayFetchMetadataResponse,
 } from './gateway-fetch-metadata';
 import { GatewayLanguageModel } from './gateway-language-model';
-import type { GatewayModelId } from './gateway-language-model-settings';
+import { GatewayEmbeddingModel } from './gateway-embedding-model';
+import type { GatewayEmbeddingModelId } from './gateway-embedding-options';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
+import type { GatewayModelId } from './gateway-language-model-settings';
+import type {
+  LanguageModelV2,
+  EmbeddingModelV2,
+  ProviderV2,
+} from '@ai-sdk/provider';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
@@ -30,6 +36,13 @@ Creates a model for text generation.
 Returns available providers and models for use with the remote provider.
  */
   getAvailableModels(): Promise<GatewayFetchMetadataResponse>;
+
+  /**
+Creates a model for generating text embeddings.
+*/
+  textEmbeddingModel(
+    modelId: GatewayEmbeddingModelId,
+  ): EmbeddingModelV2<string>;
 }
 
 export interface GatewayProviderSettings {
@@ -103,7 +116,7 @@ export function createGatewayProvider(
     });
   };
 
-  const createLanguageModel = (modelId: GatewayModelId) => {
+  const createO11yHeaders = () => {
     const deploymentId = loadOptionalSetting({
       settingValue: undefined,
       environmentVariableName: 'VERCEL_DEPLOYMENT_ID',
@@ -117,20 +130,24 @@ export function createGatewayProvider(
       environmentVariableName: 'VERCEL_REGION',
     });
 
+    return async () => {
+      const requestId = await getVercelRequestId();
+      return {
+        ...(deploymentId && { 'ai-o11y-deployment-id': deploymentId }),
+        ...(environment && { 'ai-o11y-environment': environment }),
+        ...(region && { 'ai-o11y-region': region }),
+        ...(requestId && { 'ai-o11y-request-id': requestId }),
+      };
+    };
+  };
+
+  const createLanguageModel = (modelId: GatewayModelId) => {
     return new GatewayLanguageModel(modelId, {
       provider: 'gateway',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      o11yHeaders: async () => {
-        const requestId = await getVercelRequestId();
-        return {
-          ...(deploymentId && { 'ai-o11y-deployment-id': deploymentId }),
-          ...(environment && { 'ai-o11y-environment': environment }),
-          ...(region && { 'ai-o11y-region': region }),
-          ...(requestId && { 'ai-o11y-request-id': requestId }),
-        };
-      },
+      o11yHeaders: createO11yHeaders(),
     });
   };
 
@@ -172,8 +189,14 @@ export function createGatewayProvider(
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
   provider.languageModel = createLanguageModel;
-  provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  provider.textEmbeddingModel = (modelId: GatewayEmbeddingModelId) => {
+    return new GatewayEmbeddingModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
   };
 
   return provider;
@@ -205,7 +228,7 @@ export async function getGatewayAuthToken(
       token: oidcToken,
       authMethod: 'oidc',
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 }

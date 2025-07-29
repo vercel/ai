@@ -1,5 +1,40 @@
 # @ai-sdk/llamaindex
 
+## 1.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [e7fcc86]
+- Updated dependencies [d92b9a8]
+  - ai@5.0.0-beta.29
+
+## 1.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [84343eb]
+- Updated dependencies [a753b3a]
+  - ai@5.0.0-beta.28
+
+## 1.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [d5ae088]
+  - ai@5.0.0-beta.27
+
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [ae77a99]
+- Updated dependencies [1f6ce57]
+- Updated dependencies [5a975a4]
+- Updated dependencies [2a62513]
+- Updated dependencies [904fa5e]
+- Updated dependencies [f81c720]
+  - ai@5.0.0-beta.26
+
 ## 1.0.0-beta.25
 
 ### Patch Changes

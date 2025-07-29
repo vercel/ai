@@ -50,7 +50,7 @@ At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which 
 import { deepseek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
-const { reasoning, text } = await generateText({
+const { reasoningText, text } = await generateText({
   model: deepseek('deepseek-reasoner'),
   prompt: 'Explain quantum entanglement.',
 });
@@ -72,7 +72,7 @@ const enhancedModel = wrapLanguageModel({
   middleware: extractReasoningMiddleware({ tagName: 'think' }),
 });
 
-const { reasoning, text } = await generateText({
+const { reasoningText, text } = await generateText({
   model: enhancedModel,
   prompt: 'Explain quantum entanglement.',
 });
@@ -94,7 +94,7 @@ const enhancedModel = wrapLanguageModel({
   middleware: extractReasoningMiddleware({ tagName: 'think' }),
 });
 
-const { reasoning, text } = await generateText({
+const { reasoningText, text } = await generateText({
   model: enhancedModel,
   prompt: 'Explain quantum entanglement.',
 });
@@ -169,21 +169,42 @@ Finally, update the root page (`app/page.tsx`) to use the `useChat` hook:
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit, error } = useChat();
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat();
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (input.trim()) {
+      sendMessage({ text: input });
+      setInput('');
+    }
+  };
 
   return (
     <>
       {messages.map(message => (
         <div key={message.id}>
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.reasoning && <pre>{message.reasoning}</pre>}
-          {message.content}
+          {message.parts.map((part, index) => {
+            if (part.type === 'reasoning') {
+              return <pre key={index}>{part.text}</pre>;
+            }
+            if (part.type === 'text') {
+              return <span key={index}>{part.text}</span>;
+            }
+            return null;
+          })}
         </div>
       ))}
       <form onSubmit={handleSubmit}>
-        <input name="prompt" value={input} onChange={handleInputChange} />
+        <input
+          name="prompt"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+        />
         <button type="submit">Submit</button>
       </form>
     </>
@@ -192,8 +213,8 @@ export default function Page() {
 ```
 
 <Note>
-  You can access the model's reasoning tokens with the `reasoning` property on
-  the `message` object.
+  You can access the model's reasoning tokens through the `parts` array on the
+  `message` object, where reasoning parts have `type: 'reasoning'`.
 </Note>
 
 The useChat hook on your root page (`app/page.tsx`) will make a request to your AI provider endpoint (`app/api/chat/route.ts`) whenever the user submits a message. The messages are then displayed in the chat UI.

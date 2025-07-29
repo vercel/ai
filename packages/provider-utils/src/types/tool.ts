@@ -126,13 +126,20 @@ If not provided, the tool will not be executed automatically.
   (
     | {
         /**
-Function tool.
+Tool with user-defined input and output schemas.
      */
         type?: undefined | 'function';
       }
     | {
         /**
-Provider-defined tool.
+Tool that is defined at runtime (e.g. an MCP tool).
+The types of input and output are not known at development time.
+       */
+        type: 'dynamic';
+      }
+    | {
+        /**
+Tool with provider-defined input and output schemas.
      */
         type: 'provider-defined';
 
@@ -177,4 +184,19 @@ export function tool<OUTPUT>(tool: Tool<never, OUTPUT>): Tool<never, OUTPUT>;
 export function tool(tool: Tool<never, never>): Tool<never, never>;
 export function tool(tool: any): any {
   return tool;
+}
+
+/**
+Helper function for defining a dynamic tool.
+ */
+export function dynamicTool(tool: {
+  description?: string;
+  providerOptions?: ProviderOptions;
+  inputSchema: FlexibleSchema<unknown>;
+  execute: ToolExecuteFunction<unknown, unknown>;
+  toModelOutput?: (output: unknown) => LanguageModelV2ToolResultPart['output'];
+}): Tool<unknown, unknown> & {
+  type: 'dynamic';
+} {
+  return { ...tool, type: 'dynamic' };
 }

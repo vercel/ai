@@ -250,7 +250,7 @@ for await (const part of result.fullStream) {
       // handle text start
       break;
     }
-    case 'text': {
+    case 'text-delta': {
       // handle text delta here
       break;
     }
@@ -262,8 +262,8 @@ for await (const part of result.fullStream) {
       // handle reasoning start
       break;
     }
-    case 'reasoning': {
-      // handle reasoning here
+    case 'reasoning-delta': {
+      // handle reasoning delta here
       break;
     }
     case 'reasoning-end': {

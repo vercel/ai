@@ -1,5 +1,44 @@
 # @ai-sdk/svelte
 
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [e7fcc86]
+- Updated dependencies [d92b9a8]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+  - ai@5.0.0-beta.29
+
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- ac34802: Add clear object function to StructuredObject
+- Updated dependencies [ac34802]
+- Updated dependencies [84343eb]
+- Updated dependencies [a753b3a]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+  - ai@5.0.0-beta.28
+
+## 3.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [d5ae088]
+  - ai@5.0.0-beta.27
+
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [ae77a99]
+- Updated dependencies [1f6ce57]
+- Updated dependencies [5a975a4]
+- Updated dependencies [2a62513]
+- Updated dependencies [904fa5e]
+- Updated dependencies [f81c720]
+  - ai@5.0.0-beta.26
+
 ## 3.0.0-beta.25
 
 ### Patch Changes

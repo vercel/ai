@@ -19,8 +19,20 @@ export interface OpenAIFunctionTool {
 export interface OpenAIFileSearchTool {
   type: 'file_search';
   vector_store_ids?: string[];
-  max_results?: number;
-  search_type?: 'auto' | 'keyword' | 'semantic';
+  max_num_results?: number;
+  ranking_options?: {
+    ranker?: 'auto' | 'keyword' | 'semantic';
+  };
+  filters?:
+    | {
+        key: string;
+        type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
+        value: string | number | boolean;
+      }
+    | {
+        type: 'and' | 'or';
+        filters: any[];
+      };
 }
 
 /**

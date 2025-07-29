@@ -2,14 +2,17 @@
 
 import ChatInput from '@/component/chat-input';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
 import { UseChatToolsMessage } from '../api/use-chat-tools/route';
 
 export default function Chat() {
   const { messages, sendMessage, addToolResult, status } =
     useChat<UseChatToolsMessage>({
       transport: new DefaultChatTransport({ api: '/api/use-chat-tools' }),
-      maxSteps: 5,
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {
@@ -23,7 +26,12 @@ export default function Chat() {
             'Chicago',
             'San Francisco',
           ];
-          return cities[Math.floor(Math.random() * cities.length)];
+
+          addToolResult({
+            tool: 'getLocation',
+            toolCallId: toolCall.toolCallId,
+            output: cities[Math.floor(Math.random() * cities.length)],
+          });
         }
       },
     });
@@ -54,23 +62,25 @@ export default function Chat() {
                         <div className="flex gap-2">
                           <button
                             className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
-                            onClick={() =>
+                            onClick={async () => {
                               addToolResult({
+                                tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'Yes, confirmed.',
-                              })
-                            }
+                              });
+                            }}
                           >
                             Yes
                           </button>
                           <button
                             className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
-                            onClick={() =>
+                            onClick={async () => {
                               addToolResult({
+                                tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'No, denied',
-                              })
-                            }
+                              });
+                            }}
                           >
                             No
                           </button>

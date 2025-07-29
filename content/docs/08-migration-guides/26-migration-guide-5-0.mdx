@@ -645,6 +645,150 @@ In v5, UI tool parts use typed naming: `tool-${toolName}` instead of generic typ
 }
 ```
 
+### Dynamic Tools Support
+
+AI SDK 5.0 introduces dynamic tools for handling tools with unknown types at development time, such as MCP tools without schemas or user-defined functions at runtime.
+
+#### New dynamicTool Helper
+
+The new `dynamicTool` helper function allows you to define tools where the input and output types are not known at compile time.
+
+```tsx filename="AI SDK 5.0"
+import { dynamicTool } from 'ai';
+import { z } from 'zod';
+
+// Define a dynamic tool
+const runtimeTool = dynamicTool({
+  description: 'A tool defined at runtime',
+  inputSchema: z.object({}),
+  execute: async input => {
+    // Input and output are typed as 'unknown'
+    return { result: `Processed: ${input.query}` };
+  },
+});
+```
+
+#### MCP Tools Without Schemas
+
+MCP tools that don't provide schemas are now automatically treated as dynamic tools:
+
+```tsx filename="AI SDK 5.0"
+import { MCPClient } from 'ai';
+
+const client = new MCPClient({
+  /* ... */
+});
+const tools = await client.getTools();
+
+// Tools without schemas are now 'dynamic' type
+// and won't break type inference when mixed with static tools
+```
+
+#### Type-Safe Handling with Mixed Tools
+
+When using both static and dynamic tools together, use the `dynamic` flag for type narrowing:
+
+```tsx filename="AI SDK 5.0"
+const result = await generateText({
+  model: openai('gpt-4'),
+  tools: {
+    // Static tool with known types
+    weather: weatherTool,
+    // Dynamic tool with unknown types
+    customDynamicTool: dynamicTool({
+      /* ... */
+    }),
+  },
+  onStepFinish: step => {
+    // Handle tool calls with type safety
+    for (const toolCall of step.toolCalls) {
+      if (toolCall.dynamic) {
+        // Dynamic tool: input/output are 'unknown'
+        console.log('Dynamic tool called:', toolCall.toolName);
+        continue;
+      }
+
+      // Static tools have full type inference
+      switch (toolCall.toolName) {
+        case 'weather':
+          // TypeScript knows the exact types
+          console.log(toolCall.input.location); // string
+          break;
+      }
+    }
+  },
+});
+```
+
+#### New dynamic-tool UI Part
+
+UI messages now include a `dynamic-tool` part type for rendering dynamic tool invocations:
+
+```tsx filename="AI SDK 5.0"
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      // Static tools use specific types
+      case 'tool-weather':
+        return <div>Weather: {part.input.city}</div>;
+
+      // Dynamic tools use the generic dynamic-tool type
+      case 'dynamic-tool':
+        return (
+          <div>
+            Dynamic tool: {part.toolName}
+            <pre>{JSON.stringify(part.input, null, 2)}</pre>
+          </div>
+        );
+    }
+  });
+}
+```
+
+#### Breaking Change: Type Narrowing Required for Tool Calls and Results
+
+When iterating over `toolCalls` and `toolResults`, you now need to check the `dynamic` flag first for proper type narrowing:
+
+```tsx filename="AI SDK 4.0"
+// Direct type checking worked without dynamic flag
+onStepFinish: step => {
+  for (const toolCall of step.toolCalls) {
+    switch (toolCall.toolName) {
+      case 'weather':
+        console.log(toolCall.input.location); // typed as string
+        break;
+      case 'search':
+        console.log(toolCall.input.query); // typed as string
+        break;
+    }
+  }
+};
+```
+
+```tsx filename="AI SDK 5.0"
+// Must check dynamic flag first for type narrowing
+onStepFinish: step => {
+  for (const toolCall of step.toolCalls) {
+    // Check if it's a dynamic tool first
+    if (toolCall.dynamic) {
+      console.log('Dynamic tool:', toolCall.toolName);
+      console.log('Input:', toolCall.input); // typed as unknown
+      continue;
+    }
+
+    // Now TypeScript knows it's a static tool
+    switch (toolCall.toolName) {
+      case 'weather':
+        console.log(toolCall.input.location); // typed as string
+        break;
+      case 'search':
+        console.log(toolCall.input.query); // typed as string
+        break;
+    }
+  }
+};
+```
+
 ### Tool UI Part State Changes
 
 Tool UI parts now use more granular states that better represent the streaming lifecycle and error handling.
@@ -877,11 +1021,6 @@ steps.forEach((step, index) => {
 
 For core functions like `generateText` and `streamText`, the `maxSteps` parameter has been replaced with `stopWhen`, which provides more flexible control over multi-step execution. The `stopWhen` parameter defines conditions for stopping the generation **when the last step contains tool results**. When multiple conditions are provided as an array, the generation stops if any condition is met.
 
-**Recommended Pattern:**
-
-- Use `stopWhen` in server-side functions (`generateText`/`streamText`) for your main stopping logic
-- Use `maxSteps > 1` in `useChat` for client-side tool execution limits
-
 ```tsx filename="AI SDK 4.0"
 // V4: Simple numeric limit
 const result = await generateText({
@@ -912,11 +1051,6 @@ const result = await generateText({
   model: openai('gpt-4'),
   messages,
   stopWhen: hasToolCall('finalizeTask'), // Stop when finalizeTask tool is called
-});
-
-// Client-side - useChat still uses maxSteps for tool execution limits
-const { messages } = useChat({
-  maxSteps: 3, // Limit client-side tool execution rounds
 });
 ```
 
@@ -999,6 +1133,62 @@ import { useChat } from '@ai-sdk/react';
 ### useChat Changes
 
 The `useChat` hook has undergone significant changes in v5, with new transport architecture, removal of managed input state, and more.
+
+#### maxSteps Removal
+
+The `maxSteps` parameter has been removed from `useChat`. You should now use server-side `stopWhen` conditions for multi-step tool execution control, and manually submit tool results and trigger new messages for client-side tool calls.
+
+```tsx filename="AI SDK 4.0"
+const { messages, sendMessage } = useChat({
+  maxSteps: 5, // Automatic tool result submission
+});
+```
+
+```tsx filename="AI SDK 5.0"
+// Server-side: Use stopWhen for multi-step control
+import { streamText, convertToModelMessages, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await streamText({
+  model: openai('gpt-4'),
+  messages: convertToModelMessages(messages),
+  stopWhen: stepCountIs(5), // Stop after 5 steps with tool calls
+});
+
+// Client-side: Configure automatic submission
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+
+const { messages, sendMessage, addToolResult } = useChat({
+  // Automatically submit when all tool results are available
+  sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+  async onToolCall({ toolCall }) {
+    const result = await executeToolCall(toolCall);
+
+    // Important: Don't await addToolResult inside onToolCall to avoid deadlocks
+    addToolResult({
+      tool: toolCall.toolName,
+      toolCallId: toolCall.toolCallId,
+      output: result,
+    });
+  },
+});
+```
+
+<Note>
+  Important: When using `sendAutomaticallyWhen`, don't use `await` with
+  `addToolResult` inside `onToolCall` as it can cause deadlocks. The `await` is
+  useful when you're not using automatic submission and need to ensure the
+  messages are updated before manually calling `sendMessage()`.
+</Note>
+
+This change provides more flexibility for handling tool calls and aligns client behavior with server-side multi-step execution patterns.
+
+For more details on the new tool submission approach, see the [Tool Result Submission Changes](#tool-result-submission-changes) section below.
 
 #### Initial Messages Renamed
 
@@ -1268,10 +1458,62 @@ addToolResult({
 ```tsx filename="AI SDK 5.0"
 const { addToolResult } = useChat();
 
-// Add tool result with 'output' parameter
+// Add tool result with 'output' parameter and 'tool' name for type safety
 addToolResult({
+  tool: 'getWeather',
   toolCallId: 'tool-call-123',
   output: 'Weather: 72°F, sunny',
+});
+```
+
+#### Tool Result Submission Changes
+
+The automatic tool result submission behavior has been updated in `useChat` and the `Chat` component. You now have more control and flexibility over when tool results are submitted.
+
+- `onToolCall` no longer supports returning values to automatically submit tool results
+- You must explicitly call `addToolResult` to provide tool results
+- Use `sendAutomaticallyWhen` with `lastAssistantMessageIsCompleteWithToolCalls` helper for automatic submission
+- Important: Don't use `await` with `addToolResult` inside `onToolCall` to avoid deadlocks
+- The `maxSteps` parameter has been removed from the `Chat` component and `useChat` hook
+- For multi-step tool execution, use server-side `stopWhen` conditions instead (see [maxSteps Removal](#maxsteps-removal))
+
+```tsx filename="AI SDK 4.0"
+const { messages, sendMessage, addToolResult } = useChat({
+  maxSteps: 5, // Removed in v5
+
+  // Automatic submission by returning a value
+  async onToolCall({ toolCall }) {
+    if (toolCall.toolName === 'getLocation') {
+      const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+      return cities[Math.floor(Math.random() * cities.length)];
+    }
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+
+const { messages, sendMessage, addToolResult } = useChat({
+  // Automatic submission with helper
+  sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+  async onToolCall({ toolCall }) {
+    if (toolCall.toolName === 'getLocation') {
+      const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+
+      // Important: Don't await inside onToolCall to avoid deadlocks
+      addToolResult({
+        tool: 'getLocation',
+        toolCallId: toolCall.toolCallId,
+        output: cities[Math.floor(Math.random() * cities.length)],
+      });
+    }
+  },
 });
 ```
 
@@ -2695,3 +2937,41 @@ For more information, see the [Codemods](#codemods) section.
 | Restructure file stream parts                    | `v5/restructure-file-stream-parts`                    |
 | Restructure source stream parts                  | `v5/restructure-source-stream-parts`                  |
 | RSC package                                      | `v5/rsc-package`                                      |
+
+## Changes Between v5 Beta Versions
+
+This section documents breaking changes between different beta versions of AI SDK 5.0. If you're upgrading from an earlier v5 beta version to a later one, check this section for any changes that might affect your code.
+
+### fullStream Type Rename: text/reasoning → text-delta/reasoning-delta
+
+The chunk types in `fullStream` have been renamed for consistency with UI streams and language model streams.
+
+```tsx filename="AI SDK 5.0 (before beta.26)"
+for await (const chunk of result.fullStream) {
+  switch (chunk.type) {
+    case 'text': {
+      process.stdout.write(chunk.text);
+      break;
+    }
+    case 'reasoning': {
+      console.log('Reasoning:', chunk.text);
+      break;
+    }
+  }
+}
+```
+
+```tsx filename="AI SDK 5.0 (beta.26 and later)"
+for await (const chunk of result.fullStream) {
+  switch (chunk.type) {
+    case 'text-delta': {
+      process.stdout.write(chunk.text);
+      break;
+    }
+    case 'reasoning-delta': {
+      console.log('Reasoning:', chunk.text);
+      break;
+    }
+  }
+}
+```

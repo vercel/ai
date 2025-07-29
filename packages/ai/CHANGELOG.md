@@ -1,5 +1,48 @@
 # ai
 
+## 5.0.0-beta.29
+
+### Patch Changes
+
+- e7fcc86: feat (ai): introduce dynamic tools
+- d92b9a8: fix(ai): add support for MCP protocol version 2025-06-18
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+  - @ai-sdk/gateway@1.0.0-beta.15
+
+## 5.0.0-beta.28
+
+### Patch Changes
+
+- 84343eb: fix (ui): call sendAutomaticallyWhen with updated messages
+- a753b3a: feat (provider/anthropic): cache control for tools
+- Updated dependencies [ac34802]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+  - @ai-sdk/gateway@1.0.0-beta.14
+
+## 5.0.0-beta.27
+
+### Patch Changes
+
+- d5ae088: feat (ui): add sendAutomaticallyWhen to Chat
+- Updated dependencies [0477a13]
+- Updated dependencies [cf1e00e]
+- Updated dependencies [cc21603]
+  - @ai-sdk/gateway@1.0.0-beta.13
+
+## 5.0.0-beta.26
+
+### Patch Changes
+
+- ae77a99: chore (ai): rename text and reasoning chunks in streamText fullstream
+- 1f6ce57: feat (ai): infer tool call types in the `onToolCall` callback
+- 5a975a4: feat (ui): update Chat tool result submission
+- 2a62513: Fix error thrown when emptying messages in onError or onFinish
+- 904fa5e: feat (ai/core): add terminateOnError option to readUIMessageStream
+- f81c720: chore(ai): bundle dependencies in CLI binary
+- Updated dependencies [70ebead]
+  - @ai-sdk/gateway@1.0.0-beta.12
+
 ## 5.0.0-beta.25
 
 ### Patch Changes

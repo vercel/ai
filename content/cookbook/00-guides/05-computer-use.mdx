@@ -80,6 +80,12 @@ This reference implementation serves as a foundation to understand the requireme
   Started guide](/docs/getting-started).
 </Note>
 
+<Note>
+  For a working example of Computer Use implementation with Next.js and the AI
+  SDK, check out our [AI SDK Computer Use
+  Template](https://github.com/vercel-labs/ai-sdk-computer-use).
+</Note>
+
 First, ensure you have the AI SDK and [Anthropic AI SDK provider](/providers/ai-sdk-providers/anthropic) installed:
 
 <Snippet text="pnpm add ai@beta @ai-sdk/anthropic@beta" />
@@ -92,7 +98,7 @@ Here's how you could set up the Computer Tool with the AI SDK:
 import { anthropic } from '@ai-sdk/anthropic';
 import { getScreenshot, executeComputerAction } from '@/utils/computer-use';
 
-const computerTool = anthropic.tools.computer_20241022({
+const computerTool = anthropic.tools.computer_20250124({
   displayWidthPx: 1920,
   displayHeightPx: 1080,
   execute: async ({ action, coordinate, text }) => {
@@ -134,7 +140,7 @@ For one-shot text generation, use `generateText`:
 
 ```ts
 const result = await generateText({
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: anthropic('claude-sonnet-4-20250514'),
   prompt: 'Move the cursor to the center of the screen and take a screenshot',
   tools: { computer: computerTool },
 });
@@ -146,7 +152,7 @@ For streaming responses, use `streamText` to receive updates in real-time:
 
 ```ts
 const result = streamText({
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: anthropic('claude-sonnet-4-20250514'),
   prompt: 'Open the browser and navigate to vercel.com',
   tools: { computer: computerTool },
 });
@@ -158,14 +164,16 @@ for await (const chunk of result.textStream) {
 
 ### Configure Multi-Step (Agentic) Generations
 
-To allow the model to perform multiple steps without user intervention, specify a `maxSteps` value. This will automatically send any tool results back to the model to trigger a subsequent generation:
+To allow the model to perform multiple steps without user intervention, use the `stopWhen` parameter. This will automatically send any tool results back to the model to trigger a subsequent generation:
 
-```ts highlight="5"
+```ts highlight="1,7"
+import { stepCountIs } from 'ai';
+
 const stream = streamText({
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: anthropic('claude-sonnet-4-20250514'),
   prompt: 'Open the browser and navigate to vercel.com',
   tools: { computer: computerTool },
-  maxSteps: 10, // experiment with this value based on your use case
+  stopWhen: stepCountIs(10), // experiment with this value based on your use case
 });
 ```
 
@@ -174,15 +182,15 @@ const stream = streamText({
 You can combine multiple tools in a single request to enable more complex workflows. The AI SDK supports all three of Claude's Computer Use tools:
 
 ```ts
-const computerTool = anthropic.tools.computer_20241022({
+const computerTool = anthropic.tools.computer_20250124({
   ...
 });
 
-const bashTool = anthropic.tools.bash_20241022({
+const bashTool = anthropic.tools.bash_20250124({
   execute: async ({ command, restart }) => execSync(command).toString()
 });
 
-const textEditorTool = anthropic.tools.textEditor_20241022({
+const textEditorTool = anthropic.tools.textEditor_20250124({
   execute: async ({
     command,
     path,
@@ -209,11 +217,11 @@ const textEditorTool = anthropic.tools.textEditor_20241022({
 
 
 const response = await generateText({
-  model: anthropic("claude-3-5-sonnet-20241022"),
+  model: anthropic("claude-sonnet-4-20250514"),
   prompt: "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
   tools: {
     computer: computerTool,
-    bash: bashTool
+    bash: bashTool,
     str_replace_editor: textEditorTool,
   },
 });

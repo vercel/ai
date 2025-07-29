@@ -380,7 +380,7 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should pass response format information', async () => {
+  it('should pass response format information as json_schema when structuredOutputs enabled by default', async () => {
     prepareJsonResponse({ content: '{"value":"Spark"}' });
 
     const model = provider('gemma2-9b-it');
@@ -405,9 +405,294 @@ describe('doGenerate', () => {
       model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
       response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'test-name',
+          description: 'test description',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+  });
+
+  it('should pass response format information as json_object when structuredOutputs explicitly disabled', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider('gemma2-9b-it');
+
+    const { warnings } = await model.doGenerate({
+      providerOptions: {
+        groq: {
+          structuredOutputs: false,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
         type: 'json_object',
       },
     });
+
+    expect(warnings).toEqual([
+      {
+        details:
+          'JSON response format schema is only supported with structuredOutputs',
+        setting: 'responseFormat',
+        type: 'unsupported-setting',
+      },
+    ]);
+  });
+
+  it('should use json_schema format when structuredOutputs explicitly enabled', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider('gemma2-9b-it');
+
+    await model.doGenerate({
+      providerOptions: {
+        groq: {
+          structuredOutputs: true,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'test-name',
+          description: 'test description',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+  });
+
+  it('should allow explicit structuredOutputs override', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider('gemma2-9b-it');
+
+    await model.doGenerate({
+      providerOptions: {
+        groq: {
+          structuredOutputs: true,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'response',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+  });
+
+  it('should handle structured outputs with Kimi K2 model', async () => {
+    prepareJsonResponse({
+      content:
+        '{"recipe":{"name":"Spaghetti Aglio e Olio","ingredients":["spaghetti","garlic","olive oil","parmesan"],"instructions":["Boil pasta","Sauté garlic","Combine"]}}',
+    });
+
+    const kimiModel = provider('moonshotai/kimi-k2-instruct');
+
+    const result = await kimiModel.doGenerate({
+      providerOptions: {
+        groq: {
+          structuredOutputs: true,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        name: 'recipe_response',
+        description: 'A recipe with ingredients and instructions',
+        schema: {
+          type: 'object',
+          properties: {
+            recipe: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                ingredients: { type: 'array', items: { type: 'string' } },
+                instructions: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['name', 'ingredients', 'instructions'],
+            },
+          },
+          required: ['recipe'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a simple pasta recipe' }],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Generate a simple pasta recipe",
+            "role": "user",
+          },
+        ],
+        "model": "moonshotai/kimi-k2-instruct",
+        "response_format": {
+          "json_schema": {
+            "description": "A recipe with ingredients and instructions",
+            "name": "recipe_response",
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "recipe": {
+                  "properties": {
+                    "ingredients": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "instructions": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                    "ingredients",
+                    "instructions",
+                  ],
+                  "type": "object",
+                },
+              },
+              "required": [
+                "recipe",
+              ],
+              "type": "object",
+            },
+          },
+          "type": "json_schema",
+        },
+      }
+    `);
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "{"recipe":{"name":"Spaghetti Aglio e Olio","ingredients":["spaghetti","garlic","olive oil","parmesan"],"instructions":["Boil pasta","Sauté garlic","Combine"]}}",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should include warnings when structured outputs explicitly disabled but schema provided', async () => {
+    prepareJsonResponse({ content: '{"value":"test"}' });
+
+    const { warnings } = await model.doGenerate({
+      providerOptions: {
+        groq: {
+          structuredOutputs: false,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "JSON response format schema is only supported with structuredOutputs",
+          "setting": "responseFormat",
+          "type": "unsupported-setting",
+        },
+      ]
+    `);
   });
 
   it('should send request body', async () => {

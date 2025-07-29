@@ -1,4 +1,9 @@
-import { InferToolInput, InferToolOutput, Tool } from '@ai-sdk/provider-utils';
+import {
+  InferToolInput,
+  InferToolOutput,
+  Tool,
+  ToolCall,
+} from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { DeepPartial } from '../util/deep-partial';
@@ -74,6 +79,7 @@ export type UIMessagePart<
   | TextUIPart
   | ReasoningUIPart
   | ToolUIPart<TOOLS>
+  | DynamicToolUIPart
   | SourceUrlUIPart
   | SourceDocumentUIPart
   | FileUIPart
@@ -231,6 +237,40 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
   );
 }>;
 
+export type DynamicToolUIPart = {
+  type: 'dynamic-tool';
+  toolName: string;
+  toolCallId: string;
+} & (
+  | {
+      state: 'input-streaming';
+      input: unknown | undefined;
+      output?: never;
+      errorText?: never;
+    }
+  | {
+      state: 'input-available';
+      input: unknown;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+    }
+  | {
+      state: 'output-available';
+      input: unknown;
+      output: unknown;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+    }
+  | {
+      state: 'output-error';
+      input: unknown;
+      output?: never;
+      errorText: string;
+      callProviderMetadata?: ProviderMetadata;
+    }
+);
+
 export function isToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> {
@@ -251,3 +291,15 @@ export type InferUIMessageData<T extends UIMessage> =
 
 export type InferUIMessageTools<T extends UIMessage> =
   T extends UIMessage<unknown, UIDataTypes, infer TOOLS> ? TOOLS : UITools;
+
+export type InferUIMessageToolOutputs<UI_MESSAGE extends UIMessage> =
+  InferUIMessageTools<UI_MESSAGE>[keyof InferUIMessageTools<UI_MESSAGE>]['output'];
+
+export type InferUIMessageToolCall<UI_MESSAGE extends UIMessage> = ValueOf<{
+  [NAME in keyof InferUIMessageTools<UI_MESSAGE>]: ToolCall<
+    NAME & string,
+    InferUIMessageTools<UI_MESSAGE>[NAME] extends { input: infer INPUT }
+      ? INPUT
+      : never
+  >;
+}>;

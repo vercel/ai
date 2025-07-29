@@ -8,6 +8,7 @@ import {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
+  LanguageModelV2FunctionTool,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -69,6 +70,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   }: Parameters<LanguageModelV2['doGenerate']>[0]): Promise<{
     command: BedrockConverseInput;
     warnings: LanguageModelV2CallWarning[];
+    usesJsonResponseTool: boolean;
   }> {
     // Parse provider options
     const bedrockOptions =
@@ -108,15 +110,38 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    if (responseFormat != null && responseFormat.type !== 'text') {
+    if (
+      responseFormat != null &&
+      responseFormat.type !== 'text' &&
+      responseFormat.type !== 'json'
+    ) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'responseFormat',
-        details: 'JSON response format is not supported.',
+        details: 'Only text and json response formats are supported.',
       });
     }
 
-    const { system, messages } = await convertToBedrockChatMessages(prompt);
+    if (tools != null && responseFormat?.type === 'json') {
+      if (tools.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            'JSON response format does not support tools. ' +
+            'The provided tools are ignored.',
+        });
+      }
+    }
+
+    const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
+      responseFormat?.type === 'json' && responseFormat.schema != null
+        ? {
+            type: 'function',
+            name: 'json',
+            description: 'Respond with a JSON object.',
+            inputSchema: responseFormat.schema,
+          }
+        : undefined;
 
     const isThinking = bedrockOptions.reasoningConfig?.type === 'enabled';
     const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
@@ -166,7 +191,58 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const { toolConfig, toolWarnings } = prepareTools({ tools, toolChoice });
+    // Filter tool content from prompt when no tools are available
+    const activeTools =
+      jsonResponseTool != null ? [jsonResponseTool] : (tools ?? []);
+    let filteredPrompt = prompt;
+
+    if (activeTools.length === 0) {
+      const hasToolContent = prompt.some(
+        message =>
+          'content' in message &&
+          Array.isArray(message.content) &&
+          message.content.some(
+            part => part.type === 'tool-call' || part.type === 'tool-result',
+          ),
+      );
+
+      if (hasToolContent) {
+        filteredPrompt = prompt
+          .map(message =>
+            message.role === 'system'
+              ? message
+              : {
+                  ...message,
+                  content: message.content.filter(
+                    part =>
+                      part.type !== 'tool-call' && part.type !== 'tool-result',
+                  ),
+                },
+          )
+          .filter(
+            message => message.role === 'system' || message.content.length > 0,
+          ) as typeof prompt;
+
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'toolContent',
+          details:
+            'Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.',
+        });
+      }
+    }
+
+    const { system, messages } =
+      await convertToBedrockChatMessages(filteredPrompt);
+
+    const { toolConfig, toolWarnings } = prepareTools({
+      tools: activeTools,
+      toolChoice:
+        jsonResponseTool != null
+          ? { type: 'tool', toolName: jsonResponseTool.name }
+          : toolChoice,
+      prompt: filteredPrompt,
+    });
 
     // Filter out reasoningConfig from providerOptions.bedrock to prevent sending it to Bedrock API
     const { reasoningConfig: _, ...filteredBedrockOptions } =
@@ -182,9 +258,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           inferenceConfig,
         }),
         ...filteredBedrockOptions,
-        ...(toolConfig.tools?.length ? { toolConfig } : {}),
+        ...(toolConfig.tools !== undefined ? { toolConfig } : {}),
       },
       warnings: [...warnings, ...toolWarnings],
+      usesJsonResponseTool: jsonResponseTool != null,
     };
   }
 
@@ -195,7 +272,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { command: args, warnings } = await this.getArgs(options);
+    const {
+      command: args,
+      warnings,
+      usesJsonResponseTool,
+    } = await this.getArgs(options);
 
     const url = `${this.getUrl(this.modelId)}/converse`;
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -222,7 +303,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     for (const part of response.output.message.content) {
       // text
       if (part.text) {
-        content.push({ type: 'text', text: part.text });
+        // when a json response tool is used, the tool call is returned as text,
+        // so we ignore the text content:
+        if (!usesJsonResponseTool) {
+          content.push({ type: 'text', text: part.text });
+        }
       }
 
       // reasoning
@@ -258,18 +343,27 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
       // tool calls
       if (part.toolUse) {
-        content.push({
-          type: 'tool-call' as const,
-          toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
-          toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
-          input: JSON.stringify(part.toolUse?.input ?? ''),
-        });
+        content.push(
+          // when a json response tool is used, the tool call becomes the text:
+          usesJsonResponseTool
+            ? {
+                type: 'text',
+                text: JSON.stringify(part.toolUse.input),
+              }
+            : {
+                type: 'tool-call' as const,
+                toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
+                toolName:
+                  part.toolUse?.name ?? `tool-${this.config.generateId()}`,
+                input: JSON.stringify(part.toolUse?.input ?? ''),
+              },
+        );
       }
     }
 
     // provider metadata:
     const providerMetadata =
-      response.trace || response.usage
+      response.trace || response.usage || usesJsonResponseTool
         ? {
             bedrock: {
               ...(response.trace && typeof response.trace === 'object'
@@ -280,6 +374,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                   cacheWriteInputTokens: response.usage.cacheWriteInputTokens,
                 },
               }),
+              ...(usesJsonResponseTool && { isJsonResponseFromTool: true }),
             },
           }
         : undefined;
@@ -307,7 +402,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { command: args, warnings } = await this.getArgs(options);
+    const {
+      command: args,
+      warnings,
+      usesJsonResponseTool,
+    } = await this.getArgs(options);
     const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -426,11 +525,14 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                   }
                 : undefined;
 
-              if (cacheUsage || trace) {
+              if (cacheUsage || trace || usesJsonResponseTool) {
                 providerMetadata = {
                   bedrock: {
                     ...cacheUsage,
                     ...trace,
+                    ...(usesJsonResponseTool && {
+                      isJsonResponseFromTool: true,
+                    }),
                   },
                 };
               }
@@ -457,17 +559,24 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
               if (contentBlocks[blockIndex] == null) {
                 contentBlocks[blockIndex] = { type: 'text' };
-                controller.enqueue({
-                  type: 'text-start',
-                  id: String(blockIndex),
-                });
+
+                // when a json response tool is used, we don't emit text events
+                if (!usesJsonResponseTool) {
+                  controller.enqueue({
+                    type: 'text-start',
+                    id: String(blockIndex),
+                  });
+                }
               }
 
-              controller.enqueue({
-                type: 'text-delta',
-                id: String(blockIndex),
-                delta: value.contentBlockDelta.delta.text,
-              });
+              // when a json response tool is used, we don't emit text events
+              if (!usesJsonResponseTool) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: String(blockIndex),
+                  delta: value.contentBlockDelta.delta.text,
+                });
+              }
             }
 
             if (value.contentBlockStop?.contentBlockIndex != null) {
@@ -481,21 +590,41 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                     id: String(blockIndex),
                   });
                 } else if (contentBlock.type === 'text') {
-                  controller.enqueue({
-                    type: 'text-end',
-                    id: String(blockIndex),
-                  });
+                  // when a json response tool is used, we don't emit text events
+                  if (!usesJsonResponseTool) {
+                    controller.enqueue({
+                      type: 'text-end',
+                      id: String(blockIndex),
+                    });
+                  }
                 } else if (contentBlock.type === 'tool-call') {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: contentBlock.toolCallId,
-                  });
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: contentBlock.toolCallId,
-                    toolName: contentBlock.toolName,
-                    input: contentBlock.jsonText,
-                  });
+                  if (usesJsonResponseTool) {
+                    // when a json response tool is used, emit the tool input as text
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: String(blockIndex),
+                    });
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: String(blockIndex),
+                      delta: contentBlock.jsonText,
+                    });
+                    controller.enqueue({
+                      type: 'text-end',
+                      id: String(blockIndex),
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: contentBlock.toolCallId,
+                    });
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId: contentBlock.toolCallId,
+                      toolName: contentBlock.toolName,
+                      input: contentBlock.jsonText,
+                    });
+                  }
                 }
 
                 delete contentBlocks[blockIndex];
@@ -564,11 +693,14 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                 jsonText: '',
               };
 
-              controller.enqueue({
-                type: 'tool-input-start',
-                id: toolUse.toolUseId!,
-                toolName: toolUse.name!,
-              });
+              // when a json response tool is used, we don't emit tool events
+              if (!usesJsonResponseTool) {
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: toolUse.toolUseId!,
+                  toolName: toolUse.name!,
+                });
+              }
             }
 
             const contentBlockDelta = value.contentBlockDelta;
@@ -583,11 +715,14 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               if (contentBlock?.type === 'tool-call') {
                 const delta = contentBlockDelta.delta.toolUse.input ?? '';
 
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: contentBlock.toolCallId,
-                  delta: delta,
-                });
+                // when a json response tool is used, we don't emit tool events
+                if (!usesJsonResponseTool) {
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: contentBlock.toolCallId,
+                    delta: delta,
+                  });
+                }
 
                 contentBlock.jsonText += delta;
               }

@@ -3610,29 +3610,6 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "errorText": undefined,
-                  "input": {
-                    "city": "London",
-                  },
-                  "output": "test-result",
-                  "providerExecuted": undefined,
-                  "state": "output-available",
-                  "toolCallId": "tool-call-id",
-                  "type": "tool-tool-name",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
@@ -3651,9 +3628,9 @@ describe('processUIMessageStream', () => {
               "input": {
                 "city": "London",
               },
-              "output": "test-result",
+              "output": undefined,
               "providerExecuted": undefined,
-              "state": "output-available",
+              "state": "input-available",
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
             },
@@ -4578,9 +4555,8 @@ describe('processUIMessageStream', () => {
       await consumeStream({
         stream: processUIMessageStream({
           stream,
-          onToolCall: async () => {
+          onToolCall: () => {
             onToolCallInvoked = true;
-            return 'client-result';
           },
           runUpdateMessageJob,
           onError: error => {
@@ -4590,7 +4566,7 @@ describe('processUIMessageStream', () => {
       });
     });
 
-    it('should not call onToolCall for provider-executed tools', async () => {
+    it('should not call onToolCall', async () => {
       expect(onToolCallInvoked).toBe(false);
     });
 
@@ -4806,18 +4782,109 @@ describe('processUIMessageStream', () => {
         ]
       `);
     });
+  });
 
-    it('should call onToolCall for client-executed tools', async () => {
-      let onToolCallInvoked = false;
+  it('should call onToolCall for client-executed tools', async () => {
+    let onToolCallInvoked = false;
+
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'tool-call-id',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        onToolCall: async () => {
+          onToolCallInvoked = true;
+        },
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(onToolCallInvoked).toBe(true);
+
+    expect(state.message.parts).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "step-start",
+        },
+        {
+          "errorText": undefined,
+          "input": {
+            "query": "test",
+          },
+          "output": undefined,
+          "providerExecuted": undefined,
+          "state": "input-available",
+          "toolCallId": "tool-call-id",
+          "type": "tool-tool-name",
+        },
+      ]
+    `);
+  });
+
+  describe('dynamic tools', () => {
+    let onToolCallInvoked: boolean;
+
+    beforeEach(async () => {
+      onToolCallInvoked = false;
 
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-1',
+          toolName: 't1',
+          dynamic: true,
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-1',
+          inputTextDelta: '{ "query": "test" }',
+        },
+        {
           type: 'tool-input-available',
-          toolCallId: 'tool-call-id',
-          toolName: 'tool-name',
+          toolCallId: 'tool-call-1',
+          toolName: 't1',
           input: { query: 'test' },
+          dynamic: true,
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-2',
+          toolName: 't1',
+          input: { query: 'test' },
+          dynamic: true,
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'tool-call-1',
+          output: { result: 'provider-result' },
+          dynamic: true,
+        },
+        {
+          type: 'tool-output-error',
+          toolCallId: 'tool-call-2',
+          errorText: 'error-text',
+          dynamic: true,
         },
         { type: 'finish-step' },
         { type: 'finish' },
@@ -4831,9 +4898,8 @@ describe('processUIMessageStream', () => {
       await consumeStream({
         stream: processUIMessageStream({
           stream,
-          onToolCall: async () => {
+          onToolCall: () => {
             onToolCallInvoked = true;
-            return 'client-result';
           },
           runUpdateMessageJob,
           onError: error => {
@@ -4841,10 +4907,202 @@ describe('processUIMessageStream', () => {
           },
         }),
       });
+    });
 
-      expect(onToolCallInvoked).toBe(true);
+    it('should not call onToolCall', async () => {
+      expect(onToolCallInvoked).toBe(false);
+    });
 
-      expect(state.message.parts).toMatchInlineSnapshot(`
+    it('should call the update function with the correct arguments', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": undefined,
+                  "output": undefined,
+                  "state": "input-streaming",
+                  "toolCallId": "tool-call-1",
+                  "toolName": "t1",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "state": "input-streaming",
+                  "toolCallId": "tool-call-1",
+                  "toolName": "t1",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "state": "input-available",
+                  "toolCallId": "tool-call-1",
+                  "toolName": "t1",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "state": "input-available",
+                  "toolCallId": "tool-call-1",
+                  "toolName": "t1",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "state": "input-available",
+                  "toolCallId": "tool-call-2",
+                  "toolName": "t1",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": {
+                    "result": "provider-result",
+                  },
+                  "state": "output-available",
+                  "toolCallId": "tool-call-1",
+                  "toolName": "t1",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "state": "input-available",
+                  "toolCallId": "tool-call-2",
+                  "toolName": "t1",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": {
+                    "result": "provider-result",
+                  },
+                  "state": "output-available",
+                  "toolCallId": "tool-call-1",
+                  "toolName": "t1",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "errorText": "error-text",
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "state": "output-error",
+                  "toolCallId": "tool-call-2",
+                  "toolName": "t1",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message.parts).toMatchInlineSnapshot(`
         [
           {
             "type": "step-start",
@@ -4854,11 +5112,24 @@ describe('processUIMessageStream', () => {
             "input": {
               "query": "test",
             },
-            "output": "client-result",
-            "providerExecuted": undefined,
+            "output": {
+              "result": "provider-result",
+            },
             "state": "output-available",
-            "toolCallId": "tool-call-id",
-            "type": "tool-tool-name",
+            "toolCallId": "tool-call-1",
+            "toolName": "t1",
+            "type": "dynamic-tool",
+          },
+          {
+            "errorText": "error-text",
+            "input": {
+              "query": "test",
+            },
+            "output": undefined,
+            "state": "output-error",
+            "toolCallId": "tool-call-2",
+            "toolName": "t1",
+            "type": "dynamic-tool",
           },
         ]
       `);
