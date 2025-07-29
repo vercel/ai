@@ -1,5 +1,6 @@
 ---
 '@ai-sdk/gateway': patch
+'@ai-sdk/provider': patch
 'ai': patch
 ---
 
