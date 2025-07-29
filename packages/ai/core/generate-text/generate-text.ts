@@ -31,6 +31,7 @@ import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile, GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
+import { PrepareStepFunction } from './prepare-step';
 import { asReasoningText, ReasoningDetail } from './reasoning-detail';
 import { ResponseMessage, StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
@@ -213,19 +214,7 @@ Optional function that you can use to provide different settings for a step.
 @returns An object that contains the settings for the step.
 If you return undefined (or for undefined settings), the settings from the outer level will be used.
     */
-    experimental_prepareStep?: (options: {
-      steps: Array<StepResult<TOOLS>>;
-      stepNumber: number;
-      maxSteps: number;
-      model: LanguageModel;
-    }) => PromiseLike<
-      | {
-          model?: LanguageModel;
-          toolChoice?: ToolChoice<TOOLS>;
-          experimental_activeTools?: Array<keyof TOOLS>;
-        }
-      | undefined
-    >;
+    experimental_prepareStep?: PrepareStepFunction<TOOLS>;
 
     /**
 A function that attempts to repair a tool call that failed to parse.
@@ -329,11 +318,22 @@ A function that attempts to repair a tool call that failed to parse.
           ...responseMessages,
         ];
 
+        const promptMessages = await convertToLanguageModelPrompt({
+          prompt: {
+            type: promptFormat,
+            system: initialPrompt.system,
+            messages: stepInputMessages,
+          },
+          modelSupportsImageUrls: model.supportsImageUrls,
+          modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
+        });
+
         const prepareStepResult = await prepareStep?.({
           model,
           steps,
           maxSteps,
           stepNumber: stepCount,
+          messages: promptMessages,
         });
 
         const stepToolChoice = prepareStepResult?.toolChoice ?? toolChoice;
@@ -341,7 +341,7 @@ A function that attempts to repair a tool call that failed to parse.
           prepareStepResult?.experimental_activeTools ?? activeTools;
         const stepModel = prepareStepResult?.model ?? model;
 
-        const promptMessages = await convertToLanguageModelPrompt({
+        const promptMessagesForStep = await convertToLanguageModelPrompt({
           prompt: {
             type: promptFormat,
             system: initialPrompt.system,
@@ -377,7 +377,7 @@ A function that attempts to repair a tool call that failed to parse.
                 // prompt:
                 'ai.prompt.format': { input: () => promptFormat },
                 'ai.prompt.messages': {
-                  input: () => stringifyForTelemetry(promptMessages),
+                  input: () => stringifyForTelemetry(promptMessagesForStep),
                 },
                 'ai.prompt.tools': {
                   // convert the language model level tools:
@@ -409,7 +409,7 @@ A function that attempts to repair a tool call that failed to parse.
                 ...callSettings,
                 inputFormat: promptFormat,
                 responseFormat: output?.responseFormat({ model }),
-                prompt: promptMessages,
+                prompt: promptMessagesForStep,
                 providerMetadata: providerOptions,
                 abortSignal,
                 headers,
