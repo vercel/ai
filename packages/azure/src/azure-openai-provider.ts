@@ -4,6 +4,7 @@ import {
   OpenAIEmbeddingModel,
   OpenAIImageModel,
   OpenAIResponsesLanguageModel,
+  OpenAISpeechModel,
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
 import {
@@ -11,6 +12,7 @@ import {
   LanguageModelV2,
   ProviderV2,
   ImageModelV2,
+  SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
@@ -68,6 +70,11 @@ Creates an Azure OpenAI model for text embeddings.
    * Creates an Azure OpenAI model for audio transcription.
    */
   transcription(deploymentId: string): TranscriptionModelV2;
+
+  /**
+   * Creates an Azure OpenAI model for speech generation.
+   */
+  speech(deploymentId: string): SpeechModelV2;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -190,6 +197,14 @@ export function createAzure(
       fetch: options.fetch,
     });
 
+  const createSpeechModel = (modelId: string) =>
+    new OpenAISpeechModel(modelId, {
+      provider: 'azure.speech',
+      url,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (deploymentId: string) {
     if (new.target) {
       throw new Error(
@@ -210,6 +225,7 @@ export function createAzure(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.responses = createResponsesModel;
   provider.transcription = createTranscriptionModel;
+  provider.speech = createSpeechModel;
   return provider;
 }
 
