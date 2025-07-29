@@ -9,7 +9,11 @@ import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
-import { TypedToolResult } from './tool-result';
+import {
+  DynamicToolResult,
+  StaticToolResult,
+  TypedToolResult,
+} from './tool-result';
 import { ToolSet } from './tool-set';
 
 /**
@@ -68,6 +72,16 @@ The dynamic tool calls that were made in the last step.
 The results of the tool calls from the last step.
    */
   readonly toolResults: Array<TypedToolResult<TOOLS>>;
+
+  /**
+The static tool results that were made in the last step.
+   */
+  readonly staticToolResults: Array<StaticToolResult<TOOLS>>;
+
+  /**
+The dynamic tool results that were made in the last step.
+   */
+  readonly dynamicToolResults: Array<DynamicToolResult>;
 
   /**
 The reason why the generation finished.

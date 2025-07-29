@@ -1,7 +1,7 @@
-import { ValueOf } from '../../src/util/value-of';
 import { InferToolInput } from '@ai-sdk/provider-utils';
-import { ToolSet } from './tool-set';
+import { ValueOf } from '../util/value-of';
 import { TypedToolResult } from './tool-result';
+import { ToolSet } from './tool-set';
 
 type ToToolErrorObject<TOOLS extends ToolSet> =
   | ValueOf<{

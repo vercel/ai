@@ -4409,6 +4409,8 @@ describe('streamText', () => {
               "type": "tool-result",
             },
           ],
+          "dynamicToolCalls": [],
+          "dynamicToolResults": [],
           "files": [],
           "finishReason": "stop",
           "providerMetadata": {
@@ -4464,6 +4466,8 @@ describe('streamText', () => {
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
           "sources": [],
+          "staticToolCalls": [],
+          "staticToolResults": [],
           "steps": [
             DefaultStepResult {
               "content": [
@@ -4648,6 +4652,8 @@ describe('streamText', () => {
               "url": "https://example.com/2",
             },
           ],
+          "dynamicToolCalls": [],
+          "dynamicToolResults": [],
           "files": [],
           "finishReason": "stop",
           "providerMetadata": undefined,
@@ -4698,6 +4704,8 @@ describe('streamText', () => {
               "url": "https://example.com/2",
             },
           ],
+          "staticToolCalls": [],
+          "staticToolResults": [],
           "steps": [
             DefaultStepResult {
               "content": [
@@ -4826,6 +4834,8 @@ describe('streamText', () => {
               "type": "file",
             },
           ],
+          "dynamicToolCalls": [],
+          "dynamicToolResults": [],
           "files": [
             DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
@@ -4876,6 +4886,8 @@ describe('streamText', () => {
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
           "sources": [],
+          "staticToolCalls": [],
+          "staticToolResults": [],
           "steps": [
             DefaultStepResult {
               "content": [
@@ -5475,6 +5487,8 @@ describe('streamText', () => {
                   "type": "text",
                 },
               ],
+              "dynamicToolCalls": [],
+              "dynamicToolResults": [],
               "files": [],
               "finishReason": "stop",
               "providerMetadata": undefined,
@@ -5536,6 +5550,8 @@ describe('streamText', () => {
                 "timestamp": 1970-01-01T00:00:01.000Z,
               },
               "sources": [],
+              "staticToolCalls": [],
+              "staticToolResults": [],
               "steps": [
                 DefaultStepResult {
                   "content": [
@@ -7057,6 +7073,8 @@ describe('streamText', () => {
                   "type": "text",
                 },
               ],
+              "dynamicToolCalls": [],
+              "dynamicToolResults": [],
               "files": [],
               "finishReason": "stop",
               "providerMetadata": undefined,
@@ -7118,6 +7136,8 @@ describe('streamText', () => {
                 "timestamp": 1970-01-01T00:00:01.000Z,
               },
               "sources": [],
+              "staticToolCalls": [],
+              "staticToolResults": [],
               "steps": [
                 DefaultStepResult {
                   "content": [
@@ -10214,6 +10234,8 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
+            "dynamicToolCalls": [],
+            "dynamicToolResults": [],
             "files": [],
             "finishReason": "stop",
             "providerMetadata": {
@@ -10269,6 +10291,8 @@ describe('streamText', () => {
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
             "sources": [],
+            "staticToolCalls": [],
+            "staticToolResults": [],
             "steps": [
               DefaultStepResult {
                 "content": [
@@ -11309,6 +11333,8 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
+            "dynamicToolCalls": [],
+            "dynamicToolResults": [],
             "files": [],
             "finishReason": "stop",
             "providerMetadata": undefined,
@@ -11334,6 +11360,8 @@ describe('streamText', () => {
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
             "sources": [],
+            "staticToolCalls": [],
+            "staticToolResults": [],
             "steps": [
               DefaultStepResult {
                 "content": [

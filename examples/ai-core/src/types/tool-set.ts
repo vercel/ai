@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { ToolResultUnion, TypedToolCall, generateText, tool } from 'ai';
+import { StaticToolCall, StaticToolResult, generateText, tool } from 'ai';
 import { z } from 'zod/v4';
 
 const myToolSet = {
@@ -15,13 +15,13 @@ const myToolSet = {
   }),
 };
 
-type MyToolCall = TypedToolCall<typeof myToolSet>;
-type MyToolResult = ToolResultUnion<typeof myToolSet>;
+type MyToolCall = StaticToolCall<typeof myToolSet>;
+type MyToolResult = StaticToolResult<typeof myToolSet>;
 
 async function generateSomething(prompt: string): Promise<{
   text: string;
-  toolCalls: Array<MyToolCall>; // typed tool calls
-  toolResults: Array<MyToolResult>; // typed tool results
+  staticToolCalls: Array<MyToolCall>;
+  staticToolResults: Array<MyToolResult>;
 }> {
   return generateText({
     model: openai('gpt-4o'),
@@ -30,4 +30,5 @@ async function generateSomething(prompt: string): Promise<{
   });
 }
 
-const { text, toolCalls, toolResults } = await generateSomething('...');
+const { text, staticToolCalls, staticToolResults } =
+  await generateSomething('...');

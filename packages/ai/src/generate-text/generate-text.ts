@@ -693,20 +693,23 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 
   get staticToolCalls() {
-    return this.finalStep.toolCalls.filter(
-      (toolCall): toolCall is StaticToolCall<TOOLS> =>
-        toolCall.dynamic === false,
-    );
+    return this.finalStep.staticToolCalls;
   }
 
   get dynamicToolCalls() {
-    return this.finalStep.toolCalls.filter(
-      (toolCall): toolCall is DynamicToolCall => toolCall.dynamic === true,
-    );
+    return this.finalStep.dynamicToolCalls;
   }
 
   get toolResults() {
     return this.finalStep.toolResults;
+  }
+
+  get staticToolResults() {
+    return this.finalStep.staticToolResults;
+  }
+
+  get dynamicToolResults() {
+    return this.finalStep.dynamicToolResults;
   }
 
   get sources() {
