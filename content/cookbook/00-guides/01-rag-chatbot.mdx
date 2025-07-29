@@ -1,12 +1,11 @@
 ---
-title: RAG Chatbot
-description: Learn how to build a RAG Chatbot with the AI SDK and Next.js
-tags: ['rag', 'chatbot', 'next', 'embeddings', 'database', 'retrieval']
+title: RAG Agent
+description: Learn how to build a RAG Agent with the AI SDK and Next.js
 ---
 
 # RAG Chatbot Guide
 
-In this guide, you will learn how to build a retrieval-augmented generation (RAG) chatbot application.
+In this guide, you will learn how to build a retrieval-augmented generation (RAG) Agent.
 
 <video
   src="/images/rag-guide-demo.mp4"
@@ -253,7 +252,7 @@ This function will take an input string and split it by periods, filtering out a
 
 You will use the AI SDK to create embeddings. This will require two more dependencies, which you can install by running the following command:
 
-<Snippet text="pnpm add ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta" />
+<Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/openai" />
 
 This will install the [AI SDK](/docs), AI SDK's React hooks, and AI SDK's [OpenAI provider](/providers/ai-sdk-providers/openai).
 
@@ -383,14 +382,9 @@ Replace your root page (`app/page.tsx`) with the following code.
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    chatStore: defaultChatStoreOptions({
-      api: '/api/chat',
-    }),
-  });
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       <div className="space-y-4">
@@ -439,20 +433,20 @@ Open the file and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import { streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages: convertToModelMessages(messages),
+    messages,
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toDataStreamResponse();
 }
 ```
 
@@ -468,23 +462,23 @@ Let’s add system instructions to refine and restrict the model’s behavior. I
 
 ```tsx filename="app/api/chat/route.ts" highlight="12-14"
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import { streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
-    messages: convertToModelMessages(messages),
+    messages,
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toDataStreamResponse();
 }
 ```
 
@@ -505,21 +499,21 @@ Update your route handler with the following code:
 ```tsx filename="app/api/chat/route.ts" highlight="18-29"
 import { createResource } from '@/lib/actions/resources';
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, tool, UIMessage } from 'ai';
+import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
-    messages: convertToModelMessages(messages),
+    messages,
     tools: {
       addResource: tool({
         description: `add a resource to your knowledge base.
@@ -534,7 +528,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toDataStreamResponse();
 }
 ```
 
@@ -554,18 +548,13 @@ This will start Drizzle Studio where we can view the rows in our database. You s
 
 Let’s make a few changes in the UI to communicate to the user when a tool has been called. Head back to your root page (`app/page.tsx`) and add the following code:
 
-```tsx filename="app/page.tsx" highlight="14-32"
+```tsx filename="app/page.tsx" highlight="14-22"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    chatStore: defaultChatStoreOptions({
-      api: '/api/chat',
-    }),
-  });
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       <div className="space-y-4">
@@ -573,20 +562,15 @@ export default function Chat() {
           <div key={m.id} className="whitespace-pre-wrap">
             <div>
               <div className="font-bold">{m.role}</div>
-              <div>
-                {m.parts.map((part, index) => {
-                  if (part.type === 'text') {
-                    return <p key={index}>{part.text}</p>;
-                  } else if (part.type === 'tool-call') {
-                    return (
-                      <span key={index} className="italic font-light">
-                        {'calling tool: ' + part.toolName}
-                      </span>
-                    );
-                  }
-                  return null;
-                })}
-              </div>
+              <p>
+                {m.content.length > 0 ? (
+                  m.content
+                ) : (
+                  <span className="italic font-light">
+                    {'calling tool: ' + m?.toolInvocations?.[0].toolName}
+                  </span>
+                )}
+              </p>
             </div>
           </div>
         ))}
@@ -615,15 +599,11 @@ The AI SDK has a feature called [`maxSteps`](/docs/ai-sdk-core/tools-and-tool-ca
 
 Open your root page (`app/page.tsx`) and add the following key to the `useChat` configuration object:
 
-```tsx filename="app/page.tsx" highlight="1,4-8"
-import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+```tsx filename="app/page.tsx" highlight="3-5"
+// ... Rest of your code
 
 const { messages, input, handleInputChange, handleSubmit } = useChat({
-  chatStore: defaultChatStoreOptions({
-    api: '/api/chat',
-    maxSteps: 3,
-  }),
+  maxSteps: 3,
 });
 
 // ... Rest of your code
@@ -701,7 +681,7 @@ Go back to your route handler (`api/chat/route.ts`) and add a new tool called `g
 ```ts filename="api/chat/route.ts" highlight="5,30-36"
 import { createResource } from '@/lib/actions/resources';
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, tool, UIMessage } from 'ai';
+import { streamText, tool } from 'ai';
 import { z } from 'zod';
 import { findRelevantContent } from '@/lib/ai/embedding';
 
@@ -709,11 +689,11 @@ import { findRelevantContent } from '@/lib/ai/embedding';
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages: convertToModelMessages(messages),
+    messages,
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
@@ -738,7 +718,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toDataStreamResponse();
 }
 ```
 
