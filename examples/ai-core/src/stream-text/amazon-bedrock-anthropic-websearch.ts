@@ -3,6 +3,7 @@ import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
 
+// This will throw a warning as web_search is not supported on amazon bedrock
 async function main() {
   const result = streamText({
     model: bedrock('us.anthropic.claude-sonnet-4-20250514-v1:0'),
@@ -64,6 +65,7 @@ async function main() {
   process.stdout.write('\n\n');
 
   console.log();
+  console.log('Warnings:', await result.warnings);
   console.log('Sources:', await result.sources);
   console.log('Finish reason:', await result.finishReason);
   console.log('Usage:', await result.usage);

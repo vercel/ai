@@ -37,9 +37,37 @@ export function prepareTools({
     };
   }
 
+  // Filter out unsupported web_search tool and add a warning
+  const supportedTools = tools.filter(tool => {
+    if (
+      tool.type === 'provider-defined' &&
+      tool.id === 'anthropic.web_search_20250305'
+    ) {
+      toolWarnings.push({
+        type: 'unsupported-tool',
+        tool,
+        details:
+          'The web_search_20250305 tool is not supported on Amazon Bedrock.',
+      });
+      return false; // Exclude this tool
+    }
+    return true; // Include all other tools
+  });
+
+  if (supportedTools.length === 0) {
+    return {
+      toolConfig: {},
+      additionalTools: undefined,
+      betas,
+      toolWarnings,
+    };
+  }
+
   const isAnthropicModel = modelId.includes('anthropic.');
-  const providerDefinedTools = tools.filter(t => t.type === 'provider-defined');
-  const functionTools = tools.filter(t => t.type === 'function');
+  const providerDefinedTools = supportedTools.filter(
+    t => t.type === 'provider-defined',
+  );
+  const functionTools = supportedTools.filter(t => t.type === 'function');
 
   let additionalTools: Record<string, unknown> | undefined = undefined;
   const bedrockTools: BedrockTool[] = [];
@@ -80,9 +108,10 @@ export function prepareTools({
 
     // Create a standard Bedrock tool representation for validation purposes
     for (const tool of providerDefinedTools) {
-      const toolFactory = Object.values(anthropicTools).find(
-        factory => (factory as (args: any) => any)({}).id === tool.id,
-      );
+      const toolFactory = Object.values(anthropicTools).find(factory => {
+        const instance = (factory as (args: any) => any)({});
+        return instance.id === tool.id;
+      });
 
       if (toolFactory != null) {
         const fullToolDefinition = (toolFactory as (args: any) => any)({});
