@@ -14,20 +14,15 @@ export type ToolSchemas =
   | 'automatic'
   | undefined;
 
-type MappedTool<T extends Tool | JSONObject, OUTPUT extends any> =
-  T extends Tool<infer INPUT>
-    ? Tool<INPUT, OUTPUT>
-    : T extends JSONObject
-      ? Tool<T, OUTPUT>
-      : never;
-
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
-  TOOL_SCHEMAS extends Record<string, { inputSchema: FlexibleSchema<unknown> }>
+  TOOL_SCHEMAS extends Record<string, { inputSchema: FlexibleSchema<any> }>
     ? {
-        [K in keyof TOOL_SCHEMAS]: MappedTool<TOOL_SCHEMAS[K], CallToolResult> &
-          Required<
-            Pick<MappedTool<TOOL_SCHEMAS[K], CallToolResult>, 'execute'>
-          >;
+        [K in keyof TOOL_SCHEMAS]: TOOL_SCHEMAS[K] extends {
+          inputSchema: FlexibleSchema<infer INPUT>;
+        }
+          ? Tool<INPUT, CallToolResult> &
+              Required<Pick<Tool<INPUT, CallToolResult>, 'execute'>>
+          : never;
       }
     : McpToolSet<Record<string, { inputSchema: FlexibleSchema<unknown> }>>;
 
