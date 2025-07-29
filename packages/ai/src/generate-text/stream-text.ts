@@ -11,33 +11,30 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
-import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
-import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
-import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { UIMessage } from '../../src/ui';
-import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
-import { getResponseUIMessageId } from '../../src/ui-message-stream/get-response-ui-message-id';
-import { handleUIMessageStreamFinish } from '../../src/ui-message-stream/handle-ui-message-stream-finish';
-import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
+import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
+import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
+import { UIMessage } from '../ui';
+import { createUIMessageStreamResponse } from '../ui-message-stream/create-ui-message-stream-response';
+import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
+import { handleUIMessageStreamFinish } from '../ui-message-stream/handle-ui-message-stream-finish';
+import { pipeUIMessageStreamToResponse } from '../ui-message-stream/pipe-ui-message-stream-to-response';
 import {
   InferUIMessageChunk,
   UIMessageChunk,
-} from '../../src/ui-message-stream/ui-message-chunks';
-import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
-import {
-  InferUIMessageData,
-  InferUIMessageMetadata,
-} from '../../src/ui/ui-messages';
-import { asArray } from '../../src/util/as-array';
+} from '../ui-message-stream/ui-message-chunks';
+import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
+import { InferUIMessageData, InferUIMessageMetadata } from '../ui/ui-messages';
+import { asArray } from '../util/as-array';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
-} from '../../src/util/async-iterable-stream';
-import { consumeStream } from '../../src/util/consume-stream';
-import { createStitchableStream } from '../../src/util/create-stitchable-stream';
-import { DelayedPromise } from '../../src/util/delayed-promise';
-import { now as originalNow } from '../../src/util/now';
-import { prepareRetries } from '../../src/util/prepare-retries';
+} from '../util/async-iterable-stream';
+import { consumeStream } from '../util/consume-stream';
+import { createStitchableStream } from '../util/create-stitchable-stream';
+import { DelayedPromise } from '../util/delayed-promise';
+import { now as originalNow } from '../util/now';
+import { prepareRetries } from '../util/prepare-retries';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
