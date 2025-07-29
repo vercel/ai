@@ -16,15 +16,15 @@ Braintrust natively supports OpenTelemetry and works out of the box with the AI 
 If you are using Next.js, you can use the Braintrust exporter with `@vercel/otel` for the cleanest setup:
 
 ```typescript
-import { registerOTel } from "@vercel/otel";
-import { BraintrustExporter } from "braintrust";
+import { registerOTel } from '@vercel/otel';
+import { BraintrustExporter } from 'braintrust';
 
 // In your instrumentation.ts file
 export function register() {
   registerOTel({
-    serviceName: "my-braintrust-app",
+    serviceName: 'my-braintrust-app',
     traceExporter: new BraintrustExporter({
-      parent: "project_name:your-project-name",
+      parent: 'project_name:your-project-name',
       filterAISpans: true, // Only send AI-related spans
     }),
   });
@@ -44,13 +44,13 @@ When you call the AI SDK, make sure to set `experimental_telemetry`:
 
 ```typescript
 const result = await generateText({
-  model: openai("gpt-4o-mini"),
-  prompt: "What is 2 + 2?",
+  model: openai('gpt-4o-mini'),
+  prompt: 'What is 2 + 2?',
   experimental_telemetry: {
     isEnabled: true,
     metadata: {
-      query: "weather",
-      location: "San Francisco",
+      query: 'weather',
+      location: 'San Francisco',
     },
   },
 });
@@ -60,14 +60,14 @@ const result = await generateText({
 The integration supports streaming functions like `streamText`. Each streamed call will produce `ai.streamText` spans in Braintrust.
 
 ```typescript
-import { openai } from "@ai-sdk/openai";
-import { streamText } from "ai";
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
 
   const result = await streamText({
-    model: openai("gpt-4o-mini"),
+    model: openai('gpt-4o-mini'),
     prompt,
     experimental_telemetry: { isEnabled: true },
   });
@@ -75,6 +75,7 @@ export async function POST(req: Request) {
   return result.toDataStreamResponse();
 }
 ```
+
 </Note>
 
 ### Node.js
@@ -90,16 +91,16 @@ npm install ai @ai-sdk/openai braintrust @opentelemetry/sdk-node @opentelemetry/
 Then, set up the OpenTelemetry SDK:
 
 ```typescript
-import { NodeSDK } from "@opentelemetry/sdk-node";
-import { generateText, tool } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { z } from "zod";
-import { BraintrustSpanProcessor } from "braintrust";
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import { BraintrustSpanProcessor } from 'braintrust';
 
 const sdk = new NodeSDK({
   spanProcessors: [
     new BraintrustSpanProcessor({
-      parent: "project_name:your-project-name",
+      parent: 'project_name:your-project-name',
       filterAISpans: true,
     }),
   ],
@@ -109,22 +110,22 @@ sdk.start();
 
 async function main() {
   const result = await generateText({
-    model: openai("gpt-4o-mini"),
+    model: openai('gpt-4o-mini'),
     messages: [
       {
-        role: "user",
-        content: "What are my orders and where are they? My user ID is 123",
+        role: 'user',
+        content: 'What are my orders and where are they? My user ID is 123',
       },
     ],
     tools: {
       listOrders: tool({
-        description: "list all orders",
+        description: 'list all orders',
         parameters: z.object({ userId: z.string() }),
         execute: async ({ userId }) =>
           `User ${userId} has the following orders: 1`,
       }),
       viewTrackingInformation: tool({
-        description: "view tracking information for a specific order",
+        description: 'view tracking information for a specific order',
         parameters: z.object({ orderId: z.string() }),
         execute: async ({ orderId }) =>
           `Here is the tracking information for ${orderId}`,
@@ -132,10 +133,10 @@ async function main() {
     },
     experimental_telemetry: {
       isEnabled: true,
-      functionId: "my-awesome-function",
+      functionId: 'my-awesome-function',
       metadata: {
-        something: "custom",
-        someOtherThing: "other-value",
+        something: 'custom',
+        someOtherThing: 'other-value',
       },
     },
     maxSteps: 10,
