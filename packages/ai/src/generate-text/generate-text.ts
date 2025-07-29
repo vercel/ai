@@ -45,7 +45,7 @@ import {
   StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
-import { ToolCallArray } from './tool-call';
+import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolErrorUnion, ToolOutput, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
@@ -270,7 +270,7 @@ A function that attempts to repair a tool call that failed to parse.
         let currentModelResponse: Awaited<
           ReturnType<LanguageModelV2['doGenerate']>
         > & { response: { id: string; timestamp: Date; modelId: string } };
-        let clientToolCalls: ToolCallArray<TOOLS> = [];
+        let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
         let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
         const responseMessages: Array<ResponseMessage> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
@@ -561,7 +561,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages,
   abortSignal,
 }: {
-  toolCalls: ToolCallArray<TOOLS>;
+  toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
@@ -691,6 +691,19 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     return this.finalStep.toolCalls;
   }
 
+  get staticToolCalls() {
+    return this.finalStep.toolCalls.filter(
+      (toolCall): toolCall is StaticToolCall<TOOLS> =>
+        toolCall.dynamic === false,
+    );
+  }
+
+  get dynamicToolCalls() {
+    return this.finalStep.toolCalls.filter(
+      (toolCall): toolCall is DynamicToolCall => toolCall.dynamic === true,
+    );
+  }
+
   get toolResults() {
     return this.finalStep.toolResults;
   }
@@ -769,7 +782,7 @@ function asContent<TOOLS extends ToolSet>({
   toolOutputs,
 }: {
   content: Array<LanguageModelV2Content>;
-  toolCalls: ToolCallArray<TOOLS>;
+  toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
 }): Array<ContentPart<TOOLS>> {
   return [

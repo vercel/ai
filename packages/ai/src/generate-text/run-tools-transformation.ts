@@ -12,7 +12,7 @@ import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
-import { ToolCallUnion } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolErrorUnion, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
@@ -74,7 +74,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
     }
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
+  | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>)
   | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object

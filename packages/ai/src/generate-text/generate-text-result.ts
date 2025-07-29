@@ -8,7 +8,7 @@ import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
-import { ToolCallArray } from './tool-call';
+import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
 import { ToolResultArray } from './tool-output';
 import { ToolSet } from './tool-set';
 
@@ -52,7 +52,17 @@ Sources that have been used as references in the last step.
   /**
 The tool calls that were made in the last step.
    */
-  readonly toolCalls: ToolCallArray<TOOLS>;
+  readonly toolCalls: Array<TypedToolCall<TOOLS>>;
+
+  /**
+The static tool calls that were made in the last step.
+   */
+  readonly staticToolCalls: Array<StaticToolCall<TOOLS>>;
+
+  /**
+The dynamic tool calls that were made in the last step.
+   */
+  readonly dynamicToolCalls: Array<DynamicToolCall>;
 
   /**
 The results of the tool calls from the last step.

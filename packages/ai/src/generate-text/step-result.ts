@@ -11,7 +11,7 @@ import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
-import { ToolCallArray } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolResultArray } from './tool-output';
 import { ToolSet } from './tool-set';
 
@@ -52,7 +52,7 @@ The sources that were used to generate the text.
   /**
 The tool calls that were made during the generation.
 */
-  readonly toolCalls: ToolCallArray<TOOLS>;
+  readonly toolCalls: Array<TypedToolCall<TOOLS>>;
 
   /**
 The results of the tool calls.

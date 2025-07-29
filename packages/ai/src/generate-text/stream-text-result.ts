@@ -19,7 +19,7 @@ import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
-import { ToolCallUnion } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolErrorUnion, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
 
@@ -145,7 +145,7 @@ The tool calls that have been executed in the last step.
 
 Resolved when the response is finished.
      */
-  readonly toolCalls: Promise<ToolCallUnion<TOOLS>[]>;
+  readonly toolCalls: Promise<TypedToolCall<TOOLS>[]>;
 
   /**
 The tool results that have been generated in the last step.
@@ -365,7 +365,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
     }
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
+  | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>)
   | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
   | {

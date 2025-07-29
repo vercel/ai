@@ -23,7 +23,7 @@ export type {
   TextStreamPart,
   UIMessageStreamOptions,
 } from './stream-text-result';
-export type { ToolCallUnion } from './tool-call';
+export type { TypedToolCall as ToolCallUnion } from './tool-call';
 export type { ToolCallRepairFunction } from './tool-call-repair-function';
 export type { ToolResultUnion, ToolErrorUnion } from './tool-output';
 export type { ToolSet } from './tool-set';

@@ -84,7 +84,7 @@ import {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
-import { ToolCallUnion } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
@@ -1107,7 +1107,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           });
 
           const stepRequest = request ?? {};
-          const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
+          const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           let warnings: LanguageModelV2CallWarning[] | undefined;
 

@@ -8,7 +8,7 @@ import {
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
-import { ToolCallUnion } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
 
@@ -24,7 +24,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   system: string | undefined;
   messages: ModelMessage[];
-}): Promise<ToolCallUnion<TOOLS>> {
+}): Promise<TypedToolCall<TOOLS>> {
   if (tools == null) {
     throw new NoSuchToolError({ toolName: toolCall.toolName });
   }
@@ -78,7 +78,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
 }: {
   toolCall: LanguageModelV2ToolCall;
   tools: TOOLS;
-}): Promise<ToolCallUnion<TOOLS>> {
+}): Promise<TypedToolCall<TOOLS>> {
   const toolName = toolCall.toolName as keyof TOOLS & string;
 
   const tool = tools[toolName];
