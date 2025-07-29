@@ -79,11 +79,6 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    * Set to false if you are using additional streamText calls
    * and the message start event has already been sent.
    * Default to true.
-   *
-   * Note: this setting is currently not used, but you should
-   * already set it to false if you are using additional
-   * streamText calls that send additional data to prevent
-   * the message start event from being sent multiple times.
    */
   sendStart?: boolean;
 
