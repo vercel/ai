@@ -1,5 +1,18 @@
 # ai
 
+## 5.0.0-beta.31
+
+### Patch Changes
+
+- 6622441: feat (ai): add static/dynamic toolCalls/toolResults helpers
+- ced8eee: feat(ai): re-export zodSchema from main package
+- cee64b2: fix(otel): change back toolCall attributes of input/output back to args/result for compatibility
+- ee38081: Add support for audio/webm to detect-media-type
+- dd5fd43: feat (ai): support dynamic tools in Chat onToolCall
+- Updated dependencies [dd5fd43]
+  - @ai-sdk/provider-utils@3.0.0-beta.8
+  - @ai-sdk/gateway@1.0.0-beta.17
+
 ## 5.0.0-beta.30
 
 ### Patch Changes

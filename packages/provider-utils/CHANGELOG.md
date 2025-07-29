@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-beta.8
+
+### Patch Changes
+
+- dd5fd43: feat (ai): support dynamic tools in Chat onToolCall
+
 ## 3.0.0-beta.7
 
 ### Patch Changes
