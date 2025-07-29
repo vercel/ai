@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-beta.11
+
+### Patch Changes
+
+- eb173f1: chore (providers): remove model shorthand deprecation warnings
+- Updated dependencies [dd5fd43]
+  - @ai-sdk/provider-utils@3.0.0-beta.8
+
 ## 2.0.0-beta.10
 
 ### Patch Changes

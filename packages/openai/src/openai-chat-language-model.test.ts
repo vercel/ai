@@ -1488,6 +1488,97 @@ describe('doGenerate', () => {
     expect(requestBody.service_tier).toBe('flex');
     expect(result.warnings).toEqual([]);
   });
+
+  it('should send serviceTier priority processing setting', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'priority',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-4o-mini",
+        "service_tier": "priority",
+      }
+    `);
+  });
+
+  it('should show warning when using priority processing with unsupported model', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-3.5-turbo');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'priority',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'serviceTier',
+      details:
+        'priority processing is only available for supported models (GPT-4, o3, o4-mini) and requires Enterprise access',
+    });
+  });
+
+  it('should allow priority processing with gpt-4o model without warnings', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'priority',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBe('priority');
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should allow priority processing with o3 model without warnings', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('o3-mini');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'priority',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBe('priority');
+    expect(result.warnings).toEqual([]);
+  });
 });
 
 describe('doStream', () => {
@@ -2593,6 +2684,39 @@ describe('doStream', () => {
         ],
         "model": "o3-mini",
         "service_tier": "flex",
+        "stream": true,
+        "stream_options": {
+          "include_usage": true,
+        },
+      }
+    `);
+  });
+
+  it('should send serviceTier priority processing setting in streaming', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const model = provider.chat('gpt-4o-mini');
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'priority',
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-4o-mini",
+        "service_tier": "priority",
         "stream": true,
         "stream_options": {
           "include_usage": true,

@@ -269,6 +269,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       baseArgs.service_tier = undefined;
     }
 
+    // Validate priority processing support
+    if (
+      openaiOptions.serviceTier === 'priority' &&
+      !supportsPriorityProcessing(this.modelId)
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'serviceTier',
+        details:
+          'priority processing is only available for supported models (GPT-4, o3, o4-mini) and requires Enterprise access',
+      });
+      baseArgs.service_tier = undefined;
+    }
+
     const {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
@@ -785,6 +799,14 @@ function isReasoningModel(modelId: string) {
 
 function supportsFlexProcessing(modelId: string) {
   return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
+}
+
+function supportsPriorityProcessing(modelId: string) {
+  return (
+    modelId.startsWith('gpt-4') ||
+    modelId.startsWith('o3') ||
+    modelId.startsWith('o4-mini')
+  );
 }
 
 function getSystemMessageMode(modelId: string) {

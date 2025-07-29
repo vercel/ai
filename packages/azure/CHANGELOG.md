@@ -1,5 +1,17 @@
 # @ai-sdk/azure
 
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- 004fb17: feat(azure): add speech model support and fix transcription
+- eb173f1: chore (providers): remove model shorthand deprecation warnings
+- Updated dependencies [eb173f1]
+- Updated dependencies [7032dc5]
+- Updated dependencies [dd5fd43]
+  - @ai-sdk/openai@2.0.0-beta.14
+  - @ai-sdk/provider-utils@3.0.0-beta.8
+
 ## 2.0.0-beta.13
 
 ### Patch Changes

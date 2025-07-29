@@ -1,5 +1,5 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { UIMessageChunk } from '../../src/ui-message-stream/ui-message-chunks';
+import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import {
   createStreamingUIMessageState,
@@ -4909,8 +4909,8 @@ describe('processUIMessageStream', () => {
       });
     });
 
-    it('should not call onToolCall', async () => {
-      expect(onToolCallInvoked).toBe(false);
+    it('should invoke onToolCall for dynamic tools', async () => {
+      expect(onToolCallInvoked).toBe(true);
     });
 
     it('should call the update function with the correct arguments', async () => {
