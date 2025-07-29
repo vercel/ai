@@ -4,3 +4,5 @@ export type {
   AnthropicProvider,
   AnthropicProviderSettings,
 } from './anthropic-provider';
+export { anthropicTools } from './anthropic-tools';
+export { prepareTools } from './anthropic-prepare-tools';
