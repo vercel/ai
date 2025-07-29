@@ -1703,6 +1703,56 @@ describe('streamObject', () => {
       );
     });
 
+    it('should be able to repair JSON wrapped with markdown code blocks', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV2({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '```json\n{ "content": "test message" }\n```',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        experimental_repairText: async ({ text, error }) => {
+          expect(error).toBeInstanceOf(JSONParseError);
+          expect(text).toStrictEqual(
+            '```json\n{ "content": "test message" }\n```',
+          );
+
+          // Remove markdown code block wrapper
+          const cleaned = text
+            .replace(/^```json\s*/, '')
+            .replace(/\s*```$/, '');
+          return cleaned;
+        },
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(await result.object).toStrictEqual({
+        content: 'test message',
+      });
+    });
+
     it('should throw NoObjectGeneratedError when parsing fails with repairText', async () => {
       const result = streamObject({
         model: new MockLanguageModelV2({
