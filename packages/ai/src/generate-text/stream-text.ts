@@ -81,7 +81,7 @@ import {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
-import { ToolCallUnion } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
@@ -853,7 +853,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             files: finalStep.files,
             sources: finalStep.sources,
             toolCalls: finalStep.toolCalls,
+            staticToolCalls: finalStep.staticToolCalls,
+            dynamicToolCalls: finalStep.dynamicToolCalls,
             toolResults: finalStep.toolResults,
+            staticToolResults: finalStep.staticToolResults,
+            dynamicToolResults: finalStep.dynamicToolResults,
             request: finalStep.request,
             response: finalStep.response,
             warnings: finalStep.warnings,
@@ -1104,7 +1108,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           });
 
           const stepRequest = request ?? {};
-          const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
+          const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           let warnings: LanguageModelV2CallWarning[] | undefined;
 
@@ -1510,8 +1514,24 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     return this.finalStep.then(step => step.toolCalls);
   }
 
+  get staticToolCalls() {
+    return this.finalStep.then(step => step.staticToolCalls);
+  }
+
+  get dynamicToolCalls() {
+    return this.finalStep.then(step => step.dynamicToolCalls);
+  }
+
   get toolResults() {
     return this.finalStep.then(step => step.toolResults);
+  }
+
+  get staticToolResults() {
+    return this.finalStep.then(step => step.staticToolResults);
+  }
+
+  get dynamicToolResults() {
+    return this.finalStep.then(step => step.dynamicToolResults);
   }
 
   get usage() {
