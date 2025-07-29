@@ -1,5 +1,5 @@
 import { Tool } from '@ai-sdk/provider-utils';
-import { ValueOf } from '..//util/value-of';
+import { ValueOf } from '../../src/util/value-of';
 import { ToolSet } from './tool-set';
 import { ProviderMetadata } from '../types';
 

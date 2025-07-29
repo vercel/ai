@@ -1,10 +1,10 @@
 import { IdGenerator, ReasoningPart } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
-import { InferUIMessageChunk } from '..//ui-message-stream/ui-message-chunks';
-import { UIMessageStreamResponseInit } from '..//ui-message-stream/ui-message-stream-response-init';
-import { InferUIMessageMetadata, UIMessage } from '..//ui/ui-messages';
-import { AsyncIterableStream } from '..//util/async-iterable-stream';
-import { ErrorHandler } from '..//util/error-handler';
+import { InferUIMessageChunk } from '../../src/ui-message-stream/ui-message-chunks';
+import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
+import { InferUIMessageMetadata, UIMessage } from '../../src/ui/ui-messages';
+import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
+import { ErrorHandler } from '../../src/util/error-handler';
 import {
   CallWarning,
   FinishReason,

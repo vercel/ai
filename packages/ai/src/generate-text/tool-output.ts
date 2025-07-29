@@ -1,4 +1,4 @@
-import { ValueOf } from '..//util/value-of';
+import { ValueOf } from '../../src/util/value-of';
 import { InferToolInput, InferToolOutput } from '@ai-sdk/provider-utils';
 import { ToolSet } from './tool-set';
 

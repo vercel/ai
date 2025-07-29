@@ -1,5 +1,5 @@
 import { ServerResponse } from 'http';
-import { AsyncIterableStream } from '..//util/async-iterable-stream';
+import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
 import {
   CallWarning,
   FinishReason,

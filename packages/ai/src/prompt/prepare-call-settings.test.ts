@@ -1,4 +1,4 @@
-import { InvalidArgumentError } from '..//error/invalid-argument-error';
+import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { prepareCallSettings } from './prepare-call-settings';
 
 describe('prepareCallSettings', () => {

@@ -4,7 +4,7 @@ import {
   LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
-import { isNonEmptyObject } from '..//util/is-non-empty-object';
+import { isNonEmptyObject } from '../../src/util/is-non-empty-object';
 import { ToolSet } from '../generate-text';
 import { ToolChoice } from '../types/language-model';
 
