@@ -722,11 +722,16 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     self._finishReason.resolve(finishReason ?? 'unknown');
 
                     try {
-                      object = await parseAndValidateObjectResultWithRepair(accumulatedText, outputStrategy, repairText, {
-                        response: fullResponse,
-                        usage,
-                        finishReason,
-                      });
+                      object = await parseAndValidateObjectResultWithRepair(
+                        accumulatedText,
+                        outputStrategy,
+                        repairText,
+                        {
+                          response: fullResponse,
+                          usage,
+                          finishReason,
+                        },
+                      );
                       self._object.resolve(object);
                     } catch (e) {
                       error = e;

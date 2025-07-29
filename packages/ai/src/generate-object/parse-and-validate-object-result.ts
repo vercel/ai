@@ -1,16 +1,17 @@
-import {
-  JSONParseError,
-  TypeValidationError,
-} from '@ai-sdk/provider';
+import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
-import type { FinishReason, LanguageModelResponseMetadata, LanguageModelUsage } from '../types';
+import type {
+  FinishReason,
+  LanguageModelResponseMetadata,
+  LanguageModelUsage,
+} from '../types';
 import type { OutputStrategy } from './output-strategy';
 import { RepairTextFunction } from './repair-text';
 
 /**
  * Parses and validates a result string by parsing it as JSON and validating against the output strategy.
- * 
+ *
  * @param result - The result string to parse and validate
  * @param outputStrategy - The output strategy containing validation logic
  * @param context - Additional context for error reporting
@@ -24,7 +25,7 @@ async function parseAndValidateObjectResult<RESULT>(
     response: LanguageModelResponseMetadata;
     usage: LanguageModelUsage;
     finishReason: FinishReason;
-  }
+  },
 ): Promise<RESULT> {
   const parseResult = await safeParseJSON({ text: result });
 
@@ -65,7 +66,7 @@ async function parseAndValidateObjectResult<RESULT>(
 /**
  * Parses and validates a result string by parsing it as JSON and validating against the output strategy.
  * If the result cannot be parsed, it attempts to repair the result using the repairText function.
- * 
+ *
  * @param result - The result string to parse and validate
  * @param outputStrategy - The output strategy containing validation logic
  * @param repairText - A function that attempts to repair the result string
@@ -81,18 +82,30 @@ export async function parseAndValidateObjectResultWithRepair<RESULT>(
     response: LanguageModelResponseMetadata;
     usage: LanguageModelUsage;
     finishReason: FinishReason;
-  }
+  },
 ): Promise<RESULT> {
-    try {
-        return await parseAndValidateObjectResult(result, outputStrategy, context);
-    } catch (error) {
-        if (repairText != null && NoObjectGeneratedError.isInstance(error) && (JSONParseError.isInstance(error.cause) || TypeValidationError.isInstance(error.cause))) {
-            const repairedText = await repairText({ text: result, error: error.cause });
-            if (repairedText === null) {
-                throw error;
-            }
-            return await parseAndValidateObjectResult(repairedText, outputStrategy, context);
-        }
+  try {
+    return await parseAndValidateObjectResult(result, outputStrategy, context);
+  } catch (error) {
+    if (
+      repairText != null &&
+      NoObjectGeneratedError.isInstance(error) &&
+      (JSONParseError.isInstance(error.cause) ||
+        TypeValidationError.isInstance(error.cause))
+    ) {
+      const repairedText = await repairText({
+        text: result,
+        error: error.cause,
+      });
+      if (repairedText === null) {
         throw error;
+      }
+      return await parseAndValidateObjectResult(
+        repairedText,
+        outputStrategy,
+        context,
+      );
     }
+    throw error;
+  }
 }
