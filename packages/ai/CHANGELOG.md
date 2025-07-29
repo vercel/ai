@@ -1,5 +1,12 @@
 # ai
 
+## 5.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [fedb55e]
+  - @ai-sdk/gateway@1.0.0-beta.16
+
 ## 5.0.0-beta.29
 
 ### Patch Changes
