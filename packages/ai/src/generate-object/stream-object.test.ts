@@ -902,7 +902,7 @@ describe('streamObject', () => {
           fail('must throw error');
         } catch (error) {
           verifyNoObjectGeneratedError(error, {
-            message: 'No object generated: response did not match schema.',
+            message: 'No object generated: could not parse the response.',
             response: {
               id: 'id-1',
               timestamp: new Date(123),
@@ -943,7 +943,7 @@ describe('streamObject', () => {
           fail('must throw error');
         } catch (error) {
           verifyNoObjectGeneratedError(error, {
-            message: 'No object generated: response did not match schema.',
+            message: 'No object generated: could not parse the response.',
             response: {
               id: 'id-1',
               timestamp: new Date(123),
@@ -1736,7 +1736,7 @@ describe('streamObject', () => {
         fail('must throw error');
       } catch (error) {
         verifyNoObjectGeneratedError(error, {
-          message: 'No object generated: response did not match schema.',
+          message: 'No object generated: could not parse the response.',
           response: {
             id: 'id-0',
             timestamp: new Date(0),
