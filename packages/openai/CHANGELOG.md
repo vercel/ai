@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- eb173f1: chore (providers): remove model shorthand deprecation warnings
+- 7032dc5: feat(openai): add priority processing service tier support
+- Updated dependencies [dd5fd43]
+  - @ai-sdk/provider-utils@3.0.0-beta.8
+
 ## 2.0.0-beta.13
 
 ### Patch Changes
