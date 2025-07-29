@@ -6,6 +6,7 @@ export {
   generateId,
   jsonSchema,
   tool,
+  zodSchema,
   type IdGenerator,
   type InferToolInput,
   type InferToolOutput,
