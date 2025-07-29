@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.0-beta.32
+
+### Patch Changes
+
+- bc24722: feat (ai): Add finishReason as a promise on StreamObjectResult to match StreamTextResult
+- 13b4f46: feat (ai): export experimental MCPClient and MCPClientConfig interfaces
+- 56c232b: fix (ai): remove outdated sendStart jsdoc
+
 ## 5.0.0-beta.31
 
 ### Patch Changes
