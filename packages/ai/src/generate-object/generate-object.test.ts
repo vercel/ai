@@ -3,7 +3,7 @@ import { jsonSchema } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import assert, { fail } from 'node:assert';
 import { z } from 'zod/v4';
-import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../../src/error/no-object-generated-error';
+import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '..//error/no-object-generated-error';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';

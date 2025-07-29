@@ -4,7 +4,7 @@ import {
   mockEmbed,
 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
-import { createResolvablePromise } from '../../src/util/create-resolvable-promise';
+import { createResolvablePromise } from '..//util/create-resolvable-promise';
 import { embedMany } from './embed-many';
 
 const dummyEmbeddings = [

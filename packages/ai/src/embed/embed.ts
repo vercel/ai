@@ -1,5 +1,5 @@
 import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { prepareRetries } from '../../src/util/prepare-retries';
+import { prepareRetries } from '..//util/prepare-retries';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';

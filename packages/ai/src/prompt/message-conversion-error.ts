@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { UIMessage } from '../../src/ui/ui-messages';
+import { UIMessage } from '..//ui/ui-messages';
 
 const name = 'AI_MessageConversionError';
 const marker = `vercel.ai.error.${name}`;

@@ -1,12 +1,12 @@
 import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { NoTranscriptGeneratedError } from '../../src/error/no-transcript-generated-error';
+import { NoTranscriptGeneratedError } from '..//error/no-transcript-generated-error';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
-} from '../../src/util/detect-media-type';
-import { download } from '../../src/util/download';
-import { prepareRetries } from '../../src/util/prepare-retries';
+} from '..//util/detect-media-type';
+import { download } from '..//util/download';
+import { prepareRetries } from '..//util/prepare-retries';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';

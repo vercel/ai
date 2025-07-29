@@ -15,8 +15,8 @@ import {
 import {
   detectMediaType,
   imageMediaTypeSignatures,
-} from '../../src/util/detect-media-type';
-import { download } from '../../src/util/download';
+} from '..//util/detect-media-type';
+import { download } from '..//util/download';
 import { convertToLanguageModelV2DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';

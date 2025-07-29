@@ -12,9 +12,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
-import { prepareHeaders } from '../../src/util/prepare-headers';
-import { prepareRetries } from '../../src/util/prepare-retries';
+import { NoObjectGeneratedError } from '..//error/no-object-generated-error';
+import { prepareHeaders } from '..//util/prepare-headers';
+import { prepareRetries } from '..//util/prepare-retries';
 import { extractContentText } from '../generate-text/extract-content-text';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';

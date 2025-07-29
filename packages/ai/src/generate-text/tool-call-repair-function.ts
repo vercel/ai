@@ -1,6 +1,6 @@
 import { JSONSchema7, LanguageModelV2ToolCall } from '@ai-sdk/provider';
-import { InvalidToolInputError } from '../../src/error/invalid-tool-input-error';
-import { NoSuchToolError } from '../../src/error/no-such-tool-error';
+import { InvalidToolInputError } from '..//error/invalid-tool-input-error';
+import { NoSuchToolError } from '..//error/no-such-tool-error';
 import { ModelMessage } from '../prompt';
 import { ToolSet } from './tool-set';
 

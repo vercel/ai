@@ -9,8 +9,8 @@ import { z } from 'zod/v4';
 import {
   NoObjectGeneratedError,
   verifyNoObjectGeneratedError,
-} from '../../src/error/no-object-generated-error';
-import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
+} from '..//error/no-object-generated-error';
+import { AsyncIterableStream } from '..//util/async-iterable-stream';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';

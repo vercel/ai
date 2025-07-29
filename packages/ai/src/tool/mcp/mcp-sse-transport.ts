@@ -1,5 +1,5 @@
 import { EventSourceParserStream } from '@ai-sdk/provider-utils';
-import { MCPClientError } from '../../../src/error/mcp-client-error';
+import { MCPClientError } from '../..//error/mcp-client-error';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
 

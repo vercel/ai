@@ -15,18 +15,18 @@ import {
 import { ServerResponse } from 'http';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
-import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
-import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { DeepPartial, isDeepEqualData, parsePartialJson } from '../../src/util';
+import { NoObjectGeneratedError } from '..//error/no-object-generated-error';
+import { createTextStreamResponse } from '..//text-stream/create-text-stream-response';
+import { pipeTextStreamToResponse } from '..//text-stream/pipe-text-stream-to-response';
+import { DeepPartial, isDeepEqualData, parsePartialJson } from '..//util';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
-} from '../../src/util/async-iterable-stream';
-import { createStitchableStream } from '../../src/util/create-stitchable-stream';
-import { DelayedPromise } from '../../src/util/delayed-promise';
-import { now as originalNow } from '../../src/util/now';
-import { prepareRetries } from '../../src/util/prepare-retries';
+} from '..//util/async-iterable-stream';
+import { createStitchableStream } from '..//util/create-stitchable-stream';
+import { DelayedPromise } from '..//util/delayed-promise';
+import { now as originalNow } from '..//util/now';
+import { prepareRetries } from '..//util/prepare-retries';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';

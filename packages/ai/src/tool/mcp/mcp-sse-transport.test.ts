@@ -2,7 +2,7 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
-import { MCPClientError } from '../../../src/error/mcp-client-error';
+import { MCPClientError } from '../..//error/mcp-client-error';
 import { SseMCPTransport } from './mcp-sse-transport';
 
 describe('SseMCPTransport', () => {

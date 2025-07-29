@@ -5,7 +5,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { z } from 'zod/v4';
-import { NoSuchToolError } from '../../src/error/no-such-tool-error';
+import { NoSuchToolError } from '..//error/no-such-tool-error';
 import { MockTracer } from '../test/mock-tracer';
 import { runToolsTransformation } from './run-tools-transformation';
 

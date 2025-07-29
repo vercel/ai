@@ -1,11 +1,11 @@
 import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { NoImageGeneratedError } from '../../src/error/no-image-generated-error';
+import { NoImageGeneratedError } from '..//error/no-image-generated-error';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
-} from '../../src/util/detect-media-type';
-import { prepareRetries } from '../../src/util/prepare-retries';
+} from '..//util/detect-media-type';
+import { prepareRetries } from '..//util/prepare-retries';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import {
   DefaultGeneratedFile,

@@ -2,7 +2,7 @@ import {
   LanguageModelV2CallOptions,
   LanguageModelV2Middleware,
 } from '@ai-sdk/provider';
-import { mergeObjects } from '../../src/util/merge-objects';
+import { mergeObjects } from '..//util/merge-objects';
 
 /**
  * Applies default settings for a language model.
