@@ -289,8 +289,19 @@ Only applicable for HTTP-based providers.
           embeddings.push(...result.embeddings);
           responses.push(result.response);
           tokens += result.usage.tokens;
-          if (!providerMetadata && result.providerMetadata) {
-            providerMetadata = result.providerMetadata;
+          if (result.providerMetadata) {
+            if (!providerMetadata) {
+              providerMetadata = { ...result.providerMetadata };
+            } else {
+              for (const [providerName, metadata] of Object.entries(
+                result.providerMetadata,
+              )) {
+                providerMetadata[providerName] = {
+                  ...(providerMetadata[providerName] ?? {}),
+                  ...metadata,
+                };
+              }
+            }
           }
         }
       }
