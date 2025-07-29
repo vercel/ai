@@ -26,19 +26,16 @@ export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
       }
     : McpToolSet<Record<string, { inputSchema: FlexibleSchema<unknown> }>>;
 
-const ClientOrServerImplementationSchema = z
-  .object({
-    name: z.string(),
-    version: z.string(),
-  })
-  .passthrough();
+const ClientOrServerImplementationSchema = z.looseObject({
+  name: z.string(),
+  version: z.string(),
+});
+
 export type Configuration = z.infer<typeof ClientOrServerImplementationSchema>;
 
-export const BaseParamsSchema = z
-  .object({
-    _meta: z.optional(z.object({}).passthrough()),
-  })
-  .passthrough();
+export const BaseParamsSchema = z.looseObject({
+  _meta: z.optional(z.object({}).loose()),
+});
 type BaseParams = z.infer<typeof BaseParamsSchema>;
 export const ResultSchema = BaseParamsSchema;
 
@@ -55,34 +52,27 @@ export type RequestOptions = {
 
 export type Notification = z.infer<typeof RequestSchema>;
 
-const ServerCapabilitiesSchema = z
-  .object({
-    experimental: z.optional(z.object({}).passthrough()),
-    logging: z.optional(z.object({}).passthrough()),
-    prompts: z.optional(
-      z
-        .object({
-          listChanged: z.optional(z.boolean()),
-        })
-        .passthrough(),
-    ),
-    resources: z.optional(
-      z
-        .object({
-          subscribe: z.optional(z.boolean()),
-          listChanged: z.optional(z.boolean()),
-        })
-        .passthrough(),
-    ),
-    tools: z.optional(
-      z
-        .object({
-          listChanged: z.optional(z.boolean()),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
+const ServerCapabilitiesSchema = z.looseObject({
+  experimental: z.optional(z.object({}).loose()),
+  logging: z.optional(z.object({}).loose()),
+  prompts: z.optional(
+    z.looseObject({
+      listChanged: z.optional(z.boolean()),
+    }),
+  ),
+  resources: z.optional(
+    z.looseObject({
+      subscribe: z.optional(z.boolean()),
+      listChanged: z.optional(z.boolean()),
+    }),
+  ),
+  tools: z.optional(
+    z.looseObject({
+      listChanged: z.optional(z.boolean()),
+    }),
+  ),
+});
+
 export type ServerCapabilities = z.infer<typeof ServerCapabilitiesSchema>;
 
 export const InitializeResultSchema = ResultSchema.extend({
@@ -110,11 +100,11 @@ const ToolSchema = z
     inputSchema: z
       .object({
         type: z.literal('object'),
-        properties: z.optional(z.object({}).passthrough()),
+        properties: z.optional(z.object({}).loose()),
       })
-      .passthrough(),
+      .loose(),
   })
-  .passthrough();
+  .loose();
 export type MCPTool = z.infer<typeof ToolSchema>;
 export const ListToolsResultSchema = PaginatedResultSchema.extend({
   tools: z.array(ToolSchema),
@@ -126,14 +116,14 @@ const TextContentSchema = z
     type: z.literal('text'),
     text: z.string(),
   })
-  .passthrough();
+  .loose();
 const ImageContentSchema = z
   .object({
     type: z.literal('image'),
-    data: z.string().base64(),
+    data: z.base64(),
     mimeType: z.string(),
   })
-  .passthrough();
+  .loose();
 const ResourceContentsSchema = z
   .object({
     /**
@@ -145,19 +135,19 @@ const ResourceContentsSchema = z
      */
     mimeType: z.optional(z.string()),
   })
-  .passthrough();
+  .loose();
 const TextResourceContentsSchema = ResourceContentsSchema.extend({
   text: z.string(),
 });
 const BlobResourceContentsSchema = ResourceContentsSchema.extend({
-  blob: z.string().base64(),
+  blob: z.base64(),
 });
 const EmbeddedResourceSchema = z
   .object({
     type: z.literal('resource'),
     resource: z.union([TextResourceContentsSchema, BlobResourceContentsSchema]),
   })
-  .passthrough();
+  .loose();
 
 export const CallToolResultSchema = ResultSchema.extend({
   content: z.array(
