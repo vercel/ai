@@ -11,7 +11,7 @@ import {
   loadSetting,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { anthropicTools } from '@ai-sdk/anthropic';
+import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockChatModelId } from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';

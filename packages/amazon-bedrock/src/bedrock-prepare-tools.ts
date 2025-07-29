@@ -8,7 +8,7 @@ import { asSchema } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
   prepareTools as prepareAnthropicTools,
-} from '@ai-sdk/anthropic';
+} from '@ai-sdk/anthropic/internal';
 import { BedrockTool, BedrockToolConfiguration } from './bedrock-api-types';
 
 export function prepareTools({

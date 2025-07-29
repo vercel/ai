@@ -3,7 +3,7 @@ import { createAmazonBedrock } from './bedrock-provider';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import { BedrockImageModel } from './bedrock-image-model';
-import { anthropicTools } from '@ai-sdk/anthropic';
+import { anthropicTools } from '@ai-sdk/anthropic/internal';
 
 // Add type assertions for the mocked classes
 const BedrockChatLanguageModelMock =

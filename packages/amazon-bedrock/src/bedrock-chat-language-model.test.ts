@@ -10,13 +10,14 @@ import {
   BedrockReasoningContentBlock,
   BedrockRedactedReasoningContentBlock,
 } from './bedrock-api-types';
-import { anthropicTools, prepareTools } from '@ai-sdk/anthropic';
+import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 
 const mockPrepareAnthropicTools = vi.mocked(prepareTools);
 
-vi.mock('@ai-sdk/anthropic', async importOriginal => {
-  const original = await importOriginal<typeof import('@ai-sdk/anthropic')>();
+vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
+  const original =
+    await importOriginal<typeof import('@ai-sdk/anthropic/internal')>();
   return {
     ...original,
     prepareTools: vi.fn(),
