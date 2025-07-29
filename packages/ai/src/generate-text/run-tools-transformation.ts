@@ -12,9 +12,10 @@ import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
-import { ToolCallUnion } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolErrorUnion, ToolResultUnion } from './tool-output';
+import { TypedToolError } from './tool-error';
+import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
@@ -74,9 +75,9 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
     }
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
-  | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>)
-  | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
+  | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
+  | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
+  | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | { type: 'stream-start'; warnings: LanguageModelV2CallWarning[] }
   | {
@@ -270,7 +271,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                       ...toolCall,
                       type: 'tool-error',
                       error,
-                    } satisfies ToolErrorUnion<TOOLS>);
+                    } satisfies TypedToolError<TOOLS>);
 
                     outstandingToolResults.delete(toolExecutionId);
                     attemptClose();
@@ -281,7 +282,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     ...toolCall,
                     type: 'tool-result',
                     output,
-                  } satisfies ToolResultUnion<TOOLS>);
+                  } satisfies TypedToolResult<TOOLS>);
 
                   outstandingToolResults.delete(toolExecutionId);
                   attemptClose();
@@ -325,7 +326,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               input: toolInputs.get(chunk.toolCallId),
               providerExecuted: chunk.providerExecuted,
               error: chunk.result,
-            } as ToolErrorUnion<TOOLS>);
+            } as TypedToolError<TOOLS>);
           } else {
             controller.enqueue({
               type: 'tool-result',
@@ -334,7 +335,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               input: toolInputs.get(chunk.toolCallId),
               output: chunk.result,
               providerExecuted: chunk.providerExecuted,
-            } as ToolResultUnion<TOOLS>);
+            } as TypedToolResult<TOOLS>);
           }
           break;
         }

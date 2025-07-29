@@ -2091,7 +2091,7 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should include toolConfig when conversation has tool calls but no active tools', async () => {
+  it('should omit toolConfig and filter tool content when conversation has tool calls but no active tools', async () => {
     prepareJsonResponse({});
 
     const conversationWithToolCalls: LanguageModelV2Prompt = [
@@ -2130,17 +2130,39 @@ describe('doGenerate', () => {
       },
     ];
 
-    await model.doGenerate({
+    const result = await model.doGenerate({
       prompt: conversationWithToolCalls,
       tools: [],
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
-      {
-        "tools": [],
-      }
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
+
+    expect(requestBody.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "What is the weather in Toronto?",
+            },
+            {
+              "text": "Now give me a summary.",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.",
+          "setting": "toolContent",
+          "type": "unsupported-setting",
+        },
+      ]
     `);
   });
 
@@ -2256,7 +2278,7 @@ describe('doGenerate', () => {
     ]);
   });
 
-  it('should include toolConfig when conversation has tool calls but toolChoice is none', async () => {
+  it('should omit toolConfig when conversation has tool calls but toolChoice is none', async () => {
     prepareJsonResponse({});
 
     const conversationWithToolCalls: LanguageModelV2Prompt = [
@@ -2315,10 +2337,6 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
-      {
-        "tools": [],
-      }
-    `);
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
   });
 });

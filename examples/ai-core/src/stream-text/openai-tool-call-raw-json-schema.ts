@@ -42,6 +42,10 @@ async function main() {
       }
 
       case 'tool-call': {
+        if (part.dynamic) {
+          continue;
+        }
+
         switch (part.toolName) {
           case 'cityAttractions': {
             console.log('TOOL CALL cityAttractions');
@@ -60,6 +64,10 @@ async function main() {
       }
 
       case 'tool-result': {
+        if (part.dynamic) {
+          continue;
+        }
+
         switch (part.toolName) {
           // NOT AVAILABLE (NO EXECUTE METHOD)
           // case 'cityAttractions': {

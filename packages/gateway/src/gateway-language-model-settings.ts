@@ -77,4 +77,6 @@ export type GatewayModelId =
   | 'xai/grok-3-mini'
   | 'xai/grok-3-mini-fast'
   | 'xai/grok-4'
+  | 'zai/glm-4.5'
+  | 'zai/glm-4.5-air'
   | (string & {});

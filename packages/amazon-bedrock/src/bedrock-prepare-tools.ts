@@ -9,7 +9,6 @@ import { BedrockTool, BedrockToolConfiguration } from './bedrock-api-types';
 
 /**
  * Check if the conversation contains any tool calls or tool results.
- * Bedrock requires toolConfig to be present when messages contain toolUse or toolResult blocks.
  */
 function promptContainsToolContent(prompt: LanguageModelV2Prompt): boolean {
   return prompt.some(message => {
@@ -39,9 +38,11 @@ export function prepareTools({
   const hasToolContent = promptContainsToolContent(prompt);
 
   if (tools == null) {
+    // When no tools are provided, completely omit toolConfig from the request.
+    // This works regardless of conversation history - Bedrock handles it gracefully.
     return {
       toolConfig: {
-        tools: hasToolContent ? [] : undefined,
+        tools: undefined,
         toolChoice: undefined,
       },
       toolWarnings: [],
@@ -88,11 +89,11 @@ export function prepareTools({
         toolWarnings,
       };
     case 'none':
-      // Bedrock does not support 'none' tool choice, so we remove the tools.
-      // However, if conversation contains tool content, we need empty tools array for API.
+      // Bedrock does not support 'none' tool choice, so we omit toolConfig entirely.
+      // This works regardless of conversation history - Bedrock handles it gracefully.
       return {
         toolConfig: {
-          tools: hasToolContent ? [] : undefined,
+          tools: undefined,
           toolChoice: undefined,
         },
         toolWarnings,

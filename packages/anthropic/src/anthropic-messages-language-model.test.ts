@@ -1,6 +1,7 @@
 import {
   LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -44,7 +45,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         | { type: 'thinking'; thinking: string; signature: string }
         | { type: 'tool_use'; id: string; name: string; input: unknown }
       >;
-      usage?: {
+      usage?: Record<string, JSONValue> & {
         input_tokens: number;
         output_tokens: number;
         cache_creation_input_tokens?: number;
@@ -585,6 +586,12 @@ describe('AnthropicMessagesLanguageModel', () => {
           "providerMetadata": {
             "anthropic": {
               "cacheCreationInputTokens": 10,
+              "usage": {
+                "cache_creation_input_tokens": 10,
+                "cache_read_input_tokens": 5,
+                "input_tokens": 20,
+                "output_tokens": 50,
+              },
             },
           },
           "request": {
@@ -637,6 +644,151 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "headers": {
               "content-length": "299",
+              "content-type": "application/json",
+            },
+            "id": "msg_017TfcQ4AgGxKyBduUpqYPZn",
+            "modelId": "claude-3-haiku-20240307",
+          },
+          "usage": {
+            "cachedInputTokens": 5,
+            "inputTokens": 20,
+            "outputTokens": 50,
+            "totalTokens": 70,
+          },
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should support cache control and return extra fields in provider metadata', async () => {
+      prepareJsonResponse({
+        usage: {
+          input_tokens: 20,
+          output_tokens: 50,
+          cache_creation_input_tokens: 10,
+          cache_read_input_tokens: 5,
+          cache_creation: {
+            ephemeral_5m_input_tokens: 0,
+            ephemeral_1h_input_tokens: 10,
+          },
+        },
+      });
+
+      const model = provider('claude-3-haiku-20240307');
+
+      const result = await model.doGenerate({
+        headers: {
+          'anthropic-beta': 'extended-cache-ttl-2025-04-11',
+        },
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: {
+              anthropic: {
+                cacheControl: { type: 'ephemeral', ttl: '1h' },
+              },
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'claude-3-haiku-20240307',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                cache_control: { type: 'ephemeral', ttl: '1h' },
+              },
+            ],
+          },
+        ],
+        max_tokens: 4096,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "text": "",
+              "type": "text",
+            },
+          ],
+          "finishReason": "stop",
+          "providerMetadata": {
+            "anthropic": {
+              "cacheCreationInputTokens": 10,
+              "usage": {
+                "cache_creation": {
+                  "ephemeral_1h_input_tokens": 10,
+                  "ephemeral_5m_input_tokens": 0,
+                },
+                "cache_creation_input_tokens": 10,
+                "cache_read_input_tokens": 5,
+                "input_tokens": 20,
+                "output_tokens": 50,
+              },
+            },
+          },
+          "request": {
+            "body": {
+              "max_tokens": 4096,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "cache_control": {
+                        "ttl": "1h",
+                        "type": "ephemeral",
+                      },
+                      "text": "Hello",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-3-haiku-20240307",
+              "stop_sequences": undefined,
+              "system": undefined,
+              "temperature": undefined,
+              "tool_choice": undefined,
+              "tools": undefined,
+              "top_k": undefined,
+              "top_p": undefined,
+            },
+          },
+          "response": {
+            "body": {
+              "content": [
+                {
+                  "text": "",
+                  "type": "text",
+                },
+              ],
+              "id": "msg_017TfcQ4AgGxKyBduUpqYPZn",
+              "model": "claude-3-haiku-20240307",
+              "role": "assistant",
+              "stop_reason": "end_turn",
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation": {
+                  "ephemeral_1h_input_tokens": 10,
+                  "ephemeral_5m_input_tokens": 0,
+                },
+                "cache_creation_input_tokens": 10,
+                "cache_read_input_tokens": 5,
+                "input_tokens": 20,
+                "output_tokens": 50,
+              },
+            },
+            "headers": {
+              "content-length": "379",
               "content-type": "application/json",
             },
             "id": "msg_017TfcQ4AgGxKyBduUpqYPZn",
@@ -1439,6 +1591,10 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+                  "usage": {
+                    "input_tokens": 441,
+                    "output_tokens": 2,
+                  },
                 },
               },
               "type": "finish",
@@ -1512,6 +1668,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
               },
             },
             "type": "finish",
@@ -1605,6 +1765,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
               },
             },
             "type": "finish",
@@ -1680,6 +1844,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
               },
             },
             "type": "finish",
@@ -1741,6 +1909,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
               },
             },
             "type": "finish",
@@ -1874,6 +2046,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "usage": {
+                  "input_tokens": 441,
+                  "output_tokens": 2,
+                },
               },
             },
             "type": "finish",
@@ -2077,6 +2253,91 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
+                "usage": {
+                  "cache_creation_input_tokens": 10,
+                  "cache_read_input_tokens": 5,
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 5,
+              "inputTokens": 17,
+              "outputTokens": 227,
+              "totalTokens": 244,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should support cache control and return extra fields in provider metadata', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],` +
+            `"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":` +
+            // send cache output tokens:
+            `{"input_tokens":17,"output_tokens":1,"cache_creation_input_tokens":10,"cache_read_input_tokens":5,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":10}}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
+          `data: {"type": "ping"}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${'Hello'}"}              }\n\n`,
+          `data: {"type":"content_block_stop","index":0             }\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}          }\n\n`,
+          `data: {"type":"message_stop"           }\n\n`,
+        ],
+      };
+
+      const model = provider('claude-3-haiku-20240307');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        headers: {
+          'anthropic-beta': 'extended-cache-ttl-2025-04-11',
+        },
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": 10,
+                "usage": {
+                  "cache_creation": {
+                    "ephemeral_1h_input_tokens": 10,
+                    "ephemeral_5m_input_tokens": 0,
+                  },
+                  "cache_creation_input_tokens": 10,
+                  "cache_read_input_tokens": 5,
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
               },
             },
             "type": "finish",
@@ -2306,66 +2567,70 @@ describe('AnthropicMessagesLanguageModel', () => {
         const result = await convertReadableStreamToArray(stream);
 
         expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
-            "modelId": "claude-3-haiku-20240307",
-            "type": "response-metadata",
-          },
-          {
-            "id": "0",
-            "type": "text-start",
-          },
-          {
-            "delta": "Based on the document",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", results show growth.",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "id": "0",
-            "type": "text-end",
-          },
-          {
-            "filename": "financial-report.pdf",
-            "id": "id-0",
-            "mediaType": "application/pdf",
-            "providerMetadata": {
-              "anthropic": {
-                "citedText": "Revenue increased by 25% year over year",
-                "endPageNumber": 6,
-                "startPageNumber": 5,
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+              "modelId": "claude-3-haiku-20240307",
+              "type": "response-metadata",
+            },
+            {
+              "id": "0",
+              "type": "text-start",
+            },
+            {
+              "delta": "Based on the document",
+              "id": "0",
+              "type": "text-delta",
+            },
+            {
+              "delta": ", results show growth.",
+              "id": "0",
+              "type": "text-delta",
+            },
+            {
+              "id": "0",
+              "type": "text-end",
+            },
+            {
+              "filename": "financial-report.pdf",
+              "id": "id-0",
+              "mediaType": "application/pdf",
+              "providerMetadata": {
+                "anthropic": {
+                  "citedText": "Revenue increased by 25% year over year",
+                  "endPageNumber": 6,
+                  "startPageNumber": 5,
+                },
+              },
+              "sourceType": "document",
+              "title": "Financial Report 2023",
+              "type": "source",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": {
+                "anthropic": {
+                  "cacheCreationInputTokens": null,
+                  "usage": {
+                    "input_tokens": 17,
+                    "output_tokens": 1,
+                  },
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 17,
+                "outputTokens": 227,
+                "totalTokens": 244,
               },
             },
-            "sourceType": "document",
-            "title": "Financial Report 2023",
-            "type": "source",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": {
-              "anthropic": {
-                "cacheCreationInputTokens": null,
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 17,
-              "outputTokens": 227,
-              "totalTokens": 244,
-            },
-          },
-        ]
-      `);
+          ]
+        `);
       });
 
       describe('web search', () => {

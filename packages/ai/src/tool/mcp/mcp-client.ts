@@ -1,8 +1,13 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import { jsonSchema, Tool, ToolCallOptions } from '@ai-sdk/provider-utils';
+import {
+  dynamicTool,
+  jsonSchema,
+  Tool,
+  tool,
+  ToolCallOptions,
+} from '@ai-sdk/provider-utils';
 import { z, ZodType } from 'zod/v4';
-import { MCPClientError } from '../../../src/error/mcp-client-error';
-import { tool } from '@ai-sdk/provider-utils';
+import { MCPClientError } from '../../error/mcp-client-error';
 import {
   JSONRPCError,
   JSONRPCNotification,
@@ -321,29 +326,31 @@ class MCPClient {
         }
 
         const self = this;
-        const toolWithExecute = tool({
-          description,
-          inputSchema:
-            schemas === 'automatic'
-              ? jsonSchema({
+
+        const execute = async (
+          args: any,
+          options: ToolCallOptions,
+        ): Promise<CallToolResult> => {
+          options?.abortSignal?.throwIfAborted();
+          return self.callTool({ name, args, options });
+        };
+
+        const toolWithExecute =
+          schemas === 'automatic'
+            ? dynamicTool({
+                description,
+                inputSchema: jsonSchema({
                   ...inputSchema,
                   properties: inputSchema.properties ?? {},
                   additionalProperties: false,
-                } as JSONSchema7)
-              : schemas[name].inputSchema,
-          execute: async (
-            args: any,
-            options: ToolCallOptions,
-          ): Promise<CallToolResult> => {
-            options?.abortSignal?.throwIfAborted();
-
-            return self.callTool({
-              name,
-              args,
-              options,
-            });
-          },
-        });
+                } as JSONSchema7),
+                execute,
+              })
+            : tool({
+                description,
+                inputSchema: schemas[name].inputSchema,
+                execute,
+              });
 
         tools[name] = toolWithExecute;
       }

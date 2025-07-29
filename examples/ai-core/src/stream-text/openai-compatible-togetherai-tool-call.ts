@@ -51,6 +51,10 @@ async function main() {
       }
 
       case 'tool-result': {
+        if (delta.dynamic) {
+          continue;
+        }
+
         const transformedDelta: ToolResultPart = {
           ...delta,
           output: { type: 'json', value: delta.output },
