@@ -40,7 +40,7 @@ import {
 
 const CLIENT_VERSION = '1.0.0';
 
-interface MCPClientConfig {
+export interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
   transport: MCPTransportConfig | MCPTransport;
   /** Optional callback for uncaught errors */
@@ -51,10 +51,15 @@ interface MCPClientConfig {
 
 export async function createMCPClient(
   config: MCPClientConfig,
-): Promise<MCPClient> {
+): Promise<MCPClientType> {
   const client = new MCPClient(config);
   await client.init();
   return client;
+}
+
+export interface MCPClientType {
+  tools: () => Promise<McpToolSet>;
+  close: () => Promise<void>;
 }
 
 /**
@@ -74,7 +79,7 @@ export async function createMCPClient(
  * - Session management (when passing a sessionId to an instance of the Streamable HTTP transport)
  * - Resumable SSE streams
  */
-class MCPClient {
+class MCPClient implements MCPClientType {
   private transport: MCPTransport;
   private onUncaughtError?: (error: unknown) => void;
   private clientInfo: ClientConfiguration;
