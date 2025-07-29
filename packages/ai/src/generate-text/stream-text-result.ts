@@ -19,9 +19,13 @@ import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
-import { TypedToolCall } from './tool-call';
+import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
-import { TypedToolResult } from './tool-result';
+import {
+  DynamicToolResult,
+  StaticToolResult,
+  TypedToolResult,
+} from './tool-result';
 import { ToolSet } from './tool-set';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
@@ -147,6 +151,34 @@ The tool calls that have been executed in the last step.
 Resolved when the response is finished.
      */
   readonly toolCalls: Promise<TypedToolCall<TOOLS>[]>;
+
+  /**
+The static tool calls that have been executed in the last step.
+
+Resolved when the response is finished.
+     */
+  readonly staticToolCalls: Promise<StaticToolCall<TOOLS>[]>;
+
+  /**
+The dynamic tool calls that have been executed in the last step.
+
+Resolved when the response is finished.
+     */
+  readonly dynamicToolCalls: Promise<DynamicToolCall[]>;
+
+  /**
+The static tool results that have been generated in the last step.
+
+Resolved when the response is finished.
+     */
+  readonly staticToolResults: Promise<StaticToolResult<TOOLS>[]>;
+
+  /**
+The dynamic tool results that have been generated in the last step.
+
+Resolved when the response is finished.
+     */
+  readonly dynamicToolResults: Promise<DynamicToolResult[]>;
 
   /**
 The tool results that have been generated in the last step.

@@ -1517,8 +1517,24 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     return this.finalStep.then(step => step.toolCalls);
   }
 
+  get staticToolCalls() {
+    return this.finalStep.then(step => step.staticToolCalls);
+  }
+
+  get dynamicToolCalls() {
+    return this.finalStep.then(step => step.dynamicToolCalls);
+  }
+
   get toolResults() {
     return this.finalStep.then(step => step.toolResults);
+  }
+
+  get staticToolResults() {
+    return this.finalStep.then(step => step.staticToolResults);
+  }
+
+  get dynamicToolResults() {
+    return this.finalStep.then(step => step.dynamicToolResults);
   }
 
   get usage() {
