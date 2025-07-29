@@ -1,6 +1,6 @@
 import { Tool } from '@ai-sdk/provider-utils';
-import { ValueOf } from '../../src/util/value-of';
 import { ProviderMetadata } from '../types';
+import { ValueOf } from '../util/value-of';
 import { ToolSet } from './tool-set';
 
 export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{

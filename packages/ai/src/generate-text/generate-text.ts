@@ -9,9 +9,9 @@ import {
   ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
-import { asArray } from '../../src/util/as-array';
-import { prepareRetries } from '../../src/util/prepare-retries';
+import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { asArray } from '../util/as-array';
+import { prepareRetries } from '../util/prepare-retries';
 import { ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';

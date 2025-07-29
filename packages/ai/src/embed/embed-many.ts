@@ -1,6 +1,6 @@
 import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { prepareRetries } from '../../src/util/prepare-retries';
-import { splitArray } from '../../src/util/split-array';
+import { prepareRetries } from '../util/prepare-retries';
+import { splitArray } from '../util/split-array';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
