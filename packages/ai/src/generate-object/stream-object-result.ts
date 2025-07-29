@@ -41,6 +41,13 @@ Additional response information.
   readonly response: Promise<LanguageModelResponseMetadata>;
 
   /**
+The reason why the generation finished. Taken from the last step.
+
+Resolved when the response is finished.
+     */
+  readonly finishReason: Promise<FinishReason>;
+
+  /**
   The generated object (typed according to the schema). Resolved when the response is finished.
      */
   readonly object: Promise<RESULT>;
