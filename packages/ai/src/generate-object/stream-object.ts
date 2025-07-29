@@ -54,6 +54,7 @@ import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { RepairTextFunction } from './repair-text';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -720,33 +721,17 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     });
                     self._finishReason.resolve(finishReason ?? 'unknown');
 
-                    // resolve the object promise with the latest object:
-                    const validationResult =
-                      await outputStrategy.validateFinalResult(
-                        latestObjectJson,
-                        {
-                          text: accumulatedText,
-                          response: fullResponse,
-                          usage,
-                        },
-                      );
-
-                    if (validationResult.success) {
-                      object = validationResult.value;
-                      self._object.resolve(object);
-                    } else {
-                      error = new NoObjectGeneratedError({
-                        message:
-                          'No object generated: response did not match schema.',
-                        cause: validationResult.error,
-                        text: accumulatedText,
+                    try {
+                      object = await parseAndValidateObjectResultWithRepair(accumulatedText, outputStrategy, repairText, {
                         response: fullResponse,
                         usage,
                         finishReason,
                       });
-                      self._object.reject(error);
+                      self._object.resolve(object);
+                    } catch (e) {
+                      error = e;
+                      self._object.reject(e);
                     }
-
                     break;
                   }
 
