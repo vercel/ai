@@ -84,7 +84,6 @@ Creates a text embedding model for text generation.
 
   /**
 Creates a model for image generation.
-@deprecated Use `imageModel` instead.
 */
   image(modelId: FireworksImageModelId): ImageModelV2;
 

@@ -41,13 +41,12 @@ Creates an Azure OpenAI completion model for text generation.
   completion(deploymentId: string): LanguageModelV2;
 
   /**
-@deprecated Use `textEmbeddingModel` instead.
+@deprecated Use `textEmbedding` instead.
    */
   embedding(deploymentId: string): EmbeddingModelV2<string>;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
-   * @deprecated Use `imageModel` instead.
    */
   image(deploymentId: string): ImageModelV2;
 
@@ -56,9 +55,6 @@ Creates an Azure OpenAI completion model for text generation.
    */
   imageModel(deploymentId: string): ImageModelV2;
 
-  /**
-@deprecated Use `textEmbeddingModel` instead.
-   */
   textEmbedding(deploymentId: string): EmbeddingModelV2<string>;
 
   /**
