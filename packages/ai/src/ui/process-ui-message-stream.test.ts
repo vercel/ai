@@ -4909,8 +4909,8 @@ describe('processUIMessageStream', () => {
       });
     });
 
-    it('should not call onToolCall', async () => {
-      expect(onToolCallInvoked).toBe(false);
+    it('should invoke onToolCall for dynamic tools', async () => {
+      expect(onToolCallInvoked).toBe(true);
     });
 
     it('should call the update function with the correct arguments', async () => {

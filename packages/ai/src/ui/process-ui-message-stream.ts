@@ -477,7 +477,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // In the future we should make this non-blocking, which
               // requires additional state management for error handling etc.
               // Skip calling onToolCall for provider-executed tools since they are already executed
-              if (onToolCall && !chunk.providerExecuted && !chunk.dynamic) {
+              if (onToolCall && !chunk.providerExecuted) {
                 await onToolCall({
                   toolCall: chunk as InferUIMessageToolCall<UI_MESSAGE>,
                 });

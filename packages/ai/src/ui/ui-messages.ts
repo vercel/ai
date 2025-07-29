@@ -295,11 +295,13 @@ export type InferUIMessageTools<T extends UIMessage> =
 export type InferUIMessageToolOutputs<UI_MESSAGE extends UIMessage> =
   InferUIMessageTools<UI_MESSAGE>[keyof InferUIMessageTools<UI_MESSAGE>]['output'];
 
-export type InferUIMessageToolCall<UI_MESSAGE extends UIMessage> = ValueOf<{
-  [NAME in keyof InferUIMessageTools<UI_MESSAGE>]: ToolCall<
-    NAME & string,
-    InferUIMessageTools<UI_MESSAGE>[NAME] extends { input: infer INPUT }
-      ? INPUT
-      : never
-  >;
-}>;
+export type InferUIMessageToolCall<UI_MESSAGE extends UIMessage> =
+  | ValueOf<{
+      [NAME in keyof InferUIMessageTools<UI_MESSAGE>]: ToolCall<
+        NAME & string,
+        InferUIMessageTools<UI_MESSAGE>[NAME] extends { input: infer INPUT }
+          ? INPUT
+          : never
+      > & { dynamic?: false };
+    }>
+  | (ToolCall<string, unknown> & { dynamic: true });
