@@ -51,14 +51,17 @@ export interface MCPClientConfig {
 
 export async function createMCPClient(
   config: MCPClientConfig,
-): Promise<MCPClientType> {
-  const client = new MCPClient(config);
+): Promise<MCPClient> {
+  const client = new DefaultMCPClient(config);
   await client.init();
   return client;
 }
 
-export interface MCPClientType {
-  tools: () => Promise<McpToolSet>;
+export interface MCPClient {
+  tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
+    schemas?: TOOL_SCHEMAS;
+  }): Promise<McpToolSet<TOOL_SCHEMAS>>;
+
   close: () => Promise<void>;
 }
 
@@ -79,7 +82,7 @@ export interface MCPClientType {
  * - Session management (when passing a sessionId to an instance of the Streamable HTTP transport)
  * - Resumable SSE streams
  */
-class MCPClient implements MCPClientType {
+class DefaultMCPClient implements MCPClient {
   private transport: MCPTransport;
   private onUncaughtError?: (error: unknown) => void;
   private clientInfo: ClientConfiguration;

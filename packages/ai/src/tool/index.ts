@@ -8,6 +8,6 @@ export type {
 export {
   createMCPClient as experimental_createMCPClient,
   type MCPClientConfig as experimental_MCPClientConfig,
-  type MCPClientType as experimental_MCPClient,
+  type MCPClient as experimental_MCPClient,
 } from './mcp/mcp-client';
 export type { MCPTransport } from './mcp/mcp-transport';
