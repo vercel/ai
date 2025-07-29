@@ -205,21 +205,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const content: Array<LanguageModelV2Content> = [];
 
     // map ordered parts to content:
-    const parts =
-      candidate.content == null ||
-      typeof candidate.content !== 'object' ||
-      !('parts' in candidate.content)
-        ? []
-        : (candidate.content.parts ?? []);
+    const parts = candidate.content?.parts ?? [];
 
     const usageMetadata = response.usageMetadata;
+
+    // Associates a code execution result with its preceding call.
+    let lastCodeExecutionToolCallId: string | undefined;
 
     // Build content array from all parts
     for (const part of parts) {
       if ('executableCode' in part && part.executableCode?.code) {
+        const toolCallId = this.config.generateId();
+        lastCodeExecutionToolCallId = toolCallId;
+
         content.push({
           type: 'tool-call',
-          toolCallId: this.config.generateId(), // Generate a unique ID
+          toolCallId,
           toolName: 'code_execution',
           input: JSON.stringify(part.executableCode),
           providerExecuted: true,
@@ -227,15 +228,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
         content.push({
           type: 'tool-result',
-          // This is a limitation of the non-streaming API format.
-          // We find the last code execution tool call that hasn't received a result yet.
-          toolCallId: (
-            [...content]
-              .reverse()
-              .find(
-                c => c.type === 'tool-call' && c.toolName === 'code_execution',
-              ) as any
-          )?.toolCallId,
+          // Assumes a result directly follows its corresponding call part.
+          toolCallId: lastCodeExecutionToolCallId!,
           toolName: 'code_execution',
           result: {
             outcome: part.codeExecutionResult.outcome,
@@ -243,6 +237,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           },
           providerExecuted: true,
         });
+        // Clear the ID after use to avoid accidental reuse.
+        lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null && part.text.length > 0) {
         if (part.thought === true) {
           content.push({ type: 'reasoning', text: part.text });
@@ -346,7 +342,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     // Track emitted sources to prevent duplicates
     const emittedSourceUrls = new Set<string>();
-    const pendingCodeExecutionToolCallIds: string[] = [];
+    // Associates a code execution result with its preceding call.
+    let lastCodeExecutionToolCallId: string | undefined;
 
     return {
       stream: response.pipeThrough(
@@ -415,7 +412,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               for (const part of parts) {
                 if ('executableCode' in part && part.executableCode?.code) {
                   const toolCallId = generateId();
-                  pendingCodeExecutionToolCallIds.push(toolCallId);
+                  lastCodeExecutionToolCallId = toolCallId;
 
                   controller.enqueue({
                     type: 'tool-call',
@@ -430,7 +427,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                   'codeExecutionResult' in part &&
                   part.codeExecutionResult
                 ) {
-                  const toolCallId = pendingCodeExecutionToolCallIds.shift();
+                  // Assumes a result directly follows its corresponding call part.
+                  const toolCallId = lastCodeExecutionToolCallId;
 
                   if (toolCallId) {
                     controller.enqueue({
@@ -443,6 +441,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       },
                       providerExecuted: true,
                     });
+                    // Clear the ID after use.
+                    lastCodeExecutionToolCallId = undefined;
                   }
                 } else if (
                   'text' in part &&
