@@ -110,7 +110,6 @@ export interface AmazonBedrockProvider extends ProviderV2 {
 
   /**
 Creates a model for image generation.
-@deprecated Use `imageModel` instead.
    */
   image(modelId: BedrockImageModelId): ImageModelV2;
 
