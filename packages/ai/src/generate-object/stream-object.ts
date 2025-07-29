@@ -52,6 +52,7 @@ import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
+import { RepairTextFunction } from './repair-text';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
@@ -235,6 +236,12 @@ The language model to use.
       model: LanguageModel;
 
       /**
+A function that attempts to repair the raw output of the model
+to enable JSON parsing.
+       */
+      experimental_repairText?: RepairTextFunction;
+
+      /**
 Optional telemetry configuration (experimental).
        */
 
@@ -290,6 +297,7 @@ Callback that is called when the LLM response and the final object validation ar
     maxRetries,
     abortSignal,
     headers,
+    experimental_repairText: repairText,
     experimental_telemetry: telemetry,
     providerOptions,
     onError = ({ error }: { error: unknown }) => {
@@ -341,6 +349,7 @@ Callback that is called when the LLM response and the final object validation ar
     schemaName,
     schemaDescription,
     providerOptions,
+    repairText,
     onError,
     onFinish,
     generateId,
@@ -386,6 +395,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaName,
     schemaDescription,
     providerOptions,
+    repairText,
     onError,
     onFinish,
     generateId,
@@ -405,6 +415,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaName: string | undefined;
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
+    repairText: RepairTextFunction | undefined;
     onError: StreamObjectOnErrorCallback;
     onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
     generateId: () => string;
