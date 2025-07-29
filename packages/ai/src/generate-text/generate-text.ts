@@ -45,11 +45,12 @@ import {
   StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
-import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolErrorUnion, ToolOutput } from './tool-output';
+import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
 import { TypedToolResult } from './tool-result';
+import { TypedToolError } from './tool-error';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -637,7 +638,7 @@ async function executeTools<TOOLS extends ToolSet>({
               input,
               error,
               dynamic: tool.type === 'dynamic',
-            } as ToolErrorUnion<TOOLS>;
+            } as TypedToolError<TOOLS>;
           }
         },
       });
@@ -828,7 +829,7 @@ function asContent<TOOLS extends ToolSet>({
               error: part.result,
               providerExecuted: true,
               dynamic: toolCall.dynamic,
-            } as ToolErrorUnion<TOOLS>;
+            } as TypedToolError<TOOLS>;
           }
 
           return {

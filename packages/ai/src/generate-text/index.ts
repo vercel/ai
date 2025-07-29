@@ -29,7 +29,11 @@ export type {
   TypedToolCall,
 } from './tool-call';
 export type { ToolCallRepairFunction } from './tool-call-repair-function';
-export type { ToolErrorUnion } from './tool-output';
+export type {
+  DynamicToolError,
+  StaticToolError,
+  TypedToolError,
+} from './tool-error';
 export type {
   DynamicToolResult,
   StaticToolResult,

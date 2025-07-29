@@ -20,7 +20,7 @@ import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { TypedToolCall } from './tool-call';
-import { ToolErrorUnion } from './tool-output';
+import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
@@ -368,7 +368,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
-  | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
+  | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
   | {
       type: 'start-step';
       request: LanguageModelRequestMetadata;
