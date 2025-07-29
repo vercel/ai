@@ -2,9 +2,21 @@ import { JSONValue } from '@ai-sdk/provider';
 import { expectTypeOf } from 'vitest';
 import { z } from 'zod/v4';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
+import { FinishReason } from '../types';
 import { streamObject } from './stream-object';
 
 describe('streamObject', () => {
+  it('should have finishReason property with correct type', () => {
+    const result = streamObject({
+      schema: z.object({ number: z.number() }),
+      model: undefined!,
+    });
+
+    expectTypeOf<typeof result.finishReason>().toEqualTypeOf<
+      Promise<FinishReason>
+    >();
+  });
+
   it('should support enum types', async () => {
     const result = await streamObject({
       output: 'enum',

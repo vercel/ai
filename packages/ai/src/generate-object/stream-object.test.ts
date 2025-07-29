@@ -563,6 +563,39 @@ describe('streamObject', () => {
       });
     });
 
+    describe('result.finishReason', () => {
+      it('should resolve with finish reason', async () => {
+        const result = streamObject({
+          model: new MockLanguageModelV2({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ ' },
+                { type: 'text-delta', id: '1', delta: '"content": ' },
+                { type: 'text-delta', id: '1', delta: `"Hello, ` },
+                { type: 'text-delta', id: '1', delta: `world` },
+                { type: 'text-delta', id: '1', delta: `!"` },
+                { type: 'text-delta', id: '1', delta: ' }' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+        });
+
+        // consume stream (runs in parallel)
+        convertAsyncIterableToArray(result.partialObjectStream);
+
+        expect(await result.finishReason).toStrictEqual('stop');
+      });
+    });
+
     describe('options.onFinish', () => {
       it('should be called when a valid object is generated', async () => {
         let result: Parameters<
