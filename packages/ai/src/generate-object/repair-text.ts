@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/provider';
 
 /**
-A function that attempts to repair the raw output of the mode
+A function that attempts to repair the raw output of the model
 to enable JSON parsing.
 
 Should return the repaired text or null if the text cannot be repaired.

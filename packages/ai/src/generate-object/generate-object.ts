@@ -98,7 +98,7 @@ via tool or schema description.
 - 'enum': The output is an enum.
 - 'no-schema': The output is not a schema.
 
-@param experimental_repairText - A function that attempts to repair the raw output of the mode
+@param experimental_repairText - A function that attempts to repair the raw output of the model
 to enable JSON parsing.
 
 @param experimental_telemetry - Optional telemetry configuration (experimental).
@@ -179,7 +179,7 @@ Default and recommended: 'auto' (best mode for the model).
        */
       model: LanguageModel;
       /**
-  A function that attempts to repair the raw output of the mode
+  A function that attempts to repair the raw output of the model
   to enable JSON parsing.
        */
       experimental_repairText?: RepairTextFunction;
