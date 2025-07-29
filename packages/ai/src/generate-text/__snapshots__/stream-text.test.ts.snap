@@ -72,10 +72,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
   {
     "attributes": {
       "ai.operationId": "ai.toolCall",
+      "ai.toolCall.args": "{"value":"value"}",
       "ai.toolCall.id": "call-1",
-      "ai.toolCall.input": "{"value":"value"}",
       "ai.toolCall.name": "tool1",
-      "ai.toolCall.output": ""result1"",
+      "ai.toolCall.result": ""result1"",
       "operation.name": "ai.toolCall",
     },
     "events": [],
@@ -206,10 +206,10 @@ exports[`streamText > options.transform > with base transformation > telemetry s
   {
     "attributes": {
       "ai.operationId": "ai.toolCall",
+      "ai.toolCall.args": "{"value":"value"}",
       "ai.toolCall.id": "call-1",
-      "ai.toolCall.input": "{"value":"value"}",
       "ai.toolCall.name": "tool1",
-      "ai.toolCall.output": ""value-result"",
+      "ai.toolCall.result": ""value-result"",
       "operation.name": "ai.toolCall",
     },
     "events": [],
@@ -841,10 +841,10 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
   {
     "attributes": {
       "ai.operationId": "ai.toolCall",
+      "ai.toolCall.args": "{"value":"value"}",
       "ai.toolCall.id": "call-1",
-      "ai.toolCall.input": "{"value":"value"}",
       "ai.toolCall.name": "tool1",
-      "ai.toolCall.output": ""value-result"",
+      "ai.toolCall.result": ""value-result"",
       "operation.name": "ai.toolCall",
     },
     "events": [],

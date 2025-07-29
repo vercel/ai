@@ -250,7 +250,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     }),
                     'ai.toolCall.name': toolCall.toolName,
                     'ai.toolCall.id': toolCall.toolCallId,
-                    'ai.toolCall.input': {
+                    'ai.toolCall.args': {
                       output: () => JSON.stringify(toolCall.input),
                     },
                   },
@@ -293,7 +293,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                       selectTelemetryAttributes({
                         telemetry,
                         attributes: {
-                          'ai.toolCall.output': {
+                          'ai.toolCall.result': {
                             output: () => JSON.stringify(output),
                           },
                         },

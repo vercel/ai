@@ -589,7 +589,7 @@ async function executeTools<TOOLS extends ToolSet>({
             }),
             'ai.toolCall.name': toolName,
             'ai.toolCall.id': toolCallId,
-            'ai.toolCall.input': {
+            'ai.toolCall.args': {
               output: () => JSON.stringify(input),
             },
           },
@@ -597,7 +597,7 @@ async function executeTools<TOOLS extends ToolSet>({
         tracer,
         fn: async span => {
           try {
-            const result = await tool.execute!(input, {
+            const output = await tool.execute!(input, {
               toolCallId,
               messages,
               abortSignal,
@@ -609,7 +609,7 @@ async function executeTools<TOOLS extends ToolSet>({
                   telemetry,
                   attributes: {
                     'ai.toolCall.result': {
-                      output: () => JSON.stringify(result),
+                      output: () => JSON.stringify(output),
                     },
                   },
                 }),
@@ -626,7 +626,7 @@ async function executeTools<TOOLS extends ToolSet>({
               toolCallId,
               toolName,
               input,
-              output: result,
+              output,
               dynamic: tool.type === 'dynamic',
             } as TypedToolResult<TOOLS>;
           } catch (error) {
