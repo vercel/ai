@@ -32,6 +32,7 @@ export {
   getToolName,
   isToolUIPart,
   type DataUIPart,
+  type DynamicToolUIPart,
   type FileUIPart,
   type InferUITool,
   type InferUITools,

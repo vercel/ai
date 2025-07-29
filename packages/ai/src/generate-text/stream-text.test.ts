@@ -9,6 +9,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   delay,
+  dynamicTool,
   jsonSchema,
   ModelMessage,
   tool,
@@ -1151,6 +1152,7 @@ describe('streamText', () => {
               "warnings": [],
             },
             {
+              "dynamic": false,
               "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
               "toolName": "test-tool",
               "type": "tool-input-start",
@@ -4226,6 +4228,7 @@ describe('streamText', () => {
             "type": "text-delta",
           },
           {
+            "dynamic": false,
             "id": "2",
             "toolName": "tool1",
             "type": "tool-input-start",
@@ -6170,15 +6173,12 @@ describe('streamText', () => {
                 "input": {
                   "value": "value",
                 },
-                "providerExecuted": undefined,
-                "providerMetadata": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-input-available",
               },
               {
                 "output": "result1",
-                "providerExecuted": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-output-available",
               },
@@ -6809,7 +6809,7 @@ describe('streamText', () => {
           TextStreamPart<{ tool1: Tool<{ value: string }, string> }>
         >({
           transform(chunk, controller) {
-            if (chunk.type === 'tool-result') {
+            if (chunk.type === 'tool-result' && !chunk.dynamic) {
               chunk.output = chunk.output.toUpperCase();
               chunk.input = {
                 ...chunk.input,
@@ -7886,15 +7886,12 @@ describe('streamText', () => {
                 "input": {
                   "value": "value",
                 },
-                "providerExecuted": undefined,
-                "providerMetadata": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-input-available",
               },
               {
                 "output": "RESULT1",
-                "providerExecuted": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-output-available",
               },
@@ -8387,6 +8384,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
+                "dynamic": false,
                 "id": "call-1",
                 "providerExecuted": true,
                 "toolName": "web_search",
@@ -8485,6 +8483,7 @@ describe('streamText', () => {
                 "type": "start-step",
               },
               {
+                "dynamic": false,
                 "providerExecuted": true,
                 "toolCallId": "call-1",
                 "toolName": "web_search",
@@ -8500,7 +8499,6 @@ describe('streamText', () => {
                   "value": "value",
                 },
                 "providerExecuted": true,
-                "providerMetadata": undefined,
                 "toolCallId": "call-1",
                 "toolName": "web_search",
                 "type": "tool-input-available",
@@ -8516,7 +8514,6 @@ describe('streamText', () => {
                   "value": "value",
                 },
                 "providerExecuted": true,
-                "providerMetadata": undefined,
                 "toolCallId": "call-2",
                 "toolName": "web_search",
                 "type": "tool-input-available",
@@ -8526,6 +8523,221 @@ describe('streamText', () => {
                 "providerExecuted": true,
                 "toolCallId": "call-2",
                 "type": "tool-output-error",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+    });
+  });
+
+  describe('dynamic tools', () => {
+    describe('single dynamic tool call and result', () => {
+      let result: StreamTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-input-start',
+                id: 'call-1',
+                toolName: 'dynamicTool',
+              },
+              {
+                type: 'tool-input-delta',
+                id: 'call-1',
+                delta: '{ "value": "value" }',
+              },
+              {
+                type: 'tool-input-end',
+                id: 'call-1',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'dynamicTool',
+                input: `{ "value": "value" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'tool-calls',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          tools: {
+            dynamicTool: dynamicTool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => {
+                return { value: 'test-result' };
+              },
+            }),
+          },
+          ...defaultSettings(),
+        });
+      });
+
+      it('should include dynamic tool call and result content', async () => {
+        await result.consumeStream();
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": true,
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "dynamicTool",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": true,
+              "input": {
+                "value": "value",
+              },
+              "output": {
+                "value": "test-result",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "dynamicTool",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+
+      it('should include dynamic tool call and result in the full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
+                "dynamic": true,
+                "id": "call-1",
+                "toolName": "dynamicTool",
+                "type": "tool-input-start",
+              },
+              {
+                "delta": "{ "value": "value" }",
+                "id": "call-1",
+                "type": "tool-input-delta",
+              },
+              {
+                "id": "call-1",
+                "type": "tool-input-end",
+              },
+              {
+                "dynamic": true,
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "dynamicTool",
+                "type": "tool-call",
+              },
+              {
+                "dynamic": true,
+                "input": {
+                  "value": "value",
+                },
+                "output": {
+                  "value": "test-result",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "dynamicTool",
+                "type": "tool-result",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": undefined,
+                  "id": "id-0",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+              },
+              {
+                "finishReason": "tool-calls",
+                "totalUsage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+
+      it('should include dynamic tool call and result in the ui message stream', async () => {
+        expect(await convertReadableStreamToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "dynamic": true,
+                "toolCallId": "call-1",
+                "toolName": "dynamicTool",
+                "type": "tool-input-start",
+              },
+              {
+                "inputTextDelta": "{ "value": "value" }",
+                "toolCallId": "call-1",
+                "type": "tool-input-delta",
+              },
+              {
+                "dynamic": true,
+                "input": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "dynamicTool",
+                "type": "tool-input-available",
+              },
+              {
+                "dynamic": true,
+                "output": {
+                  "value": "test-result",
+                },
+                "toolCallId": "call-1",
+                "type": "tool-output-available",
               },
               {
                 "type": "finish-step",
@@ -9419,15 +9631,12 @@ describe('streamText', () => {
               "input": {
                 "value": "value",
               },
-              "providerExecuted": undefined,
-              "providerMetadata": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-input-available",
             },
             {
               "errorText": "test error",
-              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "type": "tool-output-error",
             },
@@ -9462,14 +9671,14 @@ describe('streamText', () => {
             }
 
             // assuming test arg structure:
-            if (chunk.type === 'tool-call') {
+            if (chunk.type === 'tool-call' && !chunk.dynamic) {
               chunk.input = {
                 ...chunk.input,
                 value: chunk.input.value.toUpperCase(),
               };
             }
 
-            if (chunk.type === 'tool-result') {
+            if (chunk.type === 'tool-result' && !chunk.dynamic) {
               chunk.output = chunk.output.toUpperCase();
               chunk.input = {
                 ...chunk.input,
@@ -10466,6 +10675,7 @@ describe('streamText', () => {
               "type": "reasoning-delta",
             },
             {
+              "dynamic": false,
               "id": "call-1",
               "toolName": "tool1",
               "type": "tool-input-start",
@@ -12230,15 +12440,12 @@ describe('streamText', () => {
               "input": {
                 "value": "value",
               },
-              "providerExecuted": undefined,
-              "providerMetadata": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-input-available",
             },
             {
               "output": "result1",
-              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "type": "tool-output-available",
             },

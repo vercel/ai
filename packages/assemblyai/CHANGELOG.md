@@ -1,5 +1,12 @@
 # @ai-sdk/assemblyai
 
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+
 ## 1.0.0-beta.6
 
 ### Patch Changes

@@ -42,6 +42,7 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
       const toolType = tool.type;
       switch (toolType) {
         case undefined:
+        case 'dynamic':
         case 'function':
           return {
             type: 'function' as const,
