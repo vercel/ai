@@ -1,5 +1,4 @@
 ---
-'@example/ai-core': patch
 '@ai-sdk/gateway': patch
 'ai': patch
 ---
