@@ -17,9 +17,11 @@ import { MockTracer } from '../test/mock-tracer';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
 import {
+  JSONParseError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
+  TypeValidationError,
 } from '@ai-sdk/provider';
 
 const testUsage = {
@@ -1564,6 +1566,186 @@ describe('streamObject', () => {
       const chunks = await convertAsyncIterableToArray(result.textStream);
       expect(chunks.join('')).toBe('{ "content": "Hello, world!" }');
       expect(supportedUrlsCalled).toBe(true);
+    });
+  });
+
+  describe('options.experimental_repairText', () => {
+    it('should be able to repair a JSONParseError', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV2({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "content": "provider metadata test" ',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        experimental_repairText: async ({ text, error }) => {
+          expect(error).toBeInstanceOf(JSONParseError);
+          expect(text).toStrictEqual('{ "content": "provider metadata test" ');
+          return text + '}';
+        },
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(await result.object).toStrictEqual({
+        content: 'provider metadata test',
+      });
+    });
+
+    it('should be able to repair a TypeValidationError', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV2({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "content-a": "provider metadata test" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        experimental_repairText: async ({ text, error }) => {
+          expect(error).toBeInstanceOf(TypeValidationError);
+          expect(text).toStrictEqual(
+            '{ "content-a": "provider metadata test" }',
+          );
+          return `{ "content": "provider metadata test" }`;
+        },
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(await result.object).toStrictEqual({
+        content: 'provider metadata test',
+      });
+    });
+
+    it('should be able to handle repair that returns null', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV2({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "content-a": "provider metadata test" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        experimental_repairText: async ({ text, error }) => {
+          expect(error).toBeInstanceOf(TypeValidationError);
+          expect(text).toStrictEqual(
+            '{ "content-a": "provider metadata test" }',
+          );
+          return null;
+        },
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(result.object).rejects.toThrow(
+        'No object generated: response did not match schema.',
+      );
+    });
+
+    it('should throw NoObjectGeneratedError when parsing fails with repairText', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV2({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ broken json' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        experimental_repairText: async ({ text }) => text + '{',
+      });
+
+      try {
+        await convertAsyncIterableToArray(result.partialObjectStream);
+        await result.object;
+        fail('must throw error');
+      } catch (error) {
+        verifyNoObjectGeneratedError(error, {
+          message: 'No object generated: response did not match schema.',
+          response: {
+            id: 'id-0',
+            timestamp: new Date(0),
+            modelId: 'mock-model-id',
+          },
+          usage: testUsage,
+          finishReason: 'stop',
+        });
+      }
     });
   });
 });
