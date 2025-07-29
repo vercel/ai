@@ -12,7 +12,7 @@ import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { TypedToolCall } from './tool-call';
-import { ToolResultArray } from './tool-output';
+import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
 /**
@@ -57,7 +57,7 @@ The tool calls that were made during the generation.
   /**
 The results of the tool calls.
 */
-  readonly toolResults: ToolResultArray<TOOLS>;
+  readonly toolResults: Array<TypedToolResult<TOOLS>>;
 
   /**
 The reason why the generation finished.

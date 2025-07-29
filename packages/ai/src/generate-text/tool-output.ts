@@ -1,35 +1,7 @@
 import { ValueOf } from '../../src/util/value-of';
-import { InferToolInput, InferToolOutput } from '@ai-sdk/provider-utils';
+import { InferToolInput } from '@ai-sdk/provider-utils';
 import { ToolSet } from './tool-set';
-
-// transforms the tools into a tool result union
-type ToToolResultObject<TOOLS extends ToolSet> =
-  | ValueOf<{
-      [NAME in keyof TOOLS]: {
-        type: 'tool-result';
-        toolCallId: string;
-        toolName: NAME & string;
-        input: InferToolInput<TOOLS[NAME]>;
-        output: InferToolOutput<TOOLS[NAME]>;
-        providerExecuted?: boolean;
-        dynamic?: false | undefined;
-      };
-    }>
-  | {
-      type: 'tool-result';
-      toolCallId: string;
-      toolName: string;
-      input: unknown;
-      output: unknown;
-      providerExecuted?: boolean;
-      dynamic: true;
-    };
-
-export type ToolResultUnion<TOOLS extends ToolSet> = ToToolResultObject<TOOLS>;
-
-export type ToolResultArray<TOOLS extends ToolSet> = Array<
-  ToolResultUnion<TOOLS>
->;
+import { TypedToolResult } from './tool-result';
 
 type ToToolErrorObject<TOOLS extends ToolSet> =
   | ValueOf<{
@@ -56,5 +28,5 @@ type ToToolErrorObject<TOOLS extends ToolSet> =
 export type ToolErrorUnion<TOOLS extends ToolSet> = ToToolErrorObject<TOOLS>;
 
 export type ToolOutput<TOOLS extends ToolSet> =
-  | ToolResultUnion<TOOLS>
+  | TypedToolResult<TOOLS>
   | ToolErrorUnion<TOOLS>;

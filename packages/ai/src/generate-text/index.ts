@@ -29,5 +29,10 @@ export type {
   TypedToolCall,
 } from './tool-call';
 export type { ToolCallRepairFunction } from './tool-call-repair-function';
-export type { ToolErrorUnion, ToolResultUnion } from './tool-output';
+export type { ToolErrorUnion } from './tool-output';
+export type {
+  DynamicToolResult,
+  StaticToolResult,
+  TypedToolResult,
+} from './tool-result';
 export type { ToolSet } from './tool-set';

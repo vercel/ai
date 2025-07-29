@@ -20,7 +20,8 @@ import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { TypedToolCall } from './tool-call';
-import { ToolErrorUnion, ToolResultUnion } from './tool-output';
+import { ToolErrorUnion } from './tool-output';
+import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
@@ -152,7 +153,7 @@ The tool results that have been generated in the last step.
 
 Resolved when the all tool executions are finished.
    */
-  readonly toolResults: Promise<ToolResultUnion<TOOLS>[]>;
+  readonly toolResults: Promise<TypedToolResult<TOOLS>[]>;
 
   /**
 The reason why the generation finished. Taken from the last step.
@@ -366,7 +367,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
-  | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>)
+  | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
   | {
       type: 'start-step';

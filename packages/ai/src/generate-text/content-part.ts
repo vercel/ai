@@ -2,7 +2,8 @@ import { ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { GeneratedFile } from './generated-file';
 import { TypedToolCall } from './tool-call';
-import { ToolErrorUnion, ToolResultUnion } from './tool-output';
+import { ToolErrorUnion } from './tool-output';
+import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
 export type ContentPart<TOOLS extends ToolSet> =
@@ -13,7 +14,7 @@ export type ContentPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS> & {
         providerMetadata?: ProviderMetadata;
       })
-  | ({ type: 'tool-result' } & ToolResultUnion<TOOLS> & {
+  | ({ type: 'tool-result' } & TypedToolResult<TOOLS> & {
         providerMetadata?: ProviderMetadata;
       })
   | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS> & {
