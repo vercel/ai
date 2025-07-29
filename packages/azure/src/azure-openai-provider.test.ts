@@ -26,6 +26,8 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/embeddings': {},
   'https://test-resource.openai.azure.com/openai/v1/images/generations': {},
   'https://test-resource.openai.azure.com/openai/v1/responses': {},
+  'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions': {},
+  'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
 });
 
 describe('chat', () => {
@@ -203,6 +205,54 @@ describe('completion', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+    });
+  });
+});
+
+describe('transcription', () => {
+  describe('doGenerate', () => {
+    it('should use correct URL format', async () => {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          text: 'Hello, world!',
+          segments: [],
+          language: 'en',
+          duration: 5.0,
+        },
+      };
+
+      await provider.transcription('whisper-1').doGenerate({
+        audio: new Uint8Array(),
+        mediaType: 'audio/wav',
+      });
+
+      expect(server.calls[0].requestUrl).toStrictEqual(
+        'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions?api-version=preview',
+      );
+    });
+  });
+});
+
+describe('speech', () => {
+  describe('doGenerate', () => {
+    it('should use correct URL format', async () => {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/audio/speech'
+      ].response = {
+        type: 'json-value',
+        body: new Uint8Array([1, 2, 3]),
+      };
+
+      await provider.speech('tts-1').doGenerate({
+        text: 'Hello, world!',
+      });
+
+      expect(server.calls[0].requestUrl).toStrictEqual(
+        'https://test-resource.openai.azure.com/openai/v1/audio/speech?api-version=preview',
+      );
     });
   });
 });
