@@ -32,9 +32,7 @@ vi.mock('@ai-sdk/anthropic', async importOriginal => {
   const original = await importOriginal<typeof import('@ai-sdk/anthropic')>();
   return {
     ...original,
-    anthropicTools: {
-      // Mock the tools object if needed for specific tests
-    },
+    anthropicTools: { mock: 'tools' },
     prepareTools: vi.fn(),
   };
 });
