@@ -43,6 +43,7 @@ import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 import { RepairTextFunction } from './repair-text';
+import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -411,66 +412,15 @@ Default and recommended: 'auto' (best mode for the model).
         request = generateResult.request ?? {};
         response = generateResult.responseData;
 
-        async function processResult(result: string): Promise<RESULT> {
-          const parseResult = await safeParseJSON({ text: result });
-
-          if (!parseResult.success) {
-            throw new NoObjectGeneratedError({
-              message: 'No object generated: could not parse the response.',
-              cause: parseResult.error,
-              text: result,
-              response,
-              usage,
-              finishReason,
-            });
-          }
-
-          const validationResult = await outputStrategy.validateFinalResult(
-            parseResult.value,
-            {
-              text: result,
-              response,
-              usage,
-            },
-          );
-
-          if (!validationResult.success) {
-            throw new NoObjectGeneratedError({
-              message: 'No object generated: response did not match schema.',
-              cause: validationResult.error,
-              text: result,
-              response,
-              usage,
-              finishReason,
-            });
-          }
-
-          return validationResult.value;
-        }
-
         let object: RESULT;
         try {
-          object = await processResult(result);
+          object = await parseAndValidateObjectResultWithRepair(result, outputStrategy, repairText, {
+            response,
+            usage,
+            finishReason,
+          });
         } catch (error) {
-          if (
-            repairText != null &&
-            NoObjectGeneratedError.isInstance(error) &&
-            (JSONParseError.isInstance(error.cause) ||
-              TypeValidationError.isInstance(error.cause))
-          ) {
-            const repairedText = await repairText({
-              text: result,
-              error: error.cause,
-            });
-
-            if (repairedText === null) {
-              throw error;
-            }
-
-            object = await processResult(repairedText);
-          } else {
-            throw error;
-          }
+          throw error;
         }
 
         // Add response information to the span:
