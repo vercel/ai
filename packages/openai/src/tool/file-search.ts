@@ -34,7 +34,7 @@ export const fileSearchArgsSchema = z.object({
    */
   ranking: z
     .object({
-      ranker: z.enum(['auto', 'keyword', 'semantic']).optional(),
+      ranker: z.enum(['auto', 'default-2024-08-21']).optional(),
     })
     .optional(),
 
@@ -66,7 +66,7 @@ export const fileSearch = createProviderDefinedToolFactory<
      * Ranking options for the search.
      */
     ranking?: {
-      ranker?: 'auto' | 'keyword' | 'semantic';
+      ranker?: 'auto' | 'default-2024-08-21';
     };
 
     /**

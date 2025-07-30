@@ -1122,7 +1122,9 @@ const openaiResponsesProviderOptionsSchema = z.object({
   instructions: z.string().nullish(),
   reasoningSummary: z.string().nullish(),
   serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
-  include: z.array(z.enum(['reasoning.encrypted_content'])).nullish(),
+  include: z
+    .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
+    .nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<
