@@ -121,11 +121,11 @@ const { text } = await generateText({
 
 ## Embedding Models
 
-You can create models that call the Baseten embeddings API using the `.textEmbeddingModel()` factory method.
+You can create models that call the Baseten embeddings API using the `.textEmbeddingModel()` factory method. The Baseten provider uses the high-performance `@basetenlabs/performance-client` for optimal embedding performance.
 
 ```ts
 import { createBaseten } from '@ai-sdk/baseten';
-import { embed } from 'ai';
+import { embed, embedMany } from 'ai';
 
 const baseten = createBaseten({
   modelURL: 'https://model-xyz123.api.baseten.co/sync',
@@ -133,13 +133,39 @@ const baseten = createBaseten({
 
 const embeddingModel = baseten.textEmbeddingModel('embeddings');
 
+// Single embedding
 const { embedding } = await embed({
   model: embeddingModel,
   value: 'sunny day at the beach',
 });
+
+// Batch embeddings
+const { embeddings } = await embedMany({
+  model: embeddingModel,
+  values: [
+    'sunny day at the beach',
+    'rainy afternoon in the city',
+    'snowy mountain peak',
+  ],
+});
 ```
 
-**Note:** Embedding models support both `/sync/v1` and `/predict` endpoints, unlike chat models which only support `/sync/v1`.
+### Endpoint Support for Embeddings
+
+**Supported:**
+- `/sync` endpoints (Performance Client automatically adds `/v1/embeddings`)
+
+**Not Supported:**
+- `/sync/v1` endpoints (to avoid double `/v1` issue with Performance Client)
+- `/predict` endpoints (not compatible with Performance Client)
+
+### Performance Features
+
+The embedding implementation includes:
+- **High-performance client**: Uses `@basetenlabs/performance-client` for optimal performance
+- **Automatic batching**: Efficiently handles multiple texts in a single request
+- **Connection reuse**: Performance Client is created once and reused for all requests
+- **Built-in retries**: Automatic retry logic for failed requests
 
 ## Error Handling
 
@@ -180,6 +206,28 @@ try {
   // Error: "Not supported. You must use a /sync/v1 endpoint for chat models."
 }
 
+// /sync/v1 endpoints are not supported for embeddings (to avoid double /v1)
+try {
+  const baseten = createBaseten({
+    modelURL:
+      'https://model-xyz123.api.baseten.co/environments/production/sync/v1',
+  });
+  baseten.textEmbeddingModel(); // This will throw an error
+} catch (error) {
+  // Error: "Not supported. You must use a /sync endpoint for embeddings."
+}
+
+// /predict endpoints are not supported for embeddings
+try {
+  const baseten = createBaseten({
+    modelURL:
+      'https://model-xyz123.api.baseten.co/environments/production/predict',
+  });
+  baseten.textEmbeddingModel(); // This will throw an error
+} catch (error) {
+  // Error: "Not supported. You must use a /sync endpoint for embeddings."
+}
+
 // Image models are not supported
 try {
   baseten.imageModel('test-model');
@@ -188,10 +236,7 @@ try {
 }
 ```
 
-```
-
 <Note>
   For more information about Baseten models and deployment options, see the
   [Baseten documentation](https://docs.baseten.co/).
 </Note>
-```
