@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.15
+
+### Patch Changes
+
+- 9943464: feat(openai): add file_search_call.results support to include parameter
+- Updated dependencies [27deb4d]
+  - @ai-sdk/provider@2.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.9
+
 ## 2.0.0-beta.14
 
 ### Patch Changes

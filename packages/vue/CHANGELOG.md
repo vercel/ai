@@ -1,5 +1,15 @@
 # @ai-sdk/vue
 
+## 2.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [48378b9]
+- Updated dependencies [93d53a1]
+- Updated dependencies [27deb4d]
+  - ai@5.0.0-beta.33
+  - @ai-sdk/provider-utils@3.0.0-beta.9
+
 ## 2.0.0-beta.33
 
 ### Patch Changes

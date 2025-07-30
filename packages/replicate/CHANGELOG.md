@@ -1,5 +1,13 @@
 # @ai-sdk/replicate
 
+## 1.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [27deb4d]
+  - @ai-sdk/provider@2.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.9
+
 ## 1.0.0-beta.8
 
 ### Patch Changes

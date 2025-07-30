@@ -1,5 +1,15 @@
 # @ai-sdk/google
 
+## 2.0.0-beta.18
+
+### Patch Changes
+
+- 78e7fa9: Add code execution provider defined tool
+- 0f05690: Add gemini-embedding-001 model, add embedding provider options type export
+- Updated dependencies [27deb4d]
+  - @ai-sdk/provider@2.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.9
+
 ## 2.0.0-beta.17
 
 ### Patch Changes

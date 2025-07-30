@@ -1,5 +1,17 @@
 # ai
 
+## 5.0.0-beta.33
+
+### Patch Changes
+
+- 48378b9: fix (ai): send null as tool output when tools return undefined
+- 93d53a1: chore (ai): remove cli
+- 27deb4d: feat (provider/gateway): Add providerMetadata to embeddings response
+- Updated dependencies [27deb4d]
+  - @ai-sdk/gateway@1.0.0-beta.18
+  - @ai-sdk/provider@2.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.9
+
 ## 5.0.0-beta.32
 
 ### Patch Changes
