@@ -17,6 +17,7 @@ import {
 import { z } from 'zod/v4';
 import { BasetenChatModelId } from './baseten-chat-options';
 import { BasetenEmbeddingModelId } from './baseten-embedding-options';
+import { PerformanceClient } from '@basetenlabs/performance-client';
 
 export type BasetenErrorData = z.infer<typeof basetenErrorSchema>;
 
@@ -116,7 +117,13 @@ export function createBaseten(
     customURL?: string,
   ): CommonModelConfig => ({
     provider: `baseten.${modelType}`,
-    url: ({ path }) => `${customURL || baseURL}${path}`,
+    url: ({ path }) => {
+      // For embeddings with /sync URLs, we need to add /v1
+      if (modelType === 'embedding' && customURL?.includes('/sync') && !customURL?.includes('/sync/v1')) {
+        return `${customURL}/v1${path}`;
+      }
+      return `${customURL || baseURL}${path}`;
+    },
     headers: getHeaders,
     fetch: options.fetch,
   });
@@ -158,47 +165,54 @@ export function createBaseten(
       );
     }
 
-    // Check if this is a /sync/v1 endpoint (OpenAI-compatible) or /predict endpoint (custom)
-    const isOpenAICompatible = customURL.includes('/sync/v1');
+    // Check if this is a /sync endpoint (OpenAI-compatible) or /predict endpoint (custom)
+    // We only support /sync (not /sync/v1) to avoid double /v1 issue with Performance Client
+    const isOpenAICompatible = customURL.includes('/sync') && !customURL.includes('/sync/v1');
 
     if (isOpenAICompatible) {
-      // For /sync/v1 endpoints, use standard OpenAI-compatible format
-      return new OpenAICompatibleEmbeddingModel(modelId ?? 'embeddings', {
+      // Create the model using OpenAICompatibleEmbeddingModel and override doEmbed
+      const model = new OpenAICompatibleEmbeddingModel(modelId ?? 'embeddings', {
         ...getCommonModelConfig('embedding', customURL),
         errorStructure: basetenErrorStructure,
       });
-    } else {
-      // For /predict endpoints, use custom format
-      const model = new OpenAICompatibleEmbeddingModel(
-        modelId ?? 'embeddings',
-        {
-          provider: 'baseten.embedding',
-          url: ({ path }) => {
-            // For custom model URLs, don't append the path - use the URL as-is
-            return customURL;
-          },
-          headers: getHeaders,
-          fetch: options.fetch,
-          errorStructure: basetenErrorStructure,
-        },
+
+      // Initialize the B10 Performance Client once for reuse
+      const performanceClient = new PerformanceClient(
+        customURL,
+        loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'BASETEN_API_KEY',
+          description: 'Baseten API key',
+        }),
       );
 
-      // Override the doEmbed method to transform the request format
-      const originalDoEmbed = model.doEmbed.bind(model);
+      // Override the doEmbed method to use the pre-created Performance Client
       model.doEmbed = async params => {
-        // Transform the parameters to Baseten's /predict format
-        const transformedParams = { ...params };
-
-        // For embeddings, Baseten expects the text as 'input'
-        if (params.values && Array.isArray(params.values)) {
-          const input = params.values.join('\n');
-          (transformedParams as any).input = input;
+        
+        if (!params.values || !Array.isArray(params.values)) {
+          throw new Error('params.values must be an array of strings');
         }
 
-        return originalDoEmbed(transformedParams);
+        // Performance Client handles batching internally, so we don't need to limit in 128 here
+        const response = await performanceClient.embed(
+          params.values,
+          modelId ?? 'embeddings', // model_id is for Model APIs, we don't use it here for dedicated
+        );
+        // Transform the response to match the expected format
+        const embeddings = response.data.map((item: any) => item.embedding);
+        
+        return {
+          embeddings: embeddings,
+          usage: response.usage ? { tokens: response.usage.total_tokens } : undefined,
+          response: { headers: {}, body: response },
+        };
       };
 
       return model;
+    } else {
+      throw new Error(
+        'Not supported. You must use a /sync endpoint for embeddings.',
+      );
     }
   };
 

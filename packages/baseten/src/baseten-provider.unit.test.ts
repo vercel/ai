@@ -212,10 +212,10 @@ describe('BasetenProvider', () => {
       );
     });
 
-    it('should construct embedding model for /sync/v1 endpoints', () => {
+    it('should construct embedding model for /sync endpoints', () => {
       const provider = createBaseten({
         modelURL:
-          'https://model-123.api.baseten.co/environments/production/sync/v1',
+          'https://model-123.api.baseten.co/environments/production/sync',
       });
 
       const model = provider.textEmbeddingModel();
@@ -230,7 +230,7 @@ describe('BasetenProvider', () => {
         }),
       );
 
-      // Test URL construction for embeddings
+      // Test URL construction for embeddings (Performance Client adds /v1/embeddings)
       const constructorCall = OpenAICompatibleEmbeddingModelMock.mock.calls[0];
       const config = constructorCall[1];
       const url = config.url({ path: '/embeddings' });
@@ -239,37 +239,32 @@ describe('BasetenProvider', () => {
       );
     });
 
-    it('should construct embedding model for /predict endpoints', () => {
+    it('should throw error for /predict endpoints (not supported with Performance Client)', () => {
       const provider = createBaseten({
         modelURL:
           'https://model-123.api.baseten.co/environments/production/predict',
       });
 
-      const model = provider.textEmbeddingModel();
+      expect(() => {
+        provider.textEmbeddingModel();
+      }).toThrow('Not supported. You must use a /sync endpoint for embeddings.');
+    });
 
-      expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
-      expect(OpenAICompatibleEmbeddingModelMock).toHaveBeenCalledWith(
-        'embeddings',
-        expect.objectContaining({
-          provider: 'baseten.embedding',
-          url: expect.any(Function),
-          errorStructure: expect.any(Object),
-        }),
-      );
+    it('should throw error for /sync/v1 endpoints (not supported to avoid double /v1)', () => {
+      const provider = createBaseten({
+        modelURL:
+          'https://model-123.api.baseten.co/environments/production/sync/v1',
+      });
 
-      // Test URL construction for /predict endpoints
-      const constructorCall = OpenAICompatibleEmbeddingModelMock.mock.calls[0];
-      const config = constructorCall[1];
-      const url = config.url({ path: '/embeddings' });
-      expect(url).toBe(
-        'https://model-123.api.baseten.co/environments/production/predict',
-      );
+      expect(() => {
+        provider.textEmbeddingModel();
+      }).toThrow('Not supported. You must use a /sync endpoint for embeddings.');
     });
 
     it('should support custom modelId for embeddings', () => {
       const provider = createBaseten({
         modelURL:
-          'https://model-123.api.baseten.co/environments/production/sync/v1',
+          'https://model-123.api.baseten.co/environments/production/sync',
       });
 
       const model = provider.textEmbeddingModel('custom-embedding-model');

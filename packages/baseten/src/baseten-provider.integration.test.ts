@@ -1,14 +1,33 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { baseten, createBaseten } from '@ai-sdk/baseten';
-import { generateText, embed } from '../../ai';
+import { embed, embedMany, generateText } from '../../ai';
+
+// ============================================================================
+// BASETEN EMBEDDING PROVIDER INTEGRATION TESTS
+// ============================================================================
+// 
+// This test suite validates the Baseten embedding provider with Performance Client.
+// 
+// Endpoint Types:
+// - /sync: OpenAI-compatible endpoints (Performance Client adds /v1/embeddings)
+// - /predict: Custom Baseten endpoints (Performance Client uses URL as-is)
+// 
+// Performance Client Configuration:
+// - Max concurrent requests: 128
+// - Batch size: 16
+// - Timeout: 720 seconds
+// 
+// ============================================================================
 
 // ============================================================================
 // CONFIGURATION - Update these URLs with your own model endpoints to run the tests
 // ============================================================================
 
-// Embedding model URLs (example: Nomic Embed)
+// Embedding model URLs - Performance Client with different endpoint types
+const EMBEDDING_SYNC_URL =
+  'https://model-03y7n6e3.api.baseten.co/environments/production/sync';
 const EMBEDDING_SYNC_V1_URL =
-  'https://model-03y7n6e3.api.baseten.co/environments/production/sync/v1';
+'https://model-03y7n6e3.api.baseten.co/environments/production/sync/v1';
 const EMBEDDING_PREDICT_URL =
   'https://model-03y7n6e3.api.baseten.co/environments/production/predict';
 
@@ -87,52 +106,97 @@ describe('BasetenProvider Integration Tests', () => {
   });
 
   describe('Custom Model URLs', () => {
-    it('should work with embeddings using /sync/v1 endpoint', async () => {
+
+
+    it('should work with embeddings using /sync endpoint (Performance Client)', async () => {
       if (!hasApiKey) {
         console.log('⏭️  Skipping test - no API key');
         return;
       }
-      // Nomic Embed Code
+      // Test Performance Client with OpenAI-compatible /sync endpoint
       const embeddingBaseten = createBaseten({
-        modelURL: EMBEDDING_SYNC_V1_URL,
+        modelURL: EMBEDDING_SYNC_URL,
       });
 
       const embeddingModel = embeddingBaseten.textEmbeddingModel();
       expect(embeddingModel).toBeDefined();
 
+      console.log('🔍 Testing embed with URL:', EMBEDDING_SYNC_URL);
+      
       const { embedding, usage } = await embed({
         model: embeddingModel as any,
         value: 'sunny day at the beach',
       });
+
+      console.log('📊 Embed result:');
+      console.log('  - Embedding length:', embedding.length);
+      console.log('  - First 5 values:', embedding.slice(0, 5));
+      console.log('  - Usage:', usage);
+      console.log('  - Full embedding (first 10):', embedding.slice(0, 10));
 
       expect(embedding).toBeDefined();
       expect(Array.isArray(embedding)).toBe(true);
       expect(embedding.length).toBeGreaterThan(0);
     }, 30000);
 
-    it('should work with embeddings using /predict endpoint', async () => {
+    it('should work with multiple texts using /sync endpoint (Performance Client batching)', async () => {
       if (!hasApiKey) {
         console.log('⏭️  Skipping test - no API key');
         return;
       }
 
-      // Nomic Embed Code
+      // Test Performance Client batching with multiple texts
       const embeddingBaseten = createBaseten({
-        modelURL: EMBEDDING_PREDICT_URL,
+        modelURL: EMBEDDING_SYNC_URL,
       });
 
       const embeddingModel = embeddingBaseten.textEmbeddingModel();
       expect(embeddingModel).toBeDefined();
 
-      const { embedding, usage } = await embed({
+      console.log('🔍 Testing embedMany with URL:', EMBEDDING_SYNC_URL);
+      
+      const { embeddings, usage } = await embedMany({
         model: embeddingModel as any,
-        value: 'sunny day at the beach',
+        values: [
+          'sunny day at the beach',
+          'rainy afternoon in the city',
+          'snowy mountain peak',
+        ],
       });
 
-      expect(embedding).toBeDefined();
-      expect(Array.isArray(embedding)).toBe(true);
-      expect(embedding.length).toBeGreaterThan(0);
+      console.log('📊 EmbedMany result:');
+      console.log('  - Number of embeddings:', embeddings.length);
+      console.log('  - First embedding length:', embeddings[0].length);
+      console.log('  - First embedding (first 5):', embeddings[0].slice(0, 5));
+      console.log('  - Usage:', usage);
+
+      expect(embeddings).toBeDefined();
+      expect(Array.isArray(embeddings)).toBe(true);
+      expect(embeddings.length).toBe(3);
+      expect(embeddings[0]).toBeDefined();
+      expect(Array.isArray(embeddings[0])).toBe(true);
+      expect(embeddings[0].length).toBeGreaterThan(0);
     }, 30000);
+
+    it('should fail with /sync/v1 endpoint for embeddings (not supported to avoid double /v1)', () => {
+      // Test that /sync/v1 URLs are rejected for embeddings
+      expect(() => {
+        const embeddingBaseten = createBaseten({
+          modelURL: EMBEDDING_SYNC_V1_URL,
+        });
+        embeddingBaseten.textEmbeddingModel();
+      }).toThrow('Not supported. You must use a /sync endpoint for embeddings.');
+    });
+
+    it('should fail with /predict endpoint for embeddings (not supported with Performance Client)', () => {
+      // Test that /predict URLs are rejected for embeddings
+      expect(() => {
+        const embeddingBaseten = createBaseten({
+          modelURL: EMBEDDING_PREDICT_URL,
+        });
+        embeddingBaseten.textEmbeddingModel();
+      }).toThrow('Not supported. You must use a /sync endpoint for embeddings.');
+    });
 
     it('should work with chat using /sync/v1 endpoint', async () => {
       if (!hasApiKey) {
