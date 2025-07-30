@@ -29,9 +29,7 @@ export class CohereRerankingModel implements RerankingModelV2<string> {
   readonly specificationVersion = 'v2';
   readonly modelId: CohereRerankingModelId;
 
-  readonly maxDocumentsPerCall = 1000;
-  readonly supportsParallelCalls = true;
-  readonly returnInput = false;
+  readonly maxDocumentsPerCall = Infinity;
 
   private readonly config: CohereRerankingConfig;
 
@@ -50,7 +48,6 @@ export class CohereRerankingModel implements RerankingModelV2<string> {
     headers,
     query,
     topK,
-    returnDocuments,
     abortSignal,
     providerOptions,
   }: Parameters<RerankingModelV2<string>['doRerank']>[0]): Promise<
@@ -95,10 +92,11 @@ export class CohereRerankingModel implements RerankingModelV2<string> {
     });
 
     return {
-      rerankedIndices: response.results,
-      rerankedDocuments: returnDocuments
-        ? response.results.map(result => values[result.index] ?? '')
-        : undefined,
+      rerankedDocuments: response.results.map(result => ({
+        index: result.index,
+        relevanceScore: result.relevance_score,
+        document: values[result.index],
+      })),
       usage: { tokens: response.meta.billed_units.search_units },
       response: { headers: responseHeaders, body: rawValue },
     };

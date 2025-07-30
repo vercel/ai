@@ -1,17 +1,20 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createCohere } from './cohere-provider';
-import { RerankingModelV2Result } from '@ai-sdk/provider';
+import { RerankedDocument } from '@ai-sdk/provider';
 
-const dummyResultIndices = [
+const dummyResultDocuments: RerankedDocument<string>[] = [
   {
     index: 1,
-    relevance_score: 0.45028743,
+    relevanceScore: 0.45028743,
+    document: 'rainy day in the city',
   },
   {
     index: 0,
-    relevance_score: 0.0926305,
+    relevanceScore: 0.0926305,
+    document: 'sunny day at the beach',
   },
 ];
+
 const testDocuments = ['sunny day at the beach', 'rainy day in the city'];
 
 const provider = createCohere({ apiKey: 'test-api-key' });
@@ -22,26 +25,32 @@ const server = createTestServer({
 
 describe('doRerank', () => {
   function prepareJsonResponse({
-    rerankedIndices = dummyResultIndices,
+    rerankedDocuments = dummyResultDocuments,
     meta = {
       billed_units: { search_units: 1 },
       api_version: { version: 'v1' },
     },
     headers,
   }: {
-    rerankedIndices?: RerankingModelV2Result[];
+    rerankedDocuments?: RerankedDocument<string>[];
     meta?: {
       billed_units: { search_units: number };
       api_version?: { version: string };
     };
     headers?: Record<string, string>;
   } = {}) {
+    // Convert RerankedDocument format to API response format
+    const apiResults = rerankedDocuments.map(doc => ({
+      index: doc.index,
+      relevance_score: doc.relevanceScore,
+    }));
+
     server.urls['https://api.cohere.com/v2/rerank'].response = {
       type: 'json-value',
       headers,
       body: {
         id: 'test-id',
-        results: rerankedIndices,
+        results: apiResults,
         meta,
       },
     };
@@ -50,30 +59,13 @@ describe('doRerank', () => {
   it('should rerank documents', async () => {
     prepareJsonResponse();
 
-    const { rerankedIndices } = await model.doRerank({
+    const { rerankedDocuments } = await model.doRerank({
       values: testDocuments,
       query: 'rainy day',
       topK: 2,
     });
 
-    expect(rerankedIndices).toStrictEqual(dummyResultIndices);
-  });
-
-  it('should rerank documents and return documents', async () => {
-    prepareJsonResponse();
-
-    const { rerankedIndices, rerankedDocuments } = await model.doRerank({
-      values: testDocuments,
-      query: 'rainy day',
-      topK: 2,
-      returnDocuments: true,
-    });
-
-    expect(rerankedDocuments).toStrictEqual(
-      dummyResultIndices.map(result => testDocuments[result.index]),
-    );
-
-    expect(rerankedIndices).toStrictEqual(dummyResultIndices);
+    expect(rerankedDocuments).toStrictEqual(dummyResultDocuments);
   });
 
   it('should expose the raw response headers', async () => {
