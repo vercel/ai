@@ -412,7 +412,7 @@ Default and recommended: 'auto' (best mode for the model).
         request = generateResult.request ?? {};
         response = generateResult.responseData;
 
-        let object: RESULT = await parseAndValidateObjectResultWithRepair(
+        const object = await parseAndValidateObjectResultWithRepair(
           result,
           outputStrategy,
           repairText,
