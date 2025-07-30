@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 27deb4d: feat (provider/gateway): Add providerMetadata to embeddings response
+
 ## 2.0.0-beta.1
 
 ### Major Changes
