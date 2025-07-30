@@ -412,21 +412,16 @@ Default and recommended: 'auto' (best mode for the model).
         request = generateResult.request ?? {};
         response = generateResult.responseData;
 
-        let object: RESULT;
-        try {
-          object = await parseAndValidateObjectResultWithRepair(
-            result,
-            outputStrategy,
-            repairText,
-            {
-              response,
-              usage,
-              finishReason,
-            },
-          );
-        } catch (error) {
-          throw error;
-        }
+        let object: RESULT = await parseAndValidateObjectResultWithRepair(
+          result,
+          outputStrategy,
+          repairText,
+          {
+            response,
+            usage,
+            finishReason,
+          },
+        );
 
         // Add response information to the span:
         span.setAttributes(
