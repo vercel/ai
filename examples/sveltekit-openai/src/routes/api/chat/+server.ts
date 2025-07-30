@@ -13,7 +13,7 @@ export const POST = async ({ request }: { request: Request }) => {
   const result = streamText({
     model: openai('gpt-4o'),
     messages: convertToModelMessages(messages),
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(5), // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: {

@@ -18,7 +18,7 @@
       if (toolCall.toolName === 'getLocation') {
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
         const location = cities[Math.floor(Math.random() * cities.length)];
-        
+
         await chat.addToolResult({
           toolCallId: toolCall.toolCallId,
           tool: 'getLocation',
