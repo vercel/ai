@@ -287,7 +287,7 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should handle undefined output in error case', () => {
+    it('should handle undefined output in error text case', () => {
       const result = createToolModelOutput({
         output: undefined,
         tool: undefined,
@@ -300,7 +300,20 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should handle undefined output in non-error case', () => {
+    it('should use null for undefined output in error json case', () => {
+      const result = createToolModelOutput({
+        output: undefined,
+        tool: undefined,
+        errorMode: 'json',
+      });
+
+      expect(result).toEqual({
+        type: 'error-json',
+        value: null,
+      });
+    });
+
+    it('should use null for undefined output in non-error case', () => {
       const result = createToolModelOutput({
         output: undefined,
         tool: undefined,
@@ -309,7 +322,7 @@ describe('createToolModelOutput', () => {
 
       expect(result).toEqual({
         type: 'json',
-        value: undefined,
+        value: null,
       });
     });
   });

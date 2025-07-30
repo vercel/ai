@@ -42,19 +42,10 @@ import { LanguageModelUsage } from '../types/usage';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { RepairTextFunction } from './repair-text';
+import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
-
-/**
-A function that attempts to repair the raw output of the mode
-to enable JSON parsing.
-
-Should return the repaired text or null if the text cannot be repaired.
-     */
-export type RepairTextFunction = (options: {
-  text: string;
-  error: JSONParseError | TypeValidationError;
-}) => Promise<string | null>;
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -108,7 +99,7 @@ via tool or schema description.
 - 'enum': The output is an enum.
 - 'no-schema': The output is not a schema.
 
-@param experimental_repairText - A function that attempts to repair the raw output of the mode
+@param experimental_repairText - A function that attempts to repair the raw output of the model
 to enable JSON parsing.
 
 @param experimental_telemetry - Optional telemetry configuration (experimental).
@@ -189,7 +180,7 @@ Default and recommended: 'auto' (best mode for the model).
        */
       model: LanguageModel;
       /**
-  A function that attempts to repair the raw output of the mode
+  A function that attempts to repair the raw output of the model
   to enable JSON parsing.
        */
       experimental_repairText?: RepairTextFunction;
@@ -421,67 +412,16 @@ Default and recommended: 'auto' (best mode for the model).
         request = generateResult.request ?? {};
         response = generateResult.responseData;
 
-        async function processResult(result: string): Promise<RESULT> {
-          const parseResult = await safeParseJSON({ text: result });
-
-          if (!parseResult.success) {
-            throw new NoObjectGeneratedError({
-              message: 'No object generated: could not parse the response.',
-              cause: parseResult.error,
-              text: result,
-              response,
-              usage,
-              finishReason,
-            });
-          }
-
-          const validationResult = await outputStrategy.validateFinalResult(
-            parseResult.value,
-            {
-              text: result,
-              response,
-              usage,
-            },
-          );
-
-          if (!validationResult.success) {
-            throw new NoObjectGeneratedError({
-              message: 'No object generated: response did not match schema.',
-              cause: validationResult.error,
-              text: result,
-              response,
-              usage,
-              finishReason,
-            });
-          }
-
-          return validationResult.value;
-        }
-
-        let object: RESULT;
-        try {
-          object = await processResult(result);
-        } catch (error) {
-          if (
-            repairText != null &&
-            NoObjectGeneratedError.isInstance(error) &&
-            (JSONParseError.isInstance(error.cause) ||
-              TypeValidationError.isInstance(error.cause))
-          ) {
-            const repairedText = await repairText({
-              text: result,
-              error: error.cause,
-            });
-
-            if (repairedText === null) {
-              throw error;
-            }
-
-            object = await processResult(repairedText);
-          } else {
-            throw error;
-          }
-        }
+        const object = await parseAndValidateObjectResultWithRepair(
+          result,
+          outputStrategy,
+          repairText,
+          {
+            response,
+            usage,
+            finishReason,
+          },
+        );
 
         // Add response information to the span:
         span.setAttributes(

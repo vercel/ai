@@ -52,7 +52,9 @@ import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
+import { RepairTextFunction } from './repair-text';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -235,6 +237,12 @@ The language model to use.
       model: LanguageModel;
 
       /**
+A function that attempts to repair the raw output of the model
+to enable JSON parsing.
+       */
+      experimental_repairText?: RepairTextFunction;
+
+      /**
 Optional telemetry configuration (experimental).
        */
 
@@ -290,6 +298,7 @@ Callback that is called when the LLM response and the final object validation ar
     maxRetries,
     abortSignal,
     headers,
+    experimental_repairText: repairText,
     experimental_telemetry: telemetry,
     providerOptions,
     onError = ({ error }: { error: unknown }) => {
@@ -341,6 +350,7 @@ Callback that is called when the LLM response and the final object validation ar
     schemaName,
     schemaDescription,
     providerOptions,
+    repairText,
     onError,
     onFinish,
     generateId,
@@ -386,6 +396,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaName,
     schemaDescription,
     providerOptions,
+    repairText,
     onError,
     onFinish,
     generateId,
@@ -405,6 +416,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaName: string | undefined;
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
+    repairText: RepairTextFunction | undefined;
     onError: StreamObjectOnErrorCallback;
     onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
     generateId: () => string;
@@ -709,33 +721,22 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     });
                     self._finishReason.resolve(finishReason ?? 'unknown');
 
-                    // resolve the object promise with the latest object:
-                    const validationResult =
-                      await outputStrategy.validateFinalResult(
-                        latestObjectJson,
+                    try {
+                      object = await parseAndValidateObjectResultWithRepair(
+                        accumulatedText,
+                        outputStrategy,
+                        repairText,
                         {
-                          text: accumulatedText,
                           response: fullResponse,
                           usage,
+                          finishReason,
                         },
                       );
-
-                    if (validationResult.success) {
-                      object = validationResult.value;
                       self._object.resolve(object);
-                    } else {
-                      error = new NoObjectGeneratedError({
-                        message:
-                          'No object generated: response did not match schema.',
-                        cause: validationResult.error,
-                        text: accumulatedText,
-                        response: fullResponse,
-                        usage,
-                        finishReason,
-                      });
-                      self._object.reject(error);
+                    } catch (e) {
+                      error = e;
+                      self._object.reject(e);
                     }
-
                     break;
                   }
 
