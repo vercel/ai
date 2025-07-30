@@ -11,6 +11,7 @@ import {
   loadSetting,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
+import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockChatModelId } from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
@@ -117,6 +118,11 @@ Creates a model for image generation.
 Creates a model for image generation.
    */
   imageModel(modelId: BedrockImageModelId): ImageModelV2;
+
+  /**
+Anthropic-specific tools that can be used with Anthropic models on Bedrock.
+   */
+  tools: typeof anthropicTools;
 }
 
 /**
@@ -155,7 +161,7 @@ export function createAmazonBedrock(
               region,
             };
           } catch (error) {
-            // FIX 2: Better error handling for credential provider failures
+            // Error handling for credential provider failures
             const errorMessage =
               error instanceof Error ? error.message : String(error);
             throw new Error(
@@ -166,7 +172,7 @@ export function createAmazonBedrock(
           }
         }
 
-        // FIX 2: Enhanced error handling for SigV4 credential loading
+        // Enhanced error handling for SigV4 credential loading
         try {
           return {
             region,
@@ -268,6 +274,7 @@ export function createAmazonBedrock(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.tools = anthropicTools;
 
   return provider;
 }

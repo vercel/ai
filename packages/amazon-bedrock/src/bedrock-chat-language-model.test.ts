@@ -10,6 +10,32 @@ import {
   BedrockReasoningContentBlock,
   BedrockRedactedReasoningContentBlock,
 } from './bedrock-api-types';
+import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
+import { z } from 'zod/v4';
+
+const mockPrepareAnthropicTools = vi.mocked(prepareTools);
+
+vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
+  const original =
+    await importOriginal<typeof import('@ai-sdk/anthropic/internal')>();
+  return {
+    ...original,
+    prepareTools: vi.fn(),
+    anthropicTools: {
+      ...original.anthropicTools,
+      bash_20241022: (args: any) => ({
+        type: 'provider-defined',
+        id: 'anthropic.bash_20241022',
+        name: 'bash',
+        args,
+        inputSchema: z.object({
+          command: z.string(),
+          restart: z.boolean().optional(),
+        }),
+      }),
+    },
+  };
+});
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'system', content: 'System Prompt' },
@@ -46,12 +72,17 @@ const mockTrace = {
 const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
 const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
+const anthropicModelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'; // Define at top level
 const baseUrl = 'https://bedrock-runtime.us-east-1.amazonaws.com';
 
 const streamUrl = `${baseUrl}/model/${encodeURIComponent(
   modelId,
 )}/converse-stream`;
 const generateUrl = `${baseUrl}/model/${encodeURIComponent(modelId)}/converse`;
+const anthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  anthropicModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -60,13 +91,22 @@ const server = createTestServer({
       chunks: [],
     },
   },
+  // Configure the server for the Anthropic model from the start
+  [anthropicGenerateUrl]: {},
 });
 
 beforeEach(() => {
+  // Reset stream chunks for the default model
   server.urls[streamUrl].response = {
     type: 'stream-chunks',
     chunks: [],
   };
+  // Reset the response for the anthropic model to a default empty state
+  server.urls[anthropicGenerateUrl].response = {
+    type: 'json-value',
+    body: {},
+  };
+  mockPrepareAnthropicTools.mockClear();
 });
 
 const model = new BedrockChatLanguageModel(modelId, {
@@ -1750,6 +1790,93 @@ describe('doGenerate', () => {
         ],
       },
     });
+  });
+
+  it('should handle Anthropic provider-defined tools', async () => {
+    mockPrepareAnthropicTools.mockReturnValue({
+      tools: [{ name: 'bash', type: 'bash_20241022' }],
+      toolChoice: { type: 'auto' },
+      toolWarnings: [],
+      betas: new Set(['computer-use-2024-10-22']),
+    });
+
+    // Set up the mock response for this specific URL and test case
+    server.urls[anthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'tool-use-id',
+                  name: 'bash',
+                  input: { command: 'ls -l' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    const anthropicModel = new BedrockChatLanguageModel(anthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      // No fetch property: defaults to global fetch, which is mocked by the test server.
+      generateId: () => 'test-id',
+    });
+
+    const result = await anthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'anthropic.bash_20241022',
+          name: 'bash',
+          args: {},
+        },
+      ],
+      toolChoice: { type: 'auto' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    const requestHeaders = server.calls[0].requestHeaders;
+
+    expect(requestHeaders['anthropic-beta']).toBe('computer-use-2024-10-22');
+
+    expect(requestBody.additionalModelRequestFields).toEqual({
+      tool_choice: { type: 'auto' },
+    });
+
+    expect(requestBody.toolConfig).toBeDefined();
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('bash');
+    expect(requestBody.toolConfig.tools[0].toolSpec.inputSchema.json).toEqual({
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        command: { type: 'string' },
+        restart: { type: 'boolean' },
+      },
+      required: ['command'],
+      additionalProperties: false,
+    });
+
+    expect(result.warnings).toEqual([]);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"command":"ls -l"}",
+          "toolCallId": "tool-use-id",
+          "toolName": "bash",
+          "type": "tool-call",
+        },
+      ]
+    `);
   });
 
   it('should properly combine headers from all sources', async () => {

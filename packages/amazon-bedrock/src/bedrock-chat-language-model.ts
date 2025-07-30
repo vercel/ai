@@ -71,6 +71,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     command: BedrockConverseInput;
     warnings: LanguageModelV2CallWarning[];
     usesJsonResponseTool: boolean;
+    betas: Set<string>;
   }> {
     // Parse provider options
     const bedrockOptions =
@@ -143,6 +144,24 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           }
         : undefined;
 
+    const { toolConfig, additionalTools, toolWarnings, betas } = prepareTools({
+      tools: jsonResponseTool ? [jsonResponseTool, ...(tools ?? [])] : tools,
+      toolChoice:
+        jsonResponseTool != null
+          ? { type: 'tool', toolName: jsonResponseTool.name }
+          : toolChoice,
+      modelId: this.modelId,
+    });
+
+    warnings.push(...toolWarnings);
+
+    if (additionalTools) {
+      bedrockOptions.additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+        ...additionalTools,
+      };
+    }
+
     const isThinking = bedrockOptions.reasoningConfig?.type === 'enabled';
     const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
 
@@ -192,11 +211,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     }
 
     // Filter tool content from prompt when no tools are available
-    const activeTools =
-      jsonResponseTool != null ? [jsonResponseTool] : (tools ?? []);
+    const hasAnyTools = (toolConfig.tools?.length ?? 0) > 0 || additionalTools;
     let filteredPrompt = prompt;
 
-    if (activeTools.length === 0) {
+    if (!hasAnyTools) {
       const hasToolContent = prompt.some(
         message =>
           'content' in message &&
@@ -235,15 +253,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     const { system, messages } =
       await convertToBedrockChatMessages(filteredPrompt);
 
-    const { toolConfig, toolWarnings } = prepareTools({
-      tools: activeTools,
-      toolChoice:
-        jsonResponseTool != null
-          ? { type: 'tool', toolName: jsonResponseTool.name }
-          : toolChoice,
-      prompt: filteredPrompt,
-    });
-
     // Filter out reasoningConfig from providerOptions.bedrock to prevent sending it to Bedrock API
     const { reasoningConfig: _, ...filteredBedrockOptions } =
       providerOptions?.bedrock || {};
@@ -258,16 +267,33 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           inferenceConfig,
         }),
         ...filteredBedrockOptions,
-        ...(toolConfig.tools !== undefined ? { toolConfig } : {}),
+        ...(toolConfig.tools !== undefined && toolConfig.tools.length > 0
+          ? { toolConfig }
+          : {}),
       },
-      warnings: [...warnings, ...toolWarnings],
+      warnings,
       usesJsonResponseTool: jsonResponseTool != null,
+      betas,
     };
   }
 
   readonly supportedUrls: Record<string, RegExp[]> = {
     // no supported urls for bedrock
   };
+
+  private async getHeaders({
+    betas,
+    headers,
+  }: {
+    betas: Set<string>;
+    headers: Record<string, string | undefined> | undefined;
+  }) {
+    return combineHeaders(
+      await resolve(this.config.headers),
+      betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
+      headers,
+    );
+  }
 
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
@@ -276,15 +302,13 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       command: args,
       warnings,
       usesJsonResponseTool,
+      betas,
     } = await this.getArgs(options);
 
     const url = `${this.getUrl(this.modelId)}/converse`;
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
-      headers: combineHeaders(
-        await resolve(this.config.headers),
-        options.headers,
-      ),
+      headers: await this.getHeaders({ betas, headers: options.headers }),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
@@ -406,15 +430,13 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       command: args,
       warnings,
       usesJsonResponseTool,
+      betas,
     } = await this.getArgs(options);
     const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
-      headers: combineHeaders(
-        await resolve(this.config.headers),
-        options.headers,
-      ),
+      headers: await this.getHeaders({ betas, headers: options.headers }),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
