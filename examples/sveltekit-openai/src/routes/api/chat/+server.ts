@@ -1,20 +1,19 @@
 import { env } from '$env/dynamic/private';
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText } from 'ai';
+import { convertToModelMessages, streamText, stepCountIs } from 'ai';
 import { z } from 'zod/v4';
 
 const openai = createOpenAI({
   apiKey: env?.OPENAI_API_KEY,
 });
 
-export const POST = async ({ request }) => {
+export const POST = async ({ request }: { request: Request }) => {
   const { messages } = await request.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
     messages: convertToModelMessages(messages),
-    toolCallStreaming: true,
-    maxSteps: 5, // multi-steps for server-side tools
+    stopWhen: stepCountIs(5),
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: {
