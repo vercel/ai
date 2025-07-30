@@ -1122,6 +1122,15 @@ describe('doGenerate', () => {
       openai: {
         acceptedPredictionTokens: 123,
         rejectedPredictionTokens: 456,
+        usage: {
+          completion_tokens: 20,
+          completion_tokens_details: {
+            accepted_prediction_tokens: 123,
+            rejected_prediction_tokens: 456,
+          },
+          prompt_tokens: 15,
+          total_tokens: 35,
+        },
       },
     });
   });
@@ -1799,6 +1808,11 @@ describe('doStream', () => {
                   ],
                 },
               ],
+              "usage": {
+                "completion_tokens": 227,
+                "prompt_tokens": 17,
+                "total_tokens": 244,
+              },
             },
           },
           "type": "finish",
@@ -1934,7 +1948,13 @@ describe('doStream', () => {
         {
           "finishReason": "tool-calls",
           "providerMetadata": {
-            "openai": {},
+            "openai": {
+              "usage": {
+                "completion_tokens": 17,
+                "prompt_tokens": 53,
+                "total_tokens": 70,
+              },
+            },
           },
           "type": "finish",
           "usage": {
@@ -2074,7 +2094,13 @@ describe('doStream', () => {
         {
           "finishReason": "tool-calls",
           "providerMetadata": {
-            "openai": {},
+            "openai": {
+              "usage": {
+                "completion_tokens": 17,
+                "prompt_tokens": 53,
+                "total_tokens": 70,
+              },
+            },
           },
           "type": "finish",
           "usage": {
@@ -2218,7 +2244,13 @@ describe('doStream', () => {
         {
           "finishReason": "tool-calls",
           "providerMetadata": {
-            "openai": {},
+            "openai": {
+              "usage": {
+                "completion_tokens": 20,
+                "prompt_tokens": 226,
+                "total_tokens": 246,
+              },
+            },
           },
           "type": "finish",
           "usage": {
@@ -2302,7 +2334,13 @@ describe('doStream', () => {
         {
           "finishReason": "tool-calls",
           "providerMetadata": {
-            "openai": {},
+            "openai": {
+              "usage": {
+                "completion_tokens": 17,
+                "prompt_tokens": 53,
+                "total_tokens": 70,
+              },
+            },
           },
           "type": "finish",
           "usage": {
@@ -2549,7 +2587,16 @@ describe('doStream', () => {
         {
           "finishReason": "stop",
           "providerMetadata": {
-            "openai": {},
+            "openai": {
+              "usage": {
+                "completion_tokens": 20,
+                "prompt_tokens": 15,
+                "prompt_tokens_details": {
+                  "cached_tokens": 1152,
+                },
+                "total_tokens": 35,
+              },
+            },
           },
           "type": "finish",
           "usage": {
@@ -2597,6 +2644,15 @@ describe('doStream', () => {
             "openai": {
               "acceptedPredictionTokens": 123,
               "rejectedPredictionTokens": 456,
+              "usage": {
+                "completion_tokens": 20,
+                "completion_tokens_details": {
+                  "accepted_prediction_tokens": 123,
+                  "rejected_prediction_tokens": 456,
+                },
+                "prompt_tokens": 15,
+                "total_tokens": 35,
+              },
             },
           },
           "type": "finish",
@@ -2772,7 +2828,13 @@ describe('doStream', () => {
           {
             "finishReason": "stop",
             "providerMetadata": {
-              "openai": {},
+              "openai": {
+                "usage": {
+                  "completion_tokens": 227,
+                  "prompt_tokens": 17,
+                  "total_tokens": 244,
+                },
+              },
             },
             "type": "finish",
             "usage": {
@@ -2841,7 +2903,16 @@ describe('doStream', () => {
           {
             "finishReason": "stop",
             "providerMetadata": {
-              "openai": {},
+              "openai": {
+                "usage": {
+                  "completion_tokens": 20,
+                  "completion_tokens_details": {
+                    "reasoning_tokens": 10,
+                  },
+                  "prompt_tokens": 15,
+                  "total_tokens": 35,
+                },
+              },
             },
             "type": "finish",
             "usage": {

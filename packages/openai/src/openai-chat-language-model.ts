@@ -1,5 +1,6 @@
 import {
   InvalidResponseDataError,
+  JSONObject,
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
@@ -363,6 +364,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       providerMetadata.openai.logprobs = choice.logprobs.content;
     }
 
+    providerMetadata.openai.usage = response.usage as JSONObject;
+
     return {
       content,
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
@@ -497,6 +500,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                 providerMetadata.openai.rejectedPredictionTokens =
                   value.usage.completion_tokens_details?.rejected_prediction_tokens;
               }
+              providerMetadata.openai.usage = value.usage as JSONObject;
             }
 
             const choice = value.choices[0];
