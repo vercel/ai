@@ -4,9 +4,6 @@
   import Button from '$lib/components/ui/button/button.svelte';
   import { Textarea } from '$lib/components/ui/textarea/index.js';
   import { Chat } from '@ai-sdk/svelte';
-  import { stepCountIs } from 'ai';
-
-  const stopWhen = stepCountIs(5);
 
   const chat = new Chat({
     id: page.params.id,
