@@ -1,4 +1,7 @@
-import { RerankingModelV2Result } from '@ai-sdk/provider';
+import {
+  RerankedDocument,
+  TooManyDocumentsForRerankingError,
+} from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -19,7 +22,6 @@ Rerank documents using an reranking model. The type of the value is defined by t
 @param values - The documents that should be reranking.
 @param query - The query is a string that represents the query to rerank the documents against.
 @param topK - Top k documents to rerank.
-@param returnDocuments - Return the reranked documents in the response (In same order as indices).
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
@@ -32,8 +34,6 @@ export async function rerank<VALUE>({
   values,
   query,
   topK,
-  returnDocuments = false,
-  maxParallelCalls = Infinity,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -59,13 +59,6 @@ The query is a string that represents the query to rerank the documents against.
 Top k documents to rerank.
   */
   topK: number;
-
-  /**
-Return the reranked documents in the response (In same order as indices).
-
-@default false
-   */
-  returnDocuments?: boolean;
 
   /**
 Maximum number of retries per reranking model call. Set to 0 to disable retries.
@@ -96,19 +89,22 @@ Only applicable for HTTP-based providers.
     functionality that can be fully encapsulated in the provider.
     */
   providerOptions?: ProviderOptions;
-
-  /**
-   * Maximum number of concurrent requests.
-   *
-   * @default Infinity
-   */
-  maxParallelCalls?: number;
 }): Promise<RerankResult<VALUE>> {
   if (model.specificationVersion !== 'v2') {
     throw new UnsupportedModelVersionError({
       version: model.specificationVersion,
       provider: model.provider,
       modelId: model.modelId,
+    });
+  }
+
+  const maxDocumentsPerCall = await model.maxDocumentsPerCall;
+  if (maxDocumentsPerCall != null && values.length > maxDocumentsPerCall) {
+    throw new TooManyDocumentsForRerankingError({
+      provider: model.provider,
+      modelId: model.modelId,
+      maxDocumentsPerCall,
+      documents: values,
     });
   }
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
@@ -134,207 +130,81 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const [maxDocumentsPerCall, supportsParallelCalls] = await Promise.all([
-        model.maxDocumentsPerCall,
-        model.supportsParallelCalls,
-      ]);
-
-      if (maxDocumentsPerCall == null || maxDocumentsPerCall === Infinity) {
-        const { rerankedIndices, usage, rerankedDocuments, response } =
-          await retry(() =>
-            recordSpan({
-              name: 'ai.rerank.doRerank',
-              attributes: selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  ...assembleOperationName({
-                    operationId: 'ai.rerank.doRerank',
-                    telemetry,
-                  }),
-                  ...baseTelemetryAttributes,
-                  // specific settings that only make sense on the outer level:
-                  'ai.values': {
-                    input: () => values.map(value => JSON.stringify(value)),
-                  },
-                },
-              }),
-              tracer,
-              fn: async doRerankSpan => {
-                const modelResponse = await model.doRerank({
-                  values,
-                  query,
-                  topK,
-                  returnDocuments,
-                  providerOptions,
-                  abortSignal,
-                  headers,
-                });
-
-                const rerankedIndices = modelResponse.rerankedIndices;
-                const usage = modelResponse.usage ?? { tokens: NaN };
-                const rerankedDocuments = modelResponse.rerankedDocuments ?? [];
-
-                doRerankSpan.setAttributes(
-                  selectTelemetryAttributes({
-                    telemetry,
-                    attributes: {
-                      'ai.rerankedIndices': {
-                        output: () =>
-                          rerankedIndices.map(index => JSON.stringify(index)),
-                      },
-                      'ai.usage.tokens': usage.tokens,
-                      'ai.rerankedDocuments': {
-                        output: () =>
-                          rerankedDocuments.map(doc => JSON.stringify(doc)),
-                      },
-                    },
-                  }),
-                );
-
-                return {
-                  rerankedIndices,
-                  usage,
-                  rerankedDocuments,
-                  response: modelResponse.response,
-                };
-              },
-            }),
-          );
-
-        span.setAttributes(
-          selectTelemetryAttributes({
+      const { rerankedDocuments, usage, response } = await retry(() =>
+        recordSpan({
+          name: 'ai.rerank.doRerank',
+          attributes: selectTelemetryAttributes({
             telemetry,
             attributes: {
-              'ai.rerankedIndices': {
-                output: () => JSON.stringify(rerankedIndices),
+              ...assembleOperationName({
+                operationId: 'ai.rerank.doRerank',
+                telemetry,
+              }),
+              ...baseTelemetryAttributes,
+              // specific settings that only make sense on the outer level:
+              'ai.values': {
+                input: () => values.map(value => JSON.stringify(value)),
               },
-              'ai.rerankedDocuments': {
-                output: () => JSON.stringify(rerankedDocuments),
-              },
-              'ai.usage.tokens': usage.tokens,
             },
           }),
-        );
-
-        return new DefaultRerankResult({
-          values,
-          rerankedIndices,
-          rerankedDocuments,
-          usage,
-          responses: [response],
-        });
-      }
-
-      // split the values into chunks that are small enough for the model:
-      const valueChunks = splitArray(values, maxDocumentsPerCall);
-
-      const rerankedIndices: Array<RerankingModelV2Result> = [];
-      const rerankedDocuments: Array<VALUE> = [];
-      const responses: Array<
-        | {
-            headers?: Record<string, string>;
-            body?: unknown;
-          }
-        | undefined
-      > = [];
-      let tokens = 0;
-
-      const parallelChunks = splitArray(
-        valueChunks,
-        supportsParallelCalls ? maxParallelCalls : 1,
-      );
-
-      for (const parallelChunk of parallelChunks) {
-        const results = await Promise.all(
-          parallelChunk.map(chunk => {
-            return retry(() => {
-              return recordSpan({
-                name: 'ai.rerank.doRerank',
-                attributes: selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    ...assembleOperationName({
-                      operationId: 'ai.rerank.doRerank',
-                      telemetry,
-                    }),
-                    ...baseTelemetryAttributes,
-                    'ai.values': {
-                      input: () => chunk.map(value => JSON.stringify(value)),
-                    },
-                  },
-                }),
-                tracer,
-                fn: async doRerankSpan => {
-                  const modelResponse = await model.doRerank({
-                    values: chunk,
-                    query,
-                    topK,
-                    providerOptions,
-                    returnDocuments,
-                    abortSignal,
-                    headers,
-                  });
-
-                  const chunkIndices = modelResponse.rerankedIndices;
-                  const usage = modelResponse.usage ?? { tokens: NaN };
-                  const chunkedRerankedDocuments =
-                    modelResponse.rerankedDocuments ?? [];
-
-                  doRerankSpan.setAttributes(
-                    selectTelemetryAttributes({
-                      telemetry,
-                      attributes: {
-                        'ai.rerankedIndices': {
-                          output: () => JSON.stringify(chunkIndices),
-                        },
-                        'ai.usage.tokens': usage.tokens,
-                        'ai.rerankedDocuments': {
-                          output: () =>
-                            JSON.stringify(chunkedRerankedDocuments),
-                        },
-                      },
-                    }),
-                  );
-
-                  return {
-                    rerankedIndices: chunkIndices,
-                    usage,
-                    rerankedDocuments: chunkedRerankedDocuments,
-                  };
-                },
-              });
+          tracer,
+          fn: async doRerankSpan => {
+            const modelResponse = await model.doRerank({
+              values,
+              query,
+              topK,
+              providerOptions,
+              abortSignal,
+              headers,
             });
-          }),
-        );
 
-        for (const result of results) {
-          rerankedIndices.push(...result.rerankedIndices);
-          rerankedDocuments.push(...result.rerankedDocuments);
-          tokens += result.usage.tokens;
-        }
-      }
+            const rerankedDocuments = modelResponse.rerankedDocuments;
+            const usage = modelResponse.usage ?? { tokens: NaN };
+
+            doRerankSpan.setAttributes(
+              selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  'ai.rerankedDocuments': {
+                    output: () =>
+                      rerankedDocuments.map(rerankedDocument =>
+                        JSON.stringify(rerankedDocument),
+                      ),
+                  },
+                  'ai.usage.tokens': usage.tokens,
+                },
+              }),
+            );
+
+            return {
+              rerankedDocuments,
+              usage,
+              response: modelResponse.response,
+            };
+          },
+        }),
+      );
 
       span.setAttributes(
         selectTelemetryAttributes({
           telemetry,
           attributes: {
-            'ai.rerankedIndices': {
-              output: () => JSON.stringify(rerankedIndices),
-            },
             'ai.rerankedDocuments': {
-              output: () => JSON.stringify(rerankedDocuments),
+              output: () =>
+                rerankedDocuments.map(rerankedDocument =>
+                  JSON.stringify(rerankedDocument),
+                ),
             },
-            'ai.usage.tokens': tokens,
+            'ai.usage.tokens': usage.tokens,
           },
         }),
       );
 
       return new DefaultRerankResult({
         values,
-        rerankedIndices,
         rerankedDocuments,
-        usage: { tokens },
-        responses,
+        usage,
+        response: response,
       });
     },
   });
@@ -342,22 +212,19 @@ Only applicable for HTTP-based providers.
 
 class DefaultRerankResult<VALUE> implements RerankResult<VALUE> {
   readonly documents: RerankResult<VALUE>['documents'];
-  readonly rerankedIndices: RerankResult<VALUE>['rerankedIndices'];
-  readonly rerankedDocuments: RerankResult<VALUE>['documents'];
   readonly usage: RerankResult<VALUE>['usage'];
-  readonly responses: RerankResult<VALUE>['responses'];
+  readonly response: RerankResult<VALUE>['response'];
+  readonly rerankedDocuments: RerankResult<VALUE>['rerankedDocuments'];
 
   constructor(options: {
     values: RerankResult<VALUE>['documents'];
-    rerankedIndices: RerankResult<VALUE>['rerankedIndices'];
-    rerankedDocuments: RerankResult<VALUE>['documents'];
     usage: RerankResult<VALUE>['usage'];
-    responses?: RerankResult<VALUE>['responses'];
+    response?: RerankResult<VALUE>['response'];
+    rerankedDocuments: RerankResult<VALUE>['rerankedDocuments'];
   }) {
     this.documents = options.values;
-    this.rerankedIndices = options.rerankedIndices;
-    this.rerankedDocuments = options.rerankedDocuments;
     this.usage = options.usage;
-    this.responses = options.responses;
+    this.response = options.response;
+    this.rerankedDocuments = options.rerankedDocuments;
   }
 }

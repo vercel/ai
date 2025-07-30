@@ -13,14 +13,9 @@ The query is a string that represents the query to rerank the documents against.
   query: string;
 
   /**
-The top-k documents after reranking.
+Return the top-k documents after reranking.
     */
   topK: number;
-
-  /**
-Return the reranked documents in the response (In same order as indices).
-   */
-  returnDocuments?: boolean;
 
   /**
 Abort signal for cancelling the operation.

@@ -1,27 +1,20 @@
 import { RerankingModelUsage } from '../types/usage';
-import { RerankedResultIndex } from '../types/reranking-model';
+import { RerankedDocument } from '../types/reranking-model';
 
 /**
 The result of an `rerank` call.
-It contains the documents, the reranked indices, and additional information.
+It contains the documents, the reranked results, and additional information.
  */
 export interface RerankResult<VALUE> {
   /**
   The documents that were reranked.
-     */
+    */
   readonly documents: Array<VALUE>;
 
   /**
-  The reranked indices.
+  The reranked documents is the list of object with the index, relevance score, and the document that have been reranked.
     */
-  readonly rerankedIndices: Array<RerankedResultIndex>;
-
-  /**
-   * The reranked documents.
-   * Only available if `returnDocuments` was set to `true`.
-   * The order of the documents is the same as the order of the indices.
-   */
-  readonly rerankedDocuments?: Array<VALUE>;
+  readonly rerankedDocuments: Array<RerankedDocument<VALUE>>;
 
   /**
   The reranking token usage.
@@ -31,18 +24,15 @@ export interface RerankResult<VALUE> {
   /**
   Optional raw response data.
      */
-  readonly responses?: Array<
-    | {
-        /**
+  readonly response?: {
+    /**
   Response headers.
        */
-        headers?: Record<string, string>;
+    headers?: Record<string, string>;
 
-        /**
+    /**
     The response body.
     */
-        body?: unknown;
-      }
-    | undefined
-  >;
+    body?: unknown;
+  };
 }

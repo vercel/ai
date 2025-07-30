@@ -1,6 +1,6 @@
 import { SharedV2Headers } from '../../shared';
 import { RerankingModelV2CallOptions } from './reranking-model-v2-call-options';
-import { RerankingModelV2Result } from './reranking-model-v2-reranking';
+import { RerankedDocument } from './reranking-model-v2-result';
 
 /**
 Experimental: Specification for a reranking model that implements the reranking model
@@ -37,33 +37,17 @@ Limit of how many documents can be reranking in a single API call.
     | undefined;
 
   /**
-True if the model can handle multiple reranking calls in parallel.
-    */
-  readonly supportsParallelCalls: PromiseLike<boolean> | boolean;
-
-  /**
-True if the model can return the input values in the response.
-    */
-  readonly returnInput: boolean;
-
-  /**
 Reranking a list of documents using the query
 Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
   doRerank(options: RerankingModelV2CallOptions<VALUE>): PromiseLike<{
     /**
-Reranked indices.
-This is an array of objects that contain the index and relevance score
-of the documents after reranking.
+Reranked documents.
+This is an array of document that contain the index, relevance score, and the document.
+The documents are sorted by the descending order of relevance scores.
     */
-    rerankedIndices: Array<RerankingModelV2Result>;
-
-    /**
-     * This is optional and only send if the returnDocuments flag is set to true.
-Reranked documents will be in same order as indices.
-    */
-    rerankedDocuments?: Array<VALUE>;
+    rerankedDocuments: Array<RerankedDocument<VALUE>>;
 
     /**
 Token usage. We only have input tokens for reranking.

@@ -1,5 +1,4 @@
-import { RerankingModelV2 } from '@ai-sdk/provider';
-import { RerankedResultIndex } from '../types';
+import { RerankedDocument, RerankingModelV2 } from '@ai-sdk/provider';
 import { RerankingModelUsage } from '../types/usage';
 import { notImplemented } from './not-implemented';
 
@@ -9,36 +8,30 @@ export class MockRerankingModelV2<VALUE> implements RerankingModelV2<VALUE> {
   readonly provider: RerankingModelV2<VALUE>['provider'];
   readonly modelId: RerankingModelV2<VALUE>['modelId'];
   readonly maxDocumentsPerCall: RerankingModelV2<VALUE>['maxDocumentsPerCall'];
-  readonly supportsParallelCalls: RerankingModelV2<VALUE>['supportsParallelCalls'];
-  readonly returnInput: RerankingModelV2<VALUE>['returnInput'] = false;
 
   doRerank: RerankingModelV2<VALUE>['doRerank'];
 
   constructor({
     provider = 'mock-provider',
     modelId = 'mock-model-id',
-    maxDocumentsPerCall = 1,
-    supportsParallelCalls = false,
+    maxDocumentsPerCall = undefined,
     doRerank = notImplemented,
   }: {
     provider?: RerankingModelV2<VALUE>['provider'];
     modelId?: RerankingModelV2<VALUE>['modelId'];
-    maxDocumentsPerCall?: RerankingModelV2<VALUE>['maxDocumentsPerCall'] | null;
-    supportsParallelCalls?: RerankingModelV2<VALUE>['supportsParallelCalls'];
+    maxDocumentsPerCall?: RerankingModelV2<VALUE>['maxDocumentsPerCall'];
     doRerank?: RerankingModelV2<VALUE>['doRerank'];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;
-    this.maxDocumentsPerCall = maxDocumentsPerCall ?? undefined;
-    this.supportsParallelCalls = supportsParallelCalls;
+    this.maxDocumentsPerCall = maxDocumentsPerCall;
     this.doRerank = doRerank;
   }
 }
 
 export function mockRerank<VALUE>(
   expectedValues: Array<VALUE>,
-  rerankedIndices: Array<RerankedResultIndex>,
-  rerankedDocuments?: Array<VALUE>,
+  rerankedDocuments: Array<RerankedDocument<VALUE>>,
   usage?: RerankingModelUsage,
   response: Awaited<
     ReturnType<RerankingModelV2<VALUE>['doRerank']>
@@ -46,6 +39,6 @@ export function mockRerank<VALUE>(
 ): RerankingModelV2<VALUE>['doRerank'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);
-    return { rerankedIndices, rerankedDocuments, usage, response };
+    return { rerankedDocuments, usage, response };
   };
 }
