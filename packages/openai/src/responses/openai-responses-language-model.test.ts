@@ -590,6 +590,51 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send include provider option for file search results', async () => {
+        const { warnings } = await createModel('gpt-4o-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              include: ['file_search_call.results'],
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          include: ['file_search_call.results'],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send include provider option with multiple values', async () => {
+        const { warnings } = await createModel('o3-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              include: [
+                'reasoning.encrypted_content',
+                'file_search_call.results',
+              ],
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'o3-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          include: ['reasoning.encrypted_content', 'file_search_call.results'],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send responseFormat json format', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: { type: 'json' },
