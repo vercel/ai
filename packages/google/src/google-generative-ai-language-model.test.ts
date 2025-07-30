@@ -1,4 +1,7 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import {
+  LanguageModelV2Prompt,
+  LanguageModelV2ProviderDefinedTool,
+} from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
@@ -985,6 +988,67 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should handle code execution tool calls', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  executableCode: {
+                    language: 'PYTHON',
+                    code: 'print(1+1)',
+                  },
+                },
+                {
+                  codeExecutionResult: {
+                    outcome: 'OUTCOME_OK',
+                    output: '2',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { content } = await model.doGenerate({
+      tools: [
+        provider.tools.codeExecution({}) as LanguageModelV2ProviderDefinedTool,
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tools).toEqual({ codeExecution: {} });
+
+    expect(content).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'test-id',
+        toolName: 'code_execution',
+        input: '{"language":"PYTHON","code":"print(1+1)"}',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'test-id',
+        toolName: 'code_execution',
+        result: {
+          outcome: 'OUTCOME_OK',
+          output: '2',
+        },
+        providerExecuted: true,
+      },
+    ]);
+  });
+
   describe('search tool selection', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
@@ -1770,6 +1834,81 @@ describe('doStream', () => {
         severity: 'LOW',
         severityScore: 0.2,
         blocked: false,
+      },
+    ]);
+  });
+
+  it('should stream code execution tool calls and results', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    executableCode: {
+                      language: 'PYTHON',
+                      code: 'print("hello")',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    codeExecutionResult: {
+                      outcome: 'OUTCOME_OK',
+                      output: 'hello\n',
+                    },
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { stream } = await model.doStream({
+      tools: [
+        provider.tools.codeExecution({}) as LanguageModelV2ProviderDefinedTool,
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const toolEvents = events.filter(
+      e => e.type === 'tool-call' || e.type === 'tool-result',
+    );
+
+    expect(toolEvents).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'test-id',
+        toolName: 'code_execution',
+        input: '{"language":"PYTHON","code":"print(\\"hello\\")"}',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'test-id',
+        toolName: 'code_execution',
+        result: {
+          outcome: 'OUTCOME_OK',
+          output: 'hello\n',
+        },
+        providerExecuted: true,
       },
     ]);
   });
