@@ -15,7 +15,7 @@ import {
 } from './gateway-fetch-metadata';
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
-import type { GatewayEmbeddingModelId } from './gateway-embedding-options';
+import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
