@@ -162,7 +162,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
 
-      it('should extract response id metadata and usage', async () => {
+      it('should extract response id metadata', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
         });
@@ -2582,43 +2582,43 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream))
           .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "stream-start",
-                "warnings": [],
-              },
-              {
-                "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-                "modelId": "gpt-4o-mini-2024-07-18",
-                "timestamp": 2025-03-10T18:46:40.000Z,
-                "type": "response-metadata",
-              },
-              {
-                "error": {
-                  "code": "ERR_SOMETHING",
-                  "message": "Something went wrong",
-                  "param": null,
-                  "sequence_number": 1,
-                  "type": "error",
-                },
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "resp_67cf3390786881908b27489d7e8cfb6b",
+              "modelId": "gpt-4o-mini-2024-07-18",
+              "timestamp": 2025-03-10T18:46:40.000Z,
+              "type": "response-metadata",
+            },
+            {
+              "error": {
+                "code": "ERR_SOMETHING",
+                "message": "Something went wrong",
+                "param": null,
+                "sequence_number": 1,
                 "type": "error",
               },
-              {
-                "finishReason": "unknown",
-                "providerMetadata": {
-                  "openai": {
-                    "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
-                  },
-                },
-                "type": "finish",
-                "usage": {
-                  "inputTokens": undefined,
-                  "outputTokens": undefined,
-                  "totalTokens": undefined,
+              "type": "error",
+            },
+            {
+              "finishReason": "unknown",
+              "providerMetadata": {
+                "openai": {
+                  "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
                 },
               },
-            ]
-          `);
+              "type": "finish",
+              "usage": {
+                "inputTokens": undefined,
+                "outputTokens": undefined,
+                "totalTokens": undefined,
+              },
+            },
+          ]
+        `);
       });
     });
 
