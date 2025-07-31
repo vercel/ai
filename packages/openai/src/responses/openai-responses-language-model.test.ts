@@ -590,6 +590,51 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send include provider option for file search results', async () => {
+        const { warnings } = await createModel('gpt-4o-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              include: ['file_search_call.results'],
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          include: ['file_search_call.results'],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send include provider option with multiple values', async () => {
+        const { warnings } = await createModel('o3-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              include: [
+                'reasoning.encrypted_content',
+                'file_search_call.results',
+              ],
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'o3-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          include: ['reasoning.encrypted_content', 'file_search_call.results'],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send responseFormat json format', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: { type: 'json' },
@@ -801,8 +846,10 @@ describe('OpenAIResponsesLanguageModel', () => {
               name: 'file_search',
               args: {
                 vectorStoreIds: ['vs_123', 'vs_456'],
-                maxResults: 10,
-                searchType: 'auto',
+                maxNumResults: 10,
+                ranking: {
+                  ranker: 'auto',
+                },
               },
             },
           ],
@@ -825,8 +872,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "model": "gpt-4o",
             "tools": [
               {
-                "max_results": 10,
-                "search_type": "auto",
+                "max_num_results": 10,
+                "ranking_options": {
+                  "ranker": "auto",
+                },
                 "type": "file_search",
                 "vector_store_ids": [
                   "vs_123",
@@ -853,7 +902,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               name: 'file_search',
               args: {
                 vectorStoreIds: ['vs_789'],
-                maxResults: 5,
+                maxNumResults: 5,
               },
             },
           ],
@@ -879,10 +928,65 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             "tools": [
               {
-                "max_results": 5,
+                "max_num_results": 5,
                 "type": "file_search",
                 "vector_store_ids": [
                   "vs_789",
+                ],
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send file_search tool with filters', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_123'],
+                maxNumResults: 5,
+                filters: {
+                  key: 'author',
+                  type: 'eq',
+                  value: 'Jane Smith',
+                },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tools": [
+              {
+                "filters": {
+                  "key": "author",
+                  "type": "eq",
+                  "value": "Jane Smith",
+                },
+                "max_num_results": 5,
+                "type": "file_search",
+                "vector_store_ids": [
+                  "vs_123",
                 ],
               },
             ],

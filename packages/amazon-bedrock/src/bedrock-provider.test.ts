@@ -3,6 +3,7 @@ import { createAmazonBedrock } from './bedrock-provider';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import { BedrockImageModel } from './bedrock-image-model';
+import { anthropicTools } from '@ai-sdk/anthropic/internal';
 
 // Add type assertions for the mocked classes
 const BedrockChatLanguageModelMock =
@@ -27,16 +28,37 @@ vi.mock('./bedrock-sigv4-fetch', () => ({
   createApiKeyFetchFunction: vi.fn(),
 }));
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadSetting: vi
-    .fn()
-    .mockImplementation(({ settingValue }) => settingValue || 'us-east-1'),
-  loadOptionalSetting: vi
-    .fn()
-    .mockImplementation(({ settingValue }) => settingValue),
-  withoutTrailingSlash: vi.fn(url => url),
-  generateId: vi.fn().mockReturnValue('mock-id'),
-}));
+vi.mock('@ai-sdk/anthropic', async importOriginal => {
+  const original = await importOriginal<typeof import('@ai-sdk/anthropic')>();
+  return {
+    ...original,
+    anthropicTools: { mock: 'tools' },
+    prepareTools: vi.fn(),
+  };
+});
+
+vi.mock('@ai-sdk/provider-utils', async importOriginal => {
+  const original =
+    await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  return {
+    ...original,
+    loadSetting: vi
+      .fn()
+      .mockImplementation(({ settingValue }) => settingValue || 'us-east-1'),
+    loadOptionalSetting: vi
+      .fn()
+      .mockImplementation(({ settingValue }) => settingValue),
+    withoutTrailingSlash: vi.fn(url => url),
+    generateId: vi.fn().mockReturnValue('mock-id'),
+    createJsonErrorResponseHandler: vi.fn(),
+    createJsonResponseHandler: vi.fn(),
+    postJsonToApi: vi.fn(),
+    resolve: vi.fn(val => Promise.resolve(val)),
+    combineHeaders: vi.fn((...headers) => Object.assign({}, ...headers)),
+    parseProviderOptions: vi.fn(),
+    asSchema: vi.fn(schema => ({ jsonSchema: schema })),
+  };
+});
 
 // Import mocked modules to get references
 import {
@@ -400,6 +422,11 @@ describe('AmazonBedrockProvider', () => {
       const constructorCall = BedrockImageModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe(modelId);
       expect(model).toBeInstanceOf(BedrockImageModel);
+    });
+
+    it('should expose anthropicTools', () => {
+      const provider = createAmazonBedrock();
+      expect(provider.tools).toBe(anthropicTools);
     });
   });
 });

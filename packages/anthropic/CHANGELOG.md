@@ -1,5 +1,191 @@
 # @ai-sdk/anthropic
 
+## 2.0.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- ad66c0e: feat (provider/anthropic): json response schema support via tool calls
+- 8f2854f: feat (provider/anthropic): send web search tool calls
+- 5d959e7: refactor: updated openai + anthropic tool use server side
+- 8dfcb11: feat(anthropic/citation): text support for citations
+- 9f73965: feat (provider/anthropic): parse websearch tool args
+- e2aceaf: feat: add raw chunk support
+- fdff8a4: fix(provider/anthropic): correct Claude 4 model ID format
+- eb173f1: chore (providers): remove model shorthand deprecation warnings
+- 4f26d59: feat(provider/anthropic): add disable parallel tool use option
+- 25f3454: feat(provider/anthropic): add PDF citation support with document sources for streamText
+- a85c85f: fix (provider/anthropic): streaming json output
+- 5c9eec4: chore(providers/anthropic): switch to providerOptions
+- 2e13791: feat(anthropic): add server-side web search support
+- 66962ed: fix(packages): export node10 compatible types
+- 075711d: fix (provider/anthropic): return stop finish reason for json output with tool
+- 269683f: Add raw Anthropic usage information to provider metadata
+- d601ed9: fix (provider/anthropic): send tool call id in tool-input-start chunk
+- b9ddcdd: feat(anthropic): add text_editor_20250429 tool for Claude 4 models
+- 91715e5: fix (provider/google-vertex): fix anthropic support for image urls in messages
+- ca8aac6: feat (providers/anthropic): add claude v4 models
+- 61ab528: Add support for URL-based PDF documents in the Anthropic provider
+- 84577c8: fix (providers/anthropic): remove fine grained tool streaming beta
+- d1a034f: feature: using Zod 4 for internal stuff
+- 6392f60: fix(anthropic): resolve web search API validation errors with partial location + provider output
+- 205077b: fix: improve Zod compatibility
+- ee5a9c0: feat: streamText onChunk raw chunk support
+- f418dd7: Added anthropic provider defined tool support to amazon bedrock
+- 362b048: add web search tool support
+- 399e056: fix: anthropic computer tool
+- 0b678b2: feat (provider/anthropic): enable streaming tool calls
+- f10304b: feat(tool-calling): don't require the user to have to pass parameters
+- a753b3a: feat (provider/anthropic): cache control for tools
+- Updated dependencies [a571d6e]
+- Updated dependencies [742b7be]
+- Updated dependencies [e7fcc86]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [95857aa]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [6f6bb89]
+- Updated dependencies [060370c]
+- Updated dependencies [dc714f3]
+- Updated dependencies [b5da06a]
+- Updated dependencies [d1a1aa1]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [5d142ab]
+- Updated dependencies [d5f588f]
+- Updated dependencies [e025824]
+- Updated dependencies [0571b98]
+- Updated dependencies [b6b43c7]
+- Updated dependencies [4fef487]
+- Updated dependencies [48d257a]
+- Updated dependencies [0c0c0b3]
+- Updated dependencies [0d2c085]
+- Updated dependencies [40acf9b]
+- Updated dependencies [9222aeb]
+- Updated dependencies [e2aceaf]
+- Updated dependencies [411e483]
+- Updated dependencies [8ba77a7]
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [a166433]
+- Updated dependencies [26735b5]
+- Updated dependencies [443d8ec]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [abf9a79]
+- Updated dependencies [14c9410]
+- Updated dependencies [e86be6f]
+- Updated dependencies [9bf7291]
+- Updated dependencies [2e13791]
+- Updated dependencies [9f95b35]
+- Updated dependencies [66962ed]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [d9c98f4]
+- Updated dependencies [05d2819]
+- Updated dependencies [9301f86]
+- Updated dependencies [0a87932]
+- Updated dependencies [c4a2fec]
+- Updated dependencies [957b739]
+- Updated dependencies [79457bd]
+- Updated dependencies [a3f768e]
+- Updated dependencies [7435eb5]
+- Updated dependencies [8aa9e20]
+- Updated dependencies [4617fab]
+- Updated dependencies [ac34802]
+- Updated dependencies [0054544]
+- Updated dependencies [cb68df0]
+- Updated dependencies [ad80501]
+- Updated dependencies [68ecf2f]
+- Updated dependencies [9e9c809]
+- Updated dependencies [32831c6]
+- Updated dependencies [6dc848c]
+- Updated dependencies [6b98118]
+- Updated dependencies [d0f9495]
+- Updated dependencies [63d791d]
+- Updated dependencies [87b828f]
+- Updated dependencies [3f2f00c]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [0ff02bb]
+- Updated dependencies [7979f7f]
+- Updated dependencies [39a4fab]
+- Updated dependencies [44f4aba]
+- Updated dependencies [9bd5ab5]
+- Updated dependencies [57edfcb]
+- Updated dependencies [faf8446]
+- Updated dependencies [7ea4132]
+- Updated dependencies [d1a034f]
+- Updated dependencies [5c56081]
+- Updated dependencies [fd65bc6]
+- Updated dependencies [023ba40]
+- Updated dependencies [ea7a7c9]
+- Updated dependencies [26535e0]
+- Updated dependencies [e030615]
+- Updated dependencies [5e57fae]
+- Updated dependencies [393138b]
+- Updated dependencies [c57e248]
+- Updated dependencies [88a8ee5]
+- Updated dependencies [41fa418]
+- Updated dependencies [205077b]
+- Updated dependencies [71f938d]
+- Updated dependencies [3795467]
+- Updated dependencies [28a5ed5]
+- Updated dependencies [7182d14]
+- Updated dependencies [c1e6647]
+- Updated dependencies [1766ede]
+- Updated dependencies [811dff3]
+- Updated dependencies [f10304b]
+- Updated dependencies [dd5fd43]
+- Updated dependencies [33f4a6a]
+- Updated dependencies [383cbfa]
+- Updated dependencies [27deb4d]
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider-utils@3.0.0
+  - @ai-sdk/provider@2.0.0
+
+## 2.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [88a8ee5]
+  - @ai-sdk/provider-utils@3.0.0-beta.10
+
+## 2.0.0-beta.12
+
+### Patch Changes
+
+- f418dd7: Added anthropic provider defined tool support to amazon bedrock
+- Updated dependencies [27deb4d]
+  - @ai-sdk/provider@2.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.9
+
+## 2.0.0-beta.11
+
+### Patch Changes
+
+- eb173f1: chore (providers): remove model shorthand deprecation warnings
+- Updated dependencies [dd5fd43]
+  - @ai-sdk/provider-utils@3.0.0-beta.8
+
+## 2.0.0-beta.10
+
+### Patch Changes
+
+- 269683f: Add raw Anthropic usage information to provider metadata
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+
+## 2.0.0-beta.9
+
+### Patch Changes
+
+- 4f26d59: feat(provider/anthropic): add disable parallel tool use option
+- a753b3a: feat (provider/anthropic): cache control for tools
+- Updated dependencies [ac34802]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+
 ## 2.0.0-beta.8
 
 ### Patch Changes

@@ -11,33 +11,30 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
-import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
-import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
-import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { UIMessage } from '../../src/ui';
-import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
-import { getResponseUIMessageId } from '../../src/ui-message-stream/get-response-ui-message-id';
-import { handleUIMessageStreamFinish } from '../../src/ui-message-stream/handle-ui-message-stream-finish';
-import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
+import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
+import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
+import { UIMessage } from '../ui';
+import { createUIMessageStreamResponse } from '../ui-message-stream/create-ui-message-stream-response';
+import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
+import { handleUIMessageStreamFinish } from '../ui-message-stream/handle-ui-message-stream-finish';
+import { pipeUIMessageStreamToResponse } from '../ui-message-stream/pipe-ui-message-stream-to-response';
 import {
   InferUIMessageChunk,
   UIMessageChunk,
-} from '../../src/ui-message-stream/ui-message-chunks';
-import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
-import {
-  InferUIMessageData,
-  InferUIMessageMetadata,
-} from '../../src/ui/ui-messages';
-import { asArray } from '../../src/util/as-array';
+} from '../ui-message-stream/ui-message-chunks';
+import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
+import { InferUIMessageData, InferUIMessageMetadata } from '../ui/ui-messages';
+import { asArray } from '../util/as-array';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
-} from '../../src/util/async-iterable-stream';
-import { consumeStream } from '../../src/util/consume-stream';
-import { createStitchableStream } from '../../src/util/create-stitchable-stream';
-import { DelayedPromise } from '../../src/util/delayed-promise';
-import { now as originalNow } from '../../src/util/now';
-import { prepareRetries } from '../../src/util/prepare-retries';
+} from '../util/async-iterable-stream';
+import { consumeStream } from '../util/consume-stream';
+import { createStitchableStream } from '../util/create-stitchable-stream';
+import { DelayedPromise } from '../util/delayed-promise';
+import { now as originalNow } from '../util/now';
+import { prepareRetries } from '../util/prepare-retries';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -84,7 +81,7 @@ import {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
-import { ToolCallUnion } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
@@ -856,7 +853,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             files: finalStep.files,
             sources: finalStep.sources,
             toolCalls: finalStep.toolCalls,
+            staticToolCalls: finalStep.staticToolCalls,
+            dynamicToolCalls: finalStep.dynamicToolCalls,
             toolResults: finalStep.toolResults,
+            staticToolResults: finalStep.staticToolResults,
+            dynamicToolResults: finalStep.dynamicToolResults,
             request: finalStep.request,
             response: finalStep.response,
             warnings: finalStep.warnings,
@@ -943,6 +944,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
+      abortSignal,
     });
 
     const tracer = getTracer(telemetry);
@@ -1107,7 +1109,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           });
 
           const stepRequest = request ?? {};
-          const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
+          const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           let warnings: LanguageModelV2CallWarning[] | undefined;
 
@@ -1271,7 +1273,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                         });
                       }
 
-                      controller.enqueue(chunk);
+                      controller.enqueue({
+                        ...chunk,
+                        dynamic: tool?.type === 'dynamic',
+                      });
                       break;
                     }
 
@@ -1510,8 +1515,24 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     return this.finalStep.then(step => step.toolCalls);
   }
 
+  get staticToolCalls() {
+    return this.finalStep.then(step => step.staticToolCalls);
+  }
+
+  get dynamicToolCalls() {
+    return this.finalStep.then(step => step.dynamicToolCalls);
+  }
+
   get toolResults() {
     return this.finalStep.then(step => step.toolResults);
+  }
+
+  get staticToolResults() {
+    return this.finalStep.then(step => step.staticToolResults);
+  }
+
+  get dynamicToolResults() {
+    return this.finalStep.then(step => step.dynamicToolResults);
   }
 
   get usage() {
@@ -1755,7 +1776,10 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-input-start',
                 toolCallId: part.id,
                 toolName: part.toolName,
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
               });
               break;
             }
@@ -1775,8 +1799,13 @@ However, the LLM results are expected to be small enough to not cause issues.
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
                 input: part.input,
-                providerExecuted: part.providerExecuted,
-                providerMetadata: part.providerMetadata,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
+                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
               });
               break;
             }
@@ -1786,7 +1815,10 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
                 output: part.output,
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
               });
               break;
             }
@@ -1796,7 +1828,10 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,
                 errorText: onError(part.error),
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
               });
               break;
             }

@@ -1,5 +1,217 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- 97ea26f: chore(providers/bedrock): convert to providerOptions
+- 97ea26f: chore(providers/bedrock): use camelCase for providerOptions
+- 314edb2: Add API key authentication support for Amazon Bedrock with Bearer token and automatic SigV4 fallback
+- fa49207: feat(providers/openai-compatible): convert to providerOptions
+- e2aceaf: feat: add raw chunk support
+- eb173f1: chore (providers): remove model shorthand deprecation warnings
+- a89add7: fix(amazon-bedrock): add structured output support for claude models
+- 26735b5: chore(embedding-model): add v2 interface
+- a8c8bd5: feat(embed-many): respect supportsParallelCalls & concurrency
+- 0893170: fix(amazon-bedrock): handle empty activeTools with tool conversation history
+- d9209ca: fix (image-model): `specificationVersion: v1` -> `v2`
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+- a10bf62: Fixes "Extra inputs are not permitted" error when using reasoning with Bedrock
+- 92c0b4b: chore(providers/bedrock): update embedding model to use providerOptions
+- 3593385: fix(bedrock): resolve mime-types of document and images
+- d1a034f: feature: using Zod 4 for internal stuff
+- c87b7e4: feat (provider/amazon-bedrock): add Claude 4 model ids (claude-sonnet-4-20250514-v1:0, claude-opus-4-20250514-v1:0)
+- d546725: fix(provider/amazon-bedrock): use consistent document names for prompt cache effectiveness
+- b652872: fix(provider/bedrock): include toolConfig when conversation contains tool content
+- 205077b: fix: improve Zod compatibility
+- f418dd7: Added anthropic provider defined tool support to amazon bedrock
+- 6f231db: fix(providers): always use optional instead of mix of nullish for providerOptions
+- 89eaf5e: Add style parameter support for Amazon Bedrock Nova Canvas image generation
+- Updated dependencies [a571d6e]
+- Updated dependencies [742b7be]
+- Updated dependencies [e7fcc86]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [95857aa]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [6f6bb89]
+- Updated dependencies [ad66c0e]
+- Updated dependencies [060370c]
+- Updated dependencies [dc714f3]
+- Updated dependencies [b5da06a]
+- Updated dependencies [8f2854f]
+- Updated dependencies [d1a1aa1]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [5d142ab]
+- Updated dependencies [d5f588f]
+- Updated dependencies [e025824]
+- Updated dependencies [0571b98]
+- Updated dependencies [5d959e7]
+- Updated dependencies [b6b43c7]
+- Updated dependencies [4fef487]
+- Updated dependencies [48d257a]
+- Updated dependencies [0c0c0b3]
+- Updated dependencies [0d2c085]
+- Updated dependencies [40acf9b]
+- Updated dependencies [9222aeb]
+- Updated dependencies [8dfcb11]
+- Updated dependencies [9f73965]
+- Updated dependencies [e2aceaf]
+- Updated dependencies [411e483]
+- Updated dependencies [8ba77a7]
+- Updated dependencies [fdff8a4]
+- Updated dependencies [eb173f1]
+- Updated dependencies [4f26d59]
+- Updated dependencies [25f3454]
+- Updated dependencies [a85c85f]
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [a166433]
+- Updated dependencies [26735b5]
+- Updated dependencies [443d8ec]
+- Updated dependencies [5c9eec4]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [abf9a79]
+- Updated dependencies [14c9410]
+- Updated dependencies [e86be6f]
+- Updated dependencies [9bf7291]
+- Updated dependencies [2e13791]
+- Updated dependencies [9f95b35]
+- Updated dependencies [66962ed]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [d9c98f4]
+- Updated dependencies [05d2819]
+- Updated dependencies [9301f86]
+- Updated dependencies [0a87932]
+- Updated dependencies [c4a2fec]
+- Updated dependencies [957b739]
+- Updated dependencies [79457bd]
+- Updated dependencies [a3f768e]
+- Updated dependencies [7435eb5]
+- Updated dependencies [8aa9e20]
+- Updated dependencies [4617fab]
+- Updated dependencies [075711d]
+- Updated dependencies [ac34802]
+- Updated dependencies [0054544]
+- Updated dependencies [269683f]
+- Updated dependencies [cb68df0]
+- Updated dependencies [ad80501]
+- Updated dependencies [68ecf2f]
+- Updated dependencies [9e9c809]
+- Updated dependencies [32831c6]
+- Updated dependencies [6dc848c]
+- Updated dependencies [6b98118]
+- Updated dependencies [d0f9495]
+- Updated dependencies [63d791d]
+- Updated dependencies [87b828f]
+- Updated dependencies [3f2f00c]
+- Updated dependencies [d601ed9]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [0ff02bb]
+- Updated dependencies [b9ddcdd]
+- Updated dependencies [91715e5]
+- Updated dependencies [7979f7f]
+- Updated dependencies [ca8aac6]
+- Updated dependencies [39a4fab]
+- Updated dependencies [44f4aba]
+- Updated dependencies [61ab528]
+- Updated dependencies [84577c8]
+- Updated dependencies [9bd5ab5]
+- Updated dependencies [57edfcb]
+- Updated dependencies [faf8446]
+- Updated dependencies [7ea4132]
+- Updated dependencies [d1a034f]
+- Updated dependencies [5c56081]
+- Updated dependencies [fd65bc6]
+- Updated dependencies [023ba40]
+- Updated dependencies [ea7a7c9]
+- Updated dependencies [26535e0]
+- Updated dependencies [e030615]
+- Updated dependencies [6392f60]
+- Updated dependencies [5e57fae]
+- Updated dependencies [393138b]
+- Updated dependencies [c57e248]
+- Updated dependencies [88a8ee5]
+- Updated dependencies [41fa418]
+- Updated dependencies [205077b]
+- Updated dependencies [71f938d]
+- Updated dependencies [3795467]
+- Updated dependencies [28a5ed5]
+- Updated dependencies [7182d14]
+- Updated dependencies [ee5a9c0]
+- Updated dependencies [f418dd7]
+- Updated dependencies [c1e6647]
+- Updated dependencies [1766ede]
+- Updated dependencies [362b048]
+- Updated dependencies [399e056]
+- Updated dependencies [0b678b2]
+- Updated dependencies [811dff3]
+- Updated dependencies [f10304b]
+- Updated dependencies [dd5fd43]
+- Updated dependencies [a753b3a]
+- Updated dependencies [33f4a6a]
+- Updated dependencies [383cbfa]
+- Updated dependencies [27deb4d]
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider-utils@3.0.0
+  - @ai-sdk/provider@2.0.0
+  - @ai-sdk/anthropic@2.0.0
+
+## 3.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [88a8ee5]
+  - @ai-sdk/provider-utils@3.0.0-beta.10
+  - @ai-sdk/anthropic@2.0.0-beta.13
+
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- f418dd7: Added anthropic provider defined tool support to amazon bedrock
+- Updated dependencies [f418dd7]
+- Updated dependencies [27deb4d]
+  - @ai-sdk/anthropic@2.0.0-beta.12
+  - @ai-sdk/provider@2.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.9
+
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- eb173f1: chore (providers): remove model shorthand deprecation warnings
+- Updated dependencies [dd5fd43]
+  - @ai-sdk/provider-utils@3.0.0-beta.8
+
+## 3.0.0-beta.12
+
+### Patch Changes
+
+- 0893170: fix(amazon-bedrock): handle empty activeTools with tool conversation history
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- a89add7: fix(amazon-bedrock): add structured output support for claude models
+
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- b652872: fix(provider/bedrock): include toolConfig when conversation contains tool content
+- Updated dependencies [ac34802]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+
 ## 3.0.0-beta.9
 
 ### Patch Changes

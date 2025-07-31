@@ -6,56 +6,47 @@ export type RetryFunction = <OUTPUT>(
   fn: () => PromiseLike<OUTPUT>,
 ) => PromiseLike<OUTPUT>;
 
-/**
- * Determines the retry delay for a failed API call by checking rate limit headers.
- *
- * This matches the implementation used by both Anthropic and OpenAI client SDKs:
- * - First checks for 'retry-after-ms' header (milliseconds)
- * - Falls back to 'retry-after' header (seconds or HTTP date)
- * - Only uses the header value if it's reasonable (between 0 and 60 seconds)
- * - Falls back to exponential backoff if no valid headers or if the delay is unreasonable
- *
- * @param error - The API call error containing response headers
- * @param exponentialBackoffDelay - The calculated exponential backoff delay to use as fallback
- * @returns The delay in milliseconds to wait before retrying
- */
-function getRetryDelay(
-  error: APICallError,
-  exponentialBackoffDelay: number,
-): number {
+function getRetryDelayInMs({
+  error,
+  exponentialBackoffDelay,
+}: {
+  error: APICallError;
+  exponentialBackoffDelay: number;
+}): number {
   const headers = error.responseHeaders;
+
   if (!headers) return exponentialBackoffDelay;
 
-  let timeoutMillis: number | undefined;
+  let ms: number | undefined;
 
-  // Note the `retry-after-ms` header may not be standard, but is a good idea and we'd like proactive support for it.
+  // retry-ms is more precise than retry-after and used by e.g. OpenAI
   const retryAfterMs = headers['retry-after-ms'];
   if (retryAfterMs) {
     const timeoutMs = parseFloat(retryAfterMs);
     if (!Number.isNaN(timeoutMs)) {
-      timeoutMillis = timeoutMs;
+      ms = timeoutMs;
     }
   }
 
   // About the Retry-After header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
   const retryAfter = headers['retry-after'];
-  if (retryAfter && timeoutMillis === undefined) {
+  if (retryAfter && ms === undefined) {
     const timeoutSeconds = parseFloat(retryAfter);
     if (!Number.isNaN(timeoutSeconds)) {
-      timeoutMillis = timeoutSeconds * 1000;
+      ms = timeoutSeconds * 1000;
     } else {
-      timeoutMillis = Date.parse(retryAfter) - Date.now();
+      ms = Date.parse(retryAfter) - Date.now();
     }
   }
 
-  // If the API asks us to wait a certain amount of time (and it's a reasonable amount),
-  // just do what it says, but otherwise calculate a default
+  // check that the delay is reasonable:
   if (
-    timeoutMillis !== undefined &&
-    0 <= timeoutMillis &&
-    timeoutMillis < 60 * 1000
+    ms != null &&
+    !Number.isNaN(ms) &&
+    0 <= ms &&
+    (ms < 60 * 1000 || ms < exponentialBackoffDelay)
   ) {
-    return timeoutMillis;
+    return ms;
   }
 
   return exponentialBackoffDelay;
@@ -71,12 +62,19 @@ export const retryWithExponentialBackoffRespectingRetryHeaders =
     maxRetries = 2,
     initialDelayInMs = 2000,
     backoffFactor = 2,
+    abortSignal,
+  }: {
+    maxRetries?: number;
+    initialDelayInMs?: number;
+    backoffFactor?: number;
+    abortSignal?: AbortSignal;
   } = {}): RetryFunction =>
   async <OUTPUT>(f: () => PromiseLike<OUTPUT>) =>
     _retryWithExponentialBackoff(f, {
       maxRetries,
       delayInMs: initialDelayInMs,
       backoffFactor,
+      abortSignal,
     });
 
 async function _retryWithExponentialBackoff<OUTPUT>(
@@ -85,7 +83,13 @@ async function _retryWithExponentialBackoff<OUTPUT>(
     maxRetries,
     delayInMs,
     backoffFactor,
-  }: { maxRetries: number; delayInMs: number; backoffFactor: number },
+    abortSignal,
+  }: {
+    maxRetries: number;
+    delayInMs: number;
+    backoffFactor: number;
+    abortSignal: AbortSignal | undefined;
+  },
   errors: unknown[] = [],
 ): Promise<OUTPUT> {
   try {
@@ -117,13 +121,22 @@ async function _retryWithExponentialBackoff<OUTPUT>(
       error.isRetryable === true &&
       tryNumber <= maxRetries
     ) {
-      // Check for rate limit headers and use them if reasonable (0-60s)
-      const actualDelay = getRetryDelay(error, delayInMs);
+      await delay(
+        getRetryDelayInMs({
+          error,
+          exponentialBackoffDelay: delayInMs,
+        }),
+        { abortSignal },
+      );
 
-      await delay(actualDelay);
       return _retryWithExponentialBackoff(
         f,
-        { maxRetries, delayInMs: backoffFactor * delayInMs, backoffFactor },
+        {
+          maxRetries,
+          delayInMs: backoffFactor * delayInMs,
+          backoffFactor,
+          abortSignal,
+        },
         newErrors,
       );
     }

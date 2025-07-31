@@ -112,12 +112,14 @@ export const openaiProviderOptions = z.object({
   structuredOutputs: z.boolean().optional(),
 
   /**
-   * Service tier for the request. Set to 'flex' for 50% cheaper processing
-   * at the cost of increased latency. Only available for o3 and o4-mini models.
+   * Service tier for the request.
+   * - 'auto': Default service tier
+   * - 'flex': 50% cheaper processing at the cost of increased latency. Only available for o3 and o4-mini models.
+   * - 'priority': Higher-speed processing with predictably low latency at premium cost. Available for Enterprise customers.
    *
    * @default 'auto'
    */
-  serviceTier: z.enum(['auto', 'flex']).optional(),
+  serviceTier: z.enum(['auto', 'flex', 'priority']).optional(),
 
   /**
    * Whether to use strict JSON schema validation.

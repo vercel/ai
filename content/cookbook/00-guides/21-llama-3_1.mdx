@@ -132,7 +132,7 @@ const { text } = await generateText({
   tools: {
     getWeather: tool({
       description: 'Get the weather in a location',
-      parameters: z.object({
+      inputSchema: z.object({
         location: z.string().describe('The location to get the weather for'),
       }),
       execute: async ({ location }) => ({
@@ -175,7 +175,7 @@ const { text: answer } = await generateText({
   tools: {
     calculate: tool({
       description: 'A tool for evaluating mathematical expressions.',
-      parameters: z.object({ expression: z.string() }),
+      inputSchema: z.object({ expression: z.string() }),
       execute: async ({ expression }) => mathjs.evaluate(expression),
     }),
   },
@@ -266,7 +266,7 @@ export async function streamComponent() {
     tools: {
       getWeather: {
         description: 'Get the weather for a location',
-        parameters: z.object({ location: z.string() }),
+        inputSchema: z.object({ location: z.string() }),
         generate: async function* ({ location }) {
           yield <div>loading...</div>;
           const weather = '25c'; // await getWeather(location);

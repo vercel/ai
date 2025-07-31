@@ -26,17 +26,19 @@ export {
   type PrepareReconnectToStreamRequest,
   type PrepareSendMessagesRequest,
 } from './http-chat-transport';
+export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
   getToolName,
   isToolUIPart,
   type DataUIPart,
+  type DynamicToolUIPart,
   type FileUIPart,
   type InferUITool,
   type InferUITools,
   type ReasoningUIPart,
-  type SourceUrlUIPart,
   type SourceDocumentUIPart,
+  type SourceUrlUIPart,
   type StepStartUIPart,
   type TextUIPart,
   type ToolUIPart,

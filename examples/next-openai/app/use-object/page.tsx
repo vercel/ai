@@ -4,7 +4,7 @@ import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { notificationSchema } from '../api/use-object/schema';
 
 export default function Page() {
-  const { submit, isLoading, object, stop, error } = useObject({
+  const { submit, isLoading, object, stop, error, clear } = useObject({
     api: '/api/use-object',
     schema: notificationSchema,
   });
@@ -39,6 +39,16 @@ export default function Page() {
           </button>
         </div>
       )}
+
+      <div className="mt-4 text-gray-500">
+        <button
+          type="button"
+          onClick={() => clear()}
+          className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+        >
+          Clear
+        </button>
+      </div>
 
       <div className="flex flex-col gap-4 mt-4">
         {object?.notifications?.map((notification, index) => (

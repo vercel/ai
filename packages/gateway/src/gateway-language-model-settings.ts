@@ -38,6 +38,7 @@ export type GatewayModelId =
   | 'meta/llama-4-maverick'
   | 'meta/llama-4-scout'
   | 'mistral/codestral'
+  | 'mistral/devstral-small'
   | 'mistral/magistral-medium'
   | 'mistral/magistral-small'
   | 'mistral/ministral-3b'
@@ -76,4 +77,6 @@ export type GatewayModelId =
   | 'xai/grok-3-mini'
   | 'xai/grok-3-mini-fast'
   | 'xai/grok-4'
+  | 'zai/glm-4.5'
+  | 'zai/glm-4.5-air'
   | (string & {});

@@ -152,9 +152,9 @@ export class StructuredObject<
    */
   submit = async (input: INPUT) => {
     try {
-      this.#store.object = undefined; // reset the data
+      this.#clearObject();
+
       this.#store.loading = true;
-      this.#store.error = undefined;
 
       const abortController = new AbortController();
       this.#abortController = abortController;
@@ -235,5 +235,19 @@ export class StructuredObject<
       this.#store.loading = false;
       this.#store.error = coalescedError;
     }
+  };
+
+  /**
+   * Clears the object state.
+   */
+  clear = () => {
+    this.stop();
+    this.#clearObject();
+  };
+
+  #clearObject = () => {
+    this.#store.object = undefined;
+    this.#store.error = undefined;
+    this.#store.loading = false;
   };
 }

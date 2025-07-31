@@ -1,5 +1,24 @@
 # @ai-sdk/codemod
 
+## 2.0.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- b0446d4: release AI SDK 5.0 codemods package
+- df983e6: feat(codemods): added v4→v5 migration codemods
+- 4726e71: fix(codemod): correct import-LanguageModelV2-from-provider-package direction and quote preservation
+- 4e01854: v5 - AI SDK 5.0 codemods package
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- df983e6: feat(codemods): added v4→v5 migration codemods
+
 ## 2.0.0-beta.3
 
 ### Patch Changes

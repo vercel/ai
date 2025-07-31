@@ -593,7 +593,12 @@ The following provider options are available:
   Whether to use parallel tool calls. Defaults to `true`.
 
 - **store** _boolean_
+
   Whether to store the generation. Defaults to `true`.
+
+  When using reasoning models (o1, o3, o4-mini) with multi-step tool calls and `store: false`,
+  include `['reasoning.encrypted_content']` in the `include` option to ensure reasoning
+  content is available across conversation steps.
 
 - **metadata** _Record&lt;string, string&gt;_
   Additional metadata to store with the generation.
@@ -622,6 +627,12 @@ The following provider options are available:
   Service tier for the request. Set to 'flex' for 50% cheaper processing
   at the cost of increased latency. Only available for o3 and o4-mini models.
   Defaults to 'auto'.
+
+- **include** _Array&lt;string&gt;_
+  Specifies additional content to include in the response. Supported values:
+  `['reasoning.encrypted_content']` for accessing reasoning content across conversation steps,
+  and `['file_search_call.results']` for including file search results in responses.
+  Defaults to `undefined`.
 
 The OpenAI responses provider also returns provider-specific metadata:
 
@@ -687,8 +698,17 @@ const result = await generateText({
     file_search: openai.tools.fileSearch({
       // optional configuration:
       vectorStoreIds: ['vs_123', 'vs_456'],
-      maxResults: 10,
-      searchType: 'auto',
+      maxNumResults: 10,
+      ranking: {
+        ranker: 'auto',
+      },
+      filters: {
+        type: 'and',
+        filters: [
+          { key: 'author', type: 'eq', value: 'John Doe' },
+          { key: 'date', type: 'gte', value: '2023-01-01' },
+        ],
+      },
     }),
   },
   // Force file search tool:

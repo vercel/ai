@@ -15,6 +15,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > onSte
         "type": "tool-call",
       },
       {
+        "dynamic": false,
         "input": {
           "value": "value",
         },
@@ -205,6 +206,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
         "type": "tool-call",
       },
       {
+        "dynamic": false,
         "input": {
           "value": "value",
         },
@@ -351,6 +353,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "type": "tool-call",
       },
       {
+        "dynamic": false,
         "input": {
           "value": "value",
         },
@@ -541,6 +544,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "type": "tool-call",
       },
       {
+        "dynamic": false,
         "input": {
           "value": "value",
         },

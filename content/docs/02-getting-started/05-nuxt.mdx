@@ -44,22 +44,13 @@ Install `ai` and `@ai-sdk/openai`, the AI SDK's OpenAI provider.
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet
-        text="pnpm add ai@beta @ai-sdk/openai@beta @ai-sdk/vue@beta zod"
-        dark
-      />
+      <Snippet text="pnpm add ai @ai-sdk/openai @ai-sdk/vue zod" dark />
     </Tab>
     <Tab>
-      <Snippet
-        text="npm install ai@beta @ai-sdk/openai@beta @ai-sdk/vue@beta zod"
-        dark
-      />
+      <Snippet text="npm install ai @ai-sdk/openai @ai-sdk/vue zod" dark />
     </Tab>
     <Tab>
-      <Snippet
-        text="yarn add ai@beta @ai-sdk/openai@beta @ai-sdk/vue@beta zod"
-        dark
-      />
+      <Snippet text="yarn add ai @ai-sdk/openai @ai-sdk/vue zod" dark />
     </Tab>
   </Tabs>
 </div>
@@ -314,40 +305,20 @@ Now, when you ask about the weather, you'll see the tool call and its result dis
 
 You may have noticed that while the tool is now visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
-To solve this, you can enable multi-step tool calls using the `maxSteps` option in your `useChat` hook. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
-
-### Update Your Client-Side Code
-
-Modify your `pages/index.vue` file to include the `maxSteps` option:
-
-```typescript filename="pages/index.vue" highlight="6"
-<script setup lang="ts">
-import { Chat } from "@ai-sdk/vue";
-import { ref } from "vue";
-
-const input = ref("");
-const chat = new Chat({ maxSteps: 5 });
-
-const handleSubmit = (e: Event) => {
-    e.preventDefault();
-    chat.sendMessage({ text: input.value });
-    input.value = "";
-};
-</script>
-
-<!-- ... rest of your component code -->
-```
-
-Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
-
-By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
+To solve this, you can enable multi-step tool calls using `stopWhen`. By default, `stopWhen` is set to `stepCountIs(1)`, which means generation stops after the first step when there are tool results. By changing this condition, you can allow the model to automatically send tool results back to itself to trigger additional generations until your specified stopping condition is met. In this case, you want the model to continue generating so it can use the weather tool results to answer your original question.
 
 ### Update Your API Route
 
-Update your `server/api/chat.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
+Modify your `server/api/chat.ts` file to include the `stopWhen` condition:
 
-```typescript filename="server/api/chat.ts" highlight="34-47"
-import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
+```typescript filename="server/api/chat.ts" highlight="16"
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -364,6 +335,64 @@ export default defineLazyEventHandler(async () => {
     const result = streamText({
       model: openai('gpt-4o'),
       messages: convertToModelMessages(messages),
+      stopWhen: stepCountIs(5),
+      tools: {
+        weather: tool({
+          description: 'Get the weather in a location (fahrenheit)',
+          inputSchema: z.object({
+            location: z
+              .string()
+              .describe('The location to get the weather for'),
+          }),
+          execute: async ({ location }) => {
+            const temperature = Math.round(Math.random() * (90 - 32) + 32);
+            return {
+              location,
+              temperature,
+            };
+          },
+        }),
+      },
+    });
+
+    return result.toUIMessageStreamResponse();
+  });
+});
+```
+
+Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
+
+By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
+
+### Add another tool
+
+Update your `server/api/chat.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
+
+```typescript filename="server/api/chat.ts" highlight="34-47"
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+export default defineLazyEventHandler(async () => {
+  const apiKey = useRuntimeConfig().openaiApiKey;
+  if (!apiKey) throw new Error('Missing OpenAI API key');
+  const openai = createOpenAI({
+    apiKey: apiKey,
+  });
+
+  return defineEventHandler(async (event: any) => {
+    const { messages }: { messages: UIMessage[] } = await readBody(event);
+
+    const result = streamText({
+      model: openai('gpt-4o'),
+      messages: convertToModelMessages(messages),
+      stopWhen: stepCountIs(5),
       tools: {
         weather: tool({
           description: 'Get the weather in a location (fahrenheit)',
@@ -402,6 +431,8 @@ export default defineLazyEventHandler(async () => {
 });
 ```
 
+### Update Your Frontend
+
 Update your UI to handle the new temperature conversion tool by modifying the tool part handling:
 
 ```typescript filename="pages/index.vue" highlight="24"
@@ -410,7 +441,7 @@ import { Chat } from "@ai-sdk/vue";
 import { ref } from "vue";
 
 const input = ref("");
-const chat = new Chat({ maxSteps: 5 });
+const chat = new Chat({});
 
 const handleSubmit = (e: Event) => {
     e.preventDefault();

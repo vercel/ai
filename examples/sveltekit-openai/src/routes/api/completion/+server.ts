@@ -21,7 +21,7 @@ Here are some examples:
 It is VERY IMPORTANT that your completion continues the prompt and does not repeat the prompt.
 `;
 
-export const POST = async ({ request }) => {
+export const POST = async ({ request }: { request: Request }) => {
   const { prompt } = await request.json();
 
   const result = streamText({

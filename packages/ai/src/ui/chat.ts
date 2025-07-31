@@ -150,6 +150,14 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    * @param data The data part that was received.
    */
   onData?: ChatOnDataCallback<UI_MESSAGE>;
+
+  /**
+   * When provided, this function will be called when the stream is finished or a tool call is added
+   * to determine if the current messages should be resubmitted.
+   */
+  sendAutomaticallyWhen?: (options: {
+    messages: UI_MESSAGE[];
+  }) => boolean | PromiseLike<boolean>;
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
@@ -170,6 +178,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private onToolCall?: ChatInit<UI_MESSAGE>['onToolCall'];
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
   private onData?: ChatInit<UI_MESSAGE>['onData'];
+  private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
 
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
@@ -185,6 +194,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     onToolCall,
     onFinish,
     onData,
+    sendAutomaticallyWhen,
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
@@ -198,6 +208,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onToolCall = onToolCall;
     this.onFinish = onFinish;
     this.onData = onData;
+    this.sendAutomaticallyWhen = sendAutomaticallyWhen;
   }
 
   /**
@@ -380,6 +391,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     await this.makeRequest({ trigger: 'resume-stream', ...options });
   };
 
+  /**
+   * Clear the error state and set the status to ready if the chat is in an error state.
+   */
+  clearError = () => {
+    if (this.status === 'error') {
+      this.state.error = undefined;
+      this.setStatus({ status: 'ready' });
+    }
+  };
+
   addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
     tool,
     toolCallId,
@@ -388,7 +409,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     tool: TOOL;
     toolCallId: string;
     output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
-  }) => {
+  }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
@@ -416,17 +437,20 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
               : part,
           );
       }
-    });
-  };
 
-  /**
-   * Checks if the assistant message can be submitted, i.e. if it
-   * has tool calls and all tool calls have results.
-   *
-   * @returns {boolean} True if the assistant message can be submitted, false otherwise.
-   */
-  canAssistantMessageBeSubmitted = (): boolean =>
-    isAssistantMessageWithCompletedToolCalls(this.lastMessage);
+      // automatically send the message if the sendAutomaticallyWhen function returns true
+      if (
+        this.status !== 'streaming' &&
+        this.status !== 'submitted' &&
+        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+      ) {
+        // no await to avoid deadlocking
+        this.makeRequest({
+          trigger: 'submit-message',
+          messageId: this.lastMessage?.id,
+        });
+      }
+    });
 
   /**
    * Abort the current request immediately, keep the generated tokens if any.
@@ -556,37 +580,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     } finally {
       this.activeResponse = undefined;
     }
+
+    // automatically send the message if the sendAutomaticallyWhen function returns true
+    if (this.sendAutomaticallyWhen?.({ messages: this.state.messages })) {
+      await this.makeRequest({
+        trigger: 'submit-message',
+        messageId: this.lastMessage?.id,
+        metadata,
+        headers,
+        body,
+      });
+    }
   }
-}
-
-/**
-Check if the message is an assistant message with completed tool calls.
-The last step of the message must have at least one tool invocation and
-all tool invocations must have a result.
- */
-export function isAssistantMessageWithCompletedToolCalls(
-  message: UIMessage | undefined,
-): message is UIMessage & {
-  role: 'assistant';
-} {
-  if (!message) {
-    return false;
-  }
-
-  if (message.role !== 'assistant') {
-    return false;
-  }
-
-  const lastStepStartIndex = message.parts.reduce((lastIndex, part, index) => {
-    return part.type === 'step-start' ? index : lastIndex;
-  }, -1);
-
-  const lastStepToolInvocations = message.parts
-    .slice(lastStepStartIndex + 1)
-    .filter(isToolUIPart);
-
-  return (
-    lastStepToolInvocations.length > 0 &&
-    lastStepToolInvocations.every(part => part.state === 'output-available')
-  );
 }

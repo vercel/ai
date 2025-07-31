@@ -7,9 +7,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
-import { DeepPartial } from '../../src/util/deep-partial';
-import { parsePartialJson } from '../../src/util/parse-partial-json';
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
+import { DeepPartial } from '../util/deep-partial';
+import { parsePartialJson } from '../util/parse-partial-json';
 import { FinishReason } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
