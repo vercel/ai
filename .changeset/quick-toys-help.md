@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/provider': path
+'@ai-sdk/provider': patch
 ---
 
 chore (provider): allow both binary and base64 file content (spec)
