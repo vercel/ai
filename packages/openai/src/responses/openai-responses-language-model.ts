@@ -206,6 +206,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       delete (baseArgs as any).service_tier;
     }
 
+    // Validate priority processing support
+    if (
+      openaiOptions?.serviceTier === 'priority' &&
+      !supportsPriorityProcessing(this.modelId)
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'serviceTier',
+        details:
+          'priority processing is only available for supported models (GPT-4, o3, o4-mini) and requires Enterprise access',
+      });
+      // Remove from args if not supported
+      delete (baseArgs as any).service_tier;
+    }
+
     const {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
@@ -1088,6 +1103,14 @@ function supportsFlexProcessing(modelId: string): boolean {
   return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
 }
 
+function supportsPriorityProcessing(modelId: string): boolean {
+  return (
+    modelId.startsWith('gpt-4') ||
+    modelId.startsWith('o3') ||
+    modelId.startsWith('o4-mini')
+  );
+}
+
 const openaiResponsesProviderOptionsSchema = z.object({
   metadata: z.any().nullish(),
   parallelToolCalls: z.boolean().nullish(),
@@ -1098,8 +1121,10 @@ const openaiResponsesProviderOptionsSchema = z.object({
   strictJsonSchema: z.boolean().nullish(),
   instructions: z.string().nullish(),
   reasoningSummary: z.string().nullish(),
-  serviceTier: z.enum(['auto', 'flex']).nullish(),
-  include: z.array(z.enum(['reasoning.encrypted_content'])).nullish(),
+  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
+  include: z
+    .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
+    .nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

@@ -68,7 +68,7 @@ it('should correctly prepare provider-defined-server tools', () => {
           vectorStoreIds: ['vs_123'],
           maxNumResults: 10,
           ranking: {
-            ranker: 'semantic',
+            ranker: 'auto',
           },
         },
       },
@@ -96,7 +96,7 @@ it('should correctly prepare provider-defined-server tools', () => {
       vector_store_ids: ['vs_123'],
       max_num_results: 10,
       ranking_options: {
-        ranker: 'semantic',
+        ranker: 'auto',
       },
     },
     {

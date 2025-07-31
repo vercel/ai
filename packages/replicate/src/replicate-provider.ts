@@ -32,7 +32,6 @@ or to provide a custom fetch implementation for e.g. testing.
 export interface ReplicateProvider extends ProviderV2 {
   /**
    * Creates a Replicate image generation model.
-   * @deprecated Use `imageModel` instead.
    */
   image(modelId: ReplicateImageModelId): ReplicateImageModel;
 

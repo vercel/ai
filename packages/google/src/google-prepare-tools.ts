@@ -103,6 +103,18 @@ export function prepareTools({
             });
           }
           break;
+        case 'google.code_execution':
+          if (isGemini2) {
+            googleTools.codeExecution = {};
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details:
+                'The code execution tools is not supported with other Gemini models than Gemini 2.',
+            });
+          }
+          break;
         default:
           toolWarnings.push({ type: 'unsupported-tool', tool });
           break;

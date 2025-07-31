@@ -2,10 +2,18 @@
 export {
   asSchema,
   createIdGenerator,
+  dynamicTool,
   generateId,
   jsonSchema,
+  tool,
+  zodSchema,
   type IdGenerator,
+  type InferToolInput,
+  type InferToolOutput,
   type Schema,
+  type Tool,
+  type ToolCallOptions,
+  type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 
 // directory exports

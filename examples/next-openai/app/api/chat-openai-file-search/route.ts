@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       file_search: openai.tools.fileSearch({
         maxNumResults: 10,
         ranking: {
-          ranker: 'semantic',
+          ranker: 'auto',
         },
         // vectorStoreIds: ['vs_123'], // optional: specify vector store IDs
         // filters: { key: 'category', type: 'eq', value: 'technical' }, // optional: filter results

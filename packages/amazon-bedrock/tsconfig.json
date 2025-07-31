@@ -13,6 +13,9 @@
   ],
   "references": [
     {
+      "path": "../anthropic"
+    },
+    {
       "path": "../provider"
     },
     {

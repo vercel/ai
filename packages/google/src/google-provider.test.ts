@@ -4,13 +4,16 @@ import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 
-// Mock the imported modules
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadApiKey: vi.fn().mockImplementation(({ apiKey }) => apiKey),
-  generateId: vi.fn().mockReturnValue('mock-id'),
-  withoutTrailingSlash: vi.fn().mockImplementation(url => url),
-  createProviderDefinedToolFactory: vi.fn(),
-}));
+// Mock the imported modules using a partial mock to preserve original exports
+vi.mock('@ai-sdk/provider-utils', async importOriginal => {
+  const mod = await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  return {
+    ...mod,
+    loadApiKey: vi.fn().mockImplementation(({ apiKey }) => apiKey),
+    generateId: vi.fn().mockReturnValue('mock-id'),
+    withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+  };
+});
 
 vi.mock('./google-generative-ai-language-model', () => ({
   GoogleGenerativeAILanguageModel: vi.fn(),

@@ -10,6 +10,32 @@ import {
   BedrockReasoningContentBlock,
   BedrockRedactedReasoningContentBlock,
 } from './bedrock-api-types';
+import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
+import { z } from 'zod/v4';
+
+const mockPrepareAnthropicTools = vi.mocked(prepareTools);
+
+vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
+  const original =
+    await importOriginal<typeof import('@ai-sdk/anthropic/internal')>();
+  return {
+    ...original,
+    prepareTools: vi.fn(),
+    anthropicTools: {
+      ...original.anthropicTools,
+      bash_20241022: (args: any) => ({
+        type: 'provider-defined',
+        id: 'anthropic.bash_20241022',
+        name: 'bash',
+        args,
+        inputSchema: z.object({
+          command: z.string(),
+          restart: z.boolean().optional(),
+        }),
+      }),
+    },
+  };
+});
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'system', content: 'System Prompt' },
@@ -46,12 +72,17 @@ const mockTrace = {
 const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
 const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
+const anthropicModelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'; // Define at top level
 const baseUrl = 'https://bedrock-runtime.us-east-1.amazonaws.com';
 
 const streamUrl = `${baseUrl}/model/${encodeURIComponent(
   modelId,
 )}/converse-stream`;
 const generateUrl = `${baseUrl}/model/${encodeURIComponent(modelId)}/converse`;
+const anthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  anthropicModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -60,13 +91,22 @@ const server = createTestServer({
       chunks: [],
     },
   },
+  // Configure the server for the Anthropic model from the start
+  [anthropicGenerateUrl]: {},
 });
 
 beforeEach(() => {
+  // Reset stream chunks for the default model
   server.urls[streamUrl].response = {
     type: 'stream-chunks',
     chunks: [],
   };
+  // Reset the response for the anthropic model to a default empty state
+  server.urls[anthropicGenerateUrl].response = {
+    type: 'json-value',
+    body: {},
+  };
+  mockPrepareAnthropicTools.mockClear();
 });
 
 const model = new BedrockChatLanguageModel(modelId, {
@@ -1403,6 +1443,89 @@ describe('doStream', () => {
     // Should NOT contain reasoningConfig at the top level
     expect(requestBody).not.toHaveProperty('reasoningConfig');
   });
+
+  it('should handle JSON response format in streaming', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 0,
+            start: {
+              toolUse: { toolUseId: 'json-tool-id', name: 'json' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { toolUse: { input: '{"value":' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { toolUse: { input: '"test"}' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'tool_use',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Generate JSON' }] },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "{"value":"test"}",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
+  });
 });
 
 describe('doGenerate', () => {
@@ -1667,6 +1790,93 @@ describe('doGenerate', () => {
         ],
       },
     });
+  });
+
+  it('should handle Anthropic provider-defined tools', async () => {
+    mockPrepareAnthropicTools.mockReturnValue({
+      tools: [{ name: 'bash', type: 'bash_20241022' }],
+      toolChoice: { type: 'auto' },
+      toolWarnings: [],
+      betas: new Set(['computer-use-2024-10-22']),
+    });
+
+    // Set up the mock response for this specific URL and test case
+    server.urls[anthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'tool-use-id',
+                  name: 'bash',
+                  input: { command: 'ls -l' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    const anthropicModel = new BedrockChatLanguageModel(anthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      // No fetch property: defaults to global fetch, which is mocked by the test server.
+      generateId: () => 'test-id',
+    });
+
+    const result = await anthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'anthropic.bash_20241022',
+          name: 'bash',
+          args: {},
+        },
+      ],
+      toolChoice: { type: 'auto' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    const requestHeaders = server.calls[0].requestHeaders;
+
+    expect(requestHeaders['anthropic-beta']).toBe('computer-use-2024-10-22');
+
+    expect(requestBody.additionalModelRequestFields).toEqual({
+      tool_choice: { type: 'auto' },
+    });
+
+    expect(requestBody.toolConfig).toBeDefined();
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('bash');
+    expect(requestBody.toolConfig.tools[0].toolSpec.inputSchema.json).toEqual({
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        command: { type: 'string' },
+        restart: { type: 'boolean' },
+      },
+      required: ['command'],
+      additionalProperties: false,
+    });
+
+    expect(result.warnings).toEqual([]);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"command":"ls -l"}",
+          "toolCallId": "tool-use-id",
+          "toolName": "bash",
+          "type": "tool-call",
+        },
+      ]
+    `);
   });
 
   it('should properly combine headers from all sources', async () => {
@@ -2008,7 +2218,7 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should include toolConfig when conversation has tool calls but no active tools', async () => {
+  it('should omit toolConfig and filter tool content when conversation has tool calls but no active tools', async () => {
     prepareJsonResponse({});
 
     const conversationWithToolCalls: LanguageModelV2Prompt = [
@@ -2047,21 +2257,155 @@ describe('doGenerate', () => {
       },
     ];
 
-    await model.doGenerate({
+    const result = await model.doGenerate({
       prompt: conversationWithToolCalls,
       tools: [],
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
-      {
-        "tools": [],
-      }
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
+
+    expect(requestBody.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "What is the weather in Toronto?",
+            },
+            {
+              "text": "Now give me a summary.",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.",
+          "setting": "toolContent",
+          "type": "unsupported-setting",
+        },
+      ]
     `);
   });
 
-  it('should include toolConfig when conversation has tool calls but toolChoice is none', async () => {
+  it('should handle JSON response format with schema', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          type: 'tool_use',
+          id: 'json-tool-id',
+          name: 'json',
+          input: {
+            recipe: { name: 'Lasagna', ingredients: ['pasta', 'cheese'] },
+          },
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a recipe' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            recipe: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                ingredients: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['name', 'ingredients'],
+            },
+          },
+          required: ['recipe'],
+        },
+      },
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`[]`);
+
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(requestBody.toolConfig.tools[0].toolSpec.description).toBe(
+      'Respond with a JSON object.',
+    );
+    expect(requestBody.toolConfig.toolChoice).toEqual({
+      tool: { name: 'json' },
+    });
+  });
+
+  it('should warn when tools are provided with JSON response format', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          type: 'tool_use',
+          id: 'json-tool-id',
+          name: 'json',
+          input: { value: 'test' },
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+    });
+
+    expect(result.warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'JSON response format does not support tools. The provided tools are ignored.',
+      },
+    ]);
+  });
+
+  it('should handle unsupported response format types', async () => {
+    prepareJsonResponse({});
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: { type: 'xml' as any },
+    });
+
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'Only text and json response formats are supported.',
+      },
+    ]);
+  });
+
+  it('should omit toolConfig when conversation has tool calls but toolChoice is none', async () => {
     prepareJsonResponse({});
 
     const conversationWithToolCalls: LanguageModelV2Prompt = [
@@ -2120,10 +2464,6 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
-      {
-        "tools": [],
-      }
-    `);
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
   });
 });

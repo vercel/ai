@@ -205,18 +205,41 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const content: Array<LanguageModelV2Content> = [];
 
     // map ordered parts to content:
-    const parts =
-      candidate.content == null ||
-      typeof candidate.content !== 'object' ||
-      !('parts' in candidate.content)
-        ? []
-        : (candidate.content.parts ?? []);
+    const parts = candidate.content?.parts ?? [];
 
     const usageMetadata = response.usageMetadata;
 
+    // Associates a code execution result with its preceding call.
+    let lastCodeExecutionToolCallId: string | undefined;
+
     // Build content array from all parts
     for (const part of parts) {
-      if ('text' in part && part.text != null && part.text.length > 0) {
+      if ('executableCode' in part && part.executableCode?.code) {
+        const toolCallId = this.config.generateId();
+        lastCodeExecutionToolCallId = toolCallId;
+
+        content.push({
+          type: 'tool-call',
+          toolCallId,
+          toolName: 'code_execution',
+          input: JSON.stringify(part.executableCode),
+          providerExecuted: true,
+        });
+      } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
+        content.push({
+          type: 'tool-result',
+          // Assumes a result directly follows its corresponding call part.
+          toolCallId: lastCodeExecutionToolCallId!,
+          toolName: 'code_execution',
+          result: {
+            outcome: part.codeExecutionResult.outcome,
+            output: part.codeExecutionResult.output,
+          },
+          providerExecuted: true,
+        });
+        // Clear the ID after use to avoid accidental reuse.
+        lastCodeExecutionToolCallId = undefined;
+      } else if ('text' in part && part.text != null && part.text.length > 0) {
         if (part.thought === true) {
           content.push({ type: 'reasoning', text: part.text });
         } else {
@@ -319,6 +342,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     // Track emitted sources to prevent duplicates
     const emittedSourceUrls = new Set<string>();
+    // Associates a code execution result with its preceding call.
+    let lastCodeExecutionToolCallId: string | undefined;
 
     return {
       stream: response.pipeThrough(
@@ -385,7 +410,41 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               // Process text parts individually to handle reasoning parts
               const parts = content.parts ?? [];
               for (const part of parts) {
-                if (
+                if ('executableCode' in part && part.executableCode?.code) {
+                  const toolCallId = generateId();
+                  lastCodeExecutionToolCallId = toolCallId;
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName: 'code_execution',
+                    input: JSON.stringify(part.executableCode),
+                    providerExecuted: true,
+                  });
+
+                  hasToolCalls = true;
+                } else if (
+                  'codeExecutionResult' in part &&
+                  part.codeExecutionResult
+                ) {
+                  // Assumes a result directly follows its corresponding call part.
+                  const toolCallId = lastCodeExecutionToolCallId;
+
+                  if (toolCallId) {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId,
+                      toolName: 'code_execution',
+                      result: {
+                        outcome: part.codeExecutionResult.outcome,
+                        output: part.codeExecutionResult.output,
+                      },
+                      providerExecuted: true,
+                    });
+                    // Clear the ID after use.
+                    lastCodeExecutionToolCallId = undefined;
+                  }
+                } else if (
                   'text' in part &&
                   part.text != null &&
                   part.text.length > 0
@@ -625,6 +684,18 @@ const contentSchema = z.object({
           }),
         }),
         z.object({
+          executableCode: z
+            .object({
+              language: z.string(),
+              code: z.string(),
+            })
+            .nullish(),
+          codeExecutionResult: z
+            .object({
+              outcome: z.string(),
+              output: z.string(),
+            })
+            .nullish(),
           text: z.string().nullish(),
           thought: z.boolean().nullish(),
         }),

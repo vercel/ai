@@ -84,7 +84,7 @@ export type OpenAIResponsesTool =
       vector_store_ids?: string[];
       max_num_results?: number;
       ranking_options?: {
-        ranker?: 'auto' | 'keyword' | 'semantic';
+        ranker?: 'auto' | 'default-2024-08-21';
       };
       filters?:
         | {

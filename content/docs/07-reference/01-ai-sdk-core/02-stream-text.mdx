@@ -542,6 +542,13 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'includeRawChunks',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether to include raw chunks from the provider in the stream. When enabled, you will receive raw chunks with type "raw" that contain the unprocessed data from the provider. This allows access to cutting-edge provider features not yet wrapped by the AI SDK. Defaults to false.',
+    },
+    {
       name: 'providerOptions',
       type: 'Record<string,Record<string,JSONValue>> | undefined',
       isOptional: true,
