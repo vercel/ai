@@ -267,11 +267,11 @@ describe('BasetenProvider', () => {
           'https://model-123.api.baseten.co/environments/production/sync',
       });
 
-      const model = provider.textEmbeddingModel('custom-embedding-model');
+      const model = provider.textEmbeddingModel();
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
       expect(OpenAICompatibleEmbeddingModelMock).toHaveBeenCalledWith(
-        'custom-embedding-model',
+        'embeddings',
         expect.any(Object),
       );
     });
