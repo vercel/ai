@@ -1,5 +1,17 @@
 # ai
 
+## 5.0.0-beta.34
+
+### Patch Changes
+
+- 53569b8: feat (ai): add experimental repairText function to streamObject
+- 88a8ee5: fix (ai): support abort during retry waits
+- f2c7f19: feat (ui): add Chat.clearError()
+- Updated dependencies [721775e]
+- Updated dependencies [88a8ee5]
+  - @ai-sdk/gateway@1.0.0-beta.19
+  - @ai-sdk/provider-utils@3.0.0-beta.10
+
 ## 5.0.0-beta.33
 
 ### Patch Changes
