@@ -62,12 +62,19 @@ export const retryWithExponentialBackoffRespectingRetryHeaders =
     maxRetries = 2,
     initialDelayInMs = 2000,
     backoffFactor = 2,
+    abortSignal,
+  }: {
+    maxRetries?: number;
+    initialDelayInMs?: number;
+    backoffFactor?: number;
+    abortSignal?: AbortSignal;
   } = {}): RetryFunction =>
   async <OUTPUT>(f: () => PromiseLike<OUTPUT>) =>
     _retryWithExponentialBackoff(f, {
       maxRetries,
       delayInMs: initialDelayInMs,
       backoffFactor,
+      abortSignal,
     });
 
 async function _retryWithExponentialBackoff<OUTPUT>(
@@ -76,7 +83,13 @@ async function _retryWithExponentialBackoff<OUTPUT>(
     maxRetries,
     delayInMs,
     backoffFactor,
-  }: { maxRetries: number; delayInMs: number; backoffFactor: number },
+    abortSignal,
+  }: {
+    maxRetries: number;
+    delayInMs: number;
+    backoffFactor: number;
+    abortSignal: AbortSignal | undefined;
+  },
   errors: unknown[] = [],
 ): Promise<OUTPUT> {
   try {
@@ -113,10 +126,17 @@ async function _retryWithExponentialBackoff<OUTPUT>(
           error,
           exponentialBackoffDelay: delayInMs,
         }),
+        { abortSignal },
       );
+
       return _retryWithExponentialBackoff(
         f,
-        { maxRetries, delayInMs: backoffFactor * delayInMs, backoffFactor },
+        {
+          maxRetries,
+          delayInMs: backoffFactor * delayInMs,
+          backoffFactor,
+          abortSignal,
+        },
         newErrors,
       );
     }

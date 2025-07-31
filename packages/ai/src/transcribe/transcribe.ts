@@ -87,7 +87,11 @@ Only applicable for HTTP-based providers.
     });
   }
 
-  const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
+
   const audioData =
     audio instanceof URL
       ? (await download({ url: audio })).data

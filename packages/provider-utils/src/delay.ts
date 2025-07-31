@@ -8,14 +8,14 @@
 export async function delay(
   delayInMs?: number | null,
   options?: {
-    signal?: AbortSignal;
+    abortSignal?: AbortSignal;
   },
 ): Promise<void> {
   if (delayInMs == null) {
     return Promise.resolve();
   }
 
-  const signal = options?.signal;
+  const signal = options?.abortSignal;
 
   return new Promise<void>((resolve, reject) => {
     if (signal?.aborted) {

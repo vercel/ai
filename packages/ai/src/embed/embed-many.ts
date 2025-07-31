@@ -92,7 +92,10 @@ Only applicable for HTTP-based providers.
     });
   }
 
-  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { maxRetries, retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,

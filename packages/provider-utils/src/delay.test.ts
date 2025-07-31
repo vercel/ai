@@ -57,7 +57,7 @@ describe('delay', () => {
       const controller = new AbortController();
       controller.abort();
 
-      const delayPromise = delay(1000, { signal: controller.signal });
+      const delayPromise = delay(1000, { abortSignal: controller.signal });
 
       await expect(delayPromise).rejects.toThrow('Delay was aborted');
       expect(vi.getTimerCount()).toBe(0); // No timer should be set
@@ -65,7 +65,7 @@ describe('delay', () => {
 
     it('should reject when signal is aborted during delay', async () => {
       const controller = new AbortController();
-      const delayPromise = delay(1000, { signal: controller.signal });
+      const delayPromise = delay(1000, { abortSignal: controller.signal });
 
       // Advance time partially
       await vi.advanceTimersByTimeAsync(500);
@@ -78,7 +78,7 @@ describe('delay', () => {
 
     it('should clean up timeout when aborted', async () => {
       const controller = new AbortController();
-      const delayPromise = delay(1000, { signal: controller.signal });
+      const delayPromise = delay(1000, { abortSignal: controller.signal });
 
       expect(vi.getTimerCount()).toBe(1);
 
@@ -104,7 +104,7 @@ describe('delay', () => {
         'removeEventListener',
       );
 
-      const delayPromise = delay(1000, { signal: controller.signal });
+      const delayPromise = delay(1000, { abortSignal: controller.signal });
 
       expect(addEventListenerSpy).toHaveBeenCalledWith(
         'abort',
@@ -133,7 +133,7 @@ describe('delay', () => {
       const controller = new AbortController();
       controller.abort();
 
-      const delayPromise = delay(1000, { signal: controller.signal });
+      const delayPromise = delay(1000, { abortSignal: controller.signal });
 
       try {
         await delayPromise;

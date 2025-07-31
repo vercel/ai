@@ -243,7 +243,10 @@ Default and recommended: 'auto' (best mode for the model).
     enumValues,
   });
 
-  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { maxRetries, retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   const outputStrategy = getOutputStrategy({
     output,

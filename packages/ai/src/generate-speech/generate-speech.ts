@@ -121,7 +121,10 @@ Only applicable for HTTP-based providers.
     });
   }
 
-  const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   const result = await retry(() =>
     model.doGenerate({
