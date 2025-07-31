@@ -58,22 +58,13 @@ Install `ai` and `@ai-sdk/openai`, the AI SDK package and the AI SDK's [ OpenAI 
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet
-        text="pnpm add ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta"
-        dark
-      />
+      <Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/openai" dark />
     </Tab>
     <Tab>
-      <Snippet
-        text="npm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta"
-        dark
-      />
+      <Snippet text="npm install ai @ai-sdk/react @ai-sdk/openai" dark />
     </Tab>
     <Tab>
-      <Snippet
-        text="yarn add ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta"
-        dark
-      />
+      <Snippet text="yarn add ai @ai-sdk/react @ai-sdk/openai" dark />
     </Tab>
   </Tabs>
 </div>
@@ -380,7 +371,7 @@ const result = streamText({
 });
 ```
 
-Install the provider package (`@ai-sdk/anthropic@beta` or `@ai-sdk/google@beta`) and update your API keys in `.env.local`. The rest of your code remains the same.
+Install the provider package (`@ai-sdk/anthropic` or `@ai-sdk/google`) and update your API keys in `.env.local`. The rest of your code remains the same.
 
 <Note>
   Different providers may have varying file size limits and performance
