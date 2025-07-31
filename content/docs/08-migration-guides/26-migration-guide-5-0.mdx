@@ -28,10 +28,10 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0 Beta.
 
 You need to update the following packages to the following versions in your `package.json` file(s):
 
-- `ai` package: `5.0.0@beta`
-- `@ai-sdk/provider` package: `2.0.0@beta`
-- `@ai-sdk/provider-utils` package: `3.0.0@beta`
-- `@ai-sdk/*` packages: `2.0.0@beta` (other `@ai-sdk` packages)
+- `ai` package: `5.0.0`
+- `@ai-sdk/provider` package: `2.0.0`
+- `@ai-sdk/provider-utils` package: `3.0.0`
+- `@ai-sdk/*` packages: `2.0.0` (other `@ai-sdk` packages)
 
 Additionally, you need to update the following peer dependencies:
 
@@ -40,7 +40,7 @@ Additionally, you need to update the following peer dependencies:
 An example upgrade command would be:
 
 ```
-npm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta zod@3.25.0
+npm install ai @ai-sdk/react @ai-sdk/openai zod@3.25.0
 ```
 
 ## Codemods
@@ -62,25 +62,25 @@ You can run all codemods provided as part of the 5.0 upgrade process by running
 the following command from the root of your project:
 
 ```sh
-npx @ai-sdk/codemod@beta upgrade
+npx @ai-sdk/codemod upgrade
 ```
 
 To run only the v5 codemods (v4 → v5 migration):
 
 ```sh
-npx @ai-sdk/codemod@beta v5
+npx @ai-sdk/codemod v5
 ```
 
 Individual codemods can be run by specifying the name of the codemod:
 
 ```sh
-npx @ai-sdk/codemod@beta <codemod-name> <path>
+npx @ai-sdk/codemod <codemod-name> <path>
 ```
 
 For example, to run a specific v5 codemod:
 
 ```sh
-npx @ai-sdk/codemod@beta v5/rename-format-stream-part src/
+npx @ai-sdk/codemod v5/rename-format-stream-part src/
 ```
 
 See also the [table of codemods](#codemod-table). In addition, the latest set of
@@ -1127,7 +1127,7 @@ import { useChat } from '@ai-sdk/react';
 ```
 
 <Note>
-  Don't forget to install the new package: `npm install @ai-sdk/react@beta`
+  Don't forget to install the new package: `npm install @ai-sdk/react`
 </Note>
 
 ### useChat Changes
@@ -1879,7 +1879,7 @@ const response = createUIMessageStreamResponse({
 ```
 
 <Note>
-  Don't forget to install the new package: `npm install @ai-sdk/langchain@beta`
+  Don't forget to install the new package: `npm install @ai-sdk/langchain`
 </Note>
 
 #### LlamaIndex Adapter Moved to `@ai-sdk/llamaindex`
@@ -1902,7 +1902,7 @@ const response = createUIMessageStreamResponse({
 ```
 
 <Note>
-  Don't forget to install the new package: `npm install @ai-sdk/llamaindex@beta`
+  Don't forget to install the new package: `npm install @ai-sdk/llamaindex`
 </Note>
 
 ## Streaming Architecture
