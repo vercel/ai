@@ -168,10 +168,7 @@ async function main() {
   await setTimeout(1000); // wait for it to be cached
 
   start = performance.now();
-  const {
-    text: text2,
-    usage: usage2,
-  } = await runCompletion();
+  const { text: text2, usage: usage2 } = await runCompletion();
   end = performance.now();
 
   console.log(`Second pass text:`, text2);
