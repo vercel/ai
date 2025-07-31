@@ -397,6 +397,7 @@ A function that attempts to repair a tool call that failed to parse.
                       'ai.response.providerMetadata': JSON.stringify(
                         result.providerMetadata,
                       ),
+                      'ai.response.usage': JSON.stringify(result.usage),
 
                       // TODO rename telemetry attributes to inputTokens and outputTokens
                       'ai.usage.promptTokens': result.usage.inputTokens,
@@ -526,6 +527,7 @@ A function that attempts to repair a tool call that failed to parse.
               'ai.response.providerMetadata': JSON.stringify(
                 currentModelResponse.providerMetadata,
               ),
+              'ai.response.usage': JSON.stringify(currentModelResponse.usage),
 
               // TODO rename telemetry attributes to inputTokens and outputTokens
               'ai.usage.promptTokens': currentModelResponse.usage.inputTokens,

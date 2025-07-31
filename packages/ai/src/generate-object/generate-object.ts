@@ -384,6 +384,7 @@ Default and recommended: 'auto' (best mode for the model).
                     'ai.response.providerMetadata': JSON.stringify(
                       result.providerMetadata,
                     ),
+                    'ai.response.usage': JSON.stringify(result.usage),
 
                     // TODO rename telemetry attributes to inputTokens and outputTokens
                     'ai.usage.promptTokens': result.usage.inputTokens,
@@ -435,6 +436,7 @@ Default and recommended: 'auto' (best mode for the model).
               'ai.response.providerMetadata': JSON.stringify(
                 resultProviderMetadata,
               ),
+              'ai.response.usage': JSON.stringify(usage),
 
               // TODO rename telemetry attributes to inputTokens and outputTokens
               'ai.usage.promptTokens': usage.inputTokens,

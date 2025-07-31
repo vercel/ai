@@ -881,6 +881,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                 'ai.response.providerMetadata': JSON.stringify(
                   finalStep.providerMetadata,
                 ),
+                'ai.response.usage': JSON.stringify(totalUsage),
 
                 'ai.usage.inputTokens': totalUsage.inputTokens,
                 'ai.usage.outputTokens': totalUsage.outputTokens,
@@ -1348,6 +1349,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                             stepResponse.timestamp.toISOString(),
                           'ai.response.providerMetadata':
                             JSON.stringify(stepProviderMetadata),
+                          'ai.response.usage': JSON.stringify(stepUsage),
 
                           'ai.usage.inputTokens': stepUsage.inputTokens,
                           'ai.usage.outputTokens': stepUsage.outputTokens,

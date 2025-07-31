@@ -238,13 +238,13 @@ They support additional settings and response metadata:
 
   - the `reasoningEffort` option (or alternatively the `reasoningEffort` model setting), which determines the amount of reasoning the model performs.
 
-- You can use response `providerMetadata` to access the number of reasoning tokens that the model generated, along with the other raw usage information returned from OpenAI.
+- You can use the response's `usage` field to access the number of reasoning tokens that the model generated.
 
 ```ts highlight="4,7-11,17"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
-const { text, providerMetadata } = await generateText({
+const { text, usage } = await generateText({
   model: openai('o3-mini'),
   prompt: 'Invent a new holiday and describe its traditions.',
   providerOptions: {
@@ -255,7 +255,7 @@ const { text, providerMetadata } = await generateText({
 });
 
 console.log(text);
-console.log('Raw usage:', providerMetadata?.openai?.usage);
+console.log('Usage:', usage);
 ```
 
 <Note>
@@ -504,7 +504,7 @@ including `gpt-4o`, `gpt-4o-mini`, `o1-preview`, and `o1-mini`.
 
 - Prompt caching is automatically enabled for these models, when the prompt is 1024 tokens or longer. It does
   not need to be explicitly enabled.
-- You can use response `providerMetadata` to access the number of prompt tokens that were a cache hit, along with other raw usage information returned from OpenAI.
+- There is an additional field in `usage` that includes the number of prompt tokens that were part of a cache hit.
 - Note that caching behavior is dependent on load on OpenAI's infrastructure. Prompt prefixes generally remain in the
   cache following 5-10 minutes of inactivity before they are evicted, but during off-peak periods they may persist for up
   to an hour.
@@ -513,12 +513,12 @@ including `gpt-4o`, `gpt-4o-mini`, `o1-preview`, and `o1-mini`.
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
-const { text, providerMetadata } = await generateText({
+const { text, usage } = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: `A 1024-token or longer prompt...`,
 });
 
-console.log(`raw usage:`, providerMetadata?.openai?.usage);
+console.log(`usage:`, usage);
 ```
 
 #### Audio Input
