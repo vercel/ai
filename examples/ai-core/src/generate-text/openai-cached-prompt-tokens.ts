@@ -173,7 +173,7 @@ async function main() {
 
   console.log(`Second pass text:`, text2);
   console.log(`Second pass usage:`, usage2);
-  console.log(`First pass time: ${Math.floor(end - start)} ms`);
+  console.log(`Second pass time: ${Math.floor(end - start)} ms`);
 }
 
 main().catch(console.error);
