@@ -162,7 +162,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
 
-      it('should extract response id metadata ', async () => {
+      it('should extract response id metadata and usage', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
         });
@@ -170,6 +170,16 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.providerMetadata).toStrictEqual({
           openai: {
             responseId: 'resp_67c97c0203188190a025beb4a75242bc',
+            usage: {
+              input_tokens: 345,
+              input_tokens_details: {
+                cached_tokens: 234,
+              },
+              output_tokens: 538,
+              output_tokens_details: {
+                reasoning_tokens: 123,
+              },
+            },
           },
         });
       });
@@ -2207,6 +2217,16 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+                "usage": {
+                  "input_tokens": 543,
+                  "input_tokens_details": {
+                    "cached_tokens": 234,
+                  },
+                  "output_tokens": 478,
+                  "output_tokens_details": {
+                    "reasoning_tokens": 123,
+                  },
+                },
               },
             },
             "type": "finish",
@@ -2278,6 +2298,16 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+                "usage": {
+                  "input_tokens": 0,
+                  "input_tokens_details": {
+                    "cached_tokens": 0,
+                  },
+                  "output_tokens": 0,
+                  "output_tokens_details": {
+                    "reasoning_tokens": 0,
+                  },
+                },
               },
             },
             "type": "finish",
@@ -2408,6 +2438,16 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
+                "usage": {
+                  "input_tokens": 0,
+                  "input_tokens_details": {
+                    "cached_tokens": 0,
+                  },
+                  "output_tokens": 0,
+                  "output_tokens_details": {
+                    "reasoning_tokens": 0,
+                  },
+                },
               },
             },
             "type": "finish",
@@ -2550,6 +2590,16 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+                "usage": {
+                  "input_tokens": 327,
+                  "input_tokens_details": {
+                    "cached_tokens": 0,
+                  },
+                  "output_tokens": 834,
+                  "output_tokens_details": {
+                    "reasoning_tokens": 0,
+                  },
+                },
               },
             },
             "type": "finish",
@@ -2582,43 +2632,44 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-              "modelId": "gpt-4o-mini-2024-07-18",
-              "timestamp": 2025-03-10T18:46:40.000Z,
-              "type": "response-metadata",
-            },
-            {
-              "error": {
-                "code": "ERR_SOMETHING",
-                "message": "Something went wrong",
-                "param": null,
-                "sequence_number": 1,
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_67cf3390786881908b27489d7e8cfb6b",
+                "modelId": "gpt-4o-mini-2024-07-18",
+                "timestamp": 2025-03-10T18:46:40.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "error": {
+                  "code": "ERR_SOMETHING",
+                  "message": "Something went wrong",
+                  "param": null,
+                  "sequence_number": 1,
+                  "type": "error",
+                },
                 "type": "error",
               },
-              "type": "error",
-            },
-            {
-              "finishReason": "unknown",
-              "providerMetadata": {
-                "openai": {
-                  "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+              {
+                "finishReason": "unknown",
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+                    "usage": {},
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "inputTokens": undefined,
+                  "outputTokens": undefined,
+                  "totalTokens": undefined,
                 },
               },
-              "type": "finish",
-              "usage": {
-                "inputTokens": undefined,
-                "outputTokens": undefined,
-                "totalTokens": undefined,
-              },
-            },
-          ]
-        `);
+            ]
+          `);
       });
     });
 
@@ -2782,6 +2833,16 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+                    "usage": {
+                      "input_tokens": 34,
+                      "input_tokens_details": {
+                        "cached_tokens": 0,
+                      },
+                      "output_tokens": 538,
+                      "output_tokens_details": {
+                        "reasoning_tokens": 320,
+                      },
+                    },
                   },
                 },
                 "type": "finish",
@@ -2893,6 +2954,16 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+                    "usage": {
+                      "input_tokens": 34,
+                      "input_tokens_details": {
+                        "cached_tokens": 0,
+                      },
+                      "output_tokens": 538,
+                      "output_tokens_details": {
+                        "reasoning_tokens": 320,
+                      },
+                    },
                   },
                 },
                 "type": "finish",
@@ -3076,6 +3147,16 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+                    "usage": {
+                      "input_tokens": 34,
+                      "input_tokens_details": {
+                        "cached_tokens": 0,
+                      },
+                      "output_tokens": 538,
+                      "output_tokens_details": {
+                        "reasoning_tokens": 320,
+                      },
+                    },
                   },
                 },
                 "type": "finish",
@@ -3189,6 +3270,16 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+                    "usage": {
+                      "input_tokens": 34,
+                      "input_tokens_details": {
+                        "cached_tokens": 0,
+                      },
+                      "output_tokens": 538,
+                      "output_tokens_details": {
+                        "reasoning_tokens": 320,
+                      },
+                    },
                   },
                 },
                 "type": "finish",
@@ -3449,6 +3540,16 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+                    "usage": {
+                      "input_tokens": 45,
+                      "input_tokens_details": {
+                        "cached_tokens": 0,
+                      },
+                      "output_tokens": 628,
+                      "output_tokens_details": {
+                        "reasoning_tokens": 420,
+                      },
+                    },
                   },
                 },
                 "type": "finish",

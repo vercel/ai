@@ -351,7 +351,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
     const promptTokenDetails = response.usage?.prompt_tokens_details;
-    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV2ProviderMetadata = {
+      openai: {
+        usage: response.usage as JSONObject,
+      },
+    };
+    console.log('providerMetadata!!!', providerMetadata);
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
       providerMetadata.openai.acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
@@ -363,8 +368,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     if (choice.logprobs?.content != null) {
       providerMetadata.openai.logprobs = choice.logprobs.content;
     }
-
-    providerMetadata.openai.usage = response.usage as JSONObject;
 
     return {
       content,

@@ -516,15 +516,12 @@ including `gpt-4o`, `gpt-4o-mini`, `o1-preview`, and `o1-mini`.
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
-const { text, usage, providerMetadata } = await generateText({
+const { text, providerMetadata } = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: `A 1024-token or longer prompt...`,
 });
 
-console.log(`usage:`, {
-  ...usage,
-  cachedPromptTokens: providerMetadata?.openai?.cachedPromptTokens,
-});
+console.log(`raw usage:`, providerMetadata?.openai?.usage);
 ```
 
 #### Audio Input

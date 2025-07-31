@@ -1,5 +1,6 @@
 import {
   APICallError,
+  JSONObject,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -477,6 +478,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       providerMetadata: {
         openai: {
           responseId: response.id,
+          usage: response.usage as JSONObject,
         },
       },
       warnings,
@@ -514,6 +516,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
+    let rawUsage: JSONObject = {};
     let responseId: string | null = null;
     const ongoingToolCalls: Record<
       number,
@@ -774,6 +777,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 finishReason: value.response.incomplete_details?.reason,
                 hasToolCalls,
               });
+              rawUsage = value.response.usage as JSONObject;
               usage.inputTokens = value.response.usage.input_tokens;
               usage.outputTokens = value.response.usage.output_tokens;
               usage.totalTokens =
@@ -806,6 +810,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               providerMetadata: {
                 openai: {
                   responseId,
+                  usage: rawUsage,
                 },
               },
             });

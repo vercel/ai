@@ -161,12 +161,15 @@ async function main() {
 
   console.log(`First pass text:`, text);
   console.log(`First pass usage:`, usage);
-  console.log(`First pass provider metadata:`, providerMetadata);
+  console.log(
+    `First pass provider metadata:`,
+    JSON.stringify(providerMetadata, null, 2),
+  );
   console.log(`First pass time: ${Math.floor(end - start)} ms`);
 
   console.log();
 
-  await setTimeout(1000); // wait for it to be cached?g
+  await setTimeout(1000); // wait for it to be cached
 
   start = performance.now();
   const {
@@ -178,7 +181,10 @@ async function main() {
 
   console.log(`Second pass text:`, text2);
   console.log(`Second pass usage:`, usage2);
-  console.log(`Second pass provider metadata:`, providerMetadata2);
+  console.log(
+    `Second pass provider metadata:`,
+    JSON.stringify(providerMetadata2, null, 2),
+  );
   console.log(`First pass time: ${Math.floor(end - start)} ms`);
 }
 
