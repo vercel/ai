@@ -11,18 +11,18 @@ After integrating with the AI SDK, you can use Scorecard to trace, monitor, and 
 ## Setup
 
 Scorecard supports [AI SDK telemetry data](/docs/ai-sdk-core/telemetry).
-You'll need to sign up at https://app.scorecard.io and get your Telemetry Key from your project's Traces section.
+You'll need to sign up at https://app.scorecard.io and get your API Key from your [settings page](https://app.scorecard.io/settings).
 
 ### NextJS
 
 To use the AI SDK to send telemetry data to Scorecard, first set these environment variables in your project:
 
 ```bash
-OTEL_EXPORTER_OTLP_ENDPOINT=https://telemetry.getscorecard.ai:4318
-OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your Scorecard Telemetry Key>"
+OTEL_EXPORTER_OTLP_ENDPOINT=https://tracing.scorecard.io/otel/v1/traces
+OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your Scorecard API Key>"
 ```
 
-Next, create an `instrumentation.ts` file in your project root to initialize OpenTelemetry:
+Next, create an `instrumentation.ts` file in your project root to initialize OpenTelemetry (You can configure it as needed):
 
 ```typescript
 import { registerOTel } from "@vercel/otel";
