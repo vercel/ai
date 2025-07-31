@@ -162,7 +162,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
 
-      it('should extract response id metadata', async () => {
+      it('should extract response id metadata ', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
         });
