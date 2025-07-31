@@ -238,13 +238,13 @@ They support additional settings and response metadata:
 
   - the `reasoningEffort` option (or alternatively the `reasoningEffort` model setting), which determines the amount of reasoning the model performs.
 
-- You can use response `providerMetadata` to access the number of reasoning tokens that the model generated.
+- You can use response `providerMetadata` to access the number of reasoning tokens that the model generated, along with the other raw usage information returned from OpenAI.
 
 ```ts highlight="4,7-11,17"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
-const { text, usage, providerMetadata } = await generateText({
+const { text, providerMetadata } = await generateText({
   model: openai('o3-mini'),
   prompt: 'Invent a new holiday and describe its traditions.',
   providerOptions: {
@@ -255,10 +255,7 @@ const { text, usage, providerMetadata } = await generateText({
 });
 
 console.log(text);
-console.log('Usage:', {
-  ...usage,
-  reasoningTokens: providerMetadata?.openai?.reasoningTokens,
-});
+console.log('Raw usage:', providerMetadata?.openai?.usage);
 ```
 
 <Note>
@@ -507,7 +504,7 @@ including `gpt-4o`, `gpt-4o-mini`, `o1-preview`, and `o1-mini`.
 
 - Prompt caching is automatically enabled for these models, when the prompt is 1024 tokens or longer. It does
   not need to be explicitly enabled.
-- You can use response `providerMetadata` to access the number of prompt tokens that were a cache hit.
+- You can use response `providerMetadata` to access the number of prompt tokens that were a cache hit, along with other raw usage information returned from OpenAI.
 - Note that caching behavior is dependent on load on OpenAI's infrastructure. Prompt prefixes generally remain in the
   cache following 5-10 minutes of inactivity before they are evicted, but during off-peak periods they may persist for up
   to an hour.
