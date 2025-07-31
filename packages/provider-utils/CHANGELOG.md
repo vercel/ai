@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- 88a8ee5: fix (ai): support abort during retry waits
+
 ## 3.0.0-beta.9
 
 ### Patch Changes
