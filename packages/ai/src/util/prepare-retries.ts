@@ -9,8 +9,10 @@ import {
  */
 export function prepareRetries({
   maxRetries,
+  abortSignal,
 }: {
   maxRetries: number | undefined;
+  abortSignal: AbortSignal | undefined;
 }): {
   maxRetries: number;
   retry: RetryFunction;
@@ -39,6 +41,7 @@ export function prepareRetries({
     maxRetries: maxRetriesResult,
     retry: retryWithExponentialBackoffRespectingRetryHeaders({
       maxRetries: maxRetriesResult,
+      abortSignal,
     }),
   };
 }

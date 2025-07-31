@@ -427,6 +427,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
+      abortSignal,
     });
 
     const callSettings = prepareCallSettings(settings);

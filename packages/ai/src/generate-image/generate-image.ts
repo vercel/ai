@@ -122,7 +122,10 @@ Only applicable for HTTP-based providers.
     });
   }
 
-  const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
