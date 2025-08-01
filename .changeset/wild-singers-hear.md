@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/codemod': major
+'@ai-sdk/codemod': patch
 ---
 
 fixes generateText text property transform
