@@ -67,6 +67,40 @@ describe('convertToModelMessages', () => {
         },
       ]);
     });
+
+    it('should convert a system message with Anthropic cache control metadata', () => {
+      const SYSTEM_PROMPT = 'You are a helpful assistant.';
+      
+      const systemMessage = {
+        id: 'system',
+        role: 'system' as const,
+        parts: [
+          {
+            type: 'text' as const,
+            text: SYSTEM_PROMPT,
+            providerMetadata: {
+              anthropic: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+        ],
+      };
+
+      const result = convertToModelMessages([systemMessage]);
+
+      expect(result).toEqual([
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT,
+          providerOptions: {
+            anthropic: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ]);
+    });
   });
 
   describe('user message', () => {
