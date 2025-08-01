@@ -62,4 +62,8 @@ export class MessageHandler<T extends Message> {
 }
 
 // Union types
-type MessageOrCreator = Message | CreateMessage; 
+type MessageOrCreator = Message | CreateMessage;
+
+export function genericTest() {
+  const [message, setMessage] = generic<Message | CreateMessage>(null);
+}

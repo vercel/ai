@@ -62,4 +62,8 @@ export class MessageHandler<T extends UIMessage> {
 }
 
 // Union types
-type MessageOrCreator = UIMessage | CreateUIMessage; 
+type MessageOrCreator = UIMessage | CreateUIMessage;
+
+export function genericTest() {
+  const [message, setMessage] = generic<UIMessage | CreateUIMessage>(null);
+}
