@@ -1580,13 +1580,13 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'toolCalls',
-      type: 'Promise<ToolCallUnion<TOOLS>[]>',
+      type: 'Promise<TypedToolCall<TOOLS>[]>',
       description:
         'The tool calls that have been executed. Resolved when the response is finished.',
     },
     {
       name: 'toolResults',
-      type: 'Promise<ToolResultUnion<TOOLS>[]>',
+      type: 'Promise<TypedToolResult<TOOLS>[]>',
       description:
         'The tool results that have been generated. Resolved when the all tool executions are finished.',
     },
