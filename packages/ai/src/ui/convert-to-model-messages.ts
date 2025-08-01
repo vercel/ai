@@ -51,13 +51,9 @@ export function convertToModelMessages(
     switch (message.role) {
       case 'system': {
         const textParts = message.parts.filter(part => part.type === 'text');
-        const content = textParts
-          .map(part => (part.type === 'text' ? part.text : ''))
-          .join('');
 
-        // Collect provider metadata from text parts
         const providerMetadata = textParts.reduce((acc, part) => {
-          if (part.type === 'text' && part.providerMetadata != null) {
+          if (part.providerMetadata != null) {
             return { ...acc, ...part.providerMetadata };
           }
           return acc;
@@ -65,7 +61,7 @@ export function convertToModelMessages(
 
         modelMessages.push({
           role: 'system',
-          content,
+          content: textParts.map(part => part.text).join(''),
           ...(Object.keys(providerMetadata).length > 0
             ? { providerOptions: providerMetadata }
             : {}),
