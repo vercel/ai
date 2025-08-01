@@ -83,6 +83,15 @@ export async function generateTextWithChaining() {
   return result.text.trim().toLowerCase();
 }
 
+export async function generateTextWithRandomName() {
+  const random = await generateText({
+    model: 'some-model',
+    prompt: 'Chain this'
+  });
+
+  return random.text.trim().toLowerCase();
+}
+
 export function otherTextAccess() {
   const someObject = { text: 'regular text' };
   return someObject.text;
