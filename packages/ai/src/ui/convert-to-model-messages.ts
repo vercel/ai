@@ -54,7 +54,7 @@ export function convertToModelMessages(
         const content = textParts
           .map(part => (part.type === 'text' ? part.text : ''))
           .join('');
-        
+
         // Collect provider metadata from text parts
         const providerMetadata = textParts.reduce((acc, part) => {
           if (part.type === 'text' && part.providerMetadata != null) {
@@ -62,7 +62,7 @@ export function convertToModelMessages(
           }
           return acc;
         }, {});
-        
+
         modelMessages.push({
           role: 'system',
           content,

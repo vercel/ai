@@ -70,7 +70,7 @@ describe('convertToModelMessages', () => {
 
     it('should convert a system message with Anthropic cache control metadata', () => {
       const SYSTEM_PROMPT = 'You are a helpful assistant.';
-      
+
       const systemMessage = {
         id: 'system',
         role: 'system' as const,
