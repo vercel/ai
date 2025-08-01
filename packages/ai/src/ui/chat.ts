@@ -499,6 +499,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         });
 
         if (reconnect == null) {
+          this.setStatus({ status: 'ready' });
           return; // no active stream found, so we do not resume
         }
 
