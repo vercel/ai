@@ -1,4 +1,4 @@
-import { SpeechModelV2, ProviderV2 } from '@ai-sdk/provider';
+import { ProviderV2, SpeechModelV2 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { HumeSpeechModel } from './hume-speech-model';
 
@@ -61,7 +61,7 @@ export function createHume(options: HumeProviderSettings = {}): HumeProvider {
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
 
-  return provider as HumeProvider;
+  return provider satisfies HumeProvider;
 }
 
 /**
