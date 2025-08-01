@@ -63,6 +63,7 @@ The Responses API supports tool calling out of the box, allowing it to interact 
 ```ts
 import { generateText, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 const { text } = await generateText({
   model: openai.responses('gpt-4o'),
@@ -70,7 +71,7 @@ const { text } = await generateText({
   tools: {
     getWeather: tool({
       description: 'Get the weather in a location',
-      parameters: z.object({
+      inputSchema: z.object({
         location: z.string().describe('The location to get the weather for'),
       }),
       execute: async ({ location }) => ({
@@ -79,10 +80,11 @@ const { text } = await generateText({
       }),
     }),
   },
+  stopWhen: stepCountIs(5), // enable multi-step 'agentic' LLM calls
 });
 ```
 
-In this example, the `getWeather` tool allows the model to fetch real-time weather data (simulated for simplicity), enhancing its ability to provide accurate and up-to-date information.
+This example demonstrates how `stopWhen` transforms a single LLM call into an agent. The `stopWhen: stepCountIs(5)` parameter allows the model to autonomously call tools, analyze results, and make additional tool calls as needed - turning what would be a simple one-shot completion into an intelligent agent that can chain multiple actions together to complete complex tasks.
 
 ### Web Search Tool
 

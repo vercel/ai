@@ -1,10 +1,10 @@
 import { IdGenerator, ReasoningPart } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
-import { InferUIMessageChunk } from '../../src/ui-message-stream/ui-message-chunks';
-import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
-import { InferUIMessageMetadata, UIMessage } from '../../src/ui/ui-messages';
-import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
-import { ErrorHandler } from '../../src/util/error-handler';
+import { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
+import { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
+import { AsyncIterableStream } from '../util/async-iterable-stream';
+import { ErrorHandler } from '../util/error-handler';
 import {
   CallWarning,
   FinishReason,
@@ -19,8 +19,13 @@ import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
-import { ToolCallUnion } from './tool-call';
-import { ToolErrorUnion, ToolResultUnion } from './tool-output';
+import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
+import { TypedToolError } from './tool-error';
+import {
+  DynamicToolResult,
+  StaticToolResult,
+  TypedToolResult,
+} from './tool-result';
 import { ToolSet } from './tool-set';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
@@ -74,11 +79,6 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    * Set to false if you are using additional streamText calls
    * and the message start event has already been sent.
    * Default to true.
-   *
-   * Note: this setting is currently not used, but you should
-   * already set it to false if you are using additional
-   * streamText calls that send additional data to prevent
-   * the message start event from being sent multiple times.
    */
   sendStart?: boolean;
 
@@ -145,14 +145,42 @@ The tool calls that have been executed in the last step.
 
 Resolved when the response is finished.
      */
-  readonly toolCalls: Promise<ToolCallUnion<TOOLS>[]>;
+  readonly toolCalls: Promise<TypedToolCall<TOOLS>[]>;
+
+  /**
+The static tool calls that have been executed in the last step.
+
+Resolved when the response is finished.
+     */
+  readonly staticToolCalls: Promise<StaticToolCall<TOOLS>[]>;
+
+  /**
+The dynamic tool calls that have been executed in the last step.
+
+Resolved when the response is finished.
+     */
+  readonly dynamicToolCalls: Promise<DynamicToolCall[]>;
+
+  /**
+The static tool results that have been generated in the last step.
+
+Resolved when the response is finished.
+     */
+  readonly staticToolResults: Promise<StaticToolResult<TOOLS>[]>;
+
+  /**
+The dynamic tool results that have been generated in the last step.
+
+Resolved when the response is finished.
+     */
+  readonly dynamicToolResults: Promise<DynamicToolResult[]>;
 
   /**
 The tool results that have been generated in the last step.
 
 Resolved when the all tool executions are finished.
    */
-  readonly toolResults: Promise<ToolResultUnion<TOOLS>[]>;
+  readonly toolResults: Promise<TypedToolResult<TOOLS>[]>;
 
   /**
 The reason why the generation finished. Taken from the last step.
@@ -350,6 +378,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       toolName: string;
       providerMetadata?: ProviderMetadata;
       providerExecuted?: boolean;
+      dynamic?: boolean;
     }
   | {
       type: 'tool-input-end';
@@ -364,9 +393,9 @@ export type TextStreamPart<TOOLS extends ToolSet> =
     }
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
-  | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>)
-  | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
+  | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
+  | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
+  | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
   | {
       type: 'start-step';
       request: LanguageModelRequestMetadata;

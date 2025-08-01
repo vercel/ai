@@ -257,7 +257,7 @@ functionality that can be fully encapsulated in the provider.
     renderFinished.resolve(undefined);
   }
 
-  const { retry } = prepareRetries({ maxRetries });
+  const { retry } = prepareRetries({ maxRetries, abortSignal });
 
   const validatedPrompt = await standardizePrompt({
     system,

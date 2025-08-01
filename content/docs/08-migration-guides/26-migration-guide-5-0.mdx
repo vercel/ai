@@ -28,10 +28,10 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0 Beta.
 
 You need to update the following packages to the following versions in your `package.json` file(s):
 
-- `ai` package: `5.0.0@beta`
-- `@ai-sdk/provider` package: `2.0.0@beta`
-- `@ai-sdk/provider-utils` package: `3.0.0@beta`
-- `@ai-sdk/*` packages: `2.0.0@beta` (other `@ai-sdk` packages)
+- `ai` package: `5.0.0`
+- `@ai-sdk/provider` package: `2.0.0`
+- `@ai-sdk/provider-utils` package: `3.0.0`
+- `@ai-sdk/*` packages: `2.0.0` (other `@ai-sdk` packages)
 
 Additionally, you need to update the following peer dependencies:
 
@@ -40,7 +40,7 @@ Additionally, you need to update the following peer dependencies:
 An example upgrade command would be:
 
 ```
-npm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta zod@3.25.0
+npm install ai @ai-sdk/react @ai-sdk/openai zod@3.25.0
 ```
 
 ## Codemods
@@ -62,25 +62,25 @@ You can run all codemods provided as part of the 5.0 upgrade process by running
 the following command from the root of your project:
 
 ```sh
-npx @ai-sdk/codemod@beta upgrade
+npx @ai-sdk/codemod upgrade
 ```
 
 To run only the v5 codemods (v4 → v5 migration):
 
 ```sh
-npx @ai-sdk/codemod@beta v5
+npx @ai-sdk/codemod v5
 ```
 
 Individual codemods can be run by specifying the name of the codemod:
 
 ```sh
-npx @ai-sdk/codemod@beta <codemod-name> <path>
+npx @ai-sdk/codemod <codemod-name> <path>
 ```
 
 For example, to run a specific v5 codemod:
 
 ```sh
-npx @ai-sdk/codemod@beta v5/rename-format-stream-part src/
+npx @ai-sdk/codemod v5/rename-format-stream-part src/
 ```
 
 See also the [table of codemods](#codemod-table). In addition, the latest set of
@@ -645,6 +645,150 @@ In v5, UI tool parts use typed naming: `tool-${toolName}` instead of generic typ
 }
 ```
 
+### Dynamic Tools Support
+
+AI SDK 5.0 introduces dynamic tools for handling tools with unknown types at development time, such as MCP tools without schemas or user-defined functions at runtime.
+
+#### New dynamicTool Helper
+
+The new `dynamicTool` helper function allows you to define tools where the input and output types are not known at compile time.
+
+```tsx filename="AI SDK 5.0"
+import { dynamicTool } from 'ai';
+import { z } from 'zod';
+
+// Define a dynamic tool
+const runtimeTool = dynamicTool({
+  description: 'A tool defined at runtime',
+  inputSchema: z.object({}),
+  execute: async input => {
+    // Input and output are typed as 'unknown'
+    return { result: `Processed: ${input.query}` };
+  },
+});
+```
+
+#### MCP Tools Without Schemas
+
+MCP tools that don't provide schemas are now automatically treated as dynamic tools:
+
+```tsx filename="AI SDK 5.0"
+import { MCPClient } from 'ai';
+
+const client = new MCPClient({
+  /* ... */
+});
+const tools = await client.getTools();
+
+// Tools without schemas are now 'dynamic' type
+// and won't break type inference when mixed with static tools
+```
+
+#### Type-Safe Handling with Mixed Tools
+
+When using both static and dynamic tools together, use the `dynamic` flag for type narrowing:
+
+```tsx filename="AI SDK 5.0"
+const result = await generateText({
+  model: openai('gpt-4'),
+  tools: {
+    // Static tool with known types
+    weather: weatherTool,
+    // Dynamic tool with unknown types
+    customDynamicTool: dynamicTool({
+      /* ... */
+    }),
+  },
+  onStepFinish: step => {
+    // Handle tool calls with type safety
+    for (const toolCall of step.toolCalls) {
+      if (toolCall.dynamic) {
+        // Dynamic tool: input/output are 'unknown'
+        console.log('Dynamic tool called:', toolCall.toolName);
+        continue;
+      }
+
+      // Static tools have full type inference
+      switch (toolCall.toolName) {
+        case 'weather':
+          // TypeScript knows the exact types
+          console.log(toolCall.input.location); // string
+          break;
+      }
+    }
+  },
+});
+```
+
+#### New dynamic-tool UI Part
+
+UI messages now include a `dynamic-tool` part type for rendering dynamic tool invocations:
+
+```tsx filename="AI SDK 5.0"
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      // Static tools use specific types
+      case 'tool-weather':
+        return <div>Weather: {part.input.city}</div>;
+
+      // Dynamic tools use the generic dynamic-tool type
+      case 'dynamic-tool':
+        return (
+          <div>
+            Dynamic tool: {part.toolName}
+            <pre>{JSON.stringify(part.input, null, 2)}</pre>
+          </div>
+        );
+    }
+  });
+}
+```
+
+#### Breaking Change: Type Narrowing Required for Tool Calls and Results
+
+When iterating over `toolCalls` and `toolResults`, you now need to check the `dynamic` flag first for proper type narrowing:
+
+```tsx filename="AI SDK 4.0"
+// Direct type checking worked without dynamic flag
+onStepFinish: step => {
+  for (const toolCall of step.toolCalls) {
+    switch (toolCall.toolName) {
+      case 'weather':
+        console.log(toolCall.input.location); // typed as string
+        break;
+      case 'search':
+        console.log(toolCall.input.query); // typed as string
+        break;
+    }
+  }
+};
+```
+
+```tsx filename="AI SDK 5.0"
+// Must check dynamic flag first for type narrowing
+onStepFinish: step => {
+  for (const toolCall of step.toolCalls) {
+    // Check if it's a dynamic tool first
+    if (toolCall.dynamic) {
+      console.log('Dynamic tool:', toolCall.toolName);
+      console.log('Input:', toolCall.input); // typed as unknown
+      continue;
+    }
+
+    // Now TypeScript knows it's a static tool
+    switch (toolCall.toolName) {
+      case 'weather':
+        console.log(toolCall.input.location); // typed as string
+        break;
+      case 'search':
+        console.log(toolCall.input.query); // typed as string
+        break;
+    }
+  }
+};
+```
+
 ### Tool UI Part State Changes
 
 Tool UI parts now use more granular states that better represent the streaming lifecycle and error handling.
@@ -983,7 +1127,7 @@ import { useChat } from '@ai-sdk/react';
 ```
 
 <Note>
-  Don't forget to install the new package: `npm install @ai-sdk/react@beta`
+  Don't forget to install the new package: `npm install @ai-sdk/react`
 </Note>
 
 ### useChat Changes
@@ -1735,7 +1879,7 @@ const response = createUIMessageStreamResponse({
 ```
 
 <Note>
-  Don't forget to install the new package: `npm install @ai-sdk/langchain@beta`
+  Don't forget to install the new package: `npm install @ai-sdk/langchain`
 </Note>
 
 #### LlamaIndex Adapter Moved to `@ai-sdk/llamaindex`
@@ -1758,7 +1902,7 @@ const response = createUIMessageStreamResponse({
 ```
 
 <Note>
-  Don't forget to install the new package: `npm install @ai-sdk/llamaindex@beta`
+  Don't forget to install the new package: `npm install @ai-sdk/llamaindex`
 </Note>
 
 ## Streaming Architecture

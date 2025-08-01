@@ -4,7 +4,7 @@ import {
   LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
-import { isNonEmptyObject } from '../../src/util/is-non-empty-object';
+import { isNonEmptyObject } from '../util/is-non-empty-object';
 import { ToolSet } from '../generate-text';
 import { ToolChoice } from '../types/language-model';
 
@@ -42,6 +42,7 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
       const toolType = tool.type;
       switch (toolType) {
         case undefined:
+        case 'dynamic':
         case 'function':
           return {
             type: 'function' as const,

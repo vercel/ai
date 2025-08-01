@@ -9,9 +9,9 @@ import {
   ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
-import { asArray } from '../../src/util/as-array';
-import { prepareRetries } from '../../src/util/prepare-retries';
+import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { asArray } from '../util/as-array';
+import { prepareRetries } from '../util/prepare-retries';
 import { ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -45,10 +45,12 @@ import {
   StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
-import { ToolCallArray } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolErrorUnion, ToolOutput, ToolResultUnion } from './tool-output';
+import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
+import { TypedToolResult } from './tool-result';
+import { TypedToolError } from './tool-error';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -224,7 +226,10 @@ A function that attempts to repair a tool call that failed to parse.
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
-  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { maxRetries, retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   const callSettings = prepareCallSettings(settings);
 
@@ -270,7 +275,7 @@ A function that attempts to repair a tool call that failed to parse.
         let currentModelResponse: Awaited<
           ReturnType<LanguageModelV2['doGenerate']>
         > & { response: { id: string; timestamp: Date; modelId: string } };
-        let clientToolCalls: ToolCallArray<TOOLS> = [];
+        let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
         let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
         const responseMessages: Array<ResponseMessage> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
@@ -561,7 +566,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages,
   abortSignal,
 }: {
-  toolCalls: ToolCallArray<TOOLS>;
+  toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
@@ -587,7 +592,7 @@ async function executeTools<TOOLS extends ToolSet>({
             }),
             'ai.toolCall.name': toolName,
             'ai.toolCall.id': toolCallId,
-            'ai.toolCall.input': {
+            'ai.toolCall.args': {
               output: () => JSON.stringify(input),
             },
           },
@@ -595,7 +600,7 @@ async function executeTools<TOOLS extends ToolSet>({
         tracer,
         fn: async span => {
           try {
-            const result = await tool.execute!(input, {
+            const output = await tool.execute!(input, {
               toolCallId,
               messages,
               abortSignal,
@@ -607,7 +612,7 @@ async function executeTools<TOOLS extends ToolSet>({
                   telemetry,
                   attributes: {
                     'ai.toolCall.result': {
-                      output: () => JSON.stringify(result),
+                      output: () => JSON.stringify(output),
                     },
                   },
                 }),
@@ -624,8 +629,9 @@ async function executeTools<TOOLS extends ToolSet>({
               toolCallId,
               toolName,
               input,
-              output: result,
-            } as ToolResultUnion<TOOLS>;
+              output,
+              dynamic: tool.type === 'dynamic',
+            } as TypedToolResult<TOOLS>;
           } catch (error) {
             recordErrorOnSpan(span, error);
             return {
@@ -634,7 +640,8 @@ async function executeTools<TOOLS extends ToolSet>({
               toolName,
               input,
               error,
-            } as ToolErrorUnion<TOOLS>;
+              dynamic: tool.type === 'dynamic',
+            } as TypedToolError<TOOLS>;
           }
         },
       });
@@ -689,8 +696,24 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     return this.finalStep.toolCalls;
   }
 
+  get staticToolCalls() {
+    return this.finalStep.staticToolCalls;
+  }
+
+  get dynamicToolCalls() {
+    return this.finalStep.dynamicToolCalls;
+  }
+
   get toolResults() {
     return this.finalStep.toolResults;
+  }
+
+  get staticToolResults() {
+    return this.finalStep.staticToolResults;
+  }
+
+  get dynamicToolResults() {
+    return this.finalStep.dynamicToolResults;
   }
 
   get sources() {
@@ -767,7 +790,7 @@ function asContent<TOOLS extends ToolSet>({
   toolOutputs,
 }: {
   content: Array<LanguageModelV2Content>;
-  toolCalls: ToolCallArray<TOOLS>;
+  toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
 }): Array<ContentPart<TOOLS>> {
   return [
@@ -808,7 +831,8 @@ function asContent<TOOLS extends ToolSet>({
               input: toolCall.input,
               error: part.result,
               providerExecuted: true,
-            } as ToolErrorUnion<TOOLS>;
+              dynamic: toolCall.dynamic,
+            } as TypedToolError<TOOLS>;
           }
 
           return {
@@ -818,7 +842,8 @@ function asContent<TOOLS extends ToolSet>({
             input: toolCall.input,
             output: part.result,
             providerExecuted: true,
-          } as ToolResultUnion<TOOLS>;
+            dynamic: toolCall.dynamic,
+          } as TypedToolResult<TOOLS>;
         }
       }
     }),
