@@ -58,8 +58,8 @@ export function createHume(options: HumeProviderSettings = {}): HumeProvider {
     };
   };
 
-  // provider.speech = createSpeechModel;
-  // provider.speechModel = createSpeechModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
 
   return provider as HumeProvider;
 }
