@@ -36,9 +36,12 @@ export function mockRerank<VALUE>(
   response: Awaited<
     ReturnType<RerankingModelV2<VALUE>['doRerank']>
   >['response'] = { headers: {}, body: {} },
+  providerMetadata?: Awaited<
+    ReturnType<RerankingModelV2<VALUE>['doRerank']>
+  >['providerMetadata'],
 ): RerankingModelV2<VALUE>['doRerank'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);
-    return { rerankedDocuments, usage, response };
+    return { rerankedDocuments, usage, response, providerMetadata };
   };
 }

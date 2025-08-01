@@ -3,6 +3,7 @@ import {
   EmbeddingModelV2,
   ProviderV2,
   ImageModelV2,
+  RerankingModelV2,
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -19,6 +20,8 @@ import { TogetherAIEmbeddingModelId } from './togetherai-embedding-options';
 import { TogetherAICompletionModelId } from './togetherai-completion-options';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { TogetherAIImageModelId } from './togetherai-image-settings';
+import { TogetherAIRerankingModelId } from './togetherai-reranking-options';
+import { TogetherAIRerankingModel } from './togetherai-reranking-model';
 
 export interface TogetherAIProviderSettings {
   /**
@@ -40,7 +43,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface TogetherAIProvider extends ProviderV2 {
+export interface TogetherAIProvider extends ProviderV2<string | object> {
   /**
 Creates a model for text generation.
 */
@@ -77,6 +80,13 @@ Creates a model for image generation.
 Creates a model for image generation.
 */
   imageModel(modelId: TogetherAIImageModelId): ImageModelV2;
+
+  /**
+Creates a model for reranking.
+*/
+  rerankingModel(
+    modelId: TogetherAIRerankingModelId,
+  ): RerankingModelV2<string | object>;
 }
 
 export function createTogetherAI(
@@ -133,6 +143,12 @@ export function createTogetherAI(
       baseURL: baseURL ?? 'https://api.together.xyz/v1/',
     });
 
+  const createRerankingModel = (modelId: TogetherAIRerankingModelId) =>
+    new TogetherAIRerankingModel(modelId, {
+      ...getCommonModelConfig('reranking'),
+      baseURL: baseURL ?? 'https://api.together.xyz/v1/',
+    });
+
   const provider = (modelId: TogetherAIChatModelId) => createChatModel(modelId);
 
   provider.completionModel = createCompletionModel;
@@ -141,6 +157,7 @@ export function createTogetherAI(
   provider.textEmbeddingModel = createTextEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.rerankingModel = createRerankingModel;
 
   return provider;
 }

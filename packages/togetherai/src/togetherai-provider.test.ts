@@ -3,11 +3,16 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
-import { LanguageModelV2, EmbeddingModelV2 } from '@ai-sdk/provider';
+import {
+  LanguageModelV2,
+  EmbeddingModelV2,
+  RerankingModelV2,
+} from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { createTogetherAI } from './togetherai-provider';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { TogetherAIRerankingModel } from './togetherai-reranking-model';
 
 // Add type assertion for the mocked class
 const OpenAICompatibleChatLanguageModelMock =
@@ -28,9 +33,14 @@ vi.mock('./togetherai-image-model', () => ({
   TogetherAIImageModel: vi.fn(),
 }));
 
+vi.mock('./togetherai-reranking-model', () => ({
+  TogetherAIRerankingModel: vi.fn(),
+}));
+
 describe('TogetherAIProvider', () => {
   let mockLanguageModel: LanguageModelV2;
   let mockEmbeddingModel: EmbeddingModelV2<string>;
+  let mockRerankingModel: RerankingModelV2<string | object>;
   let createOpenAICompatibleMock: Mock;
 
   beforeEach(() => {
@@ -41,6 +51,9 @@ describe('TogetherAIProvider', () => {
     mockEmbeddingModel = {
       // Add any required methods for EmbeddingModelV2
     } as EmbeddingModelV2<string>;
+    mockRerankingModel = {
+      // Add any required methods for RerankingModelV2
+    } as RerankingModelV2<string | object>;
 
     // Reset mocks
     vi.clearAllMocks();
@@ -158,6 +171,23 @@ describe('TogetherAIProvider', () => {
           baseURL: 'https://custom.url/',
         }),
       );
+    });
+  });
+
+  describe('rerankingModel', () => {
+    it('should construct a reranking model with correct configuration', () => {
+      const provider = createTogetherAI();
+      const modelId = 'Salesforce/Llama-Rank-v1';
+
+      const model = provider.rerankingModel(modelId);
+
+      expect(TogetherAIRerankingModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          baseURL: 'https://api.together.xyz/v1/',
+        }),
+      );
+      expect(model).toBeInstanceOf(TogetherAIRerankingModel);
     });
   });
 });

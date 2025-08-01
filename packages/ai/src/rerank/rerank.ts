@@ -1,7 +1,4 @@
-import {
-  RerankedDocument,
-  TooManyDocumentsForRerankingError,
-} from '@ai-sdk/provider';
+import { TooManyDocumentsForRerankingError } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -11,7 +8,6 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { RerankingModel } from '../types';
-import { splitArray } from '../util/split-array';
 import { RerankResult } from './rerank-result';
 import { UnsupportedModelVersionError } from '../error';
 
@@ -107,7 +103,10 @@ Only applicable for HTTP-based providers.
       documents: values,
     });
   }
-  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { maxRetries, retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
@@ -130,60 +129,62 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const { rerankedDocuments, usage, response } = await retry(() =>
-        recordSpan({
-          name: 'ai.rerank.doRerank',
-          attributes: selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              ...assembleOperationName({
-                operationId: 'ai.rerank.doRerank',
-                telemetry,
-              }),
-              ...baseTelemetryAttributes,
-              // specific settings that only make sense on the outer level:
-              'ai.values': {
-                input: () => values.map(value => JSON.stringify(value)),
+      const { rerankedDocuments, usage, response, providerMetadata } =
+        await retry(() =>
+          recordSpan({
+            name: 'ai.rerank.doRerank',
+            attributes: selectTelemetryAttributes({
+              telemetry,
+              attributes: {
+                ...assembleOperationName({
+                  operationId: 'ai.rerank.doRerank',
+                  telemetry,
+                }),
+                ...baseTelemetryAttributes,
+                // specific settings that only make sense on the outer level:
+                'ai.values': {
+                  input: () => values.map(value => JSON.stringify(value)),
+                },
               },
+            }),
+            tracer,
+            fn: async doRerankSpan => {
+              const modelResponse = await model.doRerank({
+                values,
+                query,
+                topK,
+                providerOptions,
+                abortSignal,
+                headers,
+              });
+
+              const rerankedDocuments = modelResponse.rerankedDocuments;
+              const usage = modelResponse.usage ?? { tokens: NaN };
+
+              doRerankSpan.setAttributes(
+                selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    'ai.rerankedDocuments': {
+                      output: () =>
+                        rerankedDocuments.map(rerankedDocument =>
+                          JSON.stringify(rerankedDocument),
+                        ),
+                    },
+                    'ai.usage.tokens': usage.tokens,
+                  },
+                }),
+              );
+
+              return {
+                rerankedDocuments,
+                usage,
+                providerMetadata: modelResponse.providerMetadata,
+                response: modelResponse.response,
+              };
             },
           }),
-          tracer,
-          fn: async doRerankSpan => {
-            const modelResponse = await model.doRerank({
-              values,
-              query,
-              topK,
-              providerOptions,
-              abortSignal,
-              headers,
-            });
-
-            const rerankedDocuments = modelResponse.rerankedDocuments;
-            const usage = modelResponse.usage ?? { tokens: NaN };
-
-            doRerankSpan.setAttributes(
-              selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.rerankedDocuments': {
-                    output: () =>
-                      rerankedDocuments.map(rerankedDocument =>
-                        JSON.stringify(rerankedDocument),
-                      ),
-                  },
-                  'ai.usage.tokens': usage.tokens,
-                },
-              }),
-            );
-
-            return {
-              rerankedDocuments,
-              usage,
-              response: modelResponse.response,
-            };
-          },
-        }),
-      );
+        );
 
       span.setAttributes(
         selectTelemetryAttributes({
@@ -204,7 +205,8 @@ Only applicable for HTTP-based providers.
         values,
         rerankedDocuments,
         usage,
-        response: response,
+        providerMetadata,
+        response,
       });
     },
   });
@@ -215,16 +217,19 @@ class DefaultRerankResult<VALUE> implements RerankResult<VALUE> {
   readonly usage: RerankResult<VALUE>['usage'];
   readonly response: RerankResult<VALUE>['response'];
   readonly rerankedDocuments: RerankResult<VALUE>['rerankedDocuments'];
+  readonly providerMetadata: RerankResult<VALUE>['providerMetadata'];
 
   constructor(options: {
     values: RerankResult<VALUE>['documents'];
     usage: RerankResult<VALUE>['usage'];
     response?: RerankResult<VALUE>['response'];
     rerankedDocuments: RerankResult<VALUE>['rerankedDocuments'];
+    providerMetadata?: RerankResult<VALUE>['providerMetadata'];
   }) {
     this.documents = options.values;
     this.usage = options.usage;
     this.response = options.response;
     this.rerankedDocuments = options.rerankedDocuments;
+    this.providerMetadata = options.providerMetadata;
   }
 }

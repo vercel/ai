@@ -87,6 +87,37 @@ describe('result.usage', () => {
     assert.deepStrictEqual(result.usage, { tokens: 30 });
   });
 });
+describe('result.providerMetadata', () => {
+  it('should include provider metadata when returned by the model', async () => {
+    const providerMetadata = {
+      gateway: {
+        routing: {
+          resolvedProvider: 'test-provider',
+        },
+      },
+    };
+
+    const result = await rerank({
+      model: new MockRerankingModelV2({
+        doRerank: mockRerank(
+          testDocuments,
+          dummyRerankedDocuments,
+          undefined,
+          {
+            headers: {},
+            body: {},
+          },
+          providerMetadata,
+        ),
+      }),
+      values: testDocuments,
+      query,
+      topK,
+    });
+
+    expect(result.providerMetadata).toStrictEqual(providerMetadata);
+  });
+});
 
 describe('options.headers', () => {
   it('should set headers', async () => {

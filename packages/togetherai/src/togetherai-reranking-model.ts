@@ -5,6 +5,7 @@ import {
 
 import {
   combineHeaders,
+  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
   parseProviderOptions,
@@ -12,28 +13,32 @@ import {
 } from '@ai-sdk/provider-utils';
 
 import { z } from 'zod/v4';
-import { cohereFailedResponseHandler } from './cohere-error';
 import {
-  CohereRerankingModelId,
-  cohereRerankingOptions,
-} from './cohere-reranking-options';
+  TogetherAIRerankingModelId,
+  togetheraiRerankingOptions,
+} from './togetherai-reranking-options';
 
-type CohereRerankingConfig = {
+type TogetherAIRerankingConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 };
 
-export class CohereRerankingModel implements RerankingModelV2<string> {
+export class TogetherAIRerankingModel
+  implements RerankingModelV2<string | object>
+{
   readonly specificationVersion = 'v2';
-  readonly modelId: CohereRerankingModelId;
+  readonly modelId: TogetherAIRerankingModelId;
 
   readonly maxDocumentsPerCall = Infinity;
 
-  private readonly config: CohereRerankingConfig;
+  private readonly config: TogetherAIRerankingConfig;
 
-  constructor(modelId: CohereRerankingModelId, config: CohereRerankingConfig) {
+  constructor(
+    modelId: TogetherAIRerankingModelId,
+    config: TogetherAIRerankingConfig,
+  ) {
     this.modelId = modelId;
     this.config = config;
   }
@@ -42,7 +47,7 @@ export class CohereRerankingModel implements RerankingModelV2<string> {
     return this.config.provider;
   }
 
-  // current implementation is based on v2 of the API: https://docs.cohere.com/v2/reference/rerank
+  // current implementation is based on v2 of the API: https://docs.together.ai/reference/rerank-1
   async doRerank({
     values,
     headers,
@@ -50,13 +55,13 @@ export class CohereRerankingModel implements RerankingModelV2<string> {
     topK,
     abortSignal,
     providerOptions,
-  }: Parameters<RerankingModelV2<string>['doRerank']>[0]): Promise<
-    Awaited<ReturnType<RerankingModelV2<string>['doRerank']>>
+  }: Parameters<RerankingModelV2<string | object>['doRerank']>[0]): Promise<
+    Awaited<ReturnType<RerankingModelV2<string | object>['doRerank']>>
   > {
     const rerankingOptions = await parseProviderOptions({
-      provider: 'cohere',
+      provider: 'togetherai',
       providerOptions,
-      schema: cohereRerankingOptions,
+      schema: togetheraiRerankingOptions,
     });
 
     if (values.length > this.maxDocumentsPerCall) {
@@ -64,6 +69,16 @@ export class CohereRerankingModel implements RerankingModelV2<string> {
         provider: this.provider,
         modelId: this.modelId,
         maxDocumentsPerCall: this.maxDocumentsPerCall,
+        documents: values,
+      });
+    }
+
+    // https://docs.together.ai/docs/serverless-models#rerank-models
+    if (this.modelId === 'Salesforce/Llama-Rank-v1' && values.length > 1024) {
+      throw new TooManyDocumentsForRerankingError({
+        provider: this.provider,
+        modelId: this.modelId,
+        maxDocumentsPerCall: 1024,
         documents: values,
       });
     }
@@ -80,11 +95,14 @@ export class CohereRerankingModel implements RerankingModelV2<string> {
         documents: values,
         query: query,
         top_n: topK,
-        max_tokens_per_doc: rerankingOptions?.maxTokensPerDoc ?? 4096,
+        rank_fields: rerankingOptions?.rankFields,
       },
-      failedResponseHandler: cohereFailedResponseHandler,
+      failedResponseHandler: createJsonErrorResponseHandler({
+        errorSchema: togetheraiErrorSchema,
+        errorToMessage: data => data.error.message,
+      }),
       successfulResponseHandler: createJsonResponseHandler(
-        cohereRerankingResponseSchema,
+        togetheraiRerankingResponseSchema,
       ),
       abortSignal,
       fetch: this.config.fetch,
@@ -96,28 +114,35 @@ export class CohereRerankingModel implements RerankingModelV2<string> {
         relevanceScore: result.relevance_score,
         document: values[result.index],
       })),
-      usage: { tokens: response.meta.billed_units.search_units },
+      usage: {
+        tokens: response.usage.total_tokens,
+      },
       response: { headers: responseHeaders, body: rawValue },
     };
   }
 }
 
+const togetheraiErrorSchema = z.object({
+  error: z.object({
+    message: z.string(),
+  }),
+});
+
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const cohereRerankingResponseSchema = z.object({
+const togetheraiRerankingResponseSchema = z.object({
   id: z.string(),
+  model: z.string(),
+  object: z.literal('rerank'),
   results: z.array(
     z.object({
       index: z.number(),
       relevance_score: z.number(),
     }),
   ),
-  meta: z.object({
-    api_version: z.object({
-      version: z.string(),
-    }),
-    billed_units: z.object({
-      search_units: z.number(),
-    }),
+  usage: z.object({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number(),
   }),
 });

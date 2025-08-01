@@ -1,4 +1,8 @@
-import { SharedV2Headers } from '../../shared';
+import {
+  SharedV2Headers,
+  SharedV2ProviderMetadata,
+  SharedV2ProviderOptions,
+} from '../../shared';
 import { RerankingModelV2CallOptions } from './reranking-model-v2-call-options';
 import { RerankedDocument } from './reranking-model-v2-result';
 
@@ -53,6 +57,13 @@ The documents are sorted by the descending order of relevance scores.
 Token usage. We only have input tokens for reranking.
     */
     usage?: { tokens: number };
+
+    /**
+Additional provider-specific options. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+    */
+    providerMetadata?: SharedV2ProviderMetadata;
 
     /**
 Optional response information for debugging purposes.

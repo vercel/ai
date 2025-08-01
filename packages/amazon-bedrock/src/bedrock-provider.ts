@@ -2,7 +2,6 @@ import {
   EmbeddingModelV2,
   ImageModelV2,
   LanguageModelV2,
-  NoSuchModelError,
   ProviderV2,
 } from '@ai-sdk/provider';
 import {

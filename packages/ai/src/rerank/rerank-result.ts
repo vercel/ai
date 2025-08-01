@@ -1,5 +1,6 @@
 import { RerankingModelUsage } from '../types/usage';
 import { RerankedDocument } from '../types/reranking-model';
+import { ProviderMetadata } from '../types/provider-metadata';
 
 /**
 The result of an `rerank` call.
@@ -20,6 +21,11 @@ export interface RerankResult<VALUE> {
   The reranking token usage.
     */
   readonly usage: RerankingModelUsage;
+
+  /**
+  Optional provider-specific metadata.
+     */
+  readonly providerMetadata?: ProviderMetadata;
 
   /**
   Optional raw response data.
