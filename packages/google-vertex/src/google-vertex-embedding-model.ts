@@ -80,6 +80,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
         instances: values.map(value => ({ content: value })),
         parameters: {
           outputDimensionality: googleOptions.outputDimensionality,
+          taskType: googleOptions.taskType,
         },
       },
       failedResponseHandler: googleVertexFailedResponseHandler,
