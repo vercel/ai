@@ -24,7 +24,11 @@ const server = createTestServer({
 
 describe('GoogleVertexEmbeddingModel', () => {
   const mockModelId = 'textembedding-gecko@001';
-  const mockProviderOptions = { outputDimensionality: 768 };
+  const mockProviderOptions = {
+    outputDimensionality: 768,
+    taskType: 'SEMANTIC_SIMILARITY',
+  };
+
   const mockConfig = {
     provider: 'google-vertex',
     region: 'us-central1',
@@ -117,6 +121,24 @@ describe('GoogleVertexEmbeddingModel', () => {
       instances: testValues.map(value => ({ content: value })),
       parameters: {
         outputDimensionality: mockProviderOptions.outputDimensionality,
+        taskType: mockProviderOptions.taskType,
+      },
+    });
+  });
+
+  it('should pass the taskType setting', async () => {
+    prepareJsonResponse();
+
+    await model.doEmbed({
+      values: testValues,
+      providerOptions: { google: { taskType: 'SEMANTIC_SIMILARITY' } },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      instances: testValues.map(value => ({ content: value })),
+      parameters: {
+        outputDimensionality: mockProviderOptions.outputDimensionality,
+        taskType: mockProviderOptions.taskType,
       },
     });
   });
