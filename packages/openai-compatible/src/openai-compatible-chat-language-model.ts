@@ -153,6 +153,24 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       toolChoice,
     });
 
+    const providerSpecificOptions =
+      providerOptions?.[this.providerOptionsName] || {};
+    const {
+      tools: providerTools,
+      tool_choice: providerToolChoice,
+      ...otherProviderOptions
+    } = providerSpecificOptions;
+
+    const hasProviderTools = providerSpecificOptions.tools != null;
+    const hasStandardTools = openaiTools != null && openaiTools.length > 0;
+
+    if (hasProviderTools && hasStandardTools) {
+      toolWarnings.push({
+        type: 'other',
+        message: `Both 'tools' parameter and 'providerOptions.${this.providerOptionsName}.tools' are specified. Using providerOptions tools.`,
+      });
+    }
+
     return {
       args: {
         // model id:
@@ -184,7 +202,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
         stop: stopSequences,
         seed,
-        ...providerOptions?.[this.providerOptionsName],
+        ...otherProviderOptions,
 
         reasoning_effort: compatibleOptions.reasoningEffort,
 
@@ -192,8 +210,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
         messages: convertToOpenAICompatibleChatMessages(prompt),
 
         // tools:
-        tools: openaiTools,
-        tool_choice: openaiToolChoice,
+        tools: hasProviderTools ? providerTools : openaiTools,
+        tool_choice: providerToolChoice ?? openaiToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
     };
