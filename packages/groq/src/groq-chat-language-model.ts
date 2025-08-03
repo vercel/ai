@@ -144,6 +144,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
         // provider options:
         reasoning_format: groqOptions?.reasoningFormat,
+        reasoning_effort: groqOptions?.reasoningEffort,
 
         // messages:
         messages: convertToGroqChatMessages(prompt),

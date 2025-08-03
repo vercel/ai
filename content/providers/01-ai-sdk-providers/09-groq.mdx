@@ -86,10 +86,11 @@ import { groq } from '@ai-sdk/groq';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: groq('qwen-qwq-32b'),
+  model: groq('qwen/qwen3-32b'),
   providerOptions: {
     groq: {
       reasoningFormat: 'parsed',
+      reasoningEffort: 'default',
       parallelToolCalls: true, // Enable parallel function calling (default: true)
       user: 'user-123', // Unique identifier for end-user (optional)
     },
@@ -105,6 +106,15 @@ The following optional provider options are available for Groq language models:
   Controls how reasoning is exposed in the generated text. Only supported by reasoning models like `qwen-qwq-32b` and `deepseek-r1-distill-*` models.
 
   For a complete list of reasoning models and their capabilities, see [Groq's reasoning models documentation](https://console.groq.com/docs/reasoning).
+
+- **reasoningEffort** _'none' | 'default'_
+
+  Controls the level of effort the model will put into reasoning. Only supported by the `qwen/qwen3-32b` model.
+
+  - `none`: Disable reasoning. The model will not use any reasoning tokens.
+  - `default`: Enable reasoning.
+
+  Defaults to `default`.
 
 - **structuredOutputs** _boolean_
 
