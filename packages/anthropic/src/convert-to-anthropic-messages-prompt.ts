@@ -477,13 +477,15 @@ export async function convertToAnthropicMessagesPrompt({
         }
 
         if (isThinking && isLastBlock) {
-          const thinkingBlocks = anthropicContent.filter(block => 
-            block.type === 'thinking' || block.type === 'redacted_thinking'
+          const thinkingBlocks = anthropicContent.filter(
+            block =>
+              block.type === 'thinking' || block.type === 'redacted_thinking',
           );
-          const otherBlocks = anthropicContent.filter(block => 
-            block.type !== 'thinking' && block.type !== 'redacted_thinking'
+          const otherBlocks = anthropicContent.filter(
+            block =>
+              block.type !== 'thinking' && block.type !== 'redacted_thinking',
           );
-          
+
           anthropicContent.length = 0;
           anthropicContent.push(...thinkingBlocks, ...otherBlocks);
         }
