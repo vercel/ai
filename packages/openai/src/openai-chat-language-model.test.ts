@@ -120,6 +120,7 @@ describe('doGenerate', () => {
     content = '',
     tool_calls,
     function_call,
+    annotations,
     usage = {
       prompt_tokens: 4,
       total_tokens: 34,
@@ -145,6 +146,13 @@ describe('doGenerate', () => {
       name: string;
       arguments: string;
     };
+    annotations?: Array<{
+      type: 'url_citation';
+      start_index: number;
+      end_index: number;
+      url: string;
+      title: string;
+    }>;
     logprobs?: {
       content:
         | {
@@ -189,6 +197,7 @@ describe('doGenerate', () => {
               content,
               tool_calls,
               function_call,
+              annotations,
             },
             ...(logprobs ? { logprobs } : {}),
             finish_reason,
@@ -628,6 +637,39 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should parse annotations/citations', async () => {
+    prepareJsonResponse({
+      content: 'Based on the search results [doc1], I found information.',
+      annotations: [
+        {
+          type: 'url_citation',
+          start_index: 24,
+          end_index: 29,
+          url: 'https://example.com/doc1.pdf',
+          title: 'Document 1',
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toEqual([
+      {
+        text: 'Based on the search results [doc1], I found information.',
+        type: 'text',
+      },
+      {
+        id: expect.any(String),
+        sourceType: 'url',
+        title: 'Document 1',
+        type: 'source',
+        url: 'https://example.com/doc1.pdf',
+      },
+    ]);
   });
 
   describe('response format', () => {
@@ -1812,6 +1854,57 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should stream annotations/citations', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
+          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Based on search results"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
+          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"annotations":[{"type":"url_citation","start_index":24,"end_index":29,"url":"https://example.com/doc1.pdf","title":"Document 1"}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"completion_tokens":227,"total_tokens":244}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const streamResult = await convertReadableStreamToArray(stream);
+
+    expect(streamResult).toEqual(
+      expect.arrayContaining([
+        { type: 'stream-start', warnings: [] },
+        expect.objectContaining({
+          type: 'response-metadata',
+          id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
+        }),
+        { type: 'text-start', id: '0' },
+        { type: 'text-delta', id: '0', delta: '' },
+        { type: 'text-delta', id: '0', delta: 'Based on search results' },
+        {
+          type: 'source',
+          sourceType: 'url',
+          id: expect.any(String),
+          url: 'https://example.com/doc1.pdf',
+          title: 'Document 1',
+        },
+        { type: 'text-end', id: '0' },
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: 'stop',
+        }),
+      ])
+    );
   });
 
   it('should stream tool deltas', async () => {
