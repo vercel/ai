@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.1
+
+### Patch Changes
+
+- 2b99d35: Add reasoningEffort
+
 ## 2.0.0
 
 ### Major Changes
