@@ -391,7 +391,8 @@ describe('FalImageModel', () => {
           timings: { inference: 5.875932216644287 },
           seed: 328395684,
           has_nsfw_concepts: [false],
-          prompt: 'A female model holding this book, keeping the book unchanged.',
+          prompt:
+            'A female model holding this book, keeping the book unchanged.',
         },
       };
 
