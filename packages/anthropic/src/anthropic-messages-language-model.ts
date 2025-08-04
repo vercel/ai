@@ -253,15 +253,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       schema: anthropicProviderOptions,
     });
 
+    const isThinking = anthropicOptions?.thinking?.type === 'enabled';
+    const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
+
     const { prompt: messagesPrompt, betas: messagesBetas } =
       await convertToAnthropicMessagesPrompt({
         prompt,
         sendReasoning: anthropicOptions?.sendReasoning ?? true,
         warnings,
+        isThinking,
       });
-
-    const isThinking = anthropicOptions?.thinking?.type === 'enabled';
-    const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
     const baseArgs = {
       // model id:

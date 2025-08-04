@@ -42,10 +42,12 @@ export async function convertToAnthropicMessagesPrompt({
   prompt,
   sendReasoning,
   warnings,
+  isThinking = false,
 }: {
   prompt: LanguageModelV2Prompt;
   sendReasoning: boolean;
   warnings: LanguageModelV2CallWarning[];
+  isThinking?: boolean;
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -472,6 +474,18 @@ export async function convertToAnthropicMessagesPrompt({
               }
             }
           }
+        }
+
+        if (isThinking && isLastBlock) {
+          const thinkingBlocks = anthropicContent.filter(block => 
+            block.type === 'thinking' || block.type === 'redacted_thinking'
+          );
+          const otherBlocks = anthropicContent.filter(block => 
+            block.type !== 'thinking' && block.type !== 'redacted_thinking'
+          );
+          
+          anthropicContent.length = 0;
+          anthropicContent.push(...thinkingBlocks, ...otherBlocks);
         }
 
         messages.push({ role: 'assistant', content: anthropicContent });
