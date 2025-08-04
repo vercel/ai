@@ -373,7 +373,7 @@ By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 
 
 Update your `app/api/chat/route.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="app/api/chat/route.ts" highlight="27-40"
+```tsx filename="app/api/chat/route.ts" highlight="34-47"
 import { openai } from '@ai-sdk/openai';
 import {
   streamText,
