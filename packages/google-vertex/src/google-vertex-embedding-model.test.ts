@@ -131,13 +131,12 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     await model.doEmbed({
       values: testValues,
-      providerOptions: { google: { taskType: 'SEMANTIC_SIMILARITY' } },
+      providerOptions: { google: { taskType: mockProviderOptions.taskType } },
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       instances: testValues.map(value => ({ content: value })),
       parameters: {
-        outputDimensionality: mockProviderOptions.outputDimensionality,
         taskType: mockProviderOptions.taskType,
       },
     });
