@@ -15,9 +15,9 @@ export default createTransformer((fileInfo, api, options, context) => {
     .filter(path => {
       return Boolean(
         path.node.init &&
-        j.CallExpression.check(path.node.init) &&
-        j.Identifier.check(path.node.init.callee) &&
-        path.node.init.callee.name === 'createIdGenerator'
+          j.CallExpression.check(path.node.init) &&
+          j.Identifier.check(path.node.init.callee) &&
+          path.node.init.callee.name === 'createIdGenerator',
       );
     })
     .forEach(path => {
