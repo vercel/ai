@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.1
+
+### Patch Changes
+
+- 4d0c108: fix(ai/ui): convert provider metadata for system messages to model messages
+
 ## 5.0.0
 
 ### Major Changes
