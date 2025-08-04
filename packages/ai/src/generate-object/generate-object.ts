@@ -93,7 +93,12 @@ via tool or schema name.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
 
-@param output - The type of the output: 'object', 'array', 'enum', 'no-schema', or 'record'.
+@param output - The type of the output.
+- 'object': The output is an object.
+- 'array': The output is an array.
+- 'enum': The output is an enum.
+- 'no-schema': The output is not a schema.
+- 'record': The output is a record.
 
 @param experimental_repairText - A function that attempts to repair the raw output of the model
 to enable JSON parsing.
