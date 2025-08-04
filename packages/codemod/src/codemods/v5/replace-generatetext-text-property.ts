@@ -3,8 +3,59 @@ import { createTransformer } from '../lib/create-transformer';
 export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
 
-  // Find member expressions that match: result.text, result1.text, result2.text, etc.
-  // where result is an identifier (not already a member expression)
+  // Step 1: Find all variables assigned from generateText call
+  const generateTextVars = new Set();
+
+  // Variable declarations: const foo = await generateText(...)
+  root
+    .find(j.VariableDeclarator)
+    .filter(path => {
+      const init = path.node.init;
+      if (!init) return false;
+
+      if (j.AwaitExpression.check(init)) {
+        if (
+          j.CallExpression.check(init.argument) &&
+          j.Identifier.check(init.argument.callee) &&
+          init.argument.callee.name === 'generateText'
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    })
+    .forEach(path => {
+      if (j.Identifier.check(path.node.id)) {
+        generateTextVars.add(path.node.id.name);
+      }
+    });
+
+  // Assignment expressions: foo = await generateText(...)
+  root
+    .find(j.AssignmentExpression)
+    .filter(path => {
+      const right = path.node.right;
+      if (!right) return false;
+      if (j.AwaitExpression.check(right)) {
+        if (
+          j.CallExpression.check(right.argument) &&
+          j.Identifier.check(right.argument.callee) &&
+          right.argument.callee.name === 'generateText'
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    })
+    .forEach(path => {
+      if (j.Identifier.check(path.node.left)) {
+        generateTextVars.add(path.node.left.name);
+      }
+    });
+
+  // Step 2: Find .text usage on those variables
   root
     .find(j.MemberExpression)
     .filter(path => {
@@ -19,17 +70,7 @@ export default createTransformer((fileInfo, api, options, context) => {
       if (!j.Identifier.check(node.object)) {
         return false;
       }
-
-      // The identifier should be a common generateText result variable name
-      const commonNames = [
-        'result',
-        'response',
-        'output',
-        'data',
-        'textResult',
-      ];
-      const objName = node.object.name;
-      return commonNames.includes(objName) || objName.startsWith('result');
+      return generateTextVars.has(node.object.name);
     })
     .forEach(path => {
       // Transform result.text to result.text.text by creating a new member expression
