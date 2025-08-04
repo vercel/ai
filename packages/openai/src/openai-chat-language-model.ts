@@ -347,6 +347,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       });
     }
 
+    // annotations/citations:
+    for (const annotation of choice.message.annotations ?? []) {
+      content.push({
+        type: 'source',
+        sourceType: 'url',
+        id: generateId(),
+        url: annotation.url,
+        title: annotation.title,
+      });
+    }
+
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
     const promptTokenDetails = response.usage?.prompt_tokens_details;
@@ -647,6 +658,19 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                 }
               }
             }
+
+            // annotations/citations:
+            if (delta.annotations != null) {
+              for (const annotation of delta.annotations) {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: generateId(),
+                  url: annotation.url,
+                  title: annotation.title,
+                });
+              }
+            }
           },
 
           flush(controller) {
@@ -712,6 +736,17 @@ const openaiChatResponseSchema = z.object({
             }),
           )
           .nullish(),
+        annotations: z
+          .array(
+            z.object({
+              type: z.literal('url_citation'),
+              start_index: z.number(),
+              end_index: z.number(),
+              url: z.string(),
+              title: z.string(),
+            }),
+          )
+          .nullish(),
       }),
       index: z.number(),
       logprobs: z
@@ -761,6 +796,17 @@ const openaiChatChunkSchema = z.union([
                     name: z.string().nullish(),
                     arguments: z.string().nullish(),
                   }),
+                }),
+              )
+              .nullish(),
+            annotations: z
+              .array(
+                z.object({
+                  type: z.literal('url_citation'),
+                  start_index: z.number(),
+                  end_index: z.number(),
+                  url: z.string(),
+                  title: z.string(),
                 }),
               )
               .nullish(),
