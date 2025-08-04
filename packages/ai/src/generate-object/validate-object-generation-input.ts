@@ -10,7 +10,7 @@ export function validateObjectGenerationInput({
   schemaDescription,
   enumValues,
 }: {
-  output?: 'object' | 'array' | 'enum' | 'no-schema';
+  output?: 'object' | 'array' | 'enum' | 'no-schema' | 'record';
   schema?: z4.core.$ZodType | z3.Schema<any, z3.ZodTypeDef, any> | Schema<any>;
   schemaName?: string;
   schemaDescription?: string;
@@ -21,7 +21,8 @@ export function validateObjectGenerationInput({
     output !== 'object' &&
     output !== 'array' &&
     output !== 'enum' &&
-    output !== 'no-schema'
+    output !== 'no-schema' &&
+    output !== 'record'
   ) {
     throw new InvalidArgumentError({
       parameter: 'output',
@@ -96,6 +97,24 @@ export function validateObjectGenerationInput({
         parameter: 'enumValues',
         value: enumValues,
         message: 'Enum values are not supported for array output.',
+      });
+    }
+  }
+
+  if (output === 'record') {
+    if (schema == null) {
+      throw new InvalidArgumentError({
+        parameter: 'schema',
+        value: schema,
+        message: 'Schema is required for record output.',
+      });
+    }
+
+    if (enumValues != null) {
+      throw new InvalidArgumentError({
+        parameter: 'enumValues',
+        value: enumValues,
+        message: 'Enum values are not supported for record output.',
       });
     }
   }

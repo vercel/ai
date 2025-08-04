@@ -44,6 +44,7 @@ import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 import { RepairTextFunction } from './repair-text';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
+import { detectRecordSchema } from '../util/detect-record-schema';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -92,12 +93,7 @@ via tool or schema name.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
 
-@param output - The type of the output.
-
-- 'object': The output is an object.
-- 'array': The output is an array.
-- 'enum': The output is an enum.
-- 'no-schema': The output is not a schema.
+@param output - The type of the output: 'object', 'array', 'enum', 'no-schema', or 'record'.
 
 @param experimental_repairText - A function that attempts to repair the raw output of the model
 to enable JSON parsing.
@@ -235,8 +231,11 @@ Default and recommended: 'auto' (best mode for the model).
     schemaName,
   } = 'schema' in options ? options : {};
 
+  const detectedOutput =
+    inputSchema && detectRecordSchema(inputSchema) ? 'record' : output;
+
   validateObjectGenerationInput({
-    output,
+    output: detectedOutput,
     schema: inputSchema,
     schemaName,
     schemaDescription,
@@ -249,7 +248,7 @@ Default and recommended: 'auto' (best mode for the model).
   });
 
   const outputStrategy = getOutputStrategy({
-    output,
+    output: detectedOutput,
     schema: inputSchema,
     enumValues,
   });
