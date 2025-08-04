@@ -1903,7 +1903,7 @@ describe('doStream', () => {
           type: 'finish',
           finishReason: 'stop',
         }),
-      ])
+      ]),
     );
   });
 
