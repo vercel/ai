@@ -10,6 +10,7 @@ export type OpenAIResponsesMessage =
   | OpenAIResponsesFunctionCallOutput
   | OpenAIWebSearchCall
   | OpenAIComputerCall
+  | OpenAIFileSearchCall
   | OpenAIResponsesReasoning;
 
 export type OpenAIResponsesSystemMessage = {
@@ -32,6 +33,7 @@ export type OpenAIResponsesAssistantMessage = {
     | { type: 'output_text'; text: string }
     | OpenAIWebSearchCall
     | OpenAIComputerCall
+    | OpenAIFileSearchCall
   >;
   id?: string;
 };
@@ -58,6 +60,12 @@ export type OpenAIWebSearchCall = {
 
 export type OpenAIComputerCall = {
   type: 'computer_call';
+  id: string;
+  status?: string;
+};
+
+export type OpenAIFileSearchCall = {
+  type: 'file_search_call';
   id: string;
   status?: string;
 };
