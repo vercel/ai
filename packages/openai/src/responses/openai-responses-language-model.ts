@@ -310,6 +310,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 status: z.string().optional(),
               }),
               z.object({
+                type: z.literal('file_search_call'),
+                id: z.string(),
+                status: z.string().optional(),
+              }),
+              z.object({
                 type: z.literal('reasoning'),
                 id: z.string(),
                 encrypted_content: z.string().nullish(),
@@ -442,6 +447,28 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolName: 'computer_use',
             result: {
               type: 'computer_use_tool_result',
+              status: part.status || 'completed',
+            },
+            providerExecuted: true,
+          });
+          break;
+        }
+
+        case 'file_search_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'file_search',
+            input: '',
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'file_search',
+            result: {
+              type: 'file_search_tool_result',
               status: part.status || 'completed',
             },
             providerExecuted: true,
@@ -890,6 +917,11 @@ const responseOutputItemAddedSchema = z.object({
       id: z.string(),
       status: z.string(),
     }),
+    z.object({
+      type: z.literal('file_search_call'),
+      id: z.string(),
+      status: z.string(),
+    }),
   ]),
 });
 
@@ -921,6 +953,11 @@ const responseOutputItemDoneSchema = z.object({
     }),
     z.object({
       type: z.literal('computer_call'),
+      id: z.string(),
+      status: z.literal('completed'),
+    }),
+    z.object({
+      type: z.literal('file_search_call'),
       id: z.string(),
       status: z.literal('completed'),
     }),
