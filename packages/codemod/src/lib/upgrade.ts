@@ -59,6 +59,7 @@ const bundle = [
   'v5/rsc-package',
   'v5/flatten-streamtext-file-properties',
   'v5/import-LanguageModelV2-from-provider-package',
+  'v5/require-createIdGenerator-size-argument',
   'v5/migrate-to-data-stream-protocol-v2',
   'v5/move-image-model-maxImagesPerCall',
   'v5/move-langchain-adapter',
