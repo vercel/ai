@@ -231,7 +231,7 @@ const loraFileSchema = z.object({
 const commonResponseSchema = z.object({
   timings: z
     .object({
-      inference: z.number(),
+      inference: z.number().optional(),
     })
     .optional(),
   seed: z.number().optional(),
