@@ -9,7 +9,10 @@ async function main() {
       {
         role: 'user',
         content: [
-          { type: 'text', text: 'Watch this video and provide a detailed analysis of its content, themes, and any notable elements.' },
+          {
+            type: 'text',
+            text: 'Watch this video and provide a detailed analysis of its content, themes, and any notable elements.',
+          },
           {
             type: 'file',
             data: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',

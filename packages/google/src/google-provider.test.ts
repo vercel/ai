@@ -198,9 +198,9 @@ describe('google-provider', () => {
 
     const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
     const supportedUrlsFunction = call[1].supportedUrls;
-    
+
     expect(supportedUrlsFunction).toBeDefined();
-    
+
     const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
     const patterns = supportedUrls['*'];
 
