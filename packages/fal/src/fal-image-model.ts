@@ -214,18 +214,18 @@ const falImageSchema = z.object({
   height: z.number().optional(),
   content_type: z.string().optional(),
   // e.g. https://fal.ai/models/fal-ai/flowedit/api#schema-output
-  file_name: z.string().optional(),
+  file_name: z.string().nullable().optional(),
   file_data: z.string().optional(),
-  file_size: z.number().optional(),
+  file_size: z.number().nullable().optional(),
 });
 
 // https://fal.ai/models/fal-ai/lora/api#type-File
 const loraFileSchema = z.object({
   url: z.string(),
   content_type: z.string().optional(),
-  file_name: z.string().optional(),
+  file_name: z.string().nullable().optional(),
   file_data: z.string().optional(),
-  file_size: z.number().optional(),
+  file_size: z.number().nullable().optional(),
 });
 
 const commonResponseSchema = z.object({
