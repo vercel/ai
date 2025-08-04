@@ -13,7 +13,7 @@ export default createTransformer((fileInfo, api, options, context) => {
   root
     .find(j.VariableDeclarator)
     .filter(path => {
-      return (
+      return Boolean(
         path.node.init &&
         j.CallExpression.check(path.node.init) &&
         j.Identifier.check(path.node.init.callee) &&
