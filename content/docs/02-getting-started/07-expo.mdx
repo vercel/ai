@@ -42,7 +42,7 @@ Install `ai`, `@ai-sdk/react` and `@ai-sdk/openai`, the AI package, the AI React
   in the [providers](/providers) section.
 </Note>
 <div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
     <Tab>
       <Snippet text="pnpm add ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
@@ -52,7 +52,11 @@ Install `ai`, `@ai-sdk/react` and `@ai-sdk/openai`, the AI package, the AI React
     <Tab>
       <Snippet text="yarn add ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
-  </Tabs>
+  
+  <Tab>
+    <Snippet text="bun add ai @ai-sdk/openai @ai-sdk/react zod" dark />
+  </Tab>
+</Tabs>
 </div>
 
 ### Configure OpenAI API key
@@ -633,7 +637,7 @@ Several functions that are internally used by the AI SDK might not available in 
 First, install the following packages:
 
 <div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
     <Tab>
       <Snippet
         text="pnpm add @ungap/structured-clone @stardazed/streams-text-encoding"
