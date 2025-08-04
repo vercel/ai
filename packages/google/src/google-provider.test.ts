@@ -189,4 +189,79 @@ describe('google-provider', () => {
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledTimes(1);
     expect(GoogleGenerativeAIEmbeddingModel).toHaveBeenCalledTimes(2);
   });
+
+  it('should include YouTube URLs in supportedUrls', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+    });
+    provider('gemini-pro');
+
+    const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
+    const supportedUrlsFunction = call[1].supportedUrls;
+    
+    expect(supportedUrlsFunction).toBeDefined();
+    
+    const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
+    const patterns = supportedUrls['*'];
+
+    expect(patterns).toBeDefined();
+    expect(Array.isArray(patterns)).toBe(true);
+
+    const testResults = {
+      supportedUrls: [
+        'https://generativelanguage.googleapis.com/v1beta/files/test123',
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        'https://youtube.com/watch?v=dQw4w9WgXcQ',
+        'https://youtu.be/dQw4w9WgXcQ',
+      ].map(url => ({
+        url,
+        isSupported: patterns.some((pattern: RegExp) => pattern.test(url)),
+      })),
+      unsupportedUrls: [
+        'https://example.com',
+        'https://vimeo.com/123456789',
+        'https://youtube.com/channel/UCdQw4w9WgXcQ',
+      ].map(url => ({
+        url,
+        isSupported: patterns.some((pattern: RegExp) => pattern.test(url)),
+      })),
+    };
+
+    expect(testResults).toMatchInlineSnapshot(`
+      {
+        "supportedUrls": [
+          {
+            "isSupported": true,
+            "url": "https://generativelanguage.googleapis.com/v1beta/files/test123",
+          },
+          {
+            "isSupported": true,
+            "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+          },
+          {
+            "isSupported": true,
+            "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
+          },
+          {
+            "isSupported": true,
+            "url": "https://youtu.be/dQw4w9WgXcQ",
+          },
+        ],
+        "unsupportedUrls": [
+          {
+            "isSupported": false,
+            "url": "https://example.com",
+          },
+          {
+            "isSupported": false,
+            "url": "https://vimeo.com/123456789",
+          },
+          {
+            "isSupported": false,
+            "url": "https://youtube.com/channel/UCdQw4w9WgXcQ",
+          },
+        ],
+      }
+    `);
+  });
 });
