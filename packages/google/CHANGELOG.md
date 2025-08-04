@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.1
+
+### Patch Changes
+
+- f5464aa: feat(google): update docs + add YouTube URL support to Google Generative AI provider
+
 ## 2.0.0
 
 ### Major Changes

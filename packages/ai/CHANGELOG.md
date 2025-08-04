@@ -1,5 +1,12 @@
 # ai
 
+## 5.0.2
+
+### Patch Changes
+
+- 401d73e: fix (ai): support dynamic tool calls in lastAssistantMessageIsCompleteWithToolCalls
+- 69fde99: Set status to ready when reconnect stream is null
+
 ## 5.0.1
 
 ### Patch Changes

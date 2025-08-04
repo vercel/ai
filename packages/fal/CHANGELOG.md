@@ -1,5 +1,11 @@
 # @ai-sdk/fal
 
+## 1.0.1
+
+### Patch Changes
+
+- 85f0e8f: fix(fal): handle null file_name and file_size in image responses
+
 ## 1.0.0
 
 ### Major Changes

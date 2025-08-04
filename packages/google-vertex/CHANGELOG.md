@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.2
+
+### Patch Changes
+
+- b9cd900: feat(providers/google-vertex) Add TaskType support for Text Embedding Model
+- Updated dependencies [f5464aa]
+  - @ai-sdk/google@2.0.1
+
 ## 3.0.1
 
 ### Patch Changes
