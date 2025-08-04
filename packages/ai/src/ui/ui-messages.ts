@@ -277,6 +277,12 @@ export function isToolUIPart<TOOLS extends UITools>(
   return part.type.startsWith('tool-');
 }
 
+export function isToolPart<TOOLS extends UITools>(
+  part: UIMessagePart<UIDataTypes, TOOLS>,
+): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
+  return part.type.startsWith('tool-') || part.type === 'dynamic-tool';
+}
+
 export function getToolName<TOOLS extends UITools>(
   part: ToolUIPart<TOOLS>,
 ): keyof TOOLS {
