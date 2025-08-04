@@ -423,5 +423,54 @@ describe('FalImageModel', () => {
         seed: 328395684,
       });
     });
+
+    it('should handle empty timings object', async () => {
+      server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+        type: 'json-value',
+        body: {
+          images: [
+            {
+              url: 'https://api.example.com/image.png',
+              content_type: 'image/png',
+              file_name: null,
+              file_size: null,
+              width: 880,
+              height: 1184,
+            },
+          ],
+          timings: {},
+          seed: 235205040,
+          has_nsfw_concepts: [false],
+          prompt: 'Change the plates to colorful ones',
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        providerOptions: {},
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(result.images[0]).toBeInstanceOf(Uint8Array);
+      expect(result.providerMetadata?.fal).toMatchObject({
+        images: [
+          {
+            width: 880,
+            height: 1184,
+            contentType: 'image/png',
+            fileName: null,
+            fileSize: null,
+            nsfw: false,
+          },
+        ],
+        timings: {},
+        seed: 235205040,
+      });
+    });
   });
 });
