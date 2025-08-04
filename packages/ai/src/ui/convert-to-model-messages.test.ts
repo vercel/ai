@@ -13,6 +13,94 @@ describe('convertToModelMessages', () => {
 
       expect(result).toEqual([{ role: 'system', content: 'System message' }]);
     });
+
+    it('should convert a system message with provider metadata', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'system',
+          parts: [
+            {
+              text: 'System message with metadata',
+              type: 'text',
+              providerMetadata: { testProvider: { systemSignature: 'abc123' } },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'system',
+          content: 'System message with metadata',
+          providerOptions: { testProvider: { systemSignature: 'abc123' } },
+        },
+      ]);
+    });
+
+    it('should merge provider metadata from multiple text parts in system message', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'system',
+          parts: [
+            {
+              text: 'Part 1',
+              type: 'text',
+              providerMetadata: { provider1: { key1: 'value1' } },
+            },
+            {
+              text: ' Part 2',
+              type: 'text',
+              providerMetadata: { provider2: { key2: 'value2' } },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'system',
+          content: 'Part 1 Part 2',
+          providerOptions: {
+            provider1: { key1: 'value1' },
+            provider2: { key2: 'value2' },
+          },
+        },
+      ]);
+    });
+
+    it('should convert a system message with Anthropic cache control metadata', () => {
+      const SYSTEM_PROMPT = 'You are a helpful assistant.';
+
+      const systemMessage = {
+        id: 'system',
+        role: 'system' as const,
+        parts: [
+          {
+            type: 'text' as const,
+            text: SYSTEM_PROMPT,
+            providerMetadata: {
+              anthropic: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+        ],
+      };
+
+      const result = convertToModelMessages([systemMessage]);
+
+      expect(result).toEqual([
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT,
+          providerOptions: {
+            anthropic: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ]);
+    });
   });
 
   describe('user message', () => {
