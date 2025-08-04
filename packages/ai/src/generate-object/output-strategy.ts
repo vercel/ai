@@ -29,7 +29,7 @@ import {
 import { ObjectStreamPart } from './stream-object-result';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
-  readonly type: 'object' | 'array' | 'enum' | 'no-schema';
+  readonly type: 'object' | 'array' | 'enum' | 'no-schema' | 'record';
   readonly jsonSchema: JSONSchema7 | undefined;
 
   validatePartialResult({
@@ -294,6 +294,96 @@ const arrayOutputStrategy = <ELEMENT>(
   };
 };
 
+const recordOutputStrategy = <VALUE>(
+  schema: Schema<VALUE>,
+): OutputStrategy<Record<string, VALUE>, Record<string, VALUE>, never> => {
+  const recordJsonSchema = schema.jsonSchema;
+
+  let valueSchema: any;
+  if (
+    recordJsonSchema.type === 'object' &&
+    recordJsonSchema.additionalProperties
+  ) {
+    valueSchema = recordJsonSchema.additionalProperties;
+  } else {
+    const { $schema, ...fallbackSchema } = recordJsonSchema;
+    valueSchema = fallbackSchema;
+  }
+
+  return {
+    type: 'record',
+
+    jsonSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        items: {
+          type: 'object',
+          additionalProperties: valueSchema,
+        },
+      },
+      required: ['items'],
+      additionalProperties: false,
+    },
+
+    async validatePartialResult({ value }) {
+      if (!isJSONObject(value) || !isJSONObject(value.items)) {
+        return {
+          success: false,
+          error: new TypeValidationError({
+            value,
+            cause: 'value must be an object that contains a record of items',
+          }),
+        };
+      }
+
+      const inputRecord = value.items as Record<string, JSONValue>;
+      const result = await safeValidateTypes({ value: inputRecord, schema });
+
+      if (!result.success) {
+        return result;
+      }
+
+      return {
+        success: true,
+        value: {
+          partial: result.value as Record<string, VALUE>,
+          textDelta: JSON.stringify(result.value),
+        },
+      };
+    },
+
+    async validateFinalResult(
+      value: JSONValue | undefined,
+    ): Promise<ValidationResult<Record<string, VALUE>>> {
+      if (!isJSONObject(value) || !isJSONObject(value.items)) {
+        return {
+          success: false,
+          error: new TypeValidationError({
+            value,
+            cause: 'value must be an object that contains a record of items',
+          }),
+        };
+      }
+
+      const inputRecord = value.items as Record<string, JSONValue>;
+      const result = await safeValidateTypes({ value: inputRecord, schema });
+
+      if (!result.success) {
+        return result;
+      }
+
+      return { success: true, value: result.value as Record<string, VALUE> };
+    },
+
+    createElementStream() {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'Record streaming is not supported yet',
+      });
+    },
+  };
+};
+
 const enumOutputStrategy = <ENUM extends string>(
   enumValues: Array<ENUM>,
 ): OutputStrategy<string, ENUM, never> => {
@@ -392,7 +482,7 @@ export function getOutputStrategy<SCHEMA>({
   schema,
   enumValues,
 }: {
-  output: 'object' | 'array' | 'enum' | 'no-schema';
+  output: 'object' | 'array' | 'enum' | 'no-schema' | 'record';
   schema?:
     | z4.core.$ZodType<SCHEMA, any>
     | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
@@ -408,6 +498,8 @@ export function getOutputStrategy<SCHEMA>({
       return enumOutputStrategy(enumValues! as Array<string>);
     case 'no-schema':
       return noSchemaOutputStrategy;
+    case 'record':
+      return recordOutputStrategy(asSchema(schema!));
     default: {
       const _exhaustiveCheck: never = output;
       throw new Error(`Unsupported output: ${_exhaustiveCheck}`);
