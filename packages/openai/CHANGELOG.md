@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.2
+
+### Patch Changes
+
+- 63e2016: fix(openai): missing url citations from web search tools
+
 ## 2.0.1
 
 ### Patch Changes

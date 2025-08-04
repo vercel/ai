@@ -1,5 +1,11 @@
 # @ai-sdk/fal
 
+## 1.0.2
+
+### Patch Changes
+
+- 59bfbd8: fix(fal): handle empty timings object in image responses
+
 ## 1.0.1
 
 ### Patch Changes
