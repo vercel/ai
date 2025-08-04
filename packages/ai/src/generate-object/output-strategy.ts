@@ -28,8 +28,36 @@ import {
 } from '../types';
 import { ObjectStreamPart } from './stream-object-result';
 
+function detectRecordSchema(schema: any): boolean {
+  try {
+    let jsonSchema;
+    if (typeof schema === 'object' && schema !== null) {
+      if ('_def' in schema) {
+        jsonSchema = asSchema(schema).jsonSchema;
+      } else if ('jsonSchema' in schema) {
+        jsonSchema = schema.jsonSchema;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+
+    return (
+      jsonSchema &&
+      jsonSchema.type === 'object' &&
+      jsonSchema.additionalProperties &&
+      typeof jsonSchema.additionalProperties === 'object' &&
+      (!jsonSchema.properties ||
+        Object.keys(jsonSchema.properties).length === 0)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
-  readonly type: 'object' | 'array' | 'enum' | 'no-schema' | 'record';
+  readonly type: 'object' | 'array' | 'enum' | 'no-schema';
   readonly jsonSchema: JSONSchema7 | undefined;
 
   validatePartialResult({
@@ -102,9 +130,92 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
 
 const objectOutputStrategy = <OBJECT>(
   schema: Schema<OBJECT>,
-): OutputStrategy<DeepPartial<OBJECT>, OBJECT, never> => ({
-  type: 'object',
-  jsonSchema: schema.jsonSchema,
+): OutputStrategy<DeepPartial<OBJECT>, OBJECT, never> => {
+  const isRecord = detectRecordSchema(schema);
+  
+  if (isRecord) {
+    const recordJsonSchema = schema.jsonSchema;
+    let valueSchema: any;
+    if (
+      recordJsonSchema.type === 'object' &&
+      recordJsonSchema.additionalProperties
+    ) {
+      valueSchema = recordJsonSchema.additionalProperties;
+    } else {
+      const { $schema, ...fallbackSchema } = recordJsonSchema;
+      valueSchema = fallbackSchema;
+    }
+
+    return {
+      type: 'object',
+      jsonSchema: {
+        $schema: 'http://json-schema.org/draft-07/schema#',
+        type: 'object',
+        properties: {
+          items: {
+            type: 'object',
+            additionalProperties: valueSchema,
+          },
+        },
+        required: ['items'],
+        additionalProperties: false,
+      },
+
+      async validatePartialResult({ value, textDelta }) {
+        if (!isJSONObject(value) || !isJSONObject(value.items)) {
+          return {
+            success: false,
+            error: new TypeValidationError({
+              value,
+              cause: 'value must be an object that contains a record of items',
+            }),
+          };
+        }
+
+        const inputRecord = value.items as Record<string, JSONValue>;
+        const result = await safeValidateTypes({ value: inputRecord, schema });
+
+        if (!result.success) {
+          return result;
+        }
+
+        return {
+          success: true,
+          value: {
+            partial: result.value as DeepPartial<OBJECT>,
+            textDelta,
+          },
+        };
+      },
+
+      async validateFinalResult(
+        value: JSONValue | undefined,
+      ): Promise<ValidationResult<OBJECT>> {
+        if (!isJSONObject(value) || !isJSONObject(value.items)) {
+          return {
+            success: false,
+            error: new TypeValidationError({
+              value,
+              cause: 'value must be an object that contains a record of items',
+            }),
+          };
+        }
+
+        const inputRecord = value.items as Record<string, JSONValue>;
+        return safeValidateTypes({ value: inputRecord, schema });
+      },
+
+      createElementStream() {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'element streams in object mode',
+        });
+      },
+    };
+  }
+
+  return {
+    type: 'object',
+    jsonSchema: schema.jsonSchema,
 
   async validatePartialResult({ value, textDelta }) {
     return {
@@ -117,18 +228,19 @@ const objectOutputStrategy = <OBJECT>(
     };
   },
 
-  async validateFinalResult(
-    value: JSONValue | undefined,
-  ): Promise<ValidationResult<OBJECT>> {
-    return safeValidateTypes({ value, schema });
-  },
+    async validateFinalResult(
+      value: JSONValue | undefined,
+    ): Promise<ValidationResult<OBJECT>> {
+      return safeValidateTypes({ value, schema });
+    },
 
-  createElementStream() {
-    throw new UnsupportedFunctionalityError({
-      functionality: 'element streams in object mode',
-    });
-  },
-});
+    createElementStream() {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'element streams in object mode',
+      });
+    },
+  };
+};
 
 const arrayOutputStrategy = <ELEMENT>(
   schema: Schema<ELEMENT>,
@@ -294,95 +406,7 @@ const arrayOutputStrategy = <ELEMENT>(
   };
 };
 
-const recordOutputStrategy = <VALUE>(
-  schema: Schema<VALUE>,
-): OutputStrategy<Record<string, VALUE>, Record<string, VALUE>, never> => {
-  const recordJsonSchema = schema.jsonSchema;
 
-  let valueSchema: any;
-  if (
-    recordJsonSchema.type === 'object' &&
-    recordJsonSchema.additionalProperties
-  ) {
-    valueSchema = recordJsonSchema.additionalProperties;
-  } else {
-    const { $schema, ...fallbackSchema } = recordJsonSchema;
-    valueSchema = fallbackSchema;
-  }
-
-  return {
-    type: 'record',
-
-    jsonSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        items: {
-          type: 'object',
-          additionalProperties: valueSchema,
-        },
-      },
-      required: ['items'],
-      additionalProperties: false,
-    },
-
-    async validatePartialResult({ value }) {
-      if (!isJSONObject(value) || !isJSONObject(value.items)) {
-        return {
-          success: false,
-          error: new TypeValidationError({
-            value,
-            cause: 'value must be an object that contains a record of items',
-          }),
-        };
-      }
-
-      const inputRecord = value.items as Record<string, JSONValue>;
-      const result = await safeValidateTypes({ value: inputRecord, schema });
-
-      if (!result.success) {
-        return result;
-      }
-
-      return {
-        success: true,
-        value: {
-          partial: result.value as Record<string, VALUE>,
-          textDelta: JSON.stringify(result.value),
-        },
-      };
-    },
-
-    async validateFinalResult(
-      value: JSONValue | undefined,
-    ): Promise<ValidationResult<Record<string, VALUE>>> {
-      if (!isJSONObject(value) || !isJSONObject(value.items)) {
-        return {
-          success: false,
-          error: new TypeValidationError({
-            value,
-            cause: 'value must be an object that contains a record of items',
-          }),
-        };
-      }
-
-      const inputRecord = value.items as Record<string, JSONValue>;
-      const result = await safeValidateTypes({ value: inputRecord, schema });
-
-      if (!result.success) {
-        return result;
-      }
-
-      return { success: true, value: result.value as Record<string, VALUE> };
-    },
-
-    createElementStream() {
-      throw new UnsupportedFunctionalityError({
-        functionality: 'Record streaming is not supported yet',
-      });
-    },
-  };
-};
 
 const enumOutputStrategy = <ENUM extends string>(
   enumValues: Array<ENUM>,
@@ -482,7 +506,7 @@ export function getOutputStrategy<SCHEMA>({
   schema,
   enumValues,
 }: {
-  output: 'object' | 'array' | 'enum' | 'no-schema' | 'record';
+  output: 'object' | 'array' | 'enum' | 'no-schema';
   schema?:
     | z4.core.$ZodType<SCHEMA, any>
     | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
@@ -498,8 +522,6 @@ export function getOutputStrategy<SCHEMA>({
       return enumOutputStrategy(enumValues! as Array<string>);
     case 'no-schema':
       return noSchemaOutputStrategy;
-    case 'record':
-      return recordOutputStrategy(asSchema(schema!));
     default: {
       const _exhaustiveCheck: never = output;
       throw new Error(`Unsupported output: ${_exhaustiveCheck}`);

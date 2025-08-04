@@ -44,7 +44,7 @@ import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 import { RepairTextFunction } from './repair-text';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
-import { detectRecordSchema } from '../util/detect-record-schema';
+
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -236,11 +236,8 @@ Default and recommended: 'auto' (best mode for the model).
     schemaName,
   } = 'schema' in options ? options : {};
 
-  const detectedOutput =
-    inputSchema && detectRecordSchema(inputSchema) ? 'record' : output;
-
   validateObjectGenerationInput({
-    output: detectedOutput,
+    output,
     schema: inputSchema,
     schemaName,
     schemaDescription,
@@ -253,7 +250,7 @@ Default and recommended: 'auto' (best mode for the model).
   });
 
   const outputStrategy = getOutputStrategy({
-    output: detectedOutput,
+    output,
     schema: inputSchema,
     enumValues,
   });

@@ -3,7 +3,7 @@ export { consumeStream } from './consume-stream';
 export { cosineSimilarity } from './cosine-similarity';
 export { getTextFromDataUrl } from './data-url';
 export type { DeepPartial } from './deep-partial';
-export { detectRecordSchema } from './detect-record-schema';
+
 export { type ErrorHandler } from './error-handler';
 export { isDeepEqualData } from './is-deep-equal-data';
 export { parsePartialJson } from './parse-partial-json';

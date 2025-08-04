@@ -14,11 +14,11 @@ describe('recordOutputStrategy unit tests', () => {
       );
 
       const strategy = getOutputStrategy({
-        output: 'record' as any,
+        output: 'object',
         schema,
       });
 
-      expect(strategy.type).toBe('record');
+      expect(strategy.type).toBe('object');
       expect(strategy.jsonSchema).toMatchObject({
         type: 'object',
         properties: {
@@ -50,7 +50,7 @@ describe('recordOutputStrategy unit tests', () => {
       );
 
       const strategy = getOutputStrategy({
-        output: 'record' as any,
+        output: 'object',
         schema,
       });
 
@@ -86,7 +86,7 @@ describe('recordOutputStrategy unit tests', () => {
       );
 
       const strategy = getOutputStrategy({
-        output: 'record' as any,
+        output: 'object',
         schema,
       });
 
@@ -113,7 +113,7 @@ describe('recordOutputStrategy unit tests', () => {
       );
 
       const strategy = getOutputStrategy({
-        output: 'record' as any,
+        output: 'object',
         schema,
       });
 
@@ -142,7 +142,7 @@ describe('recordOutputStrategy unit tests', () => {
       );
 
       const strategy = getOutputStrategy({
-        output: 'record' as any,
+        output: 'object',
         schema,
       });
 
@@ -174,7 +174,7 @@ describe('recordOutputStrategy unit tests', () => {
       const schema = z.record(z.string(), z.string());
 
       const strategy = getOutputStrategy({
-        output: 'record' as any,
+        output: 'object',
         schema,
       });
 
@@ -197,7 +197,7 @@ describe('recordOutputStrategy unit tests', () => {
       const schema = z.record(z.string(), z.union([z.string(), z.number()]));
 
       const strategy = getOutputStrategy({
-        output: 'record' as any,
+        output: 'object',
         schema,
       });
 
@@ -218,7 +218,7 @@ describe('recordOutputStrategy unit tests', () => {
       const schema = z.record(z.string(), z.string());
 
       const strategy = getOutputStrategy({
-        output: 'record' as any,
+        output: 'object',
         schema,
       });
 
