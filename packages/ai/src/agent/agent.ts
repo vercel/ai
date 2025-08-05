@@ -89,6 +89,15 @@ A function that attempts to repair a tool call that failed to parse.
   onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
 
   /**
+   * Context that is passed into tool calls.
+   *
+   * Experimental (can break in patch releases).
+   *
+   * @default undefined
+   */
+  experimental_context?: unknown;
+
+  /**
    * Internal. For test use only. May change without notice.
    */
   _internal?: {

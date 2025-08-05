@@ -655,6 +655,13 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'experimental_context',
+      type: 'unknown',
+      isOptional: true,
+      description:
+        'Context that is passed into tool execution. Experimental (can break in patch releases).',
+    },
+    {
       name: 'experimental_repairToolCall',
       type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV2ToolCall | null>',
       isOptional: true,
