@@ -10,6 +10,8 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { HuggingFaceChatModelId } from './huggingface-chat-options';
+import { HuggingFaceResponsesLanguageModel } from './responses/huggingface-responses-language-model';
+import { HuggingFaceResponsesModelId } from './responses/huggingface-responses-settings';
 
 export interface HuggingFaceProviderSettings {
   /**
@@ -46,6 +48,11 @@ Creates a Hugging Face model for text generation.
 Creates a Hugging Face chat model for text generation.
 */
   chat(modelId: HuggingFaceChatModelId): LanguageModelV2;
+
+  /**
+Creates a Hugging Face responses model for text generation.
+*/
+  responses(modelId: HuggingFaceResponsesModelId): LanguageModelV2;
 }
 
 /**
@@ -54,9 +61,8 @@ Create a Hugging Face provider instance.
 export function createHuggingFace(
   options: HuggingFaceProviderSettings = {},
 ): HuggingFaceProvider {
-  const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://router.huggingface.co/v1',
-  );
+  const baseURL =
+    withoutTrailingSlash(options.baseURL) ?? 'https://router.huggingface.co/v1';
 
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
@@ -76,11 +82,21 @@ export function createHuggingFace(
     });
   };
 
+  const createResponsesModel = (modelId: HuggingFaceResponsesModelId) => {
+    return new HuggingFaceResponsesLanguageModel(modelId, {
+      provider: 'huggingface.responses',
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+  };
+
   const provider = (modelId: HuggingFaceChatModelId) =>
     createLanguageModel(modelId);
 
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
+  provider.responses = createResponsesModel;
 
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({
