@@ -60,6 +60,8 @@ export type GatewayModelId =
   | 'openai/gpt-4.1-nano'
   | 'openai/gpt-4o'
   | 'openai/gpt-4o-mini'
+  | 'openai/gpt-oss-120b'
+  | 'openai/gpt-oss-20b'
   | 'openai/o1'
   | 'openai/o3'
   | 'openai/o3-mini'
