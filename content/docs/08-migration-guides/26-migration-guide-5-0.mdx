@@ -1593,7 +1593,7 @@ The Vue.js integration has been completely restructured, replacing the `useChat`
 
 #### useChat Replaced with Chat Class
 
-```vue filename="@ai-sdk/vue v1"
+```typescript filename="@ai-sdk/vue v1"
 <script setup>
 import { useChat } from '@ai-sdk/vue';
 
@@ -1603,7 +1603,7 @@ const { messages, input, handleSubmit } = useChat({
 </script>
 ```
 
-```vue filename="@ai-sdk/vue v2"
+```typescript filename="@ai-sdk/vue v2"
 <script setup>
 import { Chat } from '@ai-sdk/vue';
 import { DefaultChatTransport } from 'ai';
@@ -1626,7 +1626,7 @@ const handleSubmit = (e: Event) => {
 
 Messages now use a `parts` array instead of a `content` string.
 
-```vue filename="@ai-sdk/vue v1"
+```typescript filename="@ai-sdk/vue v1"
 <template>
   <div v-for="message in messages" :key="message.id">
     <div>{{ message.role }}: {{ message.content }}</div>
@@ -1634,7 +1634,7 @@ Messages now use a `parts` array instead of a `content` string.
 </template>
 ```
 
-```vue filename="@ai-sdk/vue v2"
+```typescript filename="@ai-sdk/vue v2"
 <template>
   <div v-for="message in chat.messages" :key="message.id">
     <div>{{ message.role }}:</div>
