@@ -450,6 +450,10 @@ A function that attempts to repair a tool call that failed to parse.
 
           // notify the tools that the tool calls are available:
           for (const toolCall of stepToolCalls) {
+            if (toolCall.invalid) {
+              continue; // ignore invalid tool calls
+            }
+
             const tool = tools![toolCall.toolName];
             if (tool?.onInputAvailable != null) {
               await tool.onInputAvailable({

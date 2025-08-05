@@ -32,6 +32,12 @@ export type DynamicToolCall = {
   // Added into DynamicToolCall to avoid breaking changes.
   // TODO AI SDK 6: separate into a new InvalidToolCall type
   invalid?: boolean;
+
+  /**
+   * The error that caused the tool call to be invalid.
+   */
+  // TODO AI SDK 6: separate into a new InvalidToolCall type
+  error?: unknown;
 };
 
 export type TypedToolCall<TOOLS extends ToolSet> =
