@@ -50,9 +50,10 @@ async function parseAndValidateObjectResult<RESULT>(
   );
 
   if (!validationResult.success) {
-    
-    if (validationResult.error instanceof TypeValidationError) { throw validationResult.error; }
-    
+    if (validationResult.error instanceof TypeValidationError) {
+      throw validationResult.error;
+    }
+
     throw new NoObjectGeneratedError({
       message: 'No object generated: response did not match schema.',
       cause: validationResult.error,

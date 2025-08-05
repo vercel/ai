@@ -100,8 +100,6 @@ export function validateObjectGenerationInput({
     }
   }
 
-
-
   if (output === 'enum') {
     if (schema != null) {
       throw new InvalidArgumentError({

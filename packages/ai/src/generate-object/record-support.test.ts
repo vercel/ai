@@ -249,10 +249,12 @@ describe('z.record support - TDD Tests', () => {
       });
 
       const schema = z.object({
-        items: z.record(z.object({
-          name: z.string(),
-          value: z.number(),
-        })),
+        items: z.record(
+          z.object({
+            name: z.string(),
+            value: z.number(),
+          }),
+        ),
       });
 
       const result = await generateObject({

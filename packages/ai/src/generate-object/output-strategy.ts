@@ -132,7 +132,7 @@ const objectOutputStrategy = <OBJECT>(
   schema: Schema<OBJECT>,
 ): OutputStrategy<DeepPartial<OBJECT>, OBJECT, never> => {
   const isRecord = detectRecordSchema(schema);
-  
+
   if (isRecord) {
     const recordJsonSchema = schema.jsonSchema;
     let valueSchema: any;
@@ -217,16 +217,16 @@ const objectOutputStrategy = <OBJECT>(
     type: 'object',
     jsonSchema: schema.jsonSchema,
 
-  async validatePartialResult({ value, textDelta }) {
-    return {
-      success: true,
-      value: {
-        // Note: currently no validation of partial results:
-        partial: value as DeepPartial<OBJECT>,
-        textDelta,
-      },
-    };
-  },
+    async validatePartialResult({ value, textDelta }) {
+      return {
+        success: true,
+        value: {
+          // Note: currently no validation of partial results:
+          partial: value as DeepPartial<OBJECT>,
+          textDelta,
+        },
+      };
+    },
 
     async validateFinalResult(
       value: JSONValue | undefined,
@@ -405,8 +405,6 @@ const arrayOutputStrategy = <ELEMENT>(
     },
   };
 };
-
-
 
 const enumOutputStrategy = <ENUM extends string>(
   enumValues: Array<ENUM>,

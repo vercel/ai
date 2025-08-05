@@ -45,7 +45,6 @@ import { validateObjectGenerationInput } from './validate-object-generation-inpu
 import { RepairTextFunction } from './repair-text';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 
-
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
 /**
