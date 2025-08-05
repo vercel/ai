@@ -3,6 +3,10 @@ import { FlexibleSchema } from '../schema';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
 
+/**
+ * Additional options that are sent into each tool call.
+ */
+// TODO AI SDK 6: rename to ToolExecutionOptions
 export interface ToolCallOptions {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
@@ -19,6 +23,13 @@ export interface ToolCallOptions {
    * An optional abort signal that indicates that the overall operation should be aborted.
    */
   abortSignal?: AbortSignal;
+
+  /**
+   * Additional context.
+   *
+   * Experimental (can break in patch releases).
+   */
+  experimental_context?: unknown;
 }
 
 export type ToolExecuteFunction<INPUT, OUTPUT> = (

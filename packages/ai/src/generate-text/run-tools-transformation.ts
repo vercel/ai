@@ -104,6 +104,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   repairToolCall,
+  experimental_context,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV2StreamPart>;
@@ -113,6 +114,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  experimental_context: unknown;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -228,6 +230,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 toolCallId: toolCall.toolCallId,
                 messages,
                 abortSignal,
+                experimental_context,
               });
             }
 
@@ -264,6 +267,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                       toolCallId: toolCall.toolCallId,
                       messages,
                       abortSignal,
+                      experimental_context,
                     });
                   } catch (error) {
                     recordErrorOnSpan(span, error);

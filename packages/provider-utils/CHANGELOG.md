@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.1
+
+### Patch Changes
+
+- 90d212f: feat (ai): add experimental tool call context
+
 ## 3.0.0
 
 ### Major Changes

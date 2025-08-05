@@ -1,9 +1,7 @@
 import {
   LanguageModelV2CallOptions,
   LanguageModelV2FunctionTool,
-  LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
@@ -12,7 +10,6 @@ import {
   tool,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import assert from 'node:assert';
 import { z } from 'zod/v4';
 import { Output } from '.';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
@@ -2113,25 +2110,26 @@ describe('generateText', () => {
       });
 
       expect(recordedCalls).toMatchInlineSnapshot(`
-      [
-        {
-          "options": {
-            "abortSignal": undefined,
-            "input": {
-              "value": "value",
-            },
-            "messages": [
-              {
-                "content": "test-input",
-                "role": "user",
+        [
+          {
+            "options": {
+              "abortSignal": undefined,
+              "experimental_context": undefined,
+              "input": {
+                "value": "value",
               },
-            ],
-            "toolCallId": "call-1",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call-1",
+            },
+            "type": "onInputAvailable",
           },
-          "type": "onInputAvailable",
-        },
-      ]
-    `);
+        ]
+      `);
     });
   });
 
@@ -2819,6 +2817,48 @@ describe('generateText', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('tool execution context', () => {
+    it('should send context to tool execution', async () => {
+      let recordedContext: unknown | undefined;
+
+      const result = await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 't1',
+                input: `{ "value": "test" }`,
+              },
+            ],
+            finishReason: 'tool-calls',
+          }),
+        }),
+        tools: {
+          t1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { experimental_context }) => {
+              recordedContext = experimental_context;
+              return { value: 'test-result' };
+            },
+          }),
+        },
+        experimental_context: {
+          context: 'test',
+        },
+        prompt: 'test-input',
+      });
+
+      // tool should be executed by client
+      expect(recordedContext).toStrictEqual({
+        context: 'test',
+      });
     });
   });
 });

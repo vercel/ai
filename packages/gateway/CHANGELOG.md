@@ -1,5 +1,14 @@
 # @ai-sdk/gateway
 
+## 1.0.1
+
+### Patch Changes
+
+- 028fb9c: refactor(provider/gateway): Cleanup old gateway-embedding-options file
+- 6331826: feat(provider/gateway): Hide Cohere embedding models with no pricing info
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+
 ## 1.0.0
 
 ### Patch Changes
