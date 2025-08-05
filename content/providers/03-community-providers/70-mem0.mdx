@@ -50,8 +50,6 @@ const mem0 = createMem0({
   // Optional Mem0 Global Config
   mem0Config: {
     user_id: 'mem0-user-id',
-    org_id: 'mem0-org-id',
-    project_id: 'mem0-project-id',
     enable_graph: true,
   },
 });
@@ -92,21 +90,15 @@ await addMemories(messages, { user_id: 'borat' });
 ```ts
 await addMemories(messages, {
   user_id: 'borat',
-  mem0ApiKey: 'm0-xxx',
-  org_id: 'org_xx',
-  project_id: 'proj_xx',
+  mem0ApiKey: 'm0-xxx'
 });
 await retrieveMemories(prompt, {
   user_id: 'borat',
-  mem0ApiKey: 'm0-xxx',
-  org_id: 'org_xx',
-  project_id: 'proj_xx',
+  mem0ApiKey: 'm0-xxx'
 });
 await getMemories(prompt, {
   user_id: 'borat',
-  mem0ApiKey: 'm0-xxx',
-  org_id: 'org_xx',
-  project_id: 'proj_xx',
+  mem0ApiKey: 'm0-xxx'
 });
 ```
 
