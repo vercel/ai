@@ -16,7 +16,6 @@ function createModel(modelId: string) {
     url: ({ path }) => `https://router.huggingface.co/v1${path}`,
     headers: () => ({ Authorization: `Bearer APIKEY` }),
     generateId: mockId(),
-    
   });
 }
 
