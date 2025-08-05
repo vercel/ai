@@ -83,11 +83,19 @@ export function createHuggingFace(
   provider.chat = createLanguageModel;
 
   provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+    throw new NoSuchModelError({ 
+      modelId, 
+      modelType: 'textEmbeddingModel',
+      message: 'Hugging Face OpenAI-compatible API does not support text embeddings. Use the Hugging Face Inference API directly for embeddings.'
+    });
   };
 
   provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
+    throw new NoSuchModelError({ 
+      modelId, 
+      modelType: 'imageModel',
+      message: 'Hugging Face OpenAI-compatible API does not support image generation. Use the Hugging Face Inference API directly for image models.'
+    });
   };
 
   return provider;
