@@ -221,8 +221,10 @@ A function that attempts to repair a tool call that failed to parse.
      * Context that is passed into tool calls.
      *
      * Experimental (can break in patch releases).
+     *
+     * @default undefined
      */
-    experimental_context: unknown;
+    experimental_context?: unknown;
 
     /**
      * Internal. For test use only. May change without notice.

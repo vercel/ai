@@ -21,14 +21,14 @@ export interface ToolCallOptions {
   /**
    * An optional abort signal that indicates that the overall operation should be aborted.
    */
-  abortSignal: AbortSignal | undefined;
+  abortSignal?: AbortSignal;
 
   /**
    * Context that is passed into tool calls.
    *
    * Experimental (can break in patch releases).
    */
-  experimental_context: unknown;
+  experimental_context?: unknown;
 }
 
 export type ToolExecuteFunction<INPUT, OUTPUT> = (

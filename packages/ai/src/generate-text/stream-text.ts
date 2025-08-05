@@ -252,6 +252,7 @@ export function streamText<
   onFinish,
   onAbort,
   onStepFinish,
+  experimental_context,
   _internal: {
     now = originalNow,
     generateId = originalGenerateId,
@@ -377,6 +378,15 @@ Callback that is called when each step (LLM call) is finished, including interme
     onStepFinish?: StreamTextOnStepFinishCallback<TOOLS>;
 
     /**
+     * Context that is passed into tool calls.
+     *
+     * Experimental (can break in patch releases).
+     *
+     * @default undefined
+     */
+    experimental_context?: unknown;
+
+    /**
 Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -413,6 +423,7 @@ Internal. For test use only. May change without notice.
     now,
     currentDate,
     generateId,
+    experimental_context,
   });
 }
 
@@ -578,6 +589,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onFinish,
     onAbort,
     onStepFinish,
+    experimental_context,
   }: {
     model: LanguageModelV2;
     telemetry: TelemetrySettings | undefined;
@@ -601,6 +613,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
+    experimental_context: unknown;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -1106,6 +1119,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             messages: stepInputMessages,
             repairToolCall,
             abortSignal,
+            experimental_context,
           });
 
           const stepRequest = request ?? {};
@@ -1270,6 +1284,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           toolCallId: chunk.id,
                           messages: stepInputMessages,
                           abortSignal,
+                          experimental_context,
                         });
                       }
 
@@ -1296,6 +1311,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           toolCallId: chunk.id,
                           messages: stepInputMessages,
                           abortSignal,
+                          experimental_context,
                         });
                       }
 
