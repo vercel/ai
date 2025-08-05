@@ -2113,25 +2113,26 @@ describe('generateText', () => {
       });
 
       expect(recordedCalls).toMatchInlineSnapshot(`
-      [
-        {
-          "options": {
-            "abortSignal": undefined,
-            "input": {
-              "value": "value",
-            },
-            "messages": [
-              {
-                "content": "test-input",
-                "role": "user",
+        [
+          {
+            "options": {
+              "abortSignal": undefined,
+              "experimental_context": undefined,
+              "input": {
+                "value": "value",
               },
-            ],
-            "toolCallId": "call-1",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call-1",
+            },
+            "type": "onInputAvailable",
           },
-          "type": "onInputAvailable",
-        },
-      ]
-    `);
+        ]
+      `);
     });
   });
 
