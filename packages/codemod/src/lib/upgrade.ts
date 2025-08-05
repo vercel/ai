@@ -43,6 +43,7 @@ const bundle = [
   'v5/rename-converttocoremessages-to-converttomodelmessages',
   'v5/rename-core-message-to-model-message',
   'v5/rename-datastream-transform-stream',
+  'v5/rename-IDGenerator-to-IdGenerator',
   'v5/rename-languagemodelv1providermetadata',
   'v5/rename-max-tokens-to-max-output-tokens',
   'v5/rename-message-to-ui-message',
