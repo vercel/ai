@@ -6,6 +6,7 @@ import { ProviderOptions } from './provider-options';
 /**
  * Additional options that are sent into each tool call.
  */
+// TODO AI SDK 6: rename to ToolExecutionOptions
 export interface ToolCallOptions {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
