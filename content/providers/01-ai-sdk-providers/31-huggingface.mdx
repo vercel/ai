@@ -138,17 +138,37 @@ const { text } = await generateText({
 
 ## Model Capabilities
 
-| Model                               | Text Generation     | Image Input         | Tool Usage          | Tool Streaming      |
-| ----------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `meta-llama/Llama-3.1-8B-Instruct`  | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `meta-llama/Llama-3.1-70B-Instruct` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `deepseek-ai/DeepSeek-V3-0324`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `Qwen/Qwen2.5-VL-7B-Instruct`       | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `google/gemini-2.0-flash-exp`       | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                                           | Text Generation     | Image Input         | Tool Usage          | Tool Streaming      |
+| ----------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `meta-llama/Llama-3.1-8B-Instruct`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-3.1-70B-Instruct`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-3.1-405B-Instruct`            | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-3.3-70B-Instruct`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-4-Scout-17B-16E-Instruct`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-4-Maverick-17B-128E-Instruct` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-Guard-4-12B`                  | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `deepseek-ai/DeepSeek-V3`                       | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-V3-0324`                  | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-R1`                       | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`     | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `deepseek-ai/DeepSeek-Prover-V2-671B`           | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `Qwen/Qwen3-235B-A22B-Instruct-2507`            | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-235B-A22B-Thinking-2507`            | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-Coder-480B-A35B-Instruct`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-30B-A3B`                            | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen2.5-VL-7B-Instruct`                   | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `Qwen/Qwen2.5-VL-32B-Instruct`                  | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `Qwen/Qwen2.5-72B-Instruct`                     | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen2.5-7B-Instruct`                      | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen2.5-Coder-7B-Instruct`                | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `google/gemma-2-2b-it`                          | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `google/gemma-3-27b-it`                         | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `moonshotai/Kimi-K2-Instruct`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
-  Tool calling is not currently supported by Hugging Face's OpenAI-compatible
-  endpoints. For the full list of available models and their capabilities, visit
-  the [Hugging Face Inference Providers
-  documentation](https://huggingface.co/inference/models).
+  Tool calling is supported by many models through Hugging Face's
+  OpenAI-compatible endpoints. Check if a specific model supports tools by
+  visiting
+  [https://router.huggingface.co/v1/models](https://router.huggingface.co/v1/models)
+  and looking for `"supports_tools": true` in the model's capabilities.
 </Note>
