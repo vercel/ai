@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: huggingface('google/gemma-2-2b-it'),
+    model: huggingface('Qwen/Qwen3-Coder-480B-A35B-Instruct'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

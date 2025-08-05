@@ -4,7 +4,8 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
+    model: huggingface('Qwen/Qwen3-Coder-480B-A35B-Instruct'),
+    // model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
     prompt: 'Write a short poem about recursion.',
   });
 
