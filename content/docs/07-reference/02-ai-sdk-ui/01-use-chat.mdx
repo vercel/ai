@@ -84,7 +84,8 @@ Allows you to easily create a conversational user interface for your chatbot app
               name: 'prepareSendMessagesRequest',
               type: 'PrepareSendMessagesRequest',
               isOptional: true,
-              description: 'Function to prepare the request body for chat API calls.',
+              description:
+                'A function to customize the request before chat API calls.',
               properties: [
                 {
                   type: 'PrepareSendMessagesRequest',
@@ -108,8 +109,33 @@ Allows you to easily create a conversational user interface for your chatbot app
                               description: 'Current messages in the chat',
                             },
                             {
+                              name: 'requestMetadata',
+                              type: 'unknown',
+                              description: 'The request metadata',
+                            },
+                            {
+                              name: 'body',
+                              type: 'Record<string, any> | undefined',
+                              description: 'The request body',
+                            },
+                            {
+                              name: 'credentials',
+                              type: 'RequestCredentials | undefined',
+                              description: 'The request credentials',
+                            },
+                            {
+                              name: 'headers',
+                              type: 'HeadersInit | undefined',
+                              description: 'The request headers',
+                            },
+                            {
+                              name: 'api',
+                              type: 'string',
+                              description: `The API endpoint to use for the request. If not specified, it defaults to the transport’s API endpoint: /api/chat.`,
+                            },
+                            {
                               name: 'trigger',
-                              type: "'submit-user-message' | 'submit-tool-result' | 'regenerate-assistant-message'",
+                              type: "'submit-message' | 'regenerate-message'",
                               description: 'The trigger for the request',
                             },
                             {
@@ -117,8 +143,65 @@ Allows you to easily create a conversational user interface for your chatbot app
                               type: 'string | undefined',
                               description: 'The message ID if applicable',
                             },
-                          ]
-                        }
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'prepareReconnectToStreamRequest',
+              type: 'PrepareReconnectToStreamRequest',
+              isOptional: true,
+              description:
+                'A function to customize the request before reconnect API call.',
+              properties: [
+                {
+                  type: 'PrepareReconnectToStreamRequest',
+                  parameters: [
+                    {
+                      name: 'options',
+                      type: 'PrepareReconnectToStreamRequestOptions',
+                      description:
+                        'Options for preparing the reconnect request',
+                      properties: [
+                        {
+                          type: 'PrepareReconnectToStreamRequestOptions',
+                          parameters: [
+                            {
+                              name: 'id',
+                              type: 'string',
+                              description: 'The chat ID',
+                            },
+                            {
+                              name: 'requestMetadata',
+                              type: 'unknown',
+                              description: 'The request metadata',
+                            },
+                            {
+                              name: 'body',
+                              type: 'Record<string, any> | undefined',
+                              description: 'The request body',
+                            },
+                            {
+                              name: 'credentials',
+                              type: 'RequestCredentials | undefined',
+                              description: 'The request credentials',
+                            },
+                            {
+                              name: 'headers',
+                              type: 'HeadersInit | undefined',
+                              description: 'The request headers',
+                            },
+                            {
+                              name: 'api',
+                              type: 'string',
+                              description: `The API endpoint to use for the request. If not specified, it defaults to the transport’s API endpoint combined with the chat ID: /api/chat/{chatId}/stream.`,
+                            },
+                          ],
+                        },
                       ],
                     },
                   ],
@@ -191,8 +274,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       description:
         'Whether to resume an ongoing chat generation stream. Defaults to false.',
     },
-
-]}
+  ]}
 />
 
 ### Returns
@@ -290,6 +372,11 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: '() => void',
       description:
         'Function to abort the current streaming response from the assistant.',
+    },
+    {
+      name: 'clearError',
+      type: '() => void',
+      description: 'Clears the error state.',
     },
     {
       name: 'resumeStream',

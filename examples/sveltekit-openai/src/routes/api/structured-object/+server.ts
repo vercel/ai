@@ -7,7 +7,7 @@ const openai = createOpenAI({
   apiKey: env?.OPENAI_API_KEY,
 });
 
-export async function POST({ request }) {
+export async function POST({ request }: { request: Request }) {
   const context = await request.json();
 
   const result = streamObject({

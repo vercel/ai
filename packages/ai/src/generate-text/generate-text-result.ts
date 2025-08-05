@@ -8,8 +8,12 @@ import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
-import { ToolCallArray } from './tool-call';
-import { ToolResultArray } from './tool-output';
+import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
+import {
+  DynamicToolResult,
+  StaticToolResult,
+  TypedToolResult,
+} from './tool-result';
 import { ToolSet } from './tool-set';
 
 /**
@@ -52,12 +56,32 @@ Sources that have been used as references in the last step.
   /**
 The tool calls that were made in the last step.
    */
-  readonly toolCalls: ToolCallArray<TOOLS>;
+  readonly toolCalls: Array<TypedToolCall<TOOLS>>;
+
+  /**
+The static tool calls that were made in the last step.
+   */
+  readonly staticToolCalls: Array<StaticToolCall<TOOLS>>;
+
+  /**
+The dynamic tool calls that were made in the last step.
+   */
+  readonly dynamicToolCalls: Array<DynamicToolCall>;
 
   /**
 The results of the tool calls from the last step.
    */
-  readonly toolResults: ToolResultArray<TOOLS>;
+  readonly toolResults: Array<TypedToolResult<TOOLS>>;
+
+  /**
+The static tool results that were made in the last step.
+   */
+  readonly staticToolResults: Array<StaticToolResult<TOOLS>>;
+
+  /**
+The dynamic tool results that were made in the last step.
+   */
+  readonly dynamicToolResults: Array<DynamicToolResult>;
 
   /**
 The reason why the generation finished.

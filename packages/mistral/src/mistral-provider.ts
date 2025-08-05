@@ -28,13 +28,10 @@ Creates a model for text generation.
   chat(modelId: MistralChatModelId): LanguageModelV2;
 
   /**
-@deprecated Use `textEmbeddingModel()` instead.
+@deprecated Use `textEmbedding()` instead.
    */
   embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV2<string>;
 
-  /**
-@deprecated Use `textEmbeddingModel()` instead.
-   */
   textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV2<string>;
 
   textEmbeddingModel: (

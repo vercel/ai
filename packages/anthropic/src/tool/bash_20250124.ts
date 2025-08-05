@@ -15,7 +15,7 @@ export const bash_20250124 = createProviderDefinedToolFactory<
   },
   {}
 >({
-  id: 'anthropic.bashTool_20250124',
+  id: 'anthropic.bash_20250124',
   name: 'bash',
   inputSchema: z.object({
     command: z.string(),

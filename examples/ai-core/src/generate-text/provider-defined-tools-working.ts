@@ -20,7 +20,7 @@ async function main() {
   const openaiFileSearch = openai.tools.fileSearch({
     maxNumResults: 5,
     ranking: {
-      ranker: 'semantic',
+      ranker: 'auto',
     },
   });
 

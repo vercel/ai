@@ -415,6 +415,28 @@ describe('detectMediaType', () => {
     });
   });
 
+  describe('WEBM', () => {
+    it('should detect WEBM from bytes', () => {
+      const webmBytes = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]);
+      expect(
+        detectMediaType({
+          data: webmBytes,
+          signatures: audioMediaTypeSignatures,
+        }),
+      ).toBe('audio/webm');
+    });
+
+    it('should detect WEBM from base64', () => {
+      const webmBase64 = 'GkXfow=='; // Base64 string starting with WEBM signature
+      expect(
+        detectMediaType({
+          data: webmBase64,
+          signatures: audioMediaTypeSignatures,
+        }),
+      ).toBe('audio/webm');
+    });
+  });
+
   describe('error cases', () => {
     it('should return undefined for unknown image formats', () => {
       const unknownBytes = new Uint8Array([0x00, 0x01, 0x02, 0x03]);

@@ -391,6 +391,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     await this.makeRequest({ trigger: 'resume-stream', ...options });
   };
 
+  /**
+   * Clear the error state and set the status to ready if the chat is in an error state.
+   */
+  clearError = () => {
+    if (this.status === 'error') {
+      this.state.error = undefined;
+      this.setStatus({ status: 'ready' });
+    }
+  };
+
   addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
     tool,
     toolCallId,
@@ -489,6 +499,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         });
 
         if (reconnect == null) {
+          this.setStatus({ status: 'ready' });
           return; // no active stream found, so we do not resume
         }
 

@@ -1,5 +1,5 @@
 import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { prepareRetries } from '../../src/util/prepare-retries';
+import { prepareRetries } from '../util/prepare-retries';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -7,7 +7,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { EmbeddingModel } from '../types';
+import { EmbeddingModel, ProviderMetadata } from '../types';
 import { EmbedResult } from './embed-result';
 
 /**
@@ -79,7 +79,10 @@ Only applicable for HTTP-based providers.
     });
   }
 
-  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { maxRetries, retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
@@ -102,7 +105,7 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const { embedding, usage, response } = await retry(() =>
+      const { embedding, usage, response, providerMetadata } = await retry(() =>
         // nested spans to align with the embedMany telemetry data:
         recordSpan({
           name: 'ai.embed.doEmbed',
@@ -148,6 +151,7 @@ Only applicable for HTTP-based providers.
             return {
               embedding,
               usage,
+              providerMetadata: modelResponse.providerMetadata,
               response: modelResponse.response,
             };
           },
@@ -168,6 +172,7 @@ Only applicable for HTTP-based providers.
         value,
         embedding,
         usage,
+        providerMetadata,
         response,
       });
     },
@@ -178,17 +183,20 @@ class DefaultEmbedResult<VALUE> implements EmbedResult<VALUE> {
   readonly value: EmbedResult<VALUE>['value'];
   readonly embedding: EmbedResult<VALUE>['embedding'];
   readonly usage: EmbedResult<VALUE>['usage'];
+  readonly providerMetadata: EmbedResult<VALUE>['providerMetadata'];
   readonly response: EmbedResult<VALUE>['response'];
 
   constructor(options: {
     value: EmbedResult<VALUE>['value'];
     embedding: EmbedResult<VALUE>['embedding'];
     usage: EmbedResult<VALUE>['usage'];
+    providerMetadata?: EmbedResult<VALUE>['providerMetadata'];
     response?: EmbedResult<VALUE>['response'];
   }) {
     this.value = options.value;
     this.embedding = options.embedding;
     this.usage = options.usage;
+    this.providerMetadata = options.providerMetadata;
     this.response = options.response;
   }
 }

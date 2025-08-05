@@ -1,27 +1,21 @@
 ---
-title: Multi-Modal Chatbot
-description: Learn how to build a multi-modal chatbot that can process images and PDFs with the AI SDK.
-tags: ['multi-modal', 'chatbot', 'images', 'pdf', 'vision', 'next']
+title: Multi-Modal Agent
+description: Learn how to build a multi-modal agent that can process images and PDFs with the AI SDK.
+tags: ['multi-modal', 'agent', 'images', 'pdf', 'vision', 'next']
 ---
 
-# Multi-Modal Chatbot
+# Multi-Modal Agent
 
-In this guide, you will build a multi-modal AI-chatbot capable of understanding both images and PDFs.
+In this guide, you will build a multi-modal agent capable of understanding both images and PDFs.
 
-Multi-modal refers to the ability of the chatbot to understand and generate responses in multiple formats, such as text, images, PDFs, and videos. In this example, we will focus on sending images and PDFs and generating text-based responses.
-
-Different AI providers have varying levels of multi-modal support, for example:
-
-- OpenAI (GPT-4o): Supports image input
-- Anthropic (Sonnet 3.5): Supports image and PDF input
-- Google (Gemini 2.0): Supports image and PDF input
+Multi-modal refers to the ability of the agent to understand and generate responses in multiple formats. In this guide, we'll focus on images and PDFs - two common document types that modern language models can process natively.
 
 <Note>
-  For a complete list of providers that support both image and PDF inputs, visit
-  the [providers documentation](/providers/ai-sdk-providers).
+  For a complete list of providers and their multi-modal capabilities, visit the
+  [providers documentation](/providers/ai-sdk-providers).
 </Note>
 
-We'll first build a chatbot capable of generating responses based on an image input using OpenAI, then show how to switch providers to handle PDFs.
+We'll build this agent using OpenAI's GPT-4o, but the same code works seamlessly with other providers - you can switch between them by changing just one line of code.
 
 ## Prerequisites
 
@@ -29,15 +23,12 @@ To follow this quickstart, you'll need:
 
 - Node.js 18+ and pnpm installed on your local development machine.
 - An OpenAI API key.
-- An Anthropic API Key.
 
 If you haven't obtained your OpenAI API key, you can do so by [signing up](https://platform.openai.com/signup/) on the OpenAI website.
 
-If you haven't obtained your Anthropic API key, you can do so by [signing up](https://console.anthropic.com/) on Anthropic's website.
-
 ## Create Your Application
 
-Start by creating a new Next.js application. This command will create a new directory named `multi-modal-chatbot` and set up a basic Next.js application inside it.
+Start by creating a new Next.js application. This command will create a new directory named `multi-modal-agent` and set up a basic Next.js application inside it.
 
 <div className="mb-4">
   <Note>
@@ -47,15 +38,15 @@ Start by creating a new Next.js application. This command will create a new dire
   </Note>
 </div>
 
-<Snippet text="pnpm create next-app@latest multi-modal-chatbot" />
+<Snippet text="pnpm create next-app@latest multi-modal-agent" />
 
 Navigate to the newly created directory:
 
-<Snippet text="cd multi-modal-chatbot" />
+<Snippet text="cd multi-modal-agent" />
 
 ### Install dependencies
 
-Install `ai` and `@ai-sdk/openai`, the Vercel AI package and the AI SDK's [ OpenAI provider ](/providers/ai-sdk-providers/openai) respectively.
+Install `ai` and `@ai-sdk/openai`, the AI SDK package and the AI SDK's [ OpenAI provider ](/providers/ai-sdk-providers/openai) respectively.
 
 <Note>
   The AI SDK is designed to be a unified interface to interact with any large
@@ -67,22 +58,13 @@ Install `ai` and `@ai-sdk/openai`, the Vercel AI package and the AI SDK's [ Open
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet
-        text="pnpm add ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta"
-        dark
-      />
+      <Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/openai" dark />
     </Tab>
     <Tab>
-      <Snippet
-        text="npm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta"
-        dark
-      />
+      <Snippet text="npm install ai @ai-sdk/react @ai-sdk/openai" dark />
     </Tab>
     <Tab>
-      <Snippet
-        text="yarn add ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta"
-        dark
-      />
+      <Snippet text="yarn add ai @ai-sdk/react @ai-sdk/openai" dark />
     </Tab>
   </Tabs>
 </div>
@@ -108,11 +90,11 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 
 ## Implementation Plan
 
-To build a multi-modal chatbot, you will need to:
+To build a multi-modal agent, you will need to:
 
 - Create a Route Handler to handle incoming chat messages and generate responses.
 - Wire up the UI to display chat messages, provide a user input, and handle submitting new messages.
-- Add the ability to upload images and attach them alongside the chat messages.
+- Add the ability to upload images and PDFs and attach them alongside the chat messages.
 
 ## Create a Route Handler
 
@@ -120,7 +102,7 @@ Create a route handler, `app/api/chat/route.ts` and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { streamText, convertToModelMessages, UIMessage } from 'ai';
+import { streamText, convertToModelMessages, type UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -139,7 +121,7 @@ export async function POST(req: Request) {
 
 Let's take a look at what is happening in this code:
 
-1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the chatbot and provides the chatbot with the necessary context to make the next generation.
+1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the agent and provides the agent with the necessary context to make the next generation.
 2. Convert the UI messages to model messages using `convertToModelMessages`, which transforms the UI-focused message format to the format expected by the language model.
 3. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (converted in step 2). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
 4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toUIMessageStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ui-message-stream-response) function which converts the result to a streamed response object.
@@ -157,27 +139,48 @@ Update your root page (`app/page.tsx`) with the following code to show a list of
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const [input, setInput] = useState('');
+
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
+
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
+          {m.parts.map((part, index) => {
+            if (part.type === 'text') {
+              return <span key={`${m.id}-text-${index}`}>{part.text}</span>;
+            }
+            return null;
+          })}
         </div>
       ))}
 
       <form
-        onSubmit={handleSubmit}
+        onSubmit={async event => {
+          event.preventDefault();
+          sendMessage({
+            role: 'user',
+            parts: [{ type: 'text', text: input }],
+          });
+          setInput('');
+        }}
         className="fixed bottom-0 w-full max-w-md mb-8 border border-gray-300 rounded shadow-xl"
       >
         <input
           className="w-full p-2"
           value={input}
           placeholder="Say something..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
         />
       </form>
     </div>
@@ -190,63 +193,114 @@ export default function Chat() {
   allows you to add interactivity with Javascript.
 </Note>
 
-This page utilizes the `useChat` hook, which will, by default, use the `POST` API route you created earlier (`/api/chat`). The hook provides functions and state for handling user input and form submission. The `useChat` hook provides multiple utility functions and state variables:
+This page utilizes the `useChat` hook, configured with `DefaultChatTransport` to specify the API endpoint. The `useChat` hook provides multiple utility functions and state variables:
 
-- `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
-- `input` - the current value of the user's input field.
-- `handleInputChange` and `handleSubmit` - functions to handle user interactions (typing into the input field and submitting the form, respectively).
-- `status` - the status of the API request.
+- `messages` - the current chat messages (an array of objects with `id`, `role`, and `parts` properties).
+- `sendMessage` - function to send a new message to the AI.
+- Each message contains a `parts` array that can include text, images, PDFs, and other content types.
+- Files are converted to data URLs before being sent to maintain compatibility across different environments.
 
-## Add Image Upload
+## Add File Upload
 
-To make your chatbot multi-modal, let's add the ability to upload and send images to the model. There are two ways to send attachments alongside a message with the `useChat` hook: by providing a `FileList` object or a list of URLs to the `handleSubmit` function. In this guide, you will be using the `FileList` approach as it does not require any additional setup.
+To make your agent multi-modal, let's add the ability to upload and send both images and PDFs to the model. In v5, files are sent as part of the message's `parts` array. Files are converted to data URLs using the FileReader API before being sent to the server.
 
 Update your root page (`app/page.tsx`) with the following code:
 
-```tsx filename="app/page.tsx" highlight="4-5,10-11,19-33,39-49,51-61"
+```tsx filename="app/page.tsx" highlight="4-5,10-12,15-39,46-81,87-97"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 
-export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+async function convertFilesToDataURLs(files: FileList) {
+  return Promise.all(
+    Array.from(files).map(
+      file =>
+        new Promise<{
+          type: 'file';
+          mediaType: string;
+          url: string;
+        }>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            resolve({
+              type: 'file',
+              mediaType: file.type,
+              url: reader.result as string,
+            });
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        }),
+    ),
+  );
+}
 
+export default function Chat() {
+  const [input, setInput] = useState('');
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
-          <div>
-            {m?.attachments
-              ?.filter(attachment =>
-                attachment?.contentType?.startsWith('image/'),
-              )
-              .map((attachment, index) => (
+          {m.parts.map((part, index) => {
+            if (part.type === 'text') {
+              return <span key={`${m.id}-text-${index}`}>{part.text}</span>;
+            }
+            if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
+              return (
                 <Image
-                  key={`${m.id}-${index}`}
-                  src={attachment.url}
+                  key={`${m.id}-image-${index}`}
+                  src={part.url}
                   width={500}
                   height={500}
-                  alt={attachment.name ?? `attachment-${index}`}
+                  alt={`attachment-${index}`}
                 />
-              ))}
-          </div>
+              );
+            }
+            if (part.type === 'file' && part.mediaType === 'application/pdf') {
+              return (
+                <iframe
+                  key={`${m.id}-pdf-${index}`}
+                  src={part.url}
+                  width={500}
+                  height={600}
+                  title={`pdf-${index}`}
+                />
+              );
+            }
+            return null;
+          })}
         </div>
       ))}
 
       <form
         className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl space-y-2"
-        onSubmit={event => {
-          handleSubmit(event, {
-            attachments: files,
+        onSubmit={async event => {
+          event.preventDefault();
+
+          const fileParts =
+            files && files.length > 0
+              ? await convertFilesToDataURLs(files)
+              : [];
+
+          sendMessage({
+            role: 'user',
+            parts: [{ type: 'text', text: input }, ...fileParts],
           });
 
+          setInput('');
           setFiles(undefined);
 
           if (fileInputRef.current) {
@@ -256,6 +310,7 @@ export default function Chat() {
       >
         <input
           type="file"
+          accept="image/*,application/pdf"
           className=""
           onChange={event => {
             if (event.target.files) {
@@ -269,7 +324,7 @@ export default function Chat() {
           className="w-full p-2"
           value={input}
           placeholder="Say something..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
         />
       </form>
     </div>
@@ -279,164 +334,51 @@ export default function Chat() {
 
 In this code, you:
 
-1. Create state to hold the files and create a ref to the file input field.
-2. Display the "uploaded" files in the UI.
-3. Update the `onSubmit` function, to call the `handleSubmit` function manually, passing the files as an option using the `attachments` key.
-4. Add a file input field to the form, including an `onChange` handler to handle updating the files state.
+1. Add a helper function `convertFilesToDataURLs` to convert file uploads to data URLs.
+1. Create state to hold the input text, files, and a ref to the file input field.
+1. Configure `useChat` with `DefaultChatTransport` to specify the API endpoint.
+1. Display messages using the `parts` array structure, rendering text, images, and PDFs appropriately.
+1. Update the `onSubmit` function to send messages with the `sendMessage` function, including both text and file parts.
+1. Add a file input field to the form, including an `onChange` handler to handle updating the files state.
 
 ## Running Your Application
 
-With that, you have built everything you need for your multi-modal chatbot! To start your application, use the command:
+With that, you have built everything you need for your multi-modal agent! To start your application, use the command:
 
 <Snippet text="pnpm run dev" />
 
-Head to your browser and open http://localhost:3000. You should see an input field and a button to upload an image.
+Head to your browser and open http://localhost:3000. You should see an input field and a button to upload files.
 
-Upload an image and ask the model to describe what it sees. Watch as the model's response is streamed back to you!
+Try uploading an image or PDF and asking the model questions about it. Watch as the model's response is streamed back to you!
 
-## Working with PDFs
+## Using Other Providers
 
-To enable PDF support, you can switch to a provider that handles PDFs like Google's Gemini or Anthropic's Claude. Here's how to modify the code to use Anthropic:
+With the AI SDK's unified provider interface you can easily switch to other providers that support multi-modal capabilities:
 
-1. First install the Anthropic provider:
-
-<Snippet text="pnpm add @ai-sdk/anthropic" />
-
-2. Update your environment variables:
-
-```env filename=".env.local" highlight="2"
-OPENAI_API_KEY=xxxxxxxxx
-ANTHROPIC_API_KEY=xxxxxxxxx
-```
-
-3. Modify your route handler:
-
-```tsx filename="app/api/chat/route.ts" highlight="2,10-15,18-21"
-import { openai } from '@ai-sdk/openai';
+```tsx filename="app/api/chat/route.ts"
+// Using Anthropic
 import { anthropic } from '@ai-sdk/anthropic';
-import { streamText, convertToModelMessages, UIMessage } from 'ai';
+const result = streamText({
+  model: anthropic('claude-sonnet-4-20250514'),
+  messages: convertToModelMessages(messages),
+});
 
-export const maxDuration = 30;
-
-export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
-
-  // check if user has sent a PDF
-  const messagesHavePDF = messages.some(message =>
-    message.attachments?.some(a => a.contentType === 'application/pdf'),
-  );
-
-  const result = streamText({
-    model: messagesHavePDF
-      ? anthropic('claude-3-5-sonnet-latest')
-      : openai('gpt-4o'),
-    messages: convertToModelMessages(messages),
-  });
-
-  return result.toUIMessageStreamResponse();
-}
+// Using Google
+import { google } from '@ai-sdk/google';
+const result = streamText({
+  model: google('gemini-2.5-flash'),
+  messages: convertToModelMessages(messages),
+});
 ```
 
-Now your chatbot can process both images and PDFs! You automatically route PDF requests to Claude Sonnet 3.5 and image requests to OpenAI's gpt-4o model.
-
-Finally, to display PDFs in your chat interface, update the message rendering code in your frontend to show PDF attachments in an `<iframe>`:
-
-```tsx filename="app/page.tsx" highlight="20-44"
-'use client';
-
-import { useChat } from '@ai-sdk/react';
-import { useRef, useState } from 'react';
-import Image from 'next/image';
-
-export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
-
-  const [files, setFiles] = useState<FileList | undefined>(undefined);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
-          <div>
-            {m?.attachments
-              ?.filter(
-                attachment =>
-                  attachment?.contentType?.startsWith('image/') ||
-                  attachment?.contentType?.startsWith('application/pdf'),
-              )
-              .map((attachment, index) =>
-                attachment.contentType?.startsWith('image/') ? (
-                  <Image
-                    key={`${m.id}-${index}`}
-                    src={attachment.url}
-                    width={500}
-                    height={500}
-                    alt={attachment.name ?? `attachment-${index}`}
-                  />
-                ) : attachment.contentType?.startsWith('application/pdf') ? (
-                  <iframe
-                    key={`${m.id}-${index}`}
-                    src={attachment.url}
-                    width={500}
-                    height={600}
-                    title={attachment.name ?? `attachment-${index}`}
-                  />
-                ) : null,
-              )}
-          </div>
-        </div>
-      ))}
-
-      <form
-        className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl space-y-2"
-        onSubmit={event => {
-          handleSubmit(event, {
-            attachments: files,
-          });
-
-          setFiles(undefined);
-
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
-        }}
-      >
-        <input
-          type="file"
-          className=""
-          onChange={event => {
-            if (event.target.files) {
-              setFiles(event.target.files);
-            }
-          }}
-          multiple
-          ref={fileInputRef}
-        />
-        <input
-          className="w-full p-2"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-      </form>
-    </div>
-  );
-}
-```
-
-Try uploading a PDF and asking questions about its contents.
+Install the provider package (`@ai-sdk/anthropic` or `@ai-sdk/google`) and update your API keys in `.env.local`. The rest of your code remains the same.
 
 <Note>
-  When switching providers, be sure to check the [provider
-  documentation](/providers/ai-sdk-providers) for specific file size limits and
-  supported file types.
+  Different providers may have varying file size limits and performance
+  characteristics. Check the [provider
+  documentation](/providers/ai-sdk-providers) for specific details.
 </Note>
 
 ## Where to Next?
 
-You've built a multi-modal AI chatbot using the AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-core/tools-and-tool-calling) or introducing more granular control over [AI and UI states](/docs/ai-sdk-rsc/generative-ui-state).
-
-If you are looking to leverage the broader capabilities of LLMs, Vercel [AI SDK Core](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.
+You've built a multi-modal AI agent using the AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-core/tools-and-tool-calling).

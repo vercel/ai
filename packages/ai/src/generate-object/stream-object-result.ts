@@ -1,5 +1,5 @@
 import { ServerResponse } from 'http';
-import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
+import { AsyncIterableStream } from '../util/async-iterable-stream';
 import {
   CallWarning,
   FinishReason,
@@ -39,6 +39,13 @@ Additional request information from the last step.
 Additional response information.
  */
   readonly response: Promise<LanguageModelResponseMetadata>;
+
+  /**
+The reason why the generation finished. Taken from the last step.
+
+Resolved when the response is finished.
+     */
+  readonly finishReason: Promise<FinishReason>;
 
   /**
   The generated object (typed according to the schema). Resolved when the response is finished.

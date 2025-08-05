@@ -389,6 +389,164 @@ console.log(text); // text response
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
+## Computer Use
+
+Via Anthropic, Amazon Bedrock provides three provider-defined tools that can be used to interact with external systems:
+
+1. **Bash Tool**: Allows running bash commands.
+2. **Text Editor Tool**: Provides functionality for viewing and editing text files.
+3. **Computer Tool**: Enables control of keyboard and mouse actions on a computer.
+
+They are available via the `tools` property of the provider instance.
+
+### Bash Tool
+
+The Bash Tool allows running bash commands. Here's how to create and use it:
+
+```ts
+const bashTool = anthropic.tools.bash_20241022({
+  execute: async ({ command, restart }) => {
+    // Implement your bash command execution logic here
+    // Return the result of the command execution
+  },
+});
+```
+
+Parameters:
+
+- `command` (string): The bash command to run. Required unless the tool is being restarted.
+- `restart` (boolean, optional): Specifying true will restart this tool.
+
+### Text Editor Tool
+
+The Text Editor Tool provides functionality for viewing and editing text files.
+
+**For Claude 4 models (Opus & Sonnet):**
+
+```ts
+const textEditorTool = anthropic.tools.textEditor_20250429({
+  execute: async ({
+    command,
+    path,
+    file_text,
+    insert_line,
+    new_str,
+    old_str,
+    view_range,
+  }) => {
+    // Implement your text editing logic here
+    // Return the result of the text editing operation
+  },
+});
+```
+
+**For Claude 3.5 Sonnet and earlier models:**
+
+```ts
+const textEditorTool = anthropic.tools.textEditor_20241022({
+  execute: async ({
+    command,
+    path,
+    file_text,
+    insert_line,
+    new_str,
+    old_str,
+    view_range,
+  }) => {
+    // Implement your text editing logic here
+    // Return the result of the text editing operation
+  },
+});
+```
+
+Parameters:
+
+- `command` ('view' | 'create' | 'str_replace' | 'insert' | 'undo_edit'): The command to run. Note: `undo_edit` is only available in Claude 3.5 Sonnet and earlier models.
+- `path` (string): Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
+- `file_text` (string, optional): Required for `create` command, with the content of the file to be created.
+- `insert_line` (number, optional): Required for `insert` command. The line number after which to insert the new string.
+- `new_str` (string, optional): New string for `str_replace` or `insert` commands.
+- `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
+- `view_range` (number[], optional): Optional for `view` command to specify line range to show.
+
+When using the Text Editor Tool, make sure to name the key in the tools object correctly:
+
+- **Claude 4 models**: Use `str_replace_based_edit_tool`
+- **Claude 3.5 Sonnet and earlier**: Use `str_replace_editor`
+
+```ts
+// For Claude 4 models
+const response = await generateText({
+  model: bedrock('us.anthropic.claude-sonnet-4-20250514-v1:0'),
+  prompt:
+    "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
+  tools: {
+    str_replace_based_edit_tool: textEditorTool, // Claude 4 tool name
+  },
+});
+
+// For Claude 3.5 Sonnet and earlier
+const response = await generateText({
+  model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  prompt:
+    "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
+  tools: {
+    str_replace_editor: textEditorTool, // Earlier models tool name
+  },
+});
+```
+
+### Computer Tool
+
+The Computer Tool enables control of keyboard and mouse actions on a computer:
+
+```ts
+const computerTool = anthropic.tools.computer_20241022({
+  displayWidthPx: 1920,
+  displayHeightPx: 1080,
+  displayNumber: 0, // Optional, for X11 environments
+
+  execute: async ({ action, coordinate, text }) => {
+    // Implement your computer control logic here
+    // Return the result of the action
+
+    // Example code:
+    switch (action) {
+      case 'screenshot': {
+        // multipart result:
+        return {
+          type: 'image',
+          data: fs
+            .readFileSync('./data/screenshot-editor.png')
+            .toString('base64'),
+        };
+      }
+      default: {
+        console.log('Action:', action);
+        console.log('Coordinate:', coordinate);
+        console.log('Text:', text);
+        return `executed ${action}`;
+      }
+    }
+  },
+
+  // map to tool result content for LLM consumption:
+  toModelOutput(result) {
+    return typeof result === 'string'
+      ? [{ type: 'text', text: result }]
+      : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
+  },
+});
+```
+
+Parameters:
+
+- `action` ('key' | 'type' | 'mouse_move' | 'left_click' | 'left_click_drag' | 'right_click' | 'middle_click' | 'double_click' | 'screenshot' | 'cursor_position'): The action to perform.
+- `coordinate` (number[], optional): Required for `mouse_move` and `left_click_drag` actions. Specifies the (x, y) coordinates.
+- `text` (string, optional): Required for `type` and `key` actions.
+
+These tools can be used in conjunction with the `anthropic.claude-3-5-sonnet-20240620-v1:0` model to enable more complex interactions and tasks.
+
 ### Model Capabilities
 
 | Model                                       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
