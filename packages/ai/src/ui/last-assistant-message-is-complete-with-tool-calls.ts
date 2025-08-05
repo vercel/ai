@@ -26,7 +26,7 @@ export function lastAssistantMessageIsCompleteWithToolCalls({
 
   const lastStepToolInvocations = message.parts
     .slice(lastStepStartIndex + 1)
-    .filter(isToolUIPart);
+    .filter(part => isToolUIPart(part) || part.type === 'dynamic-tool');
 
   return (
     lastStepToolInvocations.length > 0 &&

@@ -974,11 +974,6 @@ describe('doStream', () => {
           "type": "text-start",
         },
         {
-          "delta": "",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
           "delta": "Hello",
           "id": "txt-0",
           "type": "text-delta",
@@ -1020,9 +1015,9 @@ describe('doStream', () => {
       type: 'stream-chunks',
       chunks: [
         `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"Let me think"},"finish_reason":null}]}\n\n`,
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning_content":"Let me think"},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"reasoning_content":" about this"},"finish_reason":null}]}\n\n`,
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"", "reasoning_content":" about this"},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Here's"},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
@@ -1454,15 +1449,6 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "id": "txt-0",
-          "type": "text-start",
-        },
-        {
-          "delta": "",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
           "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolName": "searchGoogle",
           "type": "tool-input-start",
@@ -1501,10 +1487,6 @@ describe('doStream', () => {
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolName": "searchGoogle",
           "type": "tool-call",
-        },
-        {
-          "id": "txt-0",
-          "type": "text-end",
         },
         {
           "finishReason": "tool-calls",

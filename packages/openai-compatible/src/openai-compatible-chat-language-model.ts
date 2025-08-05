@@ -463,7 +463,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             const delta = choice.delta;
 
             // enqueue reasoning before text deltas:
-            if (delta.reasoning_content != null) {
+            if (delta.reasoning_content) {
               if (!isActiveReasoning) {
                 controller.enqueue({
                   type: 'reasoning-start',
@@ -479,7 +479,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
               });
             }
 
-            if (delta.content != null) {
+            if (delta.content) {
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: 'txt-0' });
                 isActiveText = true;

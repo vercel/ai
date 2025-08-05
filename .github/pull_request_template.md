@@ -14,11 +14,11 @@ https://github.com/vercel/ai/blob/main/CONTRIBUTING.md
 
 <!-- What did you change? -->
 
-## Verification
+## Manual Verification
 
 <!--
 For features & bugfixes.
-Please explain how you *manually* verified that the change works end-to-end as expected (independent of automated tests).
+Please explain how you *manually* verified that the change works end-to-end as expected (excluding automated tests).
 Remove the section if it's not needed (e.g. for docs).
 -->
 
@@ -26,7 +26,7 @@ Remove the section if it's not needed (e.g. for docs).
 
 <!--
 This task list is intended to help you keep track of what you need to do.
-Feel free to add tasks and remove unnecessary tasks as needed.
+Feel free to add tasks and remove unnecessary tasks or this section as needed.
 
 Please check if the PR fulfills the following requirements:
 -->

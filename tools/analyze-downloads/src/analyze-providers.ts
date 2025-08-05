@@ -93,7 +93,6 @@ async function main() {
     '@ai-sdk/valibot',
 
     'ollama-ai-provider',
-    'chrome-ai',
     '@portkey-ai/vercel-provider',
     'workers-ai-provider',
     '@openrouter/ai-sdk-provider',

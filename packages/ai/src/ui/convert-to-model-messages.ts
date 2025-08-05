@@ -50,11 +50,21 @@ export function convertToModelMessages(
   for (const message of messages) {
     switch (message.role) {
       case 'system': {
+        const textParts = message.parts.filter(part => part.type === 'text');
+
+        const providerMetadata = textParts.reduce((acc, part) => {
+          if (part.providerMetadata != null) {
+            return { ...acc, ...part.providerMetadata };
+          }
+          return acc;
+        }, {});
+
         modelMessages.push({
           role: 'system',
-          content: message.parts
-            .map(part => (part.type === 'text' ? part.text : ''))
-            .join(''),
+          content: textParts.map(part => part.text).join(''),
+          ...(Object.keys(providerMetadata).length > 0
+            ? { providerOptions: providerMetadata }
+            : {}),
         });
         break;
       }

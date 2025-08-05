@@ -132,6 +132,7 @@ export class OpenAICompatibleEmbeddingModel
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }
         : undefined,
+      providerMetadata: response.providerMetadata,
       response: { headers: responseHeaders, body: rawValue },
     };
   }
@@ -142,4 +143,7 @@ export class OpenAICompatibleEmbeddingModel
 const openaiTextEmbeddingResponseSchema = z.object({
   data: z.array(z.object({ embedding: z.array(z.number()) })),
   usage: z.object({ prompt_tokens: z.number() }).nullish(),
+  providerMetadata: z
+    .record(z.string(), z.record(z.string(), z.any()))
+    .optional(),
 });

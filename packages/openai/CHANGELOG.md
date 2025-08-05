@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 2.0.2
+
+### Patch Changes
+
+- 63e2016: fix(openai): missing url citations from web search tools
+
+## 2.0.1
+
+### Patch Changes
+
+- bc45e29: feat(openai): add file_search_call support to responses api
+
 ## 2.0.0
 
 ### Major Changes

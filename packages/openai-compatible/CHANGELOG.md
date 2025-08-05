@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.1
+
+### Patch Changes
+
+- 0e8ed8e: feat(provider/openai-compatible): Update OpenAI compat embedding schema to support providerMetadata
+
 ## 1.0.0
 
 ### Major Changes
