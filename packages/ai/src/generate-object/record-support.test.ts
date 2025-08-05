@@ -1,8 +1,8 @@
-import { TypeValidationError } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { generateObject } from './generate-object';
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 
 const dummyResponseValues = {
   finishReason: 'stop' as const,
@@ -304,7 +304,7 @@ describe('z.record support - TDD Tests', () => {
           schema,
           prompt: 'Generate invalid record',
         }),
-      ).rejects.toThrow(TypeValidationError);
+      ).rejects.toThrow(NoObjectGeneratedError);
     });
 
     it('should throw TypeValidationError when LLM returns array instead of record', async () => {
@@ -338,7 +338,7 @@ describe('z.record support - TDD Tests', () => {
           schema,
           prompt: 'Generate array instead of record',
         }),
-      ).rejects.toThrow(TypeValidationError);
+      ).rejects.toThrow(NoObjectGeneratedError);
     });
   });
 
