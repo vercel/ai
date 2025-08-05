@@ -90,15 +90,15 @@ await addMemories(messages, { user_id: 'borat' });
 ```ts
 await addMemories(messages, {
   user_id: 'borat',
-  mem0ApiKey: 'm0-xxx'
+  mem0ApiKey: 'm0-xxx',
 });
 await retrieveMemories(prompt, {
   user_id: 'borat',
-  mem0ApiKey: 'm0-xxx'
+  mem0ApiKey: 'm0-xxx',
 });
 await getMemories(prompt, {
   user_id: 'borat',
-  mem0ApiKey: 'm0-xxx'
+  mem0ApiKey: 'm0-xxx',
 });
 ```
 
@@ -228,13 +228,13 @@ This same functionality is available in the `streamText` function.
 
 The Mem0 provider supports the following LLM providers:
 
-| Provider | Configuration Value |
-|----------|-------------------|
-| OpenAI | `openai` |
-| Anthropic | `anthropic` |
-| Google | `google` |
-| Groq | `groq` |
-| Cohere | `cohere` |
+| Provider  | Configuration Value |
+| --------- | ------------------- |
+| OpenAI    | `openai`            |
+| Anthropic | `anthropic`         |
+| Google    | `google`            |
+| Groq      | `groq`              |
+| Cohere    | `cohere`            |
 
 ## Best Practices
 
