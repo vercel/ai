@@ -341,7 +341,7 @@ describe('z.record support - TDD Tests', () => {
   });
 
   describe('comparison with current behavior (should fail before fix)', () => {
-    it('should now work correctly with z.record after implementing support', async () => {
+    it('should work correctly with z.record after implementing support', async () => {
       const model = new MockLanguageModelV2({
         doGenerate: {
           ...dummyResponseValues,
