@@ -341,14 +341,18 @@ describe('z.record support - TDD Tests', () => {
   });
 
   describe('comparison with current behavior (should fail before fix)', () => {
-    it('should currently fail with NoObjectGeneratedError for z.record', async () => {
+    it('should now work correctly with z.record after implementing support', async () => {
       const model = new MockLanguageModelV2({
         doGenerate: {
           ...dummyResponseValues,
           content: [
             {
               type: 'text',
-              text: JSON.stringify({}), // LLM returns empty object
+              text: JSON.stringify({
+                items: {
+                  key1: { name: 'test', value: 1 },
+                },
+              }),
             },
           ],
         },
@@ -364,15 +368,15 @@ describe('z.record support - TDD Tests', () => {
         ),
       });
 
-      // This test documents the current failing behavior
-      // It should pass after implementing recordOutputStrategy
-      await expect(
-        generateObject({
-          model,
-          schema,
-          prompt: 'Generate some items',
-        }),
-      ).rejects.toThrow('No object generated: response did not match schema');
+      const result = await generateObject({
+        model,
+        schema,
+        prompt: 'Generate some items',
+      });
+
+      expect(result.object.items).toEqual({
+        key1: { name: 'test', value: 1 },
+      });
     });
 
     it('should work fine with z.array (current working behavior)', async () => {
