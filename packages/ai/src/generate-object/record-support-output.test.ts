@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { z } from 'zod/v4';
+import { z } from 'zod/v3';
 import { getOutputStrategy } from './output-strategy';
 
 describe('recordOutputStrategy unit tests', () => {
@@ -207,7 +207,7 @@ describe('recordOutputStrategy unit tests', () => {
           items: {
             type: 'object',
             additionalProperties: {
-              anyOf: [{ type: 'string' }, { type: 'number' }],
+              type: ['string', 'number'],
             },
           },
         },
