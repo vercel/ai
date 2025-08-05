@@ -3,6 +3,9 @@ import { FlexibleSchema } from '../schema';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
 
+/**
+ * Additional options that are sent into each tool call.
+ */
 export interface ToolCallOptions {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
@@ -18,7 +21,14 @@ export interface ToolCallOptions {
   /**
    * An optional abort signal that indicates that the overall operation should be aborted.
    */
-  abortSignal?: AbortSignal;
+  abortSignal: AbortSignal;
+
+  /**
+   * Context that is passed into tool calls.
+   *
+   * Experimental (can break in patch releases).
+   */
+  experimental_context: unknown;
 }
 
 export type ToolExecuteFunction<INPUT, OUTPUT> = (
