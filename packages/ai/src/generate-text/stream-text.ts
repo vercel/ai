@@ -378,7 +378,7 @@ Callback that is called when each step (LLM call) is finished, including interme
     onStepFinish?: StreamTextOnStepFinishCallback<TOOLS>;
 
     /**
-     * Context that is passed into tool calls.
+     * Context that is passed into tool execution.
      *
      * Experimental (can break in patch releases).
      *

@@ -2819,4 +2819,46 @@ describe('generateText', () => {
       `);
     });
   });
+
+  describe('tool execution context', () => {
+    it('should send context to tool execution', async () => {
+      let recordedContext: unknown | undefined;
+
+      const result = await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 't1',
+                input: `{ "value": "test" }`,
+              },
+            ],
+            finishReason: 'tool-calls',
+          }),
+        }),
+        tools: {
+          t1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { experimental_context }) => {
+              recordedContext = experimental_context;
+              return { value: 'test-result' };
+            },
+          }),
+        },
+        experimental_context: {
+          context: 'test',
+        },
+        prompt: 'test-input',
+      });
+
+      // tool should be executed by client
+      expect(recordedContext).toStrictEqual({
+        context: 'test',
+      });
+    });
+  });
 });

@@ -24,7 +24,7 @@ export interface ToolCallOptions {
   abortSignal?: AbortSignal;
 
   /**
-   * Context that is passed into tool calls.
+   * Additional context.
    *
    * Experimental (can break in patch releases).
    */

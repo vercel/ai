@@ -218,7 +218,7 @@ A function that attempts to repair a tool call that failed to parse.
     onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
 
     /**
-     * Context that is passed into tool calls.
+     * Context that is passed into tool execution.
      *
      * Experimental (can break in patch releases).
      *
