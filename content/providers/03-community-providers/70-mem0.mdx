@@ -5,12 +5,6 @@ description: 'Learn how to use the Mem0 AI SDK provider for the AI SDK.'
 
 # Mem0 Provider
 
-<Note type="warning">
-  This community provider is not yet compatible with AI SDK 5. Please wait for
-  the provider to be updated or consider using an [AI SDK 5 compatible
-  provider](/providers/ai-sdk-providers).
-</Note>
-
 The [Mem0 Provider](https://github.com/mem0ai/mem0/tree/main/vercel-ai-sdk) is a library developed by [**Mem0**](https://mem0.ai)
 to integrate with the AI SDK.
 This library brings enhanced AI interaction capabilities to your applications by introducing persistent memory functionality.
@@ -51,13 +45,12 @@ const mem0 = createMem0({
   mem0ApiKey: 'm0-xxx',
   apiKey: 'provider-api-key',
   config: {
-    compatibility: 'strict',
+    // Configure the LLM Provider here
   },
   // Optional Mem0 Global Config
   mem0Config: {
     user_id: 'mem0-user-id',
-    org_id: 'mem0-org-id',
-    project_id: 'mem0-project-id',
+    enable_graph: true,
   },
 });
 ```
@@ -76,10 +69,10 @@ const mem0 = createMem0({
 - Add Memories to Enhance Context:
 
 ```ts
-import { LanguageModelV1Prompt } from 'ai';
+import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { addMemories } from '@mem0/vercel-ai-provider';
 
-const messages: LanguageModelV1Prompt = [
+const messages: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'I love red cars.' }] },
 ];
 
@@ -98,20 +91,14 @@ await addMemories(messages, { user_id: 'borat' });
 await addMemories(messages, {
   user_id: 'borat',
   mem0ApiKey: 'm0-xxx',
-  org_id: 'org_xx',
-  project_id: 'proj_xx',
 });
 await retrieveMemories(prompt, {
   user_id: 'borat',
   mem0ApiKey: 'm0-xxx',
-  org_id: 'org_xx',
-  project_id: 'proj_xx',
 });
 await getMemories(prompt, {
   user_id: 'borat',
   mem0ApiKey: 'm0-xxx',
-  org_id: 'org_xx',
-  project_id: 'proj_xx',
 });
 ```
 
@@ -173,7 +160,7 @@ import { createMem0 } from '@mem0/vercel-ai-provider';
 
 const mem0 = createMem0();
 
-const { textStream } = await streamText({
+const { textStream } = streamText({
   model: mem0('gpt-4.1', {
     user_id: 'borat',
   }),
@@ -236,6 +223,18 @@ console.log(sources);
 ```
 
 This same functionality is available in the `streamText` function.
+
+## Supported LLM Providers
+
+The Mem0 provider supports the following LLM providers:
+
+| Provider  | Configuration Value |
+| --------- | ------------------- |
+| OpenAI    | `openai`            |
+| Anthropic | `anthropic`         |
+| Google    | `google`            |
+| Groq      | `groq`              |
+| Cohere    | `cohere`            |
 
 ## Best Practices
 
