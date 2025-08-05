@@ -1,9 +1,7 @@
 import {
   LanguageModelV2CallOptions,
   LanguageModelV2FunctionTool,
-  LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
@@ -12,7 +10,6 @@ import {
   tool,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import assert from 'node:assert';
 import { z } from 'zod/v4';
 import { Output } from '.';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
