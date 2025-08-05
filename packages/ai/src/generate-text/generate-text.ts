@@ -135,6 +135,7 @@ export async function generateText<
   experimental_prepareStep,
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
+  experimental_context,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -215,6 +216,13 @@ A function that attempts to repair a tool call that failed to parse.
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
     onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Context that is passed into tool calls.
+     *
+     * Experimental (can break in patch releases).
+     */
+    experimental_context: unknown;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -447,6 +455,7 @@ A function that attempts to repair a tool call that failed to parse.
                 toolCallId: toolCall.toolCallId,
                 messages: stepInputMessages,
                 abortSignal,
+                experimental_context,
               });
             }
           }
@@ -466,6 +475,7 @@ A function that attempts to repair a tool call that failed to parse.
                   telemetry,
                   messages: stepInputMessages,
                   abortSignal,
+                  experimental_context,
                 });
 
           // content:
@@ -565,6 +575,7 @@ async function executeTools<TOOLS extends ToolSet>({
   telemetry,
   messages,
   abortSignal,
+  experimental_context,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -572,6 +583,7 @@ async function executeTools<TOOLS extends ToolSet>({
   telemetry: TelemetrySettings | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
+  experimental_context: unknown;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async ({ toolCallId, toolName, input }) => {
@@ -604,6 +616,7 @@ async function executeTools<TOOLS extends ToolSet>({
               toolCallId,
               messages,
               abortSignal,
+              experimental_context,
             });
 
             try {

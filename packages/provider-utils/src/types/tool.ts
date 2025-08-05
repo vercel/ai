@@ -21,7 +21,7 @@ export interface ToolCallOptions {
   /**
    * An optional abort signal that indicates that the overall operation should be aborted.
    */
-  abortSignal: AbortSignal;
+  abortSignal: AbortSignal | undefined;
 
   /**
    * Context that is passed into tool calls.
