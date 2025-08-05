@@ -45,7 +45,7 @@ export interface ChatCompletionContentPartInputAudio {
 
 export interface ChatCompletionContentPartFile {
   type: 'file';
-  file: { filename: string; file_data: string };
+  file: { filename: string; file_data: string } | { file_id: string };
 }
 
 export interface ChatCompletionAssistantMessage {

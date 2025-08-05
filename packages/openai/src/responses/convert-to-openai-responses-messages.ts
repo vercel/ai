@@ -9,6 +9,7 @@ import {
   OpenAIResponsesPrompt,
   OpenAIResponsesReasoning,
 } from './openai-responses-api-types';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export async function convertToOpenAIResponsesMessages({
   prompt,
@@ -69,12 +70,14 @@ export async function convertToOpenAIResponsesMessages({
 
                   return {
                     type: 'input_image',
-                    image_url:
-                      part.data instanceof URL
-                        ? part.data.toString()
-                        : `data:${mediaType};base64,${part.data}`,
-
-                    // OpenAI specific extension: image detail
+                    ...(part.data instanceof URL
+                      ? { image_url: part.data.toString() }
+                      : typeof part.data === 'string' &&
+                          part.data.startsWith('file-')
+                        ? { file_id: part.data }
+                        : {
+                            image_url: `data:${mediaType};base64,${part.data}`,
+                          }),
                     detail: part.providerOptions?.openai?.imageDetail,
                   };
                 } else if (part.mediaType === 'application/pdf') {
@@ -84,11 +87,15 @@ export async function convertToOpenAIResponsesMessages({
                       functionality: 'PDF file parts with URLs',
                     });
                   }
-
                   return {
                     type: 'input_file',
-                    filename: part.filename ?? `part-${index}.pdf`,
-                    file_data: `data:application/pdf;base64,${part.data}`,
+                    ...(typeof part.data === 'string' &&
+                    part.data.startsWith('file-')
+                      ? { file_id: part.data }
+                      : {
+                          filename: part.filename ?? `part-${index}.pdf`,
+                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                        }),
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
