@@ -98,7 +98,6 @@ via tool or schema description.
 - 'array': The output is an array.
 - 'enum': The output is an enum.
 - 'no-schema': The output is not a schema.
-- 'record': The output is a record.
 
 @param experimental_repairText - A function that attempts to repair the raw output of the model
 to enable JSON parsing.

@@ -1,6 +1,6 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { generateObject } from './generate-object';
 
@@ -227,6 +227,43 @@ describe('z.record support - TDD Tests', () => {
         schemaName: 'item-records',
         schemaDescription: 'A collection of items as records',
         prompt: 'prompt',
+      });
+    });
+
+    it('should handle z.record without explicit string key (Issue #7674 case 1)', async () => {
+      const model = new MockLanguageModelV2({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                items: {
+                  key1: { name: 'item1', value: 10 },
+                  key2: { name: 'item2', value: 20 },
+                },
+              }),
+            },
+          ],
+        },
+      });
+
+      const schema = z.object({
+        items: z.record(z.object({
+          name: z.string(),
+          value: z.number(),
+        })),
+      });
+
+      const result = await generateObject({
+        model,
+        schema,
+        prompt: 'Generate some items as a record without explicit string key',
+      });
+
+      expect(result.object.items).toEqual({
+        key1: { name: 'item1', value: 10 },
+        key2: { name: 'item2', value: 20 },
       });
     });
   });
