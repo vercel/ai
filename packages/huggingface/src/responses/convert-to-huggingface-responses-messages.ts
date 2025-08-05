@@ -25,7 +25,7 @@ export async function convertToHuggingFaceResponsesMessages({
       case 'user': {
         messages.push({
           role: 'user',
-          content: content.map((part) => {
+          content: content.map(part => {
             switch (part.type) {
               case 'text': {
                 return { type: 'input_text', text: part.text };
