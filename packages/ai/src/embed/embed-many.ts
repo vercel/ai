@@ -86,7 +86,7 @@ Only applicable for HTTP-based providers.
   maxParallelCalls?: number;
 }): Promise<EmbedManyResult<VALUE>> {
   const resolvedModel = resolveEmbeddingModel<VALUE>(model);
-  
+
   if (resolvedModel.specificationVersion !== 'v2') {
     throw new UnsupportedModelVersionError({
       version: resolvedModel.specificationVersion,
