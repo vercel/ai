@@ -17,6 +17,12 @@ AI SDK Core tools contain three elements:
   infer the types of the `execute` parameters.
 </Note>
 
+<Note type="warning">
+  **Zod v4 Compatibility**: AI SDK v4 requires Zod v3. If you're using Zod v4,
+  you'll encounter schema validation errors. [See troubleshooting
+  guide](/docs/troubleshooting/zod-v4-json-schema-type-error).
+</Note>
+
 The `tools` parameter of `generateText` and `streamText` is an object that has the tool names as keys and the tools as values:
 
 ```ts highlight="6-17"
