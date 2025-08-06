@@ -14,6 +14,7 @@ export type GatewayModelId =
   | 'anthropic/claude-3.7-sonnet'
   | 'anthropic/claude-4-opus'
   | 'anthropic/claude-4-sonnet'
+  | 'anthropic/claude-4.1-opus'
   | 'cohere/command-a'
   | 'cohere/command-r'
   | 'cohere/command-r-plus'
