@@ -12644,6 +12644,24 @@ describe('streamText', () => {
               "toolName": "cityAttractions",
               "type": "tool-call",
             },
+            {
+              "dynamic": true,
+              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]",
+              "input": "{ "cities": "San Francisco" }",
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-error",
+            },
           ]
         `);
       });
@@ -12694,6 +12712,24 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
+            },
+            {
+              "dynamic": true,
+              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]",
+              "input": "{ "cities": "San Francisco" }",
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-error",
             },
             {
               "finishReason": "stop",
