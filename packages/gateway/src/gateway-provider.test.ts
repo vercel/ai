@@ -6,6 +6,7 @@ import {
 } from './gateway-provider';
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
 import { NoSuchModelError } from '@ai-sdk/provider';
+import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
 import { GatewayLanguageModel } from './gateway-language-model';
@@ -81,7 +82,7 @@ describe('GatewayProvider', () => {
         Authorization: 'Bearer test-api-key',
         'Custom-Header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
-        'x-ai-gateway-auth-method': 'api-key',
+        'ai-gateway-auth-method': 'api-key',
       });
     });
 
@@ -102,7 +103,7 @@ describe('GatewayProvider', () => {
         Authorization: 'Bearer mock-oidc-token',
         'Custom-Header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
-        'x-ai-gateway-auth-method': 'oidc',
+        'ai-gateway-auth-method': 'oidc',
       });
     });
 
@@ -121,14 +122,15 @@ describe('GatewayProvider', () => {
       );
     });
 
-    it('should throw NoSuchModelError for textEmbeddingModel', () => {
+    it('should create GatewayEmbeddingModel for textEmbeddingModel', () => {
       const provider = createGatewayProvider({
         baseURL: 'https://api.example.com',
       });
 
-      expect(() => {
-        provider.textEmbeddingModel('test-model');
-      }).toThrow(NoSuchModelError);
+      const model = provider.textEmbeddingModel(
+        'openai/text-embedding-3-small',
+      );
+      expect(model).toBeInstanceOf(GatewayEmbeddingModel);
     });
 
     it('should fetch available models', async () => {
@@ -257,7 +259,7 @@ describe('GatewayProvider', () => {
     it('should not include undefined o11y headers', async () => {
       const originalEnv = process.env;
       process.env = { ...originalEnv };
-      process.env.DEPLOYMENT_ID = undefined;
+      process.env.VERCEL_DEPLOYMENT_ID = undefined;
       process.env.VERCEL_ENV = undefined;
       process.env.VERCEL_REGION = undefined;
 
@@ -378,7 +380,7 @@ describe('GatewayProvider', () => {
 
       // Verify that the API key was used in the Authorization header
       expect(headers.Authorization).toBe(`Bearer ${testApiKey}`);
-      expect(headers['x-ai-gateway-auth-method']).toBe('api-key');
+      expect(headers['ai-gateway-auth-method']).toBe('api-key');
 
       // Verify getVercelOidcToken was never called
       expect(getVercelOidcToken).not.toHaveBeenCalled();

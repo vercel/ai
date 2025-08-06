@@ -12,9 +12,10 @@ import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
-import { ToolCallUnion } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolErrorUnion, ToolResultUnion } from './tool-output';
+import { TypedToolError } from './tool-error';
+import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
@@ -74,9 +75,9 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
     }
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
-  | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>)
-  | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
+  | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
+  | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
+  | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | { type: 'stream-start'; warnings: LanguageModelV2CallWarning[] }
   | {
@@ -103,6 +104,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   repairToolCall,
+  experimental_context,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV2StreamPart>;
@@ -112,6 +114,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  experimental_context: unknown;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -227,6 +230,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 toolCallId: toolCall.toolCallId,
                 messages,
                 abortSignal,
+                experimental_context,
               });
             }
 
@@ -249,7 +253,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     }),
                     'ai.toolCall.name': toolCall.toolName,
                     'ai.toolCall.id': toolCall.toolCallId,
-                    'ai.toolCall.input': {
+                    'ai.toolCall.args': {
                       output: () => JSON.stringify(toolCall.input),
                     },
                   },
@@ -263,6 +267,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                       toolCallId: toolCall.toolCallId,
                       messages,
                       abortSignal,
+                      experimental_context,
                     });
                   } catch (error) {
                     recordErrorOnSpan(span, error);
@@ -270,7 +275,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                       ...toolCall,
                       type: 'tool-error',
                       error,
-                    } satisfies ToolErrorUnion<TOOLS>);
+                    } satisfies TypedToolError<TOOLS>);
 
                     outstandingToolResults.delete(toolExecutionId);
                     attemptClose();
@@ -281,7 +286,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     ...toolCall,
                     type: 'tool-result',
                     output,
-                  } satisfies ToolResultUnion<TOOLS>);
+                  } satisfies TypedToolResult<TOOLS>);
 
                   outstandingToolResults.delete(toolExecutionId);
                   attemptClose();
@@ -292,7 +297,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                       selectTelemetryAttributes({
                         telemetry,
                         attributes: {
-                          'ai.toolCall.output': {
+                          'ai.toolCall.result': {
                             output: () => JSON.stringify(output),
                           },
                         },
@@ -325,7 +330,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               input: toolInputs.get(chunk.toolCallId),
               providerExecuted: chunk.providerExecuted,
               error: chunk.result,
-            } as ToolErrorUnion<TOOLS>);
+            } as TypedToolError<TOOLS>);
           } else {
             controller.enqueue({
               type: 'tool-result',
@@ -334,7 +339,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               input: toolInputs.get(chunk.toolCallId),
               output: chunk.result,
               providerExecuted: chunk.providerExecuted,
-            } as ToolResultUnion<TOOLS>);
+            } as TypedToolResult<TOOLS>);
           }
           break;
         }

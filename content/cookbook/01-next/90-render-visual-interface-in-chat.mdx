@@ -45,18 +45,33 @@ Let's build an assistant that gets the weather for any city by calling the `getW
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
 import { useState } from 'react';
 import { ChatMessage } from './api/chat/route';
 
 export default function Chat() {
   const [input, setInput] = useState('');
   const { messages, sendMessage, addToolResult } = useChat<ChatMessage>({
-    maxSteps: 5,
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {
       if (toolCall.toolName === 'getLocation') {
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
-        return cities[Math.floor(Math.random() * cities.length)];
+
+        // No await - avoids potential deadlocks
+        addToolResult({
+          tool: 'getLocation',
+          toolCallId: toolCall.toolCallId,
+          output: cities[Math.floor(Math.random() * cities.length)],
+        });
       }
     },
   });
@@ -86,6 +101,7 @@ export default function Chat() {
                             className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                             onClick={() =>
                               addToolResult({
+                                tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'Yes, confirmed.',
                               })
@@ -97,6 +113,7 @@ export default function Chat() {
                             className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                             onClick={() =>
                               addToolResult({
+                                tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'No, denied',
                               })

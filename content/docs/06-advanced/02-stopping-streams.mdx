@@ -117,8 +117,8 @@ You can also handle abort events directly in the stream using the `abort` stream
 ```tsx highlight="8-12"
 for await (const part of result.fullStream) {
   switch (part.type) {
-    case 'text':
-      // Handle text content
+    case 'text-delta':
+      // Handle text delta content
       break;
     case 'abort':
       // Handle abort event directly in stream

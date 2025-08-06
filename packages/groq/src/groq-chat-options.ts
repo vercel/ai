@@ -27,6 +27,7 @@ export type GroqChatModelId =
 
 export const groqProviderOptions = z.object({
   reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).optional(),
+  reasoningEffort: z.enum(['none', 'default']).optional(),
 
   /**
    * Whether to enable parallel function calling during tool use. Default to true.
@@ -38,6 +39,13 @@ export const groqProviderOptions = z.object({
    * monitor and detect abuse. Learn more.
    */
   user: z.string().optional(),
+
+  /**
+   * Whether to use structured outputs.
+   *
+   * @default true
+   */
+  structuredOutputs: z.boolean().optional(),
 });
 
 export type GroqProviderOptions = z.infer<typeof groqProviderOptions>;

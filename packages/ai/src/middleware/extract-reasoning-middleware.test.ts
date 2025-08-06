@@ -244,13 +244,13 @@ describe('extractReasoningMiddleware', () => {
               "id": "reasoning-0",
               "providerMetadata": undefined,
               "text": "ana",
-              "type": "reasoning",
+              "type": "reasoning-delta",
             },
             {
               "id": "reasoning-0",
               "providerMetadata": undefined,
               "text": "lyzing the request",
-              "type": "reasoning",
+              "type": "reasoning-delta",
             },
             {
               "id": "reasoning-0",
@@ -260,13 +260,13 @@ describe('extractReasoningMiddleware', () => {
               "id": "1",
               "providerMetadata": undefined,
               "text": "Here",
-              "type": "text",
+              "type": "text-delta",
             },
             {
               "id": "1",
               "providerMetadata": undefined,
               "text": " is the response",
-              "type": "text",
+              "type": "text-delta",
             },
             {
               "id": "1",
@@ -365,7 +365,7 @@ describe('extractReasoningMiddleware', () => {
               "id": "reasoning-0",
               "providerMetadata": undefined,
               "text": "analyzing the request",
-              "type": "reasoning",
+              "type": "reasoning-delta",
             },
             {
               "id": "reasoning-0",
@@ -375,7 +375,7 @@ describe('extractReasoningMiddleware', () => {
               "id": "1",
               "providerMetadata": undefined,
               "text": "Here is the response",
-              "type": "text",
+              "type": "text-delta",
             },
             {
               "id": "reasoning-1",
@@ -386,7 +386,7 @@ describe('extractReasoningMiddleware', () => {
               "providerMetadata": undefined,
               "text": "
           thinking about the response",
-              "type": "reasoning",
+              "type": "reasoning-delta",
             },
             {
               "id": "reasoning-1",
@@ -397,7 +397,7 @@ describe('extractReasoningMiddleware', () => {
               "providerMetadata": undefined,
               "text": "
           more",
-              "type": "text",
+              "type": "text-delta",
             },
             {
               "id": "1",
@@ -494,14 +494,14 @@ describe('extractReasoningMiddleware', () => {
               "id": "reasoning-0",
               "providerMetadata": undefined,
               "text": "ana",
-              "type": "reasoning",
+              "type": "reasoning-delta",
             },
             {
               "id": "reasoning-0",
               "providerMetadata": undefined,
               "text": "lyzing the request
           ",
-              "type": "reasoning",
+              "type": "reasoning-delta",
             },
             {
               "id": "reasoning-0",
@@ -613,14 +613,14 @@ describe('extractReasoningMiddleware', () => {
               "id": "reasoning-0",
               "providerMetadata": undefined,
               "text": "ana",
-              "type": "reasoning",
+              "type": "reasoning-delta",
             },
             {
               "id": "reasoning-0",
               "providerMetadata": undefined,
               "text": "lyzing the request
           ",
-              "type": "reasoning",
+              "type": "reasoning-delta",
             },
             {
               "id": "reasoning-0",
@@ -630,7 +630,7 @@ describe('extractReasoningMiddleware', () => {
               "id": "1",
               "providerMetadata": undefined,
               "text": "this is the response",
-              "type": "text",
+              "type": "text-delta",
             },
             {
               "id": "1",
@@ -687,26 +687,26 @@ describe('extractReasoningMiddleware', () => {
               "id": "1",
               "providerMetadata": undefined,
               "text": "ana",
-              "type": "text",
+              "type": "text-delta",
             },
             {
               "id": "1",
               "providerMetadata": undefined,
               "text": "lyzing the request
           ",
-              "type": "text",
+              "type": "text-delta",
             },
             {
               "id": "1",
               "providerMetadata": undefined,
               "text": "</think>",
-              "type": "text",
+              "type": "text-delta",
             },
             {
               "id": "1",
               "providerMetadata": undefined,
               "text": "this is the response",
-              "type": "text",
+              "type": "text-delta",
             },
             {
               "id": "1",
@@ -796,7 +796,7 @@ describe('extractReasoningMiddleware', () => {
               "id": "1",
               "providerMetadata": undefined,
               "text": "this is the response",
-              "type": "text",
+              "type": "text-delta",
             },
             {
               "id": "1",

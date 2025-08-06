@@ -4,7 +4,7 @@ import {
   mockEmbed,
 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
-import { createResolvablePromise } from '../../src/util/create-resolvable-promise';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { embedMany } from './embed-many';
 
 const dummyEmbeddings = [
@@ -441,5 +441,33 @@ describe('telemetry', () => {
     });
 
     expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+});
+
+describe('result.providerMetadata', () => {
+  it('should include provider metadata when returned by the model', async () => {
+    const providerMetadata = {
+      gateway: { routing: { resolvedProvider: 'test-provider' } },
+    };
+
+    const result = await embedMany({
+      model: new MockEmbeddingModelV2({
+        supportsParallelCalls: false,
+        maxEmbeddingsPerCall: 3,
+        doEmbed: mockEmbed(
+          testValues,
+          dummyEmbeddings,
+          undefined,
+          {
+            headers: {},
+            body: {},
+          },
+          providerMetadata,
+        ),
+      }),
+      values: testValues,
+    });
+
+    expect(result.providerMetadata).toStrictEqual(providerMetadata);
   });
 });

@@ -3,7 +3,7 @@ import {
   LanguageModelV2CallOptions,
   LanguageModelV2Middleware,
 } from '@ai-sdk/provider';
-import { asArray } from '../../src/util/as-array';
+import { asArray } from '../util/as-array';
 
 /**
  * Wraps a LanguageModelV2 instance with middleware functionality.

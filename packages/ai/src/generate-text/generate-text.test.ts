@@ -1,13 +1,15 @@
 import {
   LanguageModelV2CallOptions,
   LanguageModelV2FunctionTool,
-  LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
-import { jsonSchema, ModelMessage, tool } from '@ai-sdk/provider-utils';
+import {
+  dynamicTool,
+  jsonSchema,
+  ModelMessage,
+  tool,
+} from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import assert from 'node:assert';
 import { z } from 'zod/v4';
 import { Output } from '.';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
@@ -197,6 +199,7 @@ describe('generateText', () => {
             "type": "text",
           },
           {
+            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -320,6 +323,7 @@ describe('generateText', () => {
                   required: ['value'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
               {
                 type: 'function',
@@ -332,6 +336,7 @@ describe('generateText', () => {
                   required: ['somethingElse'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
             ]);
 
@@ -373,7 +378,10 @@ describe('generateText', () => {
       });
 
       // test type inference
-      if (result.toolCalls[0].toolName === 'tool1') {
+      if (
+        result.toolCalls[0].toolName === 'tool1' &&
+        !result.toolCalls[0].dynamic
+      ) {
         assertType<string>(result.toolCalls[0].input.value);
       }
 
@@ -411,6 +419,7 @@ describe('generateText', () => {
                   required: ['value'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
             ]);
 
@@ -451,19 +460,27 @@ describe('generateText', () => {
       });
 
       // test type inference
-      if (result.toolResults[0].toolName === 'tool1') {
+      if (
+        result.toolResults[0].toolName === 'tool1' &&
+        !result.toolResults[0].dynamic
+      ) {
         assertType<string>(result.toolResults[0].output);
       }
 
-      expect(result.toolResults).toStrictEqual([
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          input: { value: 'value' },
-          output: 'result1',
-        },
-      ]);
+      expect(result.toolResults).toMatchInlineSnapshot(`
+        [
+          {
+            "dynamic": false,
+            "input": {
+              "value": "value",
+            },
+            "output": "result1",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+        ]
+      `);
     });
   });
 
@@ -627,6 +644,7 @@ describe('generateText', () => {
                         required: ['value'],
                         type: 'object',
                       },
+                      providerOptions: undefined,
                     },
                   ]);
 
@@ -906,6 +924,7 @@ describe('generateText', () => {
                       "type": "tool-call",
                     },
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1087,6 +1106,7 @@ describe('generateText', () => {
                       "type": "tool-call",
                     },
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1262,6 +1282,7 @@ describe('generateText', () => {
                     "type": "object",
                   },
                   "name": "tool1",
+                  "providerOptions": undefined,
                   "type": "function",
                 },
               ],
@@ -1481,6 +1502,7 @@ describe('generateText', () => {
                       "type": "tool-call",
                     },
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1558,6 +1580,7 @@ describe('generateText', () => {
                       "type": "tool-call",
                     },
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1769,6 +1792,7 @@ describe('generateText', () => {
             "type": "object",
           },
           "name": "tool1",
+          "providerOptions": undefined,
           "type": "function",
         },
       ]
@@ -1927,8 +1951,8 @@ describe('generateText', () => {
           {
             "attributes": {
               "ai.operationId": "ai.toolCall",
+              "ai.toolCall.args": "{"value":"value"}",
               "ai.toolCall.id": "call-1",
-              "ai.toolCall.input": "{"value":"value"}",
               "ai.toolCall.name": "tool1",
               "ai.toolCall.result": ""result1"",
               "operation.name": "ai.toolCall",
@@ -2086,25 +2110,26 @@ describe('generateText', () => {
       });
 
       expect(recordedCalls).toMatchInlineSnapshot(`
-      [
-        {
-          "options": {
-            "abortSignal": undefined,
-            "input": {
-              "value": "value",
-            },
-            "messages": [
-              {
-                "content": "test-input",
-                "role": "user",
+        [
+          {
+            "options": {
+              "abortSignal": undefined,
+              "experimental_context": undefined,
+              "input": {
+                "value": "value",
               },
-            ],
-            "toolCallId": "call-1",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call-1",
+            },
+            "type": "onInputAvailable",
           },
-          "type": "onInputAvailable",
-        },
-      ]
-    `);
+        ]
+      `);
     });
   });
 
@@ -2124,6 +2149,7 @@ describe('generateText', () => {
                   required: ['value'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
               {
                 type: 'function',
@@ -2135,6 +2161,7 @@ describe('generateText', () => {
                   required: ['somethingElse'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
             ]);
 
@@ -2190,7 +2217,10 @@ describe('generateText', () => {
       });
 
       // test type inference
-      if (result.toolCalls[0].toolName === 'tool1') {
+      if (
+        result.toolCalls[0].toolName === 'tool1' &&
+        !result.toolCalls[0].dynamic
+      ) {
         assertType<string>(result.toolCalls[0].input.value);
       }
 
@@ -2281,6 +2311,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
+              "dynamic": undefined,
               "input": {
                 "value": "value",
               },
@@ -2301,6 +2332,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
+              "dynamic": undefined,
               "error": "ERROR",
               "input": {
                 "value": "value",
@@ -2579,6 +2611,7 @@ describe('generateText', () => {
             "type": "tool-call",
           },
           {
+            "dynamic": false,
             "error": [Error: test error],
             "input": {
               "value": "value",
@@ -2685,6 +2718,7 @@ describe('generateText', () => {
             "type": "tool-call",
           },
           {
+            "dynamic": undefined,
             "input": {
               "value": "test",
             },
@@ -2699,10 +2733,11 @@ describe('generateText', () => {
         ]
       `);
 
-      // tool results should be empty since the tool wasn't executed
+      // tool results should include the result from the provider
       expect(result.toolResults).toMatchInlineSnapshot(`
         [
           {
+            "dynamic": undefined,
             "input": {
               "value": "test",
             },
@@ -2716,6 +2751,114 @@ describe('generateText', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('dynamic tools', () => {
+    it('should execute dynamic tools', async () => {
+      let toolExecuted = false;
+
+      const result = await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'dynamicTool',
+                input: `{ "value": "test" }`,
+              },
+            ],
+            finishReason: 'tool-calls',
+          }),
+        }),
+        tools: {
+          dynamicTool: dynamicTool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => {
+              toolExecuted = true;
+              return { value: 'test-result' };
+            },
+          }),
+        },
+        prompt: 'test-input',
+      });
+
+      // tool should be executed by client
+      expect(toolExecuted).toBe(true);
+
+      // tool call should be included in content
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "dynamic": true,
+            "input": {
+              "value": "test",
+            },
+            "providerExecuted": undefined,
+            "providerMetadata": undefined,
+            "toolCallId": "call-1",
+            "toolName": "dynamicTool",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": true,
+            "input": {
+              "value": "test",
+            },
+            "output": {
+              "value": "test-result",
+            },
+            "toolCallId": "call-1",
+            "toolName": "dynamicTool",
+            "type": "tool-result",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('tool execution context', () => {
+    it('should send context to tool execution', async () => {
+      let recordedContext: unknown | undefined;
+
+      const result = await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 't1',
+                input: `{ "value": "test" }`,
+              },
+            ],
+            finishReason: 'tool-calls',
+          }),
+        }),
+        tools: {
+          t1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { experimental_context }) => {
+              recordedContext = experimental_context;
+              return { value: 'test-result' };
+            },
+          }),
+        },
+        experimental_context: {
+          context: 'test',
+        },
+        prompt: 'test-input',
+      });
+
+      // tool should be executed by client
+      expect(recordedContext).toStrictEqual({
+        context: 'test',
+      });
     });
   });
 });

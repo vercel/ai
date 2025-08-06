@@ -34,6 +34,7 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   | 'addToolResult'
   | 'status'
   | 'messages'
+  | 'clearError'
 >;
 
 export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
@@ -121,6 +122,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     setMessages,
     sendMessage: chatRef.current.sendMessage,
     regenerate: chatRef.current.regenerate,
+    clearError: chatRef.current.clearError,
     stop: chatRef.current.stop,
     error,
     resumeStream: chatRef.current.resumeStream,

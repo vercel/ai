@@ -80,13 +80,13 @@ Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK,
 
 In a new Next.js application, first install the AI SDK and the Anthropic provider:
 
-<Snippet text="npm install ai @ai-sdk/anthropic" />
+<Snippet text="pnpm install ai @ai-sdk/anthropic" />
 
 Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
-import { streamText, UIMessage, convertToModelMessages } from 'ai';
+import { streamText, convertToModelMessages, type UIMessage } from 'ai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
@@ -118,9 +118,22 @@ Finally, update the root page (`app/page.tsx`) to use the `useChat` hook:
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit, error } = useChat();
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({ api: '/api/chat' }),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      sendMessage({ text: input });
+      setInput('');
+    }
+  };
 
   return (
     <>
@@ -134,20 +147,18 @@ export default function Page() {
             }
             // reasoning parts:
             if (part.type === 'reasoning') {
-              return (
-                <pre key={index}>
-                  {part.details.map(detail =>
-                    detail.type === 'text' ? detail.text : '<redacted>',
-                  )}
-                </pre>
-              );
+              return <pre key={index}>{part.text}</pre>;
             }
           })}
         </div>
       ))}
       <form onSubmit={handleSubmit}>
-        <input name="prompt" value={input} onChange={handleInputChange} />
-        <button type="submit">Submit</button>
+        <input
+          name="prompt"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+        />
+        <button type="submit">Send</button>
       </form>
     </>
   );
@@ -159,7 +170,7 @@ export default function Page() {
   message `parts`.
 </Note>
 
-The useChat hook on your root page (`app/page.tsx`) will make a request to your AI provider endpoint (`app/api/chat/route.ts`) whenever the user submits a message. The messages are then displayed in the chat UI.
+The useChat hook on your root page (`app/page.tsx`) will make a request to your LLM provider endpoint (`app/api/chat/route.ts`) whenever the user submits a message. The messages are then displayed in the chat UI.
 
 ## Get Started
 
