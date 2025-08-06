@@ -9,6 +9,7 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel, ProviderMetadata } from '../types';
 import { EmbedResult } from './embed-result';
+import { resolveEmbeddingModel } from '../../core/prompt/resolve-embedding-model';
 
 /**
 Embed a value using an embedding model. The type of the value is defined by the embedding model.
@@ -22,7 +23,7 @@ Embed a value using an embedding model. The type of the value is defined by the 
 
 @returns A result object that contains the embedding, the value, and additional information.
  */
-export async function embed<VALUE>({
+export async function embed<VALUE = string>({
   model,
   value,
   providerOptions,
@@ -71,11 +72,13 @@ Only applicable for HTTP-based providers.
    */
   experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedResult<VALUE>> {
-  if (model.specificationVersion !== 'v2') {
+  const resolvedModel = resolveEmbeddingModel<VALUE>(model);
+  
+  if (resolvedModel.specificationVersion !== 'v2') {
     throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
+      version: resolvedModel.specificationVersion,
+      provider: resolvedModel.provider,
+      modelId: resolvedModel.modelId,
     });
   }
 
@@ -85,7 +88,7 @@ Only applicable for HTTP-based providers.
   });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    model,
+    model: resolvedModel,
     telemetry,
     headers,
     settings: { maxRetries },
@@ -123,7 +126,7 @@ Only applicable for HTTP-based providers.
           }),
           tracer,
           fn: async doEmbedSpan => {
-            const modelResponse = await model.doEmbed({
+            const modelResponse = await resolvedModel.doEmbed({
               values: [value],
               abortSignal,
               headers,

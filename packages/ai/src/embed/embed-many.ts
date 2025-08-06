@@ -9,6 +9,7 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
+import { resolveEmbeddingModel } from '../../core/prompt/resolve-embedding-model';
 import { EmbedManyResult } from './embed-many-result';
 
 /**
@@ -27,7 +28,7 @@ has a limit on how many embeddings can be generated in a single call.
 
 @returns A result object that contains the embeddings, the value, and additional information.
  */
-export async function embedMany<VALUE>({
+export async function embedMany<VALUE = string>({
   model,
   values,
   maxParallelCalls = Infinity,
@@ -84,11 +85,13 @@ Only applicable for HTTP-based providers.
    */
   maxParallelCalls?: number;
 }): Promise<EmbedManyResult<VALUE>> {
-  if (model.specificationVersion !== 'v2') {
+  const resolvedModel = resolveEmbeddingModel<VALUE>(model);
+  
+  if (resolvedModel.specificationVersion !== 'v2') {
     throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
+      version: resolvedModel.specificationVersion,
+      provider: resolvedModel.provider,
+      modelId: resolvedModel.modelId,
     });
   }
 
@@ -98,7 +101,7 @@ Only applicable for HTTP-based providers.
   });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    model,
+    model: resolvedModel,
     telemetry,
     headers,
     settings: { maxRetries },
@@ -122,8 +125,8 @@ Only applicable for HTTP-based providers.
     tracer,
     fn: async span => {
       const [maxEmbeddingsPerCall, supportsParallelCalls] = await Promise.all([
-        model.maxEmbeddingsPerCall,
-        model.supportsParallelCalls,
+        resolvedModel.maxEmbeddingsPerCall,
+        resolvedModel.supportsParallelCalls,
       ]);
 
       // the model has not specified limits on
@@ -150,7 +153,7 @@ Only applicable for HTTP-based providers.
               }),
               tracer,
               fn: async doEmbedSpan => {
-                const modelResponse = await model.doEmbed({
+                const modelResponse = await resolvedModel.doEmbed({
                   values,
                   abortSignal,
                   headers,
@@ -251,7 +254,7 @@ Only applicable for HTTP-based providers.
                 }),
                 tracer,
                 fn: async doEmbedSpan => {
-                  const modelResponse = await model.doEmbed({
+                  const modelResponse = await resolvedModel.doEmbed({
                     values: chunk,
                     abortSignal,
                     headers,
