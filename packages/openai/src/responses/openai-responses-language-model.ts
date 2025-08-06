@@ -1136,10 +1136,12 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   };
 }
 
+// TODO move into getResponsesModelConfig
 function supportsFlexProcessing(modelId: string): boolean {
   return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
 }
 
+// TODO move into getResponsesModelConfig
 function supportsPriorityProcessing(modelId: string): boolean {
   return (
     modelId.startsWith('gpt-4') ||
