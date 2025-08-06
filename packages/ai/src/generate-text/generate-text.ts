@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  getErrorMessage,
   IdGenerator,
   ProviderOptions,
 } from '@ai-sdk/provider-utils';
@@ -431,7 +432,7 @@ A function that attempts to repair a tool call that failed to parse.
           );
 
           // parse tool calls:
-          const stepToolCalls = await Promise.all(
+          const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
             currentModelResponse.content
               .filter(
                 (part): part is LanguageModelV2ToolCall =>
@@ -466,11 +467,28 @@ A function that attempts to repair a tool call that failed to parse.
             }
           }
 
-          clientToolCalls = stepToolCalls.filter(
-            toolCall => toolCall.providerExecuted !== true,
+          // insert error tool outputs for invalid tool calls:
+          // TODO AI SDK 6: invalid inputs should not require output parts
+          const invalidToolCalls = stepToolCalls.filter(
+            toolCall => toolCall.invalid && toolCall.dynamic,
           );
 
-          // execute tools:
+          for (const toolCall of invalidToolCalls) {
+            clientToolOutputs.push({
+              type: 'tool-error',
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+              input: toolCall.input,
+              error: getErrorMessage(toolCall.error!),
+              dynamic: true,
+            });
+          }
+
+          // execute client tool calls:
+          clientToolCalls = stepToolCalls.filter(
+            toolCall => !toolCall.providerExecuted && !toolCall.invalid,
+          );
+
           clientToolOutputs =
             tools == null
               ? []

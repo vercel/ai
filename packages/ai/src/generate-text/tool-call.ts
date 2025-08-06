@@ -12,6 +12,7 @@ export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
     providerExecuted?: boolean;
     dynamic?: false | undefined;
     invalid?: false | undefined;
+    error?: never;
     providerMetadata?: ProviderMetadata;
   };
 }>;
