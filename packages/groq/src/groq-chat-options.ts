@@ -7,6 +7,8 @@ export type GroqChatModelId =
   | 'llama-3.1-8b-instant'
   | 'llama-3.3-70b-versatile'
   | 'meta-llama/llama-guard-4-12b'
+  | 'openai/gpt-oss-120b'
+  | 'openai/gpt-oss-20b'
   // preview models (selection)
   | 'deepseek-r1-distill-llama-70b'
   | 'meta-llama/llama-4-maverick-17b-128e-instruct'
@@ -23,9 +25,6 @@ export type GroqChatModelId =
   | 'qwen-qwq-32b'
   | 'qwen-2.5-32b'
   | 'deepseek-r1-distill-qwen-32b'
-  // openai
-  | 'openai/gpt-oss-120b'
-  | 'openai/gpt-oss-20b'
   | (string & {});
 
 export const groqProviderOptions = z.object({
