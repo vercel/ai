@@ -7,13 +7,12 @@ description: SAP AI Core Provider for the AI SDK
 
 [SAP AI Core](https://help.sap.com/docs/ai-core) is SAP's enterprise-grade AI platform that provides access to leading AI models from OpenAI, Anthropic, Google, Amazon, and more through a unified, secure, and scalable infrastructure. The SAP AI Core provider for the AI SDK enables seamless integration with enterprise AI capabilities while offering unique advantages:
 
-- **Enterprise Security**: Built-in compliance, data governance, and security controls
 - **Multi-Model Access**: Support for 40+ models including GPT-4, Claude, Gemini, and Amazon Nova
 - **OAuth Integration**: Automatic authentication handling with SAP BTP
 - **Cost Management**: Enterprise billing and usage tracking through SAP BTP
 - **High Availability**: Enterprise-grade infrastructure with SLA guarantees
 - **Hybrid Deployment**: Support for both cloud and on-premise deployments
-- **Tool Calling**: Full function calling capabilities
+- **Tool Calling**: Full function calling capabilities for compatible models
 - **Multi-modal Support**: Text and image inputs for compatible models
 
 Learn more about SAP AI Core's capabilities in the [SAP AI Core Documentation](https://help.sap.com/docs/ai-core).
@@ -23,27 +22,28 @@ Learn more about SAP AI Core's capabilities in the [SAP AI Core Documentation](h
 The SAP AI Core provider is available in the `@mymediset/sap-ai-provider` module. You can install it with:
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
-<Tab>
-pnpm add @mymediset/sap-ai-provider
-</Tab>
-<Tab>
-npm install @mymediset/sap-ai-provider
-</Tab>
-<Tab>
-yarn add @mymediset/sap-ai-provider
-</Tab>
+  <Tab>
+    <Snippet text="pnpm add @mymediset/sap-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @mymediset/sap-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @mymediset/sap-ai-provider" dark />
+  </Tab>
 </Tabs>
 
 ## Provider Instance
 
 To create an SAP AI Core provider instance, use the `createSAPAIProvider` function:
 
+```typescript
 import { createSAPAIProvider } from '@mymediset/sap-ai-provider';
 
 const sapai = await createSAPAIProvider({
-serviceKey: 'YOUR_SAP_AI_CORE_SERVICE_KEY_JSON',
+  serviceKey: 'YOUR_SAP_AI_CORE_SERVICE_KEY',
 });
-
+```
 
 You can obtain your SAP AI Core service key from your SAP BTP Cockpit by creating a service key for your AI Core instance.
 
@@ -51,6 +51,7 @@ You can obtain your SAP AI Core service key from your SAP BTP Cockpit by creatin
 
 You can create SAP AI Core models using the provider instance and model name:
 
+```typescript
 // OpenAI models
 const gpt4Model = sapai('gpt-4o');
 
@@ -62,28 +63,28 @@ const geminiModel = sapai('gemini-1.5-pro');
 
 // Amazon models
 const novaModel = sapai('amazon--nova-pro');
+```
 
-
-### Supported Models
+## Supported Models
 
 The provider supports a wide range of models available in your SAP AI Core deployment:
 
-**OpenAI Models:**
+### OpenAI Models
 - `gpt-4`, `gpt-4o`, `gpt-4o-mini`
 - `o1`, `o1-mini`
 
-**Anthropic Models:**
+### Anthropic Models
 - `anthropic--claude-3-haiku`, `anthropic--claude-3-sonnet`, `anthropic--claude-3-opus`
 - `anthropic--claude-3.5-sonnet`
 
-**Google Models:**
+### Google Models
 - `gemini-1.5-pro`, `gemini-1.5-flash`
 - `gemini-2.0-pro`, `gemini-2.0-flash`
 
-**Amazon Models:**
+### Amazon Models
 - `amazon--nova-premier`, `amazon--nova-pro`, `amazon--nova-lite`, `amazon--nova-micro`
 
-**Other Models:**
+### Other Models
 - `mistralai--mistral-large-instruct`
 - `meta--llama3-70b-instruct`, `meta--llama3.1-70b-instruct`
 
@@ -93,134 +94,115 @@ Here are examples of using SAP AI Core with the AI SDK:
 
 ### generateText
 
+```typescript
 import { createSAPAIProvider } from '@mymediset/sap-ai-provider';
 import { generateText } from 'ai';
 
 const sapai = await createSAPAIProvider({
-serviceKey: process.env.SAP_AI_SERVICE_KEY,
+  serviceKey: process.env.SAP_AI_SERVICE_KEY,
 });
 
 const { text } = await generateText({
-model: sapai('gpt-4o'),
-prompt: 'What are the benefits of enterprise AI platforms?',
+  model: sapai('gpt-4o'),
+  prompt: 'What are the benefits of enterprise AI platforms?',
 });
 
 console.log(text);
-
+```
 
 ### streamText
 
+```typescript
 import { createSAPAIProvider } from '@mymediset/sap-ai-provider';
 import { streamText } from 'ai';
 
 const sapai = await createSAPAIProvider({
-serviceKey: process.env.SAP_AI_SERVICE_KEY,
+  serviceKey: process.env.SAP_AI_SERVICE_KEY,
 });
 
 const result = streamText({
-model: sapai('anthropic--claude-3-sonnet'),
-prompt: 'Write a comprehensive analysis of digital transformation.',
+  model: sapai('anthropic--claude-3-sonnet'),
+  prompt: 'Write a short story about AI.',
 });
 
 for await (const textPart of result.textStream) {
-process.stdout.write(textPart);
+  console.log(textPart);
 }
-
-
-### generateObject
-
-import { createSAPAIProvider } from '@mymediset/sap-ai-provider';
-import { generateObject } from 'ai';
-import { z } from 'zod';
-
-const sapai = await createSAPAIProvider({
-serviceKey: process.env.SAP_AI_SERVICE_KEY,
-});
-
-const { object } = await generateObject({
-model: sapai('gpt-4o'),
-schema: z.object({
-company: z.string(),
-industry: z.string(),
-challenges: z.array(z.string()),
-solutions: z.array(z.string()),
-}),
-prompt: 'Analyze the digital transformation needs for a manufacturing company.',
-});
-
-console.log(object);
-
+```
 
 ### Tool Calling
 
+```typescript
 import { createSAPAIProvider } from '@mymediset/sap-ai-provider';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const sapai = await createSAPAIProvider({
-serviceKey: process.env.SAP_AI_SERVICE_KEY,
+  serviceKey: process.env.SAP_AI_SERVICE_KEY,
 });
 
 const result = await generateText({
-model: sapai('gpt-4o'),
-prompt: 'What is the current status of our inventory system?',
-tools: {
-checkInventory: tool({
-description: 'Check current inventory levels',
-inputSchema: z.object({
-item: z.string().describe('Item to check'),
-location: z.string().describe('Warehouse location'),
-}),
-execute: async ({ item, location }) => {
-// Your inventory system integration
-return { item, location, quantity: 150, status: 'In Stock' };
-},
-}),
-},
+  model: sapai('gpt-4o'),
+  prompt: 'What is the current status of our inventory system?',
+  tools: {
+    checkInventory: tool({
+      description: 'Check current inventory levels',
+      inputSchema: z.object({
+        item: z.string().describe('Item to check'),
+        location: z.string().describe('Warehouse location'),
+      }),
+      execute: async ({ item, location }) => {
+        // Your inventory system integration
+        return { item, location, quantity: 150, status: 'In Stock' };
+      },
+    }),
+  },
 });
 
 console.log(result.text);
-
+```
 
 ### Multi-modal Input
 
-
+```typescript
 import { createSAPAIProvider } from '@mymediset/sap-ai-provider';
 import { generateText } from 'ai';
 
 const sapai = await createSAPAIProvider({
-serviceKey: process.env.SAP_AI_SERVICE_KEY,
+  serviceKey: process.env.SAP_AI_SERVICE_KEY,
 });
 
 const result = await generateText({
-model: sapai('gpt-4o'),
-messages: [
-{
-role: 'user',
-content: [
-{ type: 'text', text: 'Analyze this business process diagram.' },
-{ type: 'image', image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...' }
-]
-}
-]
+  model: sapai('gpt-4o'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Analyze this business process diagram.' },
+        { type: 'image', image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...' }
+      ]
+    }
+  ]
 });
 
 console.log(result.text);
-
+```
 
 ## Configuration
 
 ### Provider Settings
 
+```typescript
 interface SAPAIProviderSettings {
 serviceKey?: string; // SAP AI Core service key JSON
 token?: string; // Direct access token (alternative to serviceKey)
 baseURL?: string; // Custom base URL for API calls
 }
-
+```
 
 ### Model Settings
 
+```typescript
 interface SAPAIModelSettings {
 modelParams?: {
 maxTokens?: number; // Maximum tokens to generate
@@ -232,26 +214,31 @@ presencePenalty?: number; // Presence penalty (-2 to 2)
 safePrompt?: boolean; // Enable safe prompt filtering
 structuredOutputs?: boolean; // Enable structured outputs
 }
-
+```
 
 ## Environment Variables
 
-Required: Your SAP AI Core service key
+### Required
+Your SAP AI Core service key:
+```bash
 SAP_AI_SERVICE_KEY='{"serviceurls":{"AI_API_URL":"..."},"clientid":"...","clientsecret":"..."}'
+```
 
-Optional: Direct access token (alternative to service key)
+### Optional
+Direct access token (alternative to service key):
+```bash
 SAP_AI_TOKEN='your-access-token'
+```
 
-Optional: Custom base URL
+Custom base URL:
+```bash
 SAP_AI_BASE_URL='https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com'
+```
 
-
-## Advanced Features
+## Enterprise Features
 
 SAP AI Core offers several enterprise-grade features:
 
-- **Enterprise Security**: Built-in compliance with GDPR, SOX, and other regulations
-- **Data Governance**: Complete data lineage and audit trails
 - **Multi-Tenant Architecture**: Isolated environments for different business units
 - **Cost Allocation**: Detailed usage tracking and cost center allocation
 - **Custom Models**: Deploy and manage your own fine-tuned models
