@@ -12568,4 +12568,135 @@ describe('streamText', () => {
       });
     });
   });
+
+  describe('invalid tool calls', () => {
+    describe('single invalid tool call', () => {
+      let result: StreamTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                // wrong tool call arguments (city vs cities):
+                input: `{ "cities": "San Francisco" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          _internal: {
+            currentDate: mockValues(new Date(2000)),
+            generateId: mockId(),
+          },
+          tools: {
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+            }),
+          },
+        });
+      });
+
+      it('should add tool call and result error parts to the content', async () => {
+        await result.consumeStream();
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": true,
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]],
+              "input": "{ "cities": "San Francisco" }",
+              "invalid": true,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should add tool call and result error parts to the full stream', async () => {
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "dynamic": true,
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]],
+              "input": "{ "cities": "San Francisco" }",
+              "invalid": true,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:02.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
+      });
+    });
+  });
 });
