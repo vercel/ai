@@ -1,7 +1,5 @@
 # Adding a new model
 
-## When provider and API capabilities do not change
-
 1. Add model id to settings (model ids) for auto-complete
 1. Add model id to list in provider page under `/content/providers/...` (Model Capabilities table at the bottom)
 1. If the model is notable, add to
