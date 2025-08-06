@@ -12579,6 +12579,21 @@ describe('streamText', () => {
             stream: convertArrayToReadableStream([
               { type: 'stream-start', warnings: [] },
               {
+                type: 'tool-input-start',
+                id: 'call-1',
+                toolName: 'cityAttractions',
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-input-delta',
+                id: 'call-1',
+                delta: `{ "cities": "San Francisco" }`,
+              },
+              {
+                type: 'tool-input-end',
+                id: 'call-1',
+              },
+              {
                 type: 'tool-call',
                 toolCallType: 'function',
                 toolCallId: 'call-1',
@@ -12634,9 +12649,8 @@ describe('streamText', () => {
       });
 
       it('should add tool call and result error parts to the full stream', async () => {
-        expect(
-          await convertAsyncIterableToArray(result.fullStream),
-        ).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
           [
             {
               "type": "start",
@@ -12645,6 +12659,22 @@ describe('streamText', () => {
               "request": {},
               "type": "start-step",
               "warnings": [],
+            },
+            {
+              "dynamic": false,
+              "id": "call-1",
+              "providerExecuted": true,
+              "toolName": "cityAttractions",
+              "type": "tool-input-start",
+            },
+            {
+              "delta": "{ "cities": "San Francisco" }",
+              "id": "call-1",
+              "type": "tool-input-delta",
+            },
+            {
+              "id": "call-1",
+              "type": "tool-input-end",
             },
             {
               "dynamic": true,
