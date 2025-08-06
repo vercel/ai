@@ -23,6 +23,9 @@ export type GroqChatModelId =
   | 'qwen-qwq-32b'
   | 'qwen-2.5-32b'
   | 'deepseek-r1-distill-qwen-32b'
+  // openai
+  | 'openai/gpt-oss-120b'
+  | 'openai/gpt-oss-20b'
   | (string & {});
 
 export const groqProviderOptions = z.object({
