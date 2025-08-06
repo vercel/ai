@@ -12763,6 +12763,73 @@ describe('streamText', () => {
           ]
         `);
       });
+
+      it('should add tool call and result error parts to the ui message stream', async () => {
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "dynamic": false,
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-input-start",
+            },
+            {
+              "inputTextDelta": "{ "cities": "San Francisco" }",
+              "toolCallId": "call-1",
+              "type": "tool-input-delta",
+            },
+            {
+              "dynamic": true,
+              "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]",
+              "input": "{ "cities": "San Francisco" }",
+              "invalid": true,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-input-available",
+            },
+            {
+              "dynamic": true,
+              "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]",
+              "toolCallId": "call-1",
+              "type": "tool-output-error",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
+      });
     });
   });
 });

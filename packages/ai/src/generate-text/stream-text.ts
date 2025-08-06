@@ -1822,6 +1822,10 @@ However, the LLM results are expected to be small enough to not cause issues.
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
                 ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
+                ...(part.invalid != null ? { invalid: part.invalid } : {}),
+                ...(part.error != null
+                  ? { errorText: onError(part.error) }
+                  : {}),
               });
               break;
             }
