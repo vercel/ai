@@ -13,7 +13,7 @@ However, LangChain does not provide a way to easily build UIs or a standard way 
 
 Here is a basic example that uses both the AI SDK and LangChain together with the [Next.js](https://nextjs.org/docs) App Router.
 
-The [`@ai-sdk/langchain` package](/docs/reference/stream-helpers/langchain-adapter) uses the result from [LangChain ExpressionLanguage streaming](https://js.langchain.com/docs/expression_language/streaming) to pipe text to the client.
+The [`@ai-sdk/langchain` package](/docs/reference/stream-helpers/langchain-adapter) uses the result from [LangChain ExpressionLanguage streaming](https://js.langchain.com/docs/how_to/streaming) to pipe text to the client.
 `toDataStreamResponse()` is compatible with the LangChain Expression Language `.stream()` function response.
 
 ```tsx filename="app/api/completion/route.ts" highlight={"16"}
