@@ -473,6 +473,8 @@ A function that attempts to repair a tool call that failed to parse.
             toolCall => toolCall.invalid && toolCall.dynamic,
           );
 
+          clientToolOutputs = [];
+
           for (const toolCall of invalidToolCalls) {
             clientToolOutputs.push({
               type: 'tool-error',
@@ -486,21 +488,24 @@ A function that attempts to repair a tool call that failed to parse.
 
           // execute client tool calls:
           clientToolCalls = stepToolCalls.filter(
-            toolCall => !toolCall.providerExecuted && !toolCall.invalid,
+            toolCall => !toolCall.providerExecuted,
           );
 
-          clientToolOutputs =
-            tools == null
-              ? []
-              : await executeTools({
-                  toolCalls: clientToolCalls,
-                  tools,
-                  tracer,
-                  telemetry,
-                  messages: stepInputMessages,
-                  abortSignal,
-                  experimental_context,
-                });
+          if (tools != null) {
+            clientToolOutputs.push(
+              ...(await executeTools({
+                toolCalls: clientToolCalls.filter(
+                  toolCall => !toolCall.invalid,
+                ),
+                tools,
+                tracer,
+                telemetry,
+                messages: stepInputMessages,
+                abortSignal,
+                experimental_context,
+              })),
+            );
+          }
 
           // content:
           const stepContent = asContent({
