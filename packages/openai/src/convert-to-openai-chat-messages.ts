@@ -123,10 +123,14 @@ export function convertToOpenAIChatMessages({
 
                   return {
                     type: 'file',
-                    file: {
-                      filename: part.filename ?? `part-${index}.pdf`,
-                      file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
-                    },
+                    file:
+                      typeof part.data === 'string' &&
+                      part.data.startsWith('file-')
+                        ? { file_id: part.data }
+                        : {
+                            filename: part.filename ?? `part-${index}.pdf`,
+                            file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                          },
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
