@@ -110,6 +110,11 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
    * Abort the current request immediately, keep the current partial object if any.
    */
   stop: () => void;
+
+  /**
+   * Clear the object state.
+   */
+  clear: () => void;
 };
 
 function useObject<
@@ -159,9 +164,9 @@ function useObject<
 
   const submit = async (input: INPUT) => {
     try {
-      mutate(undefined); // reset the data
+      clearObject();
+
       setIsLoading(true);
-      setError(undefined);
 
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
@@ -239,12 +244,24 @@ function useObject<
     }
   };
 
+  const clear = () => {
+    stop();
+    clearObject();
+  };
+
+  const clearObject = () => {
+    setError(undefined);
+    setIsLoading(false);
+    mutate(undefined);
+  };
+
   return {
     submit,
     object: data,
     error,
     isLoading,
     stop,
+    clear,
   };
 }
 

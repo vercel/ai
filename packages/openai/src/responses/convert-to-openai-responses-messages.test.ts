@@ -111,6 +111,36 @@ describe('convertToOpenAIResponsesMessages', () => {
       ]);
     });
 
+    it('should convert messages with image parts using file_id', async () => {
+      const result = await convertToOpenAIResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: 'file-12345',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_image',
+              file_id: 'file-12345',
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should use default mime type for binary images', async () => {
       const result = await convertToOpenAIResponsesMessages({
         prompt: [
@@ -205,6 +235,36 @@ describe('convertToOpenAIResponsesMessages', () => {
               type: 'input_file',
               filename: 'document.pdf',
               file_data: 'data:application/pdf;base64,AQIDBAU=',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert messages with PDF file parts using file_id', async () => {
+      const result = await convertToOpenAIResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: 'file-pdf-12345',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              file_id: 'file-pdf-12345',
             },
           ],
         },

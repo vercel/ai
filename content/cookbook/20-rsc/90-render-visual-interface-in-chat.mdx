@@ -155,7 +155,7 @@ export async function continueConversation(
       showStockInformation: {
         description:
           'Get stock information for symbol for the last numOfMonths months',
-        parameters: z.object({
+        inputSchema: z.object({
           symbol: z
             .string()
             .describe('The stock symbol to get information for'),
@@ -177,7 +177,7 @@ export async function continueConversation(
       },
       showFlightStatus: {
         description: 'Get the status of a flight',
-        parameters: z.object({
+        inputSchema: z.object({
           flightNumber: z
             .string()
             .describe('The flight number to get status for'),

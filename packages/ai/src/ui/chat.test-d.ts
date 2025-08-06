@@ -18,12 +18,6 @@ type ToolCallArgument<TOOLS extends ToolSet | UITools> = Parameters<
   ToolCallCallback<TOOLS>
 >[0]['toolCall'];
 
-type ToolCallReturnType<TOOLS extends ToolSet | UITools> = ReturnType<
-  ToolCallCallback<TOOLS>
->;
-
-type ToolCallOutput<T> = T | void | Promise<T | void>;
-
 describe('onToolCall', () => {
   describe('no helpers', () => {
     it('single tool with output schema', () => {
@@ -34,7 +28,9 @@ describe('onToolCall', () => {
         };
       };
 
-      expectTypeOf<ToolCallArgument<Tools>>().toMatchTypeOf<{
+      expectTypeOf<
+        ToolCallArgument<Tools> & { dynamic?: false }
+      >().toMatchTypeOf<{
         toolName: 'simple';
         input: number;
       }>();
@@ -48,7 +44,9 @@ describe('onToolCall', () => {
         };
       };
 
-      expectTypeOf<ToolCallArgument<Tools>>().toMatchTypeOf<{
+      expectTypeOf<
+        ToolCallArgument<Tools> & { dynamic?: false }
+      >().toMatchTypeOf<{
         toolName: 'simple';
         input: number;
       }>();
@@ -71,7 +69,9 @@ describe('onToolCall', () => {
         };
       };
 
-      expectTypeOf<ToolCallArgument<Tools>>().toMatchTypeOf<
+      expectTypeOf<
+        ToolCallArgument<Tools> & { dynamic?: false }
+      >().toMatchTypeOf<
         | {
             toolName: 'simple';
             input: number;
@@ -101,7 +101,9 @@ describe('onToolCall', () => {
         };
       };
 
-      expectTypeOf<ToolCallArgument<Tools>>().toMatchTypeOf<
+      expectTypeOf<
+        ToolCallArgument<Tools> & { dynamic?: false }
+      >().toMatchTypeOf<
         | {
             toolName: 'simple';
             input: number;
@@ -128,7 +130,9 @@ describe('onToolCall', () => {
         simple,
       };
 
-      expectTypeOf<ToolCallArgument<typeof tools>>().toMatchTypeOf<{
+      expectTypeOf<
+        ToolCallArgument<typeof tools> & { dynamic?: false }
+      >().toMatchTypeOf<{
         toolName: 'simple';
         input: number;
       }>();
@@ -143,7 +147,9 @@ describe('onToolCall', () => {
         simple,
       };
 
-      expectTypeOf<ToolCallArgument<typeof tools>>().toMatchTypeOf<{
+      expectTypeOf<
+        ToolCallArgument<typeof tools> & { dynamic?: false }
+      >().toMatchTypeOf<{
         toolName: 'simple';
         input: number;
       }>();
@@ -172,7 +178,9 @@ describe('onToolCall', () => {
         complex,
       };
 
-      expectTypeOf<ToolCallArgument<typeof tools>>().toMatchTypeOf<
+      expectTypeOf<
+        ToolCallArgument<typeof tools> & { dynamic?: false }
+      >().toMatchTypeOf<
         | {
             toolName: 'simple';
             input: number;
@@ -204,7 +212,9 @@ describe('onToolCall', () => {
         complex,
       };
 
-      expectTypeOf<ToolCallArgument<typeof tools>>().toMatchTypeOf<
+      expectTypeOf<
+        ToolCallArgument<typeof tools> & { dynamic?: false }
+      >().toMatchTypeOf<
         | {
             toolName: 'simple';
             input: number;

@@ -3,7 +3,7 @@ import type {
   LanguageModelV2Middleware,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
-import { getPotentialStartIndex } from '../../src/util/get-potential-start-index';
+import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 /**
  * Extract an XML-tagged reasoning section from the generated text and exposes it

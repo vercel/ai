@@ -1,18 +1,9 @@
 ---
-title: Migrate AI SDK 4.0 to 5.0 Beta
-description: Learn how to upgrade AI SDK 4.0 to 5.0 Beta.
+title: Migrate AI SDK 4.0 to 5.0
+description: Learn how to upgrade AI SDK 4.0 to 5.0.
 ---
 
-# Migrate AI SDK 4.0 to 5.0 Beta
-
-<Note>
-  AI SDK 5.0 is currently in beta and introduces significant improvements in
-  type safety, consistency, and developer experience. This guide will help you
-  migrate from AI SDK 4.0 to 5.0. We are continuously improving our automated
-  migration tools to make the upgrade process smoother. Note that you may want
-  to wait until GA for production projects - this is for early adopters who want
-  to help us.
-</Note>
+# Migrate AI SDK 4.0 to 5.0
 
 ## Recommended Migration Process
 
@@ -28,10 +19,10 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0 Beta.
 
 You need to update the following packages to the following versions in your `package.json` file(s):
 
-- `ai` package: `5.0.0@beta`
-- `@ai-sdk/provider` package: `2.0.0@beta`
-- `@ai-sdk/provider-utils` package: `3.0.0@beta`
-- `@ai-sdk/*` packages: `2.0.0@beta` (other `@ai-sdk` packages)
+- `ai` package: `5.0.0`
+- `@ai-sdk/provider` package: `2.0.0`
+- `@ai-sdk/provider-utils` package: `3.0.0`
+- `@ai-sdk/*` packages: `2.0.0` (other `@ai-sdk` packages)
 
 Additionally, you need to update the following peer dependencies:
 
@@ -40,7 +31,7 @@ Additionally, you need to update the following peer dependencies:
 An example upgrade command would be:
 
 ```
-npm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta zod@3.25.0
+npm install ai @ai-sdk/react @ai-sdk/openai zod@3.25.0
 ```
 
 ## Codemods
@@ -62,25 +53,25 @@ You can run all codemods provided as part of the 5.0 upgrade process by running
 the following command from the root of your project:
 
 ```sh
-npx @ai-sdk/codemod@beta upgrade
+npx @ai-sdk/codemod upgrade
 ```
 
 To run only the v5 codemods (v4 → v5 migration):
 
 ```sh
-npx @ai-sdk/codemod@beta v5
+npx @ai-sdk/codemod v5
 ```
 
 Individual codemods can be run by specifying the name of the codemod:
 
 ```sh
-npx @ai-sdk/codemod@beta <codemod-name> <path>
+npx @ai-sdk/codemod <codemod-name> <path>
 ```
 
 For example, to run a specific v5 codemod:
 
 ```sh
-npx @ai-sdk/codemod@beta v5/rename-format-stream-part src/
+npx @ai-sdk/codemod v5/rename-format-stream-part src/
 ```
 
 See also the [table of codemods](#codemod-table). In addition, the latest set of
@@ -645,6 +636,150 @@ In v5, UI tool parts use typed naming: `tool-${toolName}` instead of generic typ
 }
 ```
 
+### Dynamic Tools Support
+
+AI SDK 5.0 introduces dynamic tools for handling tools with unknown types at development time, such as MCP tools without schemas or user-defined functions at runtime.
+
+#### New dynamicTool Helper
+
+The new `dynamicTool` helper function allows you to define tools where the input and output types are not known at compile time.
+
+```tsx filename="AI SDK 5.0"
+import { dynamicTool } from 'ai';
+import { z } from 'zod';
+
+// Define a dynamic tool
+const runtimeTool = dynamicTool({
+  description: 'A tool defined at runtime',
+  inputSchema: z.object({}),
+  execute: async input => {
+    // Input and output are typed as 'unknown'
+    return { result: `Processed: ${input.query}` };
+  },
+});
+```
+
+#### MCP Tools Without Schemas
+
+MCP tools that don't provide schemas are now automatically treated as dynamic tools:
+
+```tsx filename="AI SDK 5.0"
+import { MCPClient } from 'ai';
+
+const client = new MCPClient({
+  /* ... */
+});
+const tools = await client.getTools();
+
+// Tools without schemas are now 'dynamic' type
+// and won't break type inference when mixed with static tools
+```
+
+#### Type-Safe Handling with Mixed Tools
+
+When using both static and dynamic tools together, use the `dynamic` flag for type narrowing:
+
+```tsx filename="AI SDK 5.0"
+const result = await generateText({
+  model: openai('gpt-4'),
+  tools: {
+    // Static tool with known types
+    weather: weatherTool,
+    // Dynamic tool with unknown types
+    customDynamicTool: dynamicTool({
+      /* ... */
+    }),
+  },
+  onStepFinish: step => {
+    // Handle tool calls with type safety
+    for (const toolCall of step.toolCalls) {
+      if (toolCall.dynamic) {
+        // Dynamic tool: input/output are 'unknown'
+        console.log('Dynamic tool called:', toolCall.toolName);
+        continue;
+      }
+
+      // Static tools have full type inference
+      switch (toolCall.toolName) {
+        case 'weather':
+          // TypeScript knows the exact types
+          console.log(toolCall.input.location); // string
+          break;
+      }
+    }
+  },
+});
+```
+
+#### New dynamic-tool UI Part
+
+UI messages now include a `dynamic-tool` part type for rendering dynamic tool invocations:
+
+```tsx filename="AI SDK 5.0"
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      // Static tools use specific types
+      case 'tool-weather':
+        return <div>Weather: {part.input.city}</div>;
+
+      // Dynamic tools use the generic dynamic-tool type
+      case 'dynamic-tool':
+        return (
+          <div>
+            Dynamic tool: {part.toolName}
+            <pre>{JSON.stringify(part.input, null, 2)}</pre>
+          </div>
+        );
+    }
+  });
+}
+```
+
+#### Breaking Change: Type Narrowing Required for Tool Calls and Results
+
+When iterating over `toolCalls` and `toolResults`, you now need to check the `dynamic` flag first for proper type narrowing:
+
+```tsx filename="AI SDK 4.0"
+// Direct type checking worked without dynamic flag
+onStepFinish: step => {
+  for (const toolCall of step.toolCalls) {
+    switch (toolCall.toolName) {
+      case 'weather':
+        console.log(toolCall.input.location); // typed as string
+        break;
+      case 'search':
+        console.log(toolCall.input.query); // typed as string
+        break;
+    }
+  }
+};
+```
+
+```tsx filename="AI SDK 5.0"
+// Must check dynamic flag first for type narrowing
+onStepFinish: step => {
+  for (const toolCall of step.toolCalls) {
+    // Check if it's a dynamic tool first
+    if (toolCall.dynamic) {
+      console.log('Dynamic tool:', toolCall.toolName);
+      console.log('Input:', toolCall.input); // typed as unknown
+      continue;
+    }
+
+    // Now TypeScript knows it's a static tool
+    switch (toolCall.toolName) {
+      case 'weather':
+        console.log(toolCall.input.location); // typed as string
+        break;
+      case 'search':
+        console.log(toolCall.input.query); // typed as string
+        break;
+    }
+  }
+};
+```
+
 ### Tool UI Part State Changes
 
 Tool UI parts now use more granular states that better represent the streaming lifecycle and error handling.
@@ -877,11 +1012,6 @@ steps.forEach((step, index) => {
 
 For core functions like `generateText` and `streamText`, the `maxSteps` parameter has been replaced with `stopWhen`, which provides more flexible control over multi-step execution. The `stopWhen` parameter defines conditions for stopping the generation **when the last step contains tool results**. When multiple conditions are provided as an array, the generation stops if any condition is met.
 
-**Recommended Pattern:**
-
-- Use `stopWhen` in server-side functions (`generateText`/`streamText`) for your main stopping logic
-- Use `maxSteps > 1` in `useChat` for client-side tool execution limits
-
 ```tsx filename="AI SDK 4.0"
 // V4: Simple numeric limit
 const result = await generateText({
@@ -912,11 +1042,6 @@ const result = await generateText({
   model: openai('gpt-4'),
   messages,
   stopWhen: hasToolCall('finalizeTask'), // Stop when finalizeTask tool is called
-});
-
-// Client-side - useChat still uses maxSteps for tool execution limits
-const { messages } = useChat({
-  maxSteps: 3, // Limit client-side tool execution rounds
 });
 ```
 
@@ -993,12 +1118,68 @@ import { useChat } from '@ai-sdk/react';
 ```
 
 <Note>
-  Don't forget to install the new package: `npm install @ai-sdk/react@beta`
+  Don't forget to install the new package: `npm install @ai-sdk/react`
 </Note>
 
 ### useChat Changes
 
 The `useChat` hook has undergone significant changes in v5, with new transport architecture, removal of managed input state, and more.
+
+#### maxSteps Removal
+
+The `maxSteps` parameter has been removed from `useChat`. You should now use server-side `stopWhen` conditions for multi-step tool execution control, and manually submit tool results and trigger new messages for client-side tool calls.
+
+```tsx filename="AI SDK 4.0"
+const { messages, sendMessage } = useChat({
+  maxSteps: 5, // Automatic tool result submission
+});
+```
+
+```tsx filename="AI SDK 5.0"
+// Server-side: Use stopWhen for multi-step control
+import { streamText, convertToModelMessages, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await streamText({
+  model: openai('gpt-4'),
+  messages: convertToModelMessages(messages),
+  stopWhen: stepCountIs(5), // Stop after 5 steps with tool calls
+});
+
+// Client-side: Configure automatic submission
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+
+const { messages, sendMessage, addToolResult } = useChat({
+  // Automatically submit when all tool results are available
+  sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+  async onToolCall({ toolCall }) {
+    const result = await executeToolCall(toolCall);
+
+    // Important: Don't await addToolResult inside onToolCall to avoid deadlocks
+    addToolResult({
+      tool: toolCall.toolName,
+      toolCallId: toolCall.toolCallId,
+      output: result,
+    });
+  },
+});
+```
+
+<Note>
+  Important: When using `sendAutomaticallyWhen`, don't use `await` with
+  `addToolResult` inside `onToolCall` as it can cause deadlocks. The `await` is
+  useful when you're not using automatic submission and need to ensure the
+  messages are updated before manually calling `sendMessage()`.
+</Note>
+
+This change provides more flexibility for handling tool calls and aligns client behavior with server-side multi-step execution patterns.
+
+For more details on the new tool submission approach, see the [Tool Result Submission Changes](#tool-result-submission-changes) section below.
 
 #### Initial Messages Renamed
 
@@ -1268,10 +1449,62 @@ addToolResult({
 ```tsx filename="AI SDK 5.0"
 const { addToolResult } = useChat();
 
-// Add tool result with 'output' parameter
+// Add tool result with 'output' parameter and 'tool' name for type safety
 addToolResult({
+  tool: 'getWeather',
   toolCallId: 'tool-call-123',
   output: 'Weather: 72°F, sunny',
+});
+```
+
+#### Tool Result Submission Changes
+
+The automatic tool result submission behavior has been updated in `useChat` and the `Chat` component. You now have more control and flexibility over when tool results are submitted.
+
+- `onToolCall` no longer supports returning values to automatically submit tool results
+- You must explicitly call `addToolResult` to provide tool results
+- Use `sendAutomaticallyWhen` with `lastAssistantMessageIsCompleteWithToolCalls` helper for automatic submission
+- Important: Don't use `await` with `addToolResult` inside `onToolCall` to avoid deadlocks
+- The `maxSteps` parameter has been removed from the `Chat` component and `useChat` hook
+- For multi-step tool execution, use server-side `stopWhen` conditions instead (see [maxSteps Removal](#maxsteps-removal))
+
+```tsx filename="AI SDK 4.0"
+const { messages, sendMessage, addToolResult } = useChat({
+  maxSteps: 5, // Removed in v5
+
+  // Automatic submission by returning a value
+  async onToolCall({ toolCall }) {
+    if (toolCall.toolName === 'getLocation') {
+      const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+      return cities[Math.floor(Math.random() * cities.length)];
+    }
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+
+const { messages, sendMessage, addToolResult } = useChat({
+  // Automatic submission with helper
+  sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+  async onToolCall({ toolCall }) {
+    if (toolCall.toolName === 'getLocation') {
+      const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+
+      // Important: Don't await inside onToolCall to avoid deadlocks
+      addToolResult({
+        tool: 'getLocation',
+        toolCallId: toolCall.toolCallId,
+        output: cities[Math.floor(Math.random() * cities.length)],
+      });
+    }
+  },
 });
 ```
 
@@ -1360,7 +1593,7 @@ The Vue.js integration has been completely restructured, replacing the `useChat`
 
 #### useChat Replaced with Chat Class
 
-```vue filename="@ai-sdk/vue v1"
+```typescript filename="@ai-sdk/vue v1"
 <script setup>
 import { useChat } from '@ai-sdk/vue';
 
@@ -1370,7 +1603,7 @@ const { messages, input, handleSubmit } = useChat({
 </script>
 ```
 
-```vue filename="@ai-sdk/vue v2"
+```typescript filename="@ai-sdk/vue v2"
 <script setup>
 import { Chat } from '@ai-sdk/vue';
 import { DefaultChatTransport } from 'ai';
@@ -1393,7 +1626,7 @@ const handleSubmit = (e: Event) => {
 
 Messages now use a `parts` array instead of a `content` string.
 
-```vue filename="@ai-sdk/vue v1"
+```typescript filename="@ai-sdk/vue v1"
 <template>
   <div v-for="message in messages" :key="message.id">
     <div>{{ message.role }}: {{ message.content }}</div>
@@ -1401,7 +1634,7 @@ Messages now use a `parts` array instead of a `content` string.
 </template>
 ```
 
-```vue filename="@ai-sdk/vue v2"
+```typescript filename="@ai-sdk/vue v2"
 <template>
   <div v-for="message in chat.messages" :key="message.id">
     <div>{{ message.role }}:</div>
@@ -1637,7 +1870,7 @@ const response = createUIMessageStreamResponse({
 ```
 
 <Note>
-  Don't forget to install the new package: `npm install @ai-sdk/langchain@beta`
+  Don't forget to install the new package: `npm install @ai-sdk/langchain`
 </Note>
 
 #### LlamaIndex Adapter Moved to `@ai-sdk/llamaindex`
@@ -1660,7 +1893,7 @@ const response = createUIMessageStreamResponse({
 ```
 
 <Note>
-  Don't forget to install the new package: `npm install @ai-sdk/llamaindex@beta`
+  Don't forget to install the new package: `npm install @ai-sdk/llamaindex`
 </Note>
 
 ## Streaming Architecture
@@ -2629,8 +2862,8 @@ import {
 import {
   ToolCall,
   ToolResult,
-  ResultUnion,
-  ToolCallUnion,
+  TypedToolResult,
+  TypedToolCall,
   ToolChoice,
 } from '@ai-sdk/provider-utils';
 ```
@@ -2645,6 +2878,8 @@ For more information, see the [Codemods](#codemods) section.
 | ------------------------------------------------ | ----------------------------------------------------- |
 | **AI SDK Core Changes**                          |                                                       |
 | Flatten streamText file properties               | `v5/flatten-streamtext-file-properties`               |
+| ID Generation Changes                            | `v5/require-createIdGenerator-size-argument`          |
+| IDGenerator → IdGenerator                        | `v5/rename-IDGenerator-to-IdGenerator`                |
 | Import LanguageModelV2 from provider package     | `v5/import-LanguageModelV2-from-provider-package`     |
 | Migrate to data stream protocol v2               | `v5/migrate-to-data-stream-protocol-v2`               |
 | Move image model maxImagesPerCall                | `v5/move-image-model-maxImagesPerCall`                |

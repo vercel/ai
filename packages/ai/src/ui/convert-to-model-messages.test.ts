@@ -13,6 +13,94 @@ describe('convertToModelMessages', () => {
 
       expect(result).toEqual([{ role: 'system', content: 'System message' }]);
     });
+
+    it('should convert a system message with provider metadata', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'system',
+          parts: [
+            {
+              text: 'System message with metadata',
+              type: 'text',
+              providerMetadata: { testProvider: { systemSignature: 'abc123' } },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'system',
+          content: 'System message with metadata',
+          providerOptions: { testProvider: { systemSignature: 'abc123' } },
+        },
+      ]);
+    });
+
+    it('should merge provider metadata from multiple text parts in system message', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'system',
+          parts: [
+            {
+              text: 'Part 1',
+              type: 'text',
+              providerMetadata: { provider1: { key1: 'value1' } },
+            },
+            {
+              text: ' Part 2',
+              type: 'text',
+              providerMetadata: { provider2: { key2: 'value2' } },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'system',
+          content: 'Part 1 Part 2',
+          providerOptions: {
+            provider1: { key1: 'value1' },
+            provider2: { key2: 'value2' },
+          },
+        },
+      ]);
+    });
+
+    it('should convert a system message with Anthropic cache control metadata', () => {
+      const SYSTEM_PROMPT = 'You are a helpful assistant.';
+
+      const systemMessage = {
+        id: 'system',
+        role: 'system' as const,
+        parts: [
+          {
+            type: 'text' as const,
+            text: SYSTEM_PROMPT,
+            providerMetadata: {
+              anthropic: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+        ],
+      };
+
+      const result = convertToModelMessages([systemMessage]);
+
+      expect(result).toEqual([
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT,
+          providerOptions: {
+            anthropic: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ]);
+    });
   });
 
   describe('user message', () => {
@@ -784,6 +872,75 @@ describe('convertToModelMessages', () => {
               },
             ],
             "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "text": "Thanks!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('when converting dynamic tool invocations', () => {
+    it('should convert a dynamic tool invocation', () => {
+      const result = convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'screenshot',
+                state: 'output-available',
+                toolCallId: 'call-1',
+                input: { value: 'value-1' },
+                output: 'result-1',
+              },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Thanks!' }],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "value-1",
+                },
+                "toolCallId": "call-1",
+                "toolName": "screenshot",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "result-1",
+                },
+                "toolCallId": "call-1",
+                "toolName": "screenshot",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
           },
           {
             "content": [

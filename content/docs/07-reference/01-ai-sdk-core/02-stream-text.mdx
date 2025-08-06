@@ -542,6 +542,13 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'includeRawChunks',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether to include raw chunks from the provider in the stream. When enabled, you will receive raw chunks with type "raw" that contain the unprocessed data from the provider. This allows access to cutting-edge provider features not yet wrapped by the AI SDK. Defaults to false.',
+    },
+    {
       name: 'providerOptions',
       type: 'Record<string,Record<string,JSONValue>> | undefined',
       isOptional: true,
@@ -646,6 +653,13 @@ To see `streamText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'experimental_context',
+      type: 'unknown',
+      isOptional: true,
+      description:
+        'Context that is passed into tool execution. Experimental (can break in patch releases).',
     },
     {
       name: 'experimental_repairToolCall',
@@ -1573,13 +1587,13 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'toolCalls',
-      type: 'Promise<ToolCallUnion<TOOLS>[]>',
+      type: 'Promise<TypedToolCall<TOOLS>[]>',
       description:
         'The tool calls that have been executed. Resolved when the response is finished.',
     },
     {
       name: 'toolResults',
-      type: 'Promise<ToolResultUnion<TOOLS>[]>',
+      type: 'Promise<TypedToolResult<TOOLS>[]>',
       description:
         'The tool results that have been generated. Resolved when the all tool executions are finished.',
     },

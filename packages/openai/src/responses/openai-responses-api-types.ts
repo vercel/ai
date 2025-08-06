@@ -10,6 +10,7 @@ export type OpenAIResponsesMessage =
   | OpenAIResponsesFunctionCallOutput
   | OpenAIWebSearchCall
   | OpenAIComputerCall
+  | OpenAIFileSearchCall
   | OpenAIResponsesReasoning;
 
 export type OpenAIResponsesSystemMessage = {
@@ -22,7 +23,9 @@ export type OpenAIResponsesUserMessage = {
   content: Array<
     | { type: 'input_text'; text: string }
     | { type: 'input_image'; image_url: string }
+    | { type: 'input_image'; file_id: string }
     | { type: 'input_file'; filename: string; file_data: string }
+    | { type: 'input_file'; file_id: string }
   >;
 };
 
@@ -32,6 +35,7 @@ export type OpenAIResponsesAssistantMessage = {
     | { type: 'output_text'; text: string }
     | OpenAIWebSearchCall
     | OpenAIComputerCall
+    | OpenAIFileSearchCall
   >;
   id?: string;
 };
@@ -62,6 +66,12 @@ export type OpenAIComputerCall = {
   status?: string;
 };
 
+export type OpenAIFileSearchCall = {
+  type: 'file_search_call';
+  id: string;
+  status?: string;
+};
+
 export type OpenAIResponsesTool =
   | {
       type: 'function';
@@ -82,8 +92,20 @@ export type OpenAIResponsesTool =
   | {
       type: 'file_search';
       vector_store_ids?: string[];
-      max_results?: number;
-      search_type?: 'auto' | 'keyword' | 'semantic';
+      max_num_results?: number;
+      ranking_options?: {
+        ranker?: 'auto' | 'default-2024-08-21';
+      };
+      filters?:
+        | {
+            key: string;
+            type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
+            value: string | number | boolean;
+          }
+        | {
+            type: 'and' | 'or';
+            filters: any[];
+          };
     };
 
 export type OpenAIResponsesReasoning = {

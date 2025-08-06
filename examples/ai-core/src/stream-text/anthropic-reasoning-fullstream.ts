@@ -67,6 +67,10 @@ async function main() {
       }
 
       case 'tool-result': {
+        if (part.dynamic) {
+          continue;
+        }
+
         const transformedPart: ToolResultPart = {
           ...part,
           output: { type: 'json', value: part.output },

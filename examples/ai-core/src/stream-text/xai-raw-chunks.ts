@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: xai('grok-beta'),
+    model: xai('grok-3'),
     prompt: 'Count from 1 to 3 slowly.',
     includeRawChunks: true,
   });

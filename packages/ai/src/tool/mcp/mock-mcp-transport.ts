@@ -68,7 +68,7 @@ export class MockMCPTransport implements MCPTransport {
           jsonrpc: '2.0',
           id: message.id,
           result: this.initializeResult || {
-            protocolVersion: '2024-11-05',
+            protocolVersion: '2025-06-18',
             serverInfo: {
               name: 'mock-mcp-server',
               version: '1.0.0',

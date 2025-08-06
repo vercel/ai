@@ -5,27 +5,46 @@ description: Learn how to use the Claude Code community provider to access Claud
 
 # Claude Code Provider
 
-<Note type="warning">
-  This community provider is not yet compatible with AI SDK 5. Please wait for
-  the provider to be updated or consider using an [AI SDK 5 compatible
-  provider](/providers/ai-sdk-providers).
-</Note>
-
 The [ai-sdk-provider-claude-code](https://github.com/ben-vargas/ai-sdk-provider-claude-code) community provider allows you to access Claude models through the official Claude Code SDK/CLI. While it works with both Claude Pro/Max subscriptions and API key authentication, it's particularly useful for developers who want to use their existing Claude subscription without managing API keys.
+
+## Version Compatibility
+
+The Claude Code provider supports both AI SDK v4 and v5-beta:
+
+| Provider Version | AI SDK Version | Status | Branch                                                                                  |
+| ---------------- | -------------- | ------ | --------------------------------------------------------------------------------------- |
+| 0.x              | v4             | Stable | [`ai-sdk-v4`](https://github.com/ben-vargas/ai-sdk-provider-claude-code/tree/ai-sdk-v4) |
+| 1.x-beta         | v5-beta        | Beta   | [`main`](https://github.com/ben-vargas/ai-sdk-provider-claude-code/tree/main)           |
 
 ## Setup
 
-The Claude Code provider is available in the `ai-sdk-provider-claude-code` module. You can install it with:
+The Claude Code provider is available in the `ai-sdk-provider-claude-code` module. Install the version that matches your AI SDK version:
+
+### For AI SDK v5-beta (latest)
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
-    <Snippet text="pnpm add ai-sdk-provider-claude-code" dark />
+    <Snippet text="pnpm add ai-sdk-provider-claude-code ai" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install ai-sdk-provider-claude-code" dark />
+    <Snippet text="npm install ai-sdk-provider-claude-code ai" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add ai-sdk-provider-claude-code" dark />
+    <Snippet text="yarn add ai-sdk-provider-claude-code ai" dark />
+  </Tab>
+</Tabs>
+
+### For AI SDK v4 (stable)
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-provider-claude-code@^0 ai@^4" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-provider-claude-code@^0 ai@^4" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-provider-claude-code@^0 ai@^4" dark />
   </Tab>
 </Tabs>
 
@@ -89,14 +108,29 @@ You can use Claude Code language models to generate text with the `generateText`
 import { claudeCode } from 'ai-sdk-provider-claude-code';
 import { generateText } from 'ai';
 
+// AI SDK v4
 const { text } = await generateText({
   model: claudeCode('opus'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
+
+// AI SDK v5-beta
+const result = await generateText({
+  model: claudeCode('opus'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+const text = await result.text;
 ```
 
 Claude Code language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
 (see [AI SDK Core](/docs/ai-sdk-core) for more information).
+
+<Note>
+  The response format differs between AI SDK v4 and v5-beta. In v4, text is
+  accessed directly via `result.text`. In v5-beta, it's accessed as a promise
+  via `await result.text`. Make sure to use the appropriate format for your AI
+  SDK version.
+</Note>
 
 ### Model Capabilities
 

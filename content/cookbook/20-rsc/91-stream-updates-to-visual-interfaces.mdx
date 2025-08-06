@@ -112,7 +112,7 @@ export async function continueConversation(
     tools: {
       deploy: {
         description: 'Deploy repository to vercel',
-        parameters: z.object({
+        inputSchema: z.object({
           repositoryName: z
             .string()
             .describe('The name of the repository, example: vercel/ai-chatbot'),

@@ -1,9 +1,9 @@
+import { dynamicTool, tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { InvalidToolInputError } from '../../src/error/invalid-tool-input-error';
-import { NoSuchToolError } from '../../src/error/no-such-tool-error';
-import { tool } from '../tool';
+import { InvalidToolInputError } from '../error/invalid-tool-input-error';
+import { NoSuchToolError } from '../error/no-such-tool-error';
+import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import { parseToolCall } from './parse-tool-call';
-import { ToolCallRepairError } from '../../src/error/tool-call-repair-error';
 
 describe('parseToolCall', () => {
   it('should successfully parse a valid tool call', async () => {
@@ -27,12 +27,19 @@ describe('parseToolCall', () => {
       system: undefined,
     });
 
-    expect(result).toEqual({
-      type: 'tool-call',
-      toolCallId: '123',
-      toolName: 'testTool',
-      input: { param1: 'test', param2: 42 },
-    });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "input": {
+          "param1": "test",
+          "param2": 42,
+        },
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
   });
 
   it('should successfully parse a valid tool call with provider metadata', async () => {
@@ -98,12 +105,16 @@ describe('parseToolCall', () => {
       system: undefined,
     });
 
-    expect(result).toEqual({
-      type: 'tool-call',
-      toolCallId: '123',
-      toolName: 'testTool',
-      input: {},
-    });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "input": {},
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
   });
 
   it('should successfully process empty object tool calls for tools that have no inputSchema', async () => {
@@ -124,12 +135,16 @@ describe('parseToolCall', () => {
       system: undefined,
     });
 
-    expect(result).toEqual({
-      type: 'tool-call',
-      toolCallId: '123',
-      toolName: 'testTool',
-      input: {},
-    });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "input": {},
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
   });
 
   it('should throw NoSuchToolError when tools is null', async () => {
@@ -241,12 +256,19 @@ describe('parseToolCall', () => {
       });
 
       // Verify the repaired result was used
-      expect(result).toEqual({
-        type: 'tool-call',
-        toolCallId: '123',
-        toolName: 'testTool',
-        input: { param1: 'test', param2: 42 },
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "input": {
+            "param1": "test",
+            "param2": 42,
+          },
+          "providerExecuted": undefined,
+          "providerMetadata": undefined,
+          "toolCallId": "123",
+          "toolName": "testTool",
+          "type": "tool-call",
+        }
+      `);
     });
 
     it('should re-throw error if tool call repair returns null', async () => {
@@ -307,5 +329,43 @@ describe('parseToolCall', () => {
       });
       expect(repairToolCall).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('should set dynamic to true for dynamic tools', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{"param1": "test", "param2": 42}',
+      },
+      tools: {
+        testTool: dynamicTool({
+          inputSchema: z.object({
+            param1: z.string(),
+            param2: z.number(),
+          }),
+          execute: async () => 'result',
+        }),
+      } as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "dynamic": true,
+        "input": {
+          "param1": "test",
+          "param2": 42,
+        },
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
   });
 });

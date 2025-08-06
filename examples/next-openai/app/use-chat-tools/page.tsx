@@ -2,45 +2,39 @@
 
 import ChatInput from '@/component/chat-input';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
 import { UseChatToolsMessage } from '../api/use-chat-tools/route';
 
 export default function Chat() {
-  const {
-    messages,
-    sendMessage,
-    addToolResult,
-    status,
-    canAssistantMessageBeSubmitted,
-  } = useChat<UseChatToolsMessage>({
-    transport: new DefaultChatTransport({ api: '/api/use-chat-tools' }),
+  const { messages, sendMessage, addToolResult, status } =
+    useChat<UseChatToolsMessage>({
+      transport: new DefaultChatTransport({ api: '/api/use-chat-tools' }),
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 
-    // run client-side tools that are automatically executed:
-    async onToolCall({ toolCall }) {
-      // artificial 2 second delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // run client-side tools that are automatically executed:
+      async onToolCall({ toolCall }) {
+        // artificial 2 second delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-      if (toolCall.toolName === 'getLocation') {
-        const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+        if (toolCall.toolName === 'getLocation') {
+          const cities = [
+            'New York',
+            'Los Angeles',
+            'Chicago',
+            'San Francisco',
+          ];
 
-        await addToolResult({
-          tool: 'getLocation',
-          toolCallId: toolCall.toolCallId,
-          output: cities[Math.floor(Math.random() * cities.length)],
-        });
-
-        if (canAssistantMessageBeSubmitted()) {
-          sendMessage();
+          addToolResult({
+            tool: 'getLocation',
+            toolCallId: toolCall.toolCallId,
+            output: cities[Math.floor(Math.random() * cities.length)],
+          });
         }
-      }
-    },
-
-    onFinish() {
-      if (canAssistantMessageBeSubmitted()) {
-        sendMessage();
-      }
-    },
-  });
+      },
+    });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
@@ -69,15 +63,11 @@ export default function Chat() {
                           <button
                             className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                             onClick={async () => {
-                              await addToolResult({
+                              addToolResult({
                                 tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'Yes, confirmed.',
                               });
-
-                              if (canAssistantMessageBeSubmitted()) {
-                                sendMessage();
-                              }
                             }}
                           >
                             Yes
@@ -85,15 +75,11 @@ export default function Chat() {
                           <button
                             className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                             onClick={async () => {
-                              await addToolResult({
+                              addToolResult({
                                 tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'No, denied',
                               });
-
-                              if (canAssistantMessageBeSubmitted()) {
-                                sendMessage();
-                              }
                             }}
                           >
                             No

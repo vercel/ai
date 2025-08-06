@@ -1,5 +1,295 @@
 # @ai-sdk/openai
 
+## 2.0.4
+
+### Patch Changes
+
+- c9e0f52: Files from the OpenAI Files API are now supported, mirroring functionality of OpenAI Chat and Responses API, respectively. Also, the AI SDK supports URLs for PDFs in the responses API the same way it did for completions.
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+
+## 2.0.2
+
+### Patch Changes
+
+- 63e2016: fix(openai): missing url citations from web search tools
+
+## 2.0.1
+
+### Patch Changes
+
+- bc45e29: feat(openai): add file_search_call support to responses api
+
+## 2.0.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+- cc62234: chore (provider/openai): switch default to openai responses api
+- 516be5b: ### Move Image Model Settings into generate options
+
+  Image Models no longer have settings. Instead, `maxImagesPerCall` can be passed directly to `generateImage()`. All other image settings can be passed to `providerOptions[provider]`.
+
+  Before
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1', {
+      maxImagesPerCall: 5,
+      pollIntervalMillis: 500,
+    }),
+    prompt,
+    n: 10,
+  });
+  ```
+
+  After
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1'),
+    prompt,
+    n: 10,
+    maxImagesPerCall: 5,
+    providerOptions: {
+      luma: { pollIntervalMillis: 5 },
+    },
+  });
+  ```
+
+  Pull Request: https://github.com/vercel/ai/pull/6180
+
+- efc3a62: fix (provider/openai): default strict mode to false
+
+### Patch Changes
+
+- 948b755: chore(providers/openai): convert to providerOptions
+- d63bcbc: feat (provider/openai): o4 updates for responses api
+- 3bd3c0b: chore(providers/openai): update embedding model to use providerOptions
+- 5d959e7: refactor: updated openai + anthropic tool use server side
+- 0eee6a8: Fix streaming and reconstruction of reasoning summary parts
+- 177526b: chore(providers/openai-transcription): switch to providerOptions
+- 2f542fa: Add reasoning-part-finish parts for reasoning models in the responses API
+- c15dfbf: feat (providers/openai): add gpt-image-1 model id to image settings
+- 3b1ea10: adding support for gpt-4o-search-preview and handling unsupported parameters
+- e2aceaf: feat: add raw chunk support
+- d2af019: feat (providers/openai): add gpt-4.1 models
+- eb173f1: chore (providers): remove model shorthand deprecation warnings
+- 209256d: Add missing file_search tool support to OpenAI Responses API
+- faea29f: fix (provider/openai): multi-step reasoning with text
+- 7032dc5: feat(openai): add priority processing service tier support
+- 870c5c0: feat (providers/openai): add o3 and o4-mini models
+- db72adc: chore(providers/openai): update completion model to use providerOptions
+- a166433: feat: add transcription with experimental_transcribe
+- 26735b5: chore(embedding-model): add v2 interface
+- 443d8ec: feat(embedding-model-v2): add response body field
+- 8d12da5: feat(provider/openai): add serviceTier option for flex processing
+- 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
+- d521cda: feat(openai): add file_search filters and update field names
+- 66962ed: fix(packages): export node10 compatible types
+- 442be08: fix: propagate openai transcription fixes
+- 0059ee2: fix(openai): update file_search fields to match API changes
+- 8493141: feat (providers/openai): add support for reasoning summaries
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+- 0a87932: core (ai): change transcription model mimeType to mediaType
+- 8aa9e20: feat: add speech with experimental_generateSpeech
+- 4617fab: chore(embedding-models): remove remaining settings
+- b5a0e32: fix (provider/openai): correct default for chat model strict mode
+- 136819b: chore(providers/openai): re-introduce logprobs as providerMetadata
+- 52ce942: chore(providers/openai): remove & enable strict compatibility by default
+- db64cbe: fix (provider/openai): multi-step reasoning with tool calls
+- b3c3450: feat (provider/openai): add support for encrypted_reasoning to responses api
+- 48249c4: Do not warn if empty text is the first part of a reasoning sequence
+- c7d3b2e: fix (provider/openai): push first reasoning chunk in output item added event
+- ad2a3d5: feat(provider/openai): add missing reasoning models to responses API
+- 9943464: feat(openai): add file_search_call.results support to include parameter
+- 0fa7414: chore (provider/openai): standardize on itemId in provider metadata
+- 9bd5ab5: feat (provider): add providerMetadata to ImageModelV2 interface (#5977)
+
+  The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
+
+  ```js
+  const prompt = 'Santa Claus driving a Cadillac';
+
+  const { providerMetadata } = await experimental_generateImage({
+    model: openai.image('dall-e-3'),
+    prompt,
+  });
+
+  const revisedPrompt = providerMetadata.openai.images[0]?.revisedPrompt;
+
+  console.log({
+    prompt,
+    revisedPrompt,
+  });
+  ```
+
+- fa758ea: feat(provider/openai): add o3 & o4-mini with developer systemMessageMode
+- d1a034f: feature: using Zod 4 for internal stuff
+- fd65bc6: chore(embedding-model-v2): rename rawResponse to response
+- e497698: fix (provider/openai): handle responses api errors
+- 928fadf: fix(providers/openai): logprobs for stream alongside completion model
+- 0a87932: fix (provider/openai): increase transcription model resilience
+- 5147e6e: chore(openai): remove simulateStreaming
+- 06bac05: fix (openai): structure output for responses model
+- 205077b: fix: improve Zod compatibility
+- c2b92cc: chore(openai): remove legacy function calling
+- 284353f: fix(providers/openai): zod parse error with function
+- 6f231db: fix(providers): always use optional instead of mix of nullish for providerOptions
+- f10304b: feat(tool-calling): don't require the user to have to pass parameters
+- 4af5233: Fix PDF file parts when passed as a string url or Uint8Array
+- 7df7a25: feat (providers/openai): support gpt-image-1 image generation
+- Updated dependencies [a571d6e]
+- Updated dependencies [742b7be]
+- Updated dependencies [e7fcc86]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [95857aa]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [6f6bb89]
+- Updated dependencies [060370c]
+- Updated dependencies [dc714f3]
+- Updated dependencies [b5da06a]
+- Updated dependencies [d1a1aa1]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [5d142ab]
+- Updated dependencies [d5f588f]
+- Updated dependencies [e025824]
+- Updated dependencies [0571b98]
+- Updated dependencies [b6b43c7]
+- Updated dependencies [4fef487]
+- Updated dependencies [48d257a]
+- Updated dependencies [0c0c0b3]
+- Updated dependencies [0d2c085]
+- Updated dependencies [40acf9b]
+- Updated dependencies [9222aeb]
+- Updated dependencies [e2aceaf]
+- Updated dependencies [411e483]
+- Updated dependencies [8ba77a7]
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [a166433]
+- Updated dependencies [26735b5]
+- Updated dependencies [443d8ec]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [abf9a79]
+- Updated dependencies [14c9410]
+- Updated dependencies [e86be6f]
+- Updated dependencies [9bf7291]
+- Updated dependencies [2e13791]
+- Updated dependencies [9f95b35]
+- Updated dependencies [66962ed]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [d9c98f4]
+- Updated dependencies [05d2819]
+- Updated dependencies [9301f86]
+- Updated dependencies [0a87932]
+- Updated dependencies [c4a2fec]
+- Updated dependencies [957b739]
+- Updated dependencies [79457bd]
+- Updated dependencies [a3f768e]
+- Updated dependencies [7435eb5]
+- Updated dependencies [8aa9e20]
+- Updated dependencies [4617fab]
+- Updated dependencies [ac34802]
+- Updated dependencies [0054544]
+- Updated dependencies [cb68df0]
+- Updated dependencies [ad80501]
+- Updated dependencies [68ecf2f]
+- Updated dependencies [9e9c809]
+- Updated dependencies [32831c6]
+- Updated dependencies [6dc848c]
+- Updated dependencies [6b98118]
+- Updated dependencies [d0f9495]
+- Updated dependencies [63d791d]
+- Updated dependencies [87b828f]
+- Updated dependencies [3f2f00c]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [0ff02bb]
+- Updated dependencies [7979f7f]
+- Updated dependencies [39a4fab]
+- Updated dependencies [44f4aba]
+- Updated dependencies [9bd5ab5]
+- Updated dependencies [57edfcb]
+- Updated dependencies [faf8446]
+- Updated dependencies [7ea4132]
+- Updated dependencies [d1a034f]
+- Updated dependencies [5c56081]
+- Updated dependencies [fd65bc6]
+- Updated dependencies [023ba40]
+- Updated dependencies [ea7a7c9]
+- Updated dependencies [26535e0]
+- Updated dependencies [e030615]
+- Updated dependencies [5e57fae]
+- Updated dependencies [393138b]
+- Updated dependencies [c57e248]
+- Updated dependencies [88a8ee5]
+- Updated dependencies [41fa418]
+- Updated dependencies [205077b]
+- Updated dependencies [71f938d]
+- Updated dependencies [3795467]
+- Updated dependencies [28a5ed5]
+- Updated dependencies [7182d14]
+- Updated dependencies [c1e6647]
+- Updated dependencies [1766ede]
+- Updated dependencies [811dff3]
+- Updated dependencies [f10304b]
+- Updated dependencies [dd5fd43]
+- Updated dependencies [33f4a6a]
+- Updated dependencies [383cbfa]
+- Updated dependencies [27deb4d]
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider-utils@3.0.0
+  - @ai-sdk/provider@2.0.0
+
+## 2.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [88a8ee5]
+  - @ai-sdk/provider-utils@3.0.0-beta.10
+
+## 2.0.0-beta.15
+
+### Patch Changes
+
+- 9943464: feat(openai): add file_search_call.results support to include parameter
+- Updated dependencies [27deb4d]
+  - @ai-sdk/provider@2.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.9
+
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- eb173f1: chore (providers): remove model shorthand deprecation warnings
+- 7032dc5: feat(openai): add priority processing service tier support
+- Updated dependencies [dd5fd43]
+  - @ai-sdk/provider-utils@3.0.0-beta.8
+
+## 2.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+
+## 2.0.0-beta.12
+
+### Patch Changes
+
+- d521cda: feat(openai): add file_search filters and update field names
+- 0059ee2: fix(openai): update file_search fields to match API changes
+- Updated dependencies [ac34802]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+
 ## 2.0.0-beta.11
 
 ### Patch Changes
