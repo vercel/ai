@@ -12,8 +12,32 @@ import {
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { resolveLanguageModel } from '../model/resolve-model';
+import { CallSettings } from '../prompt/call-settings';
+import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { prepareCallSettings } from '../prompt/prepare-call-settings';
+import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
+import { Prompt } from '../prompt/prompt';
+import { standardizePrompt } from '../prompt/standardize-prompt';
+import { wrapGatewayError } from '../prompt/wrap-gateway-error';
+import { assembleOperationName } from '../telemetry/assemble-operation-name';
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getTracer } from '../telemetry/get-tracer';
+import { recordSpan } from '../telemetry/record-span';
+import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
+import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
+import { LanguageModelRequestMetadata } from '../types';
+import {
+  CallWarning,
+  FinishReason,
+  LanguageModel,
+  ToolChoice,
+} from '../types/language-model';
+import { ProviderMetadata } from '../types/provider-metadata';
+import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { UIMessage } from '../ui';
 import { createUIMessageStreamResponse } from '../ui-message-stream/create-ui-message-stream-response';
 import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
@@ -33,33 +57,9 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DelayedPromise } from '../util/delayed-promise';
+import { filterStreamErrors } from '../util/filter-stream-errors';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
-import { CallSettings } from '../prompt/call-settings';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { prepareCallSettings } from '../prompt/prepare-call-settings';
-import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
-import { Prompt } from '../prompt/prompt';
-import { resolveLanguageModel } from '../prompt/resolve-language-model';
-import { standardizePrompt } from '../prompt/standardize-prompt';
-import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
-import { getTracer } from '../telemetry/get-tracer';
-import { recordSpan } from '../telemetry/record-span';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModelRequestMetadata } from '../types';
-import {
-  CallWarning,
-  FinishReason,
-  LanguageModel,
-  ToolChoice,
-} from '../types/language-model';
-import { ProviderMetadata } from '../types/provider-metadata';
-import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { filterStreamErrors } from '../util/filter-stream-errors';
 import { ContentPart } from './content-part';
 import { Output } from './output';
 import { PrepareStepFunction } from './prepare-step';
