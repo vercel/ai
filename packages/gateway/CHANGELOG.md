@@ -1,5 +1,26 @@
 # @ai-sdk/gateway
 
+## 1.0.3
+
+### Patch Changes
+
+- 893aed6: feat (provider/gateway): add anthropic claude 4.1 opus model id
+
+## 1.0.2
+
+### Patch Changes
+
+- 444df49: feat (provider/gateway): update model ids
+
+## 1.0.1
+
+### Patch Changes
+
+- 028fb9c: refactor(provider/gateway): Cleanup old gateway-embedding-options file
+- 6331826: feat(provider/gateway): Hide Cohere embedding models with no pricing info
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+
 ## 1.0.0
 
 ### Patch Changes

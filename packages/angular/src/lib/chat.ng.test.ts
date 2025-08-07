@@ -410,6 +410,7 @@ describe('onToolCall', () => {
         {
           state: 'input-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -426,6 +427,7 @@ describe('onToolCall', () => {
       {
         state: 'output-available',
         errorText: undefined,
+        rawInput: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
@@ -475,6 +477,7 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: undefined,
@@ -497,6 +500,7 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 't' },
@@ -519,6 +523,7 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -542,6 +547,7 @@ describe('tool invocations', () => {
         {
           state: 'input-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -565,6 +571,7 @@ describe('tool invocations', () => {
       {
         state: 'output-available',
         errorText: undefined,
+        rawInput: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
@@ -597,6 +604,7 @@ describe('tool invocations', () => {
         {
           state: 'input-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -621,6 +629,7 @@ describe('tool invocations', () => {
       {
         state: 'output-available',
         errorText: undefined,
+        rawInput: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
@@ -651,6 +660,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
+          rawInput: undefined,
           errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
@@ -672,6 +682,7 @@ describe('tool invocations', () => {
         {
           state: 'output-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
