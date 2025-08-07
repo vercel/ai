@@ -561,6 +561,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   private includeRawChunks: boolean;
 
+  private tools: TOOLS | undefined;
+
   constructor({
     model,
     telemetry,
@@ -624,6 +626,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }) {
     this.output = output;
     this.includeRawChunks = includeRawChunks;
+    this.tools = tools;
 
     // promise to ensure that the step has been fully processed by the event processor
     // before a new step is started. This is required because the continuation condition
@@ -1667,6 +1670,14 @@ However, the LLM results are expected to be small enough to not cause issues.
           })
         : undefined;
 
+    const toolNamesByCallId: Record<string, string> = {};
+
+    const isDynamic = (toolCallId: string) => {
+      const toolName = toolNamesByCallId[toolCallId];
+      const dynamic = this.tools?.[toolName]?.type === 'dynamic';
+      return dynamic ? true : undefined; // only send when dynamic to reduce data transfer
+    };
+
     const baseStream = this.fullStream.pipeThrough(
       new TransformStream<
         TextStreamPart<TOOLS>,
@@ -1788,6 +1799,9 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-input-start': {
+              toolNamesByCallId[part.id] = part.toolName;
+              const dynamic = isDynamic(part.id);
+
               controller.enqueue({
                 type: 'tool-input-start',
                 toolCallId: part.id,
@@ -1795,7 +1809,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
-                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
+                ...(dynamic != null ? { dynamic } : {}),
               });
               break;
             }
@@ -1810,6 +1824,9 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-call': {
+              toolNamesByCallId[part.toolCallId] = part.toolName;
+              const dynamic = isDynamic(part.toolCallId);
+
               controller.enqueue({
                 type: 'tool-input-available',
                 toolCallId: part.toolCallId,
@@ -1821,7 +1838,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
-                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
+                ...(dynamic != null ? { dynamic } : {}),
                 ...(part.invalid != null ? { invalid: part.invalid } : {}),
                 ...(part.error != null
                   ? { errorText: onError(part.error) }
@@ -1831,6 +1848,8 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-result': {
+              const dynamic = isDynamic(part.toolCallId);
+
               controller.enqueue({
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
@@ -1838,12 +1857,14 @@ However, the LLM results are expected to be small enough to not cause issues.
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
-                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
+                ...(dynamic != null ? { dynamic } : {}),
               });
               break;
             }
 
             case 'tool-error': {
+              const dynamic = isDynamic(part.toolCallId);
+
               controller.enqueue({
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,
@@ -1851,7 +1872,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
-                ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
+                ...(dynamic != null ? { dynamic } : {}),
               });
               break;
             }

@@ -8495,63 +8495,62 @@ describe('streamText', () => {
       it('should include provider-executed tool call and result in the ui message stream', async () => {
         expect(await convertReadableStreamToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-input-start",
+            },
+            {
+              "inputTextDelta": "{ "value": "value" }",
+              "toolCallId": "call-1",
+              "type": "tool-input-delta",
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "type": "start-step",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-input-available",
+            },
+            {
+              "output": "{ "value": "result1" }",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "dynamic": false,
-                "providerExecuted": true,
-                "toolCallId": "call-1",
-                "toolName": "web_search",
-                "type": "tool-input-start",
-              },
-              {
-                "inputTextDelta": "{ "value": "value" }",
-                "toolCallId": "call-1",
-                "type": "tool-input-delta",
-              },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": true,
-                "toolCallId": "call-1",
-                "toolName": "web_search",
-                "type": "tool-input-available",
-              },
-              {
-                "output": "{ "value": "result1" }",
-                "providerExecuted": true,
-                "toolCallId": "call-1",
-                "type": "tool-output-available",
-              },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": true,
-                "toolCallId": "call-2",
-                "toolName": "web_search",
-                "type": "tool-input-available",
-              },
-              {
-                "errorText": "ERROR",
-                "providerExecuted": true,
-                "toolCallId": "call-2",
-                "type": "tool-output-error",
-              },
-              {
-                "type": "finish-step",
-              },
-              {
-                "type": "finish",
-              },
-            ]
-          `);
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-input-available",
+            },
+            {
+              "errorText": "ERROR",
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "type": "tool-output-error",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
       });
     });
   });
@@ -12775,7 +12774,6 @@ describe('streamText', () => {
               "type": "start-step",
             },
             {
-              "dynamic": false,
               "providerExecuted": true,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
@@ -12787,7 +12785,6 @@ describe('streamText', () => {
               "type": "tool-input-delta",
             },
             {
-              "dynamic": true,
               "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
@@ -12806,7 +12803,6 @@ describe('streamText', () => {
               "type": "tool-input-available",
             },
             {
-              "dynamic": true,
               "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
