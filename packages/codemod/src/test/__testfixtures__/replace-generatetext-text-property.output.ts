@@ -31,6 +31,7 @@ export async function generateTextWithDestructuring() {
   });
 
   const { text } = result;
+  // TODO: `text` should be transformed to `text.text`
   return text;
 }
 
