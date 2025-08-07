@@ -277,6 +277,73 @@ describe('createUIMessageStream', () => {
     `);
   });
 
+  it('should handle async onError callback', async () => {
+    const dbSyncPromise = new Promise<void>(resolve => {
+      setTimeout(() => resolve(), 10);
+    });
+
+    const stream = createUIMessageStream({
+      execute: async () => {
+        throw new Error('execute-error');
+      },
+      onError: async error => {
+        // Simulate async DB operation
+        await dbSyncPromise;
+        return `async-error-handled: ${(error as Error).message}`;
+      },
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "errorText": "async-error-handled: execute-error",
+          "type": "error",
+        },
+      ]
+    `);
+  });
+
+  it('should handle onError callback that throws an error', async () => {
+    const stream = createUIMessageStream({
+      execute: async () => {
+        throw new Error('execute-error');
+      },
+      onError: error => {
+        throw new Error('onError-failed');
+      },
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "errorText": "onError-failed",
+          "type": "error",
+        },
+      ]
+    `);
+  });
+
+  it('should handle async onError callback that rejects', async () => {
+    const stream = createUIMessageStream({
+      execute: async () => {
+        throw new Error('execute-error');
+      },
+      onError: async error => {
+        await Promise.reject(new Error('async-onError-failed'));
+        return 'should-not-reach';
+      },
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "errorText": "async-onError-failed",
+          "type": "error",
+        },
+      ]
+    `);
+  });
+
   it('should suppress error when writing to closed stream', async () => {
     let uiMessageStreamWriter: UIMessageStreamWriter<UIMessage>;
 
