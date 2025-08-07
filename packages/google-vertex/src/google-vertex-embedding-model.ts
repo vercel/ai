@@ -49,7 +49,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
     // Parse provider options
     const googleOptions =
       (await parseProviderOptions({
-        provider: 'google',
+        provider: 'vertex',
         providerOptions,
         schema: googleVertexEmbeddingProviderOptions,
       })) ?? {};

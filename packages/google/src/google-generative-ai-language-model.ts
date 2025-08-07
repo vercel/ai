@@ -94,7 +94,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const warnings: LanguageModelV2CallWarning[] = [];
 
     const googleOptions = await parseProviderOptions({
-      provider: 'google',
+      // make sure to use the correct provider when coming from vertex
+      provider: this.config.provider.startsWith('google.vertex')
+        ? 'vertex'
+        : 'google',
       providerOptions,
       schema: googleGenerativeAIProviderOptions,
     });
