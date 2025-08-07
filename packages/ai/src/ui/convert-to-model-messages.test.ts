@@ -360,29 +360,31 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should handle assistant message with tool output error', () => {
-      const result = convertToModelMessages([
-        {
-          role: 'assistant',
-          parts: [
-            { type: 'step-start' },
-            {
-              type: 'text',
-              text: 'Let me calculate that for you.',
-              state: 'done',
-            },
-            {
-              type: 'tool-calculator',
-              state: 'output-error',
-              toolCallId: 'call1',
-              input: { operation: 'add', numbers: [1, 2] },
-              errorText: 'Error: Invalid input',
-            },
-          ],
-        },
-      ]);
+    describe('tool output error', () => {
+      it('should handle assistant message with tool output error that has raw input', () => {
+        const result = convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'text',
+                text: 'Let me calculate that for you.',
+                state: 'done',
+              },
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'Error: Invalid input',
+                input: undefined,
+                rawInput: { operation: 'add', numbers: [1, 2] },
+              },
+            ],
+          },
+        ]);
 
-      expect(result).toMatchInlineSnapshot(`
+        expect(result).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -422,6 +424,71 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+      });
+
+      it('should handle assistant message with tool output error that has no raw input', () => {
+        const result = convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'text',
+                text: 'Let me calculate that for you.',
+                state: 'done',
+              },
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                input: { operation: 'add', numbers: [1, 2] },
+                errorText: 'Error: Invalid input',
+              },
+            ],
+          },
+        ]);
+
+        expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me calculate that for you.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "numbers": [
+                    1,
+                    2,
+                  ],
+                  "operation": "add",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Error: Invalid input",
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+      });
     });
 
     it('should handle assistant message with provider-executed tool output available', () => {

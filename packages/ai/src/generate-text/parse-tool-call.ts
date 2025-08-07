@@ -25,50 +25,63 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   system: string | undefined;
   messages: ModelMessage[];
 }): Promise<TypedToolCall<TOOLS>> {
-  if (tools == null) {
-    throw new NoSuchToolError({ toolName: toolCall.toolName });
-  }
-
   try {
-    return await doParseToolCall({ toolCall, tools });
-  } catch (error) {
-    if (
-      repairToolCall == null ||
-      !(
-        NoSuchToolError.isInstance(error) ||
-        InvalidToolInputError.isInstance(error)
-      )
-    ) {
-      throw error;
+    if (tools == null) {
+      throw new NoSuchToolError({ toolName: toolCall.toolName });
     }
-
-    let repairedToolCall: LanguageModelV2ToolCall | null = null;
 
     try {
-      repairedToolCall = await repairToolCall({
-        toolCall,
-        tools,
-        inputSchema: ({ toolName }) => {
-          const { inputSchema } = tools[toolName];
-          return asSchema(inputSchema).jsonSchema;
-        },
-        system,
-        messages,
-        error,
-      });
-    } catch (repairError) {
-      throw new ToolCallRepairError({
-        cause: repairError,
-        originalError: error,
-      });
-    }
+      return await doParseToolCall({ toolCall, tools });
+    } catch (error) {
+      if (
+        repairToolCall == null ||
+        !(
+          NoSuchToolError.isInstance(error) ||
+          InvalidToolInputError.isInstance(error)
+        )
+      ) {
+        throw error;
+      }
 
-    // no repaired tool call returned
-    if (repairedToolCall == null) {
-      throw error;
-    }
+      let repairedToolCall: LanguageModelV2ToolCall | null = null;
 
-    return await doParseToolCall({ toolCall: repairedToolCall, tools });
+      try {
+        repairedToolCall = await repairToolCall({
+          toolCall,
+          tools,
+          inputSchema: ({ toolName }) => {
+            const { inputSchema } = tools[toolName];
+            return asSchema(inputSchema).jsonSchema;
+          },
+          system,
+          messages,
+          error,
+        });
+      } catch (repairError) {
+        throw new ToolCallRepairError({
+          cause: repairError,
+          originalError: error,
+        });
+      }
+
+      // no repaired tool call returned
+      if (repairedToolCall == null) {
+        throw error;
+      }
+
+      return await doParseToolCall({ toolCall: repairedToolCall, tools });
+    }
+  } catch (error) {
+    // TODO AI SDK 6: special invalid tool call parts
+    return {
+      type: 'tool-call',
+      toolCallId: toolCall.toolCallId,
+      toolName: toolCall.toolName,
+      input: toolCall.input,
+      dynamic: true,
+      invalid: true,
+      error,
+    };
   }
 }
 
