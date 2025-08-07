@@ -659,16 +659,6 @@ function getToolCallsFromParts({
       }));
 }
 
-function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
-  const textParts = parts?.filter(part => 'text' in part) as Array<
-    GoogleGenerativeAIContentPart & { text: string }
-  >;
-
-  return textParts == null || textParts.length === 0
-    ? undefined
-    : textParts.map(part => part.text).join('');
-}
-
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
   return parts?.filter(
     (
