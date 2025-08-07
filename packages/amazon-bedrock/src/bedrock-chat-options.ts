@@ -4,6 +4,9 @@ import { z } from 'zod/v4';
 export type BedrockChatModelId =
   | 'amazon.titan-tg1-large'
   | 'amazon.titan-text-express-v1'
+  | 'amazon.nova-micro-v1:0'
+  | 'amazon.nova-lite-v1:0'
+  | 'amazon.nova-pro-v1:0'
   | 'anthropic.claude-v2'
   | 'anthropic.claude-v2:1'
   | 'anthropic.claude-instant-v1'
