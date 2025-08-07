@@ -2,4 +2,4 @@
 '@ai-sdk/groq': major
 ---
 
-add reasoningEffort for gpt-oss
+add reasoningEffort parameter "low", "medium", "high" for gpt-oss
