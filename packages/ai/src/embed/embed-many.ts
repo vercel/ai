@@ -9,6 +9,7 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
+import { resolveEmbeddingModel } from '../model/resolve-model';
 import { EmbedManyResult } from './embed-many-result';
 
 /**
@@ -27,8 +28,8 @@ has a limit on how many embeddings can be generated in a single call.
 
 @returns A result object that contains the embeddings, the value, and additional information.
  */
-export async function embedMany<VALUE>({
-  model,
+export async function embedMany<VALUE = string>({
+  model: modelArg,
   values,
   maxParallelCalls = Infinity,
   maxRetries: maxRetriesArg,
@@ -84,13 +85,7 @@ Only applicable for HTTP-based providers.
    */
   maxParallelCalls?: number;
 }): Promise<EmbedManyResult<VALUE>> {
-  if (model.specificationVersion !== 'v2') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
-  }
+  const model = resolveEmbeddingModel<VALUE>(modelArg);
 
   const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
