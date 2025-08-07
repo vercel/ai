@@ -2,7 +2,11 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
-import { generateId, ModelMessage } from '@ai-sdk/provider-utils';
+import {
+  generateId,
+  getErrorMessage,
+  ModelMessage,
+} from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
@@ -219,6 +223,20 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             });
 
             controller.enqueue(toolCall);
+
+            // handle invalid tool calls:
+            if (toolCall.invalid) {
+              toolResultsStreamController!.enqueue({
+                type: 'tool-error',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: toolCall.input,
+                error: getErrorMessage(toolCall.error!),
+                dynamic: true,
+              });
+
+              break;
+            }
 
             const tool = tools![toolCall.toolName];
 

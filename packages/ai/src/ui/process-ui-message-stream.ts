@@ -157,8 +157,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               | {
                   state: 'output-error';
                   input: unknown;
+                  rawInput?: unknown;
                   errorText: string;
                   providerExecuted?: boolean;
+                  providerMetadata?: ProviderMetadata;
                 }
             ),
           ) {
@@ -175,6 +177,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.input = anyOptions.input;
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
+              anyPart.rawInput = anyOptions.rawInput;
 
               // once providerExecuted is set, it stays for streaming
               anyPart.providerExecuted =
@@ -193,6 +196,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state: options.state,
                 input: anyOptions.input,
                 output: anyOptions.output,
+                rawInput: anyOptions.rawInput,
                 errorText: anyOptions.errorText,
                 providerExecuted: anyOptions.providerExecuted,
                 ...(anyOptions.providerMetadata != null
@@ -226,6 +230,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'output-error';
                   input: unknown;
                   errorText: string;
+                  providerMetadata?: ProviderMetadata;
                 }
             ),
           ) {
@@ -244,6 +249,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.input = anyOptions.input;
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
+              anyPart.rawInput = anyOptions.rawInput ?? anyPart.rawInput;
 
               if (
                 anyOptions.providerMetadata != null &&
@@ -485,6 +491,33 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
+            case 'tool-input-error': {
+              if (chunk.dynamic) {
+                updateDynamicToolPart({
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                  state: 'output-error',
+                  input: chunk.input,
+                  errorText: chunk.errorText,
+                  providerMetadata: chunk.providerMetadata,
+                });
+              } else {
+                updateToolPart({
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                  state: 'output-error',
+                  input: undefined,
+                  rawInput: chunk.input,
+                  errorText: chunk.errorText,
+                  providerExecuted: chunk.providerExecuted,
+                  providerMetadata: chunk.providerMetadata,
+                });
+              }
+
+              write();
+              break;
+            }
+
             case 'tool-output-available': {
               if (chunk.dynamic) {
                 const toolInvocation = getDynamicToolInvocation(
@@ -536,6 +569,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolName: getToolName(toolInvocation),
                   state: 'output-error',
                   input: (toolInvocation as any).input,
+                  rawInput: (toolInvocation as any).rawInput,
                   errorText: chunk.errorText,
                 });
               }
