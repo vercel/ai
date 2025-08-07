@@ -115,7 +115,12 @@ export function convertToOpenAIChatMessages({
                     }
                   }
                 } else if (part.mediaType === 'application/pdf') {
-                  if (part.data instanceof URL) {
+                  if (
+                    part.data instanceof URL ||
+                    (typeof part.data === 'string' &&
+                      (part.data.startsWith('http://') ||
+                        part.data.startsWith('https://')))
+                  ) {
                     throw new UnsupportedFunctionalityError({
                       functionality: 'PDF file parts with URLs',
                     });
@@ -124,8 +129,7 @@ export function convertToOpenAIChatMessages({
                   return {
                     type: 'file',
                     file:
-                      typeof part.data === 'string' &&
-                      part.data.startsWith('file-')
+                      typeof part.data === 'string' && part.data.startsWith('file-')
                         ? { file_id: part.data }
                         : {
                             filename: part.filename ?? `part-${index}.pdf`,

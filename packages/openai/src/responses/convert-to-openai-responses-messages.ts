@@ -81,16 +81,20 @@ export async function convertToOpenAIResponsesMessages({
                     detail: part.providerOptions?.openai?.imageDetail,
                   };
                 } else if (part.mediaType === 'application/pdf') {
-                  if (part.data instanceof URL) {
-                    // The AI SDK automatically downloads files for user file parts with URLs
+                  if (
+                    part.data instanceof URL ||
+                    (typeof part.data === 'string' &&
+                      (part.data.startsWith('http://') ||
+                        part.data.startsWith('https://')))
+                  ) {
                     throw new UnsupportedFunctionalityError({
                       functionality: 'PDF file parts with URLs',
                     });
                   }
+
                   return {
                     type: 'input_file',
-                    ...(typeof part.data === 'string' &&
-                    part.data.startsWith('file-')
+                    ...(typeof part.data === 'string' && part.data.startsWith('file-')
                       ? { file_id: part.data }
                       : {
                           filename: part.filename ?? `part-${index}.pdf`,
