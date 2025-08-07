@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.7
+
+### Patch Changes
+
+- 8e72304: fix (ai): handle invalid tool calls
+
 ## 5.0.6
 
 ### Patch Changes
