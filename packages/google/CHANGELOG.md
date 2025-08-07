@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.3
+
+### Patch Changes
+
+- 9fb0252: fix(google): add thought signature support for reasoning
+
 ## 2.0.2
 
 ### Patch Changes
