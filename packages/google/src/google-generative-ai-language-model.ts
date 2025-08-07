@@ -240,23 +240,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         // Clear the ID after use to avoid accidental reuse.
         lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null && part.text.length > 0) {
-        if (part.thought === true) {
-          content.push({
-            type: 'reasoning',
-            text: part.text,
-            providerMetadata: part.thoughtSignature
-              ? { google: { thoughtSignature: part.thoughtSignature } }
-              : undefined,
-          });
-        } else {
-          content.push({
-            type: 'text',
-            text: part.text,
-            providerMetadata: part.thoughtSignature
-              ? { google: { thoughtSignature: part.thoughtSignature } }
-              : undefined,
-          });
-        }
+        content.push({
+          type: part.thought === true ? 'reasoning' : 'text',
+          text: part.text,
+          providerMetadata: part.thoughtSignature
+            ? { google: { thoughtSignature: part.thoughtSignature } }
+            : undefined,
+        });
       } else if ('functionCall' in part) {
         content.push({
           type: 'tool-call' as const,
