@@ -12764,9 +12764,8 @@ describe('streamText', () => {
       });
 
       it('should add tool call and result error parts to the ui message stream', async () => {
-        expect(
-          await convertAsyncIterableToArray(result.toUIMessageStream()),
-        ).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
           [
             {
               "type": "start",
