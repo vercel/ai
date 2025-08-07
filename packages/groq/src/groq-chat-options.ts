@@ -7,6 +7,8 @@ export type GroqChatModelId =
   | 'llama-3.1-8b-instant'
   | 'llama-3.3-70b-versatile'
   | 'meta-llama/llama-guard-4-12b'
+  | 'openai/gpt-oss-120b'
+  | 'openai/gpt-oss-20b'
   // preview models (selection)
   | 'deepseek-r1-distill-llama-70b'
   | 'meta-llama/llama-4-maverick-17b-128e-instruct'
@@ -27,6 +29,7 @@ export type GroqChatModelId =
 
 export const groqProviderOptions = z.object({
   reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).optional(),
+  reasoningEffort: z.enum(['none', 'default']).optional(),
 
   /**
    * Whether to enable parallel function calling during tool use. Default to true.
@@ -38,6 +41,13 @@ export const groqProviderOptions = z.object({
    * monitor and detect abuse. Learn more.
    */
   user: z.string().optional(),
+
+  /**
+   * Whether to use structured outputs.
+   *
+   * @default true
+   */
+  structuredOutputs: z.boolean().optional(),
 });
 
 export type GroqProviderOptions = z.infer<typeof groqProviderOptions>;

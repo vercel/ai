@@ -1,6 +1,5 @@
 import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { prepareRetries } from '../../src/util/prepare-retries';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
+import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -8,6 +7,7 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel } from '../types';
+import { prepareRetries } from '../util/prepare-retries';
 import { EmbedResult } from './embed-result';
 
 /**
@@ -22,8 +22,8 @@ Embed a value using an embedding model. The type of the value is defined by the 
 
 @returns A result object that contains the embedding, the value, and additional information.
  */
-export async function embed<VALUE>({
-  model,
+export async function embed<VALUE = string>({
+  model: modelArg,
   value,
   providerOptions,
   maxRetries: maxRetriesArg,
@@ -71,18 +71,15 @@ Only applicable for HTTP-based providers.
    */
   experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedResult<VALUE>> {
-  if (model.specificationVersion !== 'v2') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
-  }
+  const model = resolveEmbeddingModel<VALUE>(modelArg);
 
-  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { maxRetries, retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    model,
+    model: model,
     telemetry,
     headers,
     settings: { maxRetries },
@@ -102,7 +99,7 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const { embedding, usage, response } = await retry(() =>
+      const { embedding, usage, response, providerMetadata } = await retry(() =>
         // nested spans to align with the embedMany telemetry data:
         recordSpan({
           name: 'ai.embed.doEmbed',
@@ -148,6 +145,7 @@ Only applicable for HTTP-based providers.
             return {
               embedding,
               usage,
+              providerMetadata: modelResponse.providerMetadata,
               response: modelResponse.response,
             };
           },
@@ -168,6 +166,7 @@ Only applicable for HTTP-based providers.
         value,
         embedding,
         usage,
+        providerMetadata,
         response,
       });
     },
@@ -178,17 +177,20 @@ class DefaultEmbedResult<VALUE> implements EmbedResult<VALUE> {
   readonly value: EmbedResult<VALUE>['value'];
   readonly embedding: EmbedResult<VALUE>['embedding'];
   readonly usage: EmbedResult<VALUE>['usage'];
+  readonly providerMetadata: EmbedResult<VALUE>['providerMetadata'];
   readonly response: EmbedResult<VALUE>['response'];
 
   constructor(options: {
     value: EmbedResult<VALUE>['value'];
     embedding: EmbedResult<VALUE>['embedding'];
     usage: EmbedResult<VALUE>['usage'];
+    providerMetadata?: EmbedResult<VALUE>['providerMetadata'];
     response?: EmbedResult<VALUE>['response'];
   }) {
     this.value = options.value;
     this.embedding = options.embedding;
     this.usage = options.usage;
+    this.providerMetadata = options.providerMetadata;
     this.response = options.response;
   }
 }

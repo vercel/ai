@@ -590,6 +590,51 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send include provider option for file search results', async () => {
+        const { warnings } = await createModel('gpt-4o-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              include: ['file_search_call.results'],
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          include: ['file_search_call.results'],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send include provider option with multiple values', async () => {
+        const { warnings } = await createModel('o3-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              include: [
+                'reasoning.encrypted_content',
+                'file_search_call.results',
+              ],
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'o3-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          include: ['reasoning.encrypted_content', 'file_search_call.results'],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send responseFormat json format', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: { type: 'json' },
@@ -801,8 +846,10 @@ describe('OpenAIResponsesLanguageModel', () => {
               name: 'file_search',
               args: {
                 vectorStoreIds: ['vs_123', 'vs_456'],
-                maxResults: 10,
-                searchType: 'auto',
+                maxNumResults: 10,
+                ranking: {
+                  ranker: 'auto',
+                },
               },
             },
           ],
@@ -825,8 +872,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "model": "gpt-4o",
             "tools": [
               {
-                "max_results": 10,
-                "search_type": "auto",
+                "max_num_results": 10,
+                "ranking_options": {
+                  "ranker": "auto",
+                },
                 "type": "file_search",
                 "vector_store_ids": [
                   "vs_123",
@@ -853,7 +902,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               name: 'file_search',
               args: {
                 vectorStoreIds: ['vs_789'],
-                maxResults: 5,
+                maxNumResults: 5,
               },
             },
           ],
@@ -879,10 +928,65 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             "tools": [
               {
-                "max_results": 5,
+                "max_num_results": 5,
                 "type": "file_search",
                 "vector_store_ids": [
                   "vs_789",
+                ],
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send file_search tool with filters', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_123'],
+                maxNumResults: 5,
+                filters: {
+                  key: 'author',
+                  type: 'eq',
+                  value: 'Jane Smith',
+                },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tools": [
+              {
+                "filters": {
+                  "key": "author",
+                  "type": "eq",
+                  "value": "Jane Smith",
+                },
+                "max_num_results": 5,
+                "type": "file_search",
+                "vector_store_ids": [
+                  "vs_123",
                 ],
               },
             ],
@@ -2511,6 +2615,76 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "inputTokens": undefined,
                 "outputTokens": undefined,
                 "totalTokens": undefined,
+              },
+            },
+          ]
+        `);
+      });
+
+      it('should handle file_search tool calls', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"in_progress"}}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed"}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"Based on the search results, here is the information you requested."}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed"},{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":327,"input_tokens_details":{"cached_tokens":0},"output_tokens":834,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":1161},"user":null,"metadata":{}}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        expect(await convertReadableStreamToArray(stream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "resp_67cf3390786881908b27489d7e8cfb6b",
+              "modelId": "gpt-4o-mini-2024-07-18",
+              "timestamp": 2025-03-10T18:46:40.000Z,
+              "type": "response-metadata",
+            },
+            {
+              "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                },
+              },
+              "type": "text-start",
+            },
+            {
+              "delta": "Based on the search results, here is the information you requested.",
+              "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+              "type": "text-delta",
+            },
+            {
+              "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": {
+                "openai": {
+                  "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "cachedInputTokens": 0,
+                "inputTokens": 327,
+                "outputTokens": 834,
+                "reasoningTokens": 0,
+                "totalTokens": 1161,
               },
             },
           ]

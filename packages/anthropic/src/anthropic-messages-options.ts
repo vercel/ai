@@ -61,6 +61,12 @@ export const anthropicProviderOptions = z.object({
       budgetTokens: z.number().optional(),
     })
     .optional(),
+
+  /**
+   * Whether to disable parallel function calling during tool use. Default is false.
+   * When set to true, Claude will use at most one tool per response.
+   */
+  disableParallelToolUse: z.boolean().optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;

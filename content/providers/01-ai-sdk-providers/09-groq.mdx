@@ -86,10 +86,11 @@ import { groq } from '@ai-sdk/groq';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: groq('qwen-qwq-32b'),
+  model: groq('qwen/qwen3-32b'),
   providerOptions: {
     groq: {
       reasoningFormat: 'parsed',
+      reasoningEffort: 'default',
       parallelToolCalls: true, // Enable parallel function calling (default: true)
       user: 'user-123', // Unique identifier for end-user (optional)
     },
@@ -106,6 +107,23 @@ The following optional provider options are available for Groq language models:
 
   For a complete list of reasoning models and their capabilities, see [Groq's reasoning models documentation](https://console.groq.com/docs/reasoning).
 
+- **reasoningEffort** _'none' | 'default'_
+
+  Controls the level of effort the model will put into reasoning. Only supported by the `qwen/qwen3-32b` model.
+
+  - `none`: Disable reasoning. The model will not use any reasoning tokens.
+  - `default`: Enable reasoning.
+
+  Defaults to `default`.
+
+- **structuredOutputs** _boolean_
+
+  Whether to use structured outputs.
+
+  Defaults to `true`.
+
+  When enabled, object generation will use the `json_schema` format instead of `json_object` format, providing more reliable structured outputs.
+
 - **parallelToolCalls** _boolean_
 
   Whether to enable parallel function calling during tool use. Defaults to `true`.
@@ -115,6 +133,66 @@ The following optional provider options are available for Groq language models:
   A unique identifier representing your end-user, which can help with monitoring and abuse detection.
 
 <Note>Only Groq reasoning models support the `reasoningFormat` option.</Note>
+
+#### Structured Outputs
+
+Structured outputs are enabled by default for Groq models.
+You can disable them by setting the `structuredOutputs` option to `false`.
+
+```ts
+import { groq } from '@ai-sdk/groq';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const result = await generateObject({
+  model: groq('moonshotai/kimi-k2-instruct'),
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+      instructions: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a simple pasta recipe.',
+});
+
+console.log(JSON.stringify(result.object, null, 2));
+```
+
+You can disable structured outputs for models that don't support them:
+
+```ts highlight="9"
+import { groq } from '@ai-sdk/groq';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const result = await generateObject({
+  model: groq('gemma2-9b-it'),
+  providerOptions: {
+    groq: {
+      structuredOutputs: false,
+    },
+  },
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+      instructions: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a simple pasta recipe in JSON format.',
+});
+
+console.log(JSON.stringify(result.object, null, 2));
+```
+
+<Note type="warning">
+  Structured outputs are only supported by newer Groq models like
+  `moonshotai/kimi-k2-instruct`. For unsupported models, you can disable
+  structured outputs by setting `structuredOutputs: false`. When disabled, Groq
+  uses the `json_object` format which requires the word "JSON" to be included in
+  your messages.
+</Note>
 
 ### Example
 
@@ -204,6 +282,8 @@ const { text } = await generateText({
 | `qwen-qwq-32b`                                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `qwen-2.5-32b`                                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `deepseek-r1-distill-qwen-32b`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-oss-20b`                            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-oss-120b`                           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The tables above list the most commonly used models. Please see the [Groq

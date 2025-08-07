@@ -161,10 +161,22 @@ writer.write({
 Transient parts are sent to the client but not added to the message history. They are only accessible via the `onData` useChat handler:
 
 ```tsx
+// server
 writer.write({
   type: 'data-notification',
   data: { message: 'Processing...', level: 'info' },
   transient: true, // Won't be added to message history
+});
+
+// client
+const [notification, setNotification] = useState();
+
+const { messages } = useChat({
+  onData: ({ data, type }) => {
+    if (type === 'data-notification') {
+      setNotification({ message: data.message, level: data.level });
+    }
+  },
 });
 ```
 
@@ -333,3 +345,52 @@ export default function Chat() {
 - **Collaborative Tools** - Stream live updates to shared artifacts
 - **Analytics** - Send usage data without cluttering message history
 - **Notifications** - Display temporary alerts and status messages
+
+## Message Metadata vs Data Parts
+
+Both [message metadata](/docs/ai-sdk-ui/message-metadata) and data parts allow you to send additional information alongside messages, but they serve different purposes:
+
+### Message Metadata
+
+Message metadata is best for **message-level information** that describes the message as a whole:
+
+- Attached at the message level via `message.metadata`
+- Sent using the `messageMetadata` callback in `toUIMessageStreamResponse`
+- Ideal for: timestamps, model info, token usage, user context
+- Type-safe with custom metadata types
+
+```ts
+// Server: Send metadata about the message
+return result.toUIMessageStreamResponse({
+  messageMetadata: ({ part }) => {
+    if (part.type === 'finish') {
+      return {
+        model: part.response.modelId,
+        totalTokens: part.totalUsage.totalTokens,
+        createdAt: Date.now(),
+      };
+    }
+  },
+});
+```
+
+### Data Parts
+
+Data parts are best for streaming **dynamic arbitrary data**:
+
+- Added to the message parts array via `message.parts`
+- Streamed using `createUIMessageStream` and `writer.write()`
+- Can be reconciled/updated using the same ID
+- Support transient parts that don't persist
+- Ideal for: dynamic content, loading states, interactive components
+
+```ts
+// Server: Stream data as part of message content
+writer.write({
+  type: 'data-weather',
+  id: 'weather-1',
+  data: { city: 'San Francisco', status: 'loading' },
+});
+```
+
+For more details on message metadata, see the [Message Metadata documentation](/docs/ai-sdk-ui/message-metadata).

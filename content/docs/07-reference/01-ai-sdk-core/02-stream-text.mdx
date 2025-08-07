@@ -542,6 +542,13 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'includeRawChunks',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether to include raw chunks from the provider in the stream. When enabled, you will receive raw chunks with type "raw" that contain the unprocessed data from the provider. This allows access to cutting-edge provider features not yet wrapped by the AI SDK. Defaults to false.',
+    },
+    {
       name: 'providerOptions',
       type: 'Record<string,Record<string,JSONValue>> | undefined',
       isOptional: true,
@@ -646,6 +653,13 @@ To see `streamText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'experimental_context',
+      type: 'unknown',
+      isOptional: true,
+      description:
+        'Context that is passed into tool execution. Experimental (can break in patch releases).',
     },
     {
       name: 'experimental_repairToolCall',
@@ -1369,6 +1383,25 @@ To see `streamText` in action, check out [these examples](#examples).
         },
       ],
     },
+    {
+      name: 'onAbort',
+      type: '(event: OnAbortResult) => Promise<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when a stream is aborted via AbortSignal. You can use it to perform cleanup operations.',
+      properties: [
+        {
+          type: 'OnAbortResult',
+          parameters: [
+            {
+              name: 'steps',
+              type: 'Array<StepResult>',
+              description: 'Details for all previously finished steps.',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
@@ -1554,13 +1587,13 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'toolCalls',
-      type: 'Promise<ToolCallUnion<TOOLS>[]>',
+      type: 'Promise<TypedToolCall<TOOLS>[]>',
       description:
         'The tool calls that have been executed. Resolved when the response is finished.',
     },
     {
       name: 'toolResults',
-      type: 'Promise<ToolResultUnion<TOOLS>[]>',
+      type: 'Promise<TypedToolResult<TOOLS>[]>',
       description:
         'The tool results that have been generated. Resolved when the all tool executions are finished.',
     },
@@ -2292,6 +2325,16 @@ To see `streamText` in action, check out [these examples](#examples).
             },
           ],
         },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'abort'",
+              description: 'The type to identify the object as abort.',
+            },
+          ],
+        },
       ],
     },
     {
@@ -2321,9 +2364,9 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'toUIMessageStream',
-      type: '(options?: UIMessageStreamOptions) => ReadableStream<UIMessageChunk>',
+      type: '(options?: UIMessageStreamOptions) => AsyncIterableStream<UIMessageChunk>',
       description:
-        'Converts the result to a UI message stream.',
+        'Converts the result to a UI message stream. Returns an AsyncIterableStream that can be used as both an AsyncIterable and a ReadableStream.',
       properties: [
         {
           type: 'UIMessageStreamOptions',
@@ -2336,9 +2379,9 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'onFinish',
-              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; }) => void',
+              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; }) => void',
               isOptional: true,
-              description: 'Callback function called when the stream finishes. Provides the updated list of UI messages, whether the response is a continuation, and the response message.',
+              description: 'Callback function called when the stream finishes. Provides the updated list of UI messages, whether the response is a continuation, the response message, and whether the stream was aborted.',
             },
             {
               name: 'messageMetadata',
@@ -2380,6 +2423,13 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Process an error, e.g. to log it. Returns error message to include in the data stream. Defaults to () => "An error occurred."',
+            },
+            {
+              name: 'consumeSseStream',
+              type: '(stream: ReadableStream) => Promise<void>',
+              isOptional: true,
+              description:
+                'Function to consume the SSE stream. Required for proper abort handling in UI message streams. Use the `consumeStream` function from the AI SDK.',
             },
           ],
         },

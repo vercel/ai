@@ -1,11 +1,11 @@
 import { JSONValue, SpeechModelV2 } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { NoSpeechGeneratedError } from '../../src/error/no-speech-generated-error';
+import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
-} from '../../src/util/detect-media-type';
-import { prepareRetries } from '../../src/util/prepare-retries';
+} from '../util/detect-media-type';
+import { prepareRetries } from '../util/prepare-retries';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
@@ -121,7 +121,10 @@ Only applicable for HTTP-based providers.
     });
   }
 
-  const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   const result = await retry(() =>
     model.doGenerate({

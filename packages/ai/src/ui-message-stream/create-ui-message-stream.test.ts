@@ -396,6 +396,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "isAborted": false,
           "isContinuation": false,
           "messages": [
             {
@@ -461,6 +462,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "isAborted": false,
           "isContinuation": true,
           "messages": [
             {
@@ -541,6 +543,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "isAborted": false,
           "isContinuation": false,
           "messages": [
             {
@@ -599,6 +602,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "isAborted": false,
           "isContinuation": false,
           "messages": [
             {

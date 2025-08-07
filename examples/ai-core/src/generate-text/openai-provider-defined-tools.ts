@@ -18,8 +18,10 @@ async function main() {
       }),
 
       fileSearch: openai.tools.fileSearch({
-        maxResults: 5,
-        searchType: 'semantic',
+        maxNumResults: 5,
+        ranking: {
+          ranker: 'auto',
+        },
       }),
     },
   });

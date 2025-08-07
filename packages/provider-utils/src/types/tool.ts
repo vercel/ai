@@ -3,6 +3,10 @@ import { FlexibleSchema } from '../schema';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
 
+/**
+ * Additional options that are sent into each tool call.
+ */
+// TODO AI SDK 6: rename to ToolExecutionOptions
 export interface ToolCallOptions {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
@@ -19,6 +23,13 @@ export interface ToolCallOptions {
    * An optional abort signal that indicates that the overall operation should be aborted.
    */
   abortSignal?: AbortSignal;
+
+  /**
+   * Additional context.
+   *
+   * Experimental (can break in patch releases).
+   */
+  experimental_context?: unknown;
 }
 
 export type ToolExecuteFunction<INPUT, OUTPUT> = (
@@ -126,13 +137,20 @@ If not provided, the tool will not be executed automatically.
   (
     | {
         /**
-Function tool.
+Tool with user-defined input and output schemas.
      */
         type?: undefined | 'function';
       }
     | {
         /**
-Provider-defined tool.
+Tool that is defined at runtime (e.g. an MCP tool).
+The types of input and output are not known at development time.
+       */
+        type: 'dynamic';
+      }
+    | {
+        /**
+Tool with provider-defined input and output schemas.
      */
         type: 'provider-defined';
 
@@ -177,4 +195,19 @@ export function tool<OUTPUT>(tool: Tool<never, OUTPUT>): Tool<never, OUTPUT>;
 export function tool(tool: Tool<never, never>): Tool<never, never>;
 export function tool(tool: any): any {
   return tool;
+}
+
+/**
+Helper function for defining a dynamic tool.
+ */
+export function dynamicTool(tool: {
+  description?: string;
+  providerOptions?: ProviderOptions;
+  inputSchema: FlexibleSchema<unknown>;
+  execute: ToolExecuteFunction<unknown, unknown>;
+  toModelOutput?: (output: unknown) => LanguageModelV2ToolResultPart['output'];
+}): Tool<unknown, unknown> & {
+  type: 'dynamic';
+} {
+  return { ...tool, type: 'dynamic' };
 }

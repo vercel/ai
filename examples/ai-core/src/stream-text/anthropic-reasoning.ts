@@ -19,13 +19,13 @@ async function main() {
   });
 
   for await (const part of result.fullStream) {
-    if (part.type === 'reasoning') {
+    if (part.type === 'reasoning-delta') {
       process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
 
       if (part.providerMetadata?.anthropic?.redactedData != null) {
         process.stdout.write('\x1b[31m' + '<redacted>' + '\x1b[0m');
       }
-    } else if (part.type === 'text') {
+    } else if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     }
   }

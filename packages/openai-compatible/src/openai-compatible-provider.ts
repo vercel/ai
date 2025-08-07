@@ -63,6 +63,11 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+Include usage information in streaming responses.
+   */
+  includeUsage?: boolean;
 }
 
 /**
@@ -113,16 +118,16 @@ export function createOpenAICompatible<
     createChatModel(modelId);
 
   const createChatModel = (modelId: CHAT_MODEL_IDS) =>
-    new OpenAICompatibleChatLanguageModel(
-      modelId,
-      getCommonModelConfig('chat'),
-    );
+    new OpenAICompatibleChatLanguageModel(modelId, {
+      ...getCommonModelConfig('chat'),
+      includeUsage: options.includeUsage,
+    });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>
-    new OpenAICompatibleCompletionLanguageModel(
-      modelId,
-      getCommonModelConfig('completion'),
-    );
+    new OpenAICompatibleCompletionLanguageModel(modelId, {
+      ...getCommonModelConfig('completion'),
+      includeUsage: options.includeUsage,
+    });
 
   const createEmbeddingModel = (modelId: EMBEDDING_MODEL_IDS) =>
     new OpenAICompatibleEmbeddingModel(modelId, {

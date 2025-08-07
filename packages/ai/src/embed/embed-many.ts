@@ -1,6 +1,6 @@
 import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { prepareRetries } from '../../src/util/prepare-retries';
-import { splitArray } from '../../src/util/split-array';
+import { prepareRetries } from '../util/prepare-retries';
+import { splitArray } from '../util/split-array';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -8,7 +8,8 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { Embedding, EmbeddingModel } from '../types';
+import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
+import { resolveEmbeddingModel } from '../model/resolve-model';
 import { EmbedManyResult } from './embed-many-result';
 
 /**
@@ -27,8 +28,8 @@ has a limit on how many embeddings can be generated in a single call.
 
 @returns A result object that contains the embeddings, the value, and additional information.
  */
-export async function embedMany<VALUE>({
-  model,
+export async function embedMany<VALUE = string>({
+  model: modelArg,
   values,
   maxParallelCalls = Infinity,
   maxRetries: maxRetriesArg,
@@ -84,15 +85,12 @@ Only applicable for HTTP-based providers.
    */
   maxParallelCalls?: number;
 }): Promise<EmbedManyResult<VALUE>> {
-  if (model.specificationVersion !== 'v2') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
-  }
+  const model = resolveEmbeddingModel<VALUE>(modelArg);
 
-  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { maxRetries, retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
@@ -126,57 +124,62 @@ Only applicable for HTTP-based providers.
       // the model has not specified limits on
       // how many embeddings can be generated in a single call
       if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
-        const { embeddings, usage, response } = await retry(() => {
-          // nested spans to align with the embedMany telemetry data:
-          return recordSpan({
-            name: 'ai.embedMany.doEmbed',
-            attributes: selectTelemetryAttributes({
-              telemetry,
-              attributes: {
-                ...assembleOperationName({
-                  operationId: 'ai.embedMany.doEmbed',
-                  telemetry,
-                }),
-                ...baseTelemetryAttributes,
-                // specific settings that only make sense on the outer level:
-                'ai.values': {
-                  input: () => values.map(value => JSON.stringify(value)),
-                },
-              },
-            }),
-            tracer,
-            fn: async doEmbedSpan => {
-              const modelResponse = await model.doEmbed({
-                values,
-                abortSignal,
-                headers,
-                providerOptions,
-              });
-
-              const embeddings = modelResponse.embeddings;
-              const usage = modelResponse.usage ?? { tokens: NaN };
-
-              doEmbedSpan.setAttributes(
-                selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    'ai.embeddings': {
-                      output: () =>
-                        embeddings.map(embedding => JSON.stringify(embedding)),
-                    },
-                    'ai.usage.tokens': usage.tokens,
+        const { embeddings, usage, response, providerMetadata } = await retry(
+          () => {
+            // nested spans to align with the embedMany telemetry data:
+            return recordSpan({
+              name: 'ai.embedMany.doEmbed',
+              attributes: selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  ...assembleOperationName({
+                    operationId: 'ai.embedMany.doEmbed',
+                    telemetry,
+                  }),
+                  ...baseTelemetryAttributes,
+                  // specific settings that only make sense on the outer level:
+                  'ai.values': {
+                    input: () => values.map(value => JSON.stringify(value)),
                   },
-                }),
-              );
+                },
+              }),
+              tracer,
+              fn: async doEmbedSpan => {
+                const modelResponse = await model.doEmbed({
+                  values,
+                  abortSignal,
+                  headers,
+                  providerOptions,
+                });
 
-              return {
-                embeddings,
-                usage,
-                response: modelResponse.response,
-              };
-            },
-          });
-        });
+                const embeddings = modelResponse.embeddings;
+                const usage = modelResponse.usage ?? { tokens: NaN };
+
+                doEmbedSpan.setAttributes(
+                  selectTelemetryAttributes({
+                    telemetry,
+                    attributes: {
+                      'ai.embeddings': {
+                        output: () =>
+                          embeddings.map(embedding =>
+                            JSON.stringify(embedding),
+                          ),
+                      },
+                      'ai.usage.tokens': usage.tokens,
+                    },
+                  }),
+                );
+
+                return {
+                  embeddings,
+                  usage,
+                  providerMetadata: modelResponse.providerMetadata,
+                  response: modelResponse.response,
+                };
+              },
+            });
+          },
+        );
 
         span.setAttributes(
           selectTelemetryAttributes({
@@ -195,6 +198,7 @@ Only applicable for HTTP-based providers.
           values,
           embeddings,
           usage,
+          providerMetadata,
           responses: [response],
         });
       }
@@ -212,6 +216,7 @@ Only applicable for HTTP-based providers.
         | undefined
       > = [];
       let tokens = 0;
+      let providerMetadata: ProviderMetadata | undefined;
 
       const parallelChunks = splitArray(
         valueChunks,
@@ -269,6 +274,7 @@ Only applicable for HTTP-based providers.
                   return {
                     embeddings,
                     usage,
+                    providerMetadata: modelResponse.providerMetadata,
                     response: modelResponse.response,
                   };
                 },
@@ -281,6 +287,20 @@ Only applicable for HTTP-based providers.
           embeddings.push(...result.embeddings);
           responses.push(result.response);
           tokens += result.usage.tokens;
+          if (result.providerMetadata) {
+            if (!providerMetadata) {
+              providerMetadata = { ...result.providerMetadata };
+            } else {
+              for (const [providerName, metadata] of Object.entries(
+                result.providerMetadata,
+              )) {
+                providerMetadata[providerName] = {
+                  ...(providerMetadata[providerName] ?? {}),
+                  ...metadata,
+                };
+              }
+            }
+          }
         }
       }
 
@@ -301,6 +321,7 @@ Only applicable for HTTP-based providers.
         values,
         embeddings,
         usage: { tokens },
+        providerMetadata: providerMetadata,
         responses,
       });
     },
@@ -311,17 +332,20 @@ class DefaultEmbedManyResult<VALUE> implements EmbedManyResult<VALUE> {
   readonly values: EmbedManyResult<VALUE>['values'];
   readonly embeddings: EmbedManyResult<VALUE>['embeddings'];
   readonly usage: EmbedManyResult<VALUE>['usage'];
+  readonly providerMetadata: EmbedManyResult<VALUE>['providerMetadata'];
   readonly responses: EmbedManyResult<VALUE>['responses'];
 
   constructor(options: {
     values: EmbedManyResult<VALUE>['values'];
     embeddings: EmbedManyResult<VALUE>['embeddings'];
     usage: EmbedManyResult<VALUE>['usage'];
+    providerMetadata?: EmbedManyResult<VALUE>['providerMetadata'];
     responses?: EmbedManyResult<VALUE>['responses'];
   }) {
     this.values = options.values;
     this.embeddings = options.embeddings;
     this.usage = options.usage;
+    this.providerMetadata = options.providerMetadata;
     this.responses = options.responses;
   }
 }

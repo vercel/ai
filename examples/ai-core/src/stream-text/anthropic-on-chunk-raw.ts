@@ -15,7 +15,7 @@ async function main() {
       'Write a short poem about coding. Include reasoning about your creative process.',
     includeRawChunks: true,
     onChunk({ chunk }) {
-      if (chunk.type === 'text') {
+      if (chunk.type === 'text-delta') {
         textChunkCount++;
         console.log('onChunk text:', chunk.text);
       } else if (chunk.type === 'raw') {

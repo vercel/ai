@@ -37,6 +37,7 @@ export const uiMessageChunkSchema = z.union([
     toolCallId: z.string(),
     toolName: z.string(),
     providerExecuted: z.boolean().optional(),
+    dynamic: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-input-delta'),
@@ -50,18 +51,31 @@ export const uiMessageChunkSchema = z.union([
     input: z.unknown(),
     providerExecuted: z.boolean().optional(),
     providerMetadata: providerMetadataSchema.optional(),
+    dynamic: z.boolean().optional(),
+  }),
+  z.strictObject({
+    type: z.literal('tool-input-error'),
+    toolCallId: z.string(),
+    toolName: z.string(),
+    input: z.unknown(),
+    providerExecuted: z.boolean().optional(),
+    providerMetadata: providerMetadataSchema.optional(),
+    dynamic: z.boolean().optional(),
+    errorText: z.string(),
   }),
   z.strictObject({
     type: z.literal('tool-output-available'),
     toolCallId: z.string(),
     output: z.unknown(),
     providerExecuted: z.boolean().optional(),
+    dynamic: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-output-error'),
     toolCallId: z.string(),
     errorText: z.string(),
     providerExecuted: z.boolean().optional(),
+    dynamic: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning'),
@@ -130,6 +144,9 @@ export const uiMessageChunkSchema = z.union([
     messageMetadata: z.unknown().optional(),
   }),
   z.strictObject({
+    type: z.literal('abort'),
+  }),
+  z.strictObject({
     type: z.literal('message-metadata'),
     messageMetadata: z.unknown(),
   }),
@@ -191,24 +208,38 @@ export type UIMessageChunk<
       input: unknown;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      dynamic?: boolean;
+    }
+  | {
+      type: 'tool-input-error';
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+      providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
+      dynamic?: boolean;
+      errorText: string;
     }
   | {
       type: 'tool-output-available';
       toolCallId: string;
       output: unknown;
       providerExecuted?: boolean;
+      dynamic?: boolean;
     }
   | {
       type: 'tool-output-error';
       toolCallId: string;
       errorText: string;
       providerExecuted?: boolean;
+      dynamic?: boolean;
     }
   | {
       type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
       providerExecuted?: boolean;
+      dynamic?: boolean;
     }
   | {
       type: 'tool-input-delta';
@@ -250,6 +281,9 @@ export type UIMessageChunk<
   | {
       type: 'finish';
       messageMetadata?: METADATA;
+    }
+  | {
+      type: 'abort';
     }
   | {
       type: 'message-metadata';

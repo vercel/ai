@@ -205,29 +205,57 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const content: Array<LanguageModelV2Content> = [];
 
     // map ordered parts to content:
-    const parts =
-      candidate.content == null ||
-      typeof candidate.content !== 'object' ||
-      !('parts' in candidate.content)
-        ? []
-        : (candidate.content.parts ?? []);
+    const parts = candidate.content?.parts ?? [];
 
     const usageMetadata = response.usageMetadata;
 
+    // Associates a code execution result with its preceding call.
+    let lastCodeExecutionToolCallId: string | undefined;
+
     // Build content array from all parts
     for (const part of parts) {
-      if ('text' in part && part.text != null && part.text.length > 0) {
-        if (part.thought === true) {
-          content.push({ type: 'reasoning', text: part.text });
-        } else {
-          content.push({ type: 'text', text: part.text });
-        }
+      if ('executableCode' in part && part.executableCode?.code) {
+        const toolCallId = this.config.generateId();
+        lastCodeExecutionToolCallId = toolCallId;
+
+        content.push({
+          type: 'tool-call',
+          toolCallId,
+          toolName: 'code_execution',
+          input: JSON.stringify(part.executableCode),
+          providerExecuted: true,
+        });
+      } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
+        content.push({
+          type: 'tool-result',
+          // Assumes a result directly follows its corresponding call part.
+          toolCallId: lastCodeExecutionToolCallId!,
+          toolName: 'code_execution',
+          result: {
+            outcome: part.codeExecutionResult.outcome,
+            output: part.codeExecutionResult.output,
+          },
+          providerExecuted: true,
+        });
+        // Clear the ID after use to avoid accidental reuse.
+        lastCodeExecutionToolCallId = undefined;
+      } else if ('text' in part && part.text != null && part.text.length > 0) {
+        content.push({
+          type: part.thought === true ? 'reasoning' : 'text',
+          text: part.text,
+          providerMetadata: part.thoughtSignature
+            ? { google: { thoughtSignature: part.thoughtSignature } }
+            : undefined,
+        });
       } else if ('functionCall' in part) {
         content.push({
           type: 'tool-call' as const,
           toolCallId: this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args),
+          providerMetadata: part.thoughtSignature
+            ? { google: { thoughtSignature: part.thoughtSignature } }
+            : undefined,
         });
       } else if ('inlineData' in part) {
         content.push({
@@ -319,6 +347,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     // Track emitted sources to prevent duplicates
     const emittedSourceUrls = new Set<string>();
+    // Associates a code execution result with its preceding call.
+    let lastCodeExecutionToolCallId: string | undefined;
 
     return {
       stream: response.pipeThrough(
@@ -385,7 +415,41 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               // Process text parts individually to handle reasoning parts
               const parts = content.parts ?? [];
               for (const part of parts) {
-                if (
+                if ('executableCode' in part && part.executableCode?.code) {
+                  const toolCallId = generateId();
+                  lastCodeExecutionToolCallId = toolCallId;
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName: 'code_execution',
+                    input: JSON.stringify(part.executableCode),
+                    providerExecuted: true,
+                  });
+
+                  hasToolCalls = true;
+                } else if (
+                  'codeExecutionResult' in part &&
+                  part.codeExecutionResult
+                ) {
+                  // Assumes a result directly follows its corresponding call part.
+                  const toolCallId = lastCodeExecutionToolCallId;
+
+                  if (toolCallId) {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId,
+                      toolName: 'code_execution',
+                      result: {
+                        outcome: part.codeExecutionResult.outcome,
+                        output: part.codeExecutionResult.output,
+                      },
+                      providerExecuted: true,
+                    });
+                    // Clear the ID after use.
+                    lastCodeExecutionToolCallId = undefined;
+                  }
+                } else if (
                   'text' in part &&
                   part.text != null &&
                   part.text.length > 0
@@ -406,6 +470,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       controller.enqueue({
                         type: 'reasoning-start',
                         id: currentReasoningBlockId,
+                        providerMetadata: part.thoughtSignature
+                          ? {
+                              google: {
+                                thoughtSignature: part.thoughtSignature,
+                              },
+                            }
+                          : undefined,
                       });
                     }
 
@@ -413,6 +484,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       type: 'reasoning-delta',
                       id: currentReasoningBlockId,
                       delta: part.text,
+                      providerMetadata: part.thoughtSignature
+                        ? {
+                            google: { thoughtSignature: part.thoughtSignature },
+                          }
+                        : undefined,
                     });
                   } else {
                     // End any active reasoning block before starting text
@@ -430,6 +506,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       controller.enqueue({
                         type: 'text-start',
                         id: currentTextBlockId,
+                        providerMetadata: part.thoughtSignature
+                          ? {
+                              google: {
+                                thoughtSignature: part.thoughtSignature,
+                              },
+                            }
+                          : undefined,
                       });
                     }
 
@@ -437,6 +520,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       type: 'text-delta',
                       id: currentTextBlockId,
                       delta: part.text,
+                      providerMetadata: part.thoughtSignature
+                        ? {
+                            google: { thoughtSignature: part.thoughtSignature },
+                          }
+                        : undefined,
                     });
                   }
                 }
@@ -464,17 +552,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                     type: 'tool-input-start',
                     id: toolCall.toolCallId,
                     toolName: toolCall.toolName,
+                    providerMetadata: toolCall.providerMetadata,
                   });
 
                   controller.enqueue({
                     type: 'tool-input-delta',
                     id: toolCall.toolCallId,
                     delta: toolCall.args,
+                    providerMetadata: toolCall.providerMetadata,
                   });
 
                   controller.enqueue({
                     type: 'tool-input-end',
                     id: toolCall.toolCallId,
+                    providerMetadata: toolCall.providerMetadata,
                   });
 
                   controller.enqueue({
@@ -482,6 +573,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                     toolCallId: toolCall.toolCallId,
                     toolName: toolCall.toolName,
                     input: toolCall.args,
+                    providerMetadata: toolCall.providerMetadata,
                   });
 
                   hasToolCalls = true;
@@ -550,6 +642,7 @@ function getToolCallsFromParts({
   ) as Array<
     GoogleGenerativeAIContentPart & {
       functionCall: { name: string; args: unknown };
+      thoughtSignature?: string | null;
     }
   >;
 
@@ -560,17 +653,10 @@ function getToolCallsFromParts({
         toolCallId: generateId(),
         toolName: part.functionCall.name,
         args: JSON.stringify(part.functionCall.args),
+        providerMetadata: part.thoughtSignature
+          ? { google: { thoughtSignature: part.thoughtSignature } }
+          : undefined,
       }));
-}
-
-function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
-  const textParts = parts?.filter(part => 'text' in part) as Array<
-    GoogleGenerativeAIContentPart & { text: string }
-  >;
-
-  return textParts == null || textParts.length === 0
-    ? undefined
-    : textParts.map(part => part.text).join('');
 }
 
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
@@ -617,6 +703,7 @@ const contentSchema = z.object({
             name: z.string(),
             args: z.unknown(),
           }),
+          thoughtSignature: z.string().nullish(),
         }),
         z.object({
           inlineData: z.object({
@@ -625,8 +712,21 @@ const contentSchema = z.object({
           }),
         }),
         z.object({
+          executableCode: z
+            .object({
+              language: z.string(),
+              code: z.string(),
+            })
+            .nullish(),
+          codeExecutionResult: z
+            .object({
+              outcome: z.string(),
+              output: z.string(),
+            })
+            .nullish(),
           text: z.string().nullish(),
           thought: z.boolean().nullish(),
+          thoughtSignature: z.string().nullish(),
         }),
       ]),
     )

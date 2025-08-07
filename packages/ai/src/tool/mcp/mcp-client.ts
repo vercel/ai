@@ -1,8 +1,13 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import { jsonSchema, Tool, ToolCallOptions } from '@ai-sdk/provider-utils';
+import {
+  dynamicTool,
+  jsonSchema,
+  Tool,
+  tool,
+  ToolCallOptions,
+} from '@ai-sdk/provider-utils';
 import { z, ZodType } from 'zod/v4';
-import { MCPClientError } from '../../../src/error/mcp-client-error';
-import { tool } from '@ai-sdk/provider-utils';
+import { MCPClientError } from '../../error/mcp-client-error';
 import {
   JSONRPCError,
   JSONRPCNotification,
@@ -35,7 +40,7 @@ import {
 
 const CLIENT_VERSION = '1.0.0';
 
-interface MCPClientConfig {
+export interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
   transport: MCPTransportConfig | MCPTransport;
   /** Optional callback for uncaught errors */
@@ -47,9 +52,17 @@ interface MCPClientConfig {
 export async function createMCPClient(
   config: MCPClientConfig,
 ): Promise<MCPClient> {
-  const client = new MCPClient(config);
+  const client = new DefaultMCPClient(config);
   await client.init();
   return client;
+}
+
+export interface MCPClient {
+  tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
+    schemas?: TOOL_SCHEMAS;
+  }): Promise<McpToolSet<TOOL_SCHEMAS>>;
+
+  close: () => Promise<void>;
 }
 
 /**
@@ -69,7 +82,7 @@ export async function createMCPClient(
  * - Session management (when passing a sessionId to an instance of the Streamable HTTP transport)
  * - Resumable SSE streams
  */
-class MCPClient {
+class DefaultMCPClient implements MCPClient {
   private transport: MCPTransport;
   private onUncaughtError?: (error: unknown) => void;
   private clientInfo: ClientConfiguration;
@@ -321,29 +334,31 @@ class MCPClient {
         }
 
         const self = this;
-        const toolWithExecute = tool({
-          description,
-          inputSchema:
-            schemas === 'automatic'
-              ? jsonSchema({
+
+        const execute = async (
+          args: any,
+          options: ToolCallOptions,
+        ): Promise<CallToolResult> => {
+          options?.abortSignal?.throwIfAborted();
+          return self.callTool({ name, args, options });
+        };
+
+        const toolWithExecute =
+          schemas === 'automatic'
+            ? dynamicTool({
+                description,
+                inputSchema: jsonSchema({
                   ...inputSchema,
                   properties: inputSchema.properties ?? {},
                   additionalProperties: false,
-                } as JSONSchema7)
-              : schemas[name].inputSchema,
-          execute: async (
-            args: any,
-            options: ToolCallOptions,
-          ): Promise<CallToolResult> => {
-            options?.abortSignal?.throwIfAborted();
-
-            return self.callTool({
-              name,
-              args,
-              options,
-            });
-          },
-        });
+                } as JSONSchema7),
+                execute,
+              })
+            : tool({
+                description,
+                inputSchema: schemas[name].inputSchema,
+                execute,
+              });
 
         tools[name] = toolWithExecute;
       }

@@ -1,4 +1,9 @@
-import { InferToolInput, InferToolOutput, Tool } from '@ai-sdk/provider-utils';
+import {
+  InferToolInput,
+  InferToolOutput,
+  Tool,
+  ToolCall,
+} from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { DeepPartial } from '../util/deep-partial';
@@ -74,6 +79,7 @@ export type UIMessagePart<
   | TextUIPart
   | ReasoningUIPart
   | ToolUIPart<TOOLS>
+  | DynamicToolUIPart
   | SourceUrlUIPart
   | SourceDocumentUIPart
   | FileUIPart
@@ -221,8 +227,9 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         callProviderMetadata?: ProviderMetadata;
       }
     | {
-        state: 'output-error';
-        input: TOOLS[NAME]['input'];
+        state: 'output-error'; // TODO AI SDK 6: change to 'error' state
+        input: TOOLS[NAME]['input'] | undefined;
+        rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
         output?: never;
         errorText: string;
         providerExecuted?: boolean;
@@ -230,6 +237,40 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
       }
   );
 }>;
+
+export type DynamicToolUIPart = {
+  type: 'dynamic-tool';
+  toolName: string;
+  toolCallId: string;
+} & (
+  | {
+      state: 'input-streaming';
+      input: unknown | undefined;
+      output?: never;
+      errorText?: never;
+    }
+  | {
+      state: 'input-available';
+      input: unknown;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+    }
+  | {
+      state: 'output-available';
+      input: unknown;
+      output: unknown;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+    }
+  | {
+      state: 'output-error'; // TODO AI SDK 6: change to 'error' state
+      input: unknown;
+      output?: never;
+      errorText: string;
+      callProviderMetadata?: ProviderMetadata;
+    }
+);
 
 export function isToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
@@ -251,3 +292,17 @@ export type InferUIMessageData<T extends UIMessage> =
 
 export type InferUIMessageTools<T extends UIMessage> =
   T extends UIMessage<unknown, UIDataTypes, infer TOOLS> ? TOOLS : UITools;
+
+export type InferUIMessageToolOutputs<UI_MESSAGE extends UIMessage> =
+  InferUIMessageTools<UI_MESSAGE>[keyof InferUIMessageTools<UI_MESSAGE>]['output'];
+
+export type InferUIMessageToolCall<UI_MESSAGE extends UIMessage> =
+  | ValueOf<{
+      [NAME in keyof InferUIMessageTools<UI_MESSAGE>]: ToolCall<
+        NAME & string,
+        InferUIMessageTools<UI_MESSAGE>[NAME] extends { input: infer INPUT }
+          ? INPUT
+          : never
+      > & { dynamic?: false };
+    }>
+  | (ToolCall<string, unknown> & { dynamic: true });

@@ -221,7 +221,7 @@ describe('data protocol stream', () => {
               "role": "user",
             },
           ],
-          "trigger": "submit-user-message",
+          "trigger": "submit-message",
         }
       `);
     });
@@ -370,9 +370,14 @@ describe('onToolCall', () => {
     chat = new Chat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
-        return `test-tool-response: ${toolCall.toolName} ${
-          toolCall.toolCallId
-        } ${JSON.stringify(toolCall.input)}`;
+
+        chat.addToolResult({
+          tool: 'test-tool',
+          toolCallId: toolCall.toolCallId,
+          output: `test-tool-response: ${toolCall.toolName} ${
+            toolCall.toolCallId
+          } ${JSON.stringify(toolCall.input)}`,
+        });
       },
     });
   });
@@ -397,6 +402,7 @@ describe('onToolCall', () => {
         {
           state: 'input-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -413,6 +419,7 @@ describe('onToolCall', () => {
       {
         state: 'output-available',
         errorText: undefined,
+        rawInput: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
@@ -431,7 +438,6 @@ describe('tool invocations', () => {
     const generateId = mockId();
     chat = new Chat({
       generateId,
-      maxSteps: 5,
       transport: new DefaultChatTransport({
         api: '/api/chat',
       }),
@@ -463,6 +469,7 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: undefined,
@@ -485,6 +492,7 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 't' },
@@ -507,6 +515,7 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -530,6 +539,7 @@ describe('tool invocations', () => {
         {
           state: 'input-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -553,6 +563,7 @@ describe('tool invocations', () => {
       {
         state: 'output-available',
         errorText: undefined,
+        rawInput: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
@@ -585,6 +596,7 @@ describe('tool invocations', () => {
         {
           state: 'input-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -609,6 +621,7 @@ describe('tool invocations', () => {
       {
         state: 'output-available',
         errorText: undefined,
+        rawInput: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
@@ -640,6 +653,7 @@ describe('tool invocations', () => {
         {
           state: 'input-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -650,6 +664,7 @@ describe('tool invocations', () => {
     });
 
     chat.addToolResult({
+      tool: 'test-tool',
       toolCallId: 'tool-call-0',
       output: 'test-result',
     });
@@ -659,6 +674,7 @@ describe('tool invocations', () => {
         {
           state: 'output-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -666,234 +682,6 @@ describe('tool invocations', () => {
           providerExecuted: undefined,
         },
       ]);
-    });
-  });
-
-  it('should delay tool result submission until the stream is finished', async () => {
-    const controller1 = new TestResponseController();
-    const controller2 = new TestResponseController();
-
-    server.urls['/api/chat'].response = [
-      { type: 'controlled-stream', controller: controller1 },
-      { type: 'controlled-stream', controller: controller2 },
-    ];
-
-    chat.sendMessage({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
-
-    // start stream
-    controller1.write(formatChunk({ type: 'start' }));
-    controller1.write(formatChunk({ type: 'start-step' }));
-
-    // tool call
-    controller1.write(
-      formatChunk({
-        type: 'tool-input-available',
-        toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
-        input: { testArg: 'test-value' },
-      }),
-    );
-
-    await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
-        {
-          state: 'input-available',
-          errorText: undefined,
-          input: { testArg: 'test-value' },
-          output: undefined,
-          toolCallId: 'tool-call-0',
-          type: 'tool-test-tool',
-          providerExecuted: undefined,
-        },
-      ]);
-    });
-
-    // user submits the tool result
-    chat.addToolResult({
-      toolCallId: 'tool-call-0',
-      output: 'test-result',
-    });
-
-    // UI should show the tool result
-    await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
-        {
-          state: 'output-available',
-          errorText: undefined,
-          toolCallId: 'tool-call-0',
-          type: 'tool-test-tool',
-          input: { testArg: 'test-value' },
-          output: 'test-result',
-          providerExecuted: undefined,
-        },
-      ]);
-    });
-
-    // should not have called the API yet
-    expect(server.calls.length).toBe(1);
-
-    // finish stream
-    controller1.write(formatChunk({ type: 'finish-step' }));
-    controller1.write(formatChunk({ type: 'finish' }));
-
-    await controller1.close();
-
-    // 2nd call should happen after the stream is finished
-    await vi.waitFor(() => {
-      expect(server.calls.length).toBe(2);
-    });
-  });
-});
-
-describe('maxSteps', () => {
-  describe('two steps with automatic tool call', () => {
-    let onToolCallInvoked = false;
-    let chat: Chat;
-
-    beforeEach(() => {
-      chat = new Chat({
-        async onToolCall({ toolCall }) {
-          onToolCallInvoked = true;
-          return `test-tool-response: ${toolCall.toolName} ${
-            toolCall.toolCallId
-          } ${JSON.stringify(toolCall.input)}`;
-        },
-        id: 'test-id',
-        maxSteps: 5,
-        transport: new DefaultChatTransport({
-          api: '/api/chat',
-        }),
-        generateId: mockId(),
-      });
-      onToolCallInvoked = false;
-    });
-
-    it('should automatically call api when tool call gets executed via onToolCall', async () => {
-      server.urls['/api/chat'].response = [
-        {
-          type: 'stream-chunks',
-          chunks: [
-            formatChunk({
-              type: 'tool-input-available',
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              input: { testArg: 'test-value' },
-            }),
-          ],
-        },
-        {
-          type: 'stream-chunks',
-          chunks: [
-            formatChunk({ type: 'text-start', id: '0' }),
-            formatChunk({
-              type: 'text-delta',
-              id: '0',
-              delta: 'final result',
-            }),
-            formatChunk({ type: 'text-end', id: '0' }),
-          ],
-        },
-      ];
-
-      await chat.sendMessage({
-        role: 'user',
-        parts: [{ text: 'hi', type: 'text' }],
-      });
-
-      expect(onToolCallInvoked).toBe(true);
-
-      expect(chat.messages).toMatchInlineSnapshot(`
-        [
-          {
-            "id": "id-0",
-            "metadata": undefined,
-            "parts": [
-              {
-                "text": "hi",
-                "type": "text",
-              },
-            ],
-            "role": "user",
-          },
-          {
-            "id": "id-1",
-            "metadata": undefined,
-            "parts": [
-              {
-                "errorText": undefined,
-                "input": {
-                  "testArg": "test-value",
-                },
-                "output": "test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}",
-                "providerExecuted": undefined,
-                "state": "output-available",
-                "toolCallId": "tool-call-0",
-                "type": "tool-test-tool",
-              },
-              {
-                "providerMetadata": undefined,
-                "state": "done",
-                "text": "final result",
-                "type": "text",
-              },
-            ],
-            "role": "assistant",
-          },
-        ]
-      `);
-    });
-  });
-
-  describe('two steps with error response', () => {
-    let onToolCallCounter = 0;
-    let chat: Chat;
-
-    beforeEach(() => {
-      chat = new Chat({
-        async onToolCall({ toolCall }) {
-          onToolCallCounter++;
-          return `test-tool-response: ${toolCall.toolName} ${
-            toolCall.toolCallId
-          } ${JSON.stringify(toolCall.input)}`;
-        },
-        maxSteps: 5,
-        transport: new DefaultChatTransport({
-          api: '/api/chat',
-        }),
-      });
-      onToolCallCounter = 0;
-    });
-
-    it('should automatically call api when tool call gets executed via onToolCall', async () => {
-      server.urls['/api/chat'].response = [
-        {
-          type: 'stream-chunks',
-          chunks: [
-            formatChunk({
-              type: 'tool-input-available',
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              input: { testArg: 'test-value' },
-            }),
-          ],
-        },
-        {
-          type: 'error',
-          status: 400,
-          body: 'call failure',
-        },
-      ];
-
-      await chat.sendMessage({
-        text: 'hi',
-      });
-
-      expect(chat.error).toBeInstanceOf(Error);
-      expect(chat.error?.message).toBe('call failure');
-      expect(onToolCallCounter).toBe(1);
     });
   });
 });
@@ -992,7 +780,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1082,7 +870,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1182,7 +970,7 @@ describe('file attachments with url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1275,7 +1063,7 @@ describe('file attachments with empty text content', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1358,7 +1146,7 @@ describe('reload', () => {
           },
         ],
         "request-body-key": "request-body-value",
-        "trigger": "regenerate-assistant-message",
+        "trigger": "regenerate-message",
       }
     `);
 
@@ -1421,7 +1209,7 @@ describe('test sending additional fields during message submission', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });

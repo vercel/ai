@@ -1,4 +1,4 @@
-import { Validator, validatorSymbol } from './validator';
+import { Validator, validatorSymbol, type ValidationResult } from './validator';
 import { JSONSchema7 } from '@ai-sdk/provider';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
@@ -49,7 +49,7 @@ export function jsonSchema<OBJECT = unknown>(
   }: {
     validate?: (
       value: unknown,
-    ) => { success: true; value: OBJECT } | { success: false; error: Error };
+    ) => ValidationResult<OBJECT> | PromiseLike<ValidationResult<OBJECT>>;
   } = {},
 ): Schema<OBJECT> {
   return {

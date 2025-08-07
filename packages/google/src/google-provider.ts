@@ -22,8 +22,6 @@ import {
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 
-import { isSupportedFileUrl } from './google-supported-file-url';
-
 export interface GoogleGenerativeAIProvider extends ProviderV2 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
@@ -45,15 +43,12 @@ Creates a model for image generation.
   generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
   /**
-@deprecated Use `textEmbeddingModel()` instead.
+@deprecated Use `textEmbedding()` instead.
    */
   embedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
   ): EmbeddingModelV2<string>;
 
-  /**
-@deprecated Use `textEmbeddingModel()` instead.
- */
   textEmbedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
   ): EmbeddingModelV2<string>;
@@ -122,9 +117,14 @@ export function createGoogleGenerativeAI(
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         '*': [
-          // Only allow requests to the Google Generative Language "files" endpoint
+          // Google Generative Language "files" endpoint
           // e.g. https://generativelanguage.googleapis.com/v1beta/files/...
           new RegExp(`^${baseURL}/files/.*$`),
+          // YouTube URLs (public or unlisted videos)
+          new RegExp(
+            `^https://(?:www\\.)?youtube\\.com/watch\\?v=[\\w-]+(?:&[\\w=&.-]*)?$`,
+          ),
+          new RegExp(`^https://youtu\\.be/[\\w-]+(?:\\?[\\w=&.-]*)?$`),
         ],
       }),
       fetch: options.fetch,
