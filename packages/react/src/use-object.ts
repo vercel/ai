@@ -189,47 +189,81 @@ function useObject<
         );
       }
 
-      if (response.body == null) {
-        throw new Error('The response body is empty.');
-      }
-
       let accumulatedText = '';
       let latestObject: DeepPartial<RESULT> | undefined = undefined;
 
-      await response.body.pipeThrough(new TextDecoderStream()).pipeTo(
-        new WritableStream<string>({
-          async write(chunk) {
-            accumulatedText += chunk;
+      const canStream =
+        response.body != null &&
+        typeof (response.body as any).pipeThrough === 'function' &&
+        typeof (globalThis as any).TextDecoderStream !== 'undefined' &&
+        typeof (globalThis as any).WritableStream !== 'undefined';
 
-            const { value } = await parsePartialJson(accumulatedText);
-            const currentObject = value as DeepPartial<RESULT>;
+      if (canStream) {
+        await response.body
+          .pipeThrough(new TextDecoderStream())
+          .pipeTo(
+            new WritableStream<string>({
+              async write(chunk) {
+                accumulatedText += chunk;
 
-            if (!isDeepEqualData(latestObject, currentObject)) {
-              latestObject = currentObject;
+                const { value } = await parsePartialJson(accumulatedText);
+                const currentObject = value as DeepPartial<RESULT>;
 
-              mutate(currentObject);
-            }
-          },
+                if (!isDeepEqualData(latestObject, currentObject)) {
+                  latestObject = currentObject;
 
-          async close() {
-            setIsLoading(false);
-            abortControllerRef.current = null;
+                  mutate(currentObject);
+                }
+              },
 
-            if (onFinish != null) {
-              const validationResult = await safeValidateTypes({
-                value: latestObject,
-                schema: asSchema(schema),
-              });
+              async close() {
+                setIsLoading(false);
+                abortControllerRef.current = null;
 
-              onFinish(
-                validationResult.success
-                  ? { object: validationResult.value, error: undefined }
-                  : { object: undefined, error: validationResult.error },
-              );
-            }
-          },
-        }),
-      );
+                if (onFinish != null) {
+                  const validationResult = await safeValidateTypes({
+                    value: latestObject,
+                    schema: asSchema(schema),
+                  });
+
+                  onFinish(
+                    validationResult.success
+                      ? { object: validationResult.value, error: undefined }
+                      : { object: undefined, error: validationResult.error },
+                  );
+                }
+              },
+            }),
+          );
+      } else {
+        // Fallback for environments without stream support (e.g., React Native/Expo)
+        const text = await response.text();
+
+        if (text == null || text.trim().length === 0) {
+          throw new Error('The response body is empty.');
+        }
+
+        accumulatedText = text;
+        const { value } = await parsePartialJson(accumulatedText);
+        latestObject = value as DeepPartial<RESULT>;
+        mutate(latestObject);
+
+        setIsLoading(false);
+        abortControllerRef.current = null;
+
+        if (onFinish != null) {
+          const validationResult = await safeValidateTypes({
+            value: latestObject,
+            schema: asSchema(schema),
+          });
+
+          onFinish(
+            validationResult.success
+              ? { object: validationResult.value, error: undefined }
+              : { object: undefined, error: validationResult.error },
+          );
+        }
+      }
     } catch (error) {
       if (isAbortError(error)) {
         return;
