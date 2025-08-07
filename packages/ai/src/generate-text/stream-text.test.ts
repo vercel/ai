@@ -8495,63 +8495,62 @@ describe('streamText', () => {
       it('should include provider-executed tool call and result in the ui message stream', async () => {
         expect(await convertReadableStreamToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-input-start",
+            },
+            {
+              "inputTextDelta": "{ "value": "value" }",
+              "toolCallId": "call-1",
+              "type": "tool-input-delta",
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "type": "start-step",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-input-available",
+            },
+            {
+              "output": "{ "value": "result1" }",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "dynamic": false,
-                "providerExecuted": true,
-                "toolCallId": "call-1",
-                "toolName": "web_search",
-                "type": "tool-input-start",
-              },
-              {
-                "inputTextDelta": "{ "value": "value" }",
-                "toolCallId": "call-1",
-                "type": "tool-input-delta",
-              },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": true,
-                "toolCallId": "call-1",
-                "toolName": "web_search",
-                "type": "tool-input-available",
-              },
-              {
-                "output": "{ "value": "result1" }",
-                "providerExecuted": true,
-                "toolCallId": "call-1",
-                "type": "tool-output-available",
-              },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": true,
-                "toolCallId": "call-2",
-                "toolName": "web_search",
-                "type": "tool-input-available",
-              },
-              {
-                "errorText": "ERROR",
-                "providerExecuted": true,
-                "toolCallId": "call-2",
-                "type": "tool-output-error",
-              },
-              {
-                "type": "finish-step",
-              },
-              {
-                "type": "finish",
-              },
-            ]
-          `);
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-input-available",
+            },
+            {
+              "errorText": "ERROR",
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "type": "tool-output-error",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
       });
     });
   });
@@ -12565,6 +12564,263 @@ describe('streamText', () => {
       // tool should be executed by client
       expect(recordedContext).toStrictEqual({
         context: 'test',
+      });
+    });
+  });
+
+  describe('invalid tool calls', () => {
+    describe('single invalid tool call', () => {
+      let result: StreamTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-input-start',
+                id: 'call-1',
+                toolName: 'cityAttractions',
+              },
+              {
+                type: 'tool-input-delta',
+                id: 'call-1',
+                delta: `{ "cities": "San Francisco" }`,
+              },
+              {
+                type: 'tool-input-end',
+                id: 'call-1',
+              },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                // wrong tool call arguments (city vs cities):
+                input: `{ "cities": "San Francisco" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          _internal: {
+            currentDate: mockValues(new Date(2000)),
+            generateId: mockId(),
+          },
+          tools: {
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+            }),
+          },
+        });
+      });
+
+      it('should add tool call and result error parts to the content', async () => {
+        await result.consumeStream();
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": true,
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]],
+              "input": "{ "cities": "San Francisco" }",
+              "invalid": true,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": true,
+              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]",
+              "input": "{ "cities": "San Francisco" }",
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-error",
+            },
+          ]
+        `);
+      });
+
+      it('should add tool call and result error parts to the full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
+                "dynamic": false,
+                "id": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-input-start",
+              },
+              {
+                "delta": "{ "cities": "San Francisco" }",
+                "id": "call-1",
+                "type": "tool-input-delta",
+              },
+              {
+                "id": "call-1",
+                "type": "tool-input-end",
+              },
+              {
+                "dynamic": true,
+                "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]],
+                "input": "{ "cities": "San Francisco" }",
+                "invalid": true,
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-call",
+              },
+              {
+                "dynamic": true,
+                "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]",
+                "input": "{ "cities": "San Francisco" }",
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-error",
+              },
+              {
+                "finishReason": "stop",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": undefined,
+                  "id": "id-0",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:02.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+              },
+              {
+                "finishReason": "stop",
+                "totalUsage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+
+      it('should add tool call and result error parts to the ui message stream', async () => {
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-input-start",
+              },
+              {
+                "inputTextDelta": "{ "cities": "San Francisco" }",
+                "toolCallId": "call-1",
+                "type": "tool-input-delta",
+              },
+              {
+                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]",
+                "input": "{ "cities": "San Francisco" }",
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-input-error",
+              },
+              {
+                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]",
+                "toolCallId": "call-1",
+                "type": "tool-output-error",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "type": "finish",
+              },
+            ]
+          `);
       });
     });
   });

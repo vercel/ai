@@ -593,7 +593,6 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
     "type": "start-step",
   },
   {
-    "dynamic": false,
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-input-start",

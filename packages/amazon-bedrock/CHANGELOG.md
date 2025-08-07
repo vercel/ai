@@ -1,5 +1,12 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.3
+
+### Patch Changes
+
+- c44166d: Add support for Amazon Nova Models, cross region inference profiles and OpenAI gpt-oss in `@ai-sdk/amazon-bedrock` provider
+- fbc9f06: feat(amazon-bedrock): add topK support
+
 ## 3.0.2
 
 ### Patch Changes

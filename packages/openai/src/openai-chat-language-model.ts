@@ -840,7 +840,7 @@ const openaiChatChunkSchema = z.union([
 ]);
 
 function isReasoningModel(modelId: string) {
-  return modelId.startsWith('o');
+  return modelId.startsWith('o') || modelId.startsWith('gpt-5');
 }
 
 function supportsFlexProcessing(modelId: string) {
