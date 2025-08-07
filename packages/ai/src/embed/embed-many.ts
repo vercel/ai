@@ -9,7 +9,7 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
-import { resolveEmbeddingModel } from '../../core/prompt/resolve-embedding-model';
+import { resolveEmbeddingModel } from '../model/resolve-model';
 import { EmbedManyResult } from './embed-many-result';
 
 /**
@@ -29,7 +29,7 @@ has a limit on how many embeddings can be generated in a single call.
 @returns A result object that contains the embeddings, the value, and additional information.
  */
 export async function embedMany<VALUE = string>({
-  model,
+  model: modelArg,
   values,
   maxParallelCalls = Infinity,
   maxRetries: maxRetriesArg,
@@ -85,15 +85,7 @@ Only applicable for HTTP-based providers.
    */
   maxParallelCalls?: number;
 }): Promise<EmbedManyResult<VALUE>> {
-  const resolvedModel = resolveEmbeddingModel<VALUE>(model);
-
-  if (resolvedModel.specificationVersion !== 'v2') {
-    throw new UnsupportedModelVersionError({
-      version: resolvedModel.specificationVersion,
-      provider: resolvedModel.provider,
-      modelId: resolvedModel.modelId,
-    });
-  }
+  const model = resolveEmbeddingModel<VALUE>(modelArg);
 
   const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
@@ -101,7 +93,7 @@ Only applicable for HTTP-based providers.
   });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    model: resolvedModel,
+    model,
     telemetry,
     headers,
     settings: { maxRetries },
@@ -125,8 +117,8 @@ Only applicable for HTTP-based providers.
     tracer,
     fn: async span => {
       const [maxEmbeddingsPerCall, supportsParallelCalls] = await Promise.all([
-        resolvedModel.maxEmbeddingsPerCall,
-        resolvedModel.supportsParallelCalls,
+        model.maxEmbeddingsPerCall,
+        model.supportsParallelCalls,
       ]);
 
       // the model has not specified limits on
@@ -153,7 +145,7 @@ Only applicable for HTTP-based providers.
               }),
               tracer,
               fn: async doEmbedSpan => {
-                const modelResponse = await resolvedModel.doEmbed({
+                const modelResponse = await model.doEmbed({
                   values,
                   abortSignal,
                   headers,
@@ -254,7 +246,7 @@ Only applicable for HTTP-based providers.
                 }),
                 tracer,
                 fn: async doEmbedSpan => {
-                  const modelResponse = await resolvedModel.doEmbed({
+                  const modelResponse = await model.doEmbed({
                     values: chunk,
                     abortSignal,
                     headers,

@@ -1,6 +1,6 @@
 import { customProvider } from '../registry/custom-provider';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
-import { resolveLanguageModel } from './resolve-language-model';
+import { resolveLanguageModel } from './resolve-model';
 
 describe('resolveLanguageModel', () => {
   describe('when a language model v2 is provided', () => {
