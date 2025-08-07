@@ -1,5 +1,18 @@
 # @ai-sdk/groq
 
+## 2.0.3
+
+### Patch Changes
+
+- e49b556: feat(provider/groq): added openai gpt-oss model ids
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+
 ## 2.0.1
 
 ### Patch Changes

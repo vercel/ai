@@ -24,6 +24,66 @@ describe('system messages', () => {
   });
 });
 
+describe('thought signatures', () => {
+  it('should preserve thought signatures in assistant messages', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'Regular text',
+            providerOptions: { google: { thoughtSignature: 'sig1' } },
+          },
+          {
+            type: 'reasoning',
+            text: 'Reasoning text',
+            providerOptions: { google: { thoughtSignature: 'sig2' } },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'test',
+            input: { value: 'test' },
+            providerOptions: { google: { thoughtSignature: 'sig3' } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Regular text",
+                "thoughtSignature": "sig1",
+              },
+              {
+                "text": "Reasoning text",
+                "thought": true,
+                "thoughtSignature": "sig2",
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "value": "test",
+                  },
+                  "name": "test",
+                },
+                "thoughtSignature": "sig3",
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+});
+
 describe('Gemma model system instructions', () => {
   it('should prepend system instruction to first user message for Gemma models', async () => {
     const result = convertToGoogleGenerativeAIMessages(

@@ -2,7 +2,11 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
-import { generateId, ModelMessage } from '@ai-sdk/provider-utils';
+import {
+  generateId,
+  getErrorMessage,
+  ModelMessage,
+} from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
@@ -104,6 +108,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   repairToolCall,
+  experimental_context,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV2StreamPart>;
@@ -113,6 +118,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  experimental_context: unknown;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -218,6 +224,20 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             controller.enqueue(toolCall);
 
+            // handle invalid tool calls:
+            if (toolCall.invalid) {
+              toolResultsStreamController!.enqueue({
+                type: 'tool-error',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: toolCall.input,
+                error: getErrorMessage(toolCall.error!),
+                dynamic: true,
+              });
+
+              break;
+            }
+
             const tool = tools![toolCall.toolName];
 
             toolInputs.set(toolCall.toolCallId, toolCall.input);
@@ -228,6 +248,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 toolCallId: toolCall.toolCallId,
                 messages,
                 abortSignal,
+                experimental_context,
               });
             }
 
@@ -264,6 +285,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                       toolCallId: toolCall.toolCallId,
                       messages,
                       abortSignal,
+                      experimental_context,
                     });
                   } catch (error) {
                     recordErrorOnSpan(span, error);

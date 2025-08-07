@@ -1,5 +1,42 @@
 # ai
 
+## 5.0.7
+
+### Patch Changes
+
+- 8e72304: fix (ai): handle invalid tool calls
+
+## 5.0.6
+
+### Patch Changes
+
+- d983eee: feat(ai): allow passing model string for embeddings
+
+## 5.0.5
+
+### Patch Changes
+
+- Updated dependencies [893aed6]
+  - @ai-sdk/gateway@1.0.3
+
+## 5.0.4
+
+### Patch Changes
+
+- Updated dependencies [444df49]
+  - @ai-sdk/gateway@1.0.2
+
+## 5.0.3
+
+### Patch Changes
+
+- 90d212f: feat (ai): add experimental tool call context
+- Updated dependencies [028fb9c]
+- Updated dependencies [90d212f]
+- Updated dependencies [6331826]
+  - @ai-sdk/gateway@1.0.1
+  - @ai-sdk/provider-utils@3.0.1
+
 ## 5.0.2
 
 ### Patch Changes

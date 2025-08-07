@@ -39,6 +39,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     const result = await convertReadableStreamToArray(transformedStream);
@@ -104,6 +105,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     expect(await convertReadableStreamToArray(transformedStream))
@@ -176,6 +178,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     expect(await convertReadableStreamToArray(transformedStream))
@@ -251,6 +254,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     const result = await convertReadableStreamToArray(transformedStream);
@@ -334,6 +338,7 @@ describe('runToolsTransformation', () => {
 
         return { ...toolCall, toolName: 'correctTool' };
       },
+      experimental_context: undefined,
     });
 
     expect(await convertReadableStreamToArray(transformedStream))
@@ -419,6 +424,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     await convertReadableStreamToArray(transformedStream);

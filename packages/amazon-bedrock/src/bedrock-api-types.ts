@@ -8,6 +8,7 @@ export interface BedrockConverseInput {
     maxOutputTokens?: number;
     temperature?: number;
     topP?: number;
+    topK?: number;
     stopSequences?: string[];
   };
   additionalModelRequestFields?: Record<string, unknown>;

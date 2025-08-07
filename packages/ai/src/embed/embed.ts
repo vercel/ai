@@ -1,13 +1,13 @@
 import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { prepareRetries } from '../util/prepare-retries';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
+import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { EmbeddingModel, ProviderMetadata } from '../types';
+import { EmbeddingModel } from '../types';
+import { prepareRetries } from '../util/prepare-retries';
 import { EmbedResult } from './embed-result';
 
 /**
@@ -22,8 +22,8 @@ Embed a value using an embedding model. The type of the value is defined by the 
 
 @returns A result object that contains the embedding, the value, and additional information.
  */
-export async function embed<VALUE>({
-  model,
+export async function embed<VALUE = string>({
+  model: modelArg,
   value,
   providerOptions,
   maxRetries: maxRetriesArg,
@@ -71,13 +71,7 @@ Only applicable for HTTP-based providers.
    */
   experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedResult<VALUE>> {
-  if (model.specificationVersion !== 'v2') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
-  }
+  const model = resolveEmbeddingModel<VALUE>(modelArg);
 
   const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
@@ -85,7 +79,7 @@ Only applicable for HTTP-based providers.
   });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    model,
+    model: model,
     telemetry,
     headers,
     settings: { maxRetries },

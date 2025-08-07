@@ -170,7 +170,10 @@ export function convertToModelMessages(
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
                     toolName,
-                    input: part.input,
+                    input:
+                      part.state === 'output-error'
+                        ? (part.input ?? part.rawInput)
+                        : part.input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
                       ? { providerOptions: part.callProviderMetadata }

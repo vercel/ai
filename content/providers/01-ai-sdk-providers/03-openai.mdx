@@ -352,6 +352,44 @@ const openaiMetadata = (await result.providerMetadata)?.openai;
 const logprobs = openaiMetadata?.logprobs;
 ```
 
+#### Image Support
+
+The OpenAI Chat API supports Image inputs for appropriate models.
+You can pass Image files as part of the message content using the 'image' type:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Please describe the image.',
+        },
+        {
+          type: 'image',
+          image: fs.readFileSync('./data/image.png'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+Multimodal models will have access to the image and can analyze and conversate about it.
+The image should be passed using the `image` field.
+
+You can also pass the URL of an image.
+
+```ts
+{
+  type: 'image',
+  image: 'https://sample.edu/image.png',
+}
+```
+
 #### PDF support
 
 The OpenAI Chat API supports reading PDF files.
@@ -384,6 +422,27 @@ The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
 and the `mediaType` should be set to `'application/pdf'`.
+
+You can also pass a file-id from the OpenAI Files API.
+
+```ts
+{
+  type: 'file',
+  data: 'file-8EFBcWHsQxZV7YGezBC1fq',
+  mediaType: 'application/pdf',
+}
+```
+
+You can also pass the URL of a PDF.
+
+```ts
+{
+  type: 'file',
+  data: 'https://sample.edu/example.pdf',
+  mediaType: 'application/pdf',
+  filename: 'ai.pdf', // optional
+}
+```
 
 #### Predicted Outputs
 
@@ -769,6 +828,53 @@ console.log('Reasoning:', result.reasoning);
 
 Learn more about reasoning summaries in the [OpenAI documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries).
 
+#### Image Support
+
+The OpenAI Responses API supports Image inputs for appropriate models.
+You can pass Image files as part of the message content using the 'image' type:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Please describe the image.',
+        },
+        {
+          type: 'image',
+          image: fs.readFileSync('./data/image.png'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+Multimodal models will have access to the image and can analyze and conversate about it.
+The image should be passed using the `image` field.
+
+You can also pass a file-id from the OpenAI Files API.
+
+```ts
+{
+  type: 'image',
+  image: 'file-8EFBcWHsQxZV7YGezBC1fq'
+}
+```
+
+You can also pass the URL of an image.
+
+```ts
+{
+  type: 'image',
+  image: 'https://sample.edu/image.png',
+}
+```
+
 #### PDF support
 
 The OpenAI Responses API supports reading PDF files.
@@ -795,6 +901,27 @@ const result = await generateText({
     },
   ],
 });
+```
+
+You can also pass a file-id from the OpenAI Files API.
+
+```ts
+{
+  type: 'file',
+  data: 'file-8EFBcWHsQxZV7YGezBC1fq',
+  mediaType: 'application/pdf',
+}
+```
+
+You can also pass the URL of a pdf.
+
+```ts
+{
+  type: 'file',
+  data: 'https://sample.edu/example.pdf',
+  mediaType: 'application/pdf',
+  filename: 'ai.pdf', // optional
+}
 ```
 
 The model will have access to the contents of the PDF file and

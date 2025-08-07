@@ -421,6 +421,27 @@ const result = await generateText({
 });
 ```
 
+### Context (experimental)
+
+You can pass in arbitrary context from `generateText` or `streamText` via the `experimental_context` setting.
+This context is available in the `experimental_context` tool execution option.
+
+```ts
+const result = await generateText({
+  // ...
+  tools: {
+    someTool: tool({
+      // ...
+      execute: async (input, { experimental_context: context }) => {
+        const typedContext = context as { example: string }; // or use type validation library
+        // ...
+      },
+    }),
+  },
+  experimental_context: { example: '123' },
+});
+```
+
 ## Types
 
 Modularizing your code often requires defining types to ensure type safety and reusability.
