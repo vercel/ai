@@ -85,19 +85,21 @@ export function convertToGoogleGenerativeAIMessages(
                 case 'text': {
                   return part.text.length === 0
                     ? undefined
-                    : { 
+                    : {
                         text: part.text,
-                        thoughtSignature: part.providerOptions?.google?.thoughtSignature,
+                        thoughtSignature:
+                          part.providerOptions?.google?.thoughtSignature,
                       };
                 }
 
                 case 'reasoning': {
                   return part.text.length === 0
                     ? undefined
-                    : { 
+                    : {
                         text: part.text,
                         thought: true,
-                        thoughtSignature: part.providerOptions?.google?.thoughtSignature,
+                        thoughtSignature:
+                          part.providerOptions?.google?.thoughtSignature,
                       };
                 }
 
@@ -130,7 +132,8 @@ export function convertToGoogleGenerativeAIMessages(
                       name: part.toolName,
                       args: part.input,
                     },
-                    thoughtSignature: part.providerOptions?.google?.thoughtSignature,
+                    thoughtSignature:
+                      part.providerOptions?.google?.thoughtSignature,
                   };
                 }
               }

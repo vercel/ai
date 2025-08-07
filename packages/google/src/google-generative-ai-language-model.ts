@@ -241,18 +241,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null && part.text.length > 0) {
         if (part.thought === true) {
-          content.push({ 
-            type: 'reasoning', 
+          content.push({
+            type: 'reasoning',
             text: part.text,
-            providerMetadata: part.thoughtSignature 
+            providerMetadata: part.thoughtSignature
               ? { google: { thoughtSignature: part.thoughtSignature } }
               : undefined,
           });
         } else {
-          content.push({ 
-            type: 'text', 
+          content.push({
+            type: 'text',
             text: part.text,
-            providerMetadata: part.thoughtSignature 
+            providerMetadata: part.thoughtSignature
               ? { google: { thoughtSignature: part.thoughtSignature } }
               : undefined,
           });
@@ -263,7 +263,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           toolCallId: this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args),
-          providerMetadata: part.thoughtSignature 
+          providerMetadata: part.thoughtSignature
             ? { google: { thoughtSignature: part.thoughtSignature } }
             : undefined,
         });
@@ -480,8 +480,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       controller.enqueue({
                         type: 'reasoning-start',
                         id: currentReasoningBlockId,
-                        providerMetadata: part.thoughtSignature 
-                          ? { google: { thoughtSignature: part.thoughtSignature } }
+                        providerMetadata: part.thoughtSignature
+                          ? {
+                              google: {
+                                thoughtSignature: part.thoughtSignature,
+                              },
+                            }
                           : undefined,
                       });
                     }
@@ -490,8 +494,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       type: 'reasoning-delta',
                       id: currentReasoningBlockId,
                       delta: part.text,
-                      providerMetadata: part.thoughtSignature 
-                        ? { google: { thoughtSignature: part.thoughtSignature } }
+                      providerMetadata: part.thoughtSignature
+                        ? {
+                            google: { thoughtSignature: part.thoughtSignature },
+                          }
                         : undefined,
                     });
                   } else {
@@ -510,8 +516,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       controller.enqueue({
                         type: 'text-start',
                         id: currentTextBlockId,
-                        providerMetadata: part.thoughtSignature 
-                          ? { google: { thoughtSignature: part.thoughtSignature } }
+                        providerMetadata: part.thoughtSignature
+                          ? {
+                              google: {
+                                thoughtSignature: part.thoughtSignature,
+                              },
+                            }
                           : undefined,
                       });
                     }
@@ -520,8 +530,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       type: 'text-delta',
                       id: currentTextBlockId,
                       delta: part.text,
-                      providerMetadata: part.thoughtSignature 
-                        ? { google: { thoughtSignature: part.thoughtSignature } }
+                      providerMetadata: part.thoughtSignature
+                        ? {
+                            google: { thoughtSignature: part.thoughtSignature },
+                          }
                         : undefined,
                     });
                   }
@@ -651,7 +663,7 @@ function getToolCallsFromParts({
         toolCallId: generateId(),
         toolName: part.functionCall.name,
         args: JSON.stringify(part.functionCall.args),
-        providerMetadata: part.thoughtSignature 
+        providerMetadata: part.thoughtSignature
           ? { google: { thoughtSignature: part.thoughtSignature } }
           : undefined,
       }));

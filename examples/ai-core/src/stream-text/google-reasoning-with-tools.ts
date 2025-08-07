@@ -13,7 +13,9 @@ async function main() {
         parameters: z.object({
           a: z.number().describe('First number'),
           b: z.number().describe('Second number'),
-          operation: z.enum(['add', 'subtract', 'multiply', 'divide']).describe('Mathematical operation'),
+          operation: z
+            .enum(['add', 'subtract', 'multiply', 'divide'])
+            .describe('Mathematical operation'),
         }),
       },
     },
@@ -35,13 +37,19 @@ async function main() {
         break;
       case 'reasoning-delta':
         if (chunk.providerMetadata?.google?.thoughtSignature) {
-          console.log('[Reasoning with signature]:', chunk.providerMetadata.google.thoughtSignature);
+          console.log(
+            '[Reasoning with signature]:',
+            chunk.providerMetadata.google.thoughtSignature,
+          );
         }
         break;
       case 'tool-call':
         console.log('\nTool call:', chunk.toolName, chunk.input);
         if (chunk.providerMetadata?.google?.thoughtSignature) {
-          console.log('[Tool signature]:', chunk.providerMetadata.google.thoughtSignature);
+          console.log(
+            '[Tool signature]:',
+            chunk.providerMetadata.google.thoughtSignature,
+          );
         }
         break;
     }

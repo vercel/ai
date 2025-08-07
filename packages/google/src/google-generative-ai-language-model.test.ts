@@ -1453,7 +1453,11 @@ describe('doGenerate', () => {
             content: {
               parts: [
                 { text: 'Visible text part 1. ', thoughtSignature: 'sig1' },
-                { text: 'This is a thought process.', thought: true, thoughtSignature: 'sig2' },
+                {
+                  text: 'This is a thought process.',
+                  thought: true,
+                  thoughtSignature: 'sig2',
+                },
                 { text: 'Visible text part 2.', thoughtSignature: 'sig3' },
               ],
               role: 'model',
@@ -1516,12 +1520,12 @@ describe('doGenerate', () => {
           {
             content: {
               parts: [
-                { 
-                  functionCall: { 
-                    name: 'test-tool', 
-                    args: { value: 'test' } 
+                {
+                  functionCall: {
+                    name: 'test-tool',
+                    args: { value: 'test' },
                   },
-                  thoughtSignature: 'func_sig1' 
+                  thoughtSignature: 'func_sig1',
                 },
               ],
               role: 'model',
