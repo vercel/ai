@@ -12764,8 +12764,9 @@ describe('streamText', () => {
       });
 
       it('should add tool call and result error parts to the ui message stream', async () => {
-        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
-          .toMatchInlineSnapshot(`
+        expect(
+          await convertAsyncIterableToArray(result.toUIMessageStream()),
+        ).toMatchInlineSnapshot(`
           [
             {
               "type": "start",
@@ -12797,10 +12798,9 @@ describe('streamText', () => {
             }
           ]",
               "input": "{ "cities": "San Francisco" }",
-              "invalid": true,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
-              "type": "tool-input-available",
+              "type": "tool-input-error",
             },
             {
               "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.

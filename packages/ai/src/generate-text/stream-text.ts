@@ -1827,23 +1827,37 @@ However, the LLM results are expected to be small enough to not cause issues.
               toolNamesByCallId[part.toolCallId] = part.toolName;
               const dynamic = isDynamic(part.toolCallId);
 
-              controller.enqueue({
-                type: 'tool-input-available',
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-                input: part.input,
-                ...(part.providerExecuted != null
-                  ? { providerExecuted: part.providerExecuted }
-                  : {}),
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-                ...(dynamic != null ? { dynamic } : {}),
-                ...(part.invalid != null ? { invalid: part.invalid } : {}),
-                ...(part.error != null
-                  ? { errorText: onError(part.error) }
-                  : {}),
-              });
+              if (part.invalid) {
+                controller.enqueue({
+                  type: 'tool-input-error',
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  input: part.input,
+                  ...(part.providerExecuted != null
+                    ? { providerExecuted: part.providerExecuted }
+                    : {}),
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                  ...(dynamic != null ? { dynamic } : {}),
+                  errorText: onError(part.error),
+                });
+              } else {
+                controller.enqueue({
+                  type: 'tool-input-available',
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  input: part.input,
+                  ...(part.providerExecuted != null
+                    ? { providerExecuted: part.providerExecuted }
+                    : {}),
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                  ...(dynamic != null ? { dynamic } : {}),
+                });
+              }
+
               break;
             }
 
