@@ -227,8 +227,16 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         callProviderMetadata?: ProviderMetadata;
       }
     | {
-        state: 'output-error';
+        state: 'output-error'; // TODO AI SDK 6: merge with 'error' state
         input: TOOLS[NAME]['input'];
+        output?: never;
+        errorText: string;
+        providerExecuted?: boolean;
+        callProviderMetadata?: ProviderMetadata;
+      }
+    | {
+        state: 'error';
+        input: unknown; // unknown because it could be invalid input
         output?: never;
         errorText: string;
         providerExecuted?: boolean;
@@ -263,7 +271,14 @@ export type DynamicToolUIPart = {
       callProviderMetadata?: ProviderMetadata;
     }
   | {
-      state: 'output-error';
+      state: 'output-error'; // TODO AI SDK 6: merge with 'error' state
+      input: unknown;
+      output?: never;
+      errorText: string;
+      callProviderMetadata?: ProviderMetadata;
+    }
+  | {
+      state: 'error';
       input: unknown;
       output?: never;
       errorText: string;
