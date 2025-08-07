@@ -95,8 +95,8 @@ const { images } = await generateImage({
       sampler_name: 'DPM++ SDE Karras',
       styles: ['photorealistic', 'detailed'],
       check_model_exists: true,
-    }
-  }
+    },
+  },
 });
 ```
 
@@ -106,15 +106,15 @@ The Automatic1111 provider supports the following options for customizing image 
 
 ### Available Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `negative_prompt` | `string` | `undefined` | What you don't want in the image |
-| `steps` | `number` | `20` | Number of sampling steps |
-| `cfg_scale` | `number` | `7` | CFG (Classifier Free Guidance) scale |
-| `sampler_name` | `string` | `"Euler a"` | Sampling method |
-| `denoising_strength` | `number` | `undefined` | Denoising strength for img2img (0.0-1.0) |
-| `styles` | `string[]` | `undefined` | Apply predefined styles |
-| `check_model_exists` | `boolean` | `false` | Verify model exists before generation |
+| Option               | Type       | Default     | Description                              |
+| -------------------- | ---------- | ----------- | ---------------------------------------- |
+| `negative_prompt`    | `string`   | `undefined` | What you don't want in the image         |
+| `steps`              | `number`   | `20`        | Number of sampling steps                 |
+| `cfg_scale`          | `number`   | `7`         | CFG (Classifier Free Guidance) scale     |
+| `sampler_name`       | `string`   | `"Euler a"` | Sampling method                          |
+| `denoising_strength` | `number`   | `undefined` | Denoising strength for img2img (0.0-1.0) |
+| `styles`             | `string[]` | `undefined` | Apply predefined styles                  |
+| `check_model_exists` | `boolean`  | `false`     | Verify model exists before generation    |
 
 ## Model Management
 
