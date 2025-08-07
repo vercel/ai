@@ -68,7 +68,7 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     const { embeddings } = await model.doEmbed({
       values: testValues,
-      providerOptions: { google: mockProviderOptions },
+      providerOptions: { vertex: mockProviderOptions },
     });
 
     expect(embeddings).toStrictEqual(dummyEmbeddings);
@@ -83,7 +83,7 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     const { response } = await model.doEmbed({
       values: testValues,
-      providerOptions: { google: mockProviderOptions },
+      providerOptions: { vertex: mockProviderOptions },
     });
 
     expect(response?.headers).toStrictEqual({
@@ -103,7 +103,7 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     const { usage } = await model.doEmbed({
       values: testValues,
-      providerOptions: { google: mockProviderOptions },
+      providerOptions: { vertex: mockProviderOptions },
     });
 
     expect(usage).toStrictEqual({ tokens: 25 });
@@ -114,7 +114,7 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     await model.doEmbed({
       values: testValues,
-      providerOptions: { google: mockProviderOptions },
+      providerOptions: { vertex: mockProviderOptions },
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -131,7 +131,7 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     await model.doEmbed({
       values: testValues,
-      providerOptions: { google: { taskType: mockProviderOptions.taskType } },
+      providerOptions: { vertex: { taskType: mockProviderOptions.taskType } },
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -172,7 +172,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     await expect(
       model.doEmbed({
         values: tooManyValues,
-        providerOptions: { google: mockProviderOptions },
+        providerOptions: { vertex: mockProviderOptions },
       }),
     ).rejects.toThrow(TooManyEmbeddingValuesForCallError);
   });
@@ -202,7 +202,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     const response = await modelWithCustomUrl.doEmbed({
       values: testValues,
       providerOptions: {
-        google: { outputDimensionality: 768 },
+        vertex: { outputDimensionality: 768 },
       },
     });
 
@@ -241,7 +241,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     const response = await modelWithCustomFetch.doEmbed({
       values: testValues,
       providerOptions: {
-        google: { outputDimensionality: 768 },
+        vertex: { outputDimensionality: 768 },
       },
     });
 
