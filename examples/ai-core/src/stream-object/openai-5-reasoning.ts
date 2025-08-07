@@ -20,7 +20,8 @@ async function main() {
         recommendations: z.array(z.string()),
       }),
     }),
-    prompt: 'Analyze the impact of artificial intelligence on modern software development practices.',
+    prompt:
+      'Analyze the impact of artificial intelligence on modern software development practices.',
   });
 
   for await (const partialObject of result.partialObjectStream) {

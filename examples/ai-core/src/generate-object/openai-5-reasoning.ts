@@ -18,7 +18,8 @@ async function main() {
         code: z.string(),
       }),
     }),
-    prompt: 'Analyze and solve: How would you implement a function to find the longest palindromic substring in a string?',
+    prompt:
+      'Analyze and solve: How would you implement a function to find the longest palindromic substring in a string?',
   });
 
   console.log(JSON.stringify(result.object.analysis, null, 2));
