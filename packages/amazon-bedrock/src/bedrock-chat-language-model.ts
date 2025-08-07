@@ -104,7 +104,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-
     if (
       responseFormat != null &&
       responseFormat.type !== 'text' &&
