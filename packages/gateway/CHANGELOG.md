@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.3
+
+### Patch Changes
+
+- 893aed6: feat (provider/gateway): add anthropic claude 4.1 opus model id
+
 ## 1.0.2
 
 ### Patch Changes

@@ -312,6 +312,37 @@ describe('user messages', () => {
       ]);
     });
 
+    it('should convert messages with PDF file parts using file_id', async () => {
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: 'file-pdf-12345',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                file_id: 'file-pdf-12345',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should use default filename for PDF file parts when not provided', async () => {
       const base64Data = 'AQIDBAU=';
 

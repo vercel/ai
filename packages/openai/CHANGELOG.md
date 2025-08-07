@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.4
+
+### Patch Changes
+
+- c9e0f52: Files from the OpenAI Files API are now supported, mirroring functionality of OpenAI Chat and Responses API, respectively. Also, the AI SDK supports URLs for PDFs in the responses API the same way it did for completions.
+
 ## 2.0.3
 
 ### Patch Changes
