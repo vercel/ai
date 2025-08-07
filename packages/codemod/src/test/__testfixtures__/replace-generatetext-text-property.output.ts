@@ -96,4 +96,11 @@ export function otherTextAccess() {
   const someObject = { text: 'regular text' };
   return someObject.text;
 }
- 
+
+export async function ignoredFunctionResultText() {
+    const response = {text: 'hi'};
+    console.log(response.text);
+
+    const result = await fetch('https://vercel.com');
+    await result.text()
+}

@@ -60,14 +60,20 @@ export default createTransformer((fileInfo, api, options, context) => {
     .find(j.MemberExpression)
     .filter(path => {
       const node = path.node;
-
       // Must be accessing a property called 'text'
       if (!j.Identifier.check(node.property) || node.property.name !== 'text') {
         return false;
       }
-
       // The object must be a simple identifier (not a member expression)
       if (!j.Identifier.check(node.object)) {
+        return false;
+      }
+      // Ensure .text is not being called as a function (i.e., not result.text(...))
+      if (
+        path.parentPath &&
+        j.CallExpression.check(path.parentPath.node) &&
+        path.parentPath.node.callee === node
+      ) {
         return false;
       }
       return generateTextVars.has(node.object.name);
