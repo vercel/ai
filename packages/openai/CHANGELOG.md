@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 2.0.5
+
+### Patch Changes
+
+- 6753a2e: feat(examples): add gpt-5 model examples and e2e tests
+- 6cba06a: feat (provider/openai): add reasoning model config
+
 ## 2.0.4
 
 ### Patch Changes
