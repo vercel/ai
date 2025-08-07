@@ -29,7 +29,7 @@ export type GroqChatModelId =
 
 export const groqProviderOptions = z.object({
   reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).optional(),
-  reasoningEffort: z.enum(['none', 'default']).optional(),
+  reasoningEffort: z.enum(['low', 'medium', 'high', 'none', 'default']).optional(),
 
   /**
    * Whether to enable parallel function calling during tool use. Default to true.
