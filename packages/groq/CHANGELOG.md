@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.4
+
+### Patch Changes
+
+- 4b50c36: patch reasoningEffort parameter "low", "medium", "high" for gpt-oss
+
 ## 2.0.3
 
 ### Patch Changes
