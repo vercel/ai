@@ -19,6 +19,40 @@ export default createTransformer((fileInfo, api, options, context) => {
       }
     });
 
+  function transformObjectExpression(objExpr: any) {
+    if (
+      !objExpr ||
+      objExpr.type !== 'ObjectExpression' ||
+      !Array.isArray(objExpr.properties)
+    )
+      return false;
+    const maxStepsPropIdx = objExpr.properties.findIndex(
+      (prop: any) =>
+        j.Property.check(prop) &&
+        ((j.Identifier.check(prop.key) && prop.key.name === 'maxSteps') ||
+          (j.StringLiteral.check(prop.key) && prop.key.value === 'maxSteps')),
+    );
+    if (maxStepsPropIdx === -1) return false;
+    const maxStepsProp = objExpr.properties[maxStepsPropIdx];
+    if (
+      !j.Property.check(maxStepsProp) ||
+      (!j.Literal.check(maxStepsProp.value) &&
+        !j.Identifier.check(maxStepsProp.value) &&
+        !j.BinaryExpression.check(maxStepsProp.value))
+    ) {
+      return false;
+    }
+    const stopWhenProp = j.property(
+      'init',
+      j.identifier('stopWhen'),
+      j.callExpression(j.identifier('stepCountIs'), [maxStepsProp.value]),
+    );
+    objExpr.properties.splice(maxStepsPropIdx, 1, stopWhenProp);
+    shouldAddStepCountIsImport = true;
+    context.hasChanges = true;
+    return true;
+  }
+
   root.find(j.CallExpression).forEach(callPath => {
     const callee = callPath.node.callee;
     let fnName: string | null = null;
@@ -32,48 +66,47 @@ export default createTransformer((fileInfo, api, options, context) => {
     }
     if (!fnName) return;
 
-    // TODO: Handle cases where the function is aliased or obj is defined elsewhere then passed in
+    // TODO: Handle cases where the function is aliased
     if (!['generateText', 'streamText'].includes(fnName)) return;
 
     const objArgIdx = callPath.node.arguments.findIndex(arg =>
       j.ObjectExpression.check(arg),
     );
-    if (objArgIdx !== 0) return;
-    const objArg = callPath.node.arguments[objArgIdx];
-    if (
-      !objArg ||
-      objArg.type !== 'ObjectExpression' ||
-      !Array.isArray(objArg.properties)
-    )
-      return;
-
-    const maxStepsPropIdx = objArg.properties.findIndex(
-      prop =>
-        j.Property.check(prop) &&
-        ((j.Identifier.check(prop.key) && prop.key.name === 'maxSteps') ||
-          (j.StringLiteral.check(prop.key) && prop.key.value === 'maxSteps')),
-    );
-
-    if (maxStepsPropIdx === -1) return;
-    const maxStepsProp = objArg.properties[maxStepsPropIdx];
-
-    if (
-      !j.Property.check(maxStepsProp) ||
-      (!j.Literal.check(maxStepsProp.value) &&
-        !j.Identifier.check(maxStepsProp.value) &&
-        !j.BinaryExpression.check(maxStepsProp.value))
-    ) {
+    if (objArgIdx === 0) {
+      const objArg = callPath.node.arguments[objArgIdx];
+      transformObjectExpression(objArg);
       return;
     }
 
-    const stopWhenProp = j.property(
-      'init',
-      j.identifier('stopWhen'),
-      j.callExpression(j.identifier('stepCountIs'), [maxStepsProp.value]),
-    );
-    objArg.properties.splice(maxStepsPropIdx, 1, stopWhenProp);
-    shouldAddStepCountIsImport = true;
-    context.hasChanges = true;
+    // If first argument is an identifier
+    const firstArg = callPath.node.arguments[0];
+    if (j.Identifier.check(firstArg)) {
+      const varName = firstArg.name;
+
+      let found = false;
+      root
+        .find(j.VariableDeclarator, { id: { name: varName } })
+        .forEach(varPath => {
+          if (found) return;
+
+          if (j.ObjectExpression.check(varPath.node.init)) {
+            if (transformObjectExpression(varPath.node.init)) {
+              found = true;
+            }
+          }
+        });
+      if (found) return;
+
+      root
+        .find(j.AssignmentExpression, {
+          left: { type: 'Identifier', name: varName },
+        })
+        .forEach(assignPath => {
+          if (j.ObjectExpression.check(assignPath.node.right)) {
+            transformObjectExpression(assignPath.node.right);
+          }
+        });
+    }
   });
 
   // Add stepCountIs to existing `ai` or create new import if needed

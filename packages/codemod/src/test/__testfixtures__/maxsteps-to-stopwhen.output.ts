@@ -29,6 +29,20 @@ async function foo() {
     stopWhen: stepCountIs(maxSteps + 5),
   });
 
+  const obj = {
+    model: 'gpt-4',
+    messages: [],
+    stopWhen: stepCountIs(maxSteps + 5),
+  }
+
+  await generateText(obj);
+
+  const obj2 = {
+    model: 'gpt-4',
+    messages: [],
+    maxSteps: maxSteps + 5,
+  }
+
   return result;
 }
 
