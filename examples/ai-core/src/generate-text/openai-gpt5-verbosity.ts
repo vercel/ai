@@ -13,8 +13,8 @@ async function main() {
     },
   });
 
-  console.log('Verbosity:', (result.request?.body as any)?.text?.verbosity);
   console.log('Response:', result.response?.body);
+  console.log('Request:', result.request?.body);
 }
 
 main().catch(console.error);
