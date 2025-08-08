@@ -1,4 +1,4 @@
-import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 
 /**
  * Calculates the cosine similarity between two vectors. This is a useful metric for

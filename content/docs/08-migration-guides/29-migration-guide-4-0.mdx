@@ -52,10 +52,22 @@ the following command from the root of your project:
 npx @ai-sdk/codemod upgrade
 ```
 
+To run only the v4 codemods:
+
+```sh
+npx @ai-sdk/codemod v4
+```
+
 Individual codemods can be run by specifying the name of the codemod:
 
 ```sh
 npx @ai-sdk/codemod <codemod-name> <path>
+```
+
+For example, to run a specific v4 codemod:
+
+```sh
+npx @ai-sdk/codemod v4/replace-baseurl src/
 ```
 
 See also the [table of codemods](#codemod-table). In addition, the latest set of
@@ -1070,76 +1082,76 @@ list is provided to give visibility into which migrations have some automation.
 It can also be helpful to find the codemod names if you'd like to run a subset
 of codemods. For more, see the [Codemods](#codemods) section.
 
-| Change                                                                                              | Codemod                                            |
-| --------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| **Provider Changes**                                                                                |                                                    |
-| Removed baseUrl option                                                                              | `replace-baseurl`                                  |
-| **Anthropic Provider**                                                                              |                                                    |
-| Removed Anthropic facade                                                                            | `remove-anthropic-facade`                          |
-| Removed topK setting                                                                                | _N/A_                                              |
-| **Google Generative AI Provider**                                                                   |                                                    |
-| Removed Google facade                                                                               | `remove-google-facade`                             |
-| Removed topK setting                                                                                | _N/A_                                              |
-| **Google Vertex Provider**                                                                          |                                                    |
-| Removed topK setting                                                                                | _N/A_                                              |
-| **Mistral Provider**                                                                                |                                                    |
-| Removed Mistral facade                                                                              | `remove-mistral-facade`                            |
-| **OpenAI Provider**                                                                                 |                                                    |
-| Removed OpenAI facade                                                                               | `remove-openai-facade`                             |
-| **LangChain Adapter**                                                                               |                                                    |
-| Removed toAIStream                                                                                  | `replace-langchain-toaistream`                     |
-| **AI SDK Core Changes**                                                                             |                                                    |
-| streamText returns immediately                                                                      | `remove-await-streamtext`                          |
-| streamObject returns immediately                                                                    | `remove-await-streamobject`                        |
-| Remove roundtrips                                                                                   | `replace-roundtrips-with-maxsteps`                 |
-| Removed nanoid export                                                                               | `replace-nanoid`                                   |
-| Increased default size of generated IDs                                                             | _N/A_                                              |
-| Removed ExperimentalMessage types                                                                   | `remove-experimental-message-types`                |
-| Removed ExperimentalTool type                                                                       | `remove-experimental-tool`                         |
-| Removed experimental AI function exports                                                            | `remove-experimental-ai-fn-exports`                |
-| Removed AI-stream related methods from streamText                                                   | `remove-ai-stream-methods-from-stream-text-result` |
-| Renamed "formatStreamPart" to "formatDataStreamPart"                                                | `rename-format-stream-part`                        |
-| Renamed "parseStreamPart" to "parseDataStreamPart"                                                  | `rename-parse-stream-part`                         |
-| Renamed TokenUsage, CompletionTokenUsage and EmbeddingTokenUsage types                              | `replace-token-usage-types`                        |
-| Removed deprecated telemetry data                                                                   | _N/A_                                              |
-| **Provider Registry**                                                                               |                                                    |
-| &rarr; Removed experimental_Provider, experimental_ProviderRegistry, and experimental_ModelRegistry | `remove-deprecated-provider-registry-exports`      |
-| &rarr; Removed experimental_createModelRegistry function                                            | _N/A_                                              |
-| Removed rawResponse from results                                                                    | _N/A_                                              |
-| Removed init option from pipeDataStreamToResponse and toDataStreamResponse                          | _N/A_                                              |
-| Removed responseMessages from generateText and streamText                                           | _N/A_                                              |
-| Removed experimental_continuationSteps option                                                       | `replace-continuation-steps`                       |
-| Removed LanguageModelResponseMetadataWithHeaders type                                               | `remove-metadata-with-headers`                     |
-| Changed streamText warnings result to Promise                                                       | _N/A_                                              |
-| Changed streamObject warnings result to Promise                                                     | _N/A_                                              |
-| Renamed simulateReadableStream values to chunks                                                     | _N/A_                                              |
-| **AI SDK RSC Changes**                                                                              |                                                    |
-| Removed render function                                                                             | _N/A_                                              |
-| **AI SDK UI Changes**                                                                               |                                                    |
-| Removed Svelte, Vue, and SolidJS exports                                                            | `rewrite-framework-imports`                        |
-| Removed experimental_StreamData                                                                     | `remove-experimental-streamdata`                   |
-| **useChat hook**                                                                                    |                                                    |
-| Removed streamMode setting                                                                          | _N/A_                                              |
-| Replaced roundtrip setting with maxSteps                                                            | `replace-roundtrips-with-maxsteps`                 |
-| Removed options setting                                                                             | _N/A_                                              |
-| Removed experimental_addToolResult method                                                           | _N/A_                                              |
-| Changed default value of keepLastMessageOnError to true and deprecated the option                   | _N/A_                                              |
-| **useCompletion hook**                                                                              |                                                    |
-| Removed streamMode setting                                                                          | _N/A_                                              |
-| **useAssistant hook**                                                                               |                                                    |
-| Removed experimental_useAssistant export                                                            | `remove-experimental-useassistant`                 |
-| Removed threadId and messageId from AssistantResponse                                               | _N/A_                                              |
-| Removed experimental_AssistantResponse export                                                       | _N/A_                                              |
-| **experimental_useObject hook**                                                                     |                                                    |
-| Removed setInput helper                                                                             | _N/A_                                              |
-| **AI SDK Errors**                                                                                   |                                                    |
-| Removed isXXXError static methods                                                                   | `remove-isxxxerror`                                |
-| Removed toJSON method                                                                               | _N/A_                                              |
-| **AI SDK 2.x Legacy Changes**                                                                       |                                                    |
-| Removed 2.x legacy providers                                                                        | _N/A_                                              |
-| Removed 2.x legacy function and tool calling                                                        | _N/A_                                              |
-| Removed 2.x prompt helpers                                                                          | _N/A_                                              |
-| Removed 2.x AIStream                                                                                | _N/A_                                              |
-| Removed 2.x StreamingTextResponse                                                                   | _N/A_                                              |
-| Removed 2.x streamToResponse                                                                        | _N/A_                                              |
-| Removed 2.x RSC Tokens streaming                                                                    | _N/A_                                              |
+| Change                                                                                              | Codemod                                               |
+| --------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| **Provider Changes**                                                                                |                                                       |
+| Removed baseUrl option                                                                              | `v4/replace-baseurl`                                  |
+| **Anthropic Provider**                                                                              |                                                       |
+| Removed Anthropic facade                                                                            | `v4/remove-anthropic-facade`                          |
+| Removed topK setting                                                                                | _N/A_                                                 |
+| **Google Generative AI Provider**                                                                   |                                                       |
+| Removed Google facade                                                                               | `v4/remove-google-facade`                             |
+| Removed topK setting                                                                                | _N/A_                                                 |
+| **Google Vertex Provider**                                                                          |                                                       |
+| Removed topK setting                                                                                | _N/A_                                                 |
+| **Mistral Provider**                                                                                |                                                       |
+| Removed Mistral facade                                                                              | `v4/remove-mistral-facade`                            |
+| **OpenAI Provider**                                                                                 |                                                       |
+| Removed OpenAI facade                                                                               | `v4/remove-openai-facade`                             |
+| **LangChain Adapter**                                                                               |                                                       |
+| Removed toAIStream                                                                                  | `v4/replace-langchain-toaistream`                     |
+| **AI SDK Core Changes**                                                                             |                                                       |
+| streamText returns immediately                                                                      | `v4/remove-await-streamtext`                          |
+| streamObject returns immediately                                                                    | `v4/remove-await-streamobject`                        |
+| Remove roundtrips                                                                                   | `v4/replace-roundtrips-with-maxsteps`                 |
+| Removed nanoid export                                                                               | `v4/replace-nanoid`                                   |
+| Increased default size of generated IDs                                                             | _N/A_                                                 |
+| Removed ExperimentalMessage types                                                                   | `v4/remove-experimental-message-types`                |
+| Removed ExperimentalTool type                                                                       | `v4/remove-experimental-tool`                         |
+| Removed experimental AI function exports                                                            | `v4/remove-experimental-ai-fn-exports`                |
+| Removed AI-stream related methods from streamText                                                   | `v4/remove-ai-stream-methods-from-stream-text-result` |
+| Renamed "formatStreamPart" to "formatDataStreamPart"                                                | `v4/rename-format-stream-part`                        |
+| Renamed "parseStreamPart" to "parseDataStreamPart"                                                  | `v4/rename-parse-stream-part`                         |
+| Renamed TokenUsage, CompletionTokenUsage and EmbeddingTokenUsage types                              | `v4/replace-token-usage-types`                        |
+| Removed deprecated telemetry data                                                                   | _N/A_                                                 |
+| **Provider Registry**                                                                               |                                                       |
+| &rarr; Removed experimental_Provider, experimental_ProviderRegistry, and experimental_ModelRegistry | `v4/remove-deprecated-provider-registry-exports`      |
+| &rarr; Removed experimental_createModelRegistry function                                            | _N/A_                                                 |
+| Removed rawResponse from results                                                                    | _N/A_                                                 |
+| Removed init option from pipeDataStreamToResponse and toDataStreamResponse                          | _N/A_                                                 |
+| Removed responseMessages from generateText and streamText                                           | _N/A_                                                 |
+| Removed experimental_continuationSteps option                                                       | `v4/replace-continuation-steps`                       |
+| Removed LanguageModelResponseMetadataWithHeaders type                                               | `v4/remove-metadata-with-headers`                     |
+| Changed streamText warnings result to Promise                                                       | _N/A_                                                 |
+| Changed streamObject warnings result to Promise                                                     | _N/A_                                                 |
+| Renamed simulateReadableStream values to chunks                                                     | _N/A_                                                 |
+| **AI SDK RSC Changes**                                                                              |                                                       |
+| Removed render function                                                                             | _N/A_                                                 |
+| **AI SDK UI Changes**                                                                               |                                                       |
+| Removed Svelte, Vue, and SolidJS exports                                                            | `v4/rewrite-framework-imports`                        |
+| Removed experimental_StreamData                                                                     | `v4/remove-experimental-streamdata`                   |
+| **useChat hook**                                                                                    |                                                       |
+| Removed streamMode setting                                                                          | _N/A_                                                 |
+| Replaced roundtrip setting with maxSteps                                                            | `v4/replace-roundtrips-with-maxsteps`                 |
+| Removed options setting                                                                             | _N/A_                                                 |
+| Removed experimental_addToolResult method                                                           | _N/A_                                                 |
+| Changed default value of keepLastMessageOnError to true and deprecated the option                   | _N/A_                                                 |
+| **useCompletion hook**                                                                              |                                                       |
+| Removed streamMode setting                                                                          | _N/A_                                                 |
+| **useAssistant hook**                                                                               |                                                       |
+| Removed experimental_useAssistant export                                                            | `v4/remove-experimental-useassistant`                 |
+| Removed threadId and messageId from AssistantResponse                                               | _N/A_                                                 |
+| Removed experimental_AssistantResponse export                                                       | _N/A_                                                 |
+| **experimental_useObject hook**                                                                     |                                                       |
+| Removed setInput helper                                                                             | _N/A_                                                 |
+| **AI SDK Errors**                                                                                   |                                                       |
+| Removed isXXXError static methods                                                                   | `v4/remove-isxxxerror`                                |
+| Removed toJSON method                                                                               | _N/A_                                                 |
+| **AI SDK 2.x Legacy Changes**                                                                       |                                                       |
+| Removed 2.x legacy providers                                                                        | _N/A_                                                 |
+| Removed 2.x legacy function and tool calling                                                        | _N/A_                                                 |
+| Removed 2.x prompt helpers                                                                          | _N/A_                                                 |
+| Removed 2.x AIStream                                                                                | _N/A_                                                 |
+| Removed 2.x StreamingTextResponse                                                                   | _N/A_                                                 |
+| Removed 2.x streamToResponse                                                                        | _N/A_                                                 |
+| Removed 2.x RSC Tokens streaming                                                                    | _N/A_                                                 |

@@ -5,7 +5,15 @@ description: API reference for the useChat hook.
 
 # `useChat()`
 
-Allows you to easily create a conversational user interface for your chatbot application. It enables the streaming of chat messages from your AI provider, manages the state for chat input, and updates the UI automatically as new messages are received.
+Allows you to easily create a conversational user interface for your chatbot application. It enables the streaming of chat messages from your AI provider, manages the chat state, and updates the UI automatically as new messages are received.
+
+<Note>
+  The `useChat` API has been significantly updated in AI SDK 5.0. It now uses a
+  transport-based architecture and no longer manages input state internally. See
+  the [migration
+  guide](/docs/migration-guides/migration-guide-5-0#usechat-changes) for
+  details.
+</Note>
 
 ## Import
 
@@ -21,7 +29,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     <Snippet text="import { Chat } from '@ai-sdk/svelte'" dark prompt={false} />
   </Tab>
   <Tab>
-    <Snippet text="import { useChat } from '@ai-sdk/vue'" dark prompt={false} />
+    <Snippet text="import { Chat } from '@ai-sdk/vue'" dark prompt={false} />
   </Tab>
 </Tabs>
 
@@ -32,169 +40,252 @@ Allows you to easily create a conversational user interface for your chatbot app
 <PropertiesTable
   content={[
     {
-      name: 'api',
-      type: "string = '/api/chat'",
+      name: 'chat',
+      type: 'Chat<UIMessage>',
       isOptional: true,
       description:
-        'The API endpoint that is called to generate chat responses. It can be a relative path (starting with `/`) or an absolute URL.',
+        'An existing Chat instance to use. If provided, other parameters are ignored.',
     },
     {
-      name: 'id',
-      type: 'string',
+      name: 'transport',
+      type: 'ChatTransport',
       isOptional: true,
       description:
-        'An unique identifier for the chat. If not provided, a random one will be generated. When provided, the `useChat` hook with the same `id` will have shared states across components. This is useful when you have multiple components showing the same chat stream.',
-    },
-    {
-      name: 'initialInput',
-      type: "string = ''",
-      isOptional: true,
-      description: 'An optional string for the initial prompt input.',
-    },
-    {
-      name: 'initialMessages',
-      type: 'Messages[] = []',
-      isOptional: true,
-      description: 'An optional array of initial chat messages',
-    },
-    {
-      name: 'onToolCall',
-      type: '({toolCall: ToolCall}) => void | unknown| Promise<unknown>',
-      isOptional: true,
-      description:
-        'Optional callback function that is invoked when a tool call is received. Intended for automatic client-side tool execution. You can optionally return a result for the tool call, either synchronously or asynchronously.',
-    },
-    {
-      name: 'onResponse',
-      type: '(response: Response) => void',
-      isOptional: true,
-      description:
-        'An optional callback that will be called with the response from the API endpoint. Useful for throwing customized errors or logging',
-    },
-    {
-      name: 'onFinish',
-      type: '(message: Message, options: OnFinishOptions) => void',
-      isOptional: true,
-      description:
-        'An optional callback function that is called when the completion stream ends.',
+        'The transport to use for sending messages. Defaults to DefaultChatTransport with `/api/chat` endpoint.',
       properties: [
         {
-          type: 'OnFinishOptions',
+          type: 'DefaultChatTransport',
           parameters: [
             {
-              name: 'usage',
-              type: 'CompletionTokenUsage',
-              description: 'The token usage for the completion.',
+              name: 'api',
+              type: "string = '/api/chat'",
+              isOptional: true,
+              description: 'The API endpoint for chat requests.',
+            },
+            {
+              name: 'credentials',
+              type: 'RequestCredentials',
+              isOptional: true,
+              description: 'The credentials mode for fetch requests.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string> | Headers',
+              isOptional: true,
+              description: 'HTTP headers to send with requests.',
+            },
+            {
+              name: 'body',
+              type: 'object',
+              isOptional: true,
+              description: 'Extra body object to send with requests.',
+            },
+            {
+              name: 'prepareSendMessagesRequest',
+              type: 'PrepareSendMessagesRequest',
+              isOptional: true,
+              description:
+                'A function to customize the request before chat API calls.',
               properties: [
                 {
-                  type: 'CompletionTokenUsage',
+                  type: 'PrepareSendMessagesRequest',
                   parameters: [
                     {
-                      name: 'promptTokens',
-                      type: 'number',
-                      description: 'The total number of tokens in the prompt.',
-                    },
-                    {
-                      name: 'completionTokens',
-                      type: 'number',
-                      description:
-                        'The total number of tokens in the completion.',
-                    },
-                    {
-                      name: 'totalTokens',
-                      type: 'number',
-                      description: 'The total number of tokens generated.',
+                      name: 'options',
+                      type: 'PrepareSendMessageRequestOptions',
+                      description: 'Options for preparing the request',
+                      properties: [
+                        {
+                          type: 'PrepareSendMessageRequestOptions',
+                          parameters: [
+                            {
+                              name: 'id',
+                              type: 'string',
+                              description: 'The chat ID',
+                            },
+                            {
+                              name: 'messages',
+                              type: 'UIMessage[]',
+                              description: 'Current messages in the chat',
+                            },
+                            {
+                              name: 'requestMetadata',
+                              type: 'unknown',
+                              description: 'The request metadata',
+                            },
+                            {
+                              name: 'body',
+                              type: 'Record<string, any> | undefined',
+                              description: 'The request body',
+                            },
+                            {
+                              name: 'credentials',
+                              type: 'RequestCredentials | undefined',
+                              description: 'The request credentials',
+                            },
+                            {
+                              name: 'headers',
+                              type: 'HeadersInit | undefined',
+                              description: 'The request headers',
+                            },
+                            {
+                              name: 'api',
+                              type: 'string',
+                              description: `The API endpoint to use for the request. If not specified, it defaults to the transport’s API endpoint: /api/chat.`,
+                            },
+                            {
+                              name: 'trigger',
+                              type: "'submit-message' | 'regenerate-message'",
+                              description: 'The trigger for the request',
+                            },
+                            {
+                              name: 'messageId',
+                              type: 'string | undefined',
+                              description: 'The message ID if applicable',
+                            },
+                          ],
+                        },
+                      ],
                     },
                   ],
                 },
               ],
             },
             {
-              name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
-              description: 'The reason why the generation ended.',
+              name: 'prepareReconnectToStreamRequest',
+              type: 'PrepareReconnectToStreamRequest',
+              isOptional: true,
+              description:
+                'A function to customize the request before reconnect API call.',
+              properties: [
+                {
+                  type: 'PrepareReconnectToStreamRequest',
+                  parameters: [
+                    {
+                      name: 'options',
+                      type: 'PrepareReconnectToStreamRequestOptions',
+                      description:
+                        'Options for preparing the reconnect request',
+                      properties: [
+                        {
+                          type: 'PrepareReconnectToStreamRequestOptions',
+                          parameters: [
+                            {
+                              name: 'id',
+                              type: 'string',
+                              description: 'The chat ID',
+                            },
+                            {
+                              name: 'requestMetadata',
+                              type: 'unknown',
+                              description: 'The request metadata',
+                            },
+                            {
+                              name: 'body',
+                              type: 'Record<string, any> | undefined',
+                              description: 'The request body',
+                            },
+                            {
+                              name: 'credentials',
+                              type: 'RequestCredentials | undefined',
+                              description: 'The request credentials',
+                            },
+                            {
+                              name: 'headers',
+                              type: 'HeadersInit | undefined',
+                              description: 'The request headers',
+                            },
+                            {
+                              name: 'api',
+                              type: 'string',
+                              description: `The API endpoint to use for the request. If not specified, it defaults to the transport’s API endpoint combined with the chat ID: /api/chat/{chatId}/stream.`,
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
       ],
     },
     {
+      name: 'id',
+      type: 'string',
+      isOptional: true,
+      description:
+        'A unique identifier for the chat. If not provided, a random one will be generated.',
+    },
+    {
+      name: 'messages',
+      type: 'UIMessage[]',
+      isOptional: true,
+      description: 'Initial chat messages to populate the conversation with.',
+    },
+    {
+      name: 'onToolCall',
+      type: '({toolCall: ToolCall}) => void | Promise<void>',
+      isOptional: true,
+      description:
+        'Optional callback function that is invoked when a tool call is received. You must call addToolResult to provide the tool result.',
+    },
+    {
+      name: 'sendAutomaticallyWhen',
+      type: '(options: { messages: UIMessage[] }) => boolean | PromiseLike<boolean>',
+      isOptional: true,
+      description:
+        'When provided, this function will be called when the stream is finished or a tool call is added to determine if the current messages should be resubmitted. You can use the lastAssistantMessageIsCompleteWithToolCalls helper for common scenarios.',
+    },
+    {
+      name: 'onFinish',
+      type: '(options: {message: UIMessage}) => void',
+      isOptional: true,
+      description:
+        'Optional callback function that is called when the assistant message has finished streaming completely.',
+    },
+    {
       name: 'onError',
       type: '(error: Error) => void',
       isOptional: true,
       description:
-        'A callback that will be called when the chat stream encounters an error. Optional.',
+        'Callback function to be called when an error is encountered.',
     },
     {
-      name: 'generateId',
-      type: '() => string',
-      isOptional: true,
-      description: 'A custom id generator for message ids and the chat id. Optional.',
-    },
-    {
-      name: 'headers',
-      type: 'Record<string, string> | Headers',
+      name: 'onData',
+      type: '(dataPart: DataUIPart) => void',
       isOptional: true,
       description:
-        'Additional headers to be passed to the API endpoint. Optional.',
-    },
-    {
-      name: 'body',
-      type: 'any',
-      isOptional: true,
-      description:
-        'Additional body object to be passed to the API endpoint. Optional.',
-    },
-    {
-      name: 'credentials',
-      type: "'omit' | 'same-origin' | 'include'",
-      isOptional: true,
-      description:
-        'An optional literal that sets the mode of credentials to be used on the request. Defaults to same-origin.',
-    },
-    {
-      name: 'maxSteps',
-      type: 'number',
-      isOptional: true,
-      description:
-        'Maximum number of backend calls to generate a response. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 1.',
-    },
-    {
-      name: 'streamProtocol',
-      type: "'text' | 'data'",
-      isOptional: true,
-      description:
-        'An optional literal that sets the type of stream to be used. Defaults to `data`. If set to `text`, the stream will be treated as a text stream.',
-    },
-    {
-      name: 'fetch',
-      type: 'FetchFunction',
-      isOptional: true,
-      description:
-        'Optional. A custom fetch function to be used for the API call. Defaults to the global fetch function.',
-    },
-    {
-      name: 'experimental_prepareRequestBody',
-      type: '(options: { messages: UIMessage[]; requestData?: JSONValue; requestBody?: object, chatId: string }) => unknown',
-      isOptional: true,
-      description:
-        'Experimental. When a function is provided, it will be used to prepare the request body for the chat API. This can be useful for customizing the request body based on the messages and data in the chat.',
+        'Optional callback function that is called when a data part is received.',
     },
     {
       name: 'experimental_throttle',
       type: 'number',
       isOptional: true,
       description:
-        'React only. Custom throttle wait time in milliseconds for the message and data updates. When specified, updates will be throttled using this interval. Defaults to undefined (no throttling).',
+        'Custom throttle wait in ms for the chat messages and data updates. Default is undefined, which disables throttling.',
     },
-
-]}
+    {
+      name: 'resume',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether to resume an ongoing chat generation stream. Defaults to false.',
+    },
+  ]}
 />
 
 ### Returns
 
 <PropertiesTable
   content={[
+    {
+      name: 'id',
+      type: 'string',
+      description: 'The id of the chat.',
+    },
     {
       name: 'messages',
       type: 'UIMessage[]',
@@ -206,492 +297,24 @@ Allows you to easily create a conversational user interface for your chatbot app
             {
               name: 'id',
               type: 'string',
-              description: 'The unique identifier of the message.',
+              description: 'A unique identifier for the message.',
             },
             {
               name: 'role',
-              type: "'system' | 'user' | 'assistant' | 'data'",
+              type: "'system' | 'user' | 'assistant'",
               description: 'The role of the message.',
             },
             {
-              name: 'createdAt',
-              type: 'Date',
-              isOptional: true,
-              description: 'The creation date of the message.',
-            },
-            {
-              name: 'content',
-              type: 'string',
-              description: 'The content of the message.',
-            },
-            {
-              name: 'annotations',
-              type: 'Array<JSONValue>',
-              isOptional: true,
-              description:
-                'Additional annotations sent along with the message.',
-            },
-            {
               name: 'parts',
-              type: 'Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | StepStartUIPart>',
+              type: 'UIMessagePart[]',
               description:
-                'An array of message parts that are associated with the message.',
-              properties: [
-                {
-                  type: 'TextUIPart',
-                  description: 'A text part of the message.',
-                  parameters: [
-                    {
-                      name: 'type',
-                      type: '"text"',
-                    },
-                    {
-                      name: 'text',
-                      type: 'string',
-                      description: 'The text content of the part.',
-                    },
-                  ],
-                },
-                {
-                  type: 'ReasoningUIPart',
-                  description: 'A reasoning part of the message.',
-                  parameters: [
-                    {
-                      name: 'type',
-                      type: '"reasoning"',
-                    },
-                    {
-                      name: 'reasoning',
-                      type: 'string',
-                      description: 'The reasoning content of the part.',
-                    },
-                  ],
-                },
-                {
-                  type: 'ToolInvocationUIPart',
-                  description: 'A tool invocation part of the message.',
-                  parameters: [
-                    {
-                      name: 'type',
-                      type: '"tool-invocation"',
-                    },
-                    {
-                      name: 'toolInvocation',
-                      type: 'ToolInvocation',
-                      properties: [
-                        {
-                          type: 'ToolInvocation',
-                          parameters: [
-                            {
-                              name: 'state',
-                              type: "'partial-call'",
-                              description:
-                                'The state of the tool call when it was partially created.',
-                            },
-                            {
-                              name: 'toolCallId',
-                              type: 'string',
-                              description:
-                                'ID of the tool call. This ID is used to match the tool call with the tool result.',
-                            },
-                            {
-                              name: 'toolName',
-                              type: 'string',
-                              description:
-                                'Name of the tool that is being called.',
-                            },
-                            {
-                              name: 'args',
-                              type: 'any',
-                              description:
-                                'Partial arguments of the tool call. This is a JSON-serializable object.',
-                            },
-                          ],
-                        },
-                        {
-                          type: 'ToolInvocation',
-                          parameters: [
-                            {
-                              name: 'state',
-                              type: "'call'",
-                              description:
-                                'The state of the tool call when it was fully created.',
-                            },
-                            {
-                              name: 'toolCallId',
-                              type: 'string',
-                              description:
-                                'ID of the tool call. This ID is used to match the tool call with the tool result.',
-                            },
-                            {
-                              name: 'toolName',
-                              type: 'string',
-                              description:
-                                'Name of the tool that is being called.',
-                            },
-                            {
-                              name: 'args',
-                              type: 'any',
-                              description:
-                                'Arguments of the tool call. This is a JSON-serializable object that matches the tools input schema.',
-                            },
-                          ],
-                        },
-                        {
-                          type: 'ToolInvocation',
-                          parameters: [
-                            {
-                              name: 'state',
-                              type: "'result'",
-                              description:
-                                'The state of the tool call when the result is available.',
-                            },
-                            {
-                              name: 'toolCallId',
-                              type: 'string',
-                              description:
-                                'ID of the tool call. This ID is used to match the tool call with the tool result.',
-                            },
-                            {
-                              name: 'toolName',
-                              type: 'string',
-                              description:
-                                'Name of the tool that is being called.',
-                            },
-                            {
-                              name: 'args',
-                              type: 'any',
-                              description:
-                                'Arguments of the tool call. This is a JSON-serializable object that matches the tools input schema.',
-                            },
-                            {
-                              name: 'result',
-                              type: 'any',
-                              description: 'The result of the tool call.',
-                            },
-                          ],
-                        },
-                      ],
-                    },
-                  ],
-                },
-                {
-                  type: 'SourceUIPart',
-                  description: 'A source part of the message.',
-                  parameters: [
-                    {
-                      name: 'type',
-                      type: '"source"',
-                    },
-                    {
-                      name: 'source',
-                      type: 'Source',
-                      properties: [
-                        {
-                          type: 'Source',
-                          parameters: [
-                            {
-                              name: 'sourceType',
-                              type: "'url'",
-                              description: 'The type of the source.',
-                            },
-                            {
-                              name: 'id',
-                              type: 'string',
-                              description: 'ID of the source.',
-                            },
-                            {
-                              name: 'url',
-                              type: 'string',
-                              description: 'URL of the source.',
-                            },
-                            {
-                              name: 'title',
-                              type: 'string',
-                              isOptional: true,
-                              description: 'The title of the source.',
-                            },
-                          ],
-                        },
-                      ],
-                    },
-                  ],
-                },
-                {
-                  type: 'StepStartUIPart',
-                  description: 'A step start part of the message.',
-                  parameters: [
-                    {
-                      name: 'type',
-                      type: '"step-start"',
-                    },
-                  ],
-                },
-              ],
+                'The parts of the message. Use this for rendering the message in the UI.',
             },
             {
-              name: 'experimental_attachments',
-              type: 'Array<Attachment>',
+              name: 'metadata',
+              type: 'unknown',
               isOptional: true,
-              description:
-                'Additional attachments sent along with the message.',
-              properties: [
-                {
-                  type: 'Attachment',
-                  description:
-                    'An attachment object that can be used to describe the metadata of the file.',
-                  parameters: [
-                    {
-                      name: 'name',
-                      type: 'string',
-                      isOptional: true,
-                      description:
-                        'The name of the attachment, usually the file name.',
-                    },
-                    {
-                      name: 'contentType',
-                      type: 'string',
-                      isOptional: true,
-                      description:
-                        'A string indicating the media type of the file.',
-                    },
-                    {
-                      name: 'url',
-                      type: 'string',
-                      description:
-                        'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      name: 'error',
-      type: 'Error | undefined',
-      description: 'An error object returned by SWR, if any.',
-    },
-    {
-      name: 'append',
-      type: '(message: Message | CreateMessage, options?: ChatRequestOptions) => Promise<string | undefined>',
-      description:
-        'Function to append a message to the chat, triggering an API call for the AI response. It returns a promise that resolves to full response message content when the API call is successfully finished, or throws an error when the API call fails.',
-      properties: [
-        {
-          type: 'ChatRequestOptions',
-          parameters: [
-            {
-              name: 'headers',
-              type: 'Record<string, string> | Headers',
-              description:
-                'Additional headers that should be to be passed to the API endpoint.',
-            },
-            {
-              name: 'body',
-              type: 'object',
-              description:
-                'Additional body JSON properties that should be sent to the API endpoint.',
-            },
-            {
-              name: 'data',
-              type: 'JSONValue',
-              description: 'Additional data to be sent to the API endpoint.',
-            },
-            {
-              name: 'experimental_attachments',
-              type: 'FileList | Array<Attachment>',
-              isOptional: true,
-              description:
-                'An array of attachments to be sent to the API endpoint.',
-              properties: [
-                {
-                  type: 'FileList',
-                  parameters: [
-                    {
-                      name: '',
-                      type: '',
-                      description:
-                        "A list of files that have been selected by the user using an <input type='file'> element. It's also used for a list of files dropped into web content when using the drag and drop API.",
-                    },
-                  ],
-                },
-                {
-                  type: 'Attachment',
-                  description:
-                    'An attachment object that can be used to describe the metadata of the file.',
-                  parameters: [
-                    {
-                      name: 'name',
-                      type: 'string',
-                      isOptional: true,
-                      description:
-                        'The name of the attachment, usually the file name.',
-                    },
-                    {
-                      name: 'contentType',
-                      type: 'string',
-                      isOptional: true,
-                      description:
-                        'A string indicating the media type of the file.',
-                    },
-                    {
-                      name: 'url',
-                      type: 'string',
-                      description:
-                        'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      name: 'reload',
-      type: '(options?: ChatRequestOptions) => Promise<string | undefined>',
-      description:
-        "Function to reload the last AI chat response for the given chat history. If the last message isn't from the assistant, it will request the API to generate a new response.",
-      properties: [
-        {
-          type: 'ChatRequestOptions',
-          parameters: [
-            {
-              name: 'headers',
-              type: 'Record<string, string> | Headers',
-              description:
-                'Additional headers that should be to be passed to the API endpoint.',
-            },
-            {
-              name: 'body',
-              type: 'object',
-              description:
-                'Additional body JSON properties that should be sent to the API endpoint.',
-            },
-            {
-              name: 'data',
-              type: 'JSONValue',
-              description: 'Additional data to be sent to the API endpoint.',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      name: 'stop',
-      type: '() => void',
-      description: 'Function to abort the current API request.',
-    },
-    {
-      name: 'experimental_resume',
-      type: '() => void',
-      description: 'Function to resume an ongoing chat generation stream.',
-    },
-    {
-      name: 'setMessages',
-      type: '(messages: Message[] | ((messages: Message[]) => Message[]) => void',
-      description:
-        'Function to update the `messages` state locally without triggering an API call.',
-    },
-    {
-      name: 'input',
-      type: 'string',
-      description: 'The current value of the input field.',
-    },
-    {
-      name: 'setInput',
-      type: 'React.Dispatch<React.SetStateAction<string>>',
-      description: 'Function to update the `input` value.',
-    },
-    {
-      name: 'handleInputChange',
-      type: '(event: any) => void',
-      description:
-        "Handler for the `onChange` event of the input field to control the input's value.",
-    },
-    {
-      name: 'handleSubmit',
-      type: '(event?: { preventDefault?: () => void }, options?: ChatRequestOptions) => void',
-      description:
-        'Form submission handler that automatically resets the input field and appends a user message. You can use the `options` parameter to send additional data, headers and more to the server.',
-      properties: [
-        {
-          type: 'ChatRequestOptions',
-          parameters: [
-            {
-              name: 'headers',
-              type: 'Record<string, string> | Headers',
-              description:
-                'Additional headers that should be to be passed to the API endpoint.',
-            },
-            {
-              name: 'body',
-              type: 'object',
-              description:
-                'Additional body JSON properties that should be sent to the API endpoint.',
-            },
-            {
-              name: 'data',
-              type: 'JSONValue',
-              description: 'Additional data to be sent to the API endpoint.',
-            },
-            {
-              name: 'allowEmptySubmit',
-              type: 'boolean',
-              isOptional: true,
-              description:
-                'A boolean that determines whether to allow submitting an empty input that triggers a generation. Defaults to `false`.',
-            },
-            {
-              name: 'experimental_attachments',
-              type: 'FileList | Array<Attachment>',
-              isOptional: true,
-              description:
-                'An array of attachments to be sent to the API endpoint.',
-              properties: [
-                {
-                  type: 'FileList',
-                  parameters: [
-                    {
-                      name: '',
-                      type: '',
-                      description:
-                        "A list of files that have been selected by the user using an <input type='file'> element. It's also used for a list of files dropped into web content when using the drag and drop API.",
-                    },
-                  ],
-                },
-                {
-                  type: 'Attachment',
-                  description:
-                    'An attachment object that can be used to describe the metadata of the file.',
-                  parameters: [
-                    {
-                      name: 'name',
-                      type: 'string',
-                      isOptional: true,
-                      description:
-                        'The name of the attachment, usually the file name.',
-                    },
-                    {
-                      name: 'contentType',
-                      type: 'string',
-                      isOptional: true,
-                      description:
-                        'A string indicating the media type of the file.',
-                    },
-                    {
-                      name: 'url',
-                      type: 'string',
-                      description:
-                        'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
-                    },
-                  ],
-                },
-              ],
+              description: 'The metadata of the message.',
             },
           ],
         },
@@ -699,31 +322,79 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'status',
-      type: '"submitted" | "streaming" | "ready" | "error"',
+      type: "'submitted' | 'streaming' | 'ready' | 'error'",
       description:
-        'Status of the chat request: submitted (message sent to API), streaming (receiving response chunks), ready (response complete), or error (request failed).',
+        'The current status of the chat: "ready" (idle), "submitted" (request sent), "streaming" (receiving response), or "error" (request failed).',
     },
     {
-      name: 'id',
-      type: 'string',
-      description: 'The unique identifier of the chat.',
+      name: 'error',
+      type: 'Error | undefined',
+      description: 'The error object if an error occurred.',
     },
     {
-      name: 'data',
-      type: 'JSONValue[]',
-      description: 'Data returned from StreamData.',
-    },
-    {
-      name: 'setData',
-      type: '(data: JSONValue[] | undefined | ((data: JSONValue[] | undefined) => JSONValue[] | undefined)) => void',
+      name: 'sendMessage',
+      type: '(message: CreateUIMessage | string, options?: ChatRequestOptions) => void',
       description:
-        'Function to update the `data` state which contains data from StreamData.',
+        'Function to send a new message to the chat. This will trigger an API call to generate the assistant response.',
+      properties: [
+        {
+          type: 'ChatRequestOptions',
+          parameters: [
+            {
+              name: 'headers',
+              type: 'Record<string, string> | Headers',
+              description:
+                'Additional headers that should be to be passed to the API endpoint.',
+            },
+            {
+              name: 'body',
+              type: 'object',
+              description:
+                'Additional body JSON properties that should be sent to the API endpoint.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              description: 'Additional data to be sent to the API endpoint.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'regenerate',
+      type: '(options?: { messageId?: string }) => void',
+      description:
+        'Function to regenerate the last assistant message or a specific message. If no messageId is provided, regenerates the last assistant message.',
+    },
+    {
+      name: 'stop',
+      type: '() => void',
+      description:
+        'Function to abort the current streaming response from the assistant.',
+    },
+    {
+      name: 'clearError',
+      type: '() => void',
+      description: 'Clears the error state.',
+    },
+    {
+      name: 'resumeStream',
+      type: '() => void',
+      description:
+        'Function to resume an interrupted streaming response. Useful when a network error occurs during streaming.',
     },
     {
       name: 'addToolResult',
-      type: '({toolCallId: string; result: any;}) => void',
+      type: '(options: { tool: string; toolCallId: string; output: unknown }) => void',
       description:
-        'Function to add a tool result to the chat. This will update the chat messages with the tool result and call the API route if all tool results for the last message are available.',
+        'Function to add a tool result to the chat. This will update the chat messages with the tool result. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
+    },
+    {
+      name: 'setMessages',
+      type: '(messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[])) => void',
+      description:
+        'Function to update the messages state locally without triggering an API call. Useful for optimistic updates.',
     },
   ]}
 />
@@ -732,3 +403,4 @@ Allows you to easily create a conversational user interface for your chatbot app
 
 - [Chatbot](/docs/ai-sdk-ui/chatbot)
 - [Chatbot with Tools](/docs/ai-sdk-ui/chatbot-with-tool-calling)
+- [UIMessage](/docs/reference/ai-sdk-core/ui-message)

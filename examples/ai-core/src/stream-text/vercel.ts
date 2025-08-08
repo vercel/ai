@@ -4,14 +4,10 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: vercel('v0-1.0-md'),
-    prompt: 'Invent a new holiday and describe its traditions.',
-    onError: error => {
-      console.error(error);
-    },
+    model: vercel('v0-1.5-md'),
+    prompt: 'Implement Fibonacci in Lua.',
   });
 
-  console.log(result);
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }

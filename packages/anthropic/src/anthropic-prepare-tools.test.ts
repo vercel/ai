@@ -1,105 +1,106 @@
 import { prepareTools } from './anthropic-prepare-tools';
 
-it('should return undefined tools and tool_choice when tools are null', () => {
-  const result = prepareTools({ tools: undefined });
-  expect(result).toEqual({
-    tools: undefined,
-    tool_choice: undefined,
-    toolWarnings: [],
-    betas: new Set(),
+describe('prepareTools', () => {
+  it('should return undefined tools and tool_choice when tools are null', () => {
+    const result = prepareTools({ tools: undefined });
+    expect(result).toEqual({
+      tools: undefined,
+      tool_choice: undefined,
+      toolWarnings: [],
+      betas: new Set(),
+    });
   });
-});
 
-it('should return undefined tools and tool_choice when tools are empty', () => {
-  const result = prepareTools({ tools: [] });
-  expect(result).toEqual({
-    tools: undefined,
-    tool_choice: undefined,
-    toolWarnings: [],
-    betas: new Set(),
+  it('should return undefined tools and tool_choice when tools are empty', () => {
+    const result = prepareTools({ tools: [] });
+    expect(result).toEqual({
+      tools: undefined,
+      tool_choice: undefined,
+      toolWarnings: [],
+      betas: new Set(),
+    });
   });
-});
 
-it('should correctly prepare function tools', () => {
-  const result = prepareTools({
-    tools: [
+  it('should correctly prepare function tools', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'A test function',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+    });
+    expect(result.tools).toEqual([
       {
-        type: 'function',
         name: 'testFunction',
         description: 'A test function',
-        inputSchema: { type: 'object', properties: {} },
+        input_schema: { type: 'object', properties: {} },
       },
-    ],
+    ]);
+    expect(result.toolChoice).toBeUndefined();
+    expect(result.toolWarnings).toEqual([]);
   });
-  expect(result.tools).toEqual([
-    {
-      name: 'testFunction',
-      description: 'A test function',
-      input_schema: { type: 'object', properties: {} },
-    },
-  ]);
-  expect(result.toolChoice).toBeUndefined();
-  expect(result.toolWarnings).toEqual([]);
-});
 
-it('should correctly prepare provider-defined tools', () => {
-  const result = prepareTools({
-    tools: [
+  it('should correctly prepare provider-defined tools', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'anthropic.computer_20241022',
+          name: 'computer',
+          args: { displayWidthPx: 800, displayHeightPx: 600, displayNumber: 1 },
+        },
+        {
+          type: 'provider-defined',
+          id: 'anthropic.text_editor_20241022',
+          name: 'text_editor',
+          args: {},
+        },
+        {
+          type: 'provider-defined',
+          id: 'anthropic.bash_20241022',
+          name: 'bash',
+          args: {},
+        },
+      ],
+    });
+    expect(result.tools).toEqual([
       {
-        type: 'provider-defined',
-        id: 'anthropic.computer_20241022',
         name: 'computer',
-        args: { displayWidthPx: 800, displayHeightPx: 600, displayNumber: 1 },
+        type: 'computer_20241022',
+        display_width_px: 800,
+        display_height_px: 600,
+        display_number: 1,
       },
       {
-        type: 'provider-defined',
-        id: 'anthropic.text_editor_20241022',
-        name: 'text_editor',
-        args: {},
+        name: 'str_replace_editor',
+        type: 'text_editor_20241022',
       },
       {
-        type: 'provider-defined',
-        id: 'anthropic.bash_20241022',
         name: 'bash',
-        args: {},
+        type: 'bash_20241022',
       },
-    ],
+    ]);
+    expect(result.toolChoice).toBeUndefined();
+    expect(result.toolWarnings).toEqual([]);
   });
-  expect(result.tools).toEqual([
-    {
-      name: 'computer',
-      type: 'computer_20241022',
-      display_width_px: 800,
-      display_height_px: 600,
-      display_number: 1,
-    },
-    {
-      name: 'str_replace_editor',
-      type: 'text_editor_20241022',
-    },
-    {
-      name: 'bash',
-      type: 'bash_20241022',
-    },
-  ]);
-  expect(result.toolChoice).toBeUndefined();
-  expect(result.toolWarnings).toEqual([]);
-});
 
-it('should add warnings for unsupported tools', () => {
-  const result = prepareTools({
-    tools: [
-      {
-        type: 'provider-defined',
-        id: 'unsupported.tool',
-        name: 'unsupported_tool',
-        args: {},
-      },
-    ],
-  });
-  expect(result.tools).toEqual([]);
-  expect(result.toolChoice).toBeUndefined();
-  expect(result.toolWarnings).toMatchInlineSnapshot(`
+  it('should add warnings for unsupported tools', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'unsupported.tool',
+          name: 'unsupported_tool',
+          args: {},
+        },
+      ],
+    });
+    expect(result.tools).toEqual([]);
+    expect(result.toolChoice).toBeUndefined();
+    expect(result.toolWarnings).toMatchInlineSnapshot(`
     [
       {
         "tool": {
@@ -112,65 +113,97 @@ it('should add warnings for unsupported tools', () => {
       },
     ]
   `);
-});
-
-it('should handle tool choice "auto"', () => {
-  const result = prepareTools({
-    tools: [
-      {
-        type: 'function',
-        name: 'testFunction',
-        description: 'Test',
-        inputSchema: {},
-      },
-    ],
-    toolChoice: { type: 'auto' },
   });
-  expect(result.toolChoice).toEqual({ type: 'auto' });
-});
 
-it('should handle tool choice "required"', () => {
-  const result = prepareTools({
-    tools: [
-      {
-        type: 'function',
-        name: 'testFunction',
-        description: 'Test',
-        inputSchema: {},
-      },
-    ],
-    toolChoice: { type: 'required' },
+  it('should handle tool choice "auto"', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'Test',
+          inputSchema: {},
+        },
+      ],
+      toolChoice: { type: 'auto' },
+    });
+    expect(result.toolChoice).toEqual({ type: 'auto' });
   });
-  expect(result.toolChoice).toEqual({ type: 'any' });
-});
 
-it('should handle tool choice "none"', () => {
-  const result = prepareTools({
-    tools: [
-      {
-        type: 'function',
-        name: 'testFunction',
-        description: 'Test',
-        inputSchema: {},
-      },
-    ],
-    toolChoice: { type: 'none' },
+  it('should handle tool choice "required"', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'Test',
+          inputSchema: {},
+        },
+      ],
+      toolChoice: { type: 'required' },
+    });
+    expect(result.toolChoice).toEqual({ type: 'any' });
   });
-  expect(result.tools).toBeUndefined();
-  expect(result.toolChoice).toBeUndefined();
-});
 
-it('should handle tool choice "tool"', () => {
-  const result = prepareTools({
-    tools: [
-      {
-        type: 'function',
-        name: 'testFunction',
-        description: 'Test',
-        inputSchema: {},
-      },
-    ],
-    toolChoice: { type: 'tool', toolName: 'testFunction' },
+  it('should handle tool choice "none"', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'Test',
+          inputSchema: {},
+        },
+      ],
+      toolChoice: { type: 'none' },
+    });
+    expect(result.tools).toBeUndefined();
+    expect(result.toolChoice).toBeUndefined();
   });
-  expect(result.toolChoice).toEqual({ type: 'tool', name: 'testFunction' });
+
+  it('should handle tool choice "tool"', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'Test',
+          inputSchema: {},
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'testFunction' },
+    });
+    expect(result.toolChoice).toEqual({ type: 'tool', name: 'testFunction' });
+  });
+
+  it('should set cache control', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'Test',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result.tools).toMatchInlineSnapshot(`
+      [
+        {
+          "cache_control": {
+            "type": "ephemeral",
+          },
+          "description": "Test",
+          "input_schema": {},
+          "name": "testFunction",
+        },
+      ]
+    `);
+  });
 });

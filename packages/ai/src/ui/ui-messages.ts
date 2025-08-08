@@ -1,4 +1,11 @@
-import { InferToolInput, InferToolOutput, Tool } from '@ai-sdk/provider-utils';
+import {
+  InferToolInput,
+  InferToolOutput,
+  Tool,
+  ToolCall,
+} from '@ai-sdk/provider-utils';
+import { ToolSet } from '../generate-text';
+import { ProviderMetadata } from '../types/provider-metadata';
 import { DeepPartial } from '../util/deep-partial';
 import { ValueOf } from '../util/value-of';
 
@@ -12,9 +19,19 @@ export type UITool = {
   output: unknown | undefined;
 };
 
+/**
+ * Infer the input and output types of a tool so it can be used as a UI tool.
+ */
 export type InferUITool<TOOL extends Tool> = {
   input: InferToolInput<TOOL>;
   output: InferToolOutput<TOOL>;
+};
+
+/**
+ * Infer the input and output types of a tool set so it can be used as a UI tool set.
+ */
+export type InferUITools<TOOLS extends ToolSet> = {
+  [NAME in keyof TOOLS & string]: InferUITool<TOOLS[NAME]>;
 };
 
 export type UITools = Record<string, UITool>;
@@ -62,6 +79,7 @@ export type UIMessagePart<
   | TextUIPart
   | ReasoningUIPart
   | ToolUIPart<TOOLS>
+  | DynamicToolUIPart
   | SourceUrlUIPart
   | SourceDocumentUIPart
   | FileUIPart
@@ -83,6 +101,11 @@ export type TextUIPart = {
    * The state of the text part.
    */
   state?: 'streaming' | 'done';
+
+  /**
+   * The provider metadata.
+   */
+  providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -104,7 +127,7 @@ export type ReasoningUIPart = {
   /**
    * The provider metadata.
    */
-  providerMetadata?: Record<string, any>;
+  providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -115,7 +138,7 @@ export type SourceUrlUIPart = {
   sourceId: string;
   url: string;
   title?: string;
-  providerMetadata?: Record<string, any>;
+  providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -127,7 +150,7 @@ export type SourceDocumentUIPart = {
   mediaType: string;
   title: string;
   filename?: string;
-  providerMetadata?: Record<string, any>;
+  providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -153,6 +176,11 @@ export type FileUIPart = {
    * It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
    */
   url: string;
+
+  /**
+   * The provider metadata.
+   */
+  providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -177,28 +205,72 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
   } & (
     | {
         state: 'input-streaming';
-        input: DeepPartial<TOOLS[NAME]['input']>;
+        input: DeepPartial<TOOLS[NAME]['input']> | undefined;
         providerExecuted?: boolean;
+        output?: never;
+        errorText?: never;
       }
     | {
         state: 'input-available';
         input: TOOLS[NAME]['input'];
         providerExecuted?: boolean;
+        output?: never;
+        errorText?: never;
+        callProviderMetadata?: ProviderMetadata;
       }
     | {
         state: 'output-available';
         input: TOOLS[NAME]['input'];
         output: TOOLS[NAME]['output'];
+        errorText?: never;
         providerExecuted?: boolean;
+        callProviderMetadata?: ProviderMetadata;
       }
     | {
-        state: 'output-error';
-        input: TOOLS[NAME]['input'];
+        state: 'output-error'; // TODO AI SDK 6: change to 'error' state
+        input: TOOLS[NAME]['input'] | undefined;
+        rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
+        output?: never;
         errorText: string;
         providerExecuted?: boolean;
+        callProviderMetadata?: ProviderMetadata;
       }
   );
 }>;
+
+export type DynamicToolUIPart = {
+  type: 'dynamic-tool';
+  toolName: string;
+  toolCallId: string;
+} & (
+  | {
+      state: 'input-streaming';
+      input: unknown | undefined;
+      output?: never;
+      errorText?: never;
+    }
+  | {
+      state: 'input-available';
+      input: unknown;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+    }
+  | {
+      state: 'output-available';
+      input: unknown;
+      output: unknown;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+    }
+  | {
+      state: 'output-error'; // TODO AI SDK 6: change to 'error' state
+      input: unknown;
+      output?: never;
+      errorText: string;
+      callProviderMetadata?: ProviderMetadata;
+    }
+);
 
 export function isToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
@@ -209,7 +281,7 @@ export function isToolUIPart<TOOLS extends UITools>(
 export function getToolName<TOOLS extends UITools>(
   part: ToolUIPart<TOOLS>,
 ): keyof TOOLS {
-  return part.type.split('-')[1] as keyof TOOLS;
+  return part.type.split('-').slice(1).join('-') as keyof TOOLS;
 }
 
 export type InferUIMessageMetadata<T extends UIMessage> =
@@ -220,3 +292,17 @@ export type InferUIMessageData<T extends UIMessage> =
 
 export type InferUIMessageTools<T extends UIMessage> =
   T extends UIMessage<unknown, UIDataTypes, infer TOOLS> ? TOOLS : UITools;
+
+export type InferUIMessageToolOutputs<UI_MESSAGE extends UIMessage> =
+  InferUIMessageTools<UI_MESSAGE>[keyof InferUIMessageTools<UI_MESSAGE>]['output'];
+
+export type InferUIMessageToolCall<UI_MESSAGE extends UIMessage> =
+  | ValueOf<{
+      [NAME in keyof InferUIMessageTools<UI_MESSAGE>]: ToolCall<
+        NAME & string,
+        InferUIMessageTools<UI_MESSAGE>[NAME] extends { input: infer INPUT }
+          ? INPUT
+          : never
+      > & { dynamic?: false };
+    }>
+  | (ToolCall<string, unknown> & { dynamic: true });

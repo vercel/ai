@@ -1,6 +1,7 @@
 import type {
   LanguageModelV2,
   LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
   LanguageModelV2FilePart,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
@@ -38,11 +39,23 @@ export class GatewayLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
+  private async getArgs(options: Parameters<LanguageModelV2['doGenerate']>[0]) {
+    const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
+
+    return {
+      args: this.maybeEncodeFileParts(optionsWithoutSignal),
+      warnings: [],
+    };
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { abortSignal, ...body } = options;
+    const { args, warnings } = await this.getArgs(options);
+    const { abortSignal } = options;
+
     const resolvedHeaders = await resolve(this.config.headers());
+
     try {
       const {
         responseHeaders,
@@ -56,7 +69,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
           this.getModelConfigHeaders(this.modelId, false),
           await resolve(this.config.o11yHeaders),
         ),
-        body: this.maybeEncodeFileParts(body),
+        body: args,
         successfulResponseHandler: createJsonResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
@@ -68,9 +81,9 @@ export class GatewayLanguageModel implements LanguageModelV2 {
 
       return {
         ...responseBody,
-        request: { body },
+        request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
-        warnings: [],
+        warnings,
       };
     } catch (error) {
       throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
@@ -80,8 +93,11 @@ export class GatewayLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { abortSignal, ...body } = options;
+    const { args, warnings } = await this.getArgs(options);
+    const { abortSignal } = options;
+
     const resolvedHeaders = await resolve(this.config.headers());
+
     try {
       const { value: response, responseHeaders } = await postJsonToApi({
         url: this.getUrl(),
@@ -91,7 +107,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
           this.getModelConfigHeaders(this.modelId, true),
           await resolve(this.config.o11yHeaders),
         ),
-        body: this.maybeEncodeFileParts(body),
+        body: args,
         successfulResponseHandler: createEventSourceResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
@@ -107,6 +123,11 @@ export class GatewayLanguageModel implements LanguageModelV2 {
             ParseResult<LanguageModelV2StreamPart>,
             LanguageModelV2StreamPart
           >({
+            start(controller) {
+              if (warnings.length > 0) {
+                controller.enqueue({ type: 'stream-start', warnings });
+              }
+            },
             transform(chunk, controller) {
               if (chunk.success) {
                 const streamPart = chunk.value;
@@ -134,7 +155,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
             },
           }),
         ),
-        request: { body },
+        request: { body: args },
         response: { headers: responseHeaders },
       };
     } catch (error) {
@@ -149,18 +170,18 @@ export class GatewayLanguageModel implements LanguageModelV2 {
   }
 
   /**
-   * Encodes image parts in the prompt to base64. Mutates the passed options
-   * instance directly to avoid copying the image data.
+   * Encodes file parts in the prompt to base64. Mutates the passed options
+   * instance directly to avoid copying the file data.
    * @param options - The options to encode.
-   * @returns The options with the image parts encoded.
+   * @returns The options with the file parts encoded.
    */
   private maybeEncodeFileParts(options: LanguageModelV2CallOptions) {
     for (const message of options.prompt) {
       for (const part of message.content) {
         if (this.isFilePart(part)) {
           const filePart = part as LanguageModelV2FilePart;
-          // If the image part is a URL it will get cleanly converted to a string.
-          // If it's a binary image attachment we convert it to a data url.
+          // If the file part is a URL it will get cleanly converted to a string.
+          // If it's a binary file attachment we convert it to a data url.
           // In either case, server-side we should only ever see URLs as strings.
           if (filePart.data instanceof Uint8Array) {
             const buffer = Uint8Array.from(filePart.data);

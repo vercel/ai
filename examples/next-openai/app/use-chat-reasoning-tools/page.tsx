@@ -11,7 +11,6 @@ export default function Chat() {
       transport: new DefaultChatTransport({
         api: '/api/use-chat-reasoning-tools',
       }),
-      maxSteps: 5,
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {
@@ -25,13 +24,19 @@ export default function Chat() {
             'Chicago',
             'San Francisco',
           ];
-          return cities[Math.floor(Math.random() * cities.length)];
+          addToolResult({
+            tool: 'getLocation',
+            toolCallId: toolCall.toolCallId,
+            output: cities[Math.floor(Math.random() * cities.length)],
+          });
         }
       },
     });
 
+  console.log(structuredClone(messages));
+
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+    <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       {messages?.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
           <strong>{`${message.role}: `}</strong>
@@ -40,7 +45,7 @@ export default function Chat() {
               return (
                 <pre
                   key={index}
-                  className="max-w-full overflow-x-auto break-words whitespace-pre-wrap"
+                  className="overflow-x-auto max-w-full whitespace-pre-wrap break-words"
                 >
                   {part.text}
                 </pre>
@@ -51,7 +56,7 @@ export default function Chat() {
               return (
                 <pre
                   key={index}
-                  className="max-w-full mb-4 overflow-x-auto italic text-gray-500 break-words whitespace-pre-wrap"
+                  className="overflow-x-auto mb-4 max-w-full italic text-gray-500 whitespace-pre-wrap break-words"
                 >
                   {part.text}
                 </pre>
@@ -69,6 +74,7 @@ export default function Chat() {
                           className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                           onClick={() =>
                             addToolResult({
+                              tool: 'askForConfirmation',
                               toolCallId: part.toolCallId,
                               output: 'Yes, confirmed.',
                             })
@@ -80,6 +86,7 @@ export default function Chat() {
                           className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                           onClick={() =>
                             addToolResult({
+                              tool: 'askForConfirmation',
                               toolCallId: part.toolCallId,
                               output: 'No, denied',
                             })

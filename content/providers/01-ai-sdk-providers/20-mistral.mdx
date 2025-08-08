@@ -11,7 +11,7 @@ The [Mistral AI](https://mistral.ai/) provider contains language model support f
 
 The Mistral provider is available in the `@ai-sdk/mistral` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/mistral" dark />
   </Tab>
@@ -20,6 +20,10 @@ The Mistral provider is available in the `@ai-sdk/mistral` module. You can insta
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/mistral" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/mistral" dark />
   </Tab>
 </Tabs>
 
@@ -202,12 +206,17 @@ Mistral language models can also be used in the `streamText`, `generateObject`, 
 | ----------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `pixtral-large-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `mistral-large-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mistral-medium-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mistral-medium-2505`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `mistral-small-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `magistral-small-2506`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `magistral-medium-2506` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `ministral-3b-latest`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `ministral-8b-latest`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `pixtral-12b-2409`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `open-mistral-7b`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `open-mixtral-8x7b`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `open-mixtral-8x22b`    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Mistral
@@ -219,10 +228,22 @@ Mistral language models can also be used in the `streamText`, `generateObject`, 
 ## Embedding Models
 
 You can create models that call the [Mistral embeddings API](https://docs.mistral.ai/api/#operation/createEmbedding)
-using the `.embedding()` factory method.
+using the `.textEmbedding()` factory method.
 
 ```ts
-const model = mistral.embedding('mistral-embed');
+const model = mistral.textEmbedding('mistral-embed');
+```
+
+You can use Mistral embedding models to generate embeddings with the `embed` function:
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: mistral.textEmbedding('mistral-embed'),
+  value: 'sunny day at the beach',
+});
 ```
 
 ### Model Capabilities

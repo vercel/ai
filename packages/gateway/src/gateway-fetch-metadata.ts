@@ -46,9 +46,16 @@ const gatewayLanguageModelSpecificationSchema = z.object({
   modelId: z.string(),
 });
 
+const gatewayLanguageModelPricingSchema = z.object({
+  input: z.string(),
+  output: z.string(),
+});
+
 const gatewayLanguageModelEntrySchema = z.object({
   id: z.string(),
   name: z.string(),
+  description: z.string().nullish(),
+  pricing: gatewayLanguageModelPricingSchema.nullish(),
   specification: gatewayLanguageModelSpecificationSchema,
 });
 

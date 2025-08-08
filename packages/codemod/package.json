@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/codemod",
-  "version": "2.0.0-beta.0",
+  "version": "2.0.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "files": [
@@ -8,7 +8,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build": "pnpm generate-readme && prettier --write \"README.md\" && pnpm clean && tsup --tsconfig tsconfig.build.json",
     "clean": "rm -rf dist *.tsbuildinfo",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
@@ -16,7 +16,8 @@
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "vitest --config vitest.config.ts --run",
     "test:watch": "vitest",
-    "scaffold": "tsx scripts/scaffold-codemod.ts"
+    "scaffold": "tsx scripts/scaffold-codemod.ts",
+    "generate-readme": "tsx scripts/generate-readme.ts"
   },
   "devDependencies": {
     "ai": "workspace:*",

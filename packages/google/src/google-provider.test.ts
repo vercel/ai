@@ -2,13 +2,18 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createGoogleGenerativeAI } from './google-provider';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
+import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 
-// Mock the imported modules
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadApiKey: vi.fn().mockImplementation(({ apiKey }) => apiKey),
-  generateId: vi.fn().mockReturnValue('mock-id'),
-  withoutTrailingSlash: vi.fn().mockImplementation(url => url),
-}));
+// Mock the imported modules using a partial mock to preserve original exports
+vi.mock('@ai-sdk/provider-utils', async importOriginal => {
+  const mod = await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  return {
+    ...mod,
+    loadApiKey: vi.fn().mockImplementation(({ apiKey }) => apiKey),
+    generateId: vi.fn().mockReturnValue('mock-id'),
+    withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+  };
+});
 
 vi.mock('./google-generative-ai-language-model', () => ({
   GoogleGenerativeAILanguageModel: vi.fn(),
@@ -16,6 +21,9 @@ vi.mock('./google-generative-ai-language-model', () => ({
 
 vi.mock('./google-generative-ai-embedding-model', () => ({
   GoogleGenerativeAIEmbeddingModel: vi.fn(),
+}));
+vi.mock('./google-generative-ai-image-model', () => ({
+  GoogleGenerativeAIImageModel: vi.fn(),
 }));
 
 describe('google-provider', () => {
@@ -132,6 +140,43 @@ describe('google-provider', () => {
     );
   });
 
+  it('should create an image model with default settings', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+    });
+    provider.image('imagen-3.0-generate-002');
+
+    expect(GoogleGenerativeAIImageModel).toHaveBeenCalledWith(
+      'imagen-3.0-generate-002',
+      {},
+      expect.objectContaining({
+        provider: 'google.generative-ai',
+        headers: expect.any(Function),
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      }),
+    );
+  });
+
+  it('should create an image model with custom maxImagesPerCall', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+    });
+    const imageSettings = {
+      maxImagesPerCall: 3,
+    };
+    provider.image('imagen-3.0-generate-002', imageSettings);
+
+    expect(GoogleGenerativeAIImageModel).toHaveBeenCalledWith(
+      'imagen-3.0-generate-002',
+      imageSettings,
+      expect.objectContaining({
+        provider: 'google.generative-ai',
+        headers: expect.any(Function),
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      }),
+    );
+  });
+
   it('should support deprecated methods', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
@@ -143,5 +188,80 @@ describe('google-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledTimes(1);
     expect(GoogleGenerativeAIEmbeddingModel).toHaveBeenCalledTimes(2);
+  });
+
+  it('should include YouTube URLs in supportedUrls', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+    });
+    provider('gemini-pro');
+
+    const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
+    const supportedUrlsFunction = call[1].supportedUrls;
+
+    expect(supportedUrlsFunction).toBeDefined();
+
+    const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
+    const patterns = supportedUrls['*'];
+
+    expect(patterns).toBeDefined();
+    expect(Array.isArray(patterns)).toBe(true);
+
+    const testResults = {
+      supportedUrls: [
+        'https://generativelanguage.googleapis.com/v1beta/files/test123',
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        'https://youtube.com/watch?v=dQw4w9WgXcQ',
+        'https://youtu.be/dQw4w9WgXcQ',
+      ].map(url => ({
+        url,
+        isSupported: patterns.some((pattern: RegExp) => pattern.test(url)),
+      })),
+      unsupportedUrls: [
+        'https://example.com',
+        'https://vimeo.com/123456789',
+        'https://youtube.com/channel/UCdQw4w9WgXcQ',
+      ].map(url => ({
+        url,
+        isSupported: patterns.some((pattern: RegExp) => pattern.test(url)),
+      })),
+    };
+
+    expect(testResults).toMatchInlineSnapshot(`
+      {
+        "supportedUrls": [
+          {
+            "isSupported": true,
+            "url": "https://generativelanguage.googleapis.com/v1beta/files/test123",
+          },
+          {
+            "isSupported": true,
+            "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+          },
+          {
+            "isSupported": true,
+            "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
+          },
+          {
+            "isSupported": true,
+            "url": "https://youtu.be/dQw4w9WgXcQ",
+          },
+        ],
+        "unsupportedUrls": [
+          {
+            "isSupported": false,
+            "url": "https://example.com",
+          },
+          {
+            "isSupported": false,
+            "url": "https://vimeo.com/123456789",
+          },
+          {
+            "isSupported": false,
+            "url": "https://youtube.com/channel/UCdQw4w9WgXcQ",
+          },
+        ],
+      }
+    `);
   });
 });

@@ -1,0 +1,49 @@
+<div class="chat-container">
+  <div class="messages">
+    @for (message of chat.messages; track message.id) {
+      <div class="message" [ngClass]="message.role">
+        @for (part of message.parts; track $index) {
+          @switch (part.type) {
+            @case ('text') {
+              <div style="white-space: pre-wrap">
+                {{ part.text }}
+                @if (part.state === 'streaming') {
+                  <span class="typing-cursor">&#9646;</span>
+                }
+              </div>
+            }
+            @case ('reasoning') {
+              <details>
+                <summary>Reasoning</summary>
+                <div
+                  style="white-space: pre-wrap; font-size: 90%; opacity: 80%"
+                >
+                  <div>{{ part.text }}</div>
+                </div>
+              </details>
+            }
+            @default {
+              <code>{{ part | json }}</code>
+            }
+          }
+        }
+      </div>
+    }
+    @if (this.chat.status === 'submitted') {
+      <div>
+        <em>Waiting...</em>
+      </div>
+    }
+  </div>
+
+  <form class="input-form" [formGroup]="chatForm" (ngSubmit)="sendMessage()">
+    <input formControlName="userInput" placeholder="Type your message..." />
+    @if (chat.status === 'ready') {
+      <button type="submit" [disabled]="!chatForm.valid">Send</button>
+    } @else {
+      <button [disabled]="chat.status === 'error'" (click)="chat.stop()">
+        Stop
+      </button>
+    }
+  </form>
+</div>

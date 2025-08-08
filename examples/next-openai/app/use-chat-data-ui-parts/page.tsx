@@ -21,10 +21,13 @@ export default function Chat() {
       transport: new DefaultChatTransport({
         api: '/api/use-chat-data-ui-parts',
       }),
+      onData: dataPart => {
+        console.log('dataPart', JSON.stringify(dataPart, null, 2));
+      },
     });
 
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+    <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
           {message.role === 'user' ? 'User: ' : 'AI: '}{' '}
@@ -70,7 +73,7 @@ export default function Chat() {
           {status === 'submitted' && <div>Loading...</div>}
           <button
             type="button"
-            className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+            className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"
             onClick={stop}
           >
             Stop
@@ -83,7 +86,7 @@ export default function Chat() {
           <div className="text-red-500">An error occurred.</div>
           <button
             type="button"
-            className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+            className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"
             onClick={() => regenerate()}
           >
             Retry

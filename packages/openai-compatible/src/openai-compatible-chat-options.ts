@@ -12,7 +12,7 @@ export const openaiCompatibleProviderOptions = z.object({
   /**
    * Reasoning effort for reasoning models. Defaults to `medium`.
    */
-  reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+  reasoningEffort: z.string().optional(),
 });
 
 export type OpenAICompatibleProviderOptions = z.infer<

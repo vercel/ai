@@ -19,26 +19,25 @@ export async function GET(
   const streamIds = await loadStreams(id);
 
   if (!streamIds.length) {
-    return new Response('No streams found', { status: 204 });
+    return new Response(null, { status: 204 });
   }
 
   const recentStreamId = streamIds.at(-1);
 
   if (!recentStreamId) {
-    return new Response('No recent stream found', { status: 204 });
+    return new Response(null, { status: 204 });
   }
-
-  const emptyDataStream = createUIMessageStream({
-    execute: () => {},
-  });
 
   const streamContext = createResumableStreamContext({
     waitUntil: after,
   });
 
-  return new Response(
-    await streamContext.resumableStream(recentStreamId, () =>
-      emptyDataStream.pipeThrough(new JsonToSseTransformStream()),
-    ),
-  );
+  const resumedStream =
+    await streamContext.resumeExistingStream(recentStreamId);
+
+  if (!resumedStream) {
+    return new Response(null, { status: 204 });
+  }
+
+  return new Response(resumedStream);
 }

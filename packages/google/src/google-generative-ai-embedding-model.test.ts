@@ -10,24 +10,24 @@ const dummyEmbeddings = [
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
 const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
-const model = provider.textEmbeddingModel('text-embedding-004');
+const model = provider.textEmbeddingModel('gemini-embedding-001');
+
+const URL =
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:something';
 
 const server = createTestServer({
-  'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents':
-    {},
+  [URL]: {},
 });
 
 describe('GoogleGenerativeAIEmbeddingModel', () => {
-  function prepareJsonResponse({
+  function prepareBatchJsonResponse({
     embeddings = dummyEmbeddings,
     headers,
   }: {
     embeddings?: EmbeddingModelV2Embedding[];
     headers?: Record<string, string>;
   } = {}) {
-    server.urls[
-      'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents'
-    ].response = {
+    server.urls[URL].response = {
       type: 'json-value',
       headers,
       body: {
@@ -36,8 +36,24 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     };
   }
 
+  function prepareSingleJsonResponse({
+    embeddings = dummyEmbeddings,
+    headers,
+  }: {
+    embeddings?: EmbeddingModelV2Embedding[];
+    headers?: Record<string, string>;
+  } = {}) {
+    server.urls[URL].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        embedding: { values: embeddings[0] },
+      },
+    };
+  }
+
   it('should extract embedding', async () => {
-    prepareJsonResponse();
+    prepareBatchJsonResponse();
 
     const { embeddings } = await model.doEmbed({ values: testValues });
 
@@ -45,7 +61,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should expose the raw response', async () => {
-    prepareJsonResponse({
+    prepareBatchJsonResponse({
       headers: {
         'test-header': 'test-value',
       },
@@ -65,22 +81,22 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should pass the model and the values', async () => {
-    prepareJsonResponse();
+    prepareBatchJsonResponse();
 
     await model.doEmbed({ values: testValues });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       requests: testValues.map(value => ({
-        model: 'models/text-embedding-004',
+        model: 'models/gemini-embedding-001',
         content: { role: 'user', parts: [{ text: value }] },
       })),
     });
   });
 
   it('should pass the outputDimensionality setting', async () => {
-    prepareJsonResponse();
+    prepareBatchJsonResponse();
 
-    await provider.embedding('text-embedding-004').doEmbed({
+    await provider.embedding('gemini-embedding-001').doEmbed({
       values: testValues,
       providerOptions: {
         google: { outputDimensionality: 64 },
@@ -89,7 +105,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       requests: testValues.map(value => ({
-        model: 'models/text-embedding-004',
+        model: 'models/gemini-embedding-001',
         content: { role: 'user', parts: [{ text: value }] },
         outputDimensionality: 64,
       })),
@@ -97,16 +113,16 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should pass the taskType setting', async () => {
-    prepareJsonResponse();
+    prepareBatchJsonResponse();
 
-    await provider.embedding('text-embedding-004').doEmbed({
+    await provider.embedding('gemini-embedding-001').doEmbed({
       values: testValues,
       providerOptions: { google: { taskType: 'SEMANTIC_SIMILARITY' } },
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       requests: testValues.map(value => ({
-        model: 'models/text-embedding-004',
+        model: 'models/gemini-embedding-001',
         content: { role: 'user', parts: [{ text: value }] },
         taskType: 'SEMANTIC_SIMILARITY',
       })),
@@ -114,7 +130,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should pass headers', async () => {
-    prepareJsonResponse();
+    prepareBatchJsonResponse();
 
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
@@ -123,7 +139,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       },
     });
 
-    await provider.embedding('text-embedding-004').doEmbed({
+    await provider.embedding('gemini-embedding-001').doEmbed({
       values: testValues,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -139,7 +155,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should throw an error if too many values are provided', async () => {
-    const model = new GoogleGenerativeAIEmbeddingModel('text-embedding-004', {
+    const model = new GoogleGenerativeAIEmbeddingModel('gemini-embedding-001', {
       provider: 'google.generative-ai',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: () => ({}),
@@ -148,7 +164,33 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     const tooManyValues = Array(2049).fill('test');
 
     await expect(model.doEmbed({ values: tooManyValues })).rejects.toThrow(
-      'Too many values for a single embedding call. The google.generative-ai model "text-embedding-004" can only embed up to 2048 values per call, but 2049 values were provided.',
+      'Too many values for a single embedding call. The google.generative-ai model "gemini-embedding-001" can only embed up to 2048 values per call, but 2049 values were provided.',
+    );
+  });
+
+  it('should use the batch embeddings endpoint', async () => {
+    prepareBatchJsonResponse();
+    const model = provider.textEmbeddingModel('gemini-embedding-001');
+    await model.doEmbed({
+      values: testValues,
+    });
+
+    expect(server.calls[0].requestUrl).toBe(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents',
+    );
+  });
+
+  it('should use the single embeddings endpoint', async () => {
+    prepareSingleJsonResponse();
+
+    const model = provider.textEmbeddingModel('gemini-embedding-001');
+
+    await model.doEmbed({
+      values: [testValues[0]],
+    });
+
+    expect(server.calls[0].requestUrl).toBe(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent',
     );
   });
 });

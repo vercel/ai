@@ -21,12 +21,12 @@ async function main() {
       }),
       weather: weatherTool,
     },
-    prompt: 'What is the weather in my current location and in Rome?',
+    prompt: 'What is the weather in my current location?',
   });
 
   for await (const chunk of result.fullStream) {
     switch (chunk.type) {
-      case 'text': {
+      case 'text-delta': {
         process.stdout.write(chunk.text);
         break;
       }

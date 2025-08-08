@@ -4,10 +4,6 @@ import { z } from 'zod/v4';
 export type OpenAIChatModelId =
   | 'o1'
   | 'o1-2024-12-17'
-  | 'o1-mini'
-  | 'o1-mini-2024-09-12'
-  | 'o1-preview'
-  | 'o1-preview-2024-09-12'
   | 'o3-mini'
   | 'o3-mini-2025-01-31'
   | 'o3'
@@ -46,6 +42,13 @@ export type OpenAIChatModelId =
   | 'gpt-3.5-turbo'
   | 'gpt-3.5-turbo-1106'
   | 'chatgpt-4o-latest'
+  | 'gpt-5'
+  | 'gpt-5-2025-08-07'
+  | 'gpt-5-mini'
+  | 'gpt-5-mini-2025-08-07'
+  | 'gpt-5-nano'
+  | 'gpt-5-nano-2025-08-07'
+  | 'gpt-5-chat-latest'
   | (string & {});
 
 export const openaiProviderOptions = z.object({
@@ -112,17 +115,19 @@ export const openaiProviderOptions = z.object({
   structuredOutputs: z.boolean().optional(),
 
   /**
-   * Service tier for the request. Set to 'flex' for 50% cheaper processing
-   * at the cost of increased latency. Only available for o3 and o4-mini models.
+   * Service tier for the request.
+   * - 'auto': Default service tier
+   * - 'flex': 50% cheaper processing at the cost of increased latency. Only available for o3 and o4-mini models.
+   * - 'priority': Higher-speed processing with predictably low latency at premium cost. Available for Enterprise customers.
    *
    * @default 'auto'
    */
-  serviceTier: z.enum(['auto', 'flex']).optional(),
+  serviceTier: z.enum(['auto', 'flex', 'priority']).optional(),
 
   /**
    * Whether to use strict JSON schema validation.
    *
-   * @default true
+   * @default false
    */
   strictJsonSchema: z.boolean().optional(),
 });

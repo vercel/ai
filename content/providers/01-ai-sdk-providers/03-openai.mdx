@@ -11,7 +11,7 @@ The [OpenAI](https://openai.com/) provider contains language model support for t
 
 The OpenAI provider is available in the `@ai-sdk/openai` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/openai" dark />
   </Tab>
@@ -20,6 +20,10 @@ The OpenAI provider is available in the `@ai-sdk/openai` module. You can install
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/openai" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai" dark />
   </Tab>
 </Tabs>
 
@@ -197,10 +201,38 @@ The following optional provider options are available for OpenAI chat models:
 
   When enabled, tool calls and object generation will be strict and follow the provided schema.
 
+- **maxCompletionTokens** _number_
+
+  Maximum number of completion tokens to generate. Useful for reasoning models.
+
+- **store** _boolean_
+
+  Whether to enable persistence in Responses API.
+
+- **metadata** _Record&lt;string, string&gt;_
+
+  Metadata to associate with the request.
+
+- **prediction** _Record&lt;string, any&gt;_
+
+  Parameters for prediction mode.
+
+- **serviceTier** _'auto' | 'flex'_
+
+  Service tier for the request. Set to 'flex' for 50% cheaper processing
+  at the cost of increased latency. Only available for o3, o4-mini, and gpt-5 models.
+  Defaults to 'auto'.
+
+- **strictJsonSchema** _boolean_
+
+  Whether to use strict JSON schema validation.
+  Defaults to `false`.
+
 #### Reasoning
 
 OpenAI has introduced the `o1`,`o3`, and `o4` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
-Currently, `o4-mini`, `o3`, `o3-mini`, `o1`, `o1-mini`, and `o1-preview` are available.
+Currently, `o4-mini`, `o3`, `o3-mini`, `o1`, `o1-mini`, and `o1-preview` are available via both the chat and responses APIs. The
+models `codex-mini-latest` and `computer-use-preview` are available only via the [responses API](#responses-models).
 
 Reasoning models currently only generate text, have several limitations, and are only supported using `generateText` and `streamText`.
 
@@ -324,6 +356,44 @@ const openaiMetadata = (await result.providerMetadata)?.openai;
 const logprobs = openaiMetadata?.logprobs;
 ```
 
+#### Image Support
+
+The OpenAI Chat API supports Image inputs for appropriate models.
+You can pass Image files as part of the message content using the 'image' type:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Please describe the image.',
+        },
+        {
+          type: 'image',
+          image: fs.readFileSync('./data/image.png'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+Multimodal models will have access to the image and can analyze and conversate about it.
+The image should be passed using the `image` field.
+
+You can also pass the URL of an image.
+
+```ts
+{
+  type: 'image',
+  image: 'https://sample.edu/image.png',
+}
+```
+
 #### PDF support
 
 The OpenAI Chat API supports reading PDF files.
@@ -356,6 +426,27 @@ The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
 and the `mediaType` should be set to `'application/pdf'`.
+
+You can also pass a file-id from the OpenAI Files API.
+
+```ts
+{
+  type: 'file',
+  data: 'file-8EFBcWHsQxZV7YGezBC1fq',
+  mediaType: 'application/pdf',
+}
+```
+
+You can also pass the URL of a PDF.
+
+```ts
+{
+  type: 'file',
+  data: 'https://sample.edu/example.pdf',
+  mediaType: 'application/pdf',
+  filename: 'ai.pdf', // optional
+}
+```
 
 #### Predicted Outputs
 
@@ -565,7 +656,12 @@ The following provider options are available:
   Whether to use parallel tool calls. Defaults to `true`.
 
 - **store** _boolean_
+
   Whether to store the generation. Defaults to `true`.
+
+  When using reasoning models (o1, o3, o4-mini) with multi-step tool calls and `store: false`,
+  include `['reasoning.encrypted_content']` in the `include` option to ensure reasoning
+  content is available across conversation steps.
 
 - **metadata** _Record&lt;string, string&gt;_
   Additional metadata to store with the generation.
@@ -587,11 +683,19 @@ The following provider options are available:
 - **reasoningSummary** _'auto' | 'detailed'_
   Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
 
-- **strictSchemas** _boolean_
-  Whether to use strict JSON schemas in tools and when generating JSON outputs. Defaults to `true`.
+- **strictJsonSchema** _boolean_
+  Whether to use strict JSON schema validation. Defaults to `false`.
 
-- **parallelToolCalls** _boolean_
-  Whether to enable parallel function calling during tool use. Default to true.
+- **serviceTier** _'auto' | 'flex'_
+  Service tier for the request. Set to 'flex' for 50% cheaper processing
+  at the cost of increased latency. Only available for o3, o4-mini, and gpt-5 models.
+  Defaults to 'auto'.
+
+- **include** _Array&lt;string&gt;_
+  Specifies additional content to include in the response. Supported values:
+  `['reasoning.encrypted_content']` for accessing reasoning content across conversation steps,
+  and `['file_search_call.results']` for including file search results in responses.
+  Defaults to `undefined`.
 
 The OpenAI responses provider also returns provider-specific metadata:
 
@@ -643,16 +747,16 @@ const result = await generateText({
 const sources = result.sources;
 ```
 
-#### Reasoning Summaries
+#### Reasoning Output
 
-For reasoning models like `o3-mini`, `o3`, and `o4-mini`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available.
+For reasoning models like `gpt-5`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available.
 
 ```ts highlight="8-9,16"
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: openai.responses('o4-mini'),
+  model: openai.responses('gpt-5'),
   prompt: 'Tell me about the Mission burrito debate in San Francisco.',
   providerOptions: {
     openai: {
@@ -677,7 +781,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai.responses('o3-mini'),
+  model: openai.responses('gpt-5'),
   prompt: 'Tell me about the Mission burrito debate in San Francisco.',
   providerOptions: {
     openai: {
@@ -689,6 +793,91 @@ console.log('Reasoning:', result.reasoning);
 ```
 
 Learn more about reasoning summaries in the [OpenAI documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries).
+
+#### File Search
+
+The OpenAI responses provider supports file search through the `openai.tools.fileSearch` tool.
+
+You can force the use of the file search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'file_search' }`.
+
+```ts
+const result = await generateText({
+  model: openai.responses('gpt-4o-mini'),
+  prompt: 'What does the document say about user authentication?',
+  tools: {
+    file_search: openai.tools.fileSearch({
+      // optional configuration:
+      vectorStoreIds: ['vs_123', 'vs_456'],
+      maxNumResults: 10,
+      ranking: {
+        ranker: 'auto',
+      },
+      filters: {
+        type: 'and',
+        filters: [
+          { key: 'author', type: 'eq', value: 'John Doe' },
+          { key: 'date', type: 'gte', value: '2023-01-01' },
+        ],
+      },
+    }),
+  },
+  // Force file search tool:
+  toolChoice: { type: 'tool', toolName: 'file_search' },
+});
+```
+
+<Note>
+  The tool must be named `file_search` when using OpenAI's file search
+  functionality. This name is required by OpenAI's API specification and cannot
+  be customized.
+</Note>
+
+#### Image Support
+
+The OpenAI Responses API supports Image inputs for appropriate models.
+You can pass Image files as part of the message content using the 'image' type:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Please describe the image.',
+        },
+        {
+          type: 'image',
+          image: fs.readFileSync('./data/image.png'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+Multimodal models will have access to the image and can analyze and conversate about it.
+The image should be passed using the `image` field.
+
+You can also pass a file-id from the OpenAI Files API.
+
+```ts
+{
+  type: 'image',
+  image: 'file-8EFBcWHsQxZV7YGezBC1fq'
+}
+```
+
+You can also pass the URL of an image.
+
+```ts
+{
+  type: 'image',
+  image: 'https://sample.edu/image.png',
+}
+```
 
 #### PDF support
 
@@ -716,6 +905,27 @@ const result = await generateText({
     },
   ],
 });
+```
+
+You can also pass a file-id from the OpenAI Files API.
+
+```ts
+{
+  type: 'file',
+  data: 'file-8EFBcWHsQxZV7YGezBC1fq',
+  mediaType: 'application/pdf',
+}
+```
+
+You can also pass the URL of a pdf.
+
+```ts
+{
+  type: 'file',
+  data: 'https://sample.edu/example.pdf',
+  mediaType: 'application/pdf',
+  filename: 'ai.pdf', // optional
+}
 ```
 
 The model will have access to the contents of the PDF file and
@@ -842,16 +1052,18 @@ The following optional provider options are available for OpenAI completion mode
 | `gpt-4o`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o-audio-preview` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4.1`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4-turbo`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-3.5-turbo`        | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `o1`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o1-mini`              | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `o1-preview`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `o3-mini`              | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `o3`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `o4-mini`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `chatgpt-4o-latest`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-5`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-mini`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-nano`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-chat-latest`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [OpenAI
@@ -863,25 +1075,28 @@ The following optional provider options are available for OpenAI completion mode
 ## Embedding Models
 
 You can create models that call the [OpenAI embeddings API](https://platform.openai.com/docs/api-reference/embeddings)
-using the `.embedding()` factory method.
+using the `.textEmbedding()` factory method.
 
 ```ts
-const model = openai.embedding('text-embedding-3-large');
+const model = openai.textEmbedding('text-embedding-3-large');
 ```
 
 OpenAI embedding models support several additional provider options.
 You can pass them as an options argument:
 
 ```ts
-const model = openai.embedding('text-embedding-3-large');
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
 
-await model.doEmbed({
+const { embedding } = await embed({
+  model: openai.textEmbedding('text-embedding-3-large'),
+  value: 'sunny day at the beach',
   providerOptions: {
     openai: {
-      dimensions: 512 // optional, number of dimensions for the embedding
-      user: 'test-user' // optional unique user identifier
-    }
-  }
+      dimensions: 512, // optional, number of dimensions for the embedding
+      user: 'test-user', // optional unique user identifier
+    },
+  },
 });
 ```
 

@@ -1,5 +1,97 @@
 # @ai-sdk/codemod
 
+## 2.0.3
+
+### Patch Changes
+
+- 58fff3f: fixes generateText text property transform
+
+## 2.0.2
+
+### Patch Changes
+
+- 23a1916: fix Message transform for generic types
+
+## 2.0.1
+
+### Patch Changes
+
+- 3d6a91b: ### new codemode for: "`createIdGenerator()` now requires a size argument"
+
+  The codemod added in this change addresses the following change in v5
+
+  Before:
+
+  ```ts
+  import { createIdGenerator } from 'ai';
+
+  const generator = createIdGenerator({ prefix: 'msg' });
+  const id2 = generator(16); // Custom size at call time
+  ```
+
+  After:
+
+  ```ts
+  import { createIdGenerator } from 'ai';
+
+  const generator32 = createIdGenerator({ size: 32 });
+  const id1 = generator32(); // Fixed size from creation
+
+  const generator16 = createIdGenerator({ prefix: 'msg', size: 16 });
+  const id2 = generator16(); // Fixed size from creation
+  ```
+
+- 094c4ca: ### Codemod for: "`IDGenerator` type renamed to `IdGenerator`"
+
+  This change adds a new codemod which handles the change from
+
+  ```ts
+  import { IDGenerator } from 'ai';
+  ```
+
+  to
+
+  ```ts
+  import { IdGenerator } from 'ai';
+  ```
+
+## 2.0.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- b0446d4: release AI SDK 5.0 codemods package
+- df983e6: feat(codemods): added v4→v5 migration codemods
+- 4726e71: fix(codemod): correct import-LanguageModelV2-from-provider-package direction and quote preservation
+- 4e01854: v5 - AI SDK 5.0 codemods package
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- df983e6: feat(codemods): added v4→v5 migration codemods
+
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- 4726e71: fix(codemod): correct import-LanguageModelV2-from-provider-package direction and quote preservation
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 4e01854: v5 - AI SDK 5.0 codemods package
+
+## 2.0.0-beta.1
+
+### Patch Changes
+
+- b0446d4: release AI SDK 5.0 codemods package
+
 ## 2.0.0-canary.0
 
 ### Major Changes

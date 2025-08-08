@@ -5,11 +5,11 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { UIMessageStreamPart } from 'ai';
+import { UIMessageChunk } from 'ai';
 import { setupTestComponent } from './setup-test-component';
 import { useCompletion } from './use-completion';
 
-function formatStreamPart(part: UIMessageStreamPart) {
+function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
@@ -60,10 +60,10 @@ describe('stream data stream', () => {
       server.urls['/api/completion'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
         ],
       };
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
@@ -99,7 +99,7 @@ describe('stream data stream', () => {
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
 
       controller.write(
-        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
       );
 
       await waitFor(() => {

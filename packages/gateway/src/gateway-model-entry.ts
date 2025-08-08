@@ -13,6 +13,25 @@ export interface GatewayLanguageModelEntry {
   name: string;
 
   /**
+   * Optional description of the model.
+   */
+  description?: string | null;
+
+  /**
+   * Optional pricing information for the model.
+   */
+  pricing?: {
+    /**
+     * Cost per input token in USD.
+     */
+    input: string;
+    /**
+     * Cost per output token in USD.
+     */
+    output: string;
+  } | null;
+
+  /**
    * Additional AI SDK language model specifications for the model.
    */
   specification: GatewayLanguageModelSpecification;

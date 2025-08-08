@@ -11,7 +11,7 @@ description: Learn how to use Fal AI models with the AI SDK.
 
 The Fal provider is available via the `@ai-sdk/fal` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/fal" dark />
   </Tab>
@@ -20,6 +20,10 @@ The Fal provider is available via the `@ai-sdk/fal` module. You can install it w
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/fal" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/fal" dark />
   </Tab>
 </Tabs>
 
@@ -104,17 +108,20 @@ providerMetadata.fal.images[0].content_type; // string, mime type of the image
 
 Fal offers many models optimized for different use cases. Here are a few popular examples. For a full list of models, see the [Fal AI documentation](https://fal.ai/models).
 
-| Model                               | Description                                                                                                                                                   |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `fal-ai/fast-sdxl`                  | High-speed SDXL model optimized for quick inference with up to 4x faster speeds                                                                               |
-| `fal-ai/flux-pro/kontext`           | FLUX.1 Kontext [pro] handles both text and reference images as inputs, seamlessly enabling targeted, local edits and complex transformations of entire scenes |
-| `fal-ai/flux-pro/kontext/max`       | FLUX.1 Kontext [max] with greatly improved prompt adherence and typography generation, meeting premium consistency for editing without compromise on speed    |
-| `fal-ai/flux-lora`                  | Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations.        |
-| `fal-ai/flux-pro/v1.1-ultra`        | Professional-grade image generation with up to 2K resolution and enhanced photorealism                                                                        |
-| `fal-ai/ideogram/v2`                | Specialized for high-quality posters and logos with exceptional typography handling                                                                           |
-| `fal-ai/recraft-v3`                 | SOTA in image generation with vector art and brand style capabilities                                                                                         |
-| `fal-ai/stable-diffusion-3.5-large` | Advanced MMDiT model with improved typography and complex prompt understanding                                                                                |
-| `fal-ai/hyper-sdxl`                 | Performance-optimized SDXL variant with enhanced creative capabilities                                                                                        |
+| Model                                | Description                                                                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fal-ai/fast-sdxl`                   | High-speed SDXL model optimized for quick inference with up to 4x faster speeds                                                                               |
+| `fal-ai/flux-pro/kontext`            | FLUX.1 Kontext [pro] handles both text and reference images as inputs, seamlessly enabling targeted, local edits and complex transformations of entire scenes |
+| `fal-ai/flux-pro/kontext/max`        | FLUX.1 Kontext [max] with greatly improved prompt adherence and typography generation, meeting premium consistency for editing without compromise on speed    |
+| `fal-ai/flux-lora`                   | Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations.        |
+| `fal-ai/flux-pro/v1.1-ultra`         | Professional-grade image generation with up to 2K resolution and enhanced photorealism                                                                        |
+| `fal-ai/ideogram/v2`                 | Specialized for high-quality posters and logos with exceptional typography handling                                                                           |
+| `fal-ai/recraft-v3`                  | SOTA in image generation with vector art and brand style capabilities                                                                                         |
+| `fal-ai/stable-diffusion-3.5-large`  | Advanced MMDiT model with improved typography and complex prompt understanding                                                                                |
+| `fal-ai/hyper-sdxl`                  | Performance-optimized SDXL variant with enhanced creative capabilities                                                                                        |
+| `fal-ai/flux/dev`                    | FLUX.1 [dev] model for high-quality image generation                                                                                                          |
+| `fal-ai/flux/schnell`                | FLUX.1 [schnell] model optimized for speed                                                                                                                    |
+| `fal-ai/stable-diffusion-3.5-medium` | Medium-sized Stable Diffusion 3.5 model with good balance of quality and speed                                                                                |
 
 Fal models support the following aspect ratios:
 
@@ -153,6 +160,18 @@ await generateImage({
   },
 });
 ```
+
+### Provider Options
+
+Fal image models support flexible provider options through the `providerOptions.fal` object. You can pass any parameters supported by the specific Fal model's API. Common options include:
+
+- **image_url** - Reference image URL for image-to-image generation
+- **strength** - Controls how much the output differs from the input image
+- **guidance_scale** - Controls adherence to the prompt
+- **num_inference_steps** - Number of denoising steps
+- **safety_checker** - Enable/disable safety filtering
+
+Refer to the [Fal AI model documentation](https://fal.ai/models) for model-specific parameters.
 
 ### Advanced Features
 
@@ -204,7 +223,7 @@ The following provider options are available:
 
 - **chunkLevel** _string_
   Level of the chunks to return. Either 'segment' or 'word'.
-  Default value: "word"
+  Default value: "segment"
   Optional.
 
 - **version** _string_

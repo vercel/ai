@@ -264,7 +264,22 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'serviceTier',
-        details: 'flex processing is only available for o3 and o4-mini models',
+        details:
+          'flex processing is only available for o3, o4-mini, and gpt-5 models',
+      });
+      baseArgs.service_tier = undefined;
+    }
+
+    // Validate priority processing support
+    if (
+      openaiOptions.serviceTier === 'priority' &&
+      !supportsPriorityProcessing(this.modelId)
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'serviceTier',
+        details:
+          'priority processing is only available for supported models (GPT-4, o3, o4-mini) and requires Enterprise access',
       });
       baseArgs.service_tier = undefined;
     }
@@ -330,6 +345,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         toolCallId: toolCall.id ?? generateId(),
         toolName: toolCall.function.name,
         input: toolCall.function.arguments!,
+      });
+    }
+
+    // annotations/citations:
+    for (const annotation of choice.message.annotations ?? []) {
+      content.push({
+        type: 'source',
+        sourceType: 'url',
+        id: generateId(),
+        url: annotation.url,
+        title: annotation.title,
       });
     }
 
@@ -633,6 +659,19 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                 }
               }
             }
+
+            // annotations/citations:
+            if (delta.annotations != null) {
+              for (const annotation of delta.annotations) {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: generateId(),
+                  url: annotation.url,
+                  title: annotation.title,
+                });
+              }
+            }
           },
 
           flush(controller) {
@@ -698,6 +737,17 @@ const openaiChatResponseSchema = z.object({
             }),
           )
           .nullish(),
+        annotations: z
+          .array(
+            z.object({
+              type: z.literal('url_citation'),
+              start_index: z.number(),
+              end_index: z.number(),
+              url: z.string(),
+              title: z.string(),
+            }),
+          )
+          .nullish(),
       }),
       index: z.number(),
       logprobs: z
@@ -750,6 +800,17 @@ const openaiChatChunkSchema = z.union([
                 }),
               )
               .nullish(),
+            annotations: z
+              .array(
+                z.object({
+                  type: z.literal('url_citation'),
+                  start_index: z.number(),
+                  end_index: z.number(),
+                  url: z.string(),
+                  title: z.string(),
+                }),
+              )
+              .nullish(),
           })
           .nullish(),
         logprobs: z
@@ -780,15 +841,23 @@ const openaiChatChunkSchema = z.union([
 ]);
 
 function isReasoningModel(modelId: string) {
-  return modelId.startsWith('o');
-}
-
-function isAudioModel(modelId: string) {
-  return modelId.startsWith('gpt-4o-audio-preview');
+  return modelId.startsWith('o') || modelId.startsWith('gpt-5');
 }
 
 function supportsFlexProcessing(modelId: string) {
-  return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
+  return (
+    modelId.startsWith('o3') ||
+    modelId.startsWith('o4-mini') ||
+    modelId.startsWith('gpt-5')
+  );
+}
+
+function supportsPriorityProcessing(modelId: string) {
+  return (
+    modelId.startsWith('gpt-4') ||
+    modelId.startsWith('o3') ||
+    modelId.startsWith('o4-mini')
+  );
 }
 
 function getSystemMessageMode(modelId: string) {

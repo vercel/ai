@@ -57,8 +57,6 @@ Creates a model for text embeddings.
 
   /**
 Creates a model for text embeddings.
-
-@deprecated Use `textEmbeddingModel` instead.
    */
   textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
 
@@ -69,7 +67,6 @@ Creates a model for text embeddings.
 
   /**
 Creates a model for image generation.
-@deprecated Use `imageModel` instead.
    */
   image(modelId: OpenAIImageModelId): ImageModelV2;
 

@@ -2,7 +2,7 @@ import { delay } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { DelayedPromise } from '../util/delayed-promise';
 import { createUIMessageStream } from './create-ui-message-stream';
-import { UIMessageStreamPart } from './ui-message-stream-parts';
+import { UIMessageChunk } from './ui-message-chunks';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 import { consumeStream } from '../util/consume-stream';
 import { UIMessage } from '../ui/ui-messages';
@@ -91,8 +91,8 @@ describe('createUIMessageStream', () => {
   });
 
   it('should forward elements from multiple streams and data parts', async () => {
-    let controller1: ReadableStreamDefaultController<UIMessageStreamPart>;
-    let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
+    let controller1: ReadableStreamDefaultController<UIMessageChunk>;
+    let controller2: ReadableStreamDefaultController<UIMessageChunk>;
 
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
@@ -187,8 +187,8 @@ describe('createUIMessageStream', () => {
   });
 
   it('should add error parts when stream errors', async () => {
-    let controller1: ReadableStreamDefaultController<UIMessageStreamPart>;
-    let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
+    let controller1: ReadableStreamDefaultController<UIMessageChunk>;
+    let controller2: ReadableStreamDefaultController<UIMessageChunk>;
 
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
@@ -308,8 +308,8 @@ describe('createUIMessageStream', () => {
 
   it('should support writing from delayed merged streams', async () => {
     let uiMessageStreamWriter: UIMessageStreamWriter<UIMessage>;
-    let controller1: ReadableStreamDefaultController<UIMessageStreamPart>;
-    let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
+    let controller1: ReadableStreamDefaultController<UIMessageChunk>;
+    let controller2: ReadableStreamDefaultController<UIMessageChunk>;
     let done = false;
 
     const stream = createUIMessageStream({
@@ -327,7 +327,7 @@ describe('createUIMessageStream', () => {
       },
     });
 
-    const result: UIMessageStreamPart[] = [];
+    const result: UIMessageChunk[] = [];
     const reader = stream.getReader();
     async function pull() {
       const { value, done } = await reader.read();
@@ -396,6 +396,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "isAborted": false,
           "isContinuation": false,
           "messages": [
             {
@@ -403,6 +404,7 @@ describe('createUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "1a",
                   "type": "text",
@@ -416,6 +418,7 @@ describe('createUIMessageStream', () => {
             "metadata": undefined,
             "parts": [
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "1a",
                 "type": "text",
@@ -459,6 +462,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "isAborted": false,
           "isContinuation": true,
           "messages": [
             {
@@ -480,6 +484,7 @@ describe('createUIMessageStream', () => {
                   "type": "text",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "1b",
                   "type": "text",
@@ -497,6 +502,7 @@ describe('createUIMessageStream', () => {
                 "type": "text",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "1b",
                 "type": "text",
@@ -537,6 +543,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "isAborted": false,
           "isContinuation": false,
           "messages": [
             {
@@ -595,6 +602,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "isAborted": false,
           "isContinuation": false,
           "messages": [
             {

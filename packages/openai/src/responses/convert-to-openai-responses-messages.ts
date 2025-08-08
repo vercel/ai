@@ -3,18 +3,24 @@ import {
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { OpenAIResponsesPrompt } from './openai-responses-api-types';
+import { parseProviderOptions } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import {
+  OpenAIResponsesPrompt,
+  OpenAIResponsesReasoning,
+} from './openai-responses-api-types';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 
-export function convertToOpenAIResponsesMessages({
+export async function convertToOpenAIResponsesMessages({
   prompt,
   systemMessageMode,
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
-}): {
+}): Promise<{
   messages: OpenAIResponsesPrompt;
   warnings: Array<LanguageModelV2CallWarning>;
-} {
+}> {
   const messages: OpenAIResponsesPrompt = [];
   const warnings: Array<LanguageModelV2CallWarning> = [];
 
@@ -64,12 +70,14 @@ export function convertToOpenAIResponsesMessages({
 
                   return {
                     type: 'input_image',
-                    image_url:
-                      part.data instanceof URL
-                        ? part.data.toString()
-                        : `data:${mediaType};base64,${part.data}`,
-
-                    // OpenAI specific extension: image detail
+                    ...(part.data instanceof URL
+                      ? { image_url: part.data.toString() }
+                      : typeof part.data === 'string' &&
+                          part.data.startsWith('file-')
+                        ? { file_id: part.data }
+                        : {
+                            image_url: `data:${mediaType};base64,${part.data}`,
+                          }),
                     detail: part.providerOptions?.openai?.imageDetail,
                   };
                 } else if (part.mediaType === 'application/pdf') {
@@ -79,11 +87,15 @@ export function convertToOpenAIResponsesMessages({
                       functionality: 'PDF file parts with URLs',
                     });
                   }
-
                   return {
                     type: 'input_file',
-                    filename: part.filename ?? `part-${index}.pdf`,
-                    file_data: `data:application/pdf;base64,${part.data}`,
+                    ...(typeof part.data === 'string' &&
+                    part.data.startsWith('file-')
+                      ? { file_id: part.data }
+                      : {
+                          filename: part.filename ?? `part-${index}.pdf`,
+                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                        }),
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
@@ -99,12 +111,16 @@ export function convertToOpenAIResponsesMessages({
       }
 
       case 'assistant': {
+        const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
+
         for (const part of content) {
           switch (part.type) {
             case 'text': {
               messages.push({
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
+                id:
+                  (part.providerOptions?.openai?.itemId as string) ?? undefined,
               });
               break;
             }
@@ -118,6 +134,8 @@ export function convertToOpenAIResponsesMessages({
                 call_id: part.toolCallId,
                 name: part.toolName,
                 arguments: JSON.stringify(part.input),
+                id:
+                  (part.providerOptions?.openai?.itemId as string) ?? undefined,
               });
               break;
             }
@@ -127,6 +145,53 @@ export function convertToOpenAIResponsesMessages({
                 type: 'other',
                 message: `tool result parts in assistant messages are not supported for OpenAI responses`,
               });
+              break;
+            }
+
+            case 'reasoning': {
+              const providerOptions = await parseProviderOptions({
+                provider: 'openai',
+                providerOptions: part.providerOptions,
+                schema: openaiResponsesReasoningProviderOptionsSchema,
+              });
+
+              const reasoningId = providerOptions?.itemId;
+
+              if (reasoningId != null) {
+                const existingReasoningMessage = reasoningMessages[reasoningId];
+
+                const summaryParts: Array<{
+                  type: 'summary_text';
+                  text: string;
+                }> = [];
+
+                if (part.text.length > 0) {
+                  summaryParts.push({ type: 'summary_text', text: part.text });
+                } else if (existingReasoningMessage !== undefined) {
+                  warnings.push({
+                    type: 'other',
+                    message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                  });
+                }
+
+                if (existingReasoningMessage === undefined) {
+                  reasoningMessages[reasoningId] = {
+                    type: 'reasoning',
+                    id: reasoningId,
+                    encrypted_content:
+                      providerOptions?.reasoningEncryptedContent,
+                    summary: summaryParts,
+                  };
+                  messages.push(reasoningMessages[reasoningId]);
+                } else {
+                  existingReasoningMessage.summary.push(...summaryParts);
+                }
+              } else {
+                warnings.push({
+                  type: 'other',
+                  message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                });
+              }
               break;
             }
           }
@@ -171,3 +236,12 @@ export function convertToOpenAIResponsesMessages({
 
   return { messages, warnings };
 }
+
+const openaiResponsesReasoningProviderOptionsSchema = z.object({
+  itemId: z.string().nullish(),
+  reasoningEncryptedContent: z.string().nullish(),
+});
+
+export type OpenAIResponsesReasoningProviderOptions = z.infer<
+  typeof openaiResponsesReasoningProviderOptionsSchema
+>;

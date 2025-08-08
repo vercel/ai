@@ -31,7 +31,6 @@ or to provide a custom fetch implementation for e.g. testing.
 export interface LumaProvider extends ProviderV2 {
   /**
 Creates a model for image generation.
-@deprecated Use `imageModel` instead.
   */
   image(modelId: LumaImageModelId): ImageModelV2;
 

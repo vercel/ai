@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import transformer from '../codemods/rewrite-framework-imports';
+import transformer from '../codemods/v4/rewrite-framework-imports';
 import { testTransform } from './test-utils';
 
 describe('rewrite-framework-imports', () => {

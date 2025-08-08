@@ -3,7 +3,7 @@
 import debug from 'debug';
 import { Command } from 'commander';
 import { transform } from '../lib/transform';
-import { upgrade } from '../lib/upgrade';
+import { upgrade, upgradeV4, upgradeV5 } from '../lib/upgrade';
 import { TransformOptions } from '../lib/transform-options';
 
 const log = debug('codemod');
@@ -41,12 +41,34 @@ addTransformOptions(
 addTransformOptions(
   program
     .command('upgrade')
-    .description('Upgrade ai package dependencies and apply codemods'),
+    .description('Upgrade ai package dependencies and apply all codemods'),
 ).action((options: TransformOptions) => {
   try {
     upgrade(options);
   } catch (err: any) {
     error(`Error upgrading: ${err}`);
+    process.exit(1);
+  }
+});
+
+addTransformOptions(
+  program.command('v4').description('Apply v4 codemods (v3 → v4 migration)'),
+).action((options: TransformOptions) => {
+  try {
+    upgradeV4(options);
+  } catch (err: any) {
+    error(`Error applying v4 codemods: ${err}`);
+    process.exit(1);
+  }
+});
+
+addTransformOptions(
+  program.command('v5').description('Apply v5 codemods (v4 → v5 migration)'),
+).action((options: TransformOptions) => {
+  try {
+    upgradeV5(options);
+  } catch (err: any) {
+    error(`Error applying v5 codemods: ${err}`);
     process.exit(1);
   }
 });

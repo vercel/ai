@@ -44,24 +44,21 @@ Install `ai` and `@ai-sdk/openai`, the AI SDK's OpenAI provider.
   in the [providers](/providers) section.
 </Note>
 <div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+    <Tab>
+      <Snippet text="pnpm add -D ai @ai-sdk/openai @ai-sdk/svelte zod" dark />
+    </Tab>
     <Tab>
       <Snippet
-        text="pnpm add -D ai@beta @ai-sdk/openai@beta @ai-sdk/svelte@beta zod"
+        text="npm install -D ai @ai-sdk/openai @ai-sdk/svelte zod"
         dark
       />
     </Tab>
     <Tab>
-      <Snippet
-        text="npm install -D ai@beta @ai-sdk/openai@beta @ai-sdk/svelte@beta zod"
-        dark
-      />
+      <Snippet text="yarn add -D ai @ai-sdk/openai @ai-sdk/svelte zod" dark />
     </Tab>
     <Tab>
-      <Snippet
-        text="yarn add -D ai@beta @ai-sdk/openai@beta @ai-sdk/svelte@beta zod"
-        dark
-      />
+      <Snippet text="bun add -d ai @ai-sdk/openai @ai-sdk/svelte zod" dark />
     </Tab>
   </Tabs>
 </div>
@@ -201,7 +198,13 @@ Modify your `src/routes/api/chat/+server.ts` file to include the new weather too
 
 ```tsx filename="src/routes/api/chat/+server.ts" highlight="2,3,17-31"
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, type UIMessage, convertToModelMessages, tool } from 'ai';
+import {
+  streamText,
+  type UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
 import { z } from 'zod';
 
 import { OPENAI_API_KEY } from '$env/static/private';
@@ -308,33 +311,21 @@ Now, when you ask about the weather, you'll see the tool call and its result dis
 
 You may have noticed that while the tool is now visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
-To solve this, you can enable multi-step tool calls using the `maxSteps` option in your `Chat` class. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
-
-### Update Your UI
-
-Modify your `src/routes/+page.svelte` file to include the `maxSteps` option:
-
-```svelte filename="src/routes/+page.svelte" highlight="4"
-<script>
-  import { Chat } from '@ai-sdk/svelte';
-
-  const chat = new Chat({ maxSteps: 5 });
-</script>
-
-<!-- ... rest of your component code -->
-```
-
-Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
-
-By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
+To solve this, you can enable multi-step tool calls using `stopWhen`. By default, `stopWhen` is set to `stepCountIs(1)`, which means generation stops after the first step when there are tool results. By changing this condition, you can allow the model to automatically send tool results back to itself to trigger additional generations until your specified stopping condition is met. In this case, you want the model to continue generating so it can use the weather tool results to answer your original question.
 
 ### Update Your API Route
 
-Update your `src/routes/api/chat/+server.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
+Modify your `src/routes/api/chat/+server.ts` file to include the `stopWhen` condition:
 
-```tsx filename="src/routes/api/chat/+server.ts" highlight="31-44"
+```ts filename="src/routes/api/chat/+server.ts" highlight="15"
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, type UIMessage, convertToModelMessages, tool } from 'ai';
+import {
+  streamText,
+  type UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
 import { z } from 'zod';
 
 import { OPENAI_API_KEY } from '$env/static/private';
@@ -349,6 +340,60 @@ export async function POST({ request }) {
   const result = streamText({
     model: openai('gpt-4o'),
     messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location (fahrenheit)',
+        inputSchema: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          const temperature = Math.round(Math.random() * (90 - 32) + 32);
+          return {
+            location,
+            temperature,
+          };
+        },
+      }),
+    },
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
+
+By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
+
+### Add another tool
+
+Update your `src/routes/api/chat/+server.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
+
+```tsx filename="src/routes/api/chat/+server.ts" highlight="32-45"
+import { createOpenAI } from '@ai-sdk/openai';
+import {
+  streamText,
+  type UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
+import { z } from 'zod';
+
+import { OPENAI_API_KEY } from '$env/static/private';
+
+const openai = createOpenAI({
+  apiKey: OPENAI_API_KEY,
+});
+
+export async function POST({ request }) {
+  const { messages }: { messages: UIMessage[] } = await request.json();
+
+  const result = streamText({
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
@@ -384,14 +429,16 @@ export async function POST({ request }) {
 }
 ```
 
+### Update Your Frontend
+
 Update your UI to handle the new temperature conversion tool by modifying the tool part handling:
 
-```svelte filename="src/routes/+page.svelte" highlight="21"
+```svelte filename="src/routes/+page.svelte" highlight="17"
 <script lang="ts">
   import { Chat } from '@ai-sdk/svelte';
 
   let input = '';
-  const chat = new Chat({ maxSteps: 5 });
+  const chat = new Chat({});
 
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();

@@ -5,13 +5,20 @@ description: Learn how to use the Mixedbread provider.
 
 # Mixedbread Provider
 
+<Note type="warning">
+  This community provider is not yet compatible with AI SDK 5. It uses the
+  deprecated `.embedding()` method instead of the standard
+  `.textEmbeddingModel()` method. Please wait for the provider to be updated or
+  consider using an [AI SDK 5 compatible provider](/providers/ai-sdk-providers).
+</Note>
+
 [patelvivekdev/mixedbread-ai-provider](https://github.com/patelvivekdev/mixedbread-ai-provider) is a community provider that uses [Mixedbread](https://www.mixedbread.ai/) to provide Embedding support for the AI SDK.
 
 ## Setup
 
 The Mixedbread provider is available in the `mixedbread-ai-provider` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add mixedbread-ai-provider" dark />
   </Tab>
@@ -20,6 +27,10 @@ The Mixedbread provider is available in the `mixedbread-ai-provider` module. You
   </Tab>
   <Tab>
     <Snippet text="yarn add mixedbread-ai-provider" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add mixedbread-ai-provider" dark />
   </Tab>
 </Tabs>
 
@@ -60,7 +71,7 @@ using the `.embedding()` factory method.
 ```ts
 import { mixedbread } from 'mixedbread-ai-provider';
 
-const embeddingModel = mixedbread.textEmbeddingModel(
+const embeddingModel = mixedbread.embedding(
   'mixedbread-ai/mxbai-embed-large-v1',
 );
 ```
@@ -85,7 +96,7 @@ The settings object should contain the settings you want to add to the model.
 ```ts
 import { mixedbread } from 'mixedbread-ai-provider';
 
-const embeddingModel = mixedbread.textEmbeddingModel(
+const embeddingModel = mixedbread.embedding(
   'mixedbread-ai/mxbai-embed-large-v1',
   {
     prompt: 'Generate embeddings for text', // Max 256 characters

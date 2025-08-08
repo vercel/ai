@@ -5,7 +5,7 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { experimental_useObject } from './use-object';
 
 const server = createTestServer({
@@ -26,18 +26,19 @@ describe('text stream', () => {
     headers?: Record<string, string> | Headers;
     credentials?: RequestCredentials;
   }) => {
-    const { object, error, submit, isLoading, stop } = experimental_useObject({
-      api: '/api/use-object',
-      schema: z.object({ content: z.string() }),
-      onError(error) {
-        onErrorResult = error;
-      },
-      onFinish(event) {
-        onFinishCalls.push(event);
-      },
-      headers,
-      credentials,
-    });
+    const { object, error, submit, isLoading, stop, clear } =
+      experimental_useObject({
+        api: '/api/use-object',
+        schema: z.object({ content: z.string() }),
+        onError(error) {
+          onErrorResult = error;
+        },
+        onFinish(event) {
+          onFinishCalls.push(event);
+        },
+        headers,
+        credentials,
+      });
 
     return (
       <div>
@@ -52,6 +53,9 @@ describe('text stream', () => {
         </button>
         <button data-testid="stop-button" onClick={stop}>
           Stop
+        </button>
+        <button data-testid="clear-button" onClick={clear}>
+          Clear
         </button>
       </div>
     );
@@ -167,6 +171,37 @@ describe('text stream', () => {
       });
     });
 
+    it('should stop and clear the object state after a call to submit then clear', async () => {
+      const controller = new TestResponseController();
+      server.urls['/api/use-object'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      controller.write('{"content": "h');
+      await userEvent.click(screen.getByTestId('submit-button'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('true');
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('object')).toHaveTextContent(
+          '{"content":"h"}',
+        );
+      });
+
+      await userEvent.click(screen.getByTestId('clear-button'));
+
+      await expect(controller.write('ello, world!"}')).rejects.toThrow();
+      await expect(controller.close()).rejects.toThrow();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('false');
+        expect(screen.getByTestId('error')).toBeEmptyDOMElement();
+        expect(screen.getByTestId('object')).toBeEmptyDOMElement();
+      });
+    });
+
     describe('when the API returns a 404', () => {
       it('should render error', async () => {
         server.urls['/api/use-object'].response = {
@@ -246,5 +281,28 @@ describe('text stream', () => {
     render(<TestComponent credentials="include" />);
     await userEvent.click(screen.getByTestId('submit-button'));
     expect(server.calls[0].requestCredentials).toBe('include');
+  });
+
+  it('should clear the object state after a call to clear', async () => {
+    server.urls['/api/use-object'].response = {
+      type: 'stream-chunks',
+      chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+    };
+
+    render(<TestComponent />);
+    await userEvent.click(screen.getByTestId('submit-button'));
+
+    await screen.findByTestId('object');
+    expect(screen.getByTestId('object')).toHaveTextContent(
+      JSON.stringify({ content: 'Hello, world!' }),
+    );
+
+    await userEvent.click(screen.getByTestId('clear-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('object')).toBeEmptyDOMElement();
+      expect(screen.getByTestId('error')).toBeEmptyDOMElement();
+      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    });
   });
 });

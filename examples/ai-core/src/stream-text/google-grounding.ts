@@ -4,17 +4,15 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: google('gemini-2.0-flash-exp'),
-    providerOptions: {
-      google: {
-        useSearchGrounding: true,
-      },
+    model: google('gemini-2.5-flash'),
+    tools: {
+      google_search: google.tools.googleSearch({}),
     },
     prompt: 'List the top 5 San Francisco news from the past week.',
   });
 
   for await (const part of result.fullStream) {
-    if (part.type === 'text') {
+    if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     }
 

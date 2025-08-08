@@ -7,7 +7,6 @@
 
   const chat = new Chat({
     id: page.params.id,
-    maxSteps: 5,
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {
       // artificial 2 second delay
@@ -15,7 +14,13 @@
 
       if (toolCall.toolName === 'getLocation') {
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
-        return cities[Math.floor(Math.random() * cities.length)];
+        const location = cities[Math.floor(Math.random() * cities.length)];
+
+        await chat.addToolResult({
+          toolCallId: toolCall.toolCallId,
+          tool: 'getLocation',
+          output: location,
+        });
       }
     },
   });
@@ -43,7 +48,7 @@
   <div
     class="grid h-full w-full max-w-4xl grid-cols-1 grid-rows-[1fr,120px] p-2"
   >
-    <div class="w-full h-full overflow-y-auto">
+    <div class="overflow-y-auto w-full h-full">
       {#each chat.messages as message (message.id)}
         <div
           class="{mapRoleToClass(
@@ -53,61 +58,58 @@
           {#each message.parts as part, i (i)}
             {#if part.type === 'text'}
               {part.text}
-            {:else if part.type === 'tool-invocation'}
-              {@const toolCallId = part.toolInvocation.toolCallId}
-              {@const toolName = part.toolInvocation.toolName}
-              {@const state = part.toolInvocation.state}
-
-              {#if toolName === 'askForConfirmation'}
-                {#if state === 'call'}
-                  <div class="flex flex-col gap-2">
-                    {part.toolInvocation.input.message}
-                    <div class="flex gap-2">
-                      <Button
-                        variant="default"
-                        onclick={() =>
-                          chat.addToolResult({
-                            toolCallId,
-                            result: 'Yes, confirmed',
-                          })}>Yes</Button
-                      >
-                      <Button
-                        variant="secondary"
-                        onclick={() =>
-                          chat.addToolResult({
-                            toolCallId,
-                            result: 'No, denied',
-                          })}>No</Button
-                      >
-                    </div>
+            {:else if part.type === 'tool-askForConfirmation'}
+              {#if part.state === 'input-available'}
+                {@const input = part.input as { message: string }}
+                <div class="flex flex-col gap-2">
+                  {input.message}
+                  <div class="flex gap-2">
+                    <Button
+                      variant="default"
+                      onclick={() =>
+                        chat.addToolResult({
+                          toolCallId: part.toolCallId,
+                          tool: 'askForConfirmation',
+                          output: 'Yes, confirmed',
+                        })}>Yes</Button
+                    >
+                    <Button
+                      variant="secondary"
+                      onclick={() =>
+                        chat.addToolResult({
+                          toolCallId: part.toolCallId,
+                          tool: 'askForConfirmation',
+                          output: 'No, denied',
+                        })}>No</Button
+                    >
                   </div>
-                {:else if state === 'result'}
-                  <div class="text-gray-500">
-                    {part.toolInvocation.result}
-                  </div>
-                {/if}
-              {:else if toolName === 'getLocation'}
-                {#if state === 'call'}
-                  <div class="text-gray-500">Getting location...</div>
-                {:else if state === 'result'}
-                  <div class="text-gray-500">
-                    Location: {part.toolInvocation.result}
-                  </div>
-                {/if}
-              {:else if toolName === 'getWeatherInformation'}
-                {#if state === 'partial-call'}
-                  <pre>{JSON.stringify(part.toolInvocation, null, 2)}</pre>
-                {:else if state === 'call'}
-                  <div class="text-gray-500">
-                    Getting weather information for {part.toolInvocation.args
-                      .city}...
-                  </div>
-                {:else if state === 'result'}
-                  <div class="text-gray-500">
-                    Weather in {part.toolInvocation.input.city}: {part
-                      .toolInvocation.result}
-                  </div>
-                {/if}
+                </div>
+              {:else if part.state === 'output-available'}
+                <div class="text-gray-500">
+                  {part.output}
+                </div>
+              {/if}
+            {:else if part.type === 'tool-getLocation'}
+              {#if part.state === 'input-available'}
+                <div class="text-gray-500">Getting location...</div>
+              {:else if part.state === 'output-available'}
+                <div class="text-gray-500">
+                  Location: {part.output}
+                </div>
+              {/if}
+            {:else if part.type === 'tool-getWeatherInformation'}
+              {#if part.state === 'input-streaming'}
+                <pre>{JSON.stringify(part, null, 2)}</pre>
+              {:else if part.state === 'input-available'}
+                {@const input = part.input as { city: string }}
+                <div class="text-gray-500">
+                  Getting weather information for {input.city}...
+                </div>
+              {:else if part.state === 'output-available'}
+                {@const input = part.input as { city: string }}
+                <div class="text-gray-500">
+                  Weather in {input.city}: {part.output}
+                </div>
               {/if}
             {/if}
           {/each}
@@ -137,7 +139,7 @@
         {disabled}
         type="submit"
         size="icon"
-        class="absolute bottom-3 right-3"
+        class="absolute right-3 bottom-3"
       >
         <ArrowUp />
       </Button>

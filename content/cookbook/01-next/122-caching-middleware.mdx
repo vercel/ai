@@ -6,6 +6,8 @@ tags: ['next', 'streaming', 'caching', 'middleware']
 
 # Caching Middleware
 
+<Note type="warning">This example is not yet updated to v5.</Note>
+
 Let's create a simple chat interface that uses [`LanguageModelMiddleware`](/docs/ai-sdk-core/middleware) to cache the assistant's responses in fast KV storage.
 
 ## Client
@@ -181,7 +183,7 @@ export async function POST(req: Request) {
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => ({

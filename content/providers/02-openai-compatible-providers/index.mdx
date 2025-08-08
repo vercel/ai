@@ -21,7 +21,7 @@ The general setup and provider instance creation is the same for all of these pr
 
 The OpenAI Compatible provider is available via the `@ai-sdk/openai-compatible` module. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
   </Tab>
@@ -30,6 +30,10 @@ The OpenAI Compatible provider is available via the `@ai-sdk/openai-compatible` 
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
   </Tab>
 </Tabs>
 
@@ -44,6 +48,7 @@ const provider = createOpenAICompatible({
   name: 'provider-name',
   apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
+  includeUsage: true, // Include usage information in streaming responses
 });
 ```
 
@@ -74,6 +79,10 @@ You can use the following optional settings to customize the provider instance:
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+
+- **includeUsage** _boolean_
+
+  Include usage information in streaming responses. When enabled, usage data will be included in the response metadata for streaming requests. Defaults to `undefined` (`false`).
 
 ## Language Models
 

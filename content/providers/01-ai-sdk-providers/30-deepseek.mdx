@@ -13,7 +13,7 @@ API keys can be obtained from the [DeepSeek Platform](https://platform.deepseek.
 
 The DeepSeek provider is available via the `@ai-sdk/deepseek` module. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/deepseek" dark />
   </Tab>
@@ -22,6 +22,10 @@ The DeepSeek provider is available via the `@ai-sdk/deepseek` module. You can in
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/deepseek" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/deepseek" dark />
   </Tab>
 </Tabs>
 
@@ -77,24 +81,39 @@ const { text } = await generateText({
 });
 ```
 
+You can also use the `.chat()` or `.languageModel()` factory methods:
+
+```ts
+const model = deepseek.chat('deepseek-chat');
+// or
+const model = deepseek.languageModel('deepseek-chat');
+```
+
 DeepSeek language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 ### Reasoning
 
-DeepSeek has reasoning support for the `deepseek-reasoner` model:
+DeepSeek has reasoning support for the `deepseek-reasoner` model. The reasoning is exposed through streaming:
 
 ```ts
 import { deepseek } from '@ai-sdk/deepseek';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 
-const { text, reasoning } = await generateText({
+const result = streamText({
   model: deepseek('deepseek-reasoner'),
-  prompt: 'How many people will live in the world in 2040?',
+  prompt: 'How many "r"s are in the word "strawberry"?',
 });
 
-console.log(reasoning);
-console.log(text);
+for await (const part of result.fullStream) {
+  if (part.type === 'reasoning') {
+    // This is the reasoning text
+    console.log('Reasoning:', part.text);
+  } else if (part.type === 'text') {
+    // This is the final answer
+    console.log('Answer:', part.text);
+  }
+}
 ```
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details

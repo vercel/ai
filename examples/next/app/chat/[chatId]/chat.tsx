@@ -26,29 +26,26 @@ export default function ChatComponent({
     transport: new DefaultChatTransport({
       prepareSendMessagesRequest: ({ id, messages, trigger, messageId }) => {
         switch (trigger) {
-          case 'regenerate-assistant-message':
+          case 'regenerate-message':
             // omit messages data transfer, only send the messageId:
             return {
               body: {
-                trigger: 'regenerate-assistant-message',
+                trigger: 'regenerate-message',
                 id,
                 messageId,
               },
             };
 
-          case 'submit-user-message':
+          case 'submit-message':
             // only send the last message to the server to limit the request size:
             return {
               body: {
-                trigger: 'submit-user-message',
+                trigger: 'submit-message',
                 id,
                 message: messages[messages.length - 1],
                 messageId,
               },
             };
-
-          case 'submit-tool-result':
-            throw new Error(`submit-tool-result is not supported`);
         }
       },
     }),
@@ -72,7 +69,7 @@ export default function ChatComponent({
   }, []);
 
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+    <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       {messages.map(message => (
         <Message
           key={message.id}

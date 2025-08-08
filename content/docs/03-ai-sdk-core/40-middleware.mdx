@@ -182,7 +182,10 @@ Here are some examples of how to implement language model middleware:
 This example shows how to log the parameters and generated text of a language model call.
 
 ```ts
-import type { LanguageModelV2Middleware, LanguageModelV2StreamPart } from 'ai';
+import type {
+  LanguageModelV2Middleware,
+  LanguageModelV2StreamPart,
+} from '@ai-sdk/provider';
 
 export const yourLogMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
@@ -204,14 +207,31 @@ export const yourLogMiddleware: LanguageModelV2Middleware = {
     const { stream, ...rest } = await doStream();
 
     let generatedText = '';
+    const textBlocks = new Map<string, string>();
 
     const transformStream = new TransformStream<
       LanguageModelV2StreamPart,
       LanguageModelV2StreamPart
     >({
       transform(chunk, controller) {
-        if (chunk.type === 'text') {
-          generatedText += chunk.text;
+        switch (chunk.type) {
+          case 'text-start': {
+            textBlocks.set(chunk.id, '');
+            break;
+          }
+          case 'text-delta': {
+            const existing = textBlocks.get(chunk.id) || '';
+            textBlocks.set(chunk.id, existing + chunk.delta);
+            generatedText += chunk.delta;
+            break;
+          }
+          case 'text-end': {
+            console.log(
+              `Text block ${chunk.id} completed:`,
+              textBlocks.get(chunk.id),
+            );
+            break;
+          }
         }
 
         controller.enqueue(chunk);
@@ -236,7 +256,7 @@ export const yourLogMiddleware: LanguageModelV2Middleware = {
 This example shows how to build a simple cache for the generated text of a language model call.
 
 ```ts
-import type { LanguageModelV2Middleware } from 'ai';
+import type { LanguageModelV2Middleware } from '@ai-sdk/provider';
 
 const cache = new Map<string, any>();
 
@@ -270,7 +290,7 @@ This example shows how to use RAG as middleware.
 </Note>
 
 ```ts
-import type { LanguageModelV2Middleware } from 'ai';
+import type { LanguageModelV2Middleware } from '@ai-sdk/provider';
 
 export const yourRagMiddleware: LanguageModelV2Middleware = {
   transformParams: async ({ params }) => {
@@ -299,7 +319,7 @@ Guard rails are a way to ensure that the generated text of a language model call
 is safe and appropriate. This example shows how to use guardrails as middleware.
 
 ```ts
-import type { LanguageModelV2Middleware } from 'ai';
+import type { LanguageModelV2Middleware } from '@ai-sdk/provider';
 
 export const yourGuardrailMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate }) => {
@@ -323,7 +343,8 @@ To send and access custom metadata in Middleware, you can use `providerOptions`.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateText, wrapLanguageModel, LanguageModelV2Middleware } from 'ai';
+import { generateText, wrapLanguageModel } from 'ai';
+import type { LanguageModelV2Middleware } from '@ai-sdk/provider';
 
 export const yourLogMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
