@@ -13,6 +13,13 @@ export const openaiResponsesReasoningModelIds = [
   'o4-mini-2025-04-16',
   'codex-mini-latest',
   'computer-use-preview',
+  'gpt-5',
+  'gpt-5-2025-08-07',
+  'gpt-5-mini',
+  'gpt-5-mini-2025-08-07',
+  'gpt-5-nano',
+  'gpt-5-nano-2025-08-07',
+  'gpt-5-chat-latest',
 ] as const;
 
 export const openaiResponsesModelIds = [
