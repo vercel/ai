@@ -668,6 +668,72 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send textVerbosity provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              textVerbosity: 'medium',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5",
+            "text": {
+              "verbosity": "medium",
+            },
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send textVerbosity provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              textVerbosity: 'high',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5",
+            "text": {
+              "verbosity": "high",
+            },
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send responseFormat json format', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: { type: 'json' },
