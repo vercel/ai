@@ -49,6 +49,9 @@ export type OpenAIChatModelId =
   | 'gpt-5'
   | 'gpt-5-mini'
   | 'gpt-5-nano'
+  | 'gpt-5-2025-08-07'
+  | 'gpt-5-mini-2025-08-07'
+  | 'gpt-5-nano-2025-08-07'
   | (string & {});
 
 export const openaiProviderOptions = z.object({
