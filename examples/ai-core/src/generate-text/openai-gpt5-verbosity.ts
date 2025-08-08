@@ -4,18 +4,21 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: openai.responses('gpt-5-mini'),
+    model: openai.responses('gpt-5'),
     prompt: 'Write a poem about a boy and his first pet dog.',
     providerOptions: {
       openai: {
-        verbosity: 'low',
+        text: {
+          verbosity: 'low',
+        },
       },
     },
   });
 
-  console.log('Verbosity: low');
   console.log('Output tokens:', result.usage?.outputTokens);
   console.log('Text:', result.text);
+  console.log('Request:', result.request?.body);
+  console.log('Response:', result.response?.body);
 }
 
 main().catch(console.error);
