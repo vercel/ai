@@ -111,18 +111,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       top_p: topP,
       max_output_tokens: maxOutputTokens,
 
-      ...(responseFormat?.type === 'json' && {
+      ...((responseFormat?.type === 'json' || openaiOptions?.verbosity) && {
         text: {
-          format:
-            responseFormat.schema != null
-              ? {
-                  type: 'json_schema',
-                  strict: strictJsonSchema,
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                  schema: responseFormat.schema,
-                }
-              : { type: 'json_object' },
+          ...(responseFormat?.type === 'json' && {
+            format:
+              responseFormat.schema != null
+                ? {
+                    type: 'json_schema',
+                    strict: strictJsonSchema,
+                    name: responseFormat.name ?? 'response',
+                    description: responseFormat.description,
+                    schema: responseFormat.schema,
+                  }
+                : { type: 'json_object' },
+          }),
+          ...(openaiOptions?.verbosity && { verbosity: openaiOptions.verbosity }),
         },
       }),
 
@@ -135,7 +138,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
       include: openaiOptions?.include,
-      verbosity: openaiOptions?.verbosity,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&

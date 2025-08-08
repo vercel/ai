@@ -807,6 +807,7 @@ const result = await generateText({
   prompt: 'Write a poem about a boy and his first pet dog.',
   providerOptions: {
     openai: {
+      text: {
       verbosity: 'low', // 'low' for concise, 'medium' (default), or 'high' for verbose
     },
   },
