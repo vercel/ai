@@ -112,7 +112,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       max_output_tokens: maxOutputTokens,
 
       ...((responseFormat?.type === 'json' ||
-        openaiOptions?.text?.verbosity) && {
+        openaiOptions?.textVerbosity) && {
         text: {
           ...(responseFormat?.type === 'json' && {
             format:
@@ -126,8 +126,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   }
                 : { type: 'json_object' },
           }),
-          ...(openaiOptions?.text?.verbosity && {
-            verbosity: openaiOptions.text.verbosity,
+          ...(openaiOptions?.textVerbosity && {
+            verbosity: openaiOptions.textVerbosity,
           }),
         },
       }),
@@ -1169,11 +1169,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   include: z
     .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
     .nullish(),
-  text: z
-    .object({
-      verbosity: z.enum(['low', 'medium', 'high']).nullish(),
-    })
-    .nullish(),
+  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

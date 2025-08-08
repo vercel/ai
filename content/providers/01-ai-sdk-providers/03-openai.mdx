@@ -687,7 +687,7 @@ The following provider options are available:
   at the cost of increased latency. Only available for o3 and o4-mini models.
   Defaults to 'auto'.
 
-- **verbosity** _'low' | 'medium' | 'high'_
+- **textVerbosity** _'low' | 'medium' | 'high'_
   Controls the verbosity of the model's response. Lower values result in more concise responses,
   while higher values result in more verbose responses. Defaults to `'medium'`.
 
@@ -796,7 +796,7 @@ Learn more about reasoning summaries in the [OpenAI documentation](https://platf
 
 #### Verbosity Control
 
-You can control the length and detail of model responses using the `verbosity` parameter:
+You can control the length and detail of model responses using the `textVerbosity` parameter:
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -807,15 +807,13 @@ const result = await generateText({
   prompt: 'Write a poem about a boy and his first pet dog.',
   providerOptions: {
     openai: {
-      text: {
-        verbosity: 'low', // 'low' for concise, 'medium' (default), or 'high' for verbose
-      },
+      textVerbosity: 'low', // 'low' for concise, 'medium' (default), or 'high' for verbose
     },
   },
 });
 ```
 
-The verbosity parameter scales output length without changing the underlying prompt:
+The textVerbosity parameter scales output length without changing the underlying prompt:
 
 - `'low'`: Produces terse, minimal responses
 - `'medium'`: Balanced detail (default)

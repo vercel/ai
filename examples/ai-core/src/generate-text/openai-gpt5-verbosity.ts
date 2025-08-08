@@ -8,9 +8,7 @@ async function main() {
     prompt: 'Write a poem about a boy and his first pet dog.',
     providerOptions: {
       openai: {
-        text: {
-          verbosity: 'low',
-        },
+        textVerbosity: 'low',
       },
     },
   });
