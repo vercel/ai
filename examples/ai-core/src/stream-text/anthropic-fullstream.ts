@@ -6,7 +6,7 @@ import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = streamText({
-    model: anthropic('claude-3-5-sonnet-20240620'),
+    model: anthropic('claude-3-5-sonnet-latest'),
     tools: {
       weather: weatherTool,
       cityAttractions: {

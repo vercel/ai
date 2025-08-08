@@ -1,10 +1,6 @@
 export const openaiResponsesReasoningModelIds = [
   'o1',
   'o1-2024-12-17',
-  'o1-mini',
-  'o1-mini-2024-09-12',
-  'o1-preview',
-  'o1-preview-2024-09-12',
   'o3-mini',
   'o3-mini-2025-01-31',
   'o3',
