@@ -89,6 +89,28 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     await job({ state, write: () => {} });
   };
 
+  let finishCalled = false;
+
+  const callOnFinish = async () => {
+    if (finishCalled || !onFinish) {
+      return;
+    }
+    finishCalled = true;
+
+    const isContinuation = state.message.id === lastMessage?.id;
+    await onFinish({
+      isAborted,
+      isContinuation,
+      responseMessage: state.message as UI_MESSAGE,
+      messages: [
+        ...(isContinuation
+          ? originalMessages.slice(0, -1)
+          : originalMessages),
+        state.message,
+      ] as UI_MESSAGE[],
+    });
+  };
+
   return processUIMessageStream<UI_MESSAGE>({
     stream: idInjectedStream,
     runUpdateMessageJob,
@@ -98,23 +120,16 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       InferUIMessageChunk<UI_MESSAGE>,
       InferUIMessageChunk<UI_MESSAGE>
     >({
-      transform(chunk, controller) {
+      async transform(chunk, controller) {
         controller.enqueue(chunk);
+
+        if (chunk.type === 'abort') {
+          await callOnFinish();
+        }
       },
 
       async flush() {
-        const isContinuation = state.message.id === lastMessage?.id;
-        await onFinish({
-          isAborted,
-          isContinuation,
-          responseMessage: state.message as UI_MESSAGE,
-          messages: [
-            ...(isContinuation
-              ? originalMessages.slice(0, -1)
-              : originalMessages),
-            state.message,
-          ] as UI_MESSAGE[],
-        });
+        await callOnFinish();
       },
     }),
   );
