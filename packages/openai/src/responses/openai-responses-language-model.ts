@@ -111,8 +111,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       top_p: topP,
       max_output_tokens: maxOutputTokens,
 
-      ...((responseFormat?.type === 'json' ||
-        openaiOptions?.textVerbosity) && {
+      ...((responseFormat?.type === 'json' || openaiOptions?.textVerbosity) && {
         text: {
           ...(responseFormat?.type === 'json' && {
             format:
