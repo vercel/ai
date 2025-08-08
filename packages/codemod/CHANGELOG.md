@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 2.0.3
+
+### Patch Changes
+
+- 58fff3f: fixes generateText text property transform
+
 ## 2.0.2
 
 ### Patch Changes
