@@ -686,9 +686,10 @@ The following provider options are available:
 - **strictJsonSchema** _boolean_
   Whether to use strict JSON schema validation. Defaults to `false`.
 
-- **serviceTier** _'auto' | 'flex'_
+- **serviceTier** _'auto' | 'flex' | 'priority'_
   Service tier for the request. Set to 'flex' for 50% cheaper processing
-  at the cost of increased latency. Only available for o3, o4-mini, and gpt-5 models.
+  at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
+  Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
   Defaults to 'auto'.
 
 - **include** _Array&lt;string&gt;_
