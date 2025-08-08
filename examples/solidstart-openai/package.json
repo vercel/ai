@@ -14,7 +14,7 @@
     "vinxi": "^0.4.3"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.3.23",
+    "@ai-sdk/openai": "1.3.24",
     "@ai-sdk/solid": "1.2.13",
     "@ai-sdk/ui-utils": "1.2.11",
     "@solidjs/meta": "0.29.4",
