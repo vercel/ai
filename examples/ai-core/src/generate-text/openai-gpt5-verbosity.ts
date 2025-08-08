@@ -15,9 +15,7 @@ async function main() {
     },
   });
 
-  console.log('Output tokens:', result.usage?.outputTokens);
-  console.log('Text:', result.text);
-  console.log('Request:', result.request?.body);
+  console.log('Verbosity:', (result.request?.body as any)?.text?.verbosity);
   console.log('Response:', result.response?.body);
 }
 
