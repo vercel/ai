@@ -1581,7 +1581,7 @@ describe('doGenerate', () => {
       type: 'unsupported-setting',
       setting: 'serviceTier',
       details:
-        'priority processing is only available for supported models (GPT-4, o3, o4-mini) and requires Enterprise access',
+        'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
     });
   });
 
