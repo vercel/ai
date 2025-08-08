@@ -284,6 +284,7 @@ describe('doGenerate', () => {
           "top_logprobs": undefined,
           "top_p": undefined,
           "user": undefined,
+          "verbosity": undefined,
         },
       }
     `);
@@ -2560,6 +2561,7 @@ describe('doStream', () => {
           "top_logprobs": undefined,
           "top_p": undefined,
           "user": undefined,
+          "verbosity": undefined,
         },
       }
     `);
