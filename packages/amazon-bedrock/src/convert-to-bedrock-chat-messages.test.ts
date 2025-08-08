@@ -545,7 +545,7 @@ describe('assistant messages', () => {
   });
 
   it('should filter out empty text blocks in assistant messages', async () => {
-    const result = convertToBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Hello' }],
@@ -558,7 +558,7 @@ describe('assistant messages', () => {
             type: 'tool-call',
             toolCallId: 'call-123',
             toolName: 'test',
-            args: {},
+            input: {},
           },
           { type: 'text', text: '  ' },
           { type: 'text', text: 'actual content' },
