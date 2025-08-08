@@ -111,18 +111,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       top_p: topP,
       max_output_tokens: maxOutputTokens,
 
-      ...(responseFormat?.type === 'json' && {
+      ...((responseFormat?.type === 'json' || openaiOptions?.textVerbosity) && {
         text: {
-          format:
-            responseFormat.schema != null
-              ? {
-                  type: 'json_schema',
-                  strict: strictJsonSchema,
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                  schema: responseFormat.schema,
-                }
-              : { type: 'json_object' },
+          ...(responseFormat?.type === 'json' && {
+            format:
+              responseFormat.schema != null
+                ? {
+                    type: 'json_schema',
+                    strict: strictJsonSchema,
+                    name: responseFormat.name ?? 'response',
+                    description: responseFormat.description,
+                    schema: responseFormat.schema,
+                  }
+                : { type: 'json_object' },
+          }),
+          ...(openaiOptions?.textVerbosity && {
+            verbosity: openaiOptions.textVerbosity,
+          }),
         },
       }),
 
@@ -1170,6 +1175,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   include: z
     .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
     .nullish(),
+  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<
