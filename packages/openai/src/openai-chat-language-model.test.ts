@@ -1508,7 +1508,7 @@ describe('doGenerate', () => {
     expect(result.warnings).toContainEqual({
       type: 'unsupported-setting',
       setting: 'serviceTier',
-      details: 'flex processing is only available for o3 and o4-mini models',
+      details: 'flex processing is only available for o3, o4-mini, and gpt-5 models',
     });
   });
 
