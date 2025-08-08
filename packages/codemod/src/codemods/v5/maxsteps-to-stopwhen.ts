@@ -57,28 +57,19 @@ export default createTransformer((fileInfo, api, options, context) => {
     if (maxStepsPropIdx === -1) return;
     const maxStepsProp = objArg.properties[maxStepsPropIdx];
 
-    let stepValue: number | string | null = null;
-    if (j.Property.check(maxStepsProp)) {
-      if (
-        j.Literal.check(maxStepsProp.value) &&
-        typeof maxStepsProp.value.value === 'number'
-      ) {
-        stepValue = maxStepsProp.value.value;
-      } else if (j.Identifier.check(maxStepsProp.value)) {
-        stepValue = maxStepsProp.value.name;
-      } else return;
+    if (
+      !j.Property.check(maxStepsProp) ||
+      (!j.Literal.check(maxStepsProp.value) &&
+        !j.Identifier.check(maxStepsProp.value) &&
+        !j.BinaryExpression.check(maxStepsProp.value))
+    ) {
+      return;
     }
 
     const stopWhenProp = j.property(
       'init',
       j.identifier('stopWhen'),
-      j.callExpression(j.identifier('stepCountIs'), [
-        typeof stepValue === 'number'
-          ? j.literal(stepValue)
-          : typeof stepValue === 'string'
-            ? j.identifier(stepValue)
-            : j.literal(''),
-      ]),
+      j.callExpression(j.identifier('stepCountIs'), [maxStepsProp.value]),
     );
     objArg.properties.splice(maxStepsPropIdx, 1, stopWhenProp);
     shouldAddStepCountIsImport = true;

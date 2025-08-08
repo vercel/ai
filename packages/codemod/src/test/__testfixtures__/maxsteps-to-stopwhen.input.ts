@@ -8,6 +8,27 @@ async function foo() {
     messages: [],
     maxSteps: 5,
   });
+
+  const maxSteps = 5;
+
+  await generateText({
+    model: 'gpt-4',
+    messages: [],
+    maxSteps,
+  });
+
+  await generateText({
+    model: 'gpt-4',
+    messages: [],
+    maxSteps: 5 + 5,
+  });
+
+  await generateText({
+    model: 'gpt-4',
+    messages: [],
+    maxSteps: maxSteps + 5,
+  });
+
   return result;
 }
 
