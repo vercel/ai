@@ -11,7 +11,7 @@ The [OpenAI](https://openai.com/) provider contains language model support for t
 
 The OpenAI provider is available in the `@ai-sdk/openai` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/openai" dark />
   </Tab>
@@ -20,6 +20,10 @@ The OpenAI provider is available in the `@ai-sdk/openai` module. You can install
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/openai" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai" dark />
   </Tab>
 </Tabs>
 
@@ -216,7 +220,7 @@ The following optional provider options are available for OpenAI chat models:
 - **serviceTier** _'auto' | 'flex'_
 
   Service tier for the request. Set to 'flex' for 50% cheaper processing
-  at the cost of increased latency. Only available for o3 and o4-mini models.
+  at the cost of increased latency. Only available for o3, o4-mini, and gpt-5 models.
   Defaults to 'auto'.
 
 - **strictJsonSchema** _boolean_
@@ -684,7 +688,7 @@ The following provider options are available:
 
 - **serviceTier** _'auto' | 'flex'_
   Service tier for the request. Set to 'flex' for 50% cheaper processing
-  at the cost of increased latency. Only available for o3 and o4-mini models.
+  at the cost of increased latency. Only available for o3, o4-mini, and gpt-5 models.
   Defaults to 'auto'.
 
 - **include** _Array&lt;string&gt;_
@@ -743,6 +747,53 @@ const result = await generateText({
 const sources = result.sources;
 ```
 
+#### Reasoning Output
+
+For reasoning models like `gpt-5`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available.
+
+```ts highlight="8-9,16"
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: openai.responses('gpt-5'),
+  prompt: 'Tell me about the Mission burrito debate in San Francisco.',
+  providerOptions: {
+    openai: {
+      reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'reasoning') {
+    console.log(`Reasoning: ${part.textDelta}`);
+  } else if (part.type === 'text-delta') {
+    process.stdout.write(part.textDelta);
+  }
+}
+```
+
+For non-streaming calls with `generateText`, the reasoning summaries are available in the `reasoning` field of the response:
+
+```ts highlight="8-9,13"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5'),
+  prompt: 'Tell me about the Mission burrito debate in San Francisco.',
+  providerOptions: {
+    openai: {
+      reasoningSummary: 'auto',
+    },
+  },
+});
+console.log('Reasoning:', result.reasoning);
+```
+
+Learn more about reasoning summaries in the [OpenAI documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries).
+
 #### File Search
 
 The OpenAI responses provider supports file search through the `openai.tools.fileSearch` tool.
@@ -780,53 +831,6 @@ const result = await generateText({
   functionality. This name is required by OpenAI's API specification and cannot
   be customized.
 </Note>
-
-#### Reasoning Summaries
-
-For reasoning models like `o3-mini`, `o3`, and `o4-mini`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available.
-
-```ts highlight="8-9,16"
-import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
-
-const result = streamText({
-  model: openai.responses('o4-mini'),
-  prompt: 'Tell me about the Mission burrito debate in San Francisco.',
-  providerOptions: {
-    openai: {
-      reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
-    },
-  },
-});
-
-for await (const part of result.fullStream) {
-  if (part.type === 'reasoning') {
-    console.log(`Reasoning: ${part.textDelta}`);
-  } else if (part.type === 'text-delta') {
-    process.stdout.write(part.textDelta);
-  }
-}
-```
-
-For non-streaming calls with `generateText`, the reasoning summaries are available in the `reasoning` field of the response:
-
-```ts highlight="8-9,13"
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-
-const result = await generateText({
-  model: openai.responses('o3-mini'),
-  prompt: 'Tell me about the Mission burrito debate in San Francisco.',
-  providerOptions: {
-    openai: {
-      reasoningSummary: 'auto',
-    },
-  },
-});
-console.log('Reasoning:', result.reasoning);
-```
-
-Learn more about reasoning summaries in the [OpenAI documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries).
 
 #### Image Support
 
@@ -1052,12 +1056,14 @@ The following optional provider options are available for OpenAI completion mode
 | `gpt-4`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-3.5-turbo`        | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `o1`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o1-mini`              | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `o1-preview`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `o3-mini`              | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `o3`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `o4-mini`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `chatgpt-4o-latest`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-5`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-mini`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-nano`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-chat-latest`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [OpenAI

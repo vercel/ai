@@ -1,5 +1,20 @@
 # @ai-sdk/openai
 
+## 2.0.6
+
+### Patch Changes
+
+- ad2255f: chore(docs): added gpt 5 models + removed deprecated models
+- 64bcb66: feat(provider/openai): models ids on chat
+- 1d42ff2: feat(provider/openai): models ids
+
+## 2.0.5
+
+### Patch Changes
+
+- 6753a2e: feat(examples): add gpt-5 model examples and e2e tests
+- 6cba06a: feat (provider/openai): add reasoning model config
+
 ## 2.0.4
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.3
+
+### Patch Changes
+
+- a0934f8: feat (provider/openai-compatible): look for reasoning in 'reasoning' field as well
+
 ## 1.0.2
 
 ### Patch Changes

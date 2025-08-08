@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.4
+
+### Patch Changes
+
+- 35f93ce: feat (provider/gateway): add new model ids
+
 ## 1.0.3
 
 ### Patch Changes

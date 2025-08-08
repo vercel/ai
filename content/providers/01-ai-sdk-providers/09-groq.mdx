@@ -12,7 +12,7 @@ The [Groq](https://groq.com/) provider contains language model support for the G
 The Groq provider is available via the `@ai-sdk/groq` module.
 You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/groq" dark />
   </Tab>
@@ -21,6 +21,10 @@ You can install it with
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/groq" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/groq" dark />
   </Tab>
 </Tabs>
 
@@ -107,14 +111,21 @@ The following optional provider options are available for Groq language models:
 
   For a complete list of reasoning models and their capabilities, see [Groq's reasoning models documentation](https://console.groq.com/docs/reasoning).
 
-- **reasoningEffort** _'none' | 'default'_
+- **reasoningEffort** _'low' | 'meduim' | 'high' | 'none' | 'default'_
 
-  Controls the level of effort the model will put into reasoning. Only supported by the `qwen/qwen3-32b` model.
+  Controls the level of effort the model will put into reasoning.
 
-  - `none`: Disable reasoning. The model will not use any reasoning tokens.
-  - `default`: Enable reasoning.
+  - `qwen/qwen3-32b`
+    - Supported values:
+      - `none`: Disable reasoning. The model will not use any reasoning tokens.
+      - `default`: Enable reasoning.
+  - `gpt-oss20b/gpt-oss120b`
+    - Supported values:
+      - `low`: Use a low level of reasoning effort.
+      - `medium`: Use a medium level of reasoning effort.
+      - `high`: Use a high level of reasoning effort.
 
-  Defaults to `default`.
+  Defaults to `default` for `qwen/qwen3-32b.`
 
 - **structuredOutputs** _boolean_
 

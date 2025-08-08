@@ -200,7 +200,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'serviceTier',
-        details: 'flex processing is only available for o3 and o4-mini models',
+        details:
+          'flex processing is only available for o3, o4-mini, and gpt-5 models',
       });
       // Remove from args if not supported
       delete (baseArgs as any).service_tier;
@@ -1110,6 +1111,7 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   // o series reasoning models:
   if (
     modelId.startsWith('o') ||
+    modelId.startsWith('gpt-5') ||
     modelId.startsWith('codex-') ||
     modelId.startsWith('computer-use')
   ) {
@@ -1137,7 +1139,11 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
 }
 
 function supportsFlexProcessing(modelId: string): boolean {
-  return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
+  return (
+    modelId.startsWith('o3') ||
+    modelId.startsWith('o4-mini') ||
+    modelId.startsWith('gpt-5')
+  );
 }
 
 function supportsPriorityProcessing(modelId: string): boolean {

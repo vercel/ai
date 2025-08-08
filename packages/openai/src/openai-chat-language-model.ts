@@ -264,7 +264,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'serviceTier',
-        details: 'flex processing is only available for o3 and o4-mini models',
+        details:
+          'flex processing is only available for o3, o4-mini, and gpt-5 models',
       });
       baseArgs.service_tier = undefined;
     }
@@ -840,11 +841,15 @@ const openaiChatChunkSchema = z.union([
 ]);
 
 function isReasoningModel(modelId: string) {
-  return modelId.startsWith('o');
+  return modelId.startsWith('o') || modelId.startsWith('gpt-5');
 }
 
 function supportsFlexProcessing(modelId: string) {
-  return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
+  return (
+    modelId.startsWith('o3') ||
+    modelId.startsWith('o4-mini') ||
+    modelId.startsWith('gpt-5')
+  );
 }
 
 function supportsPriorityProcessing(modelId: string) {
