@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 2.0.2
+
+### Patch Changes
+
+- 23a1916: fix Message transform for generic types
+
 ## 2.0.1
 
 ### Patch Changes
