@@ -2,7 +2,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import { UIMessageChunk } from './ui-message-chunks';
@@ -367,6 +367,51 @@ describe('handleUIMessageStreamFinish', () => {
 
       const callArgs = onFinishCallback.mock.calls[0][0];
       expect(callArgs.isAborted).toBe(true);
+    });
+
+    it('should call onFinish when stream is aborted without finish event', async () => {
+      const onFinishCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-abort-no-finish' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Partial text before abort' },
+        { type: 'abort' },
+        // No finish event - simulates real abort scenario
+      ];
+
+      const originalMessages: UIMessage[] = [
+        {
+          id: 'user-msg-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'User request' }],
+        },
+      ];
+
+      const stream = createUIMessageStream(inputChunks);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-abort-no-finish',
+        originalMessages,
+        onError: mockErrorHandler,
+        onFinish: onFinishCallback,
+      });
+
+      const result = await convertReadableStreamToArray(resultStream);
+
+      expect(result).toEqual(inputChunks);
+      
+      // The key assertion: onFinish should be called even without a finish event
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.isAborted).toBe(true);
+      expect(callArgs.isContinuation).toBe(false);
+      expect(callArgs.responseMessage.id).toBe('msg-abort-no-finish');
+      expect(callArgs.responseMessage.parts).toEqual([
+        { type: 'text', text: 'Partial text before abort', state: 'streaming', providerMetadata: undefined }
+      ]);
+      expect(callArgs.messages).toHaveLength(2); // user message + partial assistant message
     });
   });
 });
