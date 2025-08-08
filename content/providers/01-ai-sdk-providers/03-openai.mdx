@@ -687,6 +687,10 @@ The following provider options are available:
   at the cost of increased latency. Only available for o3 and o4-mini models.
   Defaults to 'auto'.
 
+- **verbosity** _'low' | 'medium' | 'high'_
+  Controls the verbosity of the model's response. Lower values result in more concise responses,
+  while higher values result in more verbose responses. Defaults to `'medium'`.
+
 - **include** _Array&lt;string&gt;_
   Specifies additional content to include in the response. Supported values:
   `['reasoning.encrypted_content']` for accessing reasoning content across conversation steps,
@@ -789,6 +793,31 @@ console.log('Reasoning:', result.reasoning);
 ```
 
 Learn more about reasoning summaries in the [OpenAI documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries).
+
+#### Verbosity Control
+
+You can control the length and detail of model responses using the `verbosity` parameter:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5-mini'),
+  prompt: 'Write a poem about a boy and his first pet dog.',
+  providerOptions: {
+    openai: {
+      verbosity: 'low', // 'low' for concise, 'medium' (default), or 'high' for verbose
+    },
+  },
+});
+```
+
+The verbosity parameter scales output length without changing the underlying prompt:
+
+- `'low'`: Produces terse, minimal responses
+- `'medium'`: Balanced detail (default)
+- `'high'`: Verbose responses with comprehensive detail
 
 #### File Search
 
