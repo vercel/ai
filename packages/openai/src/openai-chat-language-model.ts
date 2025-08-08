@@ -140,6 +140,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
             : undefined,
       user: openaiOptions.user,
       parallel_tool_calls: openaiOptions.parallelToolCalls,
+      verbosity: openaiOptions.verbosity,
 
       // standardized settings:
       max_tokens: maxOutputTokens,
