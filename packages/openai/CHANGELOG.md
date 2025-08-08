@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 2.0.7
+
+### Patch Changes
+
+- 4738f18: feat(openai): add flex processing support for gpt-5 models
+- 013d747: feat(openai): add verbosity parameter support for responses api
+- 35feee8: feat(openai): add priority processing support for gpt-5 models
+
 ## 2.0.6
 
 ### Patch Changes
