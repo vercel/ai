@@ -125,7 +125,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   }
                 : { type: 'json_object' },
           }),
-          ...(openaiOptions?.verbosity && { verbosity: openaiOptions.verbosity }),
+          ...(openaiOptions?.verbosity && {
+            verbosity: openaiOptions.verbosity,
+          }),
         },
       }),
 
