@@ -4,6 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAIResponsesTool } from './openai-responses-api-types';
+import { fileSearchArgsSchema } from '../tool/file-search';
 
 export function prepareResponsesTools({
   tools,
@@ -19,6 +20,7 @@ export function prepareResponsesTools({
     | 'auto'
     | 'none'
     | 'required'
+    | { type: 'file_search' }
     | { type: 'web_search_preview' }
     | { type: 'function'; name: string }
     | { type: 'code_interpreter' };
@@ -48,6 +50,19 @@ export function prepareResponsesTools({
         break;
       case 'provider-defined':
         switch (tool.id) {
+          case 'openai.file_search': {
+            const args = fileSearchArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'file_search',
+              vector_store_ids: args.vectorStoreIds,
+              max_num_results: args.maxNumResults,
+              ranking_options: args.ranking
+                ? { ranker: args.ranking.ranker }
+                : undefined,
+              filters: args.filters,
+            });
+            break;
+          }
           case 'openai.web_search_preview':
             openaiTools.push({
               type: 'web_search_preview',
@@ -94,11 +109,13 @@ export function prepareResponsesTools({
       return {
         tools: openaiTools,
         toolChoice:
-          toolChoice.toolName === 'web_search_preview'
-            ? { type: 'web_search_preview' }
-            : toolChoice.toolName === 'code_interpreter'
-              ? { type: 'code_interpreter' }
-              : { type: 'function', name: toolChoice.toolName },
+          toolChoice.toolName === 'file_search'
+            ? { type: 'file_search' }
+            : toolChoice.toolName === 'web_search_preview'
+              ? { type: 'web_search_preview' }
+              : toolChoice.toolName === 'code_interpreter'
+                ? { type: 'code_interpreter' }
+                : { type: 'function', name: toolChoice.toolName },
         toolWarnings,
       };
     default: {
