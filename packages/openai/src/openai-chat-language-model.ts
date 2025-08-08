@@ -279,7 +279,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         type: 'unsupported-setting',
         setting: 'serviceTier',
         details:
-          'priority processing is only available for supported models (GPT-4, o3, o4-mini) and requires Enterprise access',
+          'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
       });
       baseArgs.service_tier = undefined;
     }
@@ -855,6 +855,8 @@ function supportsFlexProcessing(modelId: string) {
 function supportsPriorityProcessing(modelId: string) {
   return (
     modelId.startsWith('gpt-4') ||
+    modelId.startsWith('gpt-5-mini') ||
+    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-nano')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini')
   );
