@@ -1352,6 +1352,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send verbosity setting', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          verbosity: 'low',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      verbosity: 'low',
+    });
+  });
+
   it('should send store extension setting', async () => {
     prepareJsonResponse({ content: '' });
 
