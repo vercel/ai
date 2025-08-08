@@ -15,7 +15,7 @@
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.3.23",
+    "@ai-sdk/openai": "1.3.24",
     "@nestjs/common": "^10.4.15",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.4.9",
