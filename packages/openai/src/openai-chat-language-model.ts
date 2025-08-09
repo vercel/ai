@@ -148,7 +148,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
       response_format:
-        responseFormat?.type === 'json' 
+        responseFormat?.type === 'json'
           ? structuredOutputs && responseFormat.schema != null
             ? {
                 type: 'json_schema',

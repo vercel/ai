@@ -1372,8 +1372,6 @@ describe('doGenerate', () => {
     });
   });
 
-
-
   it('should send store extension setting', async () => {
     prepareJsonResponse({ content: '' });
 
