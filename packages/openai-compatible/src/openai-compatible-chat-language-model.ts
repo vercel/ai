@@ -415,14 +415,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
               });
             }
 
-            if (value.usage != null) {
+            // usage may be at the top level or nested under choices[0]
+            const topLevelUsage = value.usage;
+            const choiceLevelUsage = value.choices?.[0]?.usage;
+            const effectiveUsage = topLevelUsage ?? choiceLevelUsage;
+            if (effectiveUsage != null) {
               const {
                 prompt_tokens,
                 completion_tokens,
                 total_tokens,
                 prompt_tokens_details,
                 completion_tokens_details,
-              } = value.usage;
+              } = effectiveUsage;
 
               usage.promptTokens = prompt_tokens ?? undefined;
               usage.completionTokens = completion_tokens ?? undefined;
@@ -761,6 +765,8 @@ const createOpenAICompatibleChatChunkSchema = <
             })
             .nullish(),
           finish_reason: z.string().nullish(),
+          // Some providers report usage within each choice in streaming chunks
+          usage: openaiCompatibleTokenUsageSchema,
         }),
       ),
       usage: openaiCompatibleTokenUsageSchema,
