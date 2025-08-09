@@ -2,4 +2,4 @@
 '@ai-sdk/openai': patch
 ---
 
-add verbosity settings in openai provider options
+feat(openai): add verbosity parameter support for chat api
