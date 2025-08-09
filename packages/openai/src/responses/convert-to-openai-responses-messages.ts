@@ -13,8 +13,10 @@ import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 /**
  * Check if a string is a file ID based on the given prefixes
+ * Returns false if prefixes is undefined (disables file ID detection)
  */
-function isFileId(data: string, prefixes: readonly string[]): boolean {
+function isFileId(data: string, prefixes?: readonly string[]): boolean {
+  if (!prefixes) return false;
   return prefixes.some(prefix => data.startsWith(prefix));
 }
 
@@ -25,7 +27,7 @@ export async function convertToOpenAIResponsesMessages({
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
-  fileIdPrefixes: readonly string[];
+  fileIdPrefixes?: readonly string[];
 }): Promise<{
   messages: OpenAIResponsesPrompt;
   warnings: Array<LanguageModelV2CallWarning>;

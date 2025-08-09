@@ -92,7 +92,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       await convertToOpenAIResponsesMessages({
         prompt,
         systemMessageMode: modelConfig.systemMessageMode,
-        fileIdPrefixes: this.config.fileIdPrefixes ?? ['file-'],
+        fileIdPrefixes: this.config.fileIdPrefixes,
       });
 
     warnings.push(...messageWarnings);
