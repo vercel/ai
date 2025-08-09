@@ -14,6 +14,7 @@ import {
   ImageModelV2,
   SpeechModelV2,
   TranscriptionModelV2,
+  NoSuchModelError,
 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 

@@ -1,4 +1,5 @@
 export type { Embedding, EmbeddingModel } from './embedding-model';
+export type { RerankingModel, RerankedDocument } from './reranking-model';
 export type {
   ImageModel,
   ImageGenerationWarning as ImageModelCallWarning,
@@ -24,4 +25,8 @@ export type {
   TranscriptionWarning,
 } from './transcription-model';
 export type { TranscriptionModelResponseMetadata } from './transcription-model-response-metadata';
-export type { EmbeddingModelUsage, LanguageModelUsage } from './usage';
+export type {
+  EmbeddingModelUsage,
+  LanguageModelUsage,
+  RerankingModelUsage,
+} from './usage';
