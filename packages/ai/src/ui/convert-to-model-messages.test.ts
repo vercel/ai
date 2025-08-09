@@ -216,7 +216,6 @@ describe('convertToModelMessages', () => {
     ]);
   });
 
-
   describe('assistant message', () => {
     it('should convert a simple assistant text message', () => {
       const result = convertToModelMessages([
