@@ -88,7 +88,9 @@ export function convertToModelMessages(
                   return {
                     type: 'file' as const,
                     mediaType: part.mediaType,
-                    filename: part.filename,
+                    ...(part.filename != null
+                      ? { filename: part.filename }
+                      : {}),
                     data: part.url,
                   };
                 default:
@@ -130,7 +132,9 @@ export function convertToModelMessages(
                 content.push({
                   type: 'file' as const,
                   mediaType: part.mediaType,
-                  filename: part.filename,
+                  ...(part.filename != null
+                    ? { filename: part.filename }
+                    : {}),
                   data: part.url,
                 });
               } else if (part.type === 'reasoning') {
