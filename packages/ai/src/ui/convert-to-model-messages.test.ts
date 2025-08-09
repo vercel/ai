@@ -188,6 +188,35 @@ describe('convertToModelMessages', () => {
     });
   });
 
+  it('should not include filename for user file parts when not provided', () => {
+    const result = convertToModelMessages([
+      {
+        role: 'user',
+        parts: [
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            url: 'https://example.com/image.jpg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            data: 'https://example.com/image.jpg',
+          },
+        ],
+      },
+    ]);
+  });
+
+
   describe('assistant message', () => {
     it('should convert a simple assistant text message', () => {
       const result = convertToModelMessages([
