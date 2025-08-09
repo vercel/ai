@@ -2,7 +2,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import { UIMessageChunk } from './ui-message-chunks';
@@ -367,6 +367,100 @@ describe('handleUIMessageStreamFinish', () => {
 
       const callArgs = onFinishCallback.mock.calls[0][0];
       expect(callArgs.isAborted).toBe(true);
+    });
+
+    it('should call onFinish when stream is aborted and reader is cancelled', async () => {
+      const onFinishCallback = vi.fn();
+
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-abort-no-finish' },
+        { type: 'text-start', id: 'text-1' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Partial text before abort',
+        },
+        { type: 'abort' },
+        // No finish event - simulates real abort scenario
+      ];
+
+      const originalMessages: UIMessage[] = [
+        {
+          id: 'user-msg-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'User request' }],
+        },
+      ];
+
+      // Create a stream that simulates an aborted connection
+      let chunkIndex = 0;
+      const stream = new ReadableStream<UIMessageChunk>({
+        pull(controller) {
+          if (chunkIndex < inputChunks.length) {
+            controller.enqueue(inputChunks[chunkIndex]);
+            chunkIndex++;
+
+            // After sending abort, don't close the stream normally
+            // This simulates what happens when connection is lost
+            if (inputChunks[chunkIndex - 1].type === 'abort') {
+              // Don't close, just stop sending data
+              // In a real scenario, the reader would be cancelled
+              return;
+            }
+          }
+        },
+      });
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-abort-no-finish',
+        originalMessages,
+        onError: mockErrorHandler,
+        onFinish: onFinishCallback,
+      });
+
+      // Read the stream but cancel after getting abort
+      const reader = resultStream.getReader();
+      const result: UIMessageChunk[] = [];
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          result.push(value);
+
+          // Cancel the reader after receiving abort, simulating connection loss
+          if (value.type === 'abort') {
+            await reader.cancel();
+            break;
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+      expect(result).toEqual(inputChunks);
+
+      // Wait a bit to ensure any async operations would have completed
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // The key assertion: WITH our fix, onFinish SHOULD be called
+      // even when the reader is cancelled after receiving abort
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.isAborted).toBe(true);
+      expect(callArgs.isContinuation).toBe(false);
+      expect(callArgs.responseMessage.id).toBe('msg-abort-no-finish');
+      expect(callArgs.responseMessage.parts).toEqual([
+        {
+          type: 'text',
+          text: 'Partial text before abort',
+          state: 'streaming',
+          providerMetadata: undefined,
+        },
+      ]);
+      expect(callArgs.messages).toHaveLength(2); // user message + partial assistant message
     });
   });
 });
