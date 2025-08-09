@@ -916,6 +916,90 @@ describe('assistant messages', () => {
     `);
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
+
+  it('should reorder thinking blocks to come first in final assistant message when extended thinking is enabled', async () => {
+    const warnings: LanguageModelV2CallWarning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Help me with something' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tool-1',
+              toolName: 'search',
+              input: '{"query": "test"}',
+            },
+            {
+              type: 'reasoning',
+              text: 'I need to think about this...',
+              providerOptions: {
+                anthropic: {
+                  signature: 'test-signature',
+                },
+              },
+            },
+            {
+              type: 'text',
+              text: 'Let me help you.',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      isThinking: true,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "Help me with something",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "signature": "test-signature",
+                  "thinking": "I need to think about this...",
+                  "type": "thinking",
+                },
+                {
+                  "cache_control": undefined,
+                  "id": "tool-1",
+                  "input": "{"query": "test"}",
+                  "name": "search",
+                  "type": "tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "text": "Let me help you.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
 });
 
 describe('cache control', () => {
