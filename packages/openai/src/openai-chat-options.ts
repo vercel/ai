@@ -130,6 +130,12 @@ export const openaiProviderOptions = z.object({
    * @default false
    */
   strictJsonSchema: z.boolean().optional(),
+
+  /**
+   * Controls the verbosity of the model's responses.
+   * Lower values will result in more concise responses, while higher values will result in more verbose responses.
+   */
+  textVerbosity: z.enum(['low', 'medium', 'high']).optional(),
 });
 
 export type OpenAIProviderOptions = z.infer<typeof openaiProviderOptions>;
