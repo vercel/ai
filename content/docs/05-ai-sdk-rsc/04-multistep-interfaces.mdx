@@ -89,7 +89,7 @@ export async function submitUserMessage(input: string) {
     tools: {
       searchFlights: {
         description: 'search for flights',
-        parameters: z.object({
+        inputSchema: z.object({
           source: z.string().describe('The origin of the flight'),
           destination: z.string().describe('The destination of the flight'),
           date: z.string().describe('The date of the flight'),
