@@ -415,10 +415,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
               });
             }
 
-            // usage may be at the top level or nested under choices[0]
-            const topLevelUsage = value.usage;
-            const choiceLevelUsage = value.choices?.[0]?.usage;
-            const effectiveUsage = topLevelUsage ?? choiceLevelUsage;
+            // Usage may be at the top level per spec or nested under choices[0]
+            // for some providers (e.g. moonshotai).
+            const effectiveUsage = value.usage ?? value.choices?.[0]?.usage;
             if (effectiveUsage != null) {
               const {
                 prompt_tokens,
