@@ -56,8 +56,21 @@ The word based chunking **does not work well** with the following languages that
 
 For these languages we recommend using a custom regex, like the following:
 
+- Korean - `/[\uAC00-\uD7A3]|\S+\s+/`
 - Chinese - `/[\u4E00-\u9FFF]|\S+\s+/`
 - Japanese - `/[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/`
+
+```tsx filename="Korean example"
+import { smoothStream, streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-4.1',
+  prompt: 'Your prompt here',
+  experimental_transform: smoothStream({
+    chunking: /[\uAC00-\uD7A3]|\S+\s+/,
+  }),
+});
+```
 
 ```tsx filename="Japanese example"
 import { smoothStream, streamText } from 'ai';
