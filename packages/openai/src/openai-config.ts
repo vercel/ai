@@ -6,4 +6,5 @@ export type OpenAIConfig = {
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   generateId?: () => string;
+  fileIdPrefixes?: readonly string[];
 };

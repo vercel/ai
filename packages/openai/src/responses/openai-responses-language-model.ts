@@ -33,7 +33,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
   constructor(modelId: OpenAIResponsesModelId, config: OpenAIConfig) {
     this.modelId = modelId;
-    this.config = config;
+    this.config = {
+      ...config,
+      fileIdPrefixes: config.fileIdPrefixes ?? ['file-'],
+    };
   }
 
   readonly supportedUrls: Record<string, RegExp[]> = {
@@ -92,6 +95,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       await convertToOpenAIResponsesMessages({
         prompt,
         systemMessageMode: modelConfig.systemMessageMode,
+        fileIdPrefixes: this.config.fileIdPrefixes,
       });
 
     warnings.push(...messageWarnings);
