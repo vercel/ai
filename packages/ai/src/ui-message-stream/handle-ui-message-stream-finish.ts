@@ -4,7 +4,6 @@ import {
   StreamingUIMessageState,
 } from '../ui/process-ui-message-stream';
 import { UIMessage } from '../ui/ui-messages';
-import { ErrorHandler } from '../util/error-handler';
 import { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
 import { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
 
@@ -28,7 +27,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
    */
   originalMessages?: UI_MESSAGE[];
 
-  onError: ErrorHandler;
+  onError: (error: unknown) => string | Promise<string>;
 
   onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
@@ -89,10 +88,18 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     await job({ state, write: () => {} });
   };
 
+  // Create a async-compatible error handler for processUIMessageStream
+  const asyncCompatibleOnError = (error: unknown) => {
+    // Don't await here, just trigger the async error handling
+    Promise.resolve(onError(error)).catch(() => {
+      // Ignore errors from onError itself, they're handled in createUIMessageStream
+    });
+  };
+
   return processUIMessageStream<UI_MESSAGE>({
     stream: idInjectedStream,
     runUpdateMessageJob,
-    onError,
+    onError: asyncCompatibleOnError,
   }).pipeThrough(
     new TransformStream<
       InferUIMessageChunk<UI_MESSAGE>,
