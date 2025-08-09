@@ -28,6 +28,34 @@ import {
 } from '../types';
 import { ObjectStreamPart } from './stream-object-result';
 
+function detectRecordSchema(schema: any): boolean {
+  try {
+    let jsonSchema;
+    if (typeof schema === 'object' && schema !== null) {
+      if ('_def' in schema) {
+        jsonSchema = asSchema(schema).jsonSchema;
+      } else if ('jsonSchema' in schema) {
+        jsonSchema = schema.jsonSchema;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+
+    return (
+      jsonSchema &&
+      jsonSchema.type === 'object' &&
+      jsonSchema.additionalProperties &&
+      typeof jsonSchema.additionalProperties === 'object' &&
+      (!jsonSchema.properties ||
+        Object.keys(jsonSchema.properties).length === 0)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'enum' | 'no-schema';
   readonly jsonSchema: JSONSchema7 | undefined;
@@ -102,33 +130,117 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
 
 const objectOutputStrategy = <OBJECT>(
   schema: Schema<OBJECT>,
-): OutputStrategy<DeepPartial<OBJECT>, OBJECT, never> => ({
-  type: 'object',
-  jsonSchema: schema.jsonSchema,
+): OutputStrategy<DeepPartial<OBJECT>, OBJECT, never> => {
+  const isRecord = detectRecordSchema(schema);
 
-  async validatePartialResult({ value, textDelta }) {
+  if (isRecord) {
+    const recordJsonSchema = schema.jsonSchema;
+    let valueSchema: any;
+    if (
+      recordJsonSchema.type === 'object' &&
+      recordJsonSchema.additionalProperties
+    ) {
+      valueSchema = recordJsonSchema.additionalProperties;
+    } else {
+      const { $schema, ...fallbackSchema } = recordJsonSchema;
+      valueSchema = fallbackSchema;
+    }
+
     return {
-      success: true,
-      value: {
-        // Note: currently no validation of partial results:
-        partial: value as DeepPartial<OBJECT>,
-        textDelta,
+      type: 'object',
+      jsonSchema: {
+        $schema: 'http://json-schema.org/draft-07/schema#',
+        type: 'object',
+        properties: {
+          items: {
+            type: 'object',
+            additionalProperties: valueSchema,
+          },
+        },
+        required: ['items'],
+        additionalProperties: false,
+      },
+
+      async validatePartialResult({ value, textDelta }) {
+        if (!isJSONObject(value) || !isJSONObject(value.items)) {
+          return {
+            success: false,
+            error: new TypeValidationError({
+              value,
+              cause: 'value must be an object that contains a record of items',
+            }),
+          };
+        }
+
+        const inputRecord = value.items as Record<string, JSONValue>;
+        const result = await safeValidateTypes({ value: inputRecord, schema });
+
+        if (!result.success) {
+          return result;
+        }
+
+        return {
+          success: true,
+          value: {
+            partial: result.value as DeepPartial<OBJECT>,
+            textDelta,
+          },
+        };
+      },
+
+      async validateFinalResult(
+        value: JSONValue | undefined,
+      ): Promise<ValidationResult<OBJECT>> {
+        if (!isJSONObject(value) || !isJSONObject(value.items)) {
+          return {
+            success: false,
+            error: new TypeValidationError({
+              value,
+              cause: 'value must be an object that contains a record of items',
+            }),
+          };
+        }
+
+        const inputRecord = value.items as Record<string, JSONValue>;
+        return safeValidateTypes({ value: inputRecord, schema });
+      },
+
+      createElementStream() {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'element streams in object mode',
+        });
       },
     };
-  },
+  }
 
-  async validateFinalResult(
-    value: JSONValue | undefined,
-  ): Promise<ValidationResult<OBJECT>> {
-    return safeValidateTypes({ value, schema });
-  },
+  return {
+    type: 'object',
+    jsonSchema: schema.jsonSchema,
 
-  createElementStream() {
-    throw new UnsupportedFunctionalityError({
-      functionality: 'element streams in object mode',
-    });
-  },
-});
+    async validatePartialResult({ value, textDelta }) {
+      return {
+        success: true,
+        value: {
+          // Note: currently no validation of partial results:
+          partial: value as DeepPartial<OBJECT>,
+          textDelta,
+        },
+      };
+    },
+
+    async validateFinalResult(
+      value: JSONValue | undefined,
+    ): Promise<ValidationResult<OBJECT>> {
+      return safeValidateTypes({ value, schema });
+    },
+
+    createElementStream() {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'element streams in object mode',
+      });
+    },
+  };
+};
 
 const arrayOutputStrategy = <ELEMENT>(
   schema: Schema<ELEMENT>,

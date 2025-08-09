@@ -88,7 +88,6 @@ Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
 
 @param output - The type of the output.
-
 - 'object': The output is an object.
 - 'array': The output is an array.
 - 'enum': The output is an enum.
