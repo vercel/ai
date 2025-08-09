@@ -499,6 +499,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass textVerbosity setting from provider options', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('gpt-4o');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { textVerbosity: 'low' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: 'Hello' }],
+      verbosity: 'low',
+    });
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -1353,24 +1372,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should send verbosity setting', async () => {
-    prepareJsonResponse({ content: '' });
 
-    await model.doGenerate({
-      prompt: TEST_PROMPT,
-      providerOptions: {
-        openai: {
-          verbosity: 'low',
-        },
-      },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: 'Hello' }],
-      verbosity: 'low',
-    });
-  });
 
   it('should send store extension setting', async () => {
     prepareJsonResponse({ content: '' });
