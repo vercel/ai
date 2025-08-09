@@ -4,11 +4,11 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: openai.chat('gpt-5'),
+    model: openai.responses('gpt-5'),
     prompt: 'Write a poem about a boy and his first pet dog.',
     providerOptions: {
       openai: {
-        textVerbosity: 'high',
+        textVerbosity: 'low',
       },
     },
   });
