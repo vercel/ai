@@ -85,7 +85,7 @@ export const openaiProviderOptions = z.object({
   /**
    * Reasoning effort for reasoning models. Defaults to `medium`.
    */
-  reasoningEffort: z.enum(['minimal', 'low', 'medium', 'high']).optional(),
+  reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
 
   /**
    * Maximum number of completion tokens to generate. Useful for reasoning models.
