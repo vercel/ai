@@ -64,12 +64,14 @@ export function convertToGroqChatMessages(
           function: { name: string; arguments: string };
         }> = [];
 
+        // TODO figure out how to handle reasoning
         for (const part of content) {
           switch (part.type) {
             case 'text': {
               text += part.text;
               break;
             }
+
             case 'tool-call': {
               toolCalls.push({
                 id: part.toolCallId,
