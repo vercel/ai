@@ -3884,7 +3884,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       },
     ];
 
-
     beforeEach(() => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'json-value',
@@ -3921,7 +3920,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
     it('should pass fileIdPrefixes to convertToOpenAIResponsesMessages', async () => {
       const model = createModel('gpt-4o', ['file-']);
-      
+
       await model.doGenerate({
         prompt: TEST_PROMPT_WITH_FILE,
       });
@@ -3938,10 +3937,9 @@ describe('OpenAIResponsesLanguageModel', () => {
       ]);
     });
 
-
     it('should handle multiple file ID prefixes', async () => {
       const model = createModel('gpt-4o', ['file-', 'custom-']);
-      
+
       await model.doGenerate({
         prompt: [
           {
@@ -3978,7 +3976,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
     it('should fall back to base64 when fileIdPrefixes is undefined', async () => {
       const model = createModel('gpt-4o'); // no fileIdPrefixes
-      
+
       await model.doGenerate({
         prompt: TEST_PROMPT_WITH_FILE,
       });
@@ -3989,7 +3987,10 @@ describe('OpenAIResponsesLanguageModel', () => {
           role: 'user',
           content: [
             { type: 'input_text', text: 'Analyze this image' },
-            { type: 'input_image', image_url: 'data:image/jpeg;base64,file-abc123' },
+            {
+              type: 'input_image',
+              image_url: 'data:image/jpeg;base64,file-abc123',
+            },
           ],
         },
       ]);
@@ -3997,7 +3998,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
     it('should fall back to base64 when prefix does not match', async () => {
       const model = createModel('gpt-4o', ['other-']);
-      
+
       await model.doGenerate({
         prompt: TEST_PROMPT_WITH_FILE,
       });
@@ -4008,7 +4009,10 @@ describe('OpenAIResponsesLanguageModel', () => {
           role: 'user',
           content: [
             { type: 'input_text', text: 'Analyze this image' },
-            { type: 'input_image', image_url: 'data:image/jpeg;base64,file-abc123' },
+            {
+              type: 'input_image',
+              image_url: 'data:image/jpeg;base64,file-abc123',
+            },
           ],
         },
       ]);

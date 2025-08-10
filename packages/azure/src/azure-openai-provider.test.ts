@@ -680,7 +680,10 @@ describe('responses', () => {
           role: 'user',
           content: [
             { type: 'input_text', text: 'Analyze this image' },
-            { type: 'input_image', image_url: 'data:image/jpeg;base64,file-abc123' },
+            {
+              type: 'input_image',
+              image_url: 'data:image/jpeg;base64,file-abc123',
+            },
           ],
         },
       ]);
