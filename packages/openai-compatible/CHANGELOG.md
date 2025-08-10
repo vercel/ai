@@ -1,5 +1,12 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.4
+
+### Patch Changes
+
+- 5f4c71f: feat (provider/openai-compatible): fall back to look for usage in choices
+- da314cd: chore (provider/openai-compatible): inline usage fallback logic
+
 ## 1.0.3
 
 ### Patch Changes

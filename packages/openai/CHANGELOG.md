@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 2.0.8
+
+### Patch Changes
+
+- 57fb959: feat(openai): add verbosity parameter support for chat api
+- 2a3fbe6: allow `minimal` in `reasoningEffort` for openai chat
+
 ## 2.0.7
 
 ### Patch Changes

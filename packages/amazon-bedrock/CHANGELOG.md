@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.4
+
+### Patch Changes
+
+- 9aa06a7: filter out blank text blocks
+
 ## 3.0.3
 
 ### Patch Changes

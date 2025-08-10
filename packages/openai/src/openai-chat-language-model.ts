@@ -163,6 +163,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           : undefined,
       stop: stopSequences,
       seed,
+      verbosity: openaiOptions.textVerbosity,
 
       // openai specific settings:
       // TODO remove in next major version; we auto-map maxOutputTokens now

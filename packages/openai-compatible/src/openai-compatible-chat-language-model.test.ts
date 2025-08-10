@@ -2217,6 +2217,85 @@ describe('doStream', () => {
         }
       `);
     });
+
+    it('should fall back to choice-level usage when top-level usage is missing', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}` +
+            '\n\n',
+          // final chunk with usage nested inside the first choice
+          `data: {"id":"chat-id","choices":[{"index":0,"delta":{},"finish_reason":"stop","usage":{"prompt_tokens":21,"completion_tokens":89,"total_tokens":110}}]}` +
+            '\n\n',
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart).toMatchInlineSnapshot(`
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 21,
+            "outputTokens": 89,
+            "reasoningTokens": undefined,
+            "totalTokens": 110,
+          },
+        }
+      `);
+    });
+
+    it('should prefer top-level usage over choice-level usage when both are present', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}` +
+            '\n\n',
+          // final chunk with both top-level usage and choice-level usage (different values)
+          `data: {"id":"chat-id","choices":[{"index":0,"delta":{},"finish_reason":"stop","usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}],"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}` +
+            '\n\n',
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      // Should use the top-level usage (10/20/30), not the nested one (1/2/3)
+      expect(finishPart).toMatchInlineSnapshot(`
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 10,
+            "outputTokens": 20,
+            "reasoningTokens": undefined,
+            "totalTokens": 30,
+          },
+        }
+      `);
+    });
   });
 });
 

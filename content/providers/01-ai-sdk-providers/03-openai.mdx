@@ -188,7 +188,7 @@ The following optional provider options are available for OpenAI chat models:
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
 
-- **reasoningEffort** _'low' | 'medium' | 'high'_
+- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high'_
 
   Reasoning effort for reasoning models. Defaults to `medium`. If you use
   `providerOptions` to set the `reasoningEffort` option, this
@@ -227,6 +227,10 @@ The following optional provider options are available for OpenAI chat models:
 
   Whether to use strict JSON schema validation.
   Defaults to `false`.
+
+- **textVerbosity** _'low' | 'medium' | 'high'_
+
+  Controls the verbosity of the model's responses. Lower values will result in more concise responses, while higher values will result in more verbose responses.
 
 #### Reasoning
 
@@ -677,7 +681,7 @@ The following provider options are available:
 - **user** _string_
   A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Defaults to `undefined`.
 
-- **reasoningEffort** _'low' | 'medium' | 'high'_
+- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high'_
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
 - **reasoningSummary** _'auto' | 'detailed'_
