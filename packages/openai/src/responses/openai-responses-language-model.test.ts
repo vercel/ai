@@ -47,12 +47,13 @@ const nonReasoningModelIds = openaiResponsesModelIds.filter(
     ),
 );
 
-function createModel(modelId: string) {
+function createModel(modelId: string, fileIdPrefixes?: readonly string[]) {
   return new OpenAIResponsesLanguageModel(modelId, {
     provider: 'openai',
     url: ({ path }) => `https://api.openai.com/v1${path}`,
     headers: () => ({ Authorization: `Bearer APIKEY` }),
     generateId: mockId(),
+    fileIdPrefixes,
   });
 }
 
@@ -3865,6 +3866,152 @@ describe('OpenAIResponsesLanguageModel', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('fileIdPrefixes configuration', () => {
+    const TEST_PROMPT_WITH_FILE: LanguageModelV2Prompt = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Analyze this image' },
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            data: 'file-abc123',
+          },
+        ],
+      },
+    ];
+
+
+    beforeEach(() => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_test',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_test',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'I can see the image.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5,
+            total_tokens: 15,
+          },
+          incomplete_details: null,
+        },
+      };
+    });
+
+    it('should pass fileIdPrefixes to convertToOpenAIResponsesMessages', async () => {
+      const model = createModel('gpt-4o', ['file-']);
+      
+      await model.doGenerate({
+        prompt: TEST_PROMPT_WITH_FILE,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Analyze this image' },
+            { type: 'input_image', file_id: 'file-abc123' },
+          ],
+        },
+      ]);
+    });
+
+
+    it('should handle multiple file ID prefixes', async () => {
+      const model = createModel('gpt-4o', ['file-', 'custom-']);
+      
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Compare these images' },
+              {
+                type: 'file',
+                mediaType: 'image/jpeg',
+                data: 'file-abc123',
+              },
+              {
+                type: 'file',
+                mediaType: 'image/jpeg',
+                data: 'custom-xyz789',
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Compare these images' },
+            { type: 'input_image', file_id: 'file-abc123' },
+            { type: 'input_image', file_id: 'custom-xyz789' },
+          ],
+        },
+      ]);
+    });
+
+    it('should fall back to base64 when fileIdPrefixes is undefined', async () => {
+      const model = createModel('gpt-4o'); // no fileIdPrefixes
+      
+      await model.doGenerate({
+        prompt: TEST_PROMPT_WITH_FILE,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Analyze this image' },
+            { type: 'input_image', image_url: 'data:image/jpeg;base64,file-abc123' },
+          ],
+        },
+      ]);
+    });
+
+    it('should fall back to base64 when prefix does not match', async () => {
+      const model = createModel('gpt-4o', ['other-']);
+      
+      await model.doGenerate({
+        prompt: TEST_PROMPT_WITH_FILE,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Analyze this image' },
+            { type: 'input_image', image_url: 'data:image/jpeg;base64,file-abc123' },
+          ],
+        },
+      ]);
     });
   });
 });
