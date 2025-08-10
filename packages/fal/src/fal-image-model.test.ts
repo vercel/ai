@@ -16,7 +16,7 @@ function createBasicModel({
   settings?: any;
 } = {}) {
   return new FalImageModel('stable-diffusion-xl', {
-    provider: 'fal',
+    provider: 'fal.image',
     baseURL: 'https://api.example.com',
     headers: headers ?? { 'api-key': 'test-key' },
     fetch,
@@ -303,7 +303,7 @@ describe('FalImageModel', () => {
     it('should expose correct provider and model information', () => {
       const model = createBasicModel();
 
-      expect(model.provider).toBe('fal');
+      expect(model.provider).toBe('fal.image');
       expect(model.modelId).toBe('stable-diffusion-xl');
       expect(model.specificationVersion).toBe('v2');
       expect(model.maxImagesPerCall).toBe(1);
