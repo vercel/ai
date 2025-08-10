@@ -105,7 +105,7 @@ Optional. A list of unique safety settings for blocking unsafe content.
   audioTimestamp: z.boolean().optional(),
 
   /**
-   * Optional. Defines labels used in billing reports.
+   * Optional. Defines labels used in billing reports. Available on Vertex AI only.
    *
    * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls
    */
