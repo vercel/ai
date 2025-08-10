@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.9
+
+### Patch Changes
+
+- afd5c2a: fix(ai): preserve filename for file parts in convertToModelMessages
+
 ## 5.0.8
 
 ### Patch Changes
