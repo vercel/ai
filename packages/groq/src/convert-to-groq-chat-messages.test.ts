@@ -30,6 +30,35 @@ describe('user messages', () => {
     ]);
   });
 
+  it('should convert messages with image parts from Uint8Array', async () => {
+    const result = convertToGroqChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hi' },
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hi' },
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/png;base64,AAECAw==' },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should convert messages with only a text part to a string content', async () => {
     const result = convertToGroqChatMessages([
       {
