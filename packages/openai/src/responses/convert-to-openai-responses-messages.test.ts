@@ -126,6 +126,7 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        fileIdPrefixes: ['file-'],
       });
 
       expect(result.messages).toEqual([
@@ -256,6 +257,7 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        fileIdPrefixes: ['file-'],
       });
 
       expect(result.messages).toEqual([
