@@ -32,7 +32,8 @@ export function ensureJsonInstructionForProvider({
 
   return isSingleSimpleUserText
     ? { ...prompt, messages: [{ role: 'user', content: instruction }] }
-    : { ...prompt, messages: [...prompt.messages, { role: 'user', content: instruction }] };
+    : {
+        ...prompt,
+        messages: [...prompt.messages, { role: 'user', content: instruction }],
+      };
 }
-
-
