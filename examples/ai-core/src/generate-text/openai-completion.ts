@@ -4,12 +4,17 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-3.5-turbo-instruct'),
+    model: openai('gpt-4.1-nano'),
     maxOutputTokens: 1024,
-    prompt: 'Invent a new holiday and describe its traditions.',
+    messages: [{ role: 'user', content: 'Output Y or N.' }],
+    providerOptions: {
+      openai: {
+        logprobs: 5,
+      },
+    },
   });
 
-  console.log(result.text);
+  console.dir(result.providerMetadata?.openai);
 }
 
 main().catch(console.error);
