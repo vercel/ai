@@ -6,6 +6,7 @@ import {
 import { OpenAIResponsesTool } from './openai-responses-api-types';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
+import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 
 export function prepareResponsesTools({
   tools,
@@ -49,7 +50,7 @@ export function prepareResponsesTools({
           strict: strictJsonSchema,
         });
         break;
-      case 'provider-defined':
+      case 'provider-defined': {
         switch (tool.id) {
           case 'openai.file_search': {
             const args = fileSearchArgsSchema.parse(tool.args);
@@ -64,22 +65,16 @@ export function prepareResponsesTools({
             });
             break;
           }
-          case 'openai.web_search_preview':
-            // TODO update this with proper validation
+          case 'openai.web_search_preview': {
+            const args = webSearchPreviewArgsSchema.parse(tool.args);
             openaiTools.push({
               type: 'web_search_preview',
-              search_context_size: tool.args.searchContextSize as
-                | 'low'
-                | 'medium'
-                | 'high',
-              user_location: tool.args.userLocation as {
-                type: 'approximate';
-                city: string;
-                region: string;
-              },
+              search_context_size: args.searchContextSize,
+              user_location: args.userLocation,
             });
             break;
-          case 'openai.code_interpreter':
+          }
+          case 'openai.code_interpreter': {
             const args = codeInterpreterArgsSchema.parse(tool.args);
             openaiTools.push({
               type: 'code_interpreter',
@@ -91,11 +86,14 @@ export function prepareResponsesTools({
                     : { type: 'auto', file_ids: args.container.fileIds },
             });
             break;
-          default:
+          }
+          default: {
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
+          }
         }
         break;
+      }
       default:
         toolWarnings.push({ type: 'unsupported-tool', tool });
         break;

@@ -82,12 +82,16 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'web_search_preview';
-      search_context_size: 'low' | 'medium' | 'high';
-      user_location: {
-        type: 'approximate';
-        city: string;
-        region: string;
-      };
+      search_context_size: 'low' | 'medium' | 'high' | undefined;
+      user_location:
+        | {
+            type: 'approximate';
+            city?: string;
+            country?: string;
+            region?: string;
+            timezone?: string;
+          }
+        | undefined;
     }
   | {
       type: 'code_interpreter';
