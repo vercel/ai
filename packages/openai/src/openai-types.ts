@@ -1,5 +1,6 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 
+// TODO clean up this file and move the definitions into the tools
 /**
  * OpenAI function tool definition
  */
