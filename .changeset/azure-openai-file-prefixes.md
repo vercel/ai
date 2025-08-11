@@ -1,6 +1,6 @@
 ---
-'@ai-sdk/openai': minor
-'@ai-sdk/azure': minor
+'@ai-sdk/openai': patch
+'@ai-sdk/azure': patch
 ---
 
 feat(openai, azure): add configurable file ID prefixes for Responses API
