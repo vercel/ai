@@ -3,7 +3,7 @@ import {
   ModelMessage,
   generateId as originalGenerateId,
 } from '@ai-sdk/provider-utils';
-import { UIMessage } from './ui-messages';
+import { UIDataTypes, UIMessage, UIMessagePart, UITools } from './ui-messages';
 
 export function convertToUIMessages(
   modelMessages: ModelMessage[],
@@ -18,13 +18,32 @@ export function convertToUIMessages(
   for (const modelMessage of modelMessages) {
     switch (modelMessage.role) {
       case 'user': {
+        let parts: UIMessagePart<UIDataTypes, UITools>[];
+
         if (typeof modelMessage.content === 'string') {
-          uiMessages.push({
-            id: generateId(),
-            role: 'user',
-            parts: [{ text: modelMessage.content, type: 'text' }],
+          parts = [{ text: modelMessage.content, type: 'text' }];
+        } else {
+          parts = modelMessage.content.map(part => {
+            switch (part.type) {
+              case 'text':
+                return { type: 'text', text: part.text };
+              case 'file':
+                return {
+                  type: 'file',
+                  url: part.data,
+                  mediaType: part.mediaType,
+                };
+              case 'image':
+                return {
+                  type: 'file',
+                  data: part.image,
+                  mediaType: part.mediaType,
+                };
+            }
           });
         }
+
+        uiMessages.push({ id: generateId(), role: 'user', parts });
         break;
       }
     }
