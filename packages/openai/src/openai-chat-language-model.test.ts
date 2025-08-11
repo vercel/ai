@@ -464,7 +464,7 @@ describe('doGenerate', () => {
   it('should pass reasoningEffort setting from provider metadata', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o1-mini');
+    const model = provider.chat('o1');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -474,7 +474,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o1-mini',
+      model: 'o1',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'low',
     });
@@ -483,7 +483,7 @@ describe('doGenerate', () => {
   it('should pass reasoningEffort setting from settings', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o1-mini');
+    const model = provider.chat('o1');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -493,7 +493,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o1-mini',
+      model: 'o1',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'high',
     });
@@ -1192,7 +1192,7 @@ describe('doGenerate', () => {
     it('should clear out temperature, top_p, frequency_penalty, presence_penalty and return warnings', async () => {
       prepareJsonResponse();
 
-      const model = provider.chat('o1-preview');
+      const model = provider.chat('o1');
 
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -1203,7 +1203,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'o1-preview',
+        model: 'o1',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
@@ -1234,7 +1234,7 @@ describe('doGenerate', () => {
     it('should convert maxOutputTokens to max_completion_tokens', async () => {
       prepareJsonResponse();
 
-      const model = provider.chat('o1-preview');
+      const model = provider.chat('o1');
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -1242,17 +1242,17 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'o1-preview',
+        model: 'o1',
         messages: [{ role: 'user', content: 'Hello' }],
         max_completion_tokens: 1000,
       });
     });
   });
 
-  it('should remove system messages for o1-preview and add a warning', async () => {
+  it('should convert system messages to developer messages for o1', async () => {
     prepareJsonResponse();
 
-    const model = provider.chat('o1-preview');
+    const model = provider.chat('o1');
 
     const result = await model.doGenerate({
       prompt: [
@@ -1262,16 +1262,14 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o1-preview',
-      messages: [{ role: 'user', content: 'Hello' }],
+      model: 'o1',
+      messages: [
+        { role: 'developer', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'Hello' },
+      ],
     });
 
-    expect(result.warnings).toStrictEqual([
-      {
-        type: 'other',
-        message: 'system messages are removed for this model',
-      },
-    ]);
+    expect(result.warnings).toStrictEqual([]);
   });
 
   it('should use developer messages for o1', async () => {
@@ -1309,7 +1307,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const model = provider.chat('o1-preview');
+    const model = provider.chat('o1');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1327,9 +1325,9 @@ describe('doGenerate', () => {
   });
 
   it('should send max_completion_tokens extension setting', async () => {
-    prepareJsonResponse({ model: 'o1-preview' });
+    prepareJsonResponse({ model: 'o1' });
 
-    const model = provider.chat('o1-preview');
+    const model = provider.chat('o1');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1341,7 +1339,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o1-preview',
+      model: 'o1',
       messages: [{ role: 'user', content: 'Hello' }],
       max_completion_tokens: 255,
     });
@@ -2844,10 +2842,10 @@ describe('doStream', () => {
     it('should stream text delta', async () => {
       prepareStreamResponse({
         content: ['Hello, World!'],
-        model: 'o1-preview',
+        model: 'o1',
       });
 
-      const model = provider.chat('o1-preview');
+      const model = provider.chat('o1');
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -2862,7 +2860,7 @@ describe('doStream', () => {
           },
           {
             "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
-            "modelId": "o1-preview",
+            "modelId": "o1",
             "timestamp": 2023-12-15T16:17:00.000Z,
             "type": "response-metadata",
           },
@@ -2905,7 +2903,7 @@ describe('doStream', () => {
     it('should send reasoning tokens', async () => {
       prepareStreamResponse({
         content: ['Hello, World!'],
-        model: 'o1-preview',
+        model: 'o1',
         usage: {
           prompt_tokens: 15,
           completion_tokens: 20,
@@ -2916,7 +2914,7 @@ describe('doStream', () => {
         },
       });
 
-      const model = provider.chat('o1-preview');
+      const model = provider.chat('o1');
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -2931,7 +2929,7 @@ describe('doStream', () => {
           },
           {
             "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
-            "modelId": "o1-preview",
+            "modelId": "o1",
             "timestamp": 2023-12-15T16:17:00.000Z,
             "type": "response-metadata",
           },

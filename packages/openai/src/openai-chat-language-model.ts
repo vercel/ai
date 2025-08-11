@@ -875,18 +875,6 @@ function getSystemMessageMode(modelId: string) {
 }
 
 const reasoningModels = {
-  'o1-mini': {
-    systemMessageMode: 'remove',
-  },
-  'o1-mini-2024-09-12': {
-    systemMessageMode: 'remove',
-  },
-  'o1-preview': {
-    systemMessageMode: 'remove',
-  },
-  'o1-preview-2024-09-12': {
-    systemMessageMode: 'remove',
-  },
   o3: {
     systemMessageMode: 'developer',
   },
