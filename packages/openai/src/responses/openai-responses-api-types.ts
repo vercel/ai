@@ -82,8 +82,8 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'web_search_preview';
-      search_context_size: 'low' | 'medium' | 'high';
-      user_location: {
+      search_context_size?: 'low' | 'medium' | 'high';
+      user_location?: {
         type: 'approximate';
         city: string;
         region: string;
@@ -91,7 +91,7 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'code_interpreter';
-      container: { type: 'auto'; file_ids: string[] };
+      container: string | { type: 'auto'; file_ids: string[] | undefined };
     }
   | {
       type: 'file_search';

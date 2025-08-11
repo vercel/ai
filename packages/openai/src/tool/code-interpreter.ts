@@ -1,13 +1,15 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-const codeInterpreterArgsSchema = z.object({
-  container: z.union([
-    z.string(),
-    z.object({
-      fileIds: z.array(z.string()).optional(),
-    }),
-  ]),
+export const codeInterpreterArgsSchema = z.object({
+  container: z
+    .union([
+      z.string(),
+      z.object({
+        fileIds: z.array(z.string()).optional(),
+      }),
+    ])
+    .optional(),
 });
 
 export const codeInterpreter = createProviderDefinedToolFactory<
@@ -23,5 +25,5 @@ export const codeInterpreter = createProviderDefinedToolFactory<
 >({
   id: 'openai.code_interpreter',
   name: 'code_interpreter',
-  inputSchema: codeInterpreterArgsSchema,
+  inputSchema: z.object({}),
 });
