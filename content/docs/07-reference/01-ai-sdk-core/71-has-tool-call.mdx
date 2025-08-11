@@ -45,7 +45,7 @@ const result = await generateText({
 
 ### Returns
 
-A `StopCondition` object that can be used with the `stopWhen` parameter in `generateText` and `streamText`.
+A `StopCondition` function that returns `true` when the specified tool is called in the current step. The function can be used with the `stopWhen` parameter in `generateText` and `streamText`.
 
 ## Examples
 

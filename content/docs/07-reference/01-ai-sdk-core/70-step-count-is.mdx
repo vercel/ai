@@ -44,7 +44,7 @@ const result = await generateText({
 
 ### Returns
 
-A `StopCondition` object that can be used with the `stopWhen` parameter in `generateText` and `streamText`.
+A `StopCondition` function that returns `true` when the step count reaches the specified number. The function can be used with the `stopWhen` parameter in `generateText` and `streamText`.
 
 ## Examples
 
