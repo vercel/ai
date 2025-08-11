@@ -34,6 +34,18 @@ import { OpenAIResponsesModelId } from './openai-responses-settings';
  */
 const TOP_LOGPROBS_MAX = 20;
 
+const LOGPROBS_SCHEMA = z.array(
+  z.object({
+    token: z.string(),
+    logprob: z.number(),
+    top_logprobs: z.array(
+      z.object({
+        token: z.string(),
+        logprob: z.number(),
+      }),
+    ),
+  }),
+);
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
@@ -309,20 +321,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   z.object({
                     type: z.literal('output_text'),
                     text: z.string(),
-                    logprobs: z
-                      .array(
-                        z.object({
-                          token: z.string(),
-                          logprob: z.number(),
-                          top_logprobs: z.array(
-                            z.object({
-                              token: z.string(),
-                              logprob: z.number(),
-                            }),
-                          ),
-                        }),
-                      )
-                      .nullish(),
+                    logprobs: LOGPROBS_SCHEMA.nullish(),
                     annotations: z.array(
                       z.object({
                         type: z.literal('url_citation'),
@@ -600,6 +599,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
+    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
     let responseId: string | null = null;
     const ongoingToolCalls: Record<
       number,
@@ -674,7 +674,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolName: 'computer_use',
                 });
               } else if (value.item.type === 'message') {
-                // TODO: add logprobs to providerMetadata here?
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
@@ -825,6 +824,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 id: value.item_id,
                 delta: value.delta,
               });
+
+              if (value.logprobs) {
+                logprobs.push(value.logprobs);
+              }
             } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
               // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk.
               if (value.summary_index > 0) {
@@ -886,15 +889,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            const providerMetadata: SharedV2ProviderMetadata = {
+              openai: {
+                responseId,
+              },
+            };
+
+            if (logprobs.length > 0) {
+              providerMetadata.openai.logprobs = logprobs;
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage,
-              providerMetadata: {
-                openai: {
-                  responseId,
-                },
-              },
+              providerMetadata,
             });
           },
         }),
@@ -920,6 +929,7 @@ const textDeltaChunkSchema = z.object({
   type: z.literal('response.output_text.delta'),
   item_id: z.string(),
   delta: z.string(),
+  logprobs: LOGPROBS_SCHEMA.nullish(),
 });
 
 const errorChunkSchema = z.object({
