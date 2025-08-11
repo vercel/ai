@@ -111,18 +111,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       top_p: topP,
       max_output_tokens: maxOutputTokens,
 
-      ...(responseFormat?.type === 'json' && {
+      ...((responseFormat?.type === 'json' || openaiOptions?.textVerbosity) && {
         text: {
-          format:
-            responseFormat.schema != null
-              ? {
-                  type: 'json_schema',
-                  strict: strictJsonSchema,
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                  schema: responseFormat.schema,
-                }
-              : { type: 'json_object' },
+          ...(responseFormat?.type === 'json' && {
+            format:
+              responseFormat.schema != null
+                ? {
+                    type: 'json_schema',
+                    strict: strictJsonSchema,
+                    name: responseFormat.name ?? 'response',
+                    description: responseFormat.description,
+                    schema: responseFormat.schema,
+                  }
+                : { type: 'json_object' },
+          }),
+          ...(openaiOptions?.textVerbosity && {
+            verbosity: openaiOptions.textVerbosity,
+          }),
         },
       }),
 
@@ -216,7 +221,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         type: 'unsupported-setting',
         setting: 'serviceTier',
         details:
-          'priority processing is only available for supported models (GPT-4, o3, o4-mini) and requires Enterprise access',
+          'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
       });
       // Remove from args if not supported
       delete (baseArgs as any).service_tier;
@@ -1153,6 +1158,8 @@ function supportsFlexProcessing(modelId: string): boolean {
 function supportsPriorityProcessing(modelId: string): boolean {
   return (
     modelId.startsWith('gpt-4') ||
+    modelId.startsWith('gpt-5-mini') ||
+    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-nano')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini')
   );
@@ -1175,6 +1182,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   include: z
     .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
     .nullish(),
+  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

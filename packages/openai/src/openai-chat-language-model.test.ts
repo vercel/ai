@@ -284,6 +284,7 @@ describe('doGenerate', () => {
           "top_logprobs": undefined,
           "top_p": undefined,
           "user": undefined,
+          "verbosity": undefined,
         },
       }
     `);
@@ -495,6 +496,25 @@ describe('doGenerate', () => {
       model: 'o1-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'high',
+    });
+  });
+
+  it('should pass textVerbosity setting from provider options', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('gpt-4o');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { textVerbosity: 'low' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: 'Hello' }],
+      verbosity: 'low',
     });
   });
 
@@ -1581,7 +1601,7 @@ describe('doGenerate', () => {
       type: 'unsupported-setting',
       setting: 'serviceTier',
       details:
-        'priority processing is only available for supported models (GPT-4, o3, o4-mini) and requires Enterprise access',
+        'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
     });
   });
 
@@ -2541,6 +2561,7 @@ describe('doStream', () => {
           "top_logprobs": undefined,
           "top_p": undefined,
           "user": undefined,
+          "verbosity": undefined,
         },
       }
     `);

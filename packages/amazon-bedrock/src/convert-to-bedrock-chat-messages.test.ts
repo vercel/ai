@@ -543,6 +543,46 @@ describe('assistant messages', () => {
       system: [],
     });
   });
+
+  it('should filter out empty text blocks in assistant messages', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: '\n\n' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-123',
+            toolName: 'test',
+            input: {},
+          },
+          { type: 'text', text: '  ' },
+          { type: 'text', text: 'actual content' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Hello' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { toolUse: { toolUseId: 'call-123', name: 'test', input: {} } },
+            { text: 'actual content' },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
 });
 
 describe('tool messages', () => {

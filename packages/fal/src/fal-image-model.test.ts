@@ -15,8 +15,8 @@ function createBasicModel({
   currentDate?: () => Date;
   settings?: any;
 } = {}) {
-  return new FalImageModel('stable-diffusion-xl', {
-    provider: 'fal',
+  return new FalImageModel('fal-ai/qwen-image', {
+    provider: 'fal.image',
     baseURL: 'https://api.example.com',
     headers: headers ?? { 'api-key': 'test-key' },
     fetch,
@@ -28,7 +28,7 @@ function createBasicModel({
 
 describe('FalImageModel', () => {
   const server = createTestServer({
-    'https://api.example.com/stable-diffusion-xl': {
+    'https://api.example.com/fal-ai/qwen-image': {
       response: {
         type: 'json-value',
         body: {
@@ -119,7 +119,7 @@ describe('FalImageModel', () => {
     });
 
     it('should handle API errors', async () => {
-      server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+      server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
         type: 'error',
         status: 400,
         body: JSON.stringify({
@@ -146,7 +146,7 @@ describe('FalImageModel', () => {
       ).rejects.toMatchObject({
         message: 'prompt: Invalid prompt',
         statusCode: 400,
-        url: 'https://api.example.com/stable-diffusion-xl',
+        url: 'https://api.example.com/fal-ai/qwen-image',
       });
     });
 
@@ -168,7 +168,7 @@ describe('FalImageModel', () => {
 
         expect(result.response).toStrictEqual({
           timestamp: testDate,
-          modelId: 'stable-diffusion-xl',
+          modelId: 'fal-ai/qwen-image',
           headers: expect.any(Object),
         });
       });
@@ -196,7 +196,7 @@ describe('FalImageModel', () => {
             file_size: 456,
           },
         };
-        server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+        server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
           type: 'json-value',
           body: {
             images: [
@@ -260,7 +260,7 @@ describe('FalImageModel', () => {
           num_inference_steps: 456,
           nsfw_content_detected: [false],
         };
-        server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+        server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
           type: 'json-value',
           body: {
             images: [
@@ -303,8 +303,8 @@ describe('FalImageModel', () => {
     it('should expose correct provider and model information', () => {
       const model = createBasicModel();
 
-      expect(model.provider).toBe('fal');
-      expect(model.modelId).toBe('stable-diffusion-xl');
+      expect(model.provider).toBe('fal.image');
+      expect(model.modelId).toBe('fal-ai/qwen-image');
       expect(model.specificationVersion).toBe('v2');
       expect(model.maxImagesPerCall).toBe(1);
     });
@@ -312,7 +312,7 @@ describe('FalImageModel', () => {
 
   describe('response schema validation', () => {
     it('should parse single image response', async () => {
-      server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+      server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
         type: 'json-value',
         body: {
           image: {
@@ -339,7 +339,7 @@ describe('FalImageModel', () => {
     });
 
     it('should parse multiple images response', async () => {
-      server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+      server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
         type: 'json-value',
         body: {
           images: [
@@ -375,7 +375,7 @@ describe('FalImageModel', () => {
     });
 
     it('should handle null file_name and file_size values', async () => {
-      server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+      server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
         type: 'json-value',
         body: {
           images: [
@@ -425,7 +425,7 @@ describe('FalImageModel', () => {
     });
 
     it('should handle empty timings object', async () => {
-      server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+      server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
         type: 'json-value',
         body: {
           images: [
