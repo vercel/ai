@@ -39,6 +39,7 @@ import { getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 import { RepairTextFunction } from './repair-text';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { ensureJsonInstructionForProvider } from './ensure-json-instruction-for-provider';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -294,10 +295,16 @@ Default and recommended: 'auto' (best mode for the model).
         let request: LanguageModelRequestMetadata;
         let resultProviderMetadata: ProviderMetadata | undefined;
 
-        const standardizedPrompt = await standardizePrompt({
+        let standardizedPrompt = await standardizePrompt({
           system,
           prompt,
           messages,
+        });
+
+        standardizedPrompt = ensureJsonInstructionForProvider({
+          prompt: standardizedPrompt,
+          provider: model.provider,
+          jsonSchema: outputStrategy.jsonSchema,
         });
 
         const promptMessages = await convertToLanguageModelPrompt({
