@@ -42,6 +42,7 @@ const bundle = [
   'v5/remove-sendExtraMessageFields',
   'v5/rename-converttocoremessages-to-converttomodelmessages',
   'v5/rename-core-message-to-model-message',
+  'v5/rename-datastream-methods-to-uimessage',
   'v5/rename-datastream-transform-stream',
   'v5/rename-IDGenerator-to-IdGenerator',
   'v5/rename-languagemodelv1providermetadata',
