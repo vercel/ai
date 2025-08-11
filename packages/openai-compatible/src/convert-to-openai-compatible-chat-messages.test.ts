@@ -41,6 +41,35 @@ describe('user messages', () => {
     ]);
   });
 
+  it('should convert messages with image parts from Uint8Array', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hi' },
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hi' },
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/png;base64,AAECAw==' },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should handle URL-based images', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
