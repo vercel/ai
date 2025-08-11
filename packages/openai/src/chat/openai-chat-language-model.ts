@@ -173,6 +173,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       prediction: openaiOptions.prediction,
       reasoning_effort: openaiOptions.reasoningEffort,
       service_tier: openaiOptions.serviceTier,
+      prompt_cache_key: openaiOptions.promptCacheKey,
 
       // messages:
       messages,
