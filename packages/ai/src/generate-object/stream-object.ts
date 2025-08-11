@@ -54,7 +54,6 @@ import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-obj
 import { RepairTextFunction } from './repair-text';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { ensureJsonInstructionForProvider } from './ensure-json-instruction-for-provider';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -492,11 +491,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           messages,
         });
 
-        const adjustedPrompt = ensureJsonInstructionForProvider({
-          prompt: standardizedPrompt,
-          provider: model.provider,
-          jsonSchema: outputStrategy.jsonSchema,
-        });
+        const adjustedPrompt = standardizedPrompt;
 
         const callOptions = {
           responseFormat: {
