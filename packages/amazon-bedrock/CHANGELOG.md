@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.5
+
+### Patch Changes
+
+- c2871e6: fix(provider/amazon-bedrock): resolve opus 4.1 reasoning mode validation error
+
 ## 3.0.4
 
 ### Patch Changes

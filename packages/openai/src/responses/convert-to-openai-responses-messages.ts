@@ -76,7 +76,7 @@ export async function convertToOpenAIResponsesMessages({
                           part.data.startsWith('file-')
                         ? { file_id: part.data }
                         : {
-                            image_url: `data:${mediaType};base64,${part.data}`,
+                            image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
                           }),
                     detail: part.providerOptions?.openai?.imageDetail,
                   };

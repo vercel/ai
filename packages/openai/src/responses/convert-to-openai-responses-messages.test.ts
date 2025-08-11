@@ -111,6 +111,36 @@ describe('convertToOpenAIResponsesMessages', () => {
       ]);
     });
 
+    it('should convert messages with image parts using Uint8Array', async () => {
+      const result = await convertToOpenAIResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: new Uint8Array([0, 1, 2, 3]),
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,AAECAw==',
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should convert messages with image parts using file_id', async () => {
       const result = await convertToOpenAIResponsesMessages({
         prompt: [

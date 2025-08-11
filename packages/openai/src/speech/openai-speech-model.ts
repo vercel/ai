@@ -6,10 +6,10 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { OpenAIConfig } from './openai-config';
-import { openaiFailedResponseHandler } from './openai-error';
+import { OpenAIConfig } from '../openai-config';
+import { openaiFailedResponseHandler } from '../openai-error';
+import { OpenAISpeechAPITypes } from './openai-speech-api-types';
 import { OpenAISpeechModelId } from './openai-speech-options';
-import { OpenAISpeechAPITypes } from './openai-api-types';
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
 const OpenAIProviderOptionsSchema = z.object({

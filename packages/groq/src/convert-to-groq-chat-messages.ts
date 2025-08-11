@@ -3,6 +3,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { GroqChatPrompt } from './groq-api-types';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGroqChatMessages(
   prompt: LanguageModelV2Prompt,
@@ -45,7 +46,7 @@ export function convertToGroqChatMessages(
                     url:
                       part.data instanceof URL
                         ? part.data.toString()
-                        : `data:${mediaType};base64,${part.data}`,
+                        : `data:${mediaType};base64,${convertToBase64(part.data)}`,
                   },
                 };
               }
