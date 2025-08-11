@@ -6,6 +6,7 @@ import {
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -23,6 +24,15 @@ import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
+
+/**
+ * `top_logprobs` request body argument can be set to an integer between
+ * 0 and 20 specifying the number of most likely tokens to return at each
+ * token position, each with an associated log probability.
+ *
+ * @see https://platform.openai.com/docs/api-reference/responses/create#responses_create-top_logprobs
+ */
+const TOP_LOGPROBS_MAX = 20;
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -104,6 +114,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
 
+    const topLogprobs =
+      typeof openaiOptions?.logprobs === 'number'
+        ? openaiOptions?.logprobs
+        : openaiOptions?.logprobs === true
+          ? TOP_LOGPROBS_MAX
+          : undefined;
+    const openaiOptionsInclude = topLogprobs
+      ? Array.isArray(openaiOptions?.include)
+        ? [...openaiOptions?.include, 'message.output_text.logprobs']
+        : ['message.output_text.logprobs']
+      : undefined;
+
     const baseArgs = {
       model: this.modelId,
       input: messages,
@@ -139,7 +161,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
-      include: openaiOptions?.include,
+      include: openaiOptionsInclude,
+      top_logprobs: topLogprobs,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -484,6 +507,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }
     }
 
+    const providerMetadata: SharedV2ProviderMetadata = {
+      openai: { responseId: response.id },
+    };
+    const logProbs = (rawResponse as any).output?.[0]?.content?.[0]?.logprobs;
+    if (logProbs) {
+      providerMetadata.openai.logProbs = logProbs;
+    }
+
     return {
       content,
       finishReason: mapOpenAIResponseFinishReason({
@@ -507,11 +538,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         headers: responseHeaders,
         body: rawResponse,
       },
-      providerMetadata: {
-        openai: {
-          responseId: response.id,
-        },
-      },
+      providerMetadata,
       warnings,
     };
   }
@@ -1176,6 +1203,22 @@ const openaiResponsesProviderOptionsSchema = z.object({
     .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
     .nullish(),
   textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
+
+  /**
+   * Return the log probabilities of the tokens.
+   *
+   * Setting to true will return the log probabilities of the tokens that
+   * were generated.
+   *
+   * Setting to a number will return the log probabilities of the top n
+   * tokens that were generated.
+   *
+   * @see https://platform.openai.com/docs/api-reference/responses/create
+   * @see https://cookbook.openai.com/examples/using_logprobs
+   */
+  logprobs: z
+    .union([z.boolean(), z.number().min(1).max(TOP_LOGPROBS_MAX)])
+    .optional(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<
