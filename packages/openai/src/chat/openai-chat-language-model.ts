@@ -166,7 +166,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       verbosity: openaiOptions.textVerbosity,
 
       // openai specific settings:
-      // TODO remove in next major version; we auto-map maxOutputTokens now
+      // TODO AI SDK 6: remove, we auto-map maxOutputTokens now
       max_completion_tokens: openaiOptions.maxCompletionTokens,
       store: openaiOptions.store,
       metadata: openaiOptions.metadata,
