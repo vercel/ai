@@ -1,5 +1,33 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.5
+
+### Patch Changes
+
+- 8f8a521: fix(providers): use convertToBase64 for Uint8Array image parts to produce valid data URLs; keep mediaType normalization and URL passthrough
+- e92b78b: fix (provider/openai-compatible): revert usage fallback specific to moonshotai
+
+## 1.0.4
+
+### Patch Changes
+
+- 5f4c71f: feat (provider/openai-compatible): fall back to look for usage in choices
+- da314cd: chore (provider/openai-compatible): inline usage fallback logic
+
+## 1.0.3
+
+### Patch Changes
+
+- a0934f8: feat (provider/openai-compatible): look for reasoning in 'reasoning' field as well
+
+## 1.0.2
+
+### Patch Changes
+
+- b499112: filter empty content to ensure chunk order
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+
 ## 1.0.1
 
 ### Patch Changes

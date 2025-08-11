@@ -61,6 +61,7 @@ describe('doGenerate', () => {
   function prepareJsonResponse({
     content = '',
     reasoning_content = '',
+    reasoning = '',
     tool_calls,
     function_call,
     usage = {
@@ -76,6 +77,7 @@ describe('doGenerate', () => {
   }: {
     content?: string;
     reasoning_content?: string;
+    reasoning?: string;
     tool_calls?: Array<{
       id: string;
       type: 'function';
@@ -122,6 +124,7 @@ describe('doGenerate', () => {
               role: 'assistant',
               content,
               reasoning_content,
+              reasoning,
               tool_calls,
               function_call,
             },
@@ -199,6 +202,51 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract reasoning from reasoning field when reasoning_content is not provided', async () => {
+    prepareJsonResponse({
+      content: 'Hello, World!',
+      reasoning: 'This is the reasoning from the reasoning field',
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should prefer reasoning_content over reasoning field when both are provided', async () => {
+    prepareJsonResponse({
+      content: 'Hello, World!',
+      reasoning_content: 'This is from reasoning_content',
+      reasoning: 'This is from reasoning field',
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+        {
+          "text": "This is from reasoning_content",
+          "type": "reasoning",
+        },
+      ]
+    `);
+  });
+
   it('should extract usage', async () => {
     prepareJsonResponse({
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
@@ -239,6 +287,7 @@ describe('doGenerate', () => {
               "index": 0,
               "message": {
                 "content": "",
+                "reasoning": "",
                 "reasoning_content": "",
                 "role": "assistant",
               },
@@ -256,7 +305,7 @@ describe('doGenerate', () => {
           },
         },
         "headers": {
-          "content-length": "298",
+          "content-length": "313",
           "content-type": "application/json",
         },
         "id": "test-id",
@@ -321,7 +370,7 @@ describe('doGenerate', () => {
 
     expect(response?.headers).toStrictEqual({
       // default headers:
-      'content-length': '335',
+      'content-length': '350',
       'content-type': 'application/json',
 
       // custom header
@@ -1019,11 +1068,6 @@ describe('doStream', () => {
           "type": "text-start",
         },
         {
-          "delta": "",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
           "delta": "Hello",
           "id": "txt-0",
           "type": "text-delta",
@@ -1065,9 +1109,9 @@ describe('doStream', () => {
       type: 'stream-chunks',
       chunks: [
         `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"Let me think"},"finish_reason":null}]}\n\n`,
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning_content":"Let me think"},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"reasoning_content":" about this"},"finish_reason":null}]}\n\n`,
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"", "reasoning_content":" about this"},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Here's"},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
@@ -1121,6 +1165,172 @@ describe('doStream', () => {
         },
         {
           "delta": " my response",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 18,
+            "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should stream reasoning from reasoning field when reasoning_content is not provided', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning":"Let me consider"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"", "reasoning":" this carefully"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"My answer is"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" correct"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Let me consider",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": " this carefully",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "My answer is",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " correct",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 18,
+            "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should prefer reasoning_content over reasoning field in streaming when both are provided', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning_content":"From reasoning_content", "reasoning":"From reasoning"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Final response"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "From reasoning_content",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Final response",
           "id": "txt-0",
           "type": "text-delta",
         },
@@ -1499,15 +1709,6 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "id": "txt-0",
-          "type": "text-start",
-        },
-        {
-          "delta": "",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
           "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolName": "searchGoogle",
           "type": "tool-input-start",
@@ -1546,10 +1747,6 @@ describe('doStream', () => {
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolName": "searchGoogle",
           "type": "tool-call",
-        },
-        {
-          "id": "txt-0",
-          "type": "text-end",
         },
         {
           "finishReason": "tool-calls",

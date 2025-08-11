@@ -4,10 +4,6 @@ import { z } from 'zod/v4';
 export type OpenAIChatModelId =
   | 'o1'
   | 'o1-2024-12-17'
-  | 'o1-mini'
-  | 'o1-mini-2024-09-12'
-  | 'o1-preview'
-  | 'o1-preview-2024-09-12'
   | 'o3-mini'
   | 'o3-mini-2025-01-31'
   | 'o3'
@@ -46,6 +42,13 @@ export type OpenAIChatModelId =
   | 'gpt-3.5-turbo'
   | 'gpt-3.5-turbo-1106'
   | 'chatgpt-4o-latest'
+  | 'gpt-5'
+  | 'gpt-5-2025-08-07'
+  | 'gpt-5-mini'
+  | 'gpt-5-mini-2025-08-07'
+  | 'gpt-5-nano'
+  | 'gpt-5-nano-2025-08-07'
+  | 'gpt-5-chat-latest'
   | (string & {});
 
 export const openaiProviderOptions = z.object({
@@ -82,7 +85,7 @@ export const openaiProviderOptions = z.object({
   /**
    * Reasoning effort for reasoning models. Defaults to `medium`.
    */
-  reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+  reasoningEffort: z.enum(['minimal', 'low', 'medium', 'high']).optional(),
 
   /**
    * Maximum number of completion tokens to generate. Useful for reasoning models.
@@ -127,6 +130,12 @@ export const openaiProviderOptions = z.object({
    * @default false
    */
   strictJsonSchema: z.boolean().optional(),
+
+  /**
+   * Controls the verbosity of the model's responses.
+   * Lower values will result in more concise responses, while higher values will result in more verbose responses.
+   */
+  textVerbosity: z.enum(['low', 'medium', 'high']).optional(),
 });
 
 export type OpenAIProviderOptions = z.infer<typeof openaiProviderOptions>;

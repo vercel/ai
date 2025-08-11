@@ -1,5 +1,54 @@
 # @ai-sdk/openai
 
+## 2.0.9
+
+### Patch Changes
+
+- 8f8a521: fix(providers): use convertToBase64 for Uint8Array image parts to produce valid data URLs; keep mediaType normalization and URL passthrough
+
+## 2.0.8
+
+### Patch Changes
+
+- 57fb959: feat(openai): add verbosity parameter support for chat api
+- 2a3fbe6: allow `minimal` in `reasoningEffort` for openai chat
+
+## 2.0.7
+
+### Patch Changes
+
+- 4738f18: feat(openai): add flex processing support for gpt-5 models
+- 013d747: feat(openai): add verbosity parameter support for responses api
+- 35feee8: feat(openai): add priority processing support for gpt-5 models
+
+## 2.0.6
+
+### Patch Changes
+
+- ad2255f: chore(docs): added gpt 5 models + removed deprecated models
+- 64bcb66: feat(provider/openai): models ids on chat
+- 1d42ff2: feat(provider/openai): models ids
+
+## 2.0.5
+
+### Patch Changes
+
+- 6753a2e: feat(examples): add gpt-5 model examples and e2e tests
+- 6cba06a: feat (provider/openai): add reasoning model config
+
+## 2.0.4
+
+### Patch Changes
+
+- c9e0f52: Files from the OpenAI Files API are now supported, mirroring functionality of OpenAI Chat and Responses API, respectively. Also, the AI SDK supports URLs for PDFs in the responses API the same way it did for completions.
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+
 ## 2.0.2
 
 ### Patch Changes

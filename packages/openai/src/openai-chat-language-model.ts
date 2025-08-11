@@ -163,6 +163,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           : undefined,
       stop: stopSequences,
       seed,
+      verbosity: openaiOptions.textVerbosity,
 
       // openai specific settings:
       // TODO remove in next major version; we auto-map maxOutputTokens now
@@ -264,7 +265,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'serviceTier',
-        details: 'flex processing is only available for o3 and o4-mini models',
+        details:
+          'flex processing is only available for o3, o4-mini, and gpt-5 models',
       });
       baseArgs.service_tier = undefined;
     }
@@ -278,7 +280,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         type: 'unsupported-setting',
         setting: 'serviceTier',
         details:
-          'priority processing is only available for supported models (GPT-4, o3, o4-mini) and requires Enterprise access',
+          'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
       });
       baseArgs.service_tier = undefined;
     }
@@ -840,16 +842,22 @@ const openaiChatChunkSchema = z.union([
 ]);
 
 function isReasoningModel(modelId: string) {
-  return modelId.startsWith('o');
+  return modelId.startsWith('o') || modelId.startsWith('gpt-5');
 }
 
 function supportsFlexProcessing(modelId: string) {
-  return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
+  return (
+    modelId.startsWith('o3') ||
+    modelId.startsWith('o4-mini') ||
+    modelId.startsWith('gpt-5')
+  );
 }
 
 function supportsPriorityProcessing(modelId: string) {
   return (
     modelId.startsWith('gpt-4') ||
+    modelId.startsWith('gpt-5-mini') ||
+    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-nano')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini')
   );

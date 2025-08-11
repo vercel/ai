@@ -1,5 +1,18 @@
 # @ai-sdk/fal
 
+## 1.0.4
+
+### Patch Changes
+
+- d583b84: Add speech model support and update image model IDs for fal provider
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+
 ## 1.0.2
 
 ### Patch Changes

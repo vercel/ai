@@ -104,13 +104,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
-    }
-
     if (
       responseFormat != null &&
       responseFormat.type !== 'text' &&
@@ -169,6 +162,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       ...(maxOutputTokens != null && { maxOutputTokens }),
       ...(temperature != null && { temperature }),
       ...(topP != null && { topP }),
+      ...(topK != null && { topK }),
       ...(stopSequences != null && { stopSequences }),
     };
 
@@ -207,6 +201,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         type: 'unsupported-setting',
         setting: 'topP',
         details: 'topP is not supported when thinking is enabled',
+      });
+    }
+
+    if (isThinking && inferenceConfig.topK != null) {
+      delete inferenceConfig.topK;
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'topK',
+        details: 'topK is not supported when thinking is enabled',
       });
     }
 

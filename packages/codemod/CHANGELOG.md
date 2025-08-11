@@ -1,5 +1,60 @@
 # @ai-sdk/codemod
 
+## 2.0.3
+
+### Patch Changes
+
+- 58fff3f: fixes generateText text property transform
+
+## 2.0.2
+
+### Patch Changes
+
+- 23a1916: fix Message transform for generic types
+
+## 2.0.1
+
+### Patch Changes
+
+- 3d6a91b: ### new codemode for: "`createIdGenerator()` now requires a size argument"
+
+  The codemod added in this change addresses the following change in v5
+
+  Before:
+
+  ```ts
+  import { createIdGenerator } from 'ai';
+
+  const generator = createIdGenerator({ prefix: 'msg' });
+  const id2 = generator(16); // Custom size at call time
+  ```
+
+  After:
+
+  ```ts
+  import { createIdGenerator } from 'ai';
+
+  const generator32 = createIdGenerator({ size: 32 });
+  const id1 = generator32(); // Fixed size from creation
+
+  const generator16 = createIdGenerator({ prefix: 'msg', size: 16 });
+  const id2 = generator16(); // Fixed size from creation
+  ```
+
+- 094c4ca: ### Codemod for: "`IDGenerator` type renamed to `IdGenerator`"
+
+  This change adds a new codemod which handles the change from
+
+  ```ts
+  import { IDGenerator } from 'ai';
+  ```
+
+  to
+
+  ```ts
+  import { IdGenerator } from 'ai';
+  ```
+
 ## 2.0.0
 
 ### Major Changes

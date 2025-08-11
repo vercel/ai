@@ -54,6 +54,16 @@ export const uiMessageChunkSchema = z.union([
     dynamic: z.boolean().optional(),
   }),
   z.strictObject({
+    type: z.literal('tool-input-error'),
+    toolCallId: z.string(),
+    toolName: z.string(),
+    input: z.unknown(),
+    providerExecuted: z.boolean().optional(),
+    providerMetadata: providerMetadataSchema.optional(),
+    dynamic: z.boolean().optional(),
+    errorText: z.string(),
+  }),
+  z.strictObject({
     type: z.literal('tool-output-available'),
     toolCallId: z.string(),
     output: z.unknown(),
@@ -199,6 +209,16 @@ export type UIMessageChunk<
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
+    }
+  | {
+      type: 'tool-input-error';
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+      providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
+      dynamic?: boolean;
+      errorText: string;
     }
   | {
       type: 'tool-output-available';

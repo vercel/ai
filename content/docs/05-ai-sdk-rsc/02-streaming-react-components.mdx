@@ -66,7 +66,7 @@ const result = await streamUI({
   tools: {
     getWeather: {
       description: 'Get the weather for a location',
-      parameters: z.object({ location: z.string() }),
+      inputSchema: z.object({ location: z.string() }),
       generate: async function* ({ location }) {
         yield <LoadingComponent />;
         const weather = await getWeather(location);

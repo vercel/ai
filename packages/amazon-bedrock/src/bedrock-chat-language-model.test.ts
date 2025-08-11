@@ -1662,6 +1662,7 @@ describe('doGenerate', () => {
       maxOutputTokens: 100,
       temperature: 0.5,
       topP: 0.5,
+      topK: 1,
     });
 
     expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1669,6 +1670,7 @@ describe('doGenerate', () => {
         maxOutputTokens: 100,
         temperature: 0.5,
         topP: 0.5,
+        topK: 1,
       },
     });
   });

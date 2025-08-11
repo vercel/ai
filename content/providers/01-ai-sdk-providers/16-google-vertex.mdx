@@ -19,7 +19,7 @@ The Google Vertex provider for the [AI SDK](/docs) contains language model suppo
 
 The Google Vertex and Google Vertex Anthropic providers are both available in the `@ai-sdk/google-vertex` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/google-vertex" dark />
   </Tab>
@@ -31,6 +31,10 @@ The Google Vertex and Google Vertex Anthropic providers are both available in th
       text="yarn add @ai-sdk/google-vertex @google-cloud/vertexai"
       dark
     />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/google-vertex" dark />
   </Tab>
 </Tabs>
 
@@ -310,6 +314,12 @@ The following optional provider options are available for Google Vertex models:
 
   This is useful for generating transcripts with accurate timestamps.
   Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding) for usage details.
+
+- **labels** _object_
+
+  Optional. Defines labels used in billing reports.
+
+  Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls) for usage details.
 
 You can use Google Vertex language models to generate text with the `generateText` function:
 
