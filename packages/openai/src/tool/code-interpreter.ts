@@ -1,34 +1,27 @@
+import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-/**
- * Parameters schema for the code interpreter tool.
- */
-const CodeInterpreterParameters = z.object({
-  container: z.object({
-    type: z.literal('auto'),
-  }),
+const codeInterpreterArgsSchema = z.object({
+  container: z.union([
+    z.string(),
+    z.object({
+      fileIds: z.array(z.string()).optional(),
+    }),
+  ]),
 });
 
-/**
- * Creates a code interpreter tool configuration.
- * @returns A provider-defined tool configuration for the code interpreter.
- */
-type CodeInterpreterParametersType = z.infer<typeof CodeInterpreterParameters>;
-
-function codeInterpreterTool({}: {} = {}): {
-  type: 'provider-defined';
-  id: 'openai.code_interpreter';
-  args: {};
-  parameters: CodeInterpreterParametersType;
-} {
-  return {
-    type: 'provider-defined',
-    id: 'openai.code_interpreter',
-    args: {},
-    parameters: {
-      container: { type: 'auto' as const },
-    },
-  };
-}
-
-export const codeInterpreter = codeInterpreterTool;
+export const codeInterpreter = createProviderDefinedToolFactory<
+  {},
+  {
+    /**
+     * The code interpreter container.
+     * Can be a container ID
+     * or an object that specifies uploaded file IDs to make available to your code.
+     */
+    container: string | { fileIds: string[] };
+  }
+>({
+  id: 'openai.code_interpreter',
+  name: 'code_interpreter',
+  inputSchema: codeInterpreterArgsSchema,
+});

@@ -237,10 +237,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       strictJsonSchema,
     });
 
-    if (openaiOptions?.toolResources) {
-      (baseArgs as any).tool_resources = openaiOptions.toolResources;
-    }
-
     return {
       args: {
         ...baseArgs,
@@ -1176,9 +1172,6 @@ const openaiResponsesProviderOptionsSchema = z.object({
   instructions: z.string().nullish(),
   reasoningSummary: z.string().nullish(),
   serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
-  toolResources: z
-    .record(z.string(), z.object({ file_ids: z.array(z.string()) }))
-    .nullish(),
   include: z
     .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
     .nullish(),
