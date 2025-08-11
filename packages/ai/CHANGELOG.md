@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.10
+
+### Patch Changes
+
+- 63a5dc5: fix(ai): convert user message text/file part provider metadata in convertToModelMessages
+
 ## 5.0.9
 
 ### Patch Changes
