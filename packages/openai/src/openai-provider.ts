@@ -33,7 +33,7 @@ export interface OpenAIProvider extends ProviderV2 {
   /**
 Creates an OpenAI model for text generation.
    */
-  languageModel(modelId: OpenAIResponsesModelId): OpenAIResponsesLanguageModel;
+  languageModel(modelId: OpenAIResponsesModelId): LanguageModelV2;
 
   /**
 Creates an OpenAI chat model for text generation.
