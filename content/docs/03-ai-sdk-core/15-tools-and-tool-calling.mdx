@@ -527,16 +527,7 @@ Tool execution errors are available in the result steps:
 
 ```ts
 const { steps } = await generateText({
-  model: 'openai/gpt-4.1',
-  tools: {
-    weather: tool({
-      // ...
-      execute: async ({ location }) => {
-        throw new Error('Weather service unavailable');
-      },
-    }),
-  },
-  prompt: 'What is the weather?',
+  // ...
 });
 
 // check for tool errors in the steps
