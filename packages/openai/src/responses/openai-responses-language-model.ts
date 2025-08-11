@@ -309,6 +309,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   z.object({
                     type: z.literal('output_text'),
                     text: z.string(),
+                    logprobs: z
+                      .array(
+                        z.object({
+                          token: z.string(),
+                          logprob: z.number(),
+                          top_logprobs: z.array(
+                            z.object({
+                              token: z.string(),
+                              logprob: z.number(),
+                            }),
+                          ),
+                        }),
+                      )
+                      .nullish(),
                     annotations: z.array(
                       z.object({
                         type: z.literal('url_citation'),
@@ -404,14 +418,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
         case 'message': {
           for (const contentPart of part.content) {
+            const providerMetadata: SharedV2ProviderMetadata = {
+              openai: {
+                itemId: part.id,
+              },
+            };
+
+            if (contentPart.logprobs) {
+              providerMetadata.openai.logprobs = contentPart.logprobs;
+            }
+
             content.push({
               type: 'text',
               text: contentPart.text,
-              providerMetadata: {
-                openai: {
-                  itemId: part.id,
-                },
-              },
+              providerMetadata,
             });
 
             for (const annotation of contentPart.annotations) {
@@ -424,6 +444,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               });
             }
           }
+
           break;
         }
 
@@ -510,9 +531,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     const providerMetadata: SharedV2ProviderMetadata = {
       openai: { responseId: response.id },
     };
-    const logProbs = (rawResponse as any).output?.[0]?.content?.[0]?.logprobs;
-    if (logProbs) {
-      providerMetadata.openai.logProbs = logProbs;
+
+    // Extract logprobs from the first message's first content item if available
+    const firstOutput = response.output?.[0];
+    if (firstOutput?.type === 'message') {
+      const firstContent = firstOutput.content?.[0];
+      if (firstContent?.logprobs) {
+        providerMetadata.openai.logprobs = firstContent.logprobs;
+      }
     }
 
     return {
@@ -648,6 +674,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolName: 'computer_use',
                 });
               } else if (value.item.type === 'message') {
+                // TODO: add logprobs to providerMetadata here?
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
@@ -1200,7 +1227,13 @@ const openaiResponsesProviderOptionsSchema = z.object({
   reasoningSummary: z.string().nullish(),
   serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
   include: z
-    .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
+    .array(
+      z.enum([
+        'reasoning.encrypted_content',
+        'file_search_call.results',
+        'message.output_text.logprobs',
+      ]),
+    )
     .nullish(),
   textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
 

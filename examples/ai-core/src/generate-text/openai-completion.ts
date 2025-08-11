@@ -14,7 +14,7 @@ async function main() {
     },
   });
 
-  console.dir(result.providerMetadata?.openai);
+  console.dir(result.providerMetadata?.openai, { depth: null });
 }
 
 main().catch(console.error);
