@@ -198,7 +198,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should remove unsupported settings for o1', async () => {
-        const { warnings } = await createModel('o1').doGenerate({
+        const { warnings } = await createModel('o1-mini').doGenerate({
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -208,14 +208,17 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'o1',
+          model: 'o1-mini',
           input: [
-            { role: 'developer', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
         });
 
         expect(warnings).toStrictEqual([
+          {
+            type: 'other',
+            message: 'system messages are removed for this model',
+          },
           {
             details: 'temperature is not supported for reasoning models',
             setting: 'temperature',
@@ -242,11 +245,21 @@ describe('OpenAIResponsesLanguageModel', () => {
           });
 
           const expectedMessages = [
-            // All reasoning models should use developer messages for system messages
-            {
-              role: 'developer',
-              content: 'You are a helpful assistant.',
-            },
+            // o1 models prior to o1-2024-12-17 should remove system messages, all other models should replace
+            // them with developer messages
+            ...(![
+              'o1-mini',
+              'o1-mini-2024-09-12',
+              'o1-preview',
+              'o1-preview-2024-09-12',
+            ].includes(modelId)
+              ? [
+                  {
+                    role: 'developer',
+                    content: 'You are a helpful assistant.',
+                  },
+                ]
+              : []),
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ];
 
@@ -256,7 +269,21 @@ describe('OpenAIResponsesLanguageModel', () => {
           });
 
           expect(warnings).toStrictEqual([
-            // All reasoning models should have no warnings for system messages since they convert to developer messages
+            // o1 models prior to o1-2024-12-17 should remove system messages, all other models should replace
+            // them with developer messages
+            ...([
+              'o1-mini',
+              'o1-mini-2024-09-12',
+              'o1-preview',
+              'o1-preview-2024-09-12',
+            ].includes(modelId)
+              ? [
+                  {
+                    message: 'system messages are removed for this model',
+                    type: 'other',
+                  },
+                ]
+              : []),
             {
               details: 'temperature is not supported for reasoning models',
               setting: 'temperature',

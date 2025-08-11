@@ -1120,6 +1120,14 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     modelId.startsWith('codex-') ||
     modelId.startsWith('computer-use')
   ) {
+    if (modelId.startsWith('o1-mini') || modelId.startsWith('o1-preview')) {
+      return {
+        isReasoningModel: true,
+        systemMessageMode: 'remove',
+        requiredAutoTruncation: false,
+      };
+    }
+
     return {
       isReasoningModel: true,
       systemMessageMode: 'developer',
