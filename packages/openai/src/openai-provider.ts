@@ -22,10 +22,10 @@ import { OpenAIImageModelId } from './openai-image-settings';
 import { openaiTools } from './openai-tools';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
 import { OpenAITranscriptionModelId } from './openai-transcription-options';
+import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
 import { OpenAISpeechModel } from './openai-speech-model';
 import { OpenAISpeechModelId } from './openai-speech-options';
-import { CustomOpenAIResponsesLanguageModel } from './responses/custom-openai-responses-language-model';
 
 export interface OpenAIProvider extends ProviderV2 {
   (modelId: OpenAIResponsesModelId): LanguageModelV2;
@@ -210,7 +210,7 @@ export function createOpenAI(
   };
 
   const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
-    return new CustomOpenAIResponsesLanguageModel(modelId, {
+    return new OpenAIResponsesLanguageModel(modelId, {
       provider: `${providerName}.responses`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
