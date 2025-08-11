@@ -21,6 +21,10 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  openaiErrorDataSchema,
+  openaiFailedResponseHandler,
+} from '../openai-error';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -28,11 +32,7 @@ import {
   OpenAIChatModelId,
   openaiProviderOptions,
 } from './openai-chat-options';
-import {
-  openaiErrorDataSchema,
-  openaiFailedResponseHandler,
-} from '../openai-error';
-import { prepareTools } from './openai-prepare-tools';
+import { prepareChatTools } from './openai-chat-prepare-tools';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -289,7 +289,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
       toolWarnings,
-    } = prepareTools({
+    } = prepareChatTools({
       tools,
       toolChoice,
       structuredOutputs,

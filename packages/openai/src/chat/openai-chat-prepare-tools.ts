@@ -5,9 +5,9 @@ import {
 } from '@ai-sdk/provider';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
-import { OpenAITools, OpenAIToolChoice } from '../openai-types';
+import { OpenAIChatToolChoice, OpenAIChatTools } from './openai-chat-types';
 
-export function prepareTools({
+export function prepareChatTools({
   tools,
   toolChoice,
   structuredOutputs,
@@ -18,8 +18,8 @@ export function prepareTools({
   structuredOutputs: boolean;
   strictJsonSchema: boolean;
 }): {
-  tools?: OpenAITools;
-  toolChoice?: OpenAIToolChoice;
+  tools?: OpenAIChatTools;
+  toolChoice?: OpenAIChatToolChoice;
   toolWarnings: Array<LanguageModelV2CallWarning>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -31,7 +31,7 @@ export function prepareTools({
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const openaiTools: OpenAITools = [];
+  const openaiTools: OpenAIChatTools = [];
 
   for (const tool of tools) {
     switch (tool.type) {
