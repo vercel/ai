@@ -85,4 +85,5 @@ export type GatewayModelId =
   | 'xai/grok-4'
   | 'zai/glm-4.5'
   | 'zai/glm-4.5-air'
+  | 'zai/glm-4.5v'
   | (string & {});
