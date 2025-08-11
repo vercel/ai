@@ -11,9 +11,7 @@ describe('convertToUIMessages', () => {
             content: 'Hello, AI!',
           },
         ],
-        {
-          generateId: mockId(),
-        },
+        { generateId: mockId() },
       );
 
       expect(result).toMatchInlineSnapshot(`
