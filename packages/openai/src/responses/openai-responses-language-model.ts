@@ -1120,7 +1120,6 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     modelId.startsWith('codex-') ||
     modelId.startsWith('computer-use')
   ) {
-
     return {
       isReasoningModel: true,
       systemMessageMode: 'developer',

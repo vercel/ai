@@ -18,9 +18,9 @@ The main reasoning model available in the API is:
 
 1. [**o1**](https://platform.openai.com/docs/models#o1): Designed to reason about hard problems using broad general knowledge about the world.
 
-| Model      | Streaming           | Tools               | Object Generation   | Reasoning Effort    |
-| ---------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| o1         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model | Streaming           | Tools               | Object Generation   | Reasoning Effort    |
+| ----- | ------------------- | ------------------- | ------------------- | ------------------- |
+| o1    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 ### Benchmarks
 
@@ -60,8 +60,8 @@ const { text } = await generateText({
 ```
 
 <Note>
-  To use the o1 model, you must either be using @ai-sdk/openai
-  version 0.0.59 or greater, or set `temperature: 1`.
+  To use the o1 model, you must either be using @ai-sdk/openai version 0.0.59 or
+  greater, or set `temperature: 1`.
 </Note>
 
 AI SDK Core abstracts away the differences between model providers, allowing you to focus on building great applications. The unified interface also means that you can easily switch between models by changing just one line of code.
@@ -128,9 +128,7 @@ const { object } = await generateObject({
 
 This code snippet will generate a type-safe recipe that conforms to the specified zod schema.
 
-<Note>
-  Structured object generation is supported with o1.
-</Note>
+<Note>Structured object generation is supported with o1.</Note>
 
 ### Tools
 
