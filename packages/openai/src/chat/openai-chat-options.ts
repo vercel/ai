@@ -36,8 +36,6 @@ export type OpenAIChatModelId =
   | 'gpt-4-1106-preview'
   | 'gpt-4'
   | 'gpt-4-0613'
-  | 'gpt-4.5-preview'
-  | 'gpt-4.5-preview-2025-02-27'
   | 'gpt-3.5-turbo-0125'
   | 'gpt-3.5-turbo'
   | 'gpt-3.5-turbo-1106'
