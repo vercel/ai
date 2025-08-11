@@ -540,8 +540,8 @@ const { steps } = await generateText({
 });
 
 // check for tool errors in the steps
-const toolErrors = steps.flatMap(step => 
-  step.content.filter(part => part.type === 'tool-error')
+const toolErrors = steps.flatMap(step =>
+  step.content.filter(part => part.type === 'tool-error'),
 );
 
 toolErrors.forEach(toolError => {
