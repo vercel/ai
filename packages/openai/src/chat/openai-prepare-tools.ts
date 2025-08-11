@@ -3,9 +3,9 @@ import {
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { OpenAITools, OpenAIToolChoice } from './openai-types';
-import { fileSearchArgsSchema } from './tool/file-search';
-import { webSearchPreviewArgsSchema } from './tool/web-search-preview';
+import { fileSearchArgsSchema } from '../tool/file-search';
+import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
+import { OpenAITools, OpenAIToolChoice } from '../openai-types';
 
 export function prepareTools({
   tools,

@@ -31,7 +31,7 @@ import {
 import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
-} from './openai-error';
+} from '../openai-error';
 import { prepareTools } from './openai-prepare-tools';
 
 type OpenAIChatConfig = {
