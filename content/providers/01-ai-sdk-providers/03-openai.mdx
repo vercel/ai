@@ -188,7 +188,7 @@ The following optional provider options are available for OpenAI chat models:
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
 
-- **reasoningEffort** _'low' | 'medium' | 'high'_
+- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high'_
 
   Reasoning effort for reasoning models. Defaults to `medium`. If you use
   `providerOptions` to set the `reasoningEffort` option, this
@@ -220,13 +220,17 @@ The following optional provider options are available for OpenAI chat models:
 - **serviceTier** _'auto' | 'flex'_
 
   Service tier for the request. Set to 'flex' for 50% cheaper processing
-  at the cost of increased latency. Only available for o3 and o4-mini models.
+  at the cost of increased latency. Only available for o3, o4-mini, and gpt-5 models.
   Defaults to 'auto'.
 
 - **strictJsonSchema** _boolean_
 
   Whether to use strict JSON schema validation.
   Defaults to `false`.
+
+- **textVerbosity** _'low' | 'medium' | 'high'_
+
+  Controls the verbosity of the model's responses. Lower values will result in more concise responses, while higher values will result in more verbose responses.
 
 #### Reasoning
 
@@ -382,7 +386,7 @@ const result = await generateText({
 });
 ```
 
-Multimodal models will have access to the image and can analyze and conversate about it.
+The model will have access to the image and will respond to questions about it.
 The image should be passed using the `image` field.
 
 You can also pass the URL of an image.
@@ -677,7 +681,7 @@ The following provider options are available:
 - **user** _string_
   A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Defaults to `undefined`.
 
-- **reasoningEffort** _'low' | 'medium' | 'high'_
+- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high'_
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
 - **reasoningSummary** _'auto' | 'detailed'_
@@ -686,10 +690,15 @@ The following provider options are available:
 - **strictJsonSchema** _boolean_
   Whether to use strict JSON schema validation. Defaults to `false`.
 
-- **serviceTier** _'auto' | 'flex'_
+- **serviceTier** _'auto' | 'flex' | 'priority'_
   Service tier for the request. Set to 'flex' for 50% cheaper processing
-  at the cost of increased latency. Only available for o3 and o4-mini models.
+  at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
+  Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
   Defaults to 'auto'.
+
+- **textVerbosity** _'low' | 'medium' | 'high'_
+  Controls the verbosity of the model's response. Lower values result in more concise responses,
+  while higher values result in more verbose responses. Defaults to `'medium'`.
 
 - **include** _Array&lt;string&gt;_
   Specifies additional content to include in the response. Supported values:
@@ -720,7 +729,7 @@ The following OpenAI-specific metadata is returned:
 
 #### Web Search
 
-The OpenAI responses provider supports web search through the `openai.tools.webSearchPreview` tool.
+The OpenAI responses API supports web search through the `openai.tools.webSearchPreview` tool.
 
 You can force the use of the web search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'web_search_preview' }`.
 
@@ -794,9 +803,34 @@ console.log('Reasoning:', result.reasoning);
 
 Learn more about reasoning summaries in the [OpenAI documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries).
 
+#### Verbosity Control
+
+You can control the length and detail of model responses using the `textVerbosity` parameter:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5-mini'),
+  prompt: 'Write a poem about a boy and his first pet dog.',
+  providerOptions: {
+    openai: {
+      textVerbosity: 'low', // 'low' for concise, 'medium' (default), or 'high' for verbose
+    },
+  },
+});
+```
+
+The `textVerbosity` parameter scales output length without changing the underlying prompt:
+
+- `'low'`: Produces terse, minimal responses
+- `'medium'`: Balanced detail (default)
+- `'high'`: Verbose responses with comprehensive detail
+
 #### File Search
 
-The OpenAI responses provider supports file search through the `openai.tools.fileSearch` tool.
+The OpenAI responses API supports file search through the `openai.tools.fileSearch` tool.
 
 You can force the use of the file search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'file_search' }`.
 
@@ -832,6 +866,38 @@ const result = await generateText({
   be customized.
 </Note>
 
+#### Code Interpreter
+
+The OpenAI responses API supports the code interpreter tool through the `openai.tools.codeInterpreter` tool. This allows models to write and execute Python code.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5'),
+  prompt: 'Write and run Python code to calculate the factorial of 10',
+  tools: {
+    code_interpreter: openai.tools.codeInterpreter({
+      // optional configuration:
+      container: {
+        fileIds: ['file-123', 'file-456'], // optional file IDs to make available
+      },
+    }),
+  },
+});
+```
+
+The code interpreter tool can be configured with:
+
+- **container**: Either a container ID string or an object with `fileIds` to specify uploaded files that should be available to the code interpreter
+
+<Note>
+  The tool must be named `code_interpreter` when using OpenAI's code interpreter
+  functionality. This name is required by OpenAI's API specification and cannot
+  be customized.
+</Note>
+
 #### Image Support
 
 The OpenAI Responses API supports Image inputs for appropriate models.
@@ -858,7 +924,7 @@ const result = await generateText({
 });
 ```
 
-Multimodal models will have access to the image and can analyze and conversate about it.
+The model will have access to the image and will respond to questions about it.
 The image should be passed using the `image` field.
 
 You can also pass a file-id from the OpenAI Files API.

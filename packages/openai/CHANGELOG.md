@@ -1,5 +1,26 @@
 # @ai-sdk/openai
 
+## 2.0.9
+
+### Patch Changes
+
+- 8f8a521: fix(providers): use convertToBase64 for Uint8Array image parts to produce valid data URLs; keep mediaType normalization and URL passthrough
+
+## 2.0.8
+
+### Patch Changes
+
+- 57fb959: feat(openai): add verbosity parameter support for chat api
+- 2a3fbe6: allow `minimal` in `reasoningEffort` for openai chat
+
+## 2.0.7
+
+### Patch Changes
+
+- 4738f18: feat(openai): add flex processing support for gpt-5 models
+- 013d747: feat(openai): add verbosity parameter support for responses api
+- 35feee8: feat(openai): add priority processing support for gpt-5 models
+
 ## 2.0.6
 
 ### Patch Changes

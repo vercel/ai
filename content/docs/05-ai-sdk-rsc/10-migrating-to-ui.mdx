@@ -190,7 +190,7 @@ const { value: stream } = await streamUI({
   tools: {
     displayWeather: {
       description: 'Display the weather for a location',
-      parameters: z.object({
+      inputSchema: z.object({
         latitude: z.number(),
         longitude: z.number(),
       }),

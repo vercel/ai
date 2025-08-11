@@ -19,6 +19,40 @@ describe('user messages', () => {
     expect(result).toMatchSnapshot();
   });
 
+  it('should convert messages with image parts from Uint8Array', async () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hi' },
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Hi",
+              "type": "text",
+            },
+            {
+              "image_url": "data:image/png;base64,AAECAw==",
+              "type": "image_url",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
   it('should convert messages with PDF file parts using URL', () => {
     const result = convertToMistralChatMessages([
       {

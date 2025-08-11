@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { OpenAIResponsesTool } from './openai-responses-api-types';
 import { fileSearchArgsSchema } from '../tool/file-search';
+import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 
 export function prepareResponsesTools({
   tools,
@@ -22,7 +23,8 @@ export function prepareResponsesTools({
     | 'required'
     | { type: 'file_search' }
     | { type: 'web_search_preview' }
-    | { type: 'function'; name: string };
+    | { type: 'function'; name: string }
+    | { type: 'code_interpreter' };
   toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -63,6 +65,7 @@ export function prepareResponsesTools({
             break;
           }
           case 'openai.web_search_preview':
+            // TODO update this with proper validation
             openaiTools.push({
               type: 'web_search_preview',
               search_context_size: tool.args.searchContextSize as
@@ -74,6 +77,18 @@ export function prepareResponsesTools({
                 city: string;
                 region: string;
               },
+            });
+            break;
+          case 'openai.code_interpreter':
+            const args = codeInterpreterArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'code_interpreter',
+              container:
+                args.container == null
+                  ? { type: 'auto', file_ids: undefined }
+                  : typeof args.container === 'string'
+                    ? args.container
+                    : { type: 'auto', file_ids: args.container.fileIds },
             });
             break;
           default:
@@ -102,11 +117,11 @@ export function prepareResponsesTools({
       return {
         tools: openaiTools,
         toolChoice:
-          toolChoice.toolName === 'file_search'
-            ? { type: 'file_search' }
-            : toolChoice.toolName === 'web_search_preview'
-              ? { type: 'web_search_preview' }
-              : { type: 'function', name: toolChoice.toolName },
+          toolChoice.toolName === 'code_interpreter' ||
+          toolChoice.toolName === 'file_search' ||
+          toolChoice.toolName === 'web_search_preview'
+            ? { type: toolChoice.toolName }
+            : { type: 'function', name: toolChoice.toolName },
         toolWarnings,
       };
     default: {

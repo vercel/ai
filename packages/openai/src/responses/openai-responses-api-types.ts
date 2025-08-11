@@ -90,6 +90,10 @@ export type OpenAIResponsesTool =
       };
     }
   | {
+      type: 'code_interpreter';
+      container: string | { type: 'auto'; file_ids: string[] | undefined };
+    }
+  | {
       type: 'file_search';
       vector_store_ids?: string[];
       max_num_results?: number;
