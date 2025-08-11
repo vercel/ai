@@ -729,7 +729,7 @@ The following OpenAI-specific metadata is returned:
 
 #### Web Search
 
-The OpenAI responses provider supports web search through the `openai.tools.webSearchPreview` tool.
+The OpenAI responses API supports web search through the `openai.tools.webSearchPreview` tool.
 
 You can force the use of the web search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'web_search_preview' }`.
 
@@ -830,7 +830,7 @@ The `textVerbosity` parameter scales output length without changing the underlyi
 
 #### File Search
 
-The OpenAI responses provider supports file search through the `openai.tools.fileSearch` tool.
+The OpenAI responses API supports file search through the `openai.tools.fileSearch` tool.
 
 You can force the use of the file search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'file_search' }`.
 
@@ -862,6 +862,38 @@ const result = await generateText({
 
 <Note>
   The tool must be named `file_search` when using OpenAI's file search
+  functionality. This name is required by OpenAI's API specification and cannot
+  be customized.
+</Note>
+
+#### Code Interpreter
+
+The OpenAI responses API supports the code interpreter tool through the `openai.tools.codeInterpreter` tool. This allows models to write and execute Python code.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5'),
+  prompt: 'Write and run Python code to calculate the factorial of 10',
+  tools: {
+    code_interpreter: openai.tools.codeInterpreter({
+      // optional configuration:
+      container: {
+        fileIds: ['file-123', 'file-456'], // optional file IDs to make available
+      },
+    }),
+  },
+});
+```
+
+The code interpreter tool can be configured with:
+
+- **container**: Either a container ID string or an object with `fileIds` to specify uploaded files that should be available to the code interpreter
+
+<Note>
+  The tool must be named `code_interpreter` when using OpenAI's code interpreter
   functionality. This name is required by OpenAI's API specification and cannot
   be customized.
 </Note>
