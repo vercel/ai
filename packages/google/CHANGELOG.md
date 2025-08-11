@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.4
+
+### Patch Changes
+
+- 961dda1: add labels field to providerOptions
+
 ## 2.0.3
 
 ### Patch Changes
