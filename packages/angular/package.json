@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/angular",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
   "main": "dist/index.cjs",
