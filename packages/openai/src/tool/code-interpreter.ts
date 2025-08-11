@@ -20,7 +20,7 @@ export const codeInterpreter = createProviderDefinedToolFactory<
      * Can be a container ID
      * or an object that specifies uploaded file IDs to make available to your code.
      */
-    container: string | { fileIds: string[] };
+    container?: string | { fileIds?: string[] };
   }
 >({
   id: 'openai.code_interpreter',
