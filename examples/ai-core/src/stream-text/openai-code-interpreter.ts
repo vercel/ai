@@ -10,7 +10,8 @@ async function main() {
       code_interpreter: openai.tools.codeInterpreter({}),
     },
     prompt:
-      'Write and run Python code to simulate rolling two dice 10000 times and show a table of the results.',
+      'Write and run Python code to simulate rolling two dice 10000 times and show a table of the results.' +
+      'The table should have three columns: "Sum", "Count", and "Percentage".',
   });
 
   for await (const chunk of result.textStream) {
