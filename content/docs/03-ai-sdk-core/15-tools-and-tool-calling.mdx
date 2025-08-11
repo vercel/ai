@@ -505,7 +505,7 @@ When tool execution fails (errors thrown by your tool's `execute` function), the
 
 ### `generateText`
 
-`generateText` throws errors for tool schema validation issues and other errors. Tool execution errors appear as `tool-error` parts in the result steps:
+`generateText` throws errors for tool schema validation issues and other errors, and can be handled using a `try`/`catch` block. Tool execution errors appear as `tool-error` parts in the result steps:
 
 ```ts
 try {
