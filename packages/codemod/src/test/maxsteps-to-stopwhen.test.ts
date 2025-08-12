@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { readFileSync } from 'fs';
 import jscodeshift from 'jscodeshift';
-import transform from '../codemods/v5/maxsteps-to-stopwhen';
+import transform from '../codemods/v5/move-maxsteps-to-stopwhen';
 
 function trim(str: string) {
   return str.replace(/^\s+|\s+$/, '');
