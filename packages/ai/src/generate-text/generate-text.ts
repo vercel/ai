@@ -653,7 +653,7 @@ async function executeTools<TOOLS extends ToolSet>({
               },
             });
 
-            let output: any;
+            let output: unknown;
             for await (const part of stream) {
               if (part.type === 'final') {
                 output = part.output;
