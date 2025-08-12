@@ -643,7 +643,7 @@ async function executeTools<TOOLS extends ToolSet>({
         fn: async span => {
           try {
             const stream = executeTool({
-              tool: tool as any, // TODO: fix this
+              execute: tool.execute!.bind(tool),
               input,
               options: {
                 toolCallId,

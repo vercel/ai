@@ -283,7 +283,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
                   try {
                     const stream = executeTool({
-                      tool: tool as any, // TODO: fix this
+                      execute: tool.execute!.bind(tool),
                       input: toolCall.input,
                       options: {
                         toolCallId: toolCall.toolCallId,

@@ -2,19 +2,17 @@ import { Tool, ToolCallOptions, ToolExecuteFunction } from './tool';
 import { isAsyncIterable } from '../is-async-iterable';
 
 export async function* executeTool<INPUT, OUTPUT>({
-  tool,
+  execute,
   input,
   options,
 }: {
-  tool: Tool<INPUT, OUTPUT> & {
-    execute: ToolExecuteFunction<INPUT, OUTPUT>;
-  };
+  execute: ToolExecuteFunction<INPUT, OUTPUT>;
   input: INPUT;
   options: ToolCallOptions;
 }): AsyncGenerator<
   { type: 'preliminary'; output: OUTPUT } | { type: 'final'; output: OUTPUT }
 > {
-  const result = tool.execute(input, options);
+  const result = execute(input, options);
 
   if (isAsyncIterable(result)) {
     let lastOutput: OUTPUT | undefined;
