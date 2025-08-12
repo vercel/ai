@@ -453,7 +453,7 @@ describe('handleUIMessageStreamFinish', () => {
         const { value, done } = await reader.read();
         if (done) break;
         chunks.push(value);
-      } 
+      }
 
       // Verify we got the initial chunks
       expect(chunks).toHaveLength(3);
