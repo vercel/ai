@@ -47,12 +47,13 @@ const nonReasoningModelIds = openaiResponsesModelIds.filter(
     ),
 );
 
-function createModel(modelId: string) {
+function createModel(modelId: string, fileIdPrefixes?: readonly string[]) {
   return new OpenAIResponsesLanguageModel(modelId, {
     provider: 'openai',
     url: ({ path }) => `https://api.openai.com/v1${path}`,
     headers: () => ({ Authorization: `Bearer APIKEY` }),
     generateId: mockId(),
+    fileIdPrefixes,
   });
 }
 
@@ -730,6 +731,48 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           }
         `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send promptCacheKey provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheKey: 'test-cache-key-123',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          prompt_cache_key: 'test-cache-key-123',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send safetyIdentifier provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              safetyIdentifier: 'test-safety-identifier-123',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          safety_identifier: 'test-safety-identifier-123',
+        });
 
         expect(warnings).toStrictEqual([]);
       });
@@ -2180,6 +2223,137 @@ describe('OpenAIResponsesLanguageModel', () => {
           ]
         `);
       });
+
+      it('should handle file_search tool calls in generate', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67cf3390786881908b27489d7e8cfb6b',
+            object: 'response',
+            created_at: 1741632400,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o-mini-2024-07-18',
+            output: [
+              {
+                type: 'file_search_call',
+                id: 'fs_67cf3390e9608190869b5d45698a7067',
+                status: 'completed',
+                queries: ['AI information'],
+                results: [
+                  {
+                    attributes: {
+                      file_id: 'file-123',
+                      filename: 'ai_guide.pdf',
+                      score: 0.95,
+                      text: 'AI is a field of computer science',
+                    },
+                  },
+                ],
+              },
+              {
+                id: 'msg_67cf33924ea88190b8c12bf68c1f6416',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Based on the search results, here is the information you requested.',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: {
+              effort: null,
+              summary: null,
+            },
+            store: true,
+            temperature: 0,
+            text: {
+              format: {
+                type: 'text',
+              },
+            },
+            tool_choice: 'auto',
+            tools: [
+              {
+                type: 'file_search',
+              },
+            ],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 327,
+              input_tokens_details: {
+                cached_tokens: 0,
+              },
+              output_tokens: 834,
+              output_tokens_details: {
+                reasoning_tokens: 0,
+              },
+              total_tokens: 1161,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+
+        const result = await createModel('gpt-4o-mini').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "",
+              "providerExecuted": true,
+              "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+              "toolName": "file_search",
+              "type": "tool-call",
+            },
+            {
+              "providerExecuted": true,
+              "result": {
+                "queries": [
+                  "AI information",
+                ],
+                "results": [
+                  {
+                    "attributes": {
+                      "file_id": "file-123",
+                      "filename": "ai_guide.pdf",
+                      "score": 0.95,
+                      "text": "AI is a field of computer science",
+                    },
+                  },
+                ],
+                "status": "completed",
+                "type": "file_search_tool_result",
+              },
+              "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+              "toolName": "file_search",
+              "type": "tool-result",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                },
+              },
+              "text": "Based on the search results, here is the information you requested.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
     });
 
     describe('errors', () => {
@@ -2741,53 +2915,188 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-              "modelId": "gpt-4o-mini-2024-07-18",
-              "timestamp": 2025-03-10T18:46:40.000Z,
-              "type": "response-metadata",
-            },
-            {
-              "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_67cf3390786881908b27489d7e8cfb6b",
+                "modelId": "gpt-4o-mini-2024-07-18",
+                "timestamp": 2025-03-10T18:46:40.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "id": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "fs_67cf3390e9608190869b5d45698a7067",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "",
+                "providerExecuted": true,
+                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "status": "completed",
+                  "type": "file_search_tool_result",
+                },
+                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                  },
+                },
+                "type": "text-start",
+              },
+              {
+                "delta": "Based on the search results, here is the information you requested.",
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "type": "text-delta",
+              },
+              {
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "type": "text-end",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": 0,
+                  "inputTokens": 327,
+                  "outputTokens": 834,
+                  "reasoningTokens": 0,
+                  "totalTokens": 1161,
                 },
               },
-              "type": "text-start",
-            },
-            {
-              "delta": "Based on the search results, here is the information you requested.",
-              "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-              "type": "text-delta",
-            },
-            {
-              "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": {
-                "openai": {
-                  "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+            ]
+          `);
+      });
+
+      it('should handle file_search tool calls with results', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"in_progress"}}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed","queries":["AI information"],"results":[{"attributes":{"file_id":"file-123","filename":"ai_guide.pdf","score":0.95,"text":"AI is a field of computer science"}}]}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"Based on the search results, here is the information you requested."}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed","queries":["AI information"],"results":[{"attributes":{"file_id":"file-123","filename":"ai_guide.pdf","score":0.95,"text":"AI is a field of computer science"}}]},{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":327,"input_tokens_details":{"cached_tokens":0},"output_tokens":834,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":1161},"user":null,"metadata":{}}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        expect(await convertReadableStreamToArray(stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_67cf3390786881908b27489d7e8cfb6b",
+                "modelId": "gpt-4o-mini-2024-07-18",
+                "timestamp": 2025-03-10T18:46:40.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "id": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "fs_67cf3390e9608190869b5d45698a7067",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "",
+                "providerExecuted": true,
+                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "queries": [
+                    "AI information",
+                  ],
+                  "results": [
+                    {
+                      "attributes": {
+                        "file_id": "file-123",
+                        "filename": "ai_guide.pdf",
+                        "score": 0.95,
+                        "text": "AI is a field of computer science",
+                      },
+                    },
+                  ],
+                  "status": "completed",
+                  "type": "file_search_tool_result",
+                },
+                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                  },
+                },
+                "type": "text-start",
+              },
+              {
+                "delta": "Based on the search results, here is the information you requested.",
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "type": "text-delta",
+              },
+              {
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "type": "text-end",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": 0,
+                  "inputTokens": 327,
+                  "outputTokens": 834,
+                  "reasoningTokens": 0,
+                  "totalTokens": 1161,
                 },
               },
-              "type": "finish",
-              "usage": {
-                "cachedInputTokens": 0,
-                "inputTokens": 327,
-                "outputTokens": 834,
-                "reasoningTokens": 0,
-                "totalTokens": 1161,
-              },
-            },
-          ]
-        `);
+            ]
+          `);
       });
     });
 
@@ -3865,6 +4174,156 @@ describe('OpenAIResponsesLanguageModel', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('fileIdPrefixes configuration', () => {
+    const TEST_PROMPT_WITH_FILE: LanguageModelV2Prompt = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Analyze this image' },
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            data: 'file-abc123',
+          },
+        ],
+      },
+    ];
+
+    beforeEach(() => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_test',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_test',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'I can see the image.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5,
+            total_tokens: 15,
+          },
+          incomplete_details: null,
+        },
+      };
+    });
+
+    it('should pass fileIdPrefixes to convertToOpenAIResponsesMessages', async () => {
+      const model = createModel('gpt-4o', ['file-']);
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT_WITH_FILE,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Analyze this image' },
+            { type: 'input_image', file_id: 'file-abc123' },
+          ],
+        },
+      ]);
+    });
+
+    it('should handle multiple file ID prefixes', async () => {
+      const model = createModel('gpt-4o', ['file-', 'custom-']);
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Compare these images' },
+              {
+                type: 'file',
+                mediaType: 'image/jpeg',
+                data: 'file-abc123',
+              },
+              {
+                type: 'file',
+                mediaType: 'image/jpeg',
+                data: 'custom-xyz789',
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Compare these images' },
+            { type: 'input_image', file_id: 'file-abc123' },
+            { type: 'input_image', file_id: 'custom-xyz789' },
+          ],
+        },
+      ]);
+    });
+
+    it('should fall back to base64 when fileIdPrefixes is undefined', async () => {
+      const model = createModel('gpt-4o'); // no fileIdPrefixes
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT_WITH_FILE,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Analyze this image' },
+            {
+              type: 'input_image',
+              image_url: 'data:image/jpeg;base64,file-abc123',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should fall back to base64 when prefix does not match', async () => {
+      const model = createModel('gpt-4o', ['other-']);
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT_WITH_FILE,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Analyze this image' },
+            {
+              type: 'input_image',
+              image_url: 'data:image/jpeg;base64,file-abc123',
+            },
+          ],
+        },
+      ]);
     });
   });
 });

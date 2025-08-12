@@ -35,7 +35,7 @@ export interface ToolCallOptions {
 export type ToolExecuteFunction<INPUT, OUTPUT> = (
   input: INPUT,
   options: ToolCallOptions,
-) => PromiseLike<OUTPUT> | OUTPUT;
+) => AsyncIterable<OUTPUT> | PromiseLike<OUTPUT> | OUTPUT;
 
 // 0 extends 1 & N checks for any
 // [N] extends [never] checks for never

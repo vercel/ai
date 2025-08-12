@@ -28,6 +28,8 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/responses': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
+  'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions':
+    {},
 });
 
 describe('chat', () => {
@@ -231,6 +233,35 @@ describe('transcription', () => {
 
       expect(server.calls[0].requestUrl).toStrictEqual(
         'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions?api-version=preview',
+      );
+    });
+
+    it('should use deployment-based URL format when useDeploymentBasedUrls is true', async () => {
+      const providerWithDeploymentUrls = createAzure({
+        resourceName: 'test-resource',
+        apiKey: 'test-api-key',
+        useDeploymentBasedUrls: true,
+      });
+
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          text: 'Hello, world!',
+          segments: [],
+          language: 'en',
+          duration: 5.0,
+        },
+      };
+
+      await providerWithDeploymentUrls.transcription('whisper-1').doGenerate({
+        audio: new Uint8Array(),
+        mediaType: 'audio/wav',
+      });
+
+      expect(server.calls[0].requestUrl).toStrictEqual(
+        'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions?api-version=preview',
       );
     });
   });
@@ -585,6 +616,108 @@ describe('responses', () => {
       expect(server.calls[0].requestUrl).toStrictEqual(
         'https://test-resource.openai.azure.com/openai/v1/responses?api-version=preview',
       );
+    });
+
+    it('should handle Azure file IDs with assistant- prefix', async () => {
+      prepareJsonResponse({ content: 'I can see the image.' });
+
+      const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV2Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Analyze this image' },
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              data: 'assistant-abc123',
+            },
+          ],
+        },
+      ];
+
+      await provider.responses('test-deployment').doGenerate({
+        prompt: TEST_PROMPT_WITH_AZURE_FILE,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Analyze this image' },
+            { type: 'input_image', file_id: 'assistant-abc123' },
+          ],
+        },
+      ]);
+    });
+
+    it('should handle PDF files with assistant- prefix', async () => {
+      prepareJsonResponse({ content: 'I can analyze the PDF.' });
+
+      const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV2Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Analyze this PDF' },
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: 'assistant-pdf123',
+            },
+          ],
+        },
+      ];
+
+      await provider.responses('test-deployment').doGenerate({
+        prompt: TEST_PROMPT_WITH_AZURE_PDF,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Analyze this PDF' },
+            { type: 'input_file', file_id: 'assistant-pdf123' },
+          ],
+        },
+      ]);
+    });
+
+    it('should fall back to base64 for non-assistant file IDs', async () => {
+      prepareJsonResponse({ content: 'I can see the image.' });
+
+      const TEST_PROMPT_WITH_OPENAI_FILE: LanguageModelV2Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Analyze this image' },
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              data: 'file-abc123', // OpenAI prefix, should fall back to base64
+            },
+          ],
+        },
+      ];
+
+      await provider.responses('test-deployment').doGenerate({
+        prompt: TEST_PROMPT_WITH_OPENAI_FILE,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Analyze this image' },
+            {
+              type: 'input_image',
+              image_url: 'data:image/jpeg;base64,file-abc123',
+            },
+          ],
+        },
+      ]);
     });
   });
 });

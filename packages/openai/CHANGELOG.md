@@ -1,5 +1,23 @@
 # @ai-sdk/openai
 
+## 2.0.11
+
+### Patch Changes
+
+- 097b452: feat(openai, azure): add configurable file ID prefixes for Responses API
+
+  - Added `fileIdPrefixes` option to OpenAI Responses API configuration
+  - Azure OpenAI now supports `assistant-` prefixed file IDs (replacing previous `file-` prefix support)
+  - OpenAI maintains backward compatibility with default `file-` prefix
+  - File ID detection is disabled when `fileIdPrefixes` is undefined, gracefully falling back to base64 processing
+
+- 87cf954: feat(provider/openai): add support for prompt_cache_key
+- a3d98a9: feat(provider/openai): add support for safety_identifier
+- 110d167: fix(openai): add missing file_search_call handlers in responses streaming
+- 8d3c747: chore(openai): remove deprecated GPT-4.5-preview models and improve autocomplete control
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
 ## 2.0.10
 
 ### Patch Changes
