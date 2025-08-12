@@ -33,6 +33,7 @@ const bundle = [
   'v5/migrate-to-data-stream-protocol-v2',
   'v5/move-image-model-maxImagesPerCall',
   'v5/move-langchain-adapter',
+  'v5/move-maxsteps-to-stopwhen',
   'v5/move-provider-options',
   'v5/move-react-to-ai-sdk',
   'v5/move-ui-utils-to-ai',
