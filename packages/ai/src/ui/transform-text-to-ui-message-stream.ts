@@ -13,11 +13,11 @@ export function transformTextToUiMessageStream({
         controller.enqueue({ type: 'text-start', id: 'text-1' });
       },
 
-      async transform(part, controller) {
+      transform(part, controller) {
         controller.enqueue({ type: 'text-delta', id: 'text-1', delta: part });
       },
 
-      async flush(controller) {
+      flush(controller) {
         controller.enqueue({ type: 'text-end', id: 'text-1' });
         controller.enqueue({ type: 'finish-step' });
         controller.enqueue({ type: 'finish' });
