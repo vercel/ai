@@ -1,0 +1,80 @@
+import { openai } from '@ai-sdk/openai';
+import 'dotenv/config';
+import { stepCountIs, streamText, tool } from 'ai';
+import { z } from 'zod/v4';
+
+async function main() {
+  const result = streamText({
+    model: openai('gpt-4o'),
+    stopWhen: stepCountIs(5),
+    tools: {
+      weather: tool({
+        description: 'Get the current weather.',
+        inputSchema: z.object({
+          location: z.string(),
+        }),
+        async *execute({ location }) {
+          yield {
+            status: 'loading' as const,
+            text: `Getting weather for ${location}`,
+            weather: undefined,
+          };
+
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          const temperature = 72 + Math.floor(Math.random() * 21) - 10;
+
+          yield {
+            status: 'success' as const,
+            text: `The weather in ${location} is ${temperature}°F`,
+            weather: {
+              location,
+              temperature,
+            },
+          };
+        },
+      }),
+    },
+    prompt: 'What is the weather in New York?',
+  });
+
+  for await (const chunk of result.fullStream) {
+    switch (chunk.type) {
+      case 'text-delta': {
+        process.stdout.write(chunk.text);
+        break;
+      }
+
+      case 'tool-call': {
+        console.log(
+          `TOOL CALL ${chunk.toolName} ${JSON.stringify(chunk.input)}`,
+        );
+        break;
+      }
+
+      case 'tool-result': {
+        if (chunk.dynamic) {
+          continue;
+        }
+
+        if (chunk.toolName === 'weather') {
+          if (chunk.preliminary) {
+            console.log(
+              `PRELIMINARY TOOL RESULT ${chunk.toolName} ${JSON.stringify(chunk.output)}`,
+            );
+          } else {
+            console.log(
+              `TOOL RESULT ${chunk.toolName} ${JSON.stringify(chunk.output)}`,
+            );
+          }
+        }
+        break;
+      }
+
+      case 'error':
+        console.error('Error:', chunk.error);
+        break;
+    }
+  }
+}
+
+main().catch(console.error);
