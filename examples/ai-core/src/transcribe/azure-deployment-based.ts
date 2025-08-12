@@ -6,6 +6,7 @@ import { readFile } from 'fs/promises';
 async function main() {
   const azure = createAzure({
     useDeploymentBasedUrls: true,
+    // apiVersion: '',
   });
 
   const result = await transcribe({
