@@ -65,7 +65,7 @@ export const weatherTool = tool({
               isOptional: true,
               type: 'async (input: INPUT, options: ToolCallOptions) => RESULT | Promise<RESULT> | AsyncIterable<RESULT>',
               description:
-                'An async function that is called with the arguments from the tool call and produces a result. If not provided, the tool will not be executed automatically.',
+                'An async function that is called with the arguments from the tool call and produces a result or a iterable of results. If an iterable is provided, all results but the last one are considered preliminary. If not provided, the tool will not be executed automatically.',
               properties: [
                 {
                   type: 'ToolCallOptions',
