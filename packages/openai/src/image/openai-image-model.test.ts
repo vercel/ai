@@ -1,6 +1,6 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createOpenAI } from '../openai-provider';
 import { OpenAIImageModel } from './openai-image-model';
-import { createOpenAI } from './openai-provider';
 
 const prompt = 'A cute baby sea otter';
 

@@ -4,7 +4,7 @@ import {
   createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
-import { createOpenAI } from './openai-provider';
+import { createOpenAI } from '../openai-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -272,6 +272,7 @@ describe('doGenerate', () => {
           "parallel_tool_calls": undefined,
           "prediction": undefined,
           "presence_penalty": undefined,
+          "prompt_cache_key": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,
@@ -1414,6 +1415,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send promptCacheKey extension value', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheKey: 'test-cache-key-123',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      prompt_cache_key: 'test-cache-key-123',
+    });
+  });
+
   it('should remove temperature setting for gpt-4o-search-preview and add warning', async () => {
     prepareJsonResponse();
 
@@ -2545,6 +2565,7 @@ describe('doStream', () => {
           "parallel_tool_calls": undefined,
           "prediction": undefined,
           "presence_penalty": undefined,
+          "prompt_cache_key": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,

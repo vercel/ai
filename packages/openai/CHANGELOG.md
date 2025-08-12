@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 2.0.10
+
+### Patch Changes
+
+- a274b01: refactor(provider/openai): restructure files
+- b48e0ff: feat(provider/openai): add code interpreter tool (responses api)
+
 ## 2.0.9
 
 ### Patch Changes
