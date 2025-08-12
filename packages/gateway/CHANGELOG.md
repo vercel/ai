@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 1.0.5
+
+### Patch Changes
+
+- cf7b2ad: feat(provider/gateway): Add GLM-4.5V
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
 ## 1.0.4
 
 ### Patch Changes

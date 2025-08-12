@@ -1,5 +1,26 @@
 # @ai-sdk/azure
 
+## 2.0.11
+
+### Patch Changes
+
+- 097b452: feat(openai, azure): add configurable file ID prefixes for Responses API
+
+  - Added `fileIdPrefixes` option to OpenAI Responses API configuration
+  - Azure OpenAI now supports `assistant-` prefixed file IDs (replacing previous `file-` prefix support)
+  - OpenAI maintains backward compatibility with default `file-` prefix
+  - File ID detection is disabled when `fileIdPrefixes` is undefined, gracefully falling back to base64 processing
+
+- 0853d6b: fix(provider/azure): add deployment-based URL support for transcription compatibility
+- Updated dependencies [097b452]
+- Updated dependencies [87cf954]
+- Updated dependencies [a3d98a9]
+- Updated dependencies [38ac190]
+- Updated dependencies [110d167]
+- Updated dependencies [8d3c747]
+  - @ai-sdk/openai@2.0.11
+  - @ai-sdk/provider-utils@3.0.2
+
 ## 2.0.10
 
 ### Patch Changes
