@@ -322,7 +322,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 type: z.literal('file_search_call'),
                 id: z.string(),
                 status: z.string().optional(),
-                queries: z.array(z.string()).optional(),
+                queries: z.array(z.string()).nullish(),
                 results: z
                   .array(
                     z.object({
@@ -334,7 +334,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                       }),
                     }),
                   )
-                  .optional(),
+                  .nullish(),
               }),
               z.object({
                 type: z.literal('reasoning'),
@@ -985,7 +985,7 @@ const responseOutputItemAddedSchema = z.object({
       type: z.literal('file_search_call'),
       id: z.string(),
       status: z.string(),
-      queries: z.array(z.string()).optional(),
+      queries: z.array(z.string()).nullish(),
       results: z
         .array(
           z.object({
@@ -1037,7 +1037,7 @@ const responseOutputItemDoneSchema = z.object({
       type: z.literal('file_search_call'),
       id: z.string(),
       status: z.literal('completed'),
-      queries: z.array(z.string()).optional(),
+      queries: z.array(z.string()).nullish(),
       results: z
         .array(
           z.object({
@@ -1049,7 +1049,7 @@ const responseOutputItemDoneSchema = z.object({
             }),
           }),
         )
-        .optional(),
+        .nullish(),
     }),
   ]),
 });
