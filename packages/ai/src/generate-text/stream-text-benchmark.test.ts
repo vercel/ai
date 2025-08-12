@@ -5,7 +5,7 @@ import { simulateReadableStream } from '../util/simulate-readable-stream';
 import { streamText } from './stream-text';
 
 describe('streamText benchmark', () => {
-  const generateLongContent = (tokens: number) => {
+  const generateLongContent = (tokens: number, includeTools = false) => {
     const chunks: LanguageModelV2StreamPart[] = [
       { type: 'text-start', id: 'text-1' },
     ];
@@ -19,26 +19,71 @@ describe('streamText benchmark', () => {
       });
     }
 
-    chunks.push(
-      { type: 'text-end', id: 'text-1' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: {
-          inputTokens: 10,
-          outputTokens: tokens,
-          totalTokens: tokens + 10,
+    chunks.push({ type: 'text-end', id: 'text-1' });
+
+    // Add tool-related chunks if requested
+    if (includeTools) {
+      // Add tool call chunks
+      chunks.push(
+        {
+          type: 'tool-input-start',
+          id: 'tool-call-1',
+          toolName: 'getWeather',
         },
+        {
+          type: 'tool-input-delta',
+          id: 'tool-call-1',
+          delta: '{"location": "',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'tool-call-1',
+          delta: 'San Francisco',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'tool-call-1',
+          delta: '"}',
+        },
+        {
+          type: 'tool-input-end',
+          id: 'tool-call-1',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'tool-call-1',
+          toolName: 'getWeather',
+          input: '{"location": "San Francisco"}',
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'tool-call-1',
+          toolName: 'getWeather',
+          output: {
+            type: 'text',
+            value: 'Sunny, 72°F',
+          },
+        },
+      );
+    }
+
+    chunks.push({
+      type: 'finish',
+      finishReason: 'stop',
+      usage: {
+        inputTokens: 10,
+        outputTokens: tokens,
+        totalTokens: tokens + 10,
       },
-    );
+    });
 
     return chunks;
   };
 
   // Calculate approximate bytes for throughput measurement
   // Reuses the generateLongContent function to avoid duplication
-  const calculateTotalBytes = (tokens: number) => {
-    const chunks = generateLongContent(tokens);
+  const calculateTotalBytes = (tokens: number, includeTools = false) => {
+    const chunks = generateLongContent(tokens, includeTools);
     let totalBytes = 0;
 
     for (const chunk of chunks) {
@@ -130,6 +175,47 @@ describe('streamText benchmark', () => {
     console.log(`  Throughput: ${megabytesPerSecond.toFixed(2)} MB/s`);
     console.log(
       `  Average per stream: ${(duration / streamCount).toFixed(2)}ms`,
+    );
+  });
+
+  it('should measure throughput for stream with tool calls', async () => {
+    const tokenCount = 5000;
+    const includeTools = true;
+    const chunks = generateLongContent(tokenCount, includeTools);
+    const totalBytes = calculateTotalBytes(tokenCount, includeTools);
+
+    const model = new MockLanguageModelV2({
+      doStream: async () => ({
+        stream: simulateReadableStream({
+          chunks,
+          initialDelayInMs: null, // No delay
+          chunkDelayInMs: null, // No delay between chunks
+        }),
+      }),
+    });
+
+    const startTime = performance.now();
+
+    const result = streamText({
+      model,
+      prompt: 'Test prompt with tools',
+    });
+
+    await result.consumeStream();
+
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    const tokensPerSecond = (tokenCount / duration) * 1000;
+    const megabytesPerSecond = totalBytes / (1024 * 1024) / (duration / 1000);
+
+    console.log(`\nStream with tool calls benchmark results:`);
+    console.log(`  Duration: ${duration.toFixed(2)}ms`);
+    console.log(`  Tokens: ${tokenCount.toLocaleString()}`);
+    console.log(`  Total data: ${(totalBytes / 1024).toFixed(2)} KB`);
+    console.log(`  Throughput: ${tokensPerSecond.toFixed(0)} tokens/second`);
+    console.log(`  Throughput: ${megabytesPerSecond.toFixed(2)} MB/s`);
+    console.log(
+      `  Tool chunks: 7 (input-start, 3x input-delta, input-end, tool-call, tool-result)`,
     );
   });
 });
