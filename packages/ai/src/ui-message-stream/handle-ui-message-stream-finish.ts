@@ -121,7 +121,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       async transform(chunk, controller) {
         controller.enqueue(chunk);
       },
-      // @ts-expect-error cancel is still experimental and missing from types
+      // @ts-expect-error cancel is still new and missing from types https://developer.mozilla.org/en-US/docs/Web/API/TransformStream#browser_compatibility
       async cancel() {
         await callOnFinish();
       },
