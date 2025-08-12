@@ -202,4 +202,65 @@ describe('prepareResponsesTools', () => {
       expect(result.toolWarnings).toEqual([]);
     });
   });
+
+  describe('image generation', () => {
+    it('should prepare image_generation tool with all options', () => {
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {
+              background: 'opaque',
+              size: '1536x1024',
+              quality: 'high',
+              moderation: 'auto',
+              outputFormat: 'png',
+              outputCompression: 100,
+              n: 1,
+            },
+          },
+        ],
+        strictJsonSchema: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'image_generation',
+          background: 'opaque',
+          size: '1536x1024',
+          quality: 'high',
+          moderation: 'auto',
+          output_format: 'png',
+          output_compression: 100,
+          n: 1,
+        },
+      ]);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it('should support tool choice selection for image_generation', () => {
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'image_generation' },
+        strictJsonSchema: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'image_generation',
+        },
+      ]);
+      expect(result.toolChoice).toEqual({ type: 'image_generation' });
+      expect(result.toolWarnings).toEqual([]);
+    });
+  });
 });

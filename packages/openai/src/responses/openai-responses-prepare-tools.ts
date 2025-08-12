@@ -7,6 +7,7 @@ import { OpenAIResponsesTool } from './openai-responses-api-types';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
+import { imageGenerationArgsSchema } from '../tool/image-generation';
 
 export function prepareResponsesTools({
   tools,
@@ -25,7 +26,9 @@ export function prepareResponsesTools({
     | { type: 'file_search' }
     | { type: 'web_search_preview' }
     | { type: 'function'; name: string }
-    | { type: 'code_interpreter' };
+    | { type: 'code_interpreter' }
+    | { type: 'image_generation' }
+    | { type: 'function'; name: string };
   toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -87,8 +90,18 @@ export function prepareResponsesTools({
             });
             break;
           }
-          default: {
-            toolWarnings.push({ type: 'unsupported-tool', tool });
+          case 'openai.image_generation': {
+            const args = imageGenerationArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'image_generation',
+              background: args.background,
+              size: args.size,
+              quality: args.quality,
+              moderation: args.moderation,
+              output_format: args.outputFormat,
+              output_compression: args.outputCompression,
+              n: args.n,
+            });
             break;
           }
         }
@@ -117,7 +130,8 @@ export function prepareResponsesTools({
         toolChoice:
           toolChoice.toolName === 'code_interpreter' ||
           toolChoice.toolName === 'file_search' ||
-          toolChoice.toolName === 'web_search_preview'
+          toolChoice.toolName === 'web_search_preview' ||
+          toolChoice.toolName === 'image_generation'
             ? { type: toolChoice.toolName }
             : { type: 'function', name: toolChoice.toolName },
         toolWarnings,

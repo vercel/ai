@@ -70,6 +70,40 @@ describe('OpenAIResponsesLanguageModel', () => {
       };
     }
 
+    it('should map image_generation_call to file content with mediaType', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_img_1',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          model: 'gpt-5',
+          output: [
+            {
+              type: 'image_generation_call',
+              id: 'ig_1',
+              status: 'completed',
+              output_format: 'png',
+              result: 'BASE64DATA',
+              size: '1536x1024',
+            },
+          ],
+          usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
+        },
+      };
+
+      const result = await createModel('gpt-5').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [],
+      });
+
+      expect(result.content).toEqual([
+        { type: 'file', mediaType: 'image/png', data: 'BASE64DATA' },
+      ]);
+    });
     describe('basic text response', () => {
       beforeEach(() => {
         prepareJsonResponse({
@@ -2850,6 +2884,141 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should emit partial image frames when include flag is set', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({
+            type: 'response.created',
+            response: { id: 'resp_1', created_at: 1741257730, model: 'gpt-5' },
+          })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.image_generation_call.partial_image',
+            sequence_number: 1,
+            output_index: 0,
+            item_id: 'ig_1',
+            partial_image_index: 0,
+            partial_image_b64: 'P_BASE64',
+            output_format: 'png',
+          })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'image_generation_call',
+              id: 'ig_1',
+              status: 'completed',
+              output_format: 'png',
+              result: 'FINAL_BASE64',
+            },
+          })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.completed', response: { usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } } })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: { include: ['image_generation_call.partials'] },
+        },
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const files = parts.filter(p => p.type === 'file');
+      expect(files).toEqual([
+        { type: 'file', mediaType: 'image/png', data: 'P_BASE64' },
+        { type: 'file', mediaType: 'image/png', data: 'FINAL_BASE64' },
+      ]);
+    });
+
+    it('should dedupe final image if identical to last partial', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({
+            type: 'response.created',
+            response: { id: 'resp_1', created_at: 1741257730, model: 'gpt-5' },
+          })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.image_generation_call.partial_image',
+            sequence_number: 1,
+            output_index: 0,
+            item_id: 'ig_1',
+            partial_image_index: 0,
+            partial_image_b64: 'SAME',
+            output_format: 'png',
+          })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'image_generation_call',
+              id: 'ig_1',
+              status: 'completed',
+              output_format: 'png',
+              result: 'SAME',
+            },
+          })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.completed', response: { usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } } })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: { include: ['image_generation_call.partials'] },
+        },
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const files = parts.filter(p => p.type === 'file');
+      expect(files).toEqual([
+        { type: 'file', mediaType: 'image/png', data: 'SAME' },
+      ]);
+    });
+
+    it('should ignore partial frames when include flag is not set and still emit final', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({
+            type: 'response.created',
+            response: { id: 'resp_1', created_at: 1741257730, model: 'gpt-5' },
+          })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.image_generation_call.partial_image',
+            sequence_number: 1,
+            output_index: 0,
+            item_id: 'ig_1',
+            partial_image_index: 0,
+            partial_image_b64: 'P_BASE64',
+            output_format: 'png',
+          })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'image_generation_call',
+              id: 'ig_1',
+              status: 'completed',
+              output_format: 'png',
+              result: 'FINAL_BASE64',
+            },
+          })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.completed', response: { usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } } })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const files = parts.filter(p => p.type === 'file');
+      expect(files).toEqual([
+        { type: 'file', mediaType: 'image/png', data: 'FINAL_BASE64' },
+      ]);
+    });
     it('should stream text deltas', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
