@@ -28,7 +28,8 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/responses': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
-  'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions': {},
+  'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions':
+    {},
 });
 
 describe('chat', () => {
