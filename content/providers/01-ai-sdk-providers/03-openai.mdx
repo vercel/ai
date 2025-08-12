@@ -236,6 +236,10 @@ The following optional provider options are available for OpenAI chat models:
 
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
 
+- **safetyIdentifier** _string_
+
+  A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
+
 #### Reasoning
 
 OpenAI has introduced the `o1`,`o3`, and `o4` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
@@ -731,6 +735,9 @@ The following provider options are available:
 
 - **promptCacheKey** _string_
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
+
+- **safetyIdentifier** \_string_0
+  A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
 
 The OpenAI responses provider also returns provider-specific metadata:
 
