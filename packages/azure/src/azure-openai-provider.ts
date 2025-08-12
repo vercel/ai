@@ -109,6 +109,13 @@ or to provide a custom fetch implementation for e.g. testing.
 Custom api version to use. Defaults to `preview`.
     */
   apiVersion?: string;
+
+  /**
+Use deployment-based URLs for specific model types. Set to true to use legacy deployment format: 
+`{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}` instead of 
+`{baseURL}/v1{path}?api-version={apiVersion}`.
+   */
+  useDeploymentBasedUrls?: boolean;
 }
 
 /**
@@ -139,8 +146,16 @@ export function createAzure(
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
     const baseUrlPrefix =
       options.baseURL ?? `https://${getResourceName()}.openai.azure.com/openai`;
-    // Use v1 API format - no deployment ID in URL
-    const fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
+    
+    let fullUrl: URL;
+    if (options.useDeploymentBasedUrls) {
+      // Use deployment-based format for compatibility with certain Azure OpenAI models
+      fullUrl = new URL(`${baseUrlPrefix}/deployments/${modelId}${path}`);
+    } else {
+      // Use v1 API format - no deployment ID in URL
+      fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
+    }
+    
     fullUrl.searchParams.set('api-version', apiVersion);
     return fullUrl.toString();
   };

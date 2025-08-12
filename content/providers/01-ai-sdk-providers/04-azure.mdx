@@ -86,6 +86,16 @@ You can use the following optional settings to customize the OpenAI provider ins
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **useDeploymentBasedUrls** _boolean_
+
+  Use deployment-based URLs for API calls. Set to `true` to use the legacy deployment format:
+  `{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}` instead of
+  `{baseURL}/v1{path}?api-version={apiVersion}`.
+  Defaults to `false`.
+  
+  This option is useful for compatibility with certain Azure OpenAI models or deployments
+  that require the legacy endpoint format.
+
 ## Language Models
 
 The Azure OpenAI provider instance is a function that you can invoke to create a language model:
@@ -533,6 +543,19 @@ The first argument is the model id e.g. `whisper-1`.
 ```ts
 const model = azure.transcription('whisper-1');
 ```
+
+<Note>
+  If you encounter a "DeploymentNotFound" error with transcription models,
+  try enabling deployment-based URLs:
+  
+  ```ts
+  const azure = createAzure({
+    useDeploymentBasedUrls: true,
+  });
+  ```
+  
+  This uses the legacy endpoint format which may be required for certain Azure OpenAI deployments.
+</Note>
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
 
