@@ -32,33 +32,14 @@ describe('streamText benchmark', () => {
   };
 
   // Calculate approximate bytes for throughput measurement
-  // Each token generates a chunk object with metadata
+  // Reuses the generateLongContent function to avoid duplication
   const calculateTotalBytes = (tokens: number) => {
+    const chunks = generateLongContent(tokens);
     let totalBytes = 0;
     
-    // Start chunk
-    totalBytes += JSON.stringify({ type: 'text-start', id: 'text-1' }).length;
-    
-    // Delta chunks - each token creates a chunk with overhead
-    for (let i = 0; i < tokens; i++) {
-      const chunk = {
-        type: 'text-delta',
-        id: 'text-1',
-        delta: `Token${i} `,
-      };
+    for (const chunk of chunks) {
       totalBytes += JSON.stringify(chunk).length;
     }
-    
-    // End chunk
-    totalBytes += JSON.stringify({ type: 'text-end', id: 'text-1' }).length;
-    
-    // Finish chunk
-    totalBytes += JSON.stringify({
-      type: 'finish',
-      finishReason: 'stop',
-      logprobs: undefined,
-      usage: { inputTokens: 10, outputTokens: tokens, totalTokens: tokens + 10 },
-    }).length;
     
     return totalBytes;
   };
