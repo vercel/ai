@@ -17,6 +17,7 @@ import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { getCacheControl } from './get-cache-control';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
+import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 
 function convertToString(data: LanguageModelV2DataContent): string {
   if (typeof data === 'string') {
@@ -412,6 +413,18 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
+                  if (part.toolName === 'code_execution') {
+                    anthropicContent.push({
+                      type: 'server_tool_use',
+                      id: part.toolCallId,
+                      name: 'code_execution',
+                      input: part.input,
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
+
                   warnings.push({
                     type: 'other',
                     message: `provider executed tool call for tool ${part.toolName} is not supported`,
@@ -457,6 +470,36 @@ export async function convertToAnthropicMessagesPrompt({
                       encrypted_content: result.encryptedContent,
                       type: result.type,
                     })),
+                    cache_control: cacheControl,
+                  });
+
+                  break;
+                }
+
+                if (part.toolName === 'code_execution') {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const codeExecutionOutput =
+                    codeExecution_20250522OutputSchema.parse(output.value);
+
+                  anthropicContent.push({
+                    type: 'code_execution_tool_result',
+                    tool_use_id: part.toolCallId,
+                    content: {
+                      type: codeExecutionOutput.type,
+                      stdout: codeExecutionOutput.stdout,
+                      stderr: codeExecutionOutput.stderr,
+                      return_code: codeExecutionOutput.return_code,
+                    },
                     cache_control: cacheControl,
                   });
 
