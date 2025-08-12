@@ -8,8 +8,6 @@ export type OpenAIChatModelId =
   | 'o3-mini-2025-01-31'
   | 'o3'
   | 'o3-2025-04-16'
-  | 'o4-mini'
-  | 'o4-mini-2025-04-16'
   | 'gpt-4.1'
   | 'gpt-4.1-2025-04-14'
   | 'gpt-4.1-mini'
@@ -20,20 +18,10 @@ export type OpenAIChatModelId =
   | 'gpt-4o-2024-05-13'
   | 'gpt-4o-2024-08-06'
   | 'gpt-4o-2024-11-20'
-  | 'gpt-4o-audio-preview'
-  | 'gpt-4o-audio-preview-2024-10-01'
-  | 'gpt-4o-audio-preview-2024-12-17'
-  | 'gpt-4o-search-preview'
-  | 'gpt-4o-search-preview-2025-03-11'
-  | 'gpt-4o-mini-search-preview'
-  | 'gpt-4o-mini-search-preview-2025-03-11'
   | 'gpt-4o-mini'
   | 'gpt-4o-mini-2024-07-18'
   | 'gpt-4-turbo'
   | 'gpt-4-turbo-2024-04-09'
-  | 'gpt-4-turbo-preview'
-  | 'gpt-4-0125-preview'
-  | 'gpt-4-1106-preview'
   | 'gpt-4'
   | 'gpt-4-0613'
   | 'gpt-4.5-preview'
@@ -85,7 +73,7 @@ export const openaiProviderOptions = z.object({
   /**
    * Reasoning effort for reasoning models. Defaults to `medium`.
    */
-  reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+  reasoningEffort: z.enum(['minimal', 'low', 'medium', 'high']).optional(),
 
   /**
    * Maximum number of completion tokens to generate. Useful for reasoning models.
@@ -130,6 +118,27 @@ export const openaiProviderOptions = z.object({
    * @default false
    */
   strictJsonSchema: z.boolean().optional(),
+
+  /**
+   * Controls the verbosity of the model's responses.
+   * Lower values will result in more concise responses, while higher values will result in more verbose responses.
+   */
+  textVerbosity: z.enum(['low', 'medium', 'high']).optional(),
+
+  /**
+   * A cache key for prompt caching. Allows manual control over prompt caching behavior.
+   * Useful for improving cache hit rates and working around automatic caching issues.
+   */
+  promptCacheKey: z.string().optional(),
+
+  /**
+   * A stable identifier used to help detect users of your application
+   * that may be violating OpenAI's usage policies. The IDs should be a
+   * string that uniquely identifies each user. We recommend hashing their
+   * username or email address, in order to avoid sending us any identifying
+   * information.
+   */
+  safetyIdentifier: z.string().optional(),
 });
 
 export type OpenAIProviderOptions = z.infer<typeof openaiProviderOptions>;

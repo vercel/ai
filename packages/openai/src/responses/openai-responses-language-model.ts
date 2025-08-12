@@ -92,6 +92,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       await convertToOpenAIResponsesMessages({
         prompt,
         systemMessageMode: modelConfig.systemMessageMode,
+        fileIdPrefixes: this.config.fileIdPrefixes,
       });
 
     warnings.push(...messageWarnings);
@@ -111,18 +112,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       top_p: topP,
       max_output_tokens: maxOutputTokens,
 
-      ...(responseFormat?.type === 'json' && {
+      ...((responseFormat?.type === 'json' || openaiOptions?.textVerbosity) && {
         text: {
-          format:
-            responseFormat.schema != null
-              ? {
-                  type: 'json_schema',
-                  strict: strictJsonSchema,
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                  schema: responseFormat.schema,
-                }
-              : { type: 'json_object' },
+          ...(responseFormat?.type === 'json' && {
+            format:
+              responseFormat.schema != null
+                ? {
+                    type: 'json_schema',
+                    strict: strictJsonSchema,
+                    name: responseFormat.name ?? 'response',
+                    description: responseFormat.description,
+                    schema: responseFormat.schema,
+                  }
+                : { type: 'json_object' },
+          }),
+          ...(openaiOptions?.textVerbosity && {
+            verbosity: openaiOptions.textVerbosity,
+          }),
         },
       }),
 
@@ -135,6 +141,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
       include: openaiOptions?.include,
+      prompt_cache_key: openaiOptions?.promptCacheKey,
+      safety_identifier: openaiOptions?.safetyIdentifier,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -1156,6 +1164,7 @@ function supportsPriorityProcessing(modelId: string): boolean {
   );
 }
 
+// TODO AI SDK 6: use optional here instead of nullish
 const openaiResponsesProviderOptionsSchema = z.object({
   metadata: z.any().nullish(),
   parallelToolCalls: z.boolean().nullish(),
@@ -1170,6 +1179,9 @@ const openaiResponsesProviderOptionsSchema = z.object({
   include: z
     .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
     .nullish(),
+  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
+  promptCacheKey: z.string().nullish(),
+  safetyIdentifier: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

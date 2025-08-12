@@ -16,6 +16,10 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  openaiErrorDataSchema,
+  openaiFailedResponseHandler,
+} from '../openai-error';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -23,10 +27,6 @@ import {
   OpenAICompletionModelId,
   openaiCompletionProviderOptions,
 } from './openai-completion-options';
-import {
-  openaiErrorDataSchema,
-  openaiFailedResponseHandler,
-} from './openai-error';
 
 type OpenAICompletionConfig = {
   provider: string;

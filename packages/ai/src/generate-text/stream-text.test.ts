@@ -387,22 +387,6 @@ describe('streamText', () => {
         await convertAsyncIterableToArray(result.textStream),
       ).toMatchSnapshot();
     });
-
-    it('should swallow error to prevent server crash', async () => {
-      const result = streamText({
-        model: new MockLanguageModelV2({
-          doStream: async () => {
-            throw new Error('test error');
-          },
-        }),
-        prompt: 'test-input',
-        onError: () => {},
-      });
-
-      expect(
-        await convertAsyncIterableToArray(result.textStream),
-      ).toMatchSnapshot();
-    });
   });
 
   describe('result.fullStream', () => {
@@ -1423,6 +1407,22 @@ describe('streamText', () => {
   });
 
   describe('errors', () => {
+    it('should swallow error to prevent server crash', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async () => {
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.textStream),
+      ).toMatchSnapshot();
+    });
+
     it('should forward error in doStream as error stream part', async () => {
       const result = streamText({
         model: new MockLanguageModelV2({
@@ -1518,6 +1518,22 @@ describe('streamText', () => {
       expect(onError).toHaveBeenCalledWith({
         error: new Error('test error'),
       });
+    });
+
+    it('should reject text promise when error is thrown', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async () => {
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      await expect(result.text).rejects.toThrow(
+        'No output generated. Check the stream for errors.',
+      );
     });
   });
 
@@ -3435,8 +3451,6 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.consumeStream();
-
       expect(await result.warnings).toStrictEqual([
         { type: 'other', message: 'test-warning' },
       ]);
@@ -3460,8 +3474,6 @@ describe('streamText', () => {
         }),
         prompt: 'test-input',
       });
-
-      result.consumeStream();
 
       expect(await result.usage).toMatchInlineSnapshot(`
         {
@@ -3493,8 +3505,6 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.consumeStream();
-
       expect(await result.finishReason).toStrictEqual('stop');
     });
   });
@@ -3520,8 +3530,6 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.consumeStream();
-
       expect(await result.providerMetadata).toStrictEqual({
         testProvider: { testKey: 'testValue' },
       });
@@ -3534,8 +3542,6 @@ describe('streamText', () => {
         model: modelWithReasoning,
         ...defaultSettings(),
       });
-
-      result.consumeStream();
 
       expect((await result.response).messages).toMatchInlineSnapshot(`
         [
@@ -3624,8 +3630,6 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.consumeStream();
-
       expect(await result.request).toStrictEqual({
         body: 'test body',
       });
@@ -3656,8 +3660,6 @@ describe('streamText', () => {
         }),
         ...defaultSettings(),
       });
-
-      result.consumeStream();
 
       expect(await result.response).toMatchInlineSnapshot(`
         {
@@ -3691,8 +3693,6 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.consumeStream();
-
       expect(await result.text).toMatchSnapshot();
     });
   });
@@ -3703,8 +3703,6 @@ describe('streamText', () => {
         model: modelWithReasoning,
         ...defaultSettings(),
       });
-
-      result.consumeStream();
 
       expect(await result.reasoningText).toMatchSnapshot();
     });
@@ -3717,8 +3715,6 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.consumeStream();
-
       expect(await result.reasoning).toMatchSnapshot();
     });
   });
@@ -3729,8 +3725,6 @@ describe('streamText', () => {
         model: modelWithSources,
         ...defaultSettings(),
       });
-
-      result.consumeStream();
 
       expect(await result.sources).toMatchSnapshot();
     });
@@ -3743,8 +3737,6 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.consumeStream();
-
       expect(await result.files).toMatchSnapshot();
     });
   });
@@ -3755,8 +3747,6 @@ describe('streamText', () => {
         model: modelWithReasoning,
         ...defaultSettings(),
       });
-
-      result.consumeStream();
 
       expect(await result.steps).toMatchInlineSnapshot(`
         [
@@ -3898,8 +3888,6 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.consumeStream();
-
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
@@ -3973,8 +3961,6 @@ describe('streamText', () => {
         model: modelWithFiles,
         ...defaultSettings(),
       });
-
-      result.consumeStream();
 
       expect(await result.steps).toMatchInlineSnapshot(`
         [
@@ -4077,8 +4063,6 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.consumeStream();
-
       expect(await result.toolCalls).toMatchInlineSnapshot(`
         [
           {
@@ -4122,8 +4106,6 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
       });
-
-      result.consumeStream();
 
       expect(await result.toolResults).toMatchInlineSnapshot(`
         [
@@ -5025,8 +5007,6 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.consumeStream();
-
       expect((await result.response).messages).toMatchInlineSnapshot(`
         [
           {
@@ -5072,8 +5052,6 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
       });
-
-      result.consumeStream();
 
       expect((await result.response).messages).toMatchInlineSnapshot(`
         [
@@ -7489,10 +7467,6 @@ describe('streamText', () => {
       });
 
       describe('value promises', () => {
-        beforeEach(async () => {
-          await result.consumeStream();
-        });
-
         it('result.totalUsage should contain total token usage', async () => {
           expect(await result.totalUsage).toMatchInlineSnapshot(`
             {
@@ -8034,7 +8008,6 @@ describe('streamText', () => {
       });
 
       it('result.steps should contain a single step', async () => {
-        await result.consumeStream();
         expect((await result.steps).length).toStrictEqual(1);
       });
 
@@ -8339,12 +8312,10 @@ describe('streamText', () => {
       });
 
       it('should only execute a single step', async () => {
-        await result.consumeStream();
         expect((await result.steps).length).toBe(1);
       });
 
       it('should include provider-executed tool call and result content', async () => {
-        await result.consumeStream();
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {
@@ -8603,7 +8574,6 @@ describe('streamText', () => {
       });
 
       it('should include dynamic tool call and result content', async () => {
-        await result.consumeStream();
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {
@@ -9526,8 +9496,6 @@ describe('streamText', () => {
     });
 
     it('should include the error part in the step stream', async () => {
-      await result.consumeStream();
-
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
@@ -9608,8 +9576,6 @@ describe('streamText', () => {
     });
 
     it('should include error result in response messages', async () => {
-      await result.consumeStream();
-
       expect((await result.response).messages).toMatchInlineSnapshot(`
         [
           {
@@ -9753,8 +9719,6 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        await result.consumeStream();
-
         expect(await result.text).toStrictEqual('HELLO, WORLD!');
       });
 
@@ -9764,8 +9728,6 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
-
-        await result.consumeStream();
 
         expect(await result.response).toStrictEqual({
           id: expect.any(String),
@@ -9819,8 +9781,6 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        await result.consumeStream();
-
         expect(await result.totalUsage).toStrictEqual({
           inputTokens: 200,
           outputTokens: 300,
@@ -9856,8 +9816,6 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        await result.consumeStream();
-
         expect(await result.finishReason).toStrictEqual('stop');
       });
 
@@ -9891,8 +9849,6 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
-
-        await result.consumeStream();
 
         expect(await result.toolCalls).toMatchInlineSnapshot(`
           [
@@ -9940,8 +9896,6 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
-
-        await result.consumeStream();
 
         expect(await result.toolResults).toMatchInlineSnapshot(`
           [
@@ -9996,8 +9950,6 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
-
-        result.consumeStream();
 
         expect(await result.steps).toMatchInlineSnapshot(`
           [
@@ -10113,8 +10065,6 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform,
         });
 
-        result.consumeStream();
-
         expect(await result.request).toStrictEqual({
           body: 'TEST BODY',
         });
@@ -10149,8 +10099,6 @@ describe('streamText', () => {
           prompt: 'test-input',
           experimental_transform: upperCaseTransform,
         });
-
-        result.consumeStream();
 
         expect(JSON.stringify(await result.providerMetadata)).toStrictEqual(
           JSON.stringify({
@@ -11288,8 +11236,6 @@ describe('streamText', () => {
           prompt: 'prompt',
         });
 
-        result.consumeStream();
-
         expect(await result.text).toStrictEqual('{ "value": "Hello, world!" }');
       });
 
@@ -11957,8 +11903,6 @@ describe('streamText', () => {
       });
 
       it('should return the content parts in the correct order', async () => {
-        await result.consumeStream();
-
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {
@@ -11986,8 +11930,6 @@ describe('streamText', () => {
       });
 
       it('should return the step content parts in the correct order', async () => {
-        await result.consumeStream();
-
         expect(await result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
@@ -12620,7 +12562,6 @@ describe('streamText', () => {
       });
 
       it('should add tool call and result error parts to the content', async () => {
-        await result.consumeStream();
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {

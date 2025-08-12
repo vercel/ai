@@ -1,10 +1,12 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
-import { OpenAITranscriptionModel } from './openai-transcription-model';
-import { createOpenAI } from './openai-provider';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { createOpenAI } from '../openai-provider';
+import { OpenAITranscriptionModel } from './openai-transcription-model';
 
-const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
+const audioData = await readFile(
+  path.join(__dirname, 'transcription-test.mp3'),
+);
 const provider = createOpenAI({ apiKey: 'test-api-key' });
 const model = provider.transcription('whisper-1');
 
