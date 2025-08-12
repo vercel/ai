@@ -322,6 +322,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 type: z.literal('file_search_call'),
                 id: z.string(),
                 status: z.string().optional(),
+                queries: z.array(z.string()).nullish(),
+                results: z
+                  .array(
+                    z.object({
+                      attributes: z.object({
+                        file_id: z.string(),
+                        filename: z.string(),
+                        score: z.number(),
+                        text: z.string(),
+                      }),
+                    }),
+                  )
+                  .nullish(),
               }),
               z.object({
                 type: z.literal('reasoning'),
@@ -479,6 +492,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             result: {
               type: 'file_search_tool_result',
               status: part.status || 'completed',
+              ...(part.queries && { queries: part.queries }),
+              ...(part.results && { results: part.results }),
             },
             providerExecuted: true,
           });
@@ -623,6 +638,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: value.item.id,
                   toolName: 'computer_use',
                 });
+              } else if (value.item.type === 'file_search_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: 'file_search',
+                  toolCallId: value.item.id,
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.id,
+                  toolName: 'file_search',
+                });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-start',
@@ -723,6 +749,35 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   result: {
                     type: 'computer_use_tool_result',
                     status: value.item.status || 'completed',
+                  },
+                  providerExecuted: true,
+                });
+              } else if (value.item.type === 'file_search_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+                hasToolCalls = true;
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'file_search',
+                  input: '',
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'file_search',
+                  result: {
+                    type: 'file_search_tool_result',
+                    status: value.item.status || 'completed',
+                    ...(value.item.queries && { queries: value.item.queries }),
+                    ...(value.item.results && { results: value.item.results }),
                   },
                   providerExecuted: true,
                 });
@@ -930,6 +985,19 @@ const responseOutputItemAddedSchema = z.object({
       type: z.literal('file_search_call'),
       id: z.string(),
       status: z.string(),
+      queries: z.array(z.string()).nullish(),
+      results: z
+        .array(
+          z.object({
+            attributes: z.object({
+              file_id: z.string(),
+              filename: z.string(),
+              score: z.number(),
+              text: z.string(),
+            }),
+          }),
+        )
+        .optional(),
     }),
   ]),
 });
@@ -969,6 +1037,19 @@ const responseOutputItemDoneSchema = z.object({
       type: z.literal('file_search_call'),
       id: z.string(),
       status: z.literal('completed'),
+      queries: z.array(z.string()).nullish(),
+      results: z
+        .array(
+          z.object({
+            attributes: z.object({
+              file_id: z.string(),
+              filename: z.string(),
+              score: z.number(),
+              text: z.string(),
+            }),
+          }),
+        )
+        .nullish(),
     }),
   ]),
 });

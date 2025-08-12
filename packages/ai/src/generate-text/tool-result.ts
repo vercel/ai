@@ -11,6 +11,7 @@ export type StaticToolResult<TOOLS extends ToolSet> = ValueOf<{
     output: InferToolOutput<TOOLS[NAME]>;
     providerExecuted?: boolean;
     dynamic?: false | undefined;
+    preliminary?: boolean;
   };
 }>;
 
@@ -22,6 +23,7 @@ export type DynamicToolResult = {
   output: unknown;
   providerExecuted?: boolean;
   dynamic: true;
+  preliminary?: boolean;
 };
 
 export type TypedToolResult<TOOLS extends ToolSet> =

@@ -285,6 +285,40 @@ const result = await generateText({
 });
 ```
 
+## Preliminary Tool Results
+
+You can return an `AsyncIterable` over multiple results.
+In this case, the last value from the iterable is the final tool result.
+
+This can be used in combination with generator functions to e.g. stream status information
+during the tool execution:
+
+```ts
+tool({
+  description: 'Get the current weather.',
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  async *execute({ location }) {
+    yield {
+      status: 'loading' as const,
+      text: `Getting weather for ${location}`,
+      weather: undefined,
+    };
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    const temperature = 72 + Math.floor(Math.random() * 21) - 10;
+
+    yield {
+      status: 'success' as const,
+      text: `The weather in ${location} is ${temperature}°F`,
+      temperature,
+    };
+  },
+});
+```
+
 ## Tool Choice
 
 You can use the `toolChoice` setting to influence when a tool is selected.
@@ -499,12 +533,13 @@ The AI SDK has three tool-call related errors:
 
 - [`NoSuchToolError`](/docs/reference/ai-sdk-errors/ai-no-such-tool-error): the model tries to call a tool that is not defined in the tools object
 - [`InvalidToolArgumentsError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-arguments-error): the model calls a tool with arguments that do not match the tool's input schema
-- [`ToolExecutionError`](/docs/reference/ai-sdk-errors/ai-tool-execution-error): an error that occurred during tool execution
 - [`ToolCallRepairError`](/docs/reference/ai-sdk-errors/ai-tool-call-repair-error): an error that occurred during tool call repair
+
+When tool execution fails (errors thrown by your tool's `execute` function), the AI SDK adds them as `tool-error` content parts to enable automated LLM roundtrips in multi-step scenarios.
 
 ### `generateText`
 
-`generateText` throws errors and can be handled using a `try`/`catch` block:
+`generateText` throws errors for tool schema validation issues and other errors, and can be handled using a `try`/`catch` block. Tool execution errors appear as `tool-error` parts in the result steps:
 
 ```ts
 try {
@@ -516,17 +551,34 @@ try {
     // handle the no such tool error
   } else if (InvalidToolArgumentsError.isInstance(error)) {
     // handle the invalid tool arguments error
-  } else if (ToolExecutionError.isInstance(error)) {
-    // handle the tool execution error
   } else {
     // handle other errors
   }
 }
 ```
 
+Tool execution errors are available in the result steps:
+
+```ts
+const { steps } = await generateText({
+  // ...
+});
+
+// check for tool errors in the steps
+const toolErrors = steps.flatMap(step =>
+  step.content.filter(part => part.type === 'tool-error'),
+);
+
+toolErrors.forEach(toolError => {
+  console.log('Tool error:', toolError.error);
+  console.log('Tool name:', toolError.toolName);
+  console.log('Tool input:', toolError.input);
+});
+```
+
 ### `streamText`
 
-`streamText` sends the errors as part of the full stream. The error parts contain the error object.
+`streamText` sends errors as part of the full stream. Tool execution errors appear as `tool-error` parts, while other errors appear as `error` parts.
 
 When using `toUIMessageStreamResponse`, you can pass an `onError` function to extract the error message from the error part and forward it as part of the stream response:
 
@@ -541,8 +593,6 @@ return result.toUIMessageStreamResponse({
       return 'The model tried to call a unknown tool.';
     } else if (InvalidToolArgumentsError.isInstance(error)) {
       return 'The model called a tool with invalid arguments.';
-    } else if (ToolExecutionError.isInstance(error)) {
-      return 'An error occurred during tool execution.';
     } else {
       return 'An unknown error occurred.';
     }
