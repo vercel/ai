@@ -140,6 +140,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
       include: openaiOptions?.include,
+      prompt_cache_key: openaiOptions?.promptCacheKey,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -1176,6 +1177,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
     .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
     .nullish(),
   textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
+  promptCacheKey: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

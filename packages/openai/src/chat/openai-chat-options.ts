@@ -124,6 +124,12 @@ export const openaiProviderOptions = z.object({
    * Lower values will result in more concise responses, while higher values will result in more verbose responses.
    */
   textVerbosity: z.enum(['low', 'medium', 'high']).optional(),
+
+  /**
+   * A cache key for prompt caching. Allows manual control over prompt caching behavior.
+   * Useful for improving cache hit rates and working around automatic caching issues.
+   */
+  promptCacheKey: z.string().optional(),
 });
 
 export type OpenAIProviderOptions = z.infer<typeof openaiProviderOptions>;
