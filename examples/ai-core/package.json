@@ -20,6 +20,7 @@
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/google-vertex": "workspace:*",
     "@ai-sdk/groq": "workspace:*",
+    "@ai-sdk/github-models": "workspace:*",
     "@ai-sdk/lmnt": "workspace:*",
     "@ai-sdk/luma": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
