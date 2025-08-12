@@ -127,6 +127,40 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should convert a simple user message with provider metadata', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            {
+              text: 'Hello, AI!',
+              type: 'text',
+              providerMetadata: { testProvider: { signature: '1234567890' } },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "Hello, AI!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
     it('should handle user message file parts', () => {
       const result = convertToModelMessages([
         {
@@ -156,6 +190,96 @@ describe('convertToModelMessages', () => {
         },
       ]);
     });
+
+    it('should handle user message file parts with provider metadata', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              url: 'https://example.com/image.jpg',
+              providerMetadata: { testProvider: { signature: '1234567890' } },
+            },
+            { type: 'text', text: 'Check this image' },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              data: 'https://example.com/image.jpg',
+              providerOptions: { testProvider: { signature: '1234567890' } },
+            },
+            { type: 'text', text: 'Check this image' },
+          ],
+        },
+      ]);
+    });
+
+    it('should include filename for user file parts when provided', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              url: 'https://example.com/image.jpg',
+              filename: 'image.jpg',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              data: 'https://example.com/image.jpg',
+              filename: 'image.jpg',
+            },
+          ],
+        },
+      ]);
+    });
+  });
+
+  it('should not include filename for user file parts when not provided', () => {
+    const result = convertToModelMessages([
+      {
+        role: 'user',
+        parts: [
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            url: 'https://example.com/image.jpg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            data: 'https://example.com/image.jpg',
+          },
+        ],
+      },
+    ]);
   });
 
   describe('assistant message', () => {
@@ -284,6 +408,36 @@ describe('convertToModelMessages', () => {
           ],
         },
       ] satisfies ModelMessage[]);
+    });
+
+    it('should include filename for assistant file parts when provided', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              url: 'data:image/png;base64,dGVzdA==',
+              filename: 'test.png',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'data:image/png;base64,dGVzdA==',
+              filename: 'test.png',
+            },
+          ],
+        },
+      ] as unknown as ModelMessage[]);
     });
 
     it('should handle assistant message with tool output available', () => {

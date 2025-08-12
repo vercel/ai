@@ -210,6 +210,11 @@ export async function convertToBedrockChatMessages(
 
             switch (part.type) {
               case 'text': {
+                // Skip empty text blocks
+                if (!part.text.trim()) {
+                  break;
+                }
+
                 bedrockContent.push({
                   text:
                     // trim the last text part if it's the last message in the block

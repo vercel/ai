@@ -21,6 +21,10 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  openaiErrorDataSchema,
+  openaiFailedResponseHandler,
+} from '../openai-error';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -28,11 +32,7 @@ import {
   OpenAIChatModelId,
   openaiProviderOptions,
 } from './openai-chat-options';
-import {
-  openaiErrorDataSchema,
-  openaiFailedResponseHandler,
-} from './openai-error';
-import { prepareTools } from './openai-prepare-tools';
+import { prepareChatTools } from './openai-chat-prepare-tools';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -163,9 +163,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           : undefined,
       stop: stopSequences,
       seed,
+      verbosity: openaiOptions.textVerbosity,
 
       // openai specific settings:
-      // TODO remove in next major version; we auto-map maxOutputTokens now
+      // TODO AI SDK 6: remove, we auto-map maxOutputTokens now
       max_completion_tokens: openaiOptions.maxCompletionTokens,
       store: openaiOptions.store,
       metadata: openaiOptions.metadata,
@@ -264,7 +265,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'serviceTier',
-        details: 'flex processing is only available for o3 and o4-mini models',
+        details:
+          'flex processing is only available for o3, o4-mini, and gpt-5 models',
       });
       baseArgs.service_tier = undefined;
     }
@@ -278,7 +280,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         type: 'unsupported-setting',
         setting: 'serviceTier',
         details:
-          'priority processing is only available for supported models (GPT-4, o3, o4-mini) and requires Enterprise access',
+          'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
       });
       baseArgs.service_tier = undefined;
     }
@@ -287,7 +289,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
       toolWarnings,
-    } = prepareTools({
+    } = prepareChatTools({
       tools,
       toolChoice,
       structuredOutputs,
@@ -844,12 +846,18 @@ function isReasoningModel(modelId: string) {
 }
 
 function supportsFlexProcessing(modelId: string) {
-  return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
+  return (
+    modelId.startsWith('o3') ||
+    modelId.startsWith('o4-mini') ||
+    modelId.startsWith('gpt-5')
+  );
 }
 
 function supportsPriorityProcessing(modelId: string) {
   return (
     modelId.startsWith('gpt-4') ||
+    modelId.startsWith('gpt-5-mini') ||
+    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-nano')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini')
   );
