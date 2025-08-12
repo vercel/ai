@@ -12916,9 +12916,8 @@ describe('streamText', () => {
       });
 
       it('should include preliminary tool results in ui message stream', async () => {
-        expect(
-          await convertAsyncIterableToArray(result.toUIMessageStream()),
-        ).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
           [
             {
               "type": "start",
