@@ -69,6 +69,7 @@ export const uiMessageChunkSchema = z.union([
     output: z.unknown(),
     providerExecuted: z.boolean().optional(),
     dynamic: z.boolean().optional(),
+    preliminary: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-output-error'),

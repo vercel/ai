@@ -12915,6 +12915,63 @@ describe('streamText', () => {
         `);
       });
 
+      it('should include preliminary tool results in ui message stream', async () => {
+        expect(
+          await convertAsyncIterableToArray(result.toUIMessageStream()),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-input-available",
+            },
+            {
+              "output": {
+                "status": "loading",
+                "text": "Getting weather for San Francisco",
+              },
+              "preliminary": true,
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "preliminary": true,
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
+      });
+
       it('should only include final tool result in content', async () => {
         expect(await result.content).toMatchInlineSnapshot(`
           [
