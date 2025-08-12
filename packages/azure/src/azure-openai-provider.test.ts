@@ -28,6 +28,8 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/responses': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
+  'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions':
+    {},
 });
 
 describe('chat', () => {
@@ -231,6 +233,35 @@ describe('transcription', () => {
 
       expect(server.calls[0].requestUrl).toStrictEqual(
         'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions?api-version=preview',
+      );
+    });
+
+    it('should use deployment-based URL format when useDeploymentBasedUrls is true', async () => {
+      const providerWithDeploymentUrls = createAzure({
+        resourceName: 'test-resource',
+        apiKey: 'test-api-key',
+        useDeploymentBasedUrls: true,
+      });
+
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          text: 'Hello, world!',
+          segments: [],
+          language: 'en',
+          duration: 5.0,
+        },
+      };
+
+      await providerWithDeploymentUrls.transcription('whisper-1').doGenerate({
+        audio: new Uint8Array(),
+        mediaType: 'audio/wav',
+      });
+
+      expect(server.calls[0].requestUrl).toStrictEqual(
+        'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions?api-version=preview',
       );
     });
   });
