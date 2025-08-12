@@ -11,6 +11,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
+import { NoOutputGeneratedError } from '../error';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
@@ -838,6 +839,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       async flush(controller) {
         try {
           if (recordedSteps.length === 0) {
+            const error = new NoOutputGeneratedError({
+              message: 'No output generated. Check the stream for errors.',
+            });
+
+            self._finishReason.reject(error);
+            self._totalUsage.reject(error);
+            self._steps.reject(error);
+
             return; // no steps recorded (e.g. in error scenario)
           }
 
@@ -1491,6 +1500,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get steps() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
     return this._steps.promise;
   }
 
@@ -1567,10 +1580,18 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get totalUsage() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
     return this._totalUsage.promise;
   }
 
   get finishReason() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
     return this._finishReason.promise;
   }
 
