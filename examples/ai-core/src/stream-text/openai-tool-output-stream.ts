@@ -13,6 +13,21 @@ async function main() {
         inputSchema: z.object({
           location: z.string(),
         }),
+        outputSchema: z.union([
+          z.object({
+            status: z.literal('loading'),
+            text: z.string(),
+            weather: z.undefined(),
+          }),
+          z.object({
+            status: z.literal('success'),
+            text: z.string(),
+            weather: z.object({
+              location: z.string(),
+              temperature: z.number(),
+            }),
+          }),
+        ]),
         async *execute({ location }) {
           yield {
             status: 'loading' as const,
