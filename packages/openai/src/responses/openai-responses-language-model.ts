@@ -322,6 +322,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 type: z.literal('file_search_call'),
                 id: z.string(),
                 status: z.string().optional(),
+                queries: z.array(z.string()).optional(),
+                results: z.array(z.object({
+                  attributes: z.object({
+                    file_id: z.string(),
+                    filename: z.string(),
+                    score: z.number(),
+                    text: z.string(),
+                  }),
+                })).optional(),
               }),
               z.object({
                 type: z.literal('reasoning'),
@@ -479,6 +488,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             result: {
               type: 'file_search_tool_result',
               status: part.status || 'completed',
+              queries: part.queries,
+              results: part.results,
             },
             providerExecuted: true,
           });
@@ -761,6 +772,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   result: {
                     type: 'file_search_tool_result',
                     status: value.item.status || 'completed',
+                    queries: value.item.queries,
+                    results: value.item.results,
                   },
                   providerExecuted: true,
                 });
@@ -968,6 +981,15 @@ const responseOutputItemAddedSchema = z.object({
       type: z.literal('file_search_call'),
       id: z.string(),
       status: z.string(),
+      queries: z.array(z.string()).optional(),
+      results: z.array(z.object({
+        attributes: z.object({
+          file_id: z.string(),
+          filename: z.string(),
+          score: z.number(),
+          text: z.string(),
+        }),
+      })).optional(),
     }),
   ]),
 });
@@ -1007,6 +1029,15 @@ const responseOutputItemDoneSchema = z.object({
       type: z.literal('file_search_call'),
       id: z.string(),
       status: z.literal('completed'),
+      queries: z.array(z.string()).optional(),
+      results: z.array(z.object({
+        attributes: z.object({
+          file_id: z.string(),
+          filename: z.string(),
+          score: z.number(),
+          text: z.string(),
+        }),
+      })).optional(),
     }),
   ]),
 });
