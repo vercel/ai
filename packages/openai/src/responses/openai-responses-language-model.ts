@@ -484,7 +484,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           );
           const base64 = part.result;
           if (typeof base64 === 'string' && base64.length > 0) {
-            content.push({ type: 'file', mediaType, data: base64 });
+            content.push({
+              type: 'file',
+              mediaType,
+              data: base64,
+              providerMetadata: {
+                openai: {
+                  image: {
+                    id: part.id,
+                    output_format: part.output_format ?? null,
+                    background: part.background ?? null,
+                    quality: part.quality ?? null,
+                    size: part.size ?? null,
+                    revised_prompt: part.revised_prompt ?? null,
+                  },
+                },
+              },
+            });
           }
           break;
         }
@@ -949,6 +965,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                       type: 'file',
                       mediaType,
                       data: base64,
+                      providerMetadata: {
+                        openai: {
+                          image: {
+                            id: value.item.id,
+                            output_format: value.item.output_format ?? null,
+                            background: value.item.background ?? null,
+                            quality: value.item.quality ?? null,
+                            size: value.item.size ?? null,
+                            revised_prompt: value.item.revised_prompt ?? null,
+                          },
+                        },
+                      },
                     });
                   }
                 }
@@ -1027,6 +1055,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     type: 'file',
                     mediaType,
                     data: base64,
+                    providerMetadata: {
+                      openai: {
+                        image_partial: {
+                          id: value.item_id,
+                          output_format: value.output_format ?? null,
+                          background: value.background ?? null,
+                          quality: value.quality ?? null,
+                          size: value.size ?? null,
+                          partial_image_index: value.partial_image_index,
+                        },
+                      },
+                    },
                   });
                 }
               }
@@ -1452,8 +1492,8 @@ function isOpenAIImagePartialChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is OpenAIImagePartialChunk {
   return (
-    (chunk as any)?.type === 'response.image_generation_call.partial_image' &&
-    typeof (chunk as any)?.partial_image_b64 === 'string'
+    chunk?.type === 'response.image_generation_call.partial_image' &&
+    typeof chunk?.partial_image_b64 === 'string'
   );
 }
 

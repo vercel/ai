@@ -101,8 +101,75 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       expect(result.content).toEqual([
-        { type: 'file', mediaType: 'image/png', data: 'BASE64DATA' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'BASE64DATA',
+          providerMetadata: {
+            openai: {
+              image: {
+                id: 'ig_1',
+                output_format: 'png',
+                background: null,
+                quality: null,
+                size: '1536x1024',
+                revised_prompt: null,
+              },
+            },
+          },
+        },
       ]);
+    });
+
+    it('should attach providerMetadata for image_generation_call file', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_img_meta',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          model: 'gpt-5',
+          output: [
+            {
+              type: 'image_generation_call',
+              id: 'ig_meta_1',
+              status: 'completed',
+              output_format: 'png',
+              background: 'opaque',
+              quality: 'high',
+              size: '1536x1024',
+              revised_prompt: 'final prompt',
+              result: 'BASE64DATA',
+            },
+          ],
+          usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
+        },
+      };
+
+      const result = await createModel('gpt-5').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content[0]).toEqual({
+        type: 'file',
+        mediaType: 'image/png',
+        data: 'BASE64DATA',
+        providerMetadata: {
+          openai: {
+            image: {
+              id: 'ig_meta_1',
+              output_format: 'png',
+              background: 'opaque',
+              quality: 'high',
+              size: '1536x1024',
+              revised_prompt: 'final prompt',
+            },
+          },
+        },
+      });
     });
     describe('basic text response', () => {
       beforeEach(() => {
@@ -2926,8 +2993,40 @@ describe('OpenAIResponsesLanguageModel', () => {
       const parts = await convertReadableStreamToArray(stream);
       const files = parts.filter(p => p.type === 'file');
       expect(files).toEqual([
-        { type: 'file', mediaType: 'image/png', data: 'P_BASE64' },
-        { type: 'file', mediaType: 'image/png', data: 'FINAL_BASE64' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'P_BASE64',
+          providerMetadata: {
+            openai: {
+              image_partial: {
+                id: 'ig_1',
+                output_format: 'png',
+                background: null,
+                quality: null,
+                size: null,
+                partial_image_index: 0,
+              },
+            },
+          },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'FINAL_BASE64',
+          providerMetadata: {
+            openai: {
+              image: {
+                id: 'ig_1',
+                output_format: 'png',
+                background: null,
+                quality: null,
+                size: null,
+                revised_prompt: null,
+              },
+            },
+          },
+        },
       ]);
     });
 
@@ -2973,7 +3072,23 @@ describe('OpenAIResponsesLanguageModel', () => {
       const parts = await convertReadableStreamToArray(stream);
       const files = parts.filter(p => p.type === 'file');
       expect(files).toEqual([
-        { type: 'file', mediaType: 'image/png', data: 'SAME' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'SAME',
+          providerMetadata: {
+            openai: {
+              image_partial: {
+                id: 'ig_1',
+                output_format: 'png',
+                background: null,
+                quality: null,
+                size: null,
+                partial_image_index: 0,
+              },
+            },
+          },
+        },
       ]);
     });
 
@@ -3016,7 +3131,109 @@ describe('OpenAIResponsesLanguageModel', () => {
       const parts = await convertReadableStreamToArray(stream);
       const files = parts.filter(p => p.type === 'file');
       expect(files).toEqual([
-        { type: 'file', mediaType: 'image/png', data: 'FINAL_BASE64' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'FINAL_BASE64',
+          providerMetadata: {
+            openai: {
+              image: {
+                id: 'ig_1',
+                output_format: 'png',
+                background: null,
+                quality: null,
+                size: null,
+                revised_prompt: null,
+              },
+            },
+          },
+        },
+      ]);
+    });
+
+    it('should attach providerMetadata for partial and final image files', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({
+            type: 'response.created',
+            response: { id: 'resp_1', created_at: 1741257730, model: 'gpt-5' },
+          })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.image_generation_call.partial_image',
+            sequence_number: 1,
+            output_index: 0,
+            item_id: 'ig_stream_meta',
+            partial_image_index: 2,
+            partial_image_b64: 'P_BASE64',
+            output_format: 'png',
+            background: 'opaque',
+            quality: 'high',
+            size: '1536x1024',
+          })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'image_generation_call',
+              id: 'ig_stream_meta',
+              status: 'completed',
+              output_format: 'png',
+              background: 'opaque',
+              quality: 'high',
+              size: '1536x1024',
+              revised_prompt: 'final prompt',
+              result: 'F_BASE64',
+            },
+          })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.completed', response: { usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } } })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: { include: ['image_generation_call.partials'] },
+        },
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const files = parts.filter(p => p.type === 'file');
+      expect(files).toEqual([
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'P_BASE64',
+          providerMetadata: {
+            openai: {
+              image_partial: {
+                id: 'ig_stream_meta',
+                output_format: 'png',
+                background: 'opaque',
+                quality: 'high',
+                size: '1536x1024',
+                partial_image_index: 2,
+              },
+            },
+          },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'F_BASE64',
+          providerMetadata: {
+            openai: {
+              image: {
+                id: 'ig_stream_meta',
+                output_format: 'png',
+                background: 'opaque',
+                quality: 'high',
+                size: '1536x1024',
+                revised_prompt: 'final prompt',
+              },
+            },
+          },
+        },
       ]);
     });
     it('should stream text deltas', async () => {
