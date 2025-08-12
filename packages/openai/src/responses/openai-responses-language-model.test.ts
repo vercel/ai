@@ -2223,6 +2223,137 @@ describe('OpenAIResponsesLanguageModel', () => {
           ]
         `);
       });
+
+      it('should handle file_search tool calls in generate', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67cf3390786881908b27489d7e8cfb6b',
+            object: 'response',
+            created_at: 1741632400,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o-mini-2024-07-18',
+            output: [
+              {
+                type: 'file_search_call',
+                id: 'fs_67cf3390e9608190869b5d45698a7067',
+                status: 'completed',
+                queries: ['AI information'],
+                results: [
+                  {
+                    attributes: {
+                      file_id: 'file-123',
+                      filename: 'ai_guide.pdf',
+                      score: 0.95,
+                      text: 'AI is a field of computer science',
+                    },
+                  },
+                ],
+              },
+              {
+                id: 'msg_67cf33924ea88190b8c12bf68c1f6416',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Based on the search results, here is the information you requested.',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: {
+              effort: null,
+              summary: null,
+            },
+            store: true,
+            temperature: 0,
+            text: {
+              format: {
+                type: 'text',
+              },
+            },
+            tool_choice: 'auto',
+            tools: [
+              {
+                type: 'file_search',
+              },
+            ],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 327,
+              input_tokens_details: {
+                cached_tokens: 0,
+              },
+              output_tokens: 834,
+              output_tokens_details: {
+                reasoning_tokens: 0,
+              },
+              total_tokens: 1161,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+
+        const result = await createModel('gpt-4o-mini').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "",
+              "providerExecuted": true,
+              "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+              "toolName": "file_search",
+              "type": "tool-call",
+            },
+            {
+              "providerExecuted": true,
+              "result": {
+                "queries": [
+                  "AI information",
+                ],
+                "results": [
+                  {
+                    "attributes": {
+                      "file_id": "file-123",
+                      "filename": "ai_guide.pdf",
+                      "score": 0.95,
+                      "text": "AI is a field of computer science",
+                    },
+                  },
+                ],
+                "status": "completed",
+                "type": "file_search_tool_result",
+              },
+              "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+              "toolName": "file_search",
+              "type": "tool-result",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                },
+              },
+              "text": "Based on the search results, here is the information you requested.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
     });
 
     describe('errors', () => {
