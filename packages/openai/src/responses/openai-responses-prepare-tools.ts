@@ -99,7 +99,6 @@ export function prepareResponsesTools({
               moderation: args.moderation,
               output_format: args.outputFormat,
               output_compression: args.outputCompression,
-              n: args.n,
             });
             break;
           }

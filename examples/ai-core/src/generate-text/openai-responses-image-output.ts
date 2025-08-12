@@ -10,15 +10,8 @@ async function main() {
       'Generate an image of an echidna swimming across the Mozambique channel.',
     tools: {
       image_generation: openai.tools.generateImage({
-        outputFormat: 'png',
+        outputFormat: 'webp',
       }),
-    },
-    providerOptions: {
-      openai: {
-        // Include partial frames if you want to preview progress in non-stream generate
-        // (they will be returned in result.files as they arrive in order). Optional.
-        include: ['image_generation_call.partials'],
-      },
     },
   });
 

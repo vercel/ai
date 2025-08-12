@@ -11,7 +11,6 @@ export const imageGenerationArgsSchema = z
     moderation: z.enum(['auto']).optional(),
     outputFormat: z.enum(['png', 'jpeg', 'webp']).optional(),
     outputCompression: z.number().int().min(0).max(100).optional(),
-    n: z.number().int().min(1).max(4).optional(),
   })
   .strict();
 
@@ -24,7 +23,6 @@ export const generateImage = createProviderDefinedToolFactory<
     moderation?: 'auto';
     outputFormat?: 'png' | 'jpeg' | 'webp';
     outputCompression?: number;
-    n?: number;
   }
 >({
   id: 'openai.image_generation',

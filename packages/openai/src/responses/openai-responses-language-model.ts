@@ -474,26 +474,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }
 
         case 'image_generation_call': {
-          const base64 = part.result;
-          if (typeof base64 === 'string' && base64.length > 0) {
+          const data = part.result;
+          if (typeof data === 'string' && data.length > 0) {
             content.push({
               type: 'file',
               mediaType: mapOpenAIImageFormatToMediaTypeSimple(
                 part.output_format ?? 'png',
               ),
-              data: base64,
-              providerMetadata: {
-                openai: {
-                  image: {
-                    id: part.id,
-                    output_format: part.output_format ?? null,
-                    background: part.background ?? null,
-                    quality: part.quality ?? null,
-                    size: part.size ?? null,
-                    revised_prompt: part.revised_prompt ?? null,
-                  },
-                },
-              },
+              data,
             });
           }
           break;
@@ -706,19 +694,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         encryptedContent?: string | null;
         summaryParts: number[];
       }
-    > = {};
-
-    const emitImagePartials = Array.isArray(
-      options.providerOptions?.openai?.include,
-    )
-      ? options.providerOptions.openai.include.includes(
-          'image_generation_call.partials',
-        )
-      : false;
-
-    const imageProgress: Record<
-      string,
-      { lastPartialIndex: number; lastBase64: string }
     > = {};
 
     return {
@@ -943,35 +918,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
                 delete activeReasoning[value.item.id];
               } else if (value.item.type === 'image_generation_call') {
-                // Emit final image as a single file part, skip if identical to last partial
-                const base64 = value.item.result;
-                if (typeof base64 === 'string' && base64.length > 0) {
-                  const last = imageProgress[value.item.id];
-                  const isDuplicate =
-                    emitImagePartials &&
-                    last != null &&
-                    last.lastBase64 === base64;
-                  if (!isDuplicate) {
-                    controller.enqueue({
-                      type: 'file',
-                      mediaType: mapOpenAIImageFormatToMediaTypeSimple(
-                        value.item.output_format ?? 'png',
-                      ),
-                      data: base64,
-                      providerMetadata: {
-                        openai: {
-                          image: {
-                            id: value.item.id,
-                            output_format: value.item.output_format ?? null,
-                            background: value.item.background ?? null,
-                            quality: value.item.quality ?? null,
-                            size: value.item.size ?? null,
-                            revised_prompt: value.item.revised_prompt ?? null,
-                          },
-                        },
-                      },
-                    });
-                  }
+                const data = value.item.result;
+                if (typeof data === 'string' && data.length > 0) {
+                  controller.enqueue({
+                    type: 'file',
+                    mediaType: mapOpenAIImageFormatToMediaTypeSimple(
+                      value.item.output_format ?? 'png',
+                    ),
+                    data,
+                  });
                 }
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
@@ -1033,36 +988,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   },
                 },
               });
-            } else if (isOpenAIImagePartialChunk(value)) {
-              if (emitImagePartials) {
-                const mediaType = mapOpenAIImageFormatToMediaTypeSimple(
-                  value.output_format ?? 'png',
-                );
-                const base64 = value.partial_image_b64;
-                if (typeof base64 === 'string' && base64.length > 0) {
-                  imageProgress[value.item_id] = {
-                    lastPartialIndex: value.partial_image_index,
-                    lastBase64: base64,
-                  };
-                  controller.enqueue({
-                    type: 'file',
-                    mediaType,
-                    data: base64,
-                    providerMetadata: {
-                      openai: {
-                        image_partial: {
-                          id: value.item_id,
-                          output_format: value.output_format ?? null,
-                          background: value.background ?? null,
-                          quality: value.quality ?? null,
-                          size: value.size ?? null,
-                          partial_image_index: value.partial_image_index,
-                        },
-                      },
-                    },
-                  });
-                }
-              }
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
@@ -1412,8 +1337,6 @@ function isResponseOutputItemAddedReasoningChunk(
   );
 }
 
-// removed: inline media type normalization at call sites
-
 function isResponseAnnotationAddedChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseAnnotationAddedSchema> {
@@ -1438,7 +1361,6 @@ function isErrorChunk(
   return chunk.type === 'error';
 }
 
-// OpenAI image partial chunk (not part of the strict union; handled via loose fallback)
 type OpenAIImagePartialChunk = {
   type: 'response.image_generation_call.partial_image';
   sequence_number: number;
@@ -1451,15 +1373,6 @@ type OpenAIImagePartialChunk = {
   background?: string;
   output_format?: string;
 };
-
-function isOpenAIImagePartialChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is OpenAIImagePartialChunk {
-  return (
-    chunk?.type === 'response.image_generation_call.partial_image' &&
-    typeof chunk?.partial_image_b64 === 'string'
-  );
-}
 
 type ResponsesModelConfig = {
   isReasoningModel: boolean;

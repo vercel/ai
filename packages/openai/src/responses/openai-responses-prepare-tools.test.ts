@@ -218,7 +218,6 @@ describe('prepareResponsesTools', () => {
               moderation: 'auto',
               outputFormat: 'png',
               outputCompression: 100,
-              n: 1,
             },
           },
         ],
@@ -234,7 +233,6 @@ describe('prepareResponsesTools', () => {
           moderation: 'auto',
           output_format: 'png',
           output_compression: 100,
-          n: 1,
         },
       ]);
       expect(result.toolWarnings).toEqual([]);

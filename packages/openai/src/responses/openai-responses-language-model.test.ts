@@ -105,72 +105,10 @@ describe('OpenAIResponsesLanguageModel', () => {
           type: 'file',
           mediaType: 'image/png',
           data: 'BASE64DATA',
-          providerMetadata: {
-            openai: {
-              image: {
-                id: 'ig_1',
-                output_format: 'png',
-                background: null,
-                quality: null,
-                size: '1536x1024',
-                revised_prompt: null,
-              },
-            },
-          },
         },
       ]);
     });
 
-    it('should attach providerMetadata for image_generation_call file', async () => {
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'json-value',
-        body: {
-          id: 'resp_img_meta',
-          object: 'response',
-          created_at: 1741257730,
-          status: 'completed',
-          error: null,
-          incomplete_details: null,
-          model: 'gpt-5',
-          output: [
-            {
-              type: 'image_generation_call',
-              id: 'ig_meta_1',
-              status: 'completed',
-              output_format: 'png',
-              background: 'opaque',
-              quality: 'high',
-              size: '1536x1024',
-              revised_prompt: 'final prompt',
-              result: 'BASE64DATA',
-            },
-          ],
-          usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
-        },
-      };
-
-      const result = await createModel('gpt-5').doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(result.content[0]).toEqual({
-        type: 'file',
-        mediaType: 'image/png',
-        data: 'BASE64DATA',
-        providerMetadata: {
-          openai: {
-            image: {
-              id: 'ig_meta_1',
-              output_format: 'png',
-              background: 'opaque',
-              quality: 'high',
-              size: '1536x1024',
-              revised_prompt: 'final prompt',
-            },
-          },
-        },
-      });
-    });
     describe('basic text response', () => {
       beforeEach(() => {
         prepareJsonResponse({
@@ -2951,7 +2889,7 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
-    it('should emit partial image frames when include flag is set', async () => {
+    it('should ignore partial image frames and emit only final', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -2985,9 +2923,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const { stream } = await createModel('gpt-5').doStream({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          openai: { include: ['image_generation_call.partials'] },
-        },
       });
 
       const parts = await convertReadableStreamToArray(stream);
@@ -2996,41 +2931,12 @@ describe('OpenAIResponsesLanguageModel', () => {
         {
           type: 'file',
           mediaType: 'image/png',
-          data: 'P_BASE64',
-          providerMetadata: {
-            openai: {
-              image_partial: {
-                id: 'ig_1',
-                output_format: 'png',
-                background: null,
-                quality: null,
-                size: null,
-                partial_image_index: 0,
-              },
-            },
-          },
-        },
-        {
-          type: 'file',
-          mediaType: 'image/png',
           data: 'FINAL_BASE64',
-          providerMetadata: {
-            openai: {
-              image: {
-                id: 'ig_1',
-                output_format: 'png',
-                background: null,
-                quality: null,
-                size: null,
-                revised_prompt: null,
-              },
-            },
-          },
         },
       ]);
     });
 
-    it('should dedupe final image if identical to last partial', async () => {
+    it('should emit only final image even if partials match', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -3064,9 +2970,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const { stream } = await createModel('gpt-5').doStream({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          openai: { include: ['image_generation_call.partials'] },
-        },
       });
 
       const parts = await convertReadableStreamToArray(stream);
@@ -3076,23 +2979,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           type: 'file',
           mediaType: 'image/png',
           data: 'SAME',
-          providerMetadata: {
-            openai: {
-              image_partial: {
-                id: 'ig_1',
-                output_format: 'png',
-                background: null,
-                quality: null,
-                size: null,
-                partial_image_index: 0,
-              },
-            },
-          },
         },
       ]);
     });
 
-    it('should ignore partial frames when include flag is not set and still emit final', async () => {
+    it('should ignore partial frames and still emit final', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -3135,23 +3026,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           type: 'file',
           mediaType: 'image/png',
           data: 'FINAL_BASE64',
-          providerMetadata: {
-            openai: {
-              image: {
-                id: 'ig_1',
-                output_format: 'png',
-                background: null,
-                quality: null,
-                size: null,
-                revised_prompt: null,
-              },
-            },
-          },
         },
       ]);
     });
 
-    it('should attach providerMetadata for partial and final image files', async () => {
+    it('should emit only final image without providerMetadata', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -3192,9 +3071,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const { stream } = await createModel('gpt-5').doStream({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          openai: { include: ['image_generation_call.partials'] },
-        },
       });
 
       const parts = await convertReadableStreamToArray(stream);
@@ -3203,36 +3079,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         {
           type: 'file',
           mediaType: 'image/png',
-          data: 'P_BASE64',
-          providerMetadata: {
-            openai: {
-              image_partial: {
-                id: 'ig_stream_meta',
-                output_format: 'png',
-                background: 'opaque',
-                quality: 'high',
-                size: '1536x1024',
-                partial_image_index: 2,
-              },
-            },
-          },
-        },
-        {
-          type: 'file',
-          mediaType: 'image/png',
           data: 'F_BASE64',
-          providerMetadata: {
-            openai: {
-              image: {
-                id: 'ig_stream_meta',
-                output_format: 'png',
-                background: 'opaque',
-                quality: 'high',
-                size: '1536x1024',
-                revised_prompt: 'final prompt',
-              },
-            },
-          },
         },
       ]);
     });

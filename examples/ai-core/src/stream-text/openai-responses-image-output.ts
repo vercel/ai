@@ -18,11 +18,6 @@ async function main() {
         quality: 'low',
       }),
     },
-    providerOptions: {
-      openai: {
-        include: ['image_generation_call.partials'],
-      },
-    },
   });
 
   for await (const part of result.fullStream) {

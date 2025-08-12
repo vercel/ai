@@ -929,8 +929,6 @@ const result = await generateText({
   tools: {
     image_generation: openai.tools.generateImage({ outputFormat: 'png' }),
   },
-  // Optional: include partial frames in non-stream calls
-  providerOptions: { openai: { include: ['image_generation_call.partials'] } },
 });
 
 for (const file of result.files) {
@@ -955,8 +953,6 @@ const result = streamText({
       quality: 'low',
     }),
   },
-  // Opt-in to partial frames during streaming
-  providerOptions: { openai: { include: ['image_generation_call.partials'] } },
 });
 
 for await (const part of result.fullStream) {
@@ -965,62 +961,6 @@ for await (const part of result.fullStream) {
   }
 }
 ```
-
-Partial image frames
-
-- By default, only the final image is emitted.
-- To receive progressive partial frames, pass `providerOptions.openai.include = ['image_generation_call.partials']`.
-- Partial frames are emitted as `file` parts with the same `mediaType` and base64 `data` as the final image, but arrive earlier and may be lower quality or incomplete.
-
-Provider metadata on image files
-
-Image `file` parts include OpenAI-specific metadata under `providerMetadata.openai`.
-
-- Final image:
-
-```json
-{
-  "type": "file",
-  "mediaType": "image/png",
-  "data": "<base64>",
-  "providerMetadata": {
-    "openai": {
-      "image": {
-        "id": "ig_...",
-        "output_format": "png",
-        "background": "opaque",
-        "quality": "high",
-        "size": "1536x1024",
-        "revised_prompt": "..."
-      }
-    }
-  }
-}
-```
-
-- Partial frame:
-
-```json
-{
-  "type": "file",
-  "mediaType": "image/png",
-  "data": "<base64>",
-  "providerMetadata": {
-    "openai": {
-      "image_partial": {
-        "id": "ig_...",
-        "output_format": "png",
-        "background": "opaque",
-        "quality": "high",
-        "size": "1536x1024",
-        "partial_image_index": 0
-      }
-    }
-  }
-}
-```
-
-The final image is always emitted. If partials are enabled and the final is identical to the last partial, the SDK deduplicates it.
 
 For complete details on model availability, image quality controls, supported sizes, and tool-specific parameters, refer to the OpenAI documentation:
 
