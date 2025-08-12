@@ -2814,8 +2814,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               {
                 "providerExecuted": true,
                 "result": {
-                  "queries": undefined,
-                  "results": undefined,
                   "status": "completed",
                   "type": "file_search_tool_result",
                 },
