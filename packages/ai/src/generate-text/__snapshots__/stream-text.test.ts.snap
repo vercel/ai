@@ -1,5 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`streamText > errors > should swallow error to prevent server crash 1`] = `[]`;
+
 exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should record telemetry data for each step 1`] = `
 [
   {
@@ -560,8 +562,6 @@ exports[`streamText > result.textStream > should not include reasoning content i
   " there!",
 ]
 `;
-
-exports[`streamText > result.textStream > should swallow error to prevent server crash 1`] = `[]`;
 
 exports[`streamText > result.toUIMessageStream > should mask error messages by default 1`] = `
 [

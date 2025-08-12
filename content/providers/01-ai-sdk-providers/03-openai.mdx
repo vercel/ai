@@ -232,6 +232,14 @@ The following optional provider options are available for OpenAI chat models:
 
   Controls the verbosity of the model's responses. Lower values will result in more concise responses, while higher values will result in more verbose responses.
 
+- **promptCacheKey** _string_
+
+  A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
+
+- **safetyIdentifier** _string_
+
+  A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
+
 #### Reasoning
 
 OpenAI has introduced the `o1`,`o3`, and `o4` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
@@ -591,6 +599,28 @@ console.log(`usage:`, {
 });
 ```
 
+To improve cache hit rates, you can manually control caching using the `promptCacheKey` option:
+
+```ts highlight="7-11"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const { text, usage, providerMetadata } = await generateText({
+  model: openai('gpt-5'),
+  prompt: `A 1024-token or longer prompt...`,
+  providerOptions: {
+    openai: {
+      promptCacheKey: 'my-custom-cache-key-123',
+    },
+  },
+});
+
+console.log(`usage:`, {
+  ...usage,
+  cachedPromptTokens: providerMetadata?.openai?.cachedPromptTokens,
+});
+```
+
 #### Audio Input
 
 With the `gpt-4o-audio-preview` model, you can pass audio files to the model.
@@ -702,6 +732,12 @@ The following provider options are available:
   `['reasoning.encrypted_content']` for accessing reasoning content across conversation steps,
   and `['file_search_call.results']` for including file search results in responses.
   Defaults to `undefined`.
+
+- **promptCacheKey** _string_
+  A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
+
+- **safetyIdentifier** \_string_0
+  A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
 
 The OpenAI responses provider also returns provider-specific metadata:
 
