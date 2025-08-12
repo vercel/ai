@@ -392,7 +392,7 @@ describe('handleUIMessageStreamFinish', () => {
 
       // Start reading but cancel immediately (simulating user closing browser)
       const reader = resultStream.getReader();
-      
+
       // Read one chunk then cancel
       await reader.read();
       await reader.cancel();
@@ -401,10 +401,104 @@ describe('handleUIMessageStreamFinish', () => {
       // The key assertion: onFinish MUST be called when reader is cancelled
       // This ensures partial messages are persisted when users navigate away
       expect(onFinishCallback).toHaveBeenCalledTimes(1);
-      
+
       const callArgs = onFinishCallback.mock.calls[0][0];
       expect(callArgs.isAborted).toBe(false); // No explicit abort chunk
       expect(callArgs.responseMessage.id).toBe('msg-1');
+    });
+
+    it('should call onFinish when fetch is aborted (realistic streaming scenario)', async () => {
+      const onFinishCallback = vi.fn();
+
+      // Simulate a fetch response body stream that gets aborted
+      // When fetch() is aborted via AbortController, the ReadableStream is cancelled
+      const abortController = new AbortController();
+
+      // Create a stream that simulates a real fetch response body
+      const stream = new ReadableStream<UIMessageChunk>({
+        async start(controller) {
+          // Enqueue some initial chunks
+          controller.enqueue({ type: 'start', messageId: 'msg-fetch' });
+          controller.enqueue({ type: 'text-start', id: 'text-1' });
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'Generating response...',
+          });
+
+          // Simulate async delay (like network latency)
+          await new Promise(resolve => setTimeout(resolve, 10));
+
+          // Check if aborted
+          if (abortController.signal.aborted) {
+            // When fetch is aborted, the stream is cancelled
+            // This is what browsers do internally
+            return;
+          }
+
+          // More chunks would come here, but we'll abort before they arrive
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: ' More content that never arrives...',
+          });
+        },
+        cancel() {
+          // This is called when:
+          // 1. reader.cancel() is explicitly called
+          // 2. The fetch is aborted via AbortController
+          // 3. Browser tab is closed/navigated away
+          // The stream should NOT rely on finish/flush being called in these cases
+        },
+      });
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-fetch',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onFinish: onFinishCallback,
+      });
+
+      // Start consuming the stream
+      const reader = resultStream.getReader();
+      const chunks: UIMessageChunk[] = [];
+
+      // Read a few chunks
+      for (let i = 0; i < 3; i++) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+
+      // Simulate aborting the fetch (like user navigating away)
+      abortController.abort();
+
+      // Cancel the reader (this is what happens when fetch is aborted)
+      await reader.cancel();
+      reader.releaseLock();
+
+      // Verify we got the initial chunks
+      expect(chunks).toHaveLength(3);
+      expect(chunks[0].type).toBe('start');
+      expect(chunks[1].type).toBe('text-start');
+      expect(chunks[2].type).toBe('text-delta');
+
+      // The critical assertion: onFinish MUST be called even when aborted
+      // Without the cancel() method in handleUIMessageStreamFinish, this would fail
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.isAborted).toBe(false); // No explicit abort chunk was sent
+      expect(callArgs.responseMessage.id).toBe('msg-fetch');
+      expect(callArgs.responseMessage.parts).toEqual([
+        {
+          type: 'text',
+          text: 'Generating response...',
+          state: 'streaming',
+          providerMetadata: undefined,
+        },
+      ]);
     });
   });
 });
