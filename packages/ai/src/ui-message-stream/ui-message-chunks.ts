@@ -227,6 +227,7 @@ export type UIMessageChunk<
       output: unknown;
       providerExecuted?: boolean;
       dynamic?: boolean;
+      preliminary?: boolean;
     }
   | {
       type: 'tool-output-error';
