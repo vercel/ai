@@ -315,6 +315,12 @@ The following optional provider options are available for Google Vertex models:
   This is useful for generating transcripts with accurate timestamps.
   Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding) for usage details.
 
+- **labels** _object_
+
+  Optional. Defines labels used in billing reports.
+
+  Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls) for usage details.
+
 You can use Google Vertex language models to generate text with the `generateText` function:
 
 ```ts highlight="1,4"

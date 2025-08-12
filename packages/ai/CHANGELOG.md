@@ -1,5 +1,17 @@
 # ai
 
+## 5.0.10
+
+### Patch Changes
+
+- 63a5dc5: fix(ai): convert user message text/file part provider metadata in convertToModelMessages
+
+## 5.0.9
+
+### Patch Changes
+
+- afd5c2a: fix(ai): preserve filename for file parts in convertToModelMessages
+
 ## 5.0.8
 
 ### Patch Changes

@@ -1,7 +1,7 @@
-import { prepareTools } from './openai-prepare-tools';
+import { prepareChatTools } from './openai-chat-prepare-tools';
 
 it('should return undefined tools and toolChoice when tools are null', () => {
-  const result = prepareTools({
+  const result = prepareChatTools({
     tools: undefined,
     structuredOutputs: false,
     strictJsonSchema: false,
@@ -15,7 +15,7 @@ it('should return undefined tools and toolChoice when tools are null', () => {
 });
 
 it('should return undefined tools and toolChoice when tools are empty', () => {
-  const result = prepareTools({
+  const result = prepareChatTools({
     tools: [],
     structuredOutputs: false,
     strictJsonSchema: false,
@@ -29,7 +29,7 @@ it('should return undefined tools and toolChoice when tools are empty', () => {
 });
 
 it('should correctly prepare function tools', () => {
-  const result = prepareTools({
+  const result = prepareChatTools({
     tools: [
       {
         type: 'function',
@@ -58,7 +58,7 @@ it('should correctly prepare function tools', () => {
 });
 
 it('should correctly prepare provider-defined-server tools', () => {
-  const result = prepareTools({
+  const result = prepareChatTools({
     tools: [
       {
         type: 'provider-defined',
@@ -114,7 +114,7 @@ it('should correctly prepare provider-defined-server tools', () => {
 });
 
 it('should correctly prepare file_search with filters', () => {
-  const result = prepareTools({
+  const result = prepareChatTools({
     tools: [
       {
         type: 'provider-defined',
@@ -155,7 +155,7 @@ it('should correctly prepare file_search with filters', () => {
 });
 
 it('should add warnings for unsupported tools', () => {
-  const result = prepareTools({
+  const result = prepareChatTools({
     tools: [
       {
         type: 'provider-defined',
@@ -186,7 +186,7 @@ it('should add warnings for unsupported tools', () => {
 });
 
 it('should add warnings for unsupported provider-defined tools', () => {
-  const result = prepareTools({
+  const result = prepareChatTools({
     tools: [
       {
         type: 'provider-defined',
@@ -215,7 +215,7 @@ it('should add warnings for unsupported provider-defined tools', () => {
 });
 
 it('should handle tool choice "auto"', () => {
-  const result = prepareTools({
+  const result = prepareChatTools({
     tools: [
       {
         type: 'function',
@@ -232,7 +232,7 @@ it('should handle tool choice "auto"', () => {
 });
 
 it('should handle tool choice "required"', () => {
-  const result = prepareTools({
+  const result = prepareChatTools({
     tools: [
       {
         type: 'function',
@@ -249,7 +249,7 @@ it('should handle tool choice "required"', () => {
 });
 
 it('should handle tool choice "none"', () => {
-  const result = prepareTools({
+  const result = prepareChatTools({
     tools: [
       {
         type: 'function',
@@ -266,7 +266,7 @@ it('should handle tool choice "none"', () => {
 });
 
 it('should handle tool choice "tool"', () => {
-  const result = prepareTools({
+  const result = prepareChatTools({
     tools: [
       {
         type: 'function',
