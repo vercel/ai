@@ -1,5 +1,4 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import { string } from 'zod';
 
 export type AnthropicMessagesPrompt = {
   system: Array<AnthropicTextContent> | undefined;
