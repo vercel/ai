@@ -130,6 +130,15 @@ export const openaiProviderOptions = z.object({
    * Useful for improving cache hit rates and working around automatic caching issues.
    */
   promptCacheKey: z.string().optional(),
+
+  /**
+   * A stable identifier used to help detect users of your application
+   * that may be violating OpenAI's usage policies. The IDs should be a
+   * string that uniquely identifies each user. We recommend hashing their
+   * username or email address, in order to avoid sending us any identifying
+   * information.
+   */
+  safetyIdentifier: z.string().optional(),
 });
 
 export type OpenAIProviderOptions = z.infer<typeof openaiProviderOptions>;
