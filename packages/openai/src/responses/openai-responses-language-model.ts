@@ -92,6 +92,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       await convertToOpenAIResponsesMessages({
         prompt,
         systemMessageMode: modelConfig.systemMessageMode,
+        fileIdPrefixes: this.config.fileIdPrefixes,
       });
 
     warnings.push(...messageWarnings);
@@ -140,6 +141,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
       include: openaiOptions?.include,
+      prompt_cache_key: openaiOptions?.promptCacheKey,
+      safety_identifier: openaiOptions?.safetyIdentifier,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -1161,6 +1164,7 @@ function supportsPriorityProcessing(modelId: string): boolean {
   );
 }
 
+// TODO AI SDK 6: use optional here instead of nullish
 const openaiResponsesProviderOptionsSchema = z.object({
   metadata: z.any().nullish(),
   parallelToolCalls: z.boolean().nullish(),
@@ -1176,6 +1180,8 @@ const openaiResponsesProviderOptionsSchema = z.object({
     .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
     .nullish(),
   textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
+  promptCacheKey: z.string().nullish(),
+  safetyIdentifier: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

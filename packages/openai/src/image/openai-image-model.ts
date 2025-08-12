@@ -5,13 +5,13 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { OpenAIConfig } from './openai-config';
-import { openaiFailedResponseHandler } from './openai-error';
+import { OpenAIConfig } from '../openai-config';
+import { openaiFailedResponseHandler } from '../openai-error';
 import {
   OpenAIImageModelId,
-  modelMaxImagesPerCall,
   hasDefaultResponseFormat,
-} from './openai-image-settings';
+  modelMaxImagesPerCall,
+} from './openai-image-options';
 
 interface OpenAIImageModelConfig extends OpenAIConfig {
   _internal?: {

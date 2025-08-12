@@ -133,6 +133,40 @@ describe('convertToModelMessages', () => {
       expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
+    it('should convert a simple user message with provider metadata', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            {
+              text: 'Hello, AI!',
+              type: 'text',
+              providerMetadata: { testProvider: { signature: '1234567890' } },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "Hello, AI!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
     it('should handle user message file parts', async () => {
       const result = convertToModelMessages([
         {
@@ -162,6 +196,38 @@ describe('convertToModelMessages', () => {
         },
       ]);
       expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
+    });
+
+    it('should handle user message file parts with provider metadata', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              url: 'https://example.com/image.jpg',
+              providerMetadata: { testProvider: { signature: '1234567890' } },
+            },
+            { type: 'text', text: 'Check this image' },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              data: 'https://example.com/image.jpg',
+              providerOptions: { testProvider: { signature: '1234567890' } },
+            },
+            { type: 'text', text: 'Check this image' },
+          ],
+        },
+      ]);
     });
 
     it('should include filename for user file parts when provided', async () => {

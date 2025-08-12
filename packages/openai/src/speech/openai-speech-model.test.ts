@@ -1,6 +1,6 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createOpenAI } from '../openai-provider';
 import { OpenAISpeechModel } from './openai-speech-model';
-import { createOpenAI } from './openai-provider';
 
 const provider = createOpenAI({ apiKey: 'test-api-key' });
 const model = provider.speech('tts-1');

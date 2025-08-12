@@ -83,6 +83,9 @@ export function convertToModelMessages(
                   return {
                     type: 'text' as const,
                     text: part.text,
+                    ...(part.providerMetadata != null
+                      ? { providerOptions: part.providerMetadata }
+                      : {}),
                   };
                 case 'file':
                   return {
@@ -90,6 +93,9 @@ export function convertToModelMessages(
                     mediaType: part.mediaType,
                     filename: part.filename,
                     data: part.url,
+                    ...(part.providerMetadata != null
+                      ? { providerOptions: part.providerMetadata }
+                      : {}),
                   };
                 default:
                   return part;

@@ -175,6 +175,7 @@ export function createAzure(
       url,
       headers: getHeaders,
       fetch: options.fetch,
+      fileIdPrefixes: ['assistant-'],
     });
 
   const createImageModel = (modelId: string) =>
