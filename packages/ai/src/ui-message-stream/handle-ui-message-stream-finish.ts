@@ -120,10 +120,10 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     >({
       async transform(chunk, controller) {
         controller.enqueue(chunk);
-
-        if (chunk.type === 'abort') {
-          await callOnFinish();
-        }
+      },
+      // @ts-expect-error cancel is still experimental and missing from types
+      async cancel() {
+        await callOnFinish();
       },
 
       async flush() {

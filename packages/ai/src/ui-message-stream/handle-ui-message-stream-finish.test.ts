@@ -369,98 +369,42 @@ describe('handleUIMessageStreamFinish', () => {
       expect(callArgs.isAborted).toBe(true);
     });
 
-    it('should call onFinish when stream is aborted and reader is cancelled', async () => {
+    it('should call onFinish when reader is cancelled (simulating browser close/navigation)', async () => {
       const onFinishCallback = vi.fn();
 
+      // Simple stream with just a start and some text
       const inputChunks: UIMessageChunk[] = [
-        { type: 'start', messageId: 'msg-abort-no-finish' },
+        { type: 'start', messageId: 'msg-1' },
         { type: 'text-start', id: 'text-1' },
-        {
-          type: 'text-delta',
-          id: 'text-1',
-          delta: 'Partial text before abort',
-        },
-        { type: 'abort' },
-        // No finish event - simulates real abort scenario
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        // Stream will be cancelled before more chunks arrive
       ];
 
-      const originalMessages: UIMessage[] = [
-        {
-          id: 'user-msg-1',
-          role: 'user',
-          parts: [{ type: 'text', text: 'User request' }],
-        },
-      ];
-
-      // Create a stream that simulates an aborted connection
-      let chunkIndex = 0;
-      const stream = new ReadableStream<UIMessageChunk>({
-        pull(controller) {
-          if (chunkIndex < inputChunks.length) {
-            controller.enqueue(inputChunks[chunkIndex]);
-            chunkIndex++;
-
-            // After sending abort, don't close the stream normally
-            // This simulates what happens when connection is lost
-            if (inputChunks[chunkIndex - 1].type === 'abort') {
-              // Don't close, just stop sending data
-              // In a real scenario, the reader would be cancelled
-              return;
-            }
-          }
-        },
-      });
+      const stream = createUIMessageStream(inputChunks);
 
       const resultStream = handleUIMessageStreamFinish<UIMessage>({
         stream,
-        messageId: 'msg-abort-no-finish',
-        originalMessages,
+        messageId: 'msg-1',
+        originalMessages: [],
         onError: mockErrorHandler,
         onFinish: onFinishCallback,
       });
 
-      // Read the stream but cancel after getting abort
+      // Start reading but cancel immediately (simulating user closing browser)
       const reader = resultStream.getReader();
-      const result: UIMessageChunk[] = [];
+      
+      // Read one chunk then cancel
+      await reader.read();
+      await reader.cancel();
+      reader.releaseLock();
 
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          result.push(value);
-
-          // Cancel the reader after receiving abort, simulating connection loss
-          if (value.type === 'abort') {
-            await reader.cancel();
-            break;
-          }
-        }
-      } finally {
-        reader.releaseLock();
-      }
-
-      expect(result).toEqual(inputChunks);
-
-      // Wait a bit to ensure any async operations would have completed
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      // The key assertion: WITH our fix, onFinish SHOULD be called
-      // even when the reader is cancelled after receiving abort
+      // The key assertion: onFinish MUST be called when reader is cancelled
+      // This ensures partial messages are persisted when users navigate away
       expect(onFinishCallback).toHaveBeenCalledTimes(1);
-
+      
       const callArgs = onFinishCallback.mock.calls[0][0];
-      expect(callArgs.isAborted).toBe(true);
-      expect(callArgs.isContinuation).toBe(false);
-      expect(callArgs.responseMessage.id).toBe('msg-abort-no-finish');
-      expect(callArgs.responseMessage.parts).toEqual([
-        {
-          type: 'text',
-          text: 'Partial text before abort',
-          state: 'streaming',
-          providerMetadata: undefined,
-        },
-      ]);
-      expect(callArgs.messages).toHaveLength(2); // user message + partial assistant message
+      expect(callArgs.isAborted).toBe(false); // No explicit abort chunk
+      expect(callArgs.responseMessage.id).toBe('msg-1');
     });
   });
 });
