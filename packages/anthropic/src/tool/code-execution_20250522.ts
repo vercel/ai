@@ -21,7 +21,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
     stderr: string;
     return_code: number;
   },
-  {} // No configuration arguments needed
+  {}
 >({
   id: 'anthropic.code_execution_20250522',
   name: 'code_execution',
