@@ -2784,53 +2784,79 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-              "modelId": "gpt-4o-mini-2024-07-18",
-              "timestamp": 2025-03-10T18:46:40.000Z,
-              "type": "response-metadata",
-            },
-            {
-              "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_67cf3390786881908b27489d7e8cfb6b",
+                "modelId": "gpt-4o-mini-2024-07-18",
+                "timestamp": 2025-03-10T18:46:40.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "id": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "fs_67cf3390e9608190869b5d45698a7067",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "",
+                "providerExecuted": true,
+                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "status": "completed",
+                  "type": "file_search_tool_result",
+                },
+                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                  },
+                },
+                "type": "text-start",
+              },
+              {
+                "delta": "Based on the search results, here is the information you requested.",
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "type": "text-delta",
+              },
+              {
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "type": "text-end",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": 0,
+                  "inputTokens": 327,
+                  "outputTokens": 834,
+                  "reasoningTokens": 0,
+                  "totalTokens": 1161,
                 },
               },
-              "type": "text-start",
-            },
-            {
-              "delta": "Based on the search results, here is the information you requested.",
-              "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-              "type": "text-delta",
-            },
-            {
-              "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": {
-                "openai": {
-                  "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
-                },
-              },
-              "type": "finish",
-              "usage": {
-                "cachedInputTokens": 0,
-                "inputTokens": 327,
-                "outputTokens": 834,
-                "reasoningTokens": 0,
-                "totalTokens": 1161,
-              },
-            },
-          ]
-        `);
+            ]
+          `);
       });
     });
 
