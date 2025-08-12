@@ -4,7 +4,7 @@ import {
   createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
-import { createOpenAI } from './openai-provider';
+import { createOpenAI } from '../openai-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },

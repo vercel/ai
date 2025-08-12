@@ -169,6 +169,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         tools: googleTools,
         toolConfig: googleToolConfig,
         cachedContent: googleOptions?.cachedContent,
+        labels: googleOptions?.labels,
       },
       warnings: [...warnings, ...toolWarnings],
     };
