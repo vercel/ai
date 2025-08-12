@@ -899,6 +899,134 @@ const result = await generateText({
   be customized.
 </Note>
 
+#### Image Generation (Responses API)
+
+OpenAI's Responses API supports multimodal image generation as a provider-defined tool. Availability is restricted to specific models (for example, `gpt-5` variants). Refer to the OpenAI docs for the current list of supported models.
+
+- Tool factory: `openai.tools.generateImage(options)`
+- Supported options (camelCase):
+  - `background`: `'auto' | 'opaque' | 'transparent'`
+  - `size`: `'auto' | "<width>x<height>"`
+  - `quality`: `'auto' | 'low' | 'medium' | 'high'`
+  - `moderation`: `'auto'`
+  - `outputFormat`: `'png' | 'jpeg' | 'webp'`
+  - `outputCompression`: `0..100`
+  - `n`: `1..4`
+
+You can use the image tool with either `generateText` or `streamText`.
+
+Examples
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+import 'dotenv/config';
+
+const result = await generateText({
+  model: openai('gpt-5'),
+  prompt:
+    'Generate an image of an echidna swimming across the Mozambique channel.',
+  tools: {
+    image_generation: openai.tools.generateImage({ outputFormat: 'png' }),
+  },
+  // Optional: include partial frames in non-stream calls
+  providerOptions: { openai: { include: ['image_generation_call.partials'] } },
+});
+
+for (const file of result.files) {
+  if (file.mediaType.startsWith('image/')) {
+    // file.data is base64; render or save as needed
+  }
+}
+```
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+import 'dotenv/config';
+
+const result = streamText({
+  model: openai('gpt-5'),
+  prompt:
+    'Generate an image of an echidna swimming across the Mozambique channel.',
+  tools: {
+    image_generation: openai.tools.generateImage({
+      outputFormat: 'png',
+      quality: 'low',
+    }),
+  },
+  // Opt-in to partial frames during streaming
+  providerOptions: { openai: { include: ['image_generation_call.partials'] } },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'file' && part.file.mediaType.startsWith('image/')) {
+    // part.file.data is base64; render or save as needed
+  }
+}
+```
+
+Partial image frames
+
+- By default, only the final image is emitted.
+- To receive progressive partial frames, pass `providerOptions.openai.include = ['image_generation_call.partials']`.
+- Partial frames are emitted as `file` parts with the same `mediaType` and base64 `data` as the final image, but arrive earlier and may be lower quality or incomplete.
+
+Provider metadata on image files
+
+Image `file` parts include OpenAI-specific metadata under `providerMetadata.openai`.
+
+- Final image:
+
+```json
+{
+  "type": "file",
+  "mediaType": "image/png",
+  "data": "<base64>",
+  "providerMetadata": {
+    "openai": {
+      "image": {
+        "id": "ig_...",
+        "output_format": "png",
+        "background": "opaque",
+        "quality": "high",
+        "size": "1536x1024",
+        "revised_prompt": "..."
+      }
+    }
+  }
+}
+```
+
+- Partial frame:
+
+```json
+{
+  "type": "file",
+  "mediaType": "image/png",
+  "data": "<base64>",
+  "providerMetadata": {
+    "openai": {
+      "image_partial": {
+        "id": "ig_...",
+        "output_format": "png",
+        "background": "opaque",
+        "quality": "high",
+        "size": "1536x1024",
+        "partial_image_index": 0
+      }
+    }
+  }
+}
+```
+
+The final image is always emitted. If partials are enabled and the final is identical to the last partial, the SDK deduplicates it.
+
+For complete details on model availability, image quality controls, supported sizes, and tool-specific parameters, refer to the OpenAI documentation:
+
+- Image generation overview and models: [OpenAI Image Generation](https://platform.openai.com/docs/guides/image-generation?image-generation-model=gpt-image-1)
+- Image generation tool parameters (background, size, quality, format, etc.): [Image Generation Tool Options](https://platform.openai.com/docs/guides/tools-image-generation#tool-options)
+
 #### Code Interpreter
 
 The OpenAI responses API supports the code interpreter tool through the `openai.tools.codeInterpreter` tool. This allows models to write and execute Python code.

@@ -27,8 +27,7 @@ export function prepareResponsesTools({
     | { type: 'web_search_preview' }
     | { type: 'function'; name: string }
     | { type: 'code_interpreter' }
-    | { type: 'image_generation' }
-    | { type: 'function'; name: string };
+    | { type: 'image_generation' };
   toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
