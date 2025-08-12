@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  executeTool,
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
@@ -641,13 +642,23 @@ async function executeTools<TOOLS extends ToolSet>({
         tracer,
         fn: async span => {
           try {
-            const output = await tool.execute!(input, {
-              toolCallId,
-              messages,
-              abortSignal,
-              experimental_context,
+            const stream = executeTool({
+              tool: tool as any, // TODO: fix this
+              input,
+              options: {
+                toolCallId,
+                messages,
+                abortSignal,
+                experimental_context,
+              },
             });
 
+            let output: any;
+            for await (const part of stream) {
+              if (part.type === 'final') {
+                output = part.output;
+              }
+            }
             try {
               span.setAttributes(
                 selectTelemetryAttributes({
