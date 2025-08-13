@@ -31,5 +31,6 @@ export type PrepareStepResult<
       activeTools?: Array<keyof NoInfer<TOOLS>>;
       system?: string;
       messages?: Array<ModelMessage>;
+      tools?: TOOLS;
     }
   | undefined;

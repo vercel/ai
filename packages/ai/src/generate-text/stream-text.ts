@@ -1046,9 +1046,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             prepareStepResult?.model ?? model,
           );
 
+          const newTools = prepareStepResult?.tools ?? tools;
+          console.log('++++++++ newTools', newTools);
+
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
-              tools,
+              tools: newTools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               activeTools: prepareStepResult?.activeTools ?? activeTools,
             });
