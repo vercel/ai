@@ -798,7 +798,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         if (part.type === 'finish-step') {
           const stepMessages = toResponseMessages({
             content: recordedContent,
-            tools,
+            tools: self.tools as TOOLS | undefined,
           });
 
           // Add step information (after response messages are updated):
@@ -1048,6 +1048,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           const newTools = prepareStepResult?.tools ?? tools;
           console.log('++++++++ newTools', newTools);
+          // Keep UI helpers (toUIMessageStream) in sync with step tools for dynamic detection
+          self.tools = newTools as TOOLS | undefined;
 
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
@@ -1126,7 +1128,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           );
 
           const streamWithToolResults = runToolsTransformation({
-            tools,
+            tools: newTools,
             generatorStream: stream,
             tracer,
             telemetry,
@@ -1297,7 +1299,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'tool-input-start': {
                       activeToolCallToolNames[chunk.id] = chunk.toolName;
 
-                      const tool = tools?.[chunk.toolName];
+                      const tool = newTools?.[chunk.toolName];
                       if (tool?.onInputStart != null) {
                         await tool.onInputStart({
                           toolCallId: chunk.id,
@@ -1322,7 +1324,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'tool-input-delta': {
                       const toolName = activeToolCallToolNames[chunk.id];
-                      const tool = tools?.[toolName];
+                      const tool = newTools?.[toolName];
 
                       if (tool?.onInputDelta != null) {
                         await tool.onInputDelta({
@@ -1448,7 +1450,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                         content:
                           // use transformed content to create the messages for the next step:
                           recordedSteps[recordedSteps.length - 1].content,
-                        tools,
+                        tools: newTools,
                       }),
                     );
 
