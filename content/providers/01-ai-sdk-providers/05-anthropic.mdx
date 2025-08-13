@@ -619,7 +619,7 @@ const result = await streamText({
 });
 for await (const part of result.textStream) {
   if (part.type === 'error') {
-    console.log('Search error:', part.error);
+    console.log('Code execution error:', part.error);
     // Handle code execution error appropriately
   }
 }
