@@ -63,68 +63,72 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doGenerate', () => {
+    function prepareJsonResponse(body: any) {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body,
+      };
+    }
+
     describe('basic text response', () => {
       beforeEach(() => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: {
-            id: 'resp_67c97c0203188190a025beb4a75242bc',
-            object: 'response',
-            created_at: 1741257730,
-            status: 'completed',
-            error: null,
-            incomplete_details: null,
-            input: [],
-            instructions: null,
-            max_output_tokens: null,
-            model: 'gpt-4o-2024-07-18',
-            output: [
-              {
-                id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
-                type: 'message',
-                status: 'completed',
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'output_text',
-                    text: 'answer text',
-                    annotations: [],
-                  },
-                ],
-              },
-            ],
-            parallel_tool_calls: true,
-            previous_response_id: null,
-            reasoning: {
-              effort: null,
-              summary: null,
+        prepareJsonResponse({
+          id: 'resp_67c97c0203188190a025beb4a75242bc',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o-2024-07-18',
+          output: [
+            {
+              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'answer text',
+                  annotations: [],
+                },
+              ],
             },
-            store: true,
-            temperature: 1,
-            text: {
-              format: {
-                type: 'text',
-              },
-            },
-            tool_choice: 'auto',
-            tools: [],
-            top_p: 1,
-            truncation: 'disabled',
-            usage: {
-              input_tokens: 345,
-              input_tokens_details: {
-                cached_tokens: 234,
-              },
-              output_tokens: 538,
-              output_tokens_details: {
-                reasoning_tokens: 123,
-              },
-              total_tokens: 572,
-            },
-            user: null,
-            metadata: {},
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: {
+            effort: null,
+            summary: null,
           },
-        };
+          store: true,
+          temperature: 1,
+          text: {
+            format: {
+              type: 'text',
+            },
+          },
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 345,
+            input_tokens_details: {
+              cached_tokens: 234,
+            },
+            output_tokens: 538,
+            output_tokens_details: {
+              reasoning_tokens: 123,
+            },
+            total_tokens: 572,
+          },
+          user: null,
+          metadata: {},
+        });
       });
 
       it('should generate text', async () => {
@@ -1218,36 +1222,89 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should extract logprobs in providerMetadata', async () => {
-        const serverResponse =
-          server.urls['https://api.openai.com/v1/responses'].response;
-
-        // @ts-expect-error - manipulating response for this test only
-        serverResponse.body.output[0].content[0].logprobs = [
-          {
-            token: 'Hello',
-            logprob: -0.0009994634,
-            top_logprobs: [
-              {
-                token: 'Hello',
-                logprob: -0.0009994634,
-              },
-              {
-                token: 'Hi',
-                logprob: -0.2,
-              },
-            ],
+        prepareJsonResponse({
+          id: 'resp_67c97c0203188190a025beb4a75242bc',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o-2024-07-18',
+          output: [
+            {
+              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'answer text',
+                  annotations: [],
+                  logprobs: [
+                    {
+                      token: 'Hello',
+                      logprob: -0.0009994634,
+                      top_logprobs: [
+                        {
+                          token: 'Hello',
+                          logprob: -0.0009994634,
+                        },
+                        {
+                          token: 'Hi',
+                          logprob: -0.2,
+                        },
+                      ],
+                    },
+                    {
+                      token: '!',
+                      logprob: -0.13410144,
+                      top_logprobs: [
+                        {
+                          token: '!',
+                          logprob: -0.13410144,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: {
+            effort: null,
+            summary: null,
           },
-          {
-            token: '!',
-            logprob: -0.13410144,
-            top_logprobs: [
-              {
-                token: '!',
-                logprob: -0.13410144,
-              },
-            ],
+          store: true,
+          temperature: 1,
+          text: {
+            format: {
+              type: 'text',
+            },
           },
-        ];
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 345,
+            input_tokens_details: {
+              cached_tokens: 234,
+            },
+            output_tokens: 538,
+            output_tokens_details: {
+              reasoning_tokens: 123,
+            },
+            total_tokens: 572,
+          },
+          user: null,
+          metadata: {},
+        });
 
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
