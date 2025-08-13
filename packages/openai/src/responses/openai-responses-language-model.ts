@@ -5,6 +5,7 @@ import {
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
+  LanguageModelV2Text,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
@@ -407,6 +408,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     }
 
     const content: Array<LanguageModelV2Content> = [];
+    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
 
     // map response content to content array
     for (const part of response.output) {
@@ -434,20 +436,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
         case 'message': {
           for (const contentPart of part.content) {
-            const providerMetadata: SharedV2ProviderMetadata = {
-              openai: {
-                itemId: part.id,
-              },
-            };
-
-            if (contentPart.logprobs) {
-              providerMetadata.openai.logprobs = contentPart.logprobs;
+            if (
+              options.providerOptions?.openai?.logprobs &&
+              contentPart.logprobs
+            ) {
+              logprobs.push(contentPart.logprobs);
             }
 
             content.push({
               type: 'text',
               text: contentPart.text,
-              providerMetadata,
+              providerMetadata: {
+                openai: {
+                  itemId: part.id,
+                },
+              },
             });
 
             for (const annotation of contentPart.annotations) {
@@ -551,12 +554,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     };
 
     // Extract logprobs from the first message's first content item if available
-    const firstOutput = response.output?.[0];
-    if (firstOutput?.type === 'message') {
-      const firstContent = firstOutput.content?.[0];
-      if (firstContent?.logprobs) {
-        providerMetadata.openai.logprobs = firstContent.logprobs;
-      }
+
+    if (logprobs.length > 0) {
+      providerMetadata.openai.logprobs = logprobs;
     }
 
     return {

@@ -89,6 +89,32 @@ describe('OpenAIResponsesLanguageModel', () => {
                     type: 'output_text',
                     text: 'answer text',
                     annotations: [],
+                    logprobs: [
+                      {
+                        token: 'Hello',
+                        logprob: -0.0009994634,
+                        top_logprobs: [
+                          {
+                            token: 'Hello',
+                            logprob: -0.0009994634,
+                          },
+                          {
+                            token: 'Hi',
+                            logprob: -0.2,
+                          },
+                        ],
+                      },
+                      {
+                        token: '!',
+                        logprob: -0.13410144,
+                        top_logprobs: [
+                          {
+                            token: '!',
+                            logprob: -0.13410144,
+                          },
+                        ],
+                      },
+                    ],
                   },
                 ],
               },
@@ -776,7 +802,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(warnings).toStrictEqual([]);
       });
-      
+
       it('should send logprobs provider option', async () => {
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,
@@ -1214,6 +1240,46 @@ describe('OpenAIResponsesLanguageModel', () => {
           { type: 'unsupported-setting', setting: 'presencePenalty' },
           { type: 'unsupported-setting', setting: 'frequencyPenalty' },
           { type: 'unsupported-setting', setting: 'stopSequences' },
+        ]);
+      });
+
+      it('should extract logprobs in providerMetadata', async () => {
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              logprobs: 2,
+            },
+          },
+        });
+
+        expect(result.providerMetadata?.openai.logprobs).toStrictEqual([
+          [
+            {
+              token: 'Hello',
+              logprob: -0.0009994634,
+              top_logprobs: [
+                {
+                  token: 'Hello',
+                  logprob: -0.0009994634,
+                },
+                {
+                  token: 'Hi',
+                  logprob: -0.2,
+                },
+              ],
+            },
+            {
+              token: '!',
+              logprob: -0.13410144,
+              top_logprobs: [
+                {
+                  token: '!',
+                  logprob: -0.13410144,
+                },
+              ],
+            },
+          ],
         ]);
       });
     });
