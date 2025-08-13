@@ -100,3 +100,11 @@ console.log(
   `cosine similarity: ${cosineSimilarity(embeddings[0], embeddings[1])}`,
 );
 ```
+
+
+## Alternative Providers
+
+There is an alternative provider package called [`ai-sdk-ollama` by jagreehal](https://github.com/jagreehal/ai-sdk-ollama), which is fundamentally different from this provider. Instead of using the HTTP API directly, it leverages the [`ollama`](https://www.npmjs.com/package/ollama) package for communication.
+
+This approach may have different tradeoffs in terms of performance, compatibility, and features. It may be better or worse for your use case, so you may want to review both options to decide which fits your needs best.
+
