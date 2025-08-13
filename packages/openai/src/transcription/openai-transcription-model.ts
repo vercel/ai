@@ -187,15 +187,18 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
 
     return {
       text: response.text,
-      segments: response.segments?.map(segment => ({
-        text: segment.text,
-        startSecond: segment.start,
-        endSecond: segment.end,
-      })) ?? response.words?.map(word => ({
-        text: word.word,
-        startSecond: word.start,
-        endSecond: word.end,
-      })) ?? [],
+      segments:
+        response.segments?.map(segment => ({
+          text: segment.text,
+          startSecond: segment.start,
+          endSecond: segment.end,
+        })) ??
+        response.words?.map(word => ({
+          text: word.word,
+          startSecond: word.start,
+          endSecond: word.end,
+        })) ??
+        [],
       language,
       durationInSeconds: response.duration ?? undefined,
       warnings,
