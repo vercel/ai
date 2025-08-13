@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 2.0.12
+
+### Patch Changes
+
+- ec336a1: feat(provider/openai): add response_format to be supported by default
+- 2935ec7: fix(provider/openai): exclude gpt-5-chat from reasoning model
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
 ## 2.0.11
 
 ### Patch Changes
