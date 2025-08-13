@@ -25,16 +25,6 @@ export const openAITranscriptionProviderOptions = z.object({
   prompt: z.string().optional(),
 
   /**
-   * The format of the output, in one of these options: json, text, srt, verbose_json, or vtt.
-   * For gpt-4o-transcribe and gpt-4o-mini-transcribe, the only supported format is json.
-   * @default 'json'
-   */
-  responseFormat: z
-    .enum(['json', 'text', 'srt', 'verbose_json', 'vtt'])
-    .default('json')
-    .optional(),
-
-  /**
    * The sampling temperature, between 0 and 1.
    * @default 0
    */

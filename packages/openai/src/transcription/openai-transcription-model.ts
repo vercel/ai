@@ -137,7 +137,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
         include: openAIOptions.include,
         language: openAIOptions.language,
         prompt: openAIOptions.prompt,
-        response_format: openAIOptions.responseFormat,
+        response_format: 'verbose_json', // always use verbose_json to get segments
         temperature: openAIOptions.temperature,
         timestamp_granularities: openAIOptions.timestampGranularities,
       };

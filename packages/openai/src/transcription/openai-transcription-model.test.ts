@@ -232,7 +232,7 @@ describe('doGenerate', () => {
           Symbol(kType): "audio/wav",
         },
         "model": "whisper-1",
-        "response_format": "json",
+        "response_format": "verbose_json",
         "temperature": "0",
         "timestamp_granularities": "segment",
       }

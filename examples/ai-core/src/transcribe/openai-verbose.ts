@@ -9,9 +9,8 @@ async function main() {
     audio: await readFile('data/galileo.mp3'),
     providerOptions: {
       openai: {
-        responseFormat: 'verbose_json',
-        //timestampGranularities: ['segment'],
-        timestampGranularities: ['word'],
+        //timestampGranularities: ['word'],
+        timestampGranularities: ['segment'],
       },
     },
   });
