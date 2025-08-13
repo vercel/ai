@@ -3,6 +3,7 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
+  const chunks: any[] = [];
   const result = streamText({
     model: openai('gpt-4.1-nano'),
     maxOutputTokens: 1024,
@@ -12,15 +13,18 @@ async function main() {
         logprobs: 5,
       },
     },
+    includeRawChunks: true,
+    onChunk: ({ chunk }) => {
+      chunks.push(chunk.rawValue);
+    },
   });
 
   for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
   }
-  console.log();
-  console.log('Token usage:', await result.usage);
-  console.log('Finish reason:', await result.finishReason);
-  console.dir(await result.providerMetadata, { depth: null });
+
+  console.log(
+    chunks.filter(Boolean).map(c => 'data:' + JSON.stringify(c) + '\n\n'),
+  );
 }
 
 main().catch(console.error);

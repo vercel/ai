@@ -2951,9 +2951,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
       });
 
-      expect(
-        await convertReadableStreamToArray(stream),
-      ).toMatchInlineSnapshot(`
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
