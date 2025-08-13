@@ -138,7 +138,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       ? Array.isArray(openaiOptions?.include)
         ? [...openaiOptions?.include, 'message.output_text.logprobs']
         : ['message.output_text.logprobs']
-      : undefined;
+      : openaiOptions?.include;
 
     const baseArgs = {
       model: this.modelId,
