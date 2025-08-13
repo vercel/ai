@@ -106,23 +106,21 @@ describe('wrapLanguageModel', () => {
     });
 
     it('should use middleware overrideSupportedUrls if provided', () => {
+      const supportedUrls = {
+        'override/*': [/^https:\/\/.*$/],
+      };
+
       const wrappedModel = wrapLanguageModel({
         model: new MockLanguageModelV2({
-          supportedUrls: {
-            'original/*': [/^https:\/\/.*$/],
-          },
+          supportedUrls,
         }),
         middleware: {
           middlewareVersion: 'v2',
-          overrideSupportedUrls: ({ model }) => ({
-            'override/*': [/^https:\/\/.*$/],
-          }),
+          overrideSupportedUrls: ({ model }) => supportedUrls,
         },
       });
 
-      expect(wrappedModel.supportedUrls).toStrictEqual({
-        'override/*': [/^https:\/\/.*$/],
-      });
+      expect(wrappedModel.supportedUrls).toStrictEqual(supportedUrls);
     });
   });
 
