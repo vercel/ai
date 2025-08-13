@@ -585,21 +585,25 @@ Code execution errors are handled differently depending on whether you're using 
 Code execution errors are delivered as tool result parts in the response:
 
 ```ts
-  const result = await generateText({
-    model: anthropic('claude-opus-4-20250514'),
-    prompt: 'Execute some Python script',
-    tools: {
-      code_execution: codeExecutionTool,
-    },
+const result = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'Execute some Python script',
+  tools: {
+    code_execution: codeExecutionTool,
+  },
+});
+
+const toolErrors = result.content?.filter(
+  content => content.type === 'tool-error',
+);
+
+toolErrors?.forEach(error => {
+  console.error('Tool execution error:', {
+    toolName: error.toolName,
+    toolCallId: error.toolCallId,
+    error: error.error,
   });
- const codeExecutionErrors = result.content?.filter(
- content => content.type === 'tool-result' &&
- content.toolName === 'code_execution' &&
- content.isError)
- );
-if (codeExecutionErrors?.length > 0 ) {
-  console.log('Code execution error code:',codeExecutionErrors[0].result.errorCode);
-}
+});
 ```
 
 **Streaming (`streamText`, `streamObject`):**
