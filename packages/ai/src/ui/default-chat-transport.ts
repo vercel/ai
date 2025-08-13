@@ -24,7 +24,7 @@ export class DefaultChatTransport<
       schema: uiMessageChunkSchema,
     }).pipeThrough(
       new TransformStream<ParseResult<UIMessageChunk>, UIMessageChunk>({
-        transform(chunk, controller) {
+        async transform(chunk, controller) {
           if (!chunk.success) {
             throw chunk.error;
           }
