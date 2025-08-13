@@ -168,11 +168,13 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(result.providerMetadata).toStrictEqual({
-          openai: {
-            responseId: 'resp_67c97c0203188190a025beb4a75242bc',
-          },
-        });
+        expect(result.providerMetadata).toMatchInlineSnapshot(`
+          {
+            "openai": {
+              "responseId": "resp_67c97c0203188190a025beb4a75242bc",
+            },
+          }
+        `);
       });
 
       it('should send model id, settings, and input', async () => {
@@ -185,15 +187,28 @@ describe('OpenAIResponsesLanguageModel', () => {
           topP: 0.3,
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          temperature: 0.5,
-          top_p: 0.3,
-          input: [
-            { role: 'system', content: 'You are a helpful assistant.' },
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": "You are a helpful assistant.",
+                "role": "system",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "temperature": 0.5,
+            "top_p": 0.3,
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -208,29 +223,41 @@ describe('OpenAIResponsesLanguageModel', () => {
           topP: 0.3,
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'o1-mini',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "o1-mini",
+          }
+        `);
 
-        expect(warnings).toStrictEqual([
-          {
-            type: 'other',
-            message: 'system messages are removed for this model',
-          },
-          {
-            details: 'temperature is not supported for reasoning models',
-            setting: 'temperature',
-            type: 'unsupported-setting',
-          },
-          {
-            details: 'topP is not supported for reasoning models',
-            setting: 'topP',
-            type: 'unsupported-setting',
-          },
-        ]);
+        expect(warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "message": "system messages are removed for this model",
+              "type": "other",
+            },
+            {
+              "details": "temperature is not supported for reasoning models",
+              "setting": "temperature",
+              "type": "unsupported-setting",
+            },
+            {
+              "details": "topP is not supported for reasoning models",
+              "setting": "topP",
+              "type": "unsupported-setting",
+            },
+          ]
+        `);
       });
 
       it.each(openaiResponsesReasoningModelIds)(
@@ -365,17 +392,27 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          text: {
-            format: {
-              type: 'json_object',
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "text": {
+              "format": {
+                "type": "json_object",
+              },
             },
-          },
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+          }
+        `)
 
         expect(warnings).toStrictEqual([]);
       });
@@ -390,13 +427,23 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          parallel_tool_calls: false,
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "parallel_tool_calls": false,
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -411,13 +458,23 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          store: false,
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "store": false,
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -432,13 +489,23 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          store: false,
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "store": false,
+          }
+        `)
 
         expect(warnings).toStrictEqual([]);
       });
@@ -453,13 +520,23 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          previous_response_id: 'resp_123',
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "previous_response_id": "resp_123",
+          }
+        `)
 
         expect(warnings).toStrictEqual([]);
       });
@@ -474,13 +551,23 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          user: 'user_123',
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "user": "user_123",
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -559,13 +646,23 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          instructions: 'You are a friendly assistant.',
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "instructions": "You are a friendly assistant.",
+            "model": "gpt-4o",
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -580,13 +677,25 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'o3-mini',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          include: ['reasoning.encrypted_content'],
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "reasoning.encrypted_content",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "o3-mini",
+          }
+        `)
 
         expect(warnings).toStrictEqual([]);
       });
@@ -601,14 +710,26 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o-mini',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          include: ['file_search_call.results'],
-        });
-
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "file_search_call.results",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o-mini",
+          }
+        `)
+        
         expect(warnings).toStrictEqual([]);
       });
 
@@ -625,13 +746,26 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'o3-mini',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          include: ['reasoning.encrypted_content', 'file_search_call.results'],
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "reasoning.encrypted_content",
+              "file_search_call.results",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "o3-mini",
+          }
+        `)
 
         expect(warnings).toStrictEqual([]);
       });
@@ -745,13 +879,23 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-5',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          prompt_cache_key: 'test-cache-key-123',
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5",
+            "prompt_cache_key": "test-cache-key-123",
+          }
+        `)
 
         expect(warnings).toStrictEqual([]);
       });
@@ -766,13 +910,23 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-5',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          safety_identifier: 'test-safety-identifier-123',
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5",
+            "safety_identifier": "test-safety-identifier-123",
+          }
+        `)
 
         expect(warnings).toStrictEqual([]);
       });
@@ -783,13 +937,27 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          text: { format: { type: 'json_object' } },
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "text": {
+              "format": {
+                "type": "json_object",
+              },
+            },
+          }
+        `)
 
         expect(warnings).toStrictEqual([]);
       });
@@ -874,30 +1042,43 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          text: {
-            format: {
-              type: 'json_schema',
-              strict: false,
-              name: 'response',
-              description: 'A response',
-              schema: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "text": {
+              "format": {
+                "description": "A response",
+                "name": "response",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+                "strict": false,
+                "type": "json_schema",
               },
             },
-          },
-          input: [
-            {
-              role: 'user',
-              content: [{ type: 'input_text', text: 'Hello' }],
-            },
-          ],
-        });
+          }
+        `)
 
         expect(warnings).toStrictEqual([]);
       });
@@ -921,19 +1102,32 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          tools: [
-            {
-              type: 'web_search_preview',
-              search_context_size: 'high',
-              user_location: { type: 'approximate', city: 'San Francisco' },
-            },
-          ],
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tools": [
+              {
+                "search_context_size": "high",
+                "type": "web_search_preview",
+                "user_location": {
+                  "city": "San Francisco",
+                  "type": "approximate",
+                },
+              },
+            ],
+          }
+        `)
 
         expect(warnings).toStrictEqual([]);
       });
@@ -961,20 +1155,35 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          tool_choice: { type: 'web_search_preview' },
-          tools: [
-            {
-              type: 'web_search_preview',
-              search_context_size: 'high',
-              user_location: { type: 'approximate', city: 'San Francisco' },
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tool_choice": {
+              "type": "web_search_preview",
             },
-          ],
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+            "tools": [
+              {
+                "search_context_size": "high",
+                "type": "web_search_preview",
+                "user_location": {
+                  "city": "San Francisco",
+                  "type": "approximate",
+                },
+              },
+            ],
+          }
+        `)
 
         expect(warnings).toStrictEqual([]);
       });
@@ -1186,13 +1395,30 @@ describe('OpenAIResponsesLanguageModel', () => {
           seed: 42,
         });
 
-        expect(warnings).toStrictEqual([
-          { type: 'unsupported-setting', setting: 'topK' },
-          { type: 'unsupported-setting', setting: 'seed' },
-          { type: 'unsupported-setting', setting: 'presencePenalty' },
-          { type: 'unsupported-setting', setting: 'frequencyPenalty' },
-          { type: 'unsupported-setting', setting: 'stopSequences' },
-        ]);
+        expect(warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "setting": "topK",
+              "type": "unsupported-setting",
+            },
+            {
+              "setting": "seed",
+              "type": "unsupported-setting",
+            },
+            {
+              "setting": "presencePenalty",
+              "type": "unsupported-setting",
+            },
+            {
+              "setting": "frequencyPenalty",
+              "type": "unsupported-setting",
+            },
+            {
+              "setting": "stopSequences",
+              "type": "unsupported-setting",
+            },
+          ]
+        `)
       });
     });
 
