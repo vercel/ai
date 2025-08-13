@@ -91,6 +91,13 @@ export type ChatOnErrorCallback = (error: Error) => void;
 export type ChatOnToolCallCallback<UI_MESSAGE extends UIMessage = UIMessage> =
   (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
+    addToolResult?: <
+      TOOL extends keyof InferUIMessageTools<UI_MESSAGE>,
+    >(options: {
+      tool: TOOL;
+      toolCallId: string;
+      output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+    }) => Promise<void>;
   }) => void | PromiseLike<void>;
 
 export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
@@ -550,6 +557,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         stream: processUIMessageStream({
           stream,
           onToolCall: this.onToolCall,
+          addToolResult: this.addToolResult,
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,

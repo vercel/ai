@@ -73,6 +73,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   runUpdateMessageJob,
   onError,
   onToolCall,
+  addToolResult,
   onData,
 }: {
   // input stream is not fully typed yet:
@@ -83,7 +84,21 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
+    addToolResult?: <
+      TOOL extends keyof InferUIMessageTools<UI_MESSAGE>,
+    >(options: {
+      tool: TOOL;
+      toolCallId: string;
+      output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+    }) => Promise<void>;
   }) => void | PromiseLike<void>;
+  addToolResult?: <
+    TOOL extends keyof InferUIMessageTools<UI_MESSAGE>,
+  >(options: {
+    tool: TOOL;
+    toolCallId: string;
+    output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+  }) => Promise<void>;
   onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
   runUpdateMessageJob: (
     job: (options: {
@@ -490,9 +505,18 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // requires additional state management for error handling etc.
               // Skip calling onToolCall for provider-executed tools since they are already executed
               if (onToolCall && !chunk.providerExecuted) {
-                await onToolCall({
-                  toolCall: chunk as InferUIMessageToolCall<UI_MESSAGE>,
-                });
+                if (addToolResult) {
+                  // New API: pass addToolResult as parameter
+                  await onToolCall({
+                    toolCall: chunk as InferUIMessageToolCall<UI_MESSAGE>,
+                    addToolResult,
+                  });
+                } else {
+                  // Old API: call without addToolResult (backward compatibility)
+                  await onToolCall({
+                    toolCall: chunk as InferUIMessageToolCall<UI_MESSAGE>,
+                  });
+                }
               }
               break;
             }

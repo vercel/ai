@@ -657,8 +657,8 @@ describe('onToolCall', () => {
   let toolCallPromise: Promise<void>;
 
   setupTestComponent(() => {
-    const { messages, sendMessage, addToolResult } = useChat({
-      async onToolCall({ toolCall }) {
+    const { messages, sendMessage } = useChat({
+      async onToolCall({ toolCall, addToolResult }) {
         await toolCallPromise;
         addToolResult({
           tool: 'test-tool',

@@ -124,7 +124,8 @@ import {
 import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, sendMessage, addToolResult } = useChat({
+  // Enhanced API (recommended): addToolResult is passed as parameter
+  const { messages, sendMessage } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
@@ -132,11 +133,11 @@ export default function Chat() {
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 
     // run client-side tools that are automatically executed:
-    async onToolCall({ toolCall }) {
+    async onToolCall({ toolCall, addToolResult }) {
       if (toolCall.toolName === 'getLocation') {
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
 
-        // No await - avoids potential deadlocks
+        // addToolResult is available directly in the callback
         addToolResult({
           tool: 'getLocation',
           toolCallId: toolCall.toolCallId,
@@ -145,6 +146,28 @@ export default function Chat() {
       }
     },
   });
+
+  // Alternative: Legacy API (still supported for backward compatibility)
+  // const { messages, sendMessage, addToolResult } = useChat({
+  //   transport: new DefaultChatTransport({
+  //     api: '/api/chat',
+  //   }),
+  //
+  //   sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+  //
+  //   async onToolCall({ toolCall }) {
+  //     if (toolCall.toolName === 'getLocation') {
+  //       const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+  //
+  //       // addToolResult accessed from closure
+  //       addToolResult({
+  //         tool: 'getLocation',
+  //         toolCallId: toolCall.toolCallId,
+  //         output: cities[Math.floor(Math.random() * cities.length)],
+  //       });
+  //     }
+  //   },
+  // });
   const [input, setInput] = useState('');
 
   return (

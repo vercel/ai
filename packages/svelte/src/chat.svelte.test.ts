@@ -368,10 +368,10 @@ describe('onToolCall', () => {
     ({ resolve, promise: toolCallPromise } = promiseWithResolvers<void>());
 
     chat = new Chat({
-      async onToolCall({ toolCall }) {
+      async onToolCall({ toolCall, addToolResult }) {
         await toolCallPromise;
 
-        chat.addToolResult({
+        addToolResult({
           tool: 'test-tool',
           toolCallId: toolCall.toolCallId,
           output: `test-tool-response: ${toolCall.toolName} ${
