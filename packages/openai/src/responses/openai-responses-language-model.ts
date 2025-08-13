@@ -553,8 +553,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       openai: { responseId: response.id },
     };
 
-    // Extract logprobs from the first message's first content item if available
-
     if (logprobs.length > 0) {
       providerMetadata.openai.logprobs = logprobs;
     }
