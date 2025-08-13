@@ -62,6 +62,7 @@ jobs:
         with:
           version: pnpm ci:version
           publish: pnpm ci:release
+          setupGitUser: false
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
