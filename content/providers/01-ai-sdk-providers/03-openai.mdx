@@ -1283,6 +1283,27 @@ const result = await transcribe({
 });
 ```
 
+To get word-level timestamps, specify the granularity:
+
+```ts highlight="8-9"
+import { experimental_transcribe as transcribe } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await transcribe({
+  model: openai.transcription('whisper-1'),
+  audio: new Uint8Array([1, 2, 3, 4]),
+  providerOptions: {
+    openai: {
+      //timestampGranularities: ['word'],
+      timestampGranularities: ['segment'],
+    },
+  },
+});
+
+// Access word-level timestamps
+console.log(result.segments); // Array of segments with startSecond/endSecond
+```
+
 The following provider options are available:
 
 - **timestampGranularities** _string[]_

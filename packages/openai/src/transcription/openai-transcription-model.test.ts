@@ -182,6 +182,62 @@ describe('doGenerate', () => {
     expect(result.response.modelId).toBe('whisper-1');
   });
 
+  it('should pass response_format when specified', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          timestampGranularities: ['word'],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+      {
+        "file": File {
+          Symbol(kHandle): Blob {},
+          Symbol(kLength): 40169,
+          Symbol(kType): "audio/wav",
+        },
+        "model": "whisper-1",
+        "response_format": "verbose_json",
+        "temperature": "0",
+        "timestamp_granularities": "word",
+      }
+    `);
+  });
+
+  it('should pass timestamp_granularities when specified', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          timestampGranularities: ['segment'],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+      {
+        "file": File {
+          Symbol(kHandle): Blob {},
+          Symbol(kLength): 40169,
+          Symbol(kType): "audio/wav",
+        },
+        "model": "whisper-1",
+        "response_format": "verbose_json",
+        "temperature": "0",
+        "timestamp_granularities": "segment",
+      }
+    `);
+  });
+
   it('should work when no words, language, or duration are returned', async () => {
     server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
       type: 'json-value',
@@ -229,5 +285,185 @@ describe('doGenerate', () => {
         "warnings": [],
       }
     `);
+  });
+
+  it('should parse segments when provided in response', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        task: 'transcribe',
+        text: 'Hello world. How are you?',
+        segments: [
+          {
+            id: 0,
+            seek: 0,
+            start: 0.0,
+            end: 2.5,
+            text: 'Hello world.',
+            tokens: [1234, 5678],
+            temperature: 0.0,
+            avg_logprob: -0.5,
+            compression_ratio: 1.2,
+            no_speech_prob: 0.1,
+          },
+          {
+            id: 1,
+            seek: 250,
+            start: 2.5,
+            end: 5.0,
+            text: ' How are you?',
+            tokens: [9012, 3456],
+            temperature: 0.0,
+            avg_logprob: -0.6,
+            compression_ratio: 1.1,
+            no_speech_prob: 0.05,
+          },
+        ],
+        language: 'en',
+        duration: 5.0,
+        _request_id: 'req_1234',
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          timestampGranularities: ['segment'],
+        },
+      },
+    });
+
+    expect(result.segments).toMatchInlineSnapshot(`
+      [
+        {
+          "endSecond": 2.5,
+          "startSecond": 0,
+          "text": "Hello world.",
+        },
+        {
+          "endSecond": 5,
+          "startSecond": 2.5,
+          "text": " How are you?",
+        },
+      ]
+    `);
+    expect(result.text).toBe('Hello world. How are you?');
+    expect(result.durationInSeconds).toBe(5.0);
+  });
+
+  it('should fallback to words when segments are not available', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        task: 'transcribe',
+        text: 'Hello world',
+        words: [
+          {
+            word: 'Hello',
+            start: 0.0,
+            end: 1.0,
+          },
+          {
+            word: 'world',
+            start: 1.0,
+            end: 2.0,
+          },
+        ],
+        language: 'en',
+        duration: 2.0,
+        _request_id: 'req_1234',
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          timestampGranularities: ['word'],
+        },
+      },
+    });
+
+    expect(result.segments).toMatchInlineSnapshot(`
+      [
+        {
+          "endSecond": 1,
+          "startSecond": 0,
+          "text": "Hello",
+        },
+        {
+          "endSecond": 2,
+          "startSecond": 1,
+          "text": "world",
+        },
+      ]
+    `);
+  });
+
+  it('should handle empty segments array', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        task: 'transcribe',
+        text: 'Hello world',
+        segments: [],
+        language: 'en',
+        duration: 2.0,
+        _request_id: 'req_1234',
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.segments).toEqual([]);
+    expect(result.text).toBe('Hello world');
+  });
+
+  it('should handle segments with missing optional fields', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        task: 'transcribe',
+        text: 'Test',
+        segments: [
+          {
+            id: 0,
+            seek: 0,
+            start: 0.0,
+            end: 1.0,
+            text: 'Test',
+            tokens: [1234],
+            temperature: 0.0,
+            avg_logprob: -0.5,
+            compression_ratio: 1.0,
+            no_speech_prob: 0.1,
+          },
+        ],
+        _request_id: 'req_1234',
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.segments).toMatchInlineSnapshot(`
+      [
+        {
+          "endSecond": 1,
+          "startSecond": 0,
+          "text": "Test",
+        },
+      ]
+    `);
+    expect(result.language).toBeUndefined();
+    expect(result.durationInSeconds).toBeUndefined();
   });
 });
