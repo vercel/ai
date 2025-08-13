@@ -83,6 +83,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
         })),
         parameters: {
           outputDimensionality: googleOptions.outputDimensionality,
+          autoTruncate: googleOptions.autoTruncate,
         },
       },
       failedResponseHandler: googleVertexFailedResponseHandler,

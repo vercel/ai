@@ -43,6 +43,12 @@ export const googleVertexEmbeddingProviderOptions = z.object({
       'CODE_RETRIEVAL_QUERY',
     ])
     .optional(),
+
+  /**
+   * Optional. When set to true, input text will be truncated. When set to false,
+   * an error is returned if the input text is longer than the maximum length supported by the model. Defaults to true.
+   */
+  autoTruncate: z.boolean().optional(),
 });
 
 export type GoogleVertexEmbeddingProviderOptions = z.infer<
