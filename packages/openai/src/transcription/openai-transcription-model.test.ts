@@ -190,7 +190,6 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
       providerOptions: {
         openai: {
-          responseFormat: 'verbose_json',
           timestampGranularities: ['word'],
         },
       },
