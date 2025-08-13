@@ -3,24 +3,36 @@ import {
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import {
+  getSupportedModelsString,
+  isBrowserSearchSupportedModel,
+} from './groq-browser-search-models';
+import { GroqChatModelId } from './groq-chat-options';
 
 export function prepareTools({
   tools,
   toolChoice,
+  modelId,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  modelId: GroqChatModelId;
 }): {
   tools:
     | undefined
-    | Array<{
-        type: 'function';
-        function: {
-          name: string;
-          description: string | undefined;
-          parameters: unknown;
-        };
-      }>;
+    | Array<
+        | {
+            type: 'function';
+            function: {
+              name: string;
+              description: string | undefined;
+              parameters: unknown;
+            };
+          }
+        | {
+            type: 'browser_search';
+          }
+      >;
   toolChoice:
     | { type: 'function'; function: { name: string } }
     | 'auto'
@@ -38,18 +50,37 @@ export function prepareTools({
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const groqTools: Array<{
-    type: 'function';
-    function: {
-      name: string;
-      description: string | undefined;
-      parameters: unknown;
-    };
-  }> = [];
+  const groqTools: Array<
+    | {
+        type: 'function';
+        function: {
+          name: string;
+          description: string | undefined;
+          parameters: unknown;
+        };
+      }
+    | {
+        type: 'browser_search';
+      }
+  > = [];
 
   for (const tool of tools) {
     if (tool.type === 'provider-defined') {
-      toolWarnings.push({ type: 'unsupported-tool', tool });
+      if (tool.id === 'groq.browser_search') {
+        if (!isBrowserSearchSupportedModel(modelId)) {
+          toolWarnings.push({
+            type: 'unsupported-tool',
+            tool,
+            details: `Browser search is only supported on the following models: ${getSupportedModelsString()}. Current model: ${modelId}`,
+          });
+        } else {
+          groqTools.push({
+            type: 'browser_search',
+          });
+        }
+      } else {
+        toolWarnings.push({ type: 'unsupported-tool', tool });
+      }
     } else {
       groqTools.push({
         type: 'function',
