@@ -557,7 +557,7 @@ for await (const part of result.textStream) {
 }
 ```
 
-### Code Execution
+## Code Execution
 
 Anthropic provides a provider-defined code execution tool that gives Claude direct access to a real Python environment allowing it to execute code to inform its responses.
 
@@ -566,9 +566,7 @@ You can enable code execution using the provider-defined code execution tool:
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-
 const codeExecutionTool = anthropic.tools.codeExecution_20250522();
-
 const result = await generateText({
   model: anthropic('claude-opus-4-20250514'),
   prompt:
@@ -579,40 +577,32 @@ const result = await generateText({
 });
 ```
 
-## Error Handling
+#### Error Handling
 
 Code execution errors are handled differently depending on whether you're using streaming or non-streaming:
 
 **Non-streaming (`generateText`, `generateObject`):**
-
-Code execution errors throw exceptions that you can catch:
+Web search errors throw exceptions that you can catch:
 
 ```ts
-const result = await generateText({
-  model: anthropic('claude-opus-4-20250514'),
-  prompt: 'Execute some Python script',
-  tools: {
-    code_execution: codeExecutionTool,
-  },
-});
-
-const codeExecutionErrors = result.content?.filter(
-  content =>
-    content.type === 'tool-result' &&
-    content.toolName === 'code_execution' &&
-    content.isError,
-);
-
-if (codeExecutionErrors?.length > 0) {
-  console.log(
-    'Code execution error code:',
-    codeExecutionErrors[0].result.errorCode,
-  );
+  const result = await generateText({
+    model: anthropic('claude-opus-4-20250514'),
+    prompt: 'Execute some Python script',
+    tools: {
+      code_execution: codeExecutionTool,
+    },
+  });
+ const codeExecutionErrors = result.content?.filter(
+ content => content.type === 'tool-result' &&
+ content.toolName === 'code_execution' &&
+ content.isError)
+ );
+if (codeExecutionErrors?.length > 0 ) {
+  console.log('Code execution error code:',codeExecutionErrors[0].result.errorCode);
 }
 ```
 
 **Streaming (`streamText`, `streamObject`):**
-
 Code execution errors are delivered as error parts in the stream:
 
 ```ts
@@ -623,10 +613,9 @@ const result = await streamText({
     code_execution: codeExecutionTool,
   },
 });
-
 for await (const part of result.textStream) {
   if (part.type === 'error') {
-    console.log('Code execution error:', part.error);
+    console.log('Search error:', part.error);
     // Handle code execution error appropriately
   }
 }
