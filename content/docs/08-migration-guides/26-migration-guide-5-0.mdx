@@ -1714,6 +1714,8 @@ import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
 import { getTextFromDataUrl } from 'ai';
 ```
 
+**Note**: `processDataStream` was removed entirely in v5.0. Use `readUIMessageStream` instead for processing UI message streams, or use the more configurable Chat/useChat APIs for most use cases.
+
 ### useCompletion Changes
 
 The `data` property has been removed from the `useCompletion` hook.
