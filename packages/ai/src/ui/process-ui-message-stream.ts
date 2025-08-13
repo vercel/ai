@@ -153,6 +153,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: unknown;
                   output: unknown;
                   providerExecuted?: boolean;
+                  preliminary?: boolean;
                 }
               | {
                   state: 'output-error';
@@ -178,6 +179,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
               anyPart.rawInput = anyOptions.rawInput;
+              anyPart.preliminary = anyOptions.preliminary;
 
               // once providerExecuted is set, it stays for streaming
               anyPart.providerExecuted =
@@ -199,6 +201,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 rawInput: anyOptions.rawInput,
                 errorText: anyOptions.errorText,
                 providerExecuted: anyOptions.providerExecuted,
+                preliminary: anyOptions.preliminary,
                 ...(anyOptions.providerMetadata != null
                   ? { callProviderMetadata: anyOptions.providerMetadata }
                   : {}),
@@ -225,6 +228,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'output-available';
                   input: unknown;
                   output: unknown;
+                  preliminary: boolean | undefined;
                 }
               | {
                   state: 'output-error';
@@ -250,6 +254,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
               anyPart.rawInput = anyOptions.rawInput ?? anyPart.rawInput;
+              anyPart.preliminary = anyOptions.preliminary;
 
               if (
                 anyOptions.providerMetadata != null &&
@@ -266,6 +271,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 input: anyOptions.input,
                 output: anyOptions.output,
                 errorText: anyOptions.errorText,
+                preliminary: anyOptions.preliminary,
                 ...(anyOptions.providerMetadata != null
                   ? { callProviderMetadata: anyOptions.providerMetadata }
                   : {}),
@@ -530,6 +536,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'output-available',
                   input: (toolInvocation as any).input,
                   output: chunk.output,
+                  preliminary: chunk.preliminary,
                 });
               } else {
                 const toolInvocation = getToolInvocation(chunk.toolCallId);
@@ -541,6 +548,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: (toolInvocation as any).input,
                   output: chunk.output,
                   providerExecuted: chunk.providerExecuted,
+                  preliminary: chunk.preliminary,
                 });
               }
 
