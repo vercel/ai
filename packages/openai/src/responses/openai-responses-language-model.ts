@@ -1260,6 +1260,15 @@ type ResponsesModelConfig = {
 };
 
 function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
+  // gpt-5-chat models are non-reasoning
+  if (modelId.startsWith('gpt-5-chat')) {
+    return {
+      isReasoningModel: false,
+      systemMessageMode: 'system',
+      requiredAutoTruncation: false,
+    };
+  }
+
   // o series reasoning models:
   if (
     modelId.startsWith('o') ||
@@ -1294,7 +1303,7 @@ function supportsFlexProcessing(modelId: string): boolean {
   return (
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini') ||
-    modelId.startsWith('gpt-5')
+    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'))
   );
 }
 
@@ -1302,7 +1311,9 @@ function supportsPriorityProcessing(modelId: string): boolean {
   return (
     modelId.startsWith('gpt-4') ||
     modelId.startsWith('gpt-5-mini') ||
-    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-nano')) ||
+    (modelId.startsWith('gpt-5') &&
+      !modelId.startsWith('gpt-5-nano') &&
+      !modelId.startsWith('gpt-5-chat')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini')
   );
