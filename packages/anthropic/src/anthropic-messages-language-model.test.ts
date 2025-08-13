@@ -1556,7 +1556,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
-      it('should handle code execution errors', async () => {
+      it('should handle server-side code execution errors', async () => {
         prepareJsonResponse({
           type: 'message',
           id: 'msg_test',
@@ -1567,8 +1567,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               content: {
                 type: 'code_execution_tool_result_error',
                 error_code: 'unavailable',
-                error_message:
-                  'Code execution service is currently unavailable',
               },
             },
             {
@@ -1644,15 +1642,14 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody.tools).toHaveLength(2);
-        // Check the structure of the function tool
-        const calculatorTool = requestBody.tools[0];
-        expect(calculatorTool).toMatchObject({
+
+        expect(requestBody.tools[0]).toMatchObject({
           name: 'calculator',
           description: 'Calculate math expressions',
           input_schema: { type: 'object', properties: {} },
         });
-        // The type property is not included in the actual output
-        expect(calculatorTool).not.toHaveProperty('type');
+        expect(requestBody.tools[0]).not.toHaveProperty('type');
+
         expect(requestBody.tools[1]).toEqual({
           type: 'code_execution_20250522',
           name: 'code_execution',
