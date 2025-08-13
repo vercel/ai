@@ -7,7 +7,7 @@ import {
 import { tool } from './tool';
 
 describe('tool helper', () => {
-  it('should work with only parameters', () => {
+  it('should work with fixed inputSchema', () => {
     const toolType = tool({
       inputSchema: z.object({ number: z.number() }),
     });
@@ -20,7 +20,20 @@ describe('tool helper', () => {
     >();
   });
 
-  it('should work with both inputSchema and output', () => {
+  it('should work with flexible inputSchema', <T>() => {
+    const inputSchema: FlexibleSchema<T> = null as any;
+
+    const toolType = tool({
+      inputSchema,
+    });
+
+    expectTypeOf(toolType).toEqualTypeOf<Tool<T, never>>();
+    expectTypeOf(toolType.execute).toEqualTypeOf<undefined>();
+    expectTypeOf(toolType.execute).not.toEqualTypeOf<Function>();
+    expectTypeOf(toolType.inputSchema).toEqualTypeOf<FlexibleSchema<T>>();
+  });
+
+  it('should work with inputSchema and execute function', () => {
     const toolType = tool({
       inputSchema: z.object({ number: z.number() }),
       execute: async input => {
