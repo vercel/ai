@@ -182,6 +182,63 @@ describe('doGenerate', () => {
     expect(result.response.modelId).toBe('whisper-1');
   });
 
+  it('should pass response_format when specified', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          responseFormat: 'verbose_json',
+          timestampGranularities: ['word'],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+      {
+        "file": File {
+          Symbol(kHandle): Blob {},
+          Symbol(kLength): 40169,
+          Symbol(kType): "audio/wav",
+        },
+        "model": "whisper-1",
+        "response_format": "verbose_json",
+        "temperature": "0",
+        "timestamp_granularities": "word",
+      }
+    `);
+  });
+
+  it('should pass timestamp_granularities when specified', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          timestampGranularities: ['segment'],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+      {
+        "file": File {
+          Symbol(kHandle): Blob {},
+          Symbol(kLength): 40169,
+          Symbol(kType): "audio/wav",
+        },
+        "model": "whisper-1",
+        "response_format": "json",
+        "temperature": "0",
+        "timestamp_granularities": "segment",
+      }
+    `);
+  });
+
   it('should work when no words, language, or duration are returned', async () => {
     server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
       type: 'json-value',

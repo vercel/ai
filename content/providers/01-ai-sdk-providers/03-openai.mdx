@@ -1283,7 +1283,36 @@ const result = await transcribe({
 });
 ```
 
+To get word-level timestamps, use `verbose_json` format with word granularity:
+
+```ts highlight="6-9"
+import { experimental_transcribe as transcribe } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await transcribe({
+  model: openai.transcription('whisper-1'),
+  audio: new Uint8Array([1, 2, 3, 4]),
+  providerOptions: {
+    openai: {
+      responseFormat: 'verbose_json',
+      timestampGranularities: ['word'],
+    },
+  },
+});
+
+// Access word-level timestamps
+console.log(result.segments); // Array of segments with startSecond/endSecond
+```
+
 The following provider options are available:
+
+- **responseFormat** _string_
+  The format of the transcript output.
+  Possible values are `'json'`, `'text'`, `'srt'`, `'verbose_json'`, and `'vtt'`.
+  For gpt-4o-transcribe and gpt-4o-mini-transcribe, the only supported format is `'json'`.
+  Defaults to `'json'`.
+  Note: To get word-level timestamps, you must use `'verbose_json'` format.
+  Optional.
 
 - **timestampGranularities** _string[]_
   The granularity of the timestamps in the transcription.
