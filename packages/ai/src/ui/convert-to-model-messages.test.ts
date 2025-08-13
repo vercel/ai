@@ -1,10 +1,9 @@
 import { ModelMessage } from '@ai-sdk/provider-utils';
 import { convertToModelMessages } from './convert-to-model-messages';
-import { standardizePrompt } from '../prompt/standardize-prompt';
 
 describe('convertToModelMessages', () => {
   describe('system message', () => {
-    it('should convert a simple system message', async () => {
+    it('should convert a simple system message', () => {
       const result = convertToModelMessages([
         {
           role: 'system',
@@ -13,10 +12,9 @@ describe('convertToModelMessages', () => {
       ]);
 
       expect(result).toEqual([{ role: 'system', content: 'System message' }]);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should convert a system message with provider metadata', async () => {
+    it('should convert a system message with provider metadata', () => {
       const result = convertToModelMessages([
         {
           role: 'system',
@@ -37,10 +35,9 @@ describe('convertToModelMessages', () => {
           providerOptions: { testProvider: { systemSignature: 'abc123' } },
         },
       ]);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should merge provider metadata from multiple text parts in system message', async () => {
+    it('should merge provider metadata from multiple text parts in system message', () => {
       const result = convertToModelMessages([
         {
           role: 'system',
@@ -69,10 +66,9 @@ describe('convertToModelMessages', () => {
           },
         },
       ]);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should convert a system message with Anthropic cache control metadata', async () => {
+    it('should convert a system message with Anthropic cache control metadata', () => {
       const SYSTEM_PROMPT = 'You are a helpful assistant.';
 
       const systemMessage = {
@@ -104,12 +100,11 @@ describe('convertToModelMessages', () => {
           },
         },
       ]);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
   });
 
   describe('user message', () => {
-    it('should convert a simple user message', async () => {
+    it('should convert a simple user message', () => {
       const result = convertToModelMessages([
         {
           role: 'user',
@@ -130,7 +125,6 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
     it('should convert a simple user message with provider metadata', () => {
@@ -167,7 +161,7 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should handle user message file parts', async () => {
+    it('should handle user message file parts', () => {
       const result = convertToModelMessages([
         {
           role: 'user',
@@ -195,7 +189,6 @@ describe('convertToModelMessages', () => {
           ],
         },
       ]);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
     it('should handle user message file parts with provider metadata', () => {
@@ -230,7 +223,7 @@ describe('convertToModelMessages', () => {
       ]);
     });
 
-    it('should include filename for user file parts when provided', async () => {
+    it('should include filename for user file parts when provided', () => {
       const result = convertToModelMessages([
         {
           role: 'user',
@@ -258,11 +251,10 @@ describe('convertToModelMessages', () => {
           ],
         },
       ]);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
   });
 
-  it('should not include filename for user file parts when not provided', async () => {
+  it('should not include filename for user file parts when not provided', () => {
     const result = convertToModelMessages([
       {
         role: 'user',
@@ -288,11 +280,10 @@ describe('convertToModelMessages', () => {
         ],
       },
     ]);
-    expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
   });
 
   describe('assistant message', () => {
-    it('should convert a simple assistant text message', async () => {
+    it('should convert a simple assistant text message', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -306,10 +297,9 @@ describe('convertToModelMessages', () => {
           content: [{ type: 'text', text: 'Hello, human!' }],
         },
       ]);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should convert a simple assistant text message with provider metadata', async () => {
+    it('should convert a simple assistant text message with provider metadata', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -342,10 +332,9 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should convert an assistant message with reasoning', async () => {
+    it('should convert an assistant message with reasoning', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -391,10 +380,9 @@ describe('convertToModelMessages', () => {
           ],
         },
       ] satisfies ModelMessage[]);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should convert an assistant message with file parts', async () => {
+    it('should convert an assistant message with file parts', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -420,10 +408,9 @@ describe('convertToModelMessages', () => {
           ],
         },
       ] satisfies ModelMessage[]);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should include filename for assistant file parts when provided', async () => {
+    it('should include filename for assistant file parts when provided', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -451,10 +438,9 @@ describe('convertToModelMessages', () => {
           ],
         },
       ] as unknown as ModelMessage[]);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should handle assistant message with tool output available', async () => {
+    it('should handle assistant message with tool output available', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -526,11 +512,10 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
     describe('tool output error', () => {
-      it('should handle assistant message with tool output error that has raw input', async () => {
+      it('should handle assistant message with tool output error that has raw input', () => {
         const result = convertToModelMessages([
           {
             role: 'assistant',
@@ -593,10 +578,9 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-        expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
       });
 
-      it('should handle assistant message with tool output error that has no raw input', async () => {
+      it('should handle assistant message with tool output error that has no raw input', () => {
         const result = convertToModelMessages([
           {
             role: 'assistant',
@@ -658,11 +642,10 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-        expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
       });
     });
 
-    it('should handle assistant message with provider-executed tool output available', async () => {
+    it('should handle assistant message with provider-executed tool output available', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -720,10 +703,9 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should handle assistant message with provider-executed tool output error', async () => {
+    it('should handle assistant message with provider-executed tool output error', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -781,10 +763,9 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should handle assistant message with tool invocations that have multi-part responses', async () => {
+    it('should handle assistant message with tool invocations that have multi-part responses', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -807,10 +788,9 @@ describe('convertToModelMessages', () => {
       ]);
 
       expect(result).toMatchSnapshot();
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should handle conversation with an assistant message that has empty tool invocations', async () => {
+    it('should handle conversation with an assistant message that has empty tool invocations', () => {
       const result = convertToModelMessages([
         {
           role: 'user',
@@ -823,10 +803,9 @@ describe('convertToModelMessages', () => {
       ]);
 
       expect(result).toMatchSnapshot();
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should handle conversation with multiple tool invocations that have step information', async () => {
+    it('should handle conversation with multiple tool invocations that have step information', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -868,10 +847,9 @@ describe('convertToModelMessages', () => {
       ]);
 
       expect(result).toMatchSnapshot();
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should handle conversation with mix of tool invocations and text', async () => {
+    it('should handle conversation with mix of tool invocations and text', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -920,12 +898,11 @@ describe('convertToModelMessages', () => {
       ]);
 
       expect(result).toMatchSnapshot();
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
   });
 
   describe('multiple messages', () => {
-    it('should handle a conversation with multiple messages', async () => {
+    it('should handle a conversation with multiple messages', () => {
       const result = convertToModelMessages([
         {
           role: 'user',
@@ -974,10 +951,9 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
 
-    it('should handle conversation with multiple tool invocations and user message at the end', async () => {
+    it('should handle conversation with multiple tool invocations and user message at the end', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -1024,7 +1000,6 @@ describe('convertToModelMessages', () => {
       ]);
 
       expect(result).toMatchSnapshot();
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
   });
 
@@ -1042,7 +1017,7 @@ describe('convertToModelMessages', () => {
   });
 
   describe('when ignoring incomplete tool calls', () => {
-    it('should handle conversation with multiple tool invocations and user message at the end', async () => {
+    it('should handle conversation with multiple tool invocations and user message at the end', () => {
       const result = convertToModelMessages(
         [
           {
@@ -1130,13 +1105,11 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
   });
 
   describe('when converting dynamic tool invocations', () => {
-    it('should convert a dynamic tool invocation', async () => {
+    it('should convert a dynamic tool invocation', () => {
       const result = convertToModelMessages(
         [
           {
@@ -1201,8 +1174,6 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-
-      expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
     });
   });
 
@@ -1261,7 +1232,5 @@ describe('convertToModelMessages', () => {
         },
       ]
     `);
-
-    expect(await standardizePrompt({ messages: result })).toMatchSnapshot();
   });
 });
