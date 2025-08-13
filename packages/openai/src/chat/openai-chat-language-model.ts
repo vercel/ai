@@ -844,7 +844,10 @@ const openaiChatChunkSchema = z.union([
 ]);
 
 function isReasoningModel(modelId: string) {
-  return (modelId.startsWith('o') || modelId.startsWith('gpt-5')) && !modelId.startsWith('gpt-5-chat');
+  return (
+    (modelId.startsWith('o') || modelId.startsWith('gpt-5')) &&
+    !modelId.startsWith('gpt-5-chat')
+  );
 }
 
 function supportsFlexProcessing(modelId: string) {
@@ -859,7 +862,9 @@ function supportsPriorityProcessing(modelId: string) {
   return (
     modelId.startsWith('gpt-4') ||
     modelId.startsWith('gpt-5-mini') ||
-    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-nano') && !modelId.startsWith('gpt-5-chat')) ||
+    (modelId.startsWith('gpt-5') &&
+      !modelId.startsWith('gpt-5-nano') &&
+      !modelId.startsWith('gpt-5-chat')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini')
   );
