@@ -412,7 +412,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             },
           }
-        `)
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -505,7 +505,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "model": "gpt-4o",
             "store": false,
           }
-        `)
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -536,7 +536,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "model": "gpt-4o",
             "previous_response_id": "resp_123",
           }
-        `)
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -695,7 +695,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             ],
             "model": "o3-mini",
           }
-        `)
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -728,8 +728,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             ],
             "model": "gpt-4o-mini",
           }
-        `)
-        
+        `);
+
         expect(warnings).toStrictEqual([]);
       });
 
@@ -765,7 +765,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             ],
             "model": "o3-mini",
           }
-        `)
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -895,7 +895,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "model": "gpt-5",
             "prompt_cache_key": "test-cache-key-123",
           }
-        `)
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -926,7 +926,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "model": "gpt-5",
             "safety_identifier": "test-safety-identifier-123",
           }
-        `)
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -957,7 +957,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             },
           }
-        `)
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -1078,7 +1078,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             },
           }
-        `)
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -1127,7 +1127,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             ],
           }
-        `)
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -1183,7 +1183,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             ],
           }
-        `)
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -1418,7 +1418,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "unsupported-setting",
             },
           ]
-        `)
+        `);
       });
     });
 
