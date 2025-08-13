@@ -89,32 +89,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                     type: 'output_text',
                     text: 'answer text',
                     annotations: [],
-                    logprobs: [
-                      {
-                        token: 'Hello',
-                        logprob: -0.0009994634,
-                        top_logprobs: [
-                          {
-                            token: 'Hello',
-                            logprob: -0.0009994634,
-                          },
-                          {
-                            token: 'Hi',
-                            logprob: -0.2,
-                          },
-                        ],
-                      },
-                      {
-                        token: '!',
-                        logprob: -0.13410144,
-                        top_logprobs: [
-                          {
-                            token: '!',
-                            logprob: -0.13410144,
-                          },
-                        ],
-                      },
-                    ],
                   },
                 ],
               },
@@ -804,6 +778,37 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send logprobs provider option', async () => {
+        const serverResponse =
+          server.urls['https://api.openai.com/v1/responses'].response;
+
+        // @ts-expect-error - manipulating response for this test only
+        serverResponse.body.output.content[0].logprobs = [
+          {
+            token: 'Hello',
+            logprob: -0.0009994634,
+            top_logprobs: [
+              {
+                token: 'Hello',
+                logprob: -0.0009994634,
+              },
+              {
+                token: 'Hi',
+                logprob: -0.2,
+              },
+            ],
+          },
+          {
+            token: '!',
+            logprob: -0.13410144,
+            top_logprobs: [
+              {
+                token: '!',
+                logprob: -0.13410144,
+              },
+            ],
+          },
+        ];
+
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
@@ -2926,7 +2931,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
-    it.only('should should handle logprops', async () => {
+    it('should should handle logprops', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
