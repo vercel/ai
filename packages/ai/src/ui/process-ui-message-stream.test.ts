@@ -5018,7 +5018,7 @@ describe('processUIMessageStream', () => {
           onToolCallInvoked = true;
           receivedAddToolResult = addToolResult;
         },
-        addToolResult: mockAddToolResult, // Provide addToolResult - testing new API
+        addToolResult: mockAddToolResult,
         runUpdateMessageJob,
         onError: error => {
           throw error;

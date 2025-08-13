@@ -230,7 +230,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: '({toolCall: ToolCall, addToolResult?: Function}) => void | Promise<void>',
       isOptional: true,
       description:
-        'Optional callback function that is invoked when a tool call is received. The enhanced API provides addToolResult as a parameter for better modularity, or you can still access it from the hook return value for backward compatibility.',
+        'Optional callback function that is invoked when a tool call is received. You must call addToolResult to provide the tool result.',
     },
     {
       name: 'sendAutomaticallyWhen',

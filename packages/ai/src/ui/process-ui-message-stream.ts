@@ -506,13 +506,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // Skip calling onToolCall for provider-executed tools since they are already executed
               if (onToolCall && !chunk.providerExecuted) {
                 if (addToolResult) {
-                  // New API: pass addToolResult as parameter
                   await onToolCall({
                     toolCall: chunk as InferUIMessageToolCall<UI_MESSAGE>,
                     addToolResult,
                   });
                 } else {
-                  // Old API: call without addToolResult (backward compatibility)
                   await onToolCall({
                     toolCall: chunk as InferUIMessageToolCall<UI_MESSAGE>,
                   });

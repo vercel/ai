@@ -57,7 +57,7 @@ const { messages, sendMessage } = useChat({
     if (toolCall.toolName === 'getLocation') {
       const result = await getLocationData();
 
-      // addToolResult is available directly in the callback
+      // Important: Don't await inside onToolCall to avoid deadlocks
       addToolResult({
         tool: 'getLocation',
         toolCallId: toolCall.toolCallId,
@@ -66,22 +66,6 @@ const { messages, sendMessage } = useChat({
     }
   },
 });
-
-// Alternative: Legacy API (still supported)
-// const { messages, sendMessage, addToolResult } = useChat({
-//   sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-//   onToolCall: async ({ toolCall }) => {
-//     if (toolCall.toolName === 'getLocation') {
-//       const result = await getLocationData();
-//       // addToolResult accessed from closure
-//       addToolResult({
-//         tool: 'getLocation',
-//         toolCallId: toolCall.toolCallId,
-//         output: result,
-//       });
-//     }
-//   },
-// });
 ```
 
 ```tsx
