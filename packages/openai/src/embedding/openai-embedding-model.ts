@@ -9,12 +9,12 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { OpenAIConfig } from './openai-config';
+import { OpenAIConfig } from '../openai-config';
+import { openaiFailedResponseHandler } from '../openai-error';
 import {
   OpenAIEmbeddingModelId,
   openaiEmbeddingProviderOptions,
 } from './openai-embedding-options';
-import { openaiFailedResponseHandler } from './openai-error';
 
 export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
   readonly specificationVersion = 'v2';

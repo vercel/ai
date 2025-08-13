@@ -1,5 +1,32 @@
 # ai
 
+## 5.0.12
+
+### Patch Changes
+
+- Updated dependencies [eefa730]
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/gateway@1.0.6
+  - @ai-sdk/provider-utils@3.0.3
+
+## 5.0.11
+
+### Patch Changes
+
+- 38ac190: feat(ai): preliminary tool results
+- e3a63cb: fix(ai): streamText promises reject when stream has errors
+- Updated dependencies [38ac190]
+- Updated dependencies [cf7b2ad]
+  - @ai-sdk/provider-utils@3.0.2
+  - @ai-sdk/gateway@1.0.5
+
+## 5.0.10
+
+### Patch Changes
+
+- 63a5dc5: fix(ai): convert user message text/file part provider metadata in convertToModelMessages
+
 ## 5.0.9
 
 ### Patch Changes

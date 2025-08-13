@@ -89,14 +89,14 @@ You can use the following optional settings to customize the OpenAI provider ins
 The OpenAI provider instance is a function that you can invoke to create a language model:
 
 ```ts
-const model = openai('gpt-4.1');
+const model = openai('gpt-5');
 ```
 
 It automatically selects the correct API based on the model id.
 You can also pass additional settings in the second argument:
 
 ```ts
-const model = openai('gpt-4.1', {
+const model = openai('gpt-5', {
   // additional settings
 });
 ```
@@ -113,7 +113,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: openai('gpt-4.1'),
+  model: openai('gpt-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -128,14 +128,14 @@ The first argument is the model id, e.g. `gpt-4`.
 The OpenAI chat models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = openai.chat('gpt-3.5-turbo');
+const model = openai.chat('gpt-5');
 ```
 
 OpenAI chat models support also some model specific provider options that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them in the `providerOptions` argument:
 
 ```ts
-const model = openai.chat('gpt-3.5-turbo');
+const model = openai.chat('gpt-5');
 
 await generateText({
   model,
@@ -232,10 +232,18 @@ The following optional provider options are available for OpenAI chat models:
 
   Controls the verbosity of the model's responses. Lower values will result in more concise responses, while higher values will result in more verbose responses.
 
+- **promptCacheKey** _string_
+
+  A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
+
+- **safetyIdentifier** _string_
+
+  A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
+
 #### Reasoning
 
 OpenAI has introduced the `o1`,`o3`, and `o4` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
-Currently, `o4-mini`, `o3`, `o3-mini`, `o1`, `o1-mini`, and `o1-preview` are available via both the chat and responses APIs. The
+Currently, `o4-mini`, `o3`, `o3-mini`, and `o1` are available via both the chat and responses APIs. The
 models `codex-mini-latest` and `computer-use-preview` are available only via the [responses API](#responses-models).
 
 Reasoning models currently only generate text, have several limitations, and are only supported using `generateText` and `streamText`.
@@ -253,7 +261,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text, usage, providerMetadata } = await generateText({
-  model: openai('o3-mini'),
+  model: openai('gpt-5'),
   prompt: 'Invent a new holiday and describe its traditions.',
   providerOptions: {
     openai: {
@@ -271,16 +279,13 @@ console.log('Usage:', {
 
 <Note>
   System messages are automatically converted to OpenAI developer messages for
-  reasoning models when supported. For models that do not support developer
-  messages, such as `o1-preview`, system messages are removed and a warning is
-  added.
+  reasoning models when supported.
 </Note>
 
 <Note>
-  Reasoning models like `o1-mini` and `o1-preview` require additional runtime
-  inference to complete their reasoning phase before generating a response. This
-  introduces longer latency compared to other models, with `o1-preview`
-  exhibiting significantly more inference time than `o1-mini`.
+  Reasoning models require additional runtime inference to complete their
+  reasoning phase before generating a response. This introduces longer latency
+  compared to other models.
 </Note>
 
 <Note>
@@ -344,7 +349,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   providerOptions: {
     openai: {
@@ -367,7 +372,7 @@ You can pass Image files as part of the message content using the 'image' type:
 
 ```ts
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-5'),
   messages: [
     {
       role: 'user',
@@ -405,7 +410,7 @@ You can pass PDF files as part of the message content using the `file` type:
 
 ```ts
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-5'),
   messages: [
     {
       role: 'user',
@@ -460,7 +465,7 @@ You can enable predicted outputs by adding the `prediction` option to the `provi
 
 ```ts highlight="15-18"
 const result = streamText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-5'),
   messages: [
     {
       role: 'user',
@@ -504,7 +509,7 @@ You can use the `openai` provider option to set the [image input detail](https:/
 
 ```ts highlight="13-16"
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-5'),
   messages: [
     {
       role: 'user',
@@ -570,7 +575,7 @@ main().catch(console.error);
 #### Prompt Caching
 
 OpenAI has introduced [Prompt Caching](https://platform.openai.com/docs/guides/prompt-caching) for supported models
-including `gpt-4o`, `gpt-4o-mini`, `o1-preview`, and `o1-mini`.
+including `gpt-4o` and `gpt-4o-mini`.
 
 - Prompt caching is automatically enabled for these models, when the prompt is 1024 tokens or longer. It does
   not need to be explicitly enabled.
@@ -586,6 +591,28 @@ import { generateText } from 'ai';
 const { text, usage, providerMetadata } = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: `A 1024-token or longer prompt...`,
+});
+
+console.log(`usage:`, {
+  ...usage,
+  cachedPromptTokens: providerMetadata?.openai?.cachedPromptTokens,
+});
+```
+
+To improve cache hit rates, you can manually control caching using the `promptCacheKey` option:
+
+```ts highlight="7-11"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const { text, usage, providerMetadata } = await generateText({
+  model: openai('gpt-5'),
+  prompt: `A 1024-token or longer prompt...`,
+  providerOptions: {
+    openai: {
+      promptCacheKey: 'my-custom-cache-key-123',
+    },
+  },
 });
 
 console.log(`usage:`, {
@@ -630,7 +657,7 @@ const result = await generateText({
 You can use the OpenAI responses API with the `openai.responses(modelId)` factory method.
 
 ```ts
-const model = openai.responses('gpt-4o-mini');
+const model = openai.responses('gpt-5');
 ```
 
 Further configuration can be done using OpenAI provider options.
@@ -641,7 +668,7 @@ import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: openai.responses('gpt-5'),
   providerOptions: {
     openai: {
       parallelToolCalls: false,
@@ -706,11 +733,17 @@ The following provider options are available:
   and `['file_search_call.results']` for including file search results in responses.
   Defaults to `undefined`.
 
+- **promptCacheKey** _string_
+  A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
+
+- **safetyIdentifier** \_string_0
+  A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
+
 The OpenAI responses provider also returns provider-specific metadata:
 
 ```ts
 const { providerMetadata } = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: openai.responses('gpt-5'),
 });
 
 const openaiMetadata = providerMetadata?.openai;
@@ -735,7 +768,7 @@ You can force the use of the web search tool by setting the `toolChoice` paramet
 
 ```ts
 const result = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: openai.responses('gpt-5'),
   prompt: 'What happened in San Francisco last week?',
   tools: {
     web_search_preview: openai.tools.webSearchPreview({
@@ -836,7 +869,7 @@ You can force the use of the file search tool by setting the `toolChoice` parame
 
 ```ts
 const result = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: openai.responses('gpt-5'),
   prompt: 'What does the document say about user authentication?',
   tools: {
     file_search: openai.tools.fileSearch({
@@ -905,7 +938,7 @@ You can pass Image files as part of the message content using the 'image' type:
 
 ```ts
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: openai.responses('gpt-5'),
   messages: [
     {
       role: 'user',
@@ -952,7 +985,7 @@ You can pass PDF files as part of the message content using the `file` type:
 
 ```ts
 const result = await generateText({
-  model: openai.responses('gpt-4o'),
+  model: openai.responses('gpt-5'),
   messages: [
     {
       role: 'user',
@@ -1248,6 +1281,27 @@ const result = await transcribe({
   audio: new Uint8Array([1, 2, 3, 4]),
   providerOptions: { openai: { language: 'en' } },
 });
+```
+
+To get word-level timestamps, specify the granularity:
+
+```ts highlight="8-9"
+import { experimental_transcribe as transcribe } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await transcribe({
+  model: openai.transcription('whisper-1'),
+  audio: new Uint8Array([1, 2, 3, 4]),
+  providerOptions: {
+    openai: {
+      //timestampGranularities: ['word'],
+      timestampGranularities: ['segment'],
+    },
+  },
+});
+
+// Access word-level timestamps
+console.log(result.segments); // Array of segments with startSecond/endSecond
 ```
 
 The following provider options are available:

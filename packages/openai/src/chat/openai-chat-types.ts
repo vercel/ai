@@ -1,10 +1,9 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 
-// TODO clean up this file and move the definitions into the tools
 /**
  * OpenAI function tool definition
  */
-export interface OpenAIFunctionTool {
+interface OpenAIChatFunctionTool {
   type: 'function';
   function: {
     name: string;
@@ -17,7 +16,7 @@ export interface OpenAIFunctionTool {
 /**
  * OpenAI file search tool definition
  */
-export interface OpenAIFileSearchTool {
+interface OpenAIChatFileSearchTool {
   type: 'file_search';
   vector_store_ids?: string[];
   max_num_results?: number;
@@ -39,7 +38,7 @@ export interface OpenAIFileSearchTool {
 /**
  * User location for web search
  */
-export interface OpenAIWebSearchUserLocation {
+interface OpenAIChatWebSearchUserLocation {
   type?: 'approximate';
   city?: string;
   region?: string;
@@ -50,16 +49,16 @@ export interface OpenAIWebSearchUserLocation {
 /**
  * OpenAI web search preview tool definition
  */
-export interface OpenAIWebSearchPreviewTool {
+interface OpenAIChatWebSearchPreviewTool {
   type: 'web_search_preview';
   search_context_size?: 'low' | 'medium' | 'high';
-  user_location?: OpenAIWebSearchUserLocation;
+  user_location?: OpenAIChatWebSearchUserLocation;
 }
 
 /**
  * OpenAI code interpreter tool definition
  */
-export interface OpenAICodeInterpreterTool {
+interface OpenAIChatCodeInterpreterTool {
   type: 'code_interpreter';
   container: {
     type: 'auto';
@@ -70,16 +69,16 @@ export interface OpenAICodeInterpreterTool {
 /**
  * Union type for all OpenAI tools
  */
-export type OpenAITool =
-  | OpenAIFunctionTool
-  | OpenAIFileSearchTool
-  | OpenAIWebSearchPreviewTool
-  | OpenAICodeInterpreterTool;
+export type OpenAIChatTool =
+  | OpenAIChatFunctionTool
+  | OpenAIChatFileSearchTool
+  | OpenAIChatWebSearchPreviewTool
+  | OpenAIChatCodeInterpreterTool;
 
 /**
  * OpenAI tool choice options
  */
-export type OpenAIToolChoice =
+export type OpenAIChatToolChoice =
   | 'auto'
   | 'none'
   | 'required'
@@ -88,4 +87,4 @@ export type OpenAIToolChoice =
 /**
  * OpenAI tools array type
  */
-export type OpenAITools = Array<OpenAITool>;
+export type OpenAIChatTools = Array<OpenAIChatTool>;
