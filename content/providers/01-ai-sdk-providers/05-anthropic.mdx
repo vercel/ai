@@ -582,7 +582,7 @@ const result = await generateText({
 Code execution errors are handled differently depending on whether you're using streaming or non-streaming:
 
 **Non-streaming (`generateText`, `generateObject`):**
-Web search errors throw exceptions that you can catch:
+Code execution errors are delivered as tool result parts in the response:
 
 ```ts
   const result = await generateText({
