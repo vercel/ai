@@ -46,6 +46,7 @@ const LOGPROBS_SCHEMA = z.array(
     ),
   }),
 );
+
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
