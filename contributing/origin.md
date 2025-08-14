@@ -9,4 +9,4 @@
 ### Aug 07, 2025
 
 Great chat with [@lgrammel](https://github.com/lgrammel) about how the AI SDK came to be, the path from v3 to v5, the absorbtion of [ModelFusion](https://github.com/vercel/modelfusion), decisions that have been made and why, and guiding principles of the AI SDK:
-  https://www.youtube.com/watch?v=vNUSbZCYzq8
+  [<img width="1038" height="584" alt="Screenshot of YouTube Video Player" src="https://github.com/user-attachments/assets/72a3c87f-84f9-4b76-809f-8fd189ee9c2a" />](https://www.youtube.com/watch?v=vNUSbZCYzq8)
