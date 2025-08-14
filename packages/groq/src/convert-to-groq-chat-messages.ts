@@ -97,7 +97,6 @@ export function convertToGroqChatMessages(
         messages.push({
           role: 'assistant',
           content: text,
-          // @ts-expect-error - TODO: fix types
           reasoning,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
