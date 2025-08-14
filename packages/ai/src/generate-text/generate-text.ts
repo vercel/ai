@@ -128,7 +128,7 @@ export async function generateText<
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
-  stopWhen = stepCountIs(1),
+  stopCondition = stepCountIs(1),
   experimental_output: output,
   experimental_telemetry: telemetry,
   providerOptions,
@@ -167,7 +167,7 @@ When the condition is an array, any of the conditions can be met to stop the gen
 
 @default stepCountIs(1)
      */
-    stopWhen?:
+    stopCondition?:
       | StopCondition<NoInfer<TOOLS>>
       | Array<StopCondition<NoInfer<TOOLS>>>;
 
@@ -237,7 +237,7 @@ A function that attempts to repair a tool call that failed to parse.
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
-  const stopConditions = asArray(stopWhen);
+  const stopConditions = asArray(stopCondition);
   const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,

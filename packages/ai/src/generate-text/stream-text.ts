@@ -236,7 +236,7 @@ export function streamText<
   maxRetries,
   abortSignal,
   headers,
-  stopWhen = stepCountIs(1),
+  stopCondition = stepCountIs(1),
   experimental_output: output,
   experimental_telemetry: telemetry,
   prepareStep,
@@ -283,7 +283,7 @@ When the condition is an array, any of the conditions can be met to stop the gen
 
 @default stepCountIs(1)
      */
-    stopWhen?:
+    stopCondition?:
       | StopCondition<NoInfer<TOOLS>>
       | Array<StopCondition<NoInfer<TOOLS>>>;
 
@@ -411,7 +411,7 @@ Internal. For test use only. May change without notice.
     transforms: asArray(transform),
     activeTools,
     repairToolCall,
-    stopConditions: asArray(stopWhen),
+    stopConditions: asArray(stopCondition),
     output,
     providerOptions,
     prepareStep,

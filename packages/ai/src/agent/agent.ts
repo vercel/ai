@@ -48,7 +48,7 @@ When the condition is an array, any of the conditions can be met to stop the gen
 
 @default stepCountIs(1)
    */
-  stopWhen?:
+  stopCondition?:
     | StopCondition<NoInfer<TOOLS>>
     | Array<StopCondition<NoInfer<TOOLS>>>;
 
