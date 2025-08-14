@@ -79,7 +79,8 @@ import { generateText } from 'ai';
 const { text } = await generateText({
   model: ollama('qwen3:4b'),
   providerOptions: { ollama: { think: true } },
-  prompt: 'Write a vegetarian lasagna recipe for 4 people, but really think about it',
+  prompt:
+    'Write a vegetarian lasagna recipe for 4 people, but really think about it',
 });
 ```
 
@@ -93,7 +94,7 @@ const model = ollama.textEmbeddingModel('nomic-embed-text');
 
 const { embeddings } = await embedMany({
   model: model,
-  values: ["sunny day at the beach", "rainy afternoon in the city"],
+  values: ['sunny day at the beach', 'rainy afternoon in the city'],
 });
 
 console.log(
@@ -101,10 +102,8 @@ console.log(
 );
 ```
 
-
 ## Alternative Providers
 
 There is an alternative provider package called [`ai-sdk-ollama` by jagreehal](https://github.com/jagreehal/ai-sdk-ollama), which is fundamentally different from this provider. Instead of using the HTTP API directly, it leverages the [`ollama`](https://www.npmjs.com/package/ollama) package for communication.
 
 This approach may have different tradeoffs in terms of performance, compatibility, and features. It may be better or worse for your use case, so you may want to review both options to decide which fits your needs best.
-
