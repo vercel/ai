@@ -170,9 +170,7 @@ async function benchmarkConcurrentStreams() {
   console.log(`  Total data: ${(totalBytes / (1024 * 1024)).toFixed(2)} MB`);
   console.log(`  Throughput: ${tokensPerSecond.toFixed(0)} tokens/second`);
   console.log(`  Throughput: ${megabytesPerSecond.toFixed(2)} MB/s`);
-  console.log(
-    `  Average per stream: ${(duration / streamCount).toFixed(2)}ms`,
-  );
+  console.log(`  Average per stream: ${(duration / streamCount).toFixed(2)}ms`);
 }
 
 async function benchmarkStreamWithToolCalls() {
@@ -218,11 +216,11 @@ async function benchmarkStreamWithToolCalls() {
 
 async function main() {
   console.log('Running streamText benchmarks...\n');
-  
+
   await benchmarkSingleStream();
   await benchmarkConcurrentStreams();
   await benchmarkStreamWithToolCalls();
-  
+
   console.log('\nBenchmark complete!');
 }
 
