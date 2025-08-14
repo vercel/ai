@@ -289,12 +289,12 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
               "id": "reasoning-0",
               "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "reasoning-0",
@@ -410,12 +410,12 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
               "id": "reasoning-0",
               "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "reasoning-0",
@@ -539,12 +539,12 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
               "id": "reasoning-0",
               "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "reasoning-0",
@@ -600,7 +600,7 @@ describe('extractReasoningMiddleware', () => {
         `);
     });
 
-    it('should prepend <think> tag IFF startWithReasoning is true', async () => {
+    it('should prepend <think> tag if startWithReasoning is true', async () => {
       const mockModel = new MockLanguageModelV2({
         async doStream() {
           return {
@@ -658,12 +658,12 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
               "id": "reasoning-0",
               "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "reasoning-0",
