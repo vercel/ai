@@ -2567,6 +2567,186 @@ describe('OpenAIResponsesLanguageModel', () => {
         ).rejects.toThrow('Something went wrong');
       });
     });
+
+    it('should handle mixed url_citation and file_citation annotations', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        created_at: 1234567890,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        input: [],
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o',
+        output: [
+          {
+            id: 'msg_123',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Based on web search and file content.',
+                annotations: [
+                  {
+                    type: 'url_citation',
+                    start_index: 0,
+                    end_index: 10,
+                    url: 'https://example.com',
+                    title: 'Example URL',
+                  },
+                  {
+                    type: 'file_citation',
+                    start_index: 20,
+                    end_index: 30,
+                    file_id: 'file-abc123',
+                    quote: 'This is a quote from the file',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        reasoning: { effort: null, summary: null },
+        store: true,
+        temperature: 0,
+        text: { format: { type: 'text' } },
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        truncation: 'disabled',
+        usage: {
+          input_tokens: 100,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens: 50,
+          output_tokens_details: { reasoning_tokens: 0 },
+          total_tokens: 150,
+        },
+        user: null,
+        metadata: {},
+      });
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_123",
+              },
+            },
+            "text": "Based on web search and file content.",
+            "type": "text",
+          },
+          {
+            "id": "id-0",
+            "sourceType": "url",
+            "title": "Example URL",
+            "type": "source",
+            "url": "https://example.com",
+          },
+          {
+            "filename": "file-abc123",
+            "id": "id-1",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "This is a quote from the file",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should handle file_citation annotations only', async () => {
+      prepareJsonResponse({
+        id: 'resp_456',
+        object: 'response',
+        created_at: 1234567890,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        input: [],
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o',
+        output: [
+          {
+            id: 'msg_456',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Based on the file content.',
+                annotations: [
+                  {
+                    type: 'file_citation',
+                    start_index: 0,
+                    end_index: 20,
+                    file_id: 'file-xyz789',
+                    quote: 'Important information from document',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        reasoning: { effort: null, summary: null },
+        store: true,
+        temperature: 0,
+        text: { format: { type: 'text' } },
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        truncation: 'disabled',
+        usage: {
+          input_tokens: 50,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens: 25,
+          output_tokens_details: { reasoning_tokens: 0 },
+          total_tokens: 75,
+        },
+        user: null,
+        metadata: {},
+      });
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_456",
+              },
+            },
+            "text": "Based on the file content.",
+            "type": "text",
+          },
+          {
+            "filename": "file-xyz789",
+            "id": "id-0",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "Important information from document",
+            "type": "source",
+          },
+        ]
+      `);
+    });
   });
 
   describe('doStream', () => {
@@ -4581,6 +4761,74 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
         },
       ]);
+    });
+  });
+
+  describe('mixed citation types', () => {
+    it('should handle both url_citation and file_citation annotations', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.content_part.added","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","url":"https://example.com","title":"Example URL"}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":1,"annotation":{"type":"file_citation","file_id":"file-abc123","quote":"This is a quote from the file"}}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_123","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_123","object":"response","created_at":1234567890,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o","output":[{"id":"msg_123","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":100,"input_tokens_details":{"cached_tokens":0},"output_tokens":50,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":150},"user":null,"metadata":{}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "id-0",
+            "sourceType": "url",
+            "title": "Example URL",
+            "type": "source",
+            "url": "https://example.com",
+          },
+          {
+            "filename": "file-abc123",
+            "id": "id-1",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "This is a quote from the file",
+            "type": "source",
+          },
+          {
+            "id": "msg_123",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 100,
+              "outputTokens": 50,
+              "reasoningTokens": 0,
+              "totalTokens": 150,
+            },
+          },
+        ]
+      `);
     });
   });
 });

@@ -328,13 +328,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     text: z.string(),
                     logprobs: LOGPROBS_SCHEMA.nullish(),
                     annotations: z.array(
-                      z.object({
-                        type: z.literal('url_citation'),
-                        start_index: z.number(),
-                        end_index: z.number(),
-                        url: z.string(),
-                        title: z.string(),
-                      }),
+                      z.discriminatedUnion('type', [
+                        z.object({
+                          type: z.literal('url_citation'),
+                          start_index: z.number(),
+                          end_index: z.number(),
+                          url: z.string(),
+                          title: z.string(),
+                        }),
+                        z.object({
+                          type: z.literal('file_citation'),
+                          start_index: z.number(),
+                          end_index: z.number(),
+                          file_id: z.string(),
+                          quote: z.string(),
+                        }),
+                      ]),
                     ),
                   }),
                 ),
@@ -454,13 +463,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             });
 
             for (const annotation of contentPart.annotations) {
-              content.push({
-                type: 'source',
-                sourceType: 'url',
-                id: this.config.generateId?.() ?? generateId(),
-                url: annotation.url,
-                title: annotation.title,
-              });
+              if (annotation.type === 'url_citation') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: this.config.generateId?.() ?? generateId(),
+                  url: annotation.url,
+                  title: annotation.title,
+                });
+              } else if (annotation.type === 'file_citation') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: this.config.generateId?.() ?? generateId(),
+                  mediaType: 'text/plain',
+                  title: annotation.quote,
+                  filename: annotation.file_id,
+                });
+              }
             }
           }
 
@@ -933,13 +953,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 value.response.usage.input_tokens_details?.cached_tokens ??
                 undefined;
             } else if (isResponseAnnotationAddedChunk(value)) {
-              controller.enqueue({
-                type: 'source',
-                sourceType: 'url',
-                id: self.config.generateId?.() ?? generateId(),
-                url: value.annotation.url,
-                title: value.annotation.title,
-              });
+              if (value.annotation.type === 'url_citation') {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: self.config.generateId?.() ?? generateId(),
+                  url: value.annotation.url,
+                  title: value.annotation.title,
+                });
+              } else if (value.annotation.type === 'file_citation') {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: self.config.generateId?.() ?? generateId(),
+                  mediaType: 'text/plain',
+                  title: value.annotation.quote,
+                  filename: value.annotation.file_id,
+                });
+              }
             } else if (isErrorChunk(value)) {
               controller.enqueue({ type: 'error', error: value });
             }
@@ -1126,11 +1157,18 @@ const responseFunctionCallArgumentsDeltaSchema = z.object({
 
 const responseAnnotationAddedSchema = z.object({
   type: z.literal('response.output_text.annotation.added'),
-  annotation: z.object({
-    type: z.literal('url_citation'),
-    url: z.string(),
-    title: z.string(),
-  }),
+  annotation: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('url_citation'),
+      url: z.string(),
+      title: z.string(),
+    }),
+    z.object({
+      type: z.literal('file_citation'),
+      file_id: z.string(),
+      quote: z.string(),
+    }),
+  ]),
 });
 
 const responseReasoningSummaryPartAddedSchema = z.object({
