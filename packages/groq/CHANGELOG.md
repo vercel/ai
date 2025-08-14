@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.9
+
+### Patch Changes
+
+- d48613a: Added support for browser use tool in groq
+
 ## 2.0.8
 
 ### Patch Changes

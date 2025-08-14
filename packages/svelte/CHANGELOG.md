@@ -1,5 +1,12 @@
 # @ai-sdk/svelte
 
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [7729e32]
+  - ai@5.0.14
+
 ## 3.0.13
 
 ### Patch Changes

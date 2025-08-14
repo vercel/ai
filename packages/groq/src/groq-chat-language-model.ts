@@ -107,7 +107,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       tools: groqTools,
       toolChoice: groqToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice });
+    } = prepareTools({ tools, toolChoice, modelId: this.modelId });
 
     return {
       args: {

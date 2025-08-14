@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.4
+
+### Patch Changes
+
+- ae859ce: Added support for Anthropic provider's server-side code execution tool
+
 ## 2.0.3
 
 ### Patch Changes
