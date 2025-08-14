@@ -59,7 +59,7 @@ describe('streamText benchmark', () => {
           type: 'tool-result',
           toolCallId: 'tool-call-1',
           toolName: 'getWeather',
-          output: {
+          result: {
             type: 'text',
             value: 'Sunny, 72°F',
           },
