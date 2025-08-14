@@ -184,7 +184,7 @@ describe('createAsyncIterableStream()', () => {
     });
 
     const asyncIterableStream = createAsyncIterableStream(source);
-    
+
     await asyncIterableStream.cancel();
 
     const collected: string[] = [];
