@@ -293,10 +293,6 @@ describe('extractReasoningMiddleware', () => {
               "type": "reasoning-start",
             },
             {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
               "id": "reasoning-0",
               "providerMetadata": undefined,
               "text": "ana",
@@ -311,6 +307,10 @@ describe('extractReasoningMiddleware', () => {
             {
               "id": "reasoning-0",
               "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "1",
@@ -414,10 +414,6 @@ describe('extractReasoningMiddleware', () => {
               "type": "reasoning-start",
             },
             {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
               "id": "reasoning-0",
               "providerMetadata": undefined,
               "text": "analyzing the request",
@@ -426,6 +422,10 @@ describe('extractReasoningMiddleware', () => {
             {
               "id": "reasoning-0",
               "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "1",
@@ -543,10 +543,6 @@ describe('extractReasoningMiddleware', () => {
               "type": "reasoning-start",
             },
             {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
               "id": "reasoning-0",
               "providerMetadata": undefined,
               "text": "ana",
@@ -562,6 +558,10 @@ describe('extractReasoningMiddleware', () => {
             {
               "id": "reasoning-0",
               "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "1",
@@ -662,10 +662,6 @@ describe('extractReasoningMiddleware', () => {
               "type": "reasoning-start",
             },
             {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
               "id": "reasoning-0",
               "providerMetadata": undefined,
               "text": "ana",
@@ -681,6 +677,10 @@ describe('extractReasoningMiddleware', () => {
             {
               "id": "reasoning-0",
               "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "1",
