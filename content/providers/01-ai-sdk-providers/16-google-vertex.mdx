@@ -690,6 +690,7 @@ const { embedding } = await embed({
     google: {
       outputDimensionality: 512, // optional, number of dimensions for the embedding
       taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
+      autoTruncate: false, // optional
     },
   },
 });
@@ -713,6 +714,11 @@ The following optional provider options are available for Google Vertex AI embed
   - `QUESTION_ANSWERING`: Optimized for answering questions.
   - `FACT_VERIFICATION`: Optimized for verifying factual information.
   - `CODE_RETRIEVAL_QUERY`: Optimized for retrieving code blocks based on natural language queries.
+
+- **autoTruncate**: _boolean_
+
+  Optional. When set to true, input text will be truncated. When set to false,
+  an error is returned if the input text is longer than the maximum length supported by the model. Defaults to true.
 
 #### Model Capabilities
 

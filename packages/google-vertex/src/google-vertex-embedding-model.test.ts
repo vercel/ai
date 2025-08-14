@@ -27,6 +27,7 @@ describe('GoogleVertexEmbeddingModel', () => {
   const mockProviderOptions = {
     outputDimensionality: 768,
     taskType: 'SEMANTIC_SIMILARITY',
+    autoTruncate: false,
   };
 
   const mockConfig = {
@@ -124,6 +125,7 @@ describe('GoogleVertexEmbeddingModel', () => {
       })),
       parameters: {
         outputDimensionality: mockProviderOptions.outputDimensionality,
+        autoTruncate: mockProviderOptions.autoTruncate,
       },
     });
   });
