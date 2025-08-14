@@ -150,16 +150,16 @@ describe('streamText benchmark', () => {
 
     const startTime = performance.now();
 
-    const streamPromises = [];
+    const streams = [];
     for (let i = 0; i < streamCount; i++) {
       const result = streamText({
         model,
         prompt: `Test prompt ${i}`,
       });
-      streamPromises.push(result.consumeStream());
+      streams.push(result);
     }
 
-    await Promise.all(streamPromises);
+    await Promise.all(streams.map(stream => stream.consumeStream()));
 
     const endTime = performance.now();
     const duration = endTime - startTime;
