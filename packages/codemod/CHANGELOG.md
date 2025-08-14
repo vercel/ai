@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 2.0.4
+
+### Patch Changes
+
+- 3841377: Added a codemod to change `maxSteps` to `stopWhen`
+
 ## 2.0.3
 
 ### Patch Changes

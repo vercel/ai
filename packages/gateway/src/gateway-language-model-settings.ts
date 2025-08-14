@@ -12,9 +12,9 @@ export type GatewayModelId =
   | 'anthropic/claude-3.5-haiku'
   | 'anthropic/claude-3.5-sonnet'
   | 'anthropic/claude-3.7-sonnet'
-  | 'anthropic/claude-4-opus'
-  | 'anthropic/claude-4-sonnet'
-  | 'anthropic/claude-4.1-opus'
+  | 'anthropic/claude-opus-4'
+  | 'anthropic/claude-opus-4.1'
+  | 'anthropic/claude-sonnet-4'
   | 'cohere/command-a'
   | 'cohere/command-r'
   | 'cohere/command-r-plus'
@@ -85,4 +85,5 @@ export type GatewayModelId =
   | 'xai/grok-4'
   | 'zai/glm-4.5'
   | 'zai/glm-4.5-air'
+  | 'zai/glm-4.5v'
   | (string & {});

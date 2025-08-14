@@ -92,6 +92,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       await convertToOpenAIResponsesMessages({
         prompt,
         systemMessageMode: modelConfig.systemMessageMode,
+        fileIdPrefixes: this.config.fileIdPrefixes,
       });
 
     warnings.push(...messageWarnings);
@@ -111,18 +112,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       top_p: topP,
       max_output_tokens: maxOutputTokens,
 
-      ...(responseFormat?.type === 'json' && {
+      ...((responseFormat?.type === 'json' || openaiOptions?.textVerbosity) && {
         text: {
-          format:
-            responseFormat.schema != null
-              ? {
-                  type: 'json_schema',
-                  strict: strictJsonSchema,
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                  schema: responseFormat.schema,
-                }
-              : { type: 'json_object' },
+          ...(responseFormat?.type === 'json' && {
+            format:
+              responseFormat.schema != null
+                ? {
+                    type: 'json_schema',
+                    strict: strictJsonSchema,
+                    name: responseFormat.name ?? 'response',
+                    description: responseFormat.description,
+                    schema: responseFormat.schema,
+                  }
+                : { type: 'json_object' },
+          }),
+          ...(openaiOptions?.textVerbosity && {
+            verbosity: openaiOptions.textVerbosity,
+          }),
         },
       }),
 
@@ -135,6 +141,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
       include: openaiOptions?.include,
+      prompt_cache_key: openaiOptions?.promptCacheKey,
+      safety_identifier: openaiOptions?.safetyIdentifier,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -216,7 +224,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         type: 'unsupported-setting',
         setting: 'serviceTier',
         details:
-          'priority processing is only available for supported models (GPT-4, o3, o4-mini) and requires Enterprise access',
+          'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
       });
       // Remove from args if not supported
       delete (baseArgs as any).service_tier;
@@ -314,6 +322,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 type: z.literal('file_search_call'),
                 id: z.string(),
                 status: z.string().optional(),
+                queries: z.array(z.string()).nullish(),
+                results: z
+                  .array(
+                    z.object({
+                      attributes: z.object({
+                        file_id: z.string(),
+                        filename: z.string(),
+                        score: z.number(),
+                        text: z.string(),
+                      }),
+                    }),
+                  )
+                  .nullish(),
               }),
               z.object({
                 type: z.literal('reasoning'),
@@ -471,6 +492,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             result: {
               type: 'file_search_tool_result',
               status: part.status || 'completed',
+              ...(part.queries && { queries: part.queries }),
+              ...(part.results && { results: part.results }),
             },
             providerExecuted: true,
           });
@@ -615,6 +638,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: value.item.id,
                   toolName: 'computer_use',
                 });
+              } else if (value.item.type === 'file_search_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: 'file_search',
+                  toolCallId: value.item.id,
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.id,
+                  toolName: 'file_search',
+                });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-start',
@@ -715,6 +749,35 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   result: {
                     type: 'computer_use_tool_result',
                     status: value.item.status || 'completed',
+                  },
+                  providerExecuted: true,
+                });
+              } else if (value.item.type === 'file_search_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+                hasToolCalls = true;
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'file_search',
+                  input: '',
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'file_search',
+                  result: {
+                    type: 'file_search_tool_result',
+                    status: value.item.status || 'completed',
+                    ...(value.item.queries && { queries: value.item.queries }),
+                    ...(value.item.results && { results: value.item.results }),
                   },
                   providerExecuted: true,
                 });
@@ -922,6 +985,19 @@ const responseOutputItemAddedSchema = z.object({
       type: z.literal('file_search_call'),
       id: z.string(),
       status: z.string(),
+      queries: z.array(z.string()).nullish(),
+      results: z
+        .array(
+          z.object({
+            attributes: z.object({
+              file_id: z.string(),
+              filename: z.string(),
+              score: z.number(),
+              text: z.string(),
+            }),
+          }),
+        )
+        .optional(),
     }),
   ]),
 });
@@ -961,6 +1037,19 @@ const responseOutputItemDoneSchema = z.object({
       type: z.literal('file_search_call'),
       id: z.string(),
       status: z.literal('completed'),
+      queries: z.array(z.string()).nullish(),
+      results: z
+        .array(
+          z.object({
+            attributes: z.object({
+              file_id: z.string(),
+              filename: z.string(),
+              score: z.number(),
+              text: z.string(),
+            }),
+          }),
+        )
+        .nullish(),
     }),
   ]),
 });
@@ -1108,6 +1197,15 @@ type ResponsesModelConfig = {
 };
 
 function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
+  // gpt-5-chat models are non-reasoning
+  if (modelId.startsWith('gpt-5-chat')) {
+    return {
+      isReasoningModel: false,
+      systemMessageMode: 'system',
+      requiredAutoTruncation: false,
+    };
+  }
+
   // o series reasoning models:
   if (
     modelId.startsWith('o') ||
@@ -1142,18 +1240,23 @@ function supportsFlexProcessing(modelId: string): boolean {
   return (
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini') ||
-    modelId.startsWith('gpt-5')
+    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'))
   );
 }
 
 function supportsPriorityProcessing(modelId: string): boolean {
   return (
     modelId.startsWith('gpt-4') ||
+    modelId.startsWith('gpt-5-mini') ||
+    (modelId.startsWith('gpt-5') &&
+      !modelId.startsWith('gpt-5-nano') &&
+      !modelId.startsWith('gpt-5-chat')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini')
   );
 }
 
+// TODO AI SDK 6: use optional here instead of nullish
 const openaiResponsesProviderOptionsSchema = z.object({
   metadata: z.any().nullish(),
   parallelToolCalls: z.boolean().nullish(),
@@ -1168,6 +1271,9 @@ const openaiResponsesProviderOptionsSchema = z.object({
   include: z
     .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
     .nullish(),
+  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
+  promptCacheKey: z.string().nullish(),
+  safetyIdentifier: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

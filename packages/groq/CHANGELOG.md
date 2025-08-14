@@ -1,5 +1,32 @@
 # @ai-sdk/groq
 
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
+## 2.0.5
+
+### Patch Changes
+
+- 8f8a521: fix(providers): use convertToBase64 for Uint8Array image parts to produce valid data URLs; keep mediaType normalization and URL passthrough
+
+## 2.0.4
+
+### Patch Changes
+
+- 4b50c36: patch reasoningEffort parameter "low", "medium", "high" for gpt-oss
+
 ## 2.0.3
 
 ### Patch Changes
