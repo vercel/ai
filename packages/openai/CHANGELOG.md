@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.14
+
+### Patch Changes
+
+- 7f47105: fix(provider/openai): support file_citation annotations in responses api
+
 ## 2.0.13
 
 ### Patch Changes

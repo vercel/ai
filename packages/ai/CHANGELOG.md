@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.14
+
+### Patch Changes
+
+- 7729e32: fix(ai): expand mp3 detection to support all mpeg frame headers
+
 ## 5.0.13
 
 ### Patch Changes
