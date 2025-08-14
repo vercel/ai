@@ -59,15 +59,22 @@ export function convertToGroqChatMessages(
 
       case 'assistant': {
         let text = '';
+        let reasoning = '';
         const toolCalls: Array<{
           id: string;
           type: 'function';
           function: { name: string; arguments: string };
         }> = [];
 
-        // TODO figure out how to handle reasoning
         for (const part of content) {
           switch (part.type) {
+            // groq supports reasoning for tool-calls in multi-turn conversations
+            // https://github.com/vercel/ai/issues/7860
+            case 'reasoning': {
+              reasoning += part.text;
+              break;
+            }
+
             case 'text': {
               text += part.text;
               break;
@@ -90,6 +97,8 @@ export function convertToGroqChatMessages(
         messages.push({
           role: 'assistant',
           content: text,
+          // @ts-expect-error - TODO: fix types
+          reasoning,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 
