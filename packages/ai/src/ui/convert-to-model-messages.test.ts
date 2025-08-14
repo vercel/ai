@@ -127,6 +127,40 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should convert a simple user message with provider metadata', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            {
+              text: 'Hello, AI!',
+              type: 'text',
+              providerMetadata: { testProvider: { signature: '1234567890' } },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "Hello, AI!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
     it('should handle user message file parts', () => {
       const result = convertToModelMessages([
         {
@@ -156,6 +190,96 @@ describe('convertToModelMessages', () => {
         },
       ]);
     });
+
+    it('should handle user message file parts with provider metadata', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              url: 'https://example.com/image.jpg',
+              providerMetadata: { testProvider: { signature: '1234567890' } },
+            },
+            { type: 'text', text: 'Check this image' },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              data: 'https://example.com/image.jpg',
+              providerOptions: { testProvider: { signature: '1234567890' } },
+            },
+            { type: 'text', text: 'Check this image' },
+          ],
+        },
+      ]);
+    });
+
+    it('should include filename for user file parts when provided', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              url: 'https://example.com/image.jpg',
+              filename: 'image.jpg',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              data: 'https://example.com/image.jpg',
+              filename: 'image.jpg',
+            },
+          ],
+        },
+      ]);
+    });
+  });
+
+  it('should not include filename for user file parts when not provided', () => {
+    const result = convertToModelMessages([
+      {
+        role: 'user',
+        parts: [
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            url: 'https://example.com/image.jpg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            data: 'https://example.com/image.jpg',
+          },
+        ],
+      },
+    ]);
   });
 
   describe('assistant message', () => {
@@ -286,6 +410,36 @@ describe('convertToModelMessages', () => {
       ] satisfies ModelMessage[]);
     });
 
+    it('should include filename for assistant file parts when provided', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              url: 'data:image/png;base64,dGVzdA==',
+              filename: 'test.png',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'data:image/png;base64,dGVzdA==',
+              filename: 'test.png',
+            },
+          ],
+        },
+      ] as unknown as ModelMessage[]);
+    });
+
     it('should handle assistant message with tool output available', () => {
       const result = convertToModelMessages([
         {
@@ -360,29 +514,31 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should handle assistant message with tool output error', () => {
-      const result = convertToModelMessages([
-        {
-          role: 'assistant',
-          parts: [
-            { type: 'step-start' },
-            {
-              type: 'text',
-              text: 'Let me calculate that for you.',
-              state: 'done',
-            },
-            {
-              type: 'tool-calculator',
-              state: 'output-error',
-              toolCallId: 'call1',
-              input: { operation: 'add', numbers: [1, 2] },
-              errorText: 'Error: Invalid input',
-            },
-          ],
-        },
-      ]);
+    describe('tool output error', () => {
+      it('should handle assistant message with tool output error that has raw input', () => {
+        const result = convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'text',
+                text: 'Let me calculate that for you.',
+                state: 'done',
+              },
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'Error: Invalid input',
+                input: undefined,
+                rawInput: { operation: 'add', numbers: [1, 2] },
+              },
+            ],
+          },
+        ]);
 
-      expect(result).toMatchInlineSnapshot(`
+        expect(result).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -422,6 +578,71 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+      });
+
+      it('should handle assistant message with tool output error that has no raw input', () => {
+        const result = convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'text',
+                text: 'Let me calculate that for you.',
+                state: 'done',
+              },
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                input: { operation: 'add', numbers: [1, 2] },
+                errorText: 'Error: Invalid input',
+              },
+            ],
+          },
+        ]);
+
+        expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me calculate that for you.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "numbers": [
+                    1,
+                    2,
+                  ],
+                  "operation": "add",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Error: Invalid input",
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+      });
     });
 
     it('should handle assistant message with provider-executed tool output available', () => {

@@ -24,7 +24,7 @@ Use of LangChain's open-source frameworks is not necessary.
 Install an [AI SDK model provider](/providers/ai-sdk-providers) and the [LangSmith client SDK](https://npmjs.com/package/langsmith).
 The code snippets below will use the [AI SDK's OpenAI provider](/providers/ai-sdk-providers/openai), but you can use any [other supported provider](/providers/ai-sdk-providers/) as well.
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/openai langsmith" dark />
   </Tab>
@@ -34,11 +34,14 @@ The code snippets below will use the [AI SDK's OpenAI provider](/providers/ai-sd
   <Tab>
     <Snippet text="yarn add @ai-sdk/openai langsmith" dark />
   </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai langsmith" dark />
+  </Tab>
 </Tabs>
 
 You will also need to install the following OpenTelemetry packages:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet
       text="pnpm add @opentelemetry/sdk-trace-base @opentelemetry/exporter-trace-otlp-proto @opentelemetry/context-async-hooks"
@@ -54,6 +57,12 @@ You will also need to install the following OpenTelemetry packages:
   <Tab>
     <Snippet
       text="yarn add @opentelemetry/sdk-trace-base @opentelemetry/exporter-trace-otlp-proto @opentelemetry/context-async-hooks"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="bun add @opentelemetry/sdk-trace-base @opentelemetry/exporter-trace-otlp-proto @opentelemetry/context-async-hooks"
       dark
     />
   </Tab>

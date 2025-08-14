@@ -5,7 +5,9 @@ import {
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
+  LanguageModelV2Text,
   LanguageModelV2Usage,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -23,6 +25,28 @@ import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
+
+/**
+ * `top_logprobs` request body argument can be set to an integer between
+ * 0 and 20 specifying the number of most likely tokens to return at each
+ * token position, each with an associated log probability.
+ *
+ * @see https://platform.openai.com/docs/api-reference/responses/create#responses_create-top_logprobs
+ */
+const TOP_LOGPROBS_MAX = 20;
+
+const LOGPROBS_SCHEMA = z.array(
+  z.object({
+    token: z.string(),
+    logprob: z.number(),
+    top_logprobs: z.array(
+      z.object({
+        token: z.string(),
+        logprob: z.number(),
+      }),
+    ),
+  }),
+);
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -92,6 +116,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       await convertToOpenAIResponsesMessages({
         prompt,
         systemMessageMode: modelConfig.systemMessageMode,
+        fileIdPrefixes: this.config.fileIdPrefixes,
       });
 
     warnings.push(...messageWarnings);
@@ -104,6 +129,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
 
+    const topLogprobs =
+      typeof openaiOptions?.logprobs === 'number'
+        ? openaiOptions?.logprobs
+        : openaiOptions?.logprobs === true
+          ? TOP_LOGPROBS_MAX
+          : undefined;
+    const openaiOptionsInclude = topLogprobs
+      ? Array.isArray(openaiOptions?.include)
+        ? [...openaiOptions?.include, 'message.output_text.logprobs']
+        : ['message.output_text.logprobs']
+      : openaiOptions?.include;
+
     const baseArgs = {
       model: this.modelId,
       input: messages,
@@ -111,18 +148,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       top_p: topP,
       max_output_tokens: maxOutputTokens,
 
-      ...(responseFormat?.type === 'json' && {
+      ...((responseFormat?.type === 'json' || openaiOptions?.textVerbosity) && {
         text: {
-          format:
-            responseFormat.schema != null
-              ? {
-                  type: 'json_schema',
-                  strict: strictJsonSchema,
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                  schema: responseFormat.schema,
-                }
-              : { type: 'json_object' },
+          ...(responseFormat?.type === 'json' && {
+            format:
+              responseFormat.schema != null
+                ? {
+                    type: 'json_schema',
+                    strict: strictJsonSchema,
+                    name: responseFormat.name ?? 'response',
+                    description: responseFormat.description,
+                    schema: responseFormat.schema,
+                  }
+                : { type: 'json_object' },
+          }),
+          ...(openaiOptions?.textVerbosity && {
+            verbosity: openaiOptions.textVerbosity,
+          }),
         },
       }),
 
@@ -134,7 +176,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
-      include: openaiOptions?.include,
+      include: openaiOptionsInclude,
+      prompt_cache_key: openaiOptions?.promptCacheKey,
+      safety_identifier: openaiOptions?.safetyIdentifier,
+      top_logprobs: topLogprobs,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -200,7 +245,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'serviceTier',
-        details: 'flex processing is only available for o3 and o4-mini models',
+        details:
+          'flex processing is only available for o3, o4-mini, and gpt-5 models',
       });
       // Remove from args if not supported
       delete (baseArgs as any).service_tier;
@@ -215,7 +261,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         type: 'unsupported-setting',
         setting: 'serviceTier',
         details:
-          'priority processing is only available for supported models (GPT-4, o3, o4-mini) and requires Enterprise access',
+          'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
       });
       // Remove from args if not supported
       delete (baseArgs as any).service_tier;
@@ -280,6 +326,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   z.object({
                     type: z.literal('output_text'),
                     text: z.string(),
+                    logprobs: LOGPROBS_SCHEMA.nullish(),
                     annotations: z.array(
                       z.object({
                         type: z.literal('url_citation'),
@@ -313,6 +360,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 type: z.literal('file_search_call'),
                 id: z.string(),
                 status: z.string().optional(),
+                queries: z.array(z.string()).nullish(),
+                results: z
+                  .array(
+                    z.object({
+                      attributes: z.object({
+                        file_id: z.string(),
+                        filename: z.string(),
+                        score: z.number(),
+                        text: z.string(),
+                      }),
+                    }),
+                  )
+                  .nullish(),
               }),
               z.object({
                 type: z.literal('reasoning'),
@@ -348,6 +408,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     }
 
     const content: Array<LanguageModelV2Content> = [];
+    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
 
     // map response content to content array
     for (const part of response.output) {
@@ -375,6 +436,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
         case 'message': {
           for (const contentPart of part.content) {
+            if (
+              options.providerOptions?.openai?.logprobs &&
+              contentPart.logprobs
+            ) {
+              logprobs.push(contentPart.logprobs);
+            }
+
             content.push({
               type: 'text',
               text: contentPart.text,
@@ -395,6 +463,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               });
             }
           }
+
           break;
         }
 
@@ -470,12 +539,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             result: {
               type: 'file_search_tool_result',
               status: part.status || 'completed',
+              ...(part.queries && { queries: part.queries }),
+              ...(part.results && { results: part.results }),
             },
             providerExecuted: true,
           });
           break;
         }
       }
+    }
+
+    const providerMetadata: SharedV2ProviderMetadata = {
+      openai: { responseId: response.id },
+    };
+
+    if (logprobs.length > 0) {
+      providerMetadata.openai.logprobs = logprobs;
     }
 
     return {
@@ -501,11 +580,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         headers: responseHeaders,
         body: rawResponse,
       },
-      providerMetadata: {
-        openai: {
-          responseId: response.id,
-        },
-      },
+      providerMetadata,
       warnings,
     };
   }
@@ -541,6 +616,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
+    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
     let responseId: string | null = null;
     const ongoingToolCalls: Record<
       number,
@@ -613,6 +689,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'tool-input-start',
                   id: value.item.id,
                   toolName: 'computer_use',
+                });
+              } else if (value.item.type === 'file_search_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: 'file_search',
+                  toolCallId: value.item.id,
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.id,
+                  toolName: 'file_search',
                 });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
@@ -717,6 +804,35 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   },
                   providerExecuted: true,
                 });
+              } else if (value.item.type === 'file_search_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+                hasToolCalls = true;
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'file_search',
+                  input: '',
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'file_search',
+                  result: {
+                    type: 'file_search_tool_result',
+                    status: value.item.status || 'completed',
+                    ...(value.item.queries && { queries: value.item.queries }),
+                    ...(value.item.results && { results: value.item.results }),
+                  },
+                  providerExecuted: true,
+                });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-end',
@@ -765,6 +881,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 id: value.item_id,
                 delta: value.delta,
               });
+
+              if (value.logprobs) {
+                logprobs.push(value.logprobs);
+              }
             } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
               // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk.
               if (value.summary_index > 0) {
@@ -826,15 +946,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            const providerMetadata: SharedV2ProviderMetadata = {
+              openai: {
+                responseId,
+              },
+            };
+
+            if (logprobs.length > 0) {
+              providerMetadata.openai.logprobs = logprobs;
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage,
-              providerMetadata: {
-                openai: {
-                  responseId,
-                },
-              },
+              providerMetadata,
             });
           },
         }),
@@ -860,6 +986,7 @@ const textDeltaChunkSchema = z.object({
   type: z.literal('response.output_text.delta'),
   item_id: z.string(),
   delta: z.string(),
+  logprobs: LOGPROBS_SCHEMA.nullish(),
 });
 
 const errorChunkSchema = z.object({
@@ -921,6 +1048,19 @@ const responseOutputItemAddedSchema = z.object({
       type: z.literal('file_search_call'),
       id: z.string(),
       status: z.string(),
+      queries: z.array(z.string()).nullish(),
+      results: z
+        .array(
+          z.object({
+            attributes: z.object({
+              file_id: z.string(),
+              filename: z.string(),
+              score: z.number(),
+              text: z.string(),
+            }),
+          }),
+        )
+        .optional(),
     }),
   ]),
 });
@@ -960,6 +1100,19 @@ const responseOutputItemDoneSchema = z.object({
       type: z.literal('file_search_call'),
       id: z.string(),
       status: z.literal('completed'),
+      queries: z.array(z.string()).nullish(),
+      results: z
+        .array(
+          z.object({
+            attributes: z.object({
+              file_id: z.string(),
+              filename: z.string(),
+              score: z.number(),
+              text: z.string(),
+            }),
+          }),
+        )
+        .nullish(),
     }),
   ]),
 });
@@ -1107,9 +1260,19 @@ type ResponsesModelConfig = {
 };
 
 function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
+  // gpt-5-chat models are non-reasoning
+  if (modelId.startsWith('gpt-5-chat')) {
+    return {
+      isReasoningModel: false,
+      systemMessageMode: 'system',
+      requiredAutoTruncation: false,
+    };
+  }
+
   // o series reasoning models:
   if (
     modelId.startsWith('o') ||
+    modelId.startsWith('gpt-5') ||
     modelId.startsWith('codex-') ||
     modelId.startsWith('computer-use')
   ) {
@@ -1137,17 +1300,26 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
 }
 
 function supportsFlexProcessing(modelId: string): boolean {
-  return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
+  return (
+    modelId.startsWith('o3') ||
+    modelId.startsWith('o4-mini') ||
+    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'))
+  );
 }
 
 function supportsPriorityProcessing(modelId: string): boolean {
   return (
     modelId.startsWith('gpt-4') ||
+    modelId.startsWith('gpt-5-mini') ||
+    (modelId.startsWith('gpt-5') &&
+      !modelId.startsWith('gpt-5-nano') &&
+      !modelId.startsWith('gpt-5-chat')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini')
   );
 }
 
+// TODO AI SDK 6: use optional here instead of nullish
 const openaiResponsesProviderOptionsSchema = z.object({
   metadata: z.any().nullish(),
   parallelToolCalls: z.boolean().nullish(),
@@ -1160,8 +1332,33 @@ const openaiResponsesProviderOptionsSchema = z.object({
   reasoningSummary: z.string().nullish(),
   serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
   include: z
-    .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
+    .array(
+      z.enum([
+        'reasoning.encrypted_content',
+        'file_search_call.results',
+        'message.output_text.logprobs',
+      ]),
+    )
     .nullish(),
+  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
+  promptCacheKey: z.string().nullish(),
+  safetyIdentifier: z.string().nullish(),
+
+  /**
+   * Return the log probabilities of the tokens.
+   *
+   * Setting to true will return the log probabilities of the tokens that
+   * were generated.
+   *
+   * Setting to a number will return the log probabilities of the top n
+   * tokens that were generated.
+   *
+   * @see https://platform.openai.com/docs/api-reference/responses/create
+   * @see https://cookbook.openai.com/examples/using_logprobs
+   */
+  logprobs: z
+    .union([z.boolean(), z.number().min(1).max(TOP_LOGPROBS_MAX)])
+    .optional(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

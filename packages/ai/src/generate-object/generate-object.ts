@@ -1,26 +1,19 @@
-import {
-  JSONParseError,
-  JSONValue,
-  TypeValidationError,
-} from '@ai-sdk/provider';
+import { JSONValue } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   InferSchema,
   ProviderOptions,
-  safeParseJSON,
   Schema,
 } from '@ai-sdk/provider-utils';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
-import { prepareHeaders } from '../util/prepare-headers';
-import { prepareRetries } from '../util/prepare-retries';
 import { extractContentText } from '../generate-text/extract-content-text';
+import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { resolveLanguageModel } from '../prompt/resolve-language-model';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -39,11 +32,13 @@ import { LanguageModelRequestMetadata } from '../types/language-model-request-me
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
+import { prepareHeaders } from '../util/prepare-headers';
+import { prepareRetries } from '../util/prepare-retries';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
-import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { RepairTextFunction } from './repair-text';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
+import { RepairTextFunction } from './repair-text';
+import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 

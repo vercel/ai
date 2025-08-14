@@ -225,10 +225,12 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         errorText?: never;
         providerExecuted?: boolean;
         callProviderMetadata?: ProviderMetadata;
+        preliminary?: boolean;
       }
     | {
-        state: 'output-error';
-        input: TOOLS[NAME]['input'];
+        state: 'output-error'; // TODO AI SDK 6: change to 'error' state
+        input: TOOLS[NAME]['input'] | undefined;
+        rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
         output?: never;
         errorText: string;
         providerExecuted?: boolean;
@@ -261,9 +263,10 @@ export type DynamicToolUIPart = {
       output: unknown;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
+      preliminary?: boolean;
     }
   | {
-      state: 'output-error';
+      state: 'output-error'; // TODO AI SDK 6: change to 'error' state
       input: unknown;
       output?: never;
       errorText: string;

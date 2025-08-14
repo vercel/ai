@@ -1,5 +1,78 @@
 # @ai-sdk/svelte
 
+## 3.0.13
+
+### Patch Changes
+
+- Updated dependencies [a7b2e66]
+- Updated dependencies [9bed210]
+  - ai@5.0.13
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+  - ai@5.0.12
+
+## 3.0.11
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+- Updated dependencies [38ac190]
+- Updated dependencies [e3a63cb]
+  - ai@5.0.11
+  - @ai-sdk/provider-utils@3.0.2
+
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [63a5dc5]
+  - ai@5.0.10
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [afd5c2a]
+  - ai@5.0.9
+
+## 3.0.8
+
+### Patch Changes
+
+- ai@5.0.8
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [8e72304]
+  - ai@5.0.7
+
+## 3.0.6
+
+### Patch Changes
+
+- Updated dependencies [d983eee]
+  - ai@5.0.6
+
+## 3.0.5
+
+### Patch Changes
+
+- ai@5.0.5
+
+## 3.0.4
+
+### Patch Changes
+
+- ai@5.0.4
+
 ## 3.0.3
 
 ### Patch Changes

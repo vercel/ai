@@ -1,5 +1,48 @@
 # @ai-sdk/groq
 
+## 2.0.8
+
+### Patch Changes
+
+- 7f62adf: ### Groq: send reasoning input
+
+  Groq's API now accepts reasoning for tool calls, see https://cookbook.openai.com/articles/openai-harmony#handling-reasoning-output-in-subsequent-sampling
+
+  https://github.com/vercel/ai/pull/8037
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
+## 2.0.5
+
+### Patch Changes
+
+- 8f8a521: fix(providers): use convertToBase64 for Uint8Array image parts to produce valid data URLs; keep mediaType normalization and URL passthrough
+
+## 2.0.4
+
+### Patch Changes
+
+- 4b50c36: patch reasoningEffort parameter "low", "medium", "high" for gpt-oss
+
+## 2.0.3
+
+### Patch Changes
+
+- e49b556: feat(provider/groq): added openai gpt-oss model ids
+
 ## 2.0.2
 
 ### Patch Changes

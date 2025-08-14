@@ -2861,4 +2861,300 @@ describe('generateText', () => {
       });
     });
   });
+
+  describe('invalid tool calls', () => {
+    describe('single invalid tool call', () => {
+      let result: GenerateTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = await generateText({
+          model: new MockLanguageModelV2({
+            doGenerate: async () => ({
+              warnings: [],
+              usage: {
+                inputTokens: 10,
+                outputTokens: 20,
+                totalTokens: 30,
+              },
+              finishReason: 'tool-calls',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'cityAttractions',
+                  // wrong tool call arguments (city vs cities):
+                  input: `{ "cities": "San Francisco" }`,
+                },
+              ],
+            }),
+          }),
+          tools: {
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+            }),
+          },
+          prompt: 'What are the tourist attractions in San Francisco?',
+        });
+      });
+
+      it('should add tool error part to the content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": true,
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]],
+              "input": "{ "cities": "San Francisco" }",
+              "invalid": true,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": true,
+              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]",
+              "input": "{ "cities": "San Francisco" }",
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-error",
+            },
+          ]
+        `);
+      });
+
+      it('should include error result in response messages', async () => {
+        expect(result.response.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "input": "{ "cities": "San Francisco" }",
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-call",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "error-text",
+                    "value": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ]
+        `);
+      });
+    });
+  });
+
+  describe('tools with preliminary results', () => {
+    describe('single tool with preliminary results', () => {
+      let result: GenerateTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = await generateText({
+          model: new MockLanguageModelV2({
+            doGenerate: async () => ({
+              warnings: [],
+              usage: {
+                inputTokens: 10,
+                outputTokens: 20,
+                totalTokens: 30,
+              },
+              finishReason: 'tool-calls',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'cityAttractions',
+                  input: `{ "city": "San Francisco" }`,
+                },
+              ],
+            }),
+          }),
+          prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-id',
+            currentDate: () => new Date(0),
+          },
+          tools: {
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+              async *execute({ city }) {
+                yield {
+                  status: 'loading',
+                  text: `Getting weather for ${city}`,
+                };
+
+                yield {
+                  status: 'success',
+                  text: `The weather in ${city} is 72°F`,
+                  temperature: 72,
+                };
+              },
+            }),
+          },
+        });
+      });
+
+      it('should only include final tool result in content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": false,
+              "input": {
+                "city": "San Francisco",
+              },
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+
+      it('should only include final tool result in step content', async () => {
+        expect(result.steps).toMatchInlineSnapshot(`
+          [
+            DefaultStepResult {
+              "content": [
+                {
+                  "input": {
+                    "city": "San Francisco",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-call",
+                },
+                {
+                  "dynamic": false,
+                  "input": {
+                    "city": "San Francisco",
+                  },
+                  "output": {
+                    "status": "success",
+                    "temperature": 72,
+                    "text": "The weather in San Francisco is 72°F",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-result",
+                },
+              ],
+              "finishReason": "tool-calls",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "body": undefined,
+                "headers": undefined,
+                "id": "test-id",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "input": {
+                          "city": "San Francisco",
+                        },
+                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
+                        "toolCallId": "call-1",
+                        "toolName": "cityAttractions",
+                        "type": "tool-call",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                  {
+                    "content": [
+                      {
+                        "output": {
+                          "type": "json",
+                          "value": {
+                            "status": "success",
+                            "temperature": 72,
+                            "text": "The weather in San Francisco is 72°F",
+                          },
+                        },
+                        "toolCallId": "call-1",
+                        "toolName": "cityAttractions",
+                        "type": "tool-result",
+                      },
+                    ],
+                    "role": "tool",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "usage": {
+                "inputTokens": 10,
+                "outputTokens": 20,
+                "totalTokens": 30,
+              },
+              "warnings": [],
+            },
+          ]
+        `);
+      });
+    });
+  });
 });

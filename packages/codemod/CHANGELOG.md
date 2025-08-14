@@ -1,5 +1,29 @@
 # @ai-sdk/codemod
 
+## 2.0.5
+
+### Patch Changes
+
+- bc330ec: feat(codemod): add DataStream to UIMessage method renaming codemod
+
+## 2.0.4
+
+### Patch Changes
+
+- 3841377: Added a codemod to change `maxSteps` to `stopWhen`
+
+## 2.0.3
+
+### Patch Changes
+
+- 58fff3f: fixes generateText text property transform
+
+## 2.0.2
+
+### Patch Changes
+
+- 23a1916: fix Message transform for generic types
+
 ## 2.0.1
 
 ### Patch Changes

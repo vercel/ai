@@ -1,5 +1,82 @@
 # ai
 
+## 5.0.13
+
+### Patch Changes
+
+- a7b2e66: Added providerOptions to agent stream and generate calls
+- 9bed210: ### `extractReasoningMiddleware()`: delay sending `text-start` chunk to prevent rendering final text before reasoning
+
+  When wrapping a text stream in `extractReasoningMiddleware()`, delay queing the `text-start` chunk until either `reasoning-start` chunk was queued or the first `text-delta` chunk is about to be queued, whichever comes first.
+
+  https://github.com/vercel/ai/pull/8036
+
+## 5.0.12
+
+### Patch Changes
+
+- Updated dependencies [eefa730]
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/gateway@1.0.6
+  - @ai-sdk/provider-utils@3.0.3
+
+## 5.0.11
+
+### Patch Changes
+
+- 38ac190: feat(ai): preliminary tool results
+- e3a63cb: fix(ai): streamText promises reject when stream has errors
+- Updated dependencies [38ac190]
+- Updated dependencies [cf7b2ad]
+  - @ai-sdk/provider-utils@3.0.2
+  - @ai-sdk/gateway@1.0.5
+
+## 5.0.10
+
+### Patch Changes
+
+- 63a5dc5: fix(ai): convert user message text/file part provider metadata in convertToModelMessages
+
+## 5.0.9
+
+### Patch Changes
+
+- afd5c2a: fix(ai): preserve filename for file parts in convertToModelMessages
+
+## 5.0.8
+
+### Patch Changes
+
+- Updated dependencies [35f93ce]
+  - @ai-sdk/gateway@1.0.4
+
+## 5.0.7
+
+### Patch Changes
+
+- 8e72304: fix (ai): handle invalid tool calls
+
+## 5.0.6
+
+### Patch Changes
+
+- d983eee: feat(ai): allow passing model string for embeddings
+
+## 5.0.5
+
+### Patch Changes
+
+- Updated dependencies [893aed6]
+  - @ai-sdk/gateway@1.0.3
+
+## 5.0.4
+
+### Patch Changes
+
+- Updated dependencies [444df49]
+  - @ai-sdk/gateway@1.0.2
+
 ## 5.0.3
 
 ### Patch Changes

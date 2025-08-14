@@ -2,7 +2,12 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
-import { generateId, ModelMessage } from '@ai-sdk/provider-utils';
+import {
+  executeTool,
+  generateId,
+  getErrorMessage,
+  ModelMessage,
+} from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
@@ -220,6 +225,20 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             controller.enqueue(toolCall);
 
+            // handle invalid tool calls:
+            if (toolCall.invalid) {
+              toolResultsStreamController!.enqueue({
+                type: 'tool-error',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: toolCall.input,
+                error: getErrorMessage(toolCall.error!),
+                dynamic: true,
+              });
+
+              break;
+            }
+
             const tool = tools![toolCall.toolName];
 
             toolInputs.set(toolCall.toolCallId, toolCall.input);
@@ -263,12 +282,31 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                   let output: unknown;
 
                   try {
-                    output = await tool.execute!(toolCall.input, {
-                      toolCallId: toolCall.toolCallId,
-                      messages,
-                      abortSignal,
-                      experimental_context,
+                    const stream = executeTool({
+                      execute: tool.execute!.bind(tool),
+                      input: toolCall.input,
+                      options: {
+                        toolCallId: toolCall.toolCallId,
+                        messages,
+                        abortSignal,
+                        experimental_context,
+                      },
                     });
+
+                    for await (const part of stream) {
+                      toolResultsStreamController!.enqueue({
+                        ...toolCall,
+                        type: 'tool-result',
+                        output: part.output,
+                        ...(part.type === 'preliminary' && {
+                          preliminary: true,
+                        }),
+                      });
+
+                      if (part.type === 'final') {
+                        output = part.output;
+                      }
+                    }
                   } catch (error) {
                     recordErrorOnSpan(span, error);
                     toolResultsStreamController!.enqueue({
@@ -281,12 +319,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     attemptClose();
                     return;
                   }
-
-                  toolResultsStreamController!.enqueue({
-                    ...toolCall,
-                    type: 'tool-result',
-                    output,
-                  } satisfies TypedToolResult<TOOLS>);
 
                   outstandingToolResults.delete(toolExecutionId);
                   attemptClose();

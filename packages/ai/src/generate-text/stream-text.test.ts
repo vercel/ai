@@ -387,22 +387,6 @@ describe('streamText', () => {
         await convertAsyncIterableToArray(result.textStream),
       ).toMatchSnapshot();
     });
-
-    it('should swallow error to prevent server crash', async () => {
-      const result = streamText({
-        model: new MockLanguageModelV2({
-          doStream: async () => {
-            throw new Error('test error');
-          },
-        }),
-        prompt: 'test-input',
-        onError: () => {},
-      });
-
-      expect(
-        await convertAsyncIterableToArray(result.textStream),
-      ).toMatchSnapshot();
-    });
   });
 
   describe('result.fullStream', () => {
@@ -1423,6 +1407,22 @@ describe('streamText', () => {
   });
 
   describe('errors', () => {
+    it('should swallow error to prevent server crash', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async () => {
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.textStream),
+      ).toMatchSnapshot();
+    });
+
     it('should forward error in doStream as error stream part', async () => {
       const result = streamText({
         model: new MockLanguageModelV2({
@@ -1518,6 +1518,22 @@ describe('streamText', () => {
       expect(onError).toHaveBeenCalledWith({
         error: new Error('test error'),
       });
+    });
+
+    it('should reject text promise when error is thrown', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async () => {
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      await expect(result.text).rejects.toThrow(
+        'No output generated. Check the stream for errors.',
+      );
     });
   });
 
@@ -3435,8 +3451,6 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.consumeStream();
-
       expect(await result.warnings).toStrictEqual([
         { type: 'other', message: 'test-warning' },
       ]);
@@ -3460,8 +3474,6 @@ describe('streamText', () => {
         }),
         prompt: 'test-input',
       });
-
-      result.consumeStream();
 
       expect(await result.usage).toMatchInlineSnapshot(`
         {
@@ -3493,8 +3505,6 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.consumeStream();
-
       expect(await result.finishReason).toStrictEqual('stop');
     });
   });
@@ -3520,8 +3530,6 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.consumeStream();
-
       expect(await result.providerMetadata).toStrictEqual({
         testProvider: { testKey: 'testValue' },
       });
@@ -3534,8 +3542,6 @@ describe('streamText', () => {
         model: modelWithReasoning,
         ...defaultSettings(),
       });
-
-      result.consumeStream();
 
       expect((await result.response).messages).toMatchInlineSnapshot(`
         [
@@ -3624,8 +3630,6 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.consumeStream();
-
       expect(await result.request).toStrictEqual({
         body: 'test body',
       });
@@ -3656,8 +3660,6 @@ describe('streamText', () => {
         }),
         ...defaultSettings(),
       });
-
-      result.consumeStream();
 
       expect(await result.response).toMatchInlineSnapshot(`
         {
@@ -3691,8 +3693,6 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.consumeStream();
-
       expect(await result.text).toMatchSnapshot();
     });
   });
@@ -3703,8 +3703,6 @@ describe('streamText', () => {
         model: modelWithReasoning,
         ...defaultSettings(),
       });
-
-      result.consumeStream();
 
       expect(await result.reasoningText).toMatchSnapshot();
     });
@@ -3717,8 +3715,6 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.consumeStream();
-
       expect(await result.reasoning).toMatchSnapshot();
     });
   });
@@ -3729,8 +3725,6 @@ describe('streamText', () => {
         model: modelWithSources,
         ...defaultSettings(),
       });
-
-      result.consumeStream();
 
       expect(await result.sources).toMatchSnapshot();
     });
@@ -3743,8 +3737,6 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.consumeStream();
-
       expect(await result.files).toMatchSnapshot();
     });
   });
@@ -3755,8 +3747,6 @@ describe('streamText', () => {
         model: modelWithReasoning,
         ...defaultSettings(),
       });
-
-      result.consumeStream();
 
       expect(await result.steps).toMatchInlineSnapshot(`
         [
@@ -3898,8 +3888,6 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.consumeStream();
-
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
@@ -3973,8 +3961,6 @@ describe('streamText', () => {
         model: modelWithFiles,
         ...defaultSettings(),
       });
-
-      result.consumeStream();
 
       expect(await result.steps).toMatchInlineSnapshot(`
         [
@@ -4077,8 +4063,6 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.consumeStream();
-
       expect(await result.toolCalls).toMatchInlineSnapshot(`
         [
           {
@@ -4122,8 +4106,6 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
       });
-
-      result.consumeStream();
 
       expect(await result.toolResults).toMatchInlineSnapshot(`
         [
@@ -5025,8 +5007,6 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.consumeStream();
-
       expect((await result.response).messages).toMatchInlineSnapshot(`
         [
           {
@@ -5072,8 +5052,6 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
       });
-
-      result.consumeStream();
 
       expect((await result.response).messages).toMatchInlineSnapshot(`
         [
@@ -7489,10 +7467,6 @@ describe('streamText', () => {
       });
 
       describe('value promises', () => {
-        beforeEach(async () => {
-          await result.consumeStream();
-        });
-
         it('result.totalUsage should contain total token usage', async () => {
           expect(await result.totalUsage).toMatchInlineSnapshot(`
             {
@@ -8034,7 +8008,6 @@ describe('streamText', () => {
       });
 
       it('result.steps should contain a single step', async () => {
-        await result.consumeStream();
         expect((await result.steps).length).toStrictEqual(1);
       });
 
@@ -8339,12 +8312,10 @@ describe('streamText', () => {
       });
 
       it('should only execute a single step', async () => {
-        await result.consumeStream();
         expect((await result.steps).length).toBe(1);
       });
 
       it('should include provider-executed tool call and result content', async () => {
-        await result.consumeStream();
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {
@@ -8495,63 +8466,62 @@ describe('streamText', () => {
       it('should include provider-executed tool call and result in the ui message stream', async () => {
         expect(await convertReadableStreamToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-input-start",
+            },
+            {
+              "inputTextDelta": "{ "value": "value" }",
+              "toolCallId": "call-1",
+              "type": "tool-input-delta",
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "type": "start-step",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-input-available",
+            },
+            {
+              "output": "{ "value": "result1" }",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "dynamic": false,
-                "providerExecuted": true,
-                "toolCallId": "call-1",
-                "toolName": "web_search",
-                "type": "tool-input-start",
-              },
-              {
-                "inputTextDelta": "{ "value": "value" }",
-                "toolCallId": "call-1",
-                "type": "tool-input-delta",
-              },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": true,
-                "toolCallId": "call-1",
-                "toolName": "web_search",
-                "type": "tool-input-available",
-              },
-              {
-                "output": "{ "value": "result1" }",
-                "providerExecuted": true,
-                "toolCallId": "call-1",
-                "type": "tool-output-available",
-              },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": true,
-                "toolCallId": "call-2",
-                "toolName": "web_search",
-                "type": "tool-input-available",
-              },
-              {
-                "errorText": "ERROR",
-                "providerExecuted": true,
-                "toolCallId": "call-2",
-                "type": "tool-output-error",
-              },
-              {
-                "type": "finish-step",
-              },
-              {
-                "type": "finish",
-              },
-            ]
-          `);
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-input-available",
+            },
+            {
+              "errorText": "ERROR",
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "type": "tool-output-error",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
       });
     });
   });
@@ -8604,7 +8574,6 @@ describe('streamText', () => {
       });
 
       it('should include dynamic tool call and result content', async () => {
-        await result.consumeStream();
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {
@@ -9527,8 +9496,6 @@ describe('streamText', () => {
     });
 
     it('should include the error part in the step stream', async () => {
-      await result.consumeStream();
-
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
@@ -9609,8 +9576,6 @@ describe('streamText', () => {
     });
 
     it('should include error result in response messages', async () => {
-      await result.consumeStream();
-
       expect((await result.response).messages).toMatchInlineSnapshot(`
         [
           {
@@ -9754,8 +9719,6 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        await result.consumeStream();
-
         expect(await result.text).toStrictEqual('HELLO, WORLD!');
       });
 
@@ -9765,8 +9728,6 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
-
-        await result.consumeStream();
 
         expect(await result.response).toStrictEqual({
           id: expect.any(String),
@@ -9820,8 +9781,6 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        await result.consumeStream();
-
         expect(await result.totalUsage).toStrictEqual({
           inputTokens: 200,
           outputTokens: 300,
@@ -9857,8 +9816,6 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        await result.consumeStream();
-
         expect(await result.finishReason).toStrictEqual('stop');
       });
 
@@ -9892,8 +9849,6 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
-
-        await result.consumeStream();
 
         expect(await result.toolCalls).toMatchInlineSnapshot(`
           [
@@ -9941,8 +9896,6 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
-
-        await result.consumeStream();
 
         expect(await result.toolResults).toMatchInlineSnapshot(`
           [
@@ -9997,8 +9950,6 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
-
-        result.consumeStream();
 
         expect(await result.steps).toMatchInlineSnapshot(`
           [
@@ -10114,8 +10065,6 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform,
         });
 
-        result.consumeStream();
-
         expect(await result.request).toStrictEqual({
           body: 'TEST BODY',
         });
@@ -10150,8 +10099,6 @@ describe('streamText', () => {
           prompt: 'test-input',
           experimental_transform: upperCaseTransform,
         });
-
-        result.consumeStream();
 
         expect(JSON.stringify(await result.providerMetadata)).toStrictEqual(
           JSON.stringify({
@@ -11289,8 +11236,6 @@ describe('streamText', () => {
           prompt: 'prompt',
         });
 
-        result.consumeStream();
-
         expect(await result.text).toStrictEqual('{ "value": "Hello, world!" }');
       });
 
@@ -11958,8 +11903,6 @@ describe('streamText', () => {
       });
 
       it('should return the content parts in the correct order', async () => {
-        await result.consumeStream();
-
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {
@@ -11987,8 +11930,6 @@ describe('streamText', () => {
       });
 
       it('should return the step content parts in the correct order', async () => {
-        await result.consumeStream();
-
         expect(await result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
@@ -12565,6 +12506,589 @@ describe('streamText', () => {
       // tool should be executed by client
       expect(recordedContext).toStrictEqual({
         context: 'test',
+      });
+    });
+  });
+
+  describe('invalid tool calls', () => {
+    describe('single invalid tool call', () => {
+      let result: StreamTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-input-start',
+                id: 'call-1',
+                toolName: 'cityAttractions',
+              },
+              {
+                type: 'tool-input-delta',
+                id: 'call-1',
+                delta: `{ "cities": "San Francisco" }`,
+              },
+              {
+                type: 'tool-input-end',
+                id: 'call-1',
+              },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                // wrong tool call arguments (city vs cities):
+                input: `{ "cities": "San Francisco" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          _internal: {
+            currentDate: mockValues(new Date(2000)),
+            generateId: mockId(),
+          },
+          tools: {
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+            }),
+          },
+        });
+      });
+
+      it('should add tool call and result error parts to the content', async () => {
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": true,
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]],
+              "input": "{ "cities": "San Francisco" }",
+              "invalid": true,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": true,
+              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]",
+              "input": "{ "cities": "San Francisco" }",
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-error",
+            },
+          ]
+        `);
+      });
+
+      it('should add tool call and result error parts to the full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
+                "dynamic": false,
+                "id": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-input-start",
+              },
+              {
+                "delta": "{ "cities": "San Francisco" }",
+                "id": "call-1",
+                "type": "tool-input-delta",
+              },
+              {
+                "id": "call-1",
+                "type": "tool-input-end",
+              },
+              {
+                "dynamic": true,
+                "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]],
+                "input": "{ "cities": "San Francisco" }",
+                "invalid": true,
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-call",
+              },
+              {
+                "dynamic": true,
+                "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]",
+                "input": "{ "cities": "San Francisco" }",
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-error",
+              },
+              {
+                "finishReason": "stop",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": undefined,
+                  "id": "id-0",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:02.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+              },
+              {
+                "finishReason": "stop",
+                "totalUsage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+
+      it('should add tool call and result error parts to the ui message stream', async () => {
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-input-start",
+              },
+              {
+                "inputTextDelta": "{ "cities": "San Francisco" }",
+                "toolCallId": "call-1",
+                "type": "tool-input-delta",
+              },
+              {
+                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]",
+                "input": "{ "cities": "San Francisco" }",
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-input-error",
+              },
+              {
+                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]",
+                "toolCallId": "call-1",
+                "type": "tool-output-error",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+    });
+  });
+
+  describe('tools with preliminary results', () => {
+    describe('single tool with preliminary results', () => {
+      let result: StreamTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                input: `{ "city": "San Francisco" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          _internal: {
+            currentDate: mockValues(new Date(2000)),
+            generateId: mockId(),
+          },
+          tools: {
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+              async *execute({ city }) {
+                yield {
+                  status: 'loading',
+                  text: `Getting weather for ${city}`,
+                };
+
+                yield {
+                  status: 'success',
+                  text: `The weather in ${city} is 72°F`,
+                  temperature: 72,
+                };
+              },
+            }),
+          },
+        });
+      });
+
+      it('should include preliminary tool results in full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "output": {
+                "status": "loading",
+                "text": "Getting weather for San Francisco",
+              },
+              "preliminary": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-result",
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "preliminary": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-result",
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-result",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:02.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
+      });
+
+      it('should include preliminary tool results in ui message stream', async () => {
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-input-available",
+            },
+            {
+              "output": {
+                "status": "loading",
+                "text": "Getting weather for San Francisco",
+              },
+              "preliminary": true,
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "preliminary": true,
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
+      });
+
+      it('should only include final tool result in content', async () => {
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+
+      it('should only include final tool result in step content', async () => {
+        expect(await result.steps).toMatchInlineSnapshot(`
+          [
+            DefaultStepResult {
+              "content": [
+                {
+                  "input": {
+                    "city": "San Francisco",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-call",
+                },
+                {
+                  "input": {
+                    "city": "San Francisco",
+                  },
+                  "output": {
+                    "status": "success",
+                    "temperature": 72,
+                    "text": "The weather in San Francisco is 72°F",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-result",
+                },
+              ],
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "input": {
+                          "city": "San Francisco",
+                        },
+                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
+                        "toolCallId": "call-1",
+                        "toolName": "cityAttractions",
+                        "type": "tool-call",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                  {
+                    "content": [
+                      {
+                        "output": {
+                          "type": "json",
+                          "value": {
+                            "status": "success",
+                            "temperature": 72,
+                            "text": "The weather in San Francisco is 72°F",
+                          },
+                        },
+                        "toolCallId": "call-1",
+                        "toolName": "cityAttractions",
+                        "type": "tool-result",
+                      },
+                    ],
+                    "role": "tool",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:02.000Z,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "warnings": [],
+            },
+          ]
+        `);
       });
     });
   });

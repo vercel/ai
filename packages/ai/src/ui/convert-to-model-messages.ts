@@ -83,6 +83,9 @@ export function convertToModelMessages(
                   return {
                     type: 'text' as const,
                     text: part.text,
+                    ...(part.providerMetadata != null
+                      ? { providerOptions: part.providerMetadata }
+                      : {}),
                   };
                 case 'file':
                   return {
@@ -90,6 +93,9 @@ export function convertToModelMessages(
                     mediaType: part.mediaType,
                     filename: part.filename,
                     data: part.url,
+                    ...(part.providerMetadata != null
+                      ? { providerOptions: part.providerMetadata }
+                      : {}),
                   };
                 default:
                   return part;
@@ -130,6 +136,7 @@ export function convertToModelMessages(
                 content.push({
                   type: 'file' as const,
                   mediaType: part.mediaType,
+                  filename: part.filename,
                   data: part.url,
                 });
               } else if (part.type === 'reasoning') {
@@ -170,7 +177,10 @@ export function convertToModelMessages(
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
                     toolName,
-                    input: part.input,
+                    input:
+                      part.state === 'output-error'
+                        ? (part.input ?? part.rawInput)
+                        : part.input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
                       ? { providerOptions: part.callProviderMetadata }

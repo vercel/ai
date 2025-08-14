@@ -169,6 +169,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         tools: googleTools,
         toolConfig: googleToolConfig,
         cachedContent: googleOptions?.cachedContent,
+        labels: googleOptions?.labels,
       },
       warnings: [...warnings, ...toolWarnings],
     };
@@ -240,17 +241,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         // Clear the ID after use to avoid accidental reuse.
         lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null && part.text.length > 0) {
-        if (part.thought === true) {
-          content.push({ type: 'reasoning', text: part.text });
-        } else {
-          content.push({ type: 'text', text: part.text });
-        }
+        content.push({
+          type: part.thought === true ? 'reasoning' : 'text',
+          text: part.text,
+          providerMetadata: part.thoughtSignature
+            ? { google: { thoughtSignature: part.thoughtSignature } }
+            : undefined,
+        });
       } else if ('functionCall' in part) {
         content.push({
           type: 'tool-call' as const,
           toolCallId: this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args),
+          providerMetadata: part.thoughtSignature
+            ? { google: { thoughtSignature: part.thoughtSignature } }
+            : undefined,
         });
       } else if ('inlineData' in part) {
         content.push({
@@ -465,6 +471,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       controller.enqueue({
                         type: 'reasoning-start',
                         id: currentReasoningBlockId,
+                        providerMetadata: part.thoughtSignature
+                          ? {
+                              google: {
+                                thoughtSignature: part.thoughtSignature,
+                              },
+                            }
+                          : undefined,
                       });
                     }
 
@@ -472,6 +485,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       type: 'reasoning-delta',
                       id: currentReasoningBlockId,
                       delta: part.text,
+                      providerMetadata: part.thoughtSignature
+                        ? {
+                            google: { thoughtSignature: part.thoughtSignature },
+                          }
+                        : undefined,
                     });
                   } else {
                     // End any active reasoning block before starting text
@@ -489,6 +507,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       controller.enqueue({
                         type: 'text-start',
                         id: currentTextBlockId,
+                        providerMetadata: part.thoughtSignature
+                          ? {
+                              google: {
+                                thoughtSignature: part.thoughtSignature,
+                              },
+                            }
+                          : undefined,
                       });
                     }
 
@@ -496,6 +521,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       type: 'text-delta',
                       id: currentTextBlockId,
                       delta: part.text,
+                      providerMetadata: part.thoughtSignature
+                        ? {
+                            google: { thoughtSignature: part.thoughtSignature },
+                          }
+                        : undefined,
                     });
                   }
                 }
@@ -523,17 +553,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                     type: 'tool-input-start',
                     id: toolCall.toolCallId,
                     toolName: toolCall.toolName,
+                    providerMetadata: toolCall.providerMetadata,
                   });
 
                   controller.enqueue({
                     type: 'tool-input-delta',
                     id: toolCall.toolCallId,
                     delta: toolCall.args,
+                    providerMetadata: toolCall.providerMetadata,
                   });
 
                   controller.enqueue({
                     type: 'tool-input-end',
                     id: toolCall.toolCallId,
+                    providerMetadata: toolCall.providerMetadata,
                   });
 
                   controller.enqueue({
@@ -541,6 +574,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                     toolCallId: toolCall.toolCallId,
                     toolName: toolCall.toolName,
                     input: toolCall.args,
+                    providerMetadata: toolCall.providerMetadata,
                   });
 
                   hasToolCalls = true;
@@ -609,6 +643,7 @@ function getToolCallsFromParts({
   ) as Array<
     GoogleGenerativeAIContentPart & {
       functionCall: { name: string; args: unknown };
+      thoughtSignature?: string | null;
     }
   >;
 
@@ -619,17 +654,10 @@ function getToolCallsFromParts({
         toolCallId: generateId(),
         toolName: part.functionCall.name,
         args: JSON.stringify(part.functionCall.args),
+        providerMetadata: part.thoughtSignature
+          ? { google: { thoughtSignature: part.thoughtSignature } }
+          : undefined,
       }));
-}
-
-function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
-  const textParts = parts?.filter(part => 'text' in part) as Array<
-    GoogleGenerativeAIContentPart & { text: string }
-  >;
-
-  return textParts == null || textParts.length === 0
-    ? undefined
-    : textParts.map(part => part.text).join('');
 }
 
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
@@ -676,6 +704,7 @@ const contentSchema = z.object({
             name: z.string(),
             args: z.unknown(),
           }),
+          thoughtSignature: z.string().nullish(),
         }),
         z.object({
           inlineData: z.object({
@@ -698,6 +727,7 @@ const contentSchema = z.object({
             .nullish(),
           text: z.string().nullish(),
           thought: z.boolean().nullish(),
+          thoughtSignature: z.string().nullish(),
         }),
       ]),
     )

@@ -5,20 +5,13 @@ description: Learn how to use the Mixedbread provider.
 
 # Mixedbread Provider
 
-<Note type="warning">
-  This community provider is not yet compatible with AI SDK 5. It uses the
-  deprecated `.embedding()` method instead of the standard
-  `.textEmbeddingModel()` method. Please wait for the provider to be updated or
-  consider using an [AI SDK 5 compatible provider](/providers/ai-sdk-providers).
-</Note>
-
 [patelvivekdev/mixedbread-ai-provider](https://github.com/patelvivekdev/mixedbread-ai-provider) is a community provider that uses [Mixedbread](https://www.mixedbread.ai/) to provide Embedding support for the AI SDK.
 
 ## Setup
 
 The Mixedbread provider is available in the `mixedbread-ai-provider` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add mixedbread-ai-provider" dark />
   </Tab>
@@ -28,11 +21,15 @@ The Mixedbread provider is available in the `mixedbread-ai-provider` module. You
   <Tab>
     <Snippet text="yarn add mixedbread-ai-provider" dark />
   </Tab>
+
+  <Tab>
+    <Snippet text="bun add mixedbread-ai-provider" dark />
+  </Tab>
 </Tabs>
 
 ## Provider Instance
 
-You can import the default provider instance `mixedbread ` from `mixedbread-ai-provider`:
+You can import the default provider instance `mixedbread` from `mixedbread-ai-provider`:
 
 ```ts
 import { mixedbread } from 'mixedbread-ai-provider';
@@ -44,8 +41,7 @@ If you need a customized setup, you can import `createMixedbread` from `mixedbre
 import { createMixedbread } from 'mixedbread-ai-provider';
 
 const mixedbread = createMixedbread({
-  baseURL: 'https://api.mixedbread.ai/v1',
-  apiKey: process.env.MIXEDBREAD_API_KEY,
+  // custom settings
 });
 ```
 
@@ -53,50 +49,92 @@ You can use the following optional settings to customize the Mixedbread provider
 
 - **baseURL** _string_
 
-  The base URL of the Mixedbread API
+  The base URL of the Mixedbread API. The default prefix is `https://api.mixedbread.com/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header. It defaults to the `MIXEDBREAD_API_KEY` environment variable.
 
 - **headers** _Record&lt;string,string&gt;_
 
   Custom headers to include in the requests.
 
-## Embedding Models
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise<Response>_
 
-You can create models that call the [Mixedbread embeddings API](https://www.mixedbread.ai/api-reference/endpoints/embeddings)
-using the `.embedding()` factory method.
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation. Defaults to the global `fetch` function. You can use it as a middleware to intercept requests, or to provide a custom fetch implementation for e.g. testing.
+
+## Text Embedding Models
+
+You can create models that call the [Mixedbread embeddings API](https://www.mixedbread.com/api-reference/endpoints/embeddings)
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
 import { mixedbread } from 'mixedbread-ai-provider';
 
-const embeddingModel = mixedbread.embedding(
+const embeddingModel = mixedbread.textEmbeddingModel(
   'mixedbread-ai/mxbai-embed-large-v1',
 );
 ```
+
+You can use Mixedbread embedding models to generate embeddings with the `embed` function:
+
+```ts
+import { mixedbread } from 'mixedbread-ai-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: mixedbread.textEmbeddingModel('mixedbread-ai/mxbai-embed-large-v1'),
+  value: 'sunny day at the beach',
+});
+```
+
+Mixedbread embedding models support additional provider options that can be passed via `providerOptions.mixedbread`:
+
+```ts
+import { mixedbread } from 'mixedbread-ai-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: mixedbread.textEmbeddingModel('mixedbread-ai/mxbai-embed-large-v1'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    mixedbread: {
+      prompt: 'Generate embeddings for text',
+      normalized: true,
+      dimensions: 512,
+      encodingFormat: 'float16',
+    },
+  },
+});
+```
+
+The following provider options are available:
+
+- **prompt** _string_
+
+  An optional prompt to provide context to the model. Refer to the model's documentation for more information. A string between 1 and 256 characters.
+
+- **normalized** _boolean_
+
+  Option to normalize the embeddings.
+
+- **dimensions** _number_
+
+  The desired number of dimensions in the output vectors. Defaults to the model's maximum. A number between 1 and the model's maximum output dimensions. Only applicable for Matryoshka-based models.
+
+- **encodingFormat** _'float' | 'float16' | 'binary' | 'ubinary' | 'int8' | 'uint8' | 'base64'_
 
 ### Model Capabilities
 
-| Model                             | Default Dimensions | Context Length | Custom Dimensions   |
-| --------------------------------- | ------------------ | -------------- | ------------------- |
-| `mxbai-embed-large-v1`            | 1024               | 512            | <Check size={18} /> |
-| `deepset-mxbai-embed-de-large-v1` | 1024               | 512            | <Check size={18} /> |
+| Model                             | Context Length | Dimension | Custom Dimensions   |
+| --------------------------------- | -------------- | --------- | ------------------- |
+| `mxbai-embed-large-v1`            | 512            | 1024      | <Check size={18} /> |
+| `mxbai-embed-2d-large-v1`         | 512            | 1024      | <Check size={18} /> |
+| `deepset-mxbai-embed-de-large-v1` | 512            | 1024      | <Check size={18} /> |
+| `mxbai-embed-xsmall-v1`           | 4096           | 384       | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Mixedbread
-  docs](https://www.mixedbread.ai/docs/embeddings/models) for a full list of
+  docs](https://www.mixedbread.com/docs/models/embedding) for a full list of
   available models.
 </Note>
-
-### Add settings to the model
-
-The settings object should contain the settings you want to add to the model.
-
-```ts
-import { mixedbread } from 'mixedbread-ai-provider';
-
-const embeddingModel = mixedbread.embedding(
-  'mixedbread-ai/mxbai-embed-large-v1',
-  {
-    prompt: 'Generate embeddings for text', // Max 256 characters
-    dimensions: 512, // Max 1024 for embed-large-v1
-  },
-);
-```
