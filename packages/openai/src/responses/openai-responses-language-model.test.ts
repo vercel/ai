@@ -63,68 +63,72 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doGenerate', () => {
+    function prepareJsonResponse(body: any) {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body,
+      };
+    }
+
     describe('basic text response', () => {
       beforeEach(() => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: {
-            id: 'resp_67c97c0203188190a025beb4a75242bc',
-            object: 'response',
-            created_at: 1741257730,
-            status: 'completed',
-            error: null,
-            incomplete_details: null,
-            input: [],
-            instructions: null,
-            max_output_tokens: null,
-            model: 'gpt-4o-2024-07-18',
-            output: [
-              {
-                id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
-                type: 'message',
-                status: 'completed',
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'output_text',
-                    text: 'answer text',
-                    annotations: [],
-                  },
-                ],
-              },
-            ],
-            parallel_tool_calls: true,
-            previous_response_id: null,
-            reasoning: {
-              effort: null,
-              summary: null,
+        prepareJsonResponse({
+          id: 'resp_67c97c0203188190a025beb4a75242bc',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o-2024-07-18',
+          output: [
+            {
+              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'answer text',
+                  annotations: [],
+                },
+              ],
             },
-            store: true,
-            temperature: 1,
-            text: {
-              format: {
-                type: 'text',
-              },
-            },
-            tool_choice: 'auto',
-            tools: [],
-            top_p: 1,
-            truncation: 'disabled',
-            usage: {
-              input_tokens: 345,
-              input_tokens_details: {
-                cached_tokens: 234,
-              },
-              output_tokens: 538,
-              output_tokens_details: {
-                reasoning_tokens: 123,
-              },
-              total_tokens: 572,
-            },
-            user: null,
-            metadata: {},
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: {
+            effort: null,
+            summary: null,
           },
-        };
+          store: true,
+          temperature: 1,
+          text: {
+            format: {
+              type: 'text',
+            },
+          },
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 345,
+            input_tokens_details: {
+              cached_tokens: 234,
+            },
+            output_tokens: 538,
+            output_tokens_details: {
+              reasoning_tokens: 123,
+            },
+            total_tokens: 572,
+          },
+          user: null,
+          metadata: {},
+        });
       });
 
       it('should generate text', async () => {
@@ -777,6 +781,28 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send logprobs provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              logprobs: 5,
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          top_logprobs: 5,
+          include: ['message.output_text.logprobs'],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send responseFormat json format', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: { type: 'json' },
@@ -1193,6 +1219,132 @@ describe('OpenAIResponsesLanguageModel', () => {
           { type: 'unsupported-setting', setting: 'frequencyPenalty' },
           { type: 'unsupported-setting', setting: 'stopSequences' },
         ]);
+      });
+
+      it('should extract logprobs in providerMetadata', async () => {
+        prepareJsonResponse({
+          id: 'resp_67c97c0203188190a025beb4a75242bc',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o-2024-07-18',
+          output: [
+            {
+              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'answer text',
+                  annotations: [],
+                  logprobs: [
+                    {
+                      token: 'Hello',
+                      logprob: -0.0009994634,
+                      top_logprobs: [
+                        {
+                          token: 'Hello',
+                          logprob: -0.0009994634,
+                        },
+                        {
+                          token: 'Hi',
+                          logprob: -0.2,
+                        },
+                      ],
+                    },
+                    {
+                      token: '!',
+                      logprob: -0.13410144,
+                      top_logprobs: [
+                        {
+                          token: '!',
+                          logprob: -0.13410144,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: {
+            effort: null,
+            summary: null,
+          },
+          store: true,
+          temperature: 1,
+          text: {
+            format: {
+              type: 'text',
+            },
+          },
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 345,
+            input_tokens_details: {
+              cached_tokens: 234,
+            },
+            output_tokens: 538,
+            output_tokens_details: {
+              reasoning_tokens: 123,
+            },
+            total_tokens: 572,
+          },
+          user: null,
+          metadata: {},
+        });
+
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              logprobs: 2,
+            },
+          },
+        });
+
+        expect(result.providerMetadata?.openai.logprobs).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "logprob": -0.0009994634,
+                "token": "Hello",
+                "top_logprobs": [
+                  {
+                    "logprob": -0.0009994634,
+                    "token": "Hello",
+                  },
+                  {
+                    "logprob": -0.2,
+                    "token": "Hi",
+                  },
+                ],
+              },
+              {
+                "logprob": -0.13410144,
+                "token": "!",
+                "top_logprobs": [
+                  {
+                    "logprob": -0.13410144,
+                    "token": "!",
+                  },
+                ],
+              },
+            ],
+          ]
+        `);
       });
     });
 
@@ -2690,6 +2842,111 @@ describe('OpenAIResponsesLanguageModel', () => {
               "outputTokens": 0,
               "reasoningTokens": 0,
               "totalTokens": 0,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should should handle logprops', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          'data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_689cec4cf608819583c56813ccb0f5040f92af1765dd5aad","object":"response","created_at":1755114572,"status":"in_progress","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":1024,"max_tool_calls":null,"model":"gpt-4.1-nano-2025-04-14","output":[],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":null,"summary":null},"safety_identifier":null,"service_tier":"auto","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":5,"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n',
+          'data:{"type":"response.in_progress","sequence_number":1,"response":{"id":"resp_689cec4cf608819583c56813ccb0f5040f92af1765dd5aad","object":"response","created_at":1755114572,"status":"in_progress","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":1024,"max_tool_calls":null,"model":"gpt-4.1-nano-2025-04-14","output":[],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":null,"summary":null},"safety_identifier":null,"service_tier":"auto","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":5,"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n',
+          'data:{"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","type":"message","status":"in_progress","content":[],"role":"assistant"}}\n\n',
+          'data:{"type":"response.content_part.added","sequence_number":3,"item_id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","output_index":0,"content_index":0,"part":{"type":"output_text","annotations":[],"logprobs":[],"text":""}}\n\n',
+          'data:{"type":"response.output_text.delta","sequence_number":4,"item_id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","output_index":0,"content_index":0,"delta":"N","logprobs":[{"bytes":[78],"logprob":-2.9266366958618164,"token":"N","top_logprobs":[{"bytes":[80,108,101,97,115,101],"logprob":-0.5516367554664612,"token":"Please"},{"bytes":[89],"logprob":-1.0516366958618164,"token":"Y"},{"bytes":[78],"logprob":-2.9266366958618164,"token":"N"},{"bytes":[83,117,114,101],"logprob":-4.551636695861816,"token":"Sure"},{"bytes":[67,111,117,108,100],"logprob":-5.176636695861816,"token":"Could"}]}],"obfuscation":"t9egcKewVOXiQ6N"}\n\n',
+          'data:{"type":"response.output_text.done","sequence_number":5,"item_id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","output_index":0,"content_index":0,"text":"N","logprobs":[{"bytes":[78],"logprob":-2.9266366958618164,"token":"N","top_logprobs":[{"bytes":[80,108,101,97,115,101],"logprob":-0.5516367554664612,"token":"Please"},{"bytes":[89],"logprob":-1.0516366958618164,"token":"Y"},{"bytes":[78],"logprob":-2.9266366958618164,"token":"N"},{"bytes":[83,117,114,101],"logprob":-4.551636695861816,"token":"Sure"},{"bytes":[67,111,117,108,100],"logprob":-5.176636695861816,"token":"Could"}]}]}\n\n',
+          'data:{"type":"response.content_part.done","sequence_number":6,"item_id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","output_index":0,"content_index":0,"part":{"type":"output_text","annotations":[],"logprobs":[],"text":"N"}}\n\n',
+          'data:{"type":"response.output_item.done","sequence_number":7,"output_index":0,"item":{"id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","type":"message","status":"completed","content":[{"type":"output_text","annotations":[],"logprobs":[{"bytes":[78],"logprob":-2.926637,"token":"N","top_logprobs":[{"bytes":[80,108,101,97,115,101],"logprob":-0.551637,"token":"Please"},{"bytes":[89],"logprob":-1.051637,"token":"Y"},{"bytes":[78],"logprob":-2.926637,"token":"N"},{"bytes":[83,117,114,101],"logprob":-4.551637,"token":"Sure"},{"bytes":[67,111,117,108,100],"logprob":-5.176637,"token":"Could"}]}],"text":"N"}],"role":"assistant"}}\n\n',
+          'data:{"type":"response.completed","sequence_number":8,"response":{"id":"resp_689cec4cf608819583c56813ccb0f5040f92af1765dd5aad","object":"response","created_at":1755114572,"status":"completed","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":1024,"max_tool_calls":null,"model":"gpt-4.1-nano-2025-04-14","output":[{"id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","type":"message","status":"completed","content":[{"type":"output_text","annotations":[],"logprobs":[{"bytes":[78],"logprob":-2.926637,"token":"N","top_logprobs":[{"bytes":[80,108,101,97,115,101],"logprob":-0.551637,"token":"Please"},{"bytes":[89],"logprob":-1.051637,"token":"Y"},{"bytes":[78],"logprob":-2.926637,"token":"N"},{"bytes":[83,117,114,101],"logprob":-4.551637,"token":"Sure"},{"bytes":[67,111,117,108,100],"logprob":-5.176637,"token":"Could"}]}],"text":"N"}],"role":"assistant"}],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":null,"summary":null},"safety_identifier":null,"service_tier":"default","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":5,"top_p":1,"truncation":"disabled","usage":{"input_tokens":12,"input_tokens_details":{"cached_tokens":0},"output_tokens":2,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":14},"user":null,"metadata":{}}}\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            logprobs: 1,
+          },
+        },
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_689cec4cf608819583c56813ccb0f5040f92af1765dd5aad",
+            "modelId": "gpt-4.1-nano-2025-04-14",
+            "timestamp": 2025-08-13T19:49:32.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "N",
+            "id": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "logprobs": [
+                  [
+                    {
+                      "logprob": -2.9266366958618164,
+                      "token": "N",
+                      "top_logprobs": [
+                        {
+                          "logprob": -0.5516367554664612,
+                          "token": "Please",
+                        },
+                        {
+                          "logprob": -1.0516366958618164,
+                          "token": "Y",
+                        },
+                        {
+                          "logprob": -2.9266366958618164,
+                          "token": "N",
+                        },
+                        {
+                          "logprob": -4.551636695861816,
+                          "token": "Sure",
+                        },
+                        {
+                          "logprob": -5.176636695861816,
+                          "token": "Could",
+                        },
+                      ],
+                    },
+                  ],
+                ],
+                "responseId": "resp_689cec4cf608819583c56813ccb0f5040f92af1765dd5aad",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 12,
+              "outputTokens": 2,
+              "reasoningTokens": 0,
+              "totalTokens": 14,
             },
           },
         ]

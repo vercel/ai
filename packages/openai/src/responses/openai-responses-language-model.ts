@@ -5,7 +5,9 @@ import {
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
+  LanguageModelV2Text,
   LanguageModelV2Usage,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -23,6 +25,28 @@ import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
+
+/**
+ * `top_logprobs` request body argument can be set to an integer between
+ * 0 and 20 specifying the number of most likely tokens to return at each
+ * token position, each with an associated log probability.
+ *
+ * @see https://platform.openai.com/docs/api-reference/responses/create#responses_create-top_logprobs
+ */
+const TOP_LOGPROBS_MAX = 20;
+
+const LOGPROBS_SCHEMA = z.array(
+  z.object({
+    token: z.string(),
+    logprob: z.number(),
+    top_logprobs: z.array(
+      z.object({
+        token: z.string(),
+        logprob: z.number(),
+      }),
+    ),
+  }),
+);
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -105,6 +129,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
 
+    const topLogprobs =
+      typeof openaiOptions?.logprobs === 'number'
+        ? openaiOptions?.logprobs
+        : openaiOptions?.logprobs === true
+          ? TOP_LOGPROBS_MAX
+          : undefined;
+    const openaiOptionsInclude = topLogprobs
+      ? Array.isArray(openaiOptions?.include)
+        ? [...openaiOptions?.include, 'message.output_text.logprobs']
+        : ['message.output_text.logprobs']
+      : openaiOptions?.include;
+
     const baseArgs = {
       model: this.modelId,
       input: messages,
@@ -140,9 +176,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
-      include: openaiOptions?.include,
+      include: openaiOptionsInclude,
       prompt_cache_key: openaiOptions?.promptCacheKey,
       safety_identifier: openaiOptions?.safetyIdentifier,
+      top_logprobs: topLogprobs,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -289,6 +326,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   z.object({
                     type: z.literal('output_text'),
                     text: z.string(),
+                    logprobs: LOGPROBS_SCHEMA.nullish(),
                     annotations: z.array(
                       z.object({
                         type: z.literal('url_citation'),
@@ -370,6 +408,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     }
 
     const content: Array<LanguageModelV2Content> = [];
+    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
 
     // map response content to content array
     for (const part of response.output) {
@@ -397,6 +436,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
         case 'message': {
           for (const contentPart of part.content) {
+            if (
+              options.providerOptions?.openai?.logprobs &&
+              contentPart.logprobs
+            ) {
+              logprobs.push(contentPart.logprobs);
+            }
+
             content.push({
               type: 'text',
               text: contentPart.text,
@@ -417,6 +463,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               });
             }
           }
+
           break;
         }
 
@@ -502,6 +549,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }
     }
 
+    const providerMetadata: SharedV2ProviderMetadata = {
+      openai: { responseId: response.id },
+    };
+
+    if (logprobs.length > 0) {
+      providerMetadata.openai.logprobs = logprobs;
+    }
+
     return {
       content,
       finishReason: mapOpenAIResponseFinishReason({
@@ -525,11 +580,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         headers: responseHeaders,
         body: rawResponse,
       },
-      providerMetadata: {
-        openai: {
-          responseId: response.id,
-        },
-      },
+      providerMetadata,
       warnings,
     };
   }
@@ -565,6 +616,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
+    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
     let responseId: string | null = null;
     const ongoingToolCalls: Record<
       number,
@@ -829,6 +881,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 id: value.item_id,
                 delta: value.delta,
               });
+
+              if (value.logprobs) {
+                logprobs.push(value.logprobs);
+              }
             } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
               // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk.
               if (value.summary_index > 0) {
@@ -890,15 +946,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            const providerMetadata: SharedV2ProviderMetadata = {
+              openai: {
+                responseId,
+              },
+            };
+
+            if (logprobs.length > 0) {
+              providerMetadata.openai.logprobs = logprobs;
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage,
-              providerMetadata: {
-                openai: {
-                  responseId,
-                },
-              },
+              providerMetadata,
             });
           },
         }),
@@ -924,6 +986,7 @@ const textDeltaChunkSchema = z.object({
   type: z.literal('response.output_text.delta'),
   item_id: z.string(),
   delta: z.string(),
+  logprobs: LOGPROBS_SCHEMA.nullish(),
 });
 
 const errorChunkSchema = z.object({
@@ -1269,11 +1332,33 @@ const openaiResponsesProviderOptionsSchema = z.object({
   reasoningSummary: z.string().nullish(),
   serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
   include: z
-    .array(z.enum(['reasoning.encrypted_content', 'file_search_call.results']))
+    .array(
+      z.enum([
+        'reasoning.encrypted_content',
+        'file_search_call.results',
+        'message.output_text.logprobs',
+      ]),
+    )
     .nullish(),
   textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
   promptCacheKey: z.string().nullish(),
   safetyIdentifier: z.string().nullish(),
+
+  /**
+   * Return the log probabilities of the tokens.
+   *
+   * Setting to true will return the log probabilities of the tokens that
+   * were generated.
+   *
+   * Setting to a number will return the log probabilities of the top n
+   * tokens that were generated.
+   *
+   * @see https://platform.openai.com/docs/api-reference/responses/create
+   * @see https://cookbook.openai.com/examples/using_logprobs
+   */
+  logprobs: z
+    .union([z.boolean(), z.number().min(1).max(TOP_LOGPROBS_MAX)])
+    .optional(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<
