@@ -16,18 +16,25 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(result).toEqual([
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Hello' },
-          {
-            type: 'image_url',
-            image_url: { url: 'data:image/png;base64,AAECAw==' },
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "text",
+            },
+            {
+              "image_url": {
+                "url": "data:image/png;base64,AAECAw==",
+              },
+              "type": "image_url",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
   });
 
   it('should convert messages with image parts from Uint8Array', async () => {
@@ -45,18 +52,25 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(result).toEqual([
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Hi' },
-          {
-            type: 'image_url',
-            image_url: { url: 'data:image/png;base64,AAECAw==' },
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Hi",
+              "type": "text",
+            },
+            {
+              "image_url": {
+                "url": "data:image/png;base64,AAECAw==",
+              },
+              "type": "image_url",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
   });
 
   it('should convert messages with only a text part to a string content', async () => {
@@ -67,7 +81,14 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(result).toEqual([{ role: 'user', content: 'Hello' }]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "Hello",
+          "role": "user",
+        },
+      ]
+    `);
   });
 });
 
@@ -98,26 +119,29 @@ describe('tool calls', () => {
       },
     ]);
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: '',
-        tool_calls: [
-          {
-            type: 'function',
-            id: 'quux',
-            function: {
-              name: 'thwomp',
-              arguments: JSON.stringify({ foo: 'bar123' }),
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "reasoning": "",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{"foo":"bar123"}",
+                "name": "thwomp",
+              },
+              "id": "quux",
+              "type": "function",
             },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: JSON.stringify({ oof: '321rab' }),
-        tool_call_id: 'quux',
-      },
-    ]);
+          ],
+        },
+        {
+          "content": "{"oof":"321rab"}",
+          "role": "tool",
+          "tool_call_id": "quux",
+        },
+      ]
+    `);
   });
 });
