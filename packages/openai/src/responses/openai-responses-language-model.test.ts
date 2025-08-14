@@ -2527,8 +2527,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 status: 'completed',
                 action: {
                   type: 'search',
-                  query: 'Vercel AI SDK next version features'
-                }
+                  query: 'Vercel AI SDK next version features',
+                },
               },
               {
                 type: 'message',
@@ -2539,10 +2539,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                   {
                     type: 'output_text',
                     text: 'Based on the search results, here are the upcoming features.',
-                    annotations: []
-                  }
-                ]
-              }
+                    annotations: [],
+                  },
+                ],
+              },
             ],
             parallel_tool_calls: true,
             previous_response_id: null,
@@ -2551,7 +2551,9 @@ describe('OpenAIResponsesLanguageModel', () => {
             temperature: 0,
             text: { format: { type: 'text' } },
             tool_choice: 'auto',
-            tools: [{ type: 'web_search_preview', search_context_size: 'medium' }],
+            tools: [
+              { type: 'web_search_preview', search_context_size: 'medium' },
+            ],
             top_p: 1,
             truncation: 'disabled',
             usage: {
@@ -2559,11 +2561,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               input_tokens_details: { cached_tokens: 0 },
               output_tokens: 25,
               output_tokens_details: { reasoning_tokens: 0 },
-              total_tokens: 75
+              total_tokens: 75,
             },
             user: null,
-            metadata: {}
-          }
+            metadata: {},
+          },
         };
 
         const result = await createModel('o3-2025-04-16').doGenerate({

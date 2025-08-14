@@ -359,10 +359,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 type: z.literal('web_search_call'),
                 id: z.string(),
                 status: z.string().optional(),
-                action: z.object({
-                  type: z.literal('search'),
-                  query: z.string().optional(),
-                }).nullish(),
+                action: z
+                  .object({
+                    type: z.literal('search'),
+                    query: z.string().optional(),
+                  })
+                  .nullish(),
               }),
               z.object({
                 type: z.literal('computer_call'),
@@ -519,9 +521,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-result',
             toolCallId: part.id,
             toolName: 'web_search_preview',
-            result: { 
+            result: {
               status: part.status || 'completed',
-              ...(part.action?.query && { query: part.action.query })
+              ...(part.action?.query && { query: part.action.query }),
             },
             providerExecuted: true,
           });
@@ -801,7 +803,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   result: {
                     type: 'web_search_tool_result',
                     status: value.item.status || 'completed',
-                    ...(value.item.action?.query && { query: value.item.action.query })
+                    ...(value.item.action?.query && {
+                      query: value.item.action.query,
+                    }),
                   },
                   providerExecuted: true,
                 });
@@ -1077,10 +1081,12 @@ const responseOutputItemAddedSchema = z.object({
       type: z.literal('web_search_call'),
       id: z.string(),
       status: z.string(),
-      action: z.object({
-        type: z.literal('search'),
-        query: z.string().optional(),
-      }).nullish(),
+      action: z
+        .object({
+          type: z.literal('search'),
+          query: z.string().optional(),
+        })
+        .nullish(),
     }),
     z.object({
       type: z.literal('computer_call'),
@@ -1133,10 +1139,12 @@ const responseOutputItemDoneSchema = z.object({
       type: z.literal('web_search_call'),
       id: z.string(),
       status: z.literal('completed'),
-      action: z.object({
-        type: z.literal('search'),
-        query: z.string().optional(),
-      }).nullish(),
+      action: z
+        .object({
+          type: z.literal('search'),
+          query: z.string().optional(),
+        })
+        .nullish(),
     }),
     z.object({
       type: z.literal('computer_call'),
