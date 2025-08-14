@@ -1423,6 +1423,243 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('code execution', () => {
+      const TEST_PROMPT = [
+        {
+          role: 'user' as const,
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Write a Python function to calculate factorial',
+            },
+          ],
+        },
+      ];
+
+      function prepareJsonResponse(body: any) {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body,
+        };
+      }
+
+      it('should enable server-side code execution when using anthropic.tools.codeExecution_20250522', async () => {
+        prepareJsonResponse({
+          type: 'message',
+          id: 'msg_test',
+          content: [
+            {
+              type: 'text',
+              text: 'Here is a Python function to calculate factorial',
+            },
+          ],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 10, output_tokens: 20 },
+        });
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250522',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tools).toHaveLength(1);
+        expect(requestBody.tools[0]).toEqual({
+          type: 'code_execution_20250522',
+          name: 'code_execution',
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'code-execution-2025-05-22',
+        );
+      });
+
+      it('should handle server-side code execution results', async () => {
+        prepareJsonResponse({
+          type: 'message',
+          id: 'msg_test',
+          content: [
+            {
+              type: 'server_tool_use',
+              id: 'tool_1',
+              name: 'code_execution',
+              input: { code: 'print("Hello, World!")' },
+            },
+            {
+              type: 'code_execution_tool_result',
+              tool_use_id: 'tool_1',
+              content: {
+                type: 'code_execution_result',
+                stdout: 'Hello, World!\n',
+                stderr: '',
+                return_code: 0,
+              },
+            },
+            {
+              type: 'text',
+              text: 'The code executed successfully with output: Hello, World!',
+            },
+          ],
+          stop_reason: 'end_turn',
+          usage: {
+            input_tokens: 15,
+            output_tokens: 25,
+            server_tool_use: { code_execution_requests: 1 },
+          },
+        });
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250522',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{\"code\":\"print(\\\"Hello, World!\\\")\"}",
+              "providerExecuted": true,
+              "toolCallId": "tool_1",
+              "toolName": "code_execution",
+              "type": "tool-call",
+            },
+            {
+              "providerExecuted": true,
+              "result": {
+                "return_code": 0,
+                "stderr": "",
+                "stdout": "Hello, World!
+          ",
+                "type": "code_execution_result",
+              },
+              "toolCallId": "tool_1",
+              "toolName": "code_execution",
+              "type": "tool-result",
+            },
+            {
+              "text": "The code executed successfully with output: Hello, World!",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should handle server-side code execution errors', async () => {
+        prepareJsonResponse({
+          type: 'message',
+          id: 'msg_test',
+          content: [
+            {
+              type: 'code_execution_tool_result',
+              tool_use_id: 'tool_1',
+              content: {
+                type: 'code_execution_tool_result_error',
+                error_code: 'unavailable',
+              },
+            },
+            {
+              type: 'text',
+              text: 'The code execution service is currently unavailable.',
+            },
+          ],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 10, output_tokens: 20 },
+        });
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250522',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "isError": true,
+              "providerExecuted": true,
+              "result": {
+                "errorCode": "unavailable",
+                "type": "code_execution_tool_result_error",
+              },
+              "toolCallId": "tool_1",
+              "toolName": "code_execution",
+              "type": "tool-result",
+            },
+            {
+              "text": "The code execution service is currently unavailable.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should work alongside regular client-side tools', async () => {
+        prepareJsonResponse({
+          type: 'message',
+          id: 'msg_test',
+          content: [
+            { type: 'text', text: 'I can execute code and calculate.' },
+          ],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 10, output_tokens: 20 },
+        });
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'calculator',
+              description: 'Calculate math expressions',
+              inputSchema: { type: 'object', properties: {} },
+            },
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250522',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tools).toHaveLength(2);
+
+        expect(requestBody.tools[0]).toMatchObject({
+          name: 'calculator',
+          description: 'Calculate math expressions',
+          input_schema: { type: 'object', properties: {} },
+        });
+        expect(requestBody.tools[0]).not.toHaveProperty('type');
+
+        expect(requestBody.tools[1]).toEqual({
+          type: 'code_execution_20250522',
+          name: 'code_execution',
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'code-execution-2025-05-22',
+        );
+      });
+    });
+
     it('should throw an api error when the server is overloaded', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'error',

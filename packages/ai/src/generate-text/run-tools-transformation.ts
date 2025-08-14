@@ -3,6 +3,7 @@ import {
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import {
+  executeTool,
   generateId,
   getErrorMessage,
   ModelMessage,
@@ -281,12 +282,31 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                   let output: unknown;
 
                   try {
-                    output = await tool.execute!(toolCall.input, {
-                      toolCallId: toolCall.toolCallId,
-                      messages,
-                      abortSignal,
-                      experimental_context,
+                    const stream = executeTool({
+                      execute: tool.execute!.bind(tool),
+                      input: toolCall.input,
+                      options: {
+                        toolCallId: toolCall.toolCallId,
+                        messages,
+                        abortSignal,
+                        experimental_context,
+                      },
                     });
+
+                    for await (const part of stream) {
+                      toolResultsStreamController!.enqueue({
+                        ...toolCall,
+                        type: 'tool-result',
+                        output: part.output,
+                        ...(part.type === 'preliminary' && {
+                          preliminary: true,
+                        }),
+                      });
+
+                      if (part.type === 'final') {
+                        output = part.output;
+                      }
+                    }
                   } catch (error) {
                     recordErrorOnSpan(span, error);
                     toolResultsStreamController!.enqueue({
@@ -299,12 +319,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     attemptClose();
                     return;
                   }
-
-                  toolResultsStreamController!.enqueue({
-                    ...toolCall,
-                    type: 'tool-result',
-                    output,
-                  } satisfies TypedToolResult<TOOLS>);
 
                   outstandingToolResults.delete(toolExecutionId);
                   attemptClose();

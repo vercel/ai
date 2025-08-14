@@ -173,6 +173,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       prediction: openaiOptions.prediction,
       reasoning_effort: openaiOptions.reasoningEffort,
       service_tier: openaiOptions.serviceTier,
+      prompt_cache_key: openaiOptions.promptCacheKey,
+      safety_identifier: openaiOptions.safetyIdentifier,
 
       // messages:
       messages,
@@ -842,14 +844,17 @@ const openaiChatChunkSchema = z.union([
 ]);
 
 function isReasoningModel(modelId: string) {
-  return modelId.startsWith('o') || modelId.startsWith('gpt-5');
+  return (
+    (modelId.startsWith('o') || modelId.startsWith('gpt-5')) &&
+    !modelId.startsWith('gpt-5-chat')
+  );
 }
 
 function supportsFlexProcessing(modelId: string) {
   return (
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini') ||
-    modelId.startsWith('gpt-5')
+    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'))
   );
 }
 
@@ -857,7 +862,9 @@ function supportsPriorityProcessing(modelId: string) {
   return (
     modelId.startsWith('gpt-4') ||
     modelId.startsWith('gpt-5-mini') ||
-    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-nano')) ||
+    (modelId.startsWith('gpt-5') &&
+      !modelId.startsWith('gpt-5-nano') &&
+      !modelId.startsWith('gpt-5-chat')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini')
   );

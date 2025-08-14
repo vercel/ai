@@ -16,21 +16,30 @@ export const maxDuration = 30;
 const getWeatherInformationTool = tool({
   description: 'show the weather in a given city to the user',
   inputSchema: z.object({ city: z.string() }),
-  execute: async ({ city }: { city: string }, { messages }) => {
+  async *execute({ city }: { city: string }, { messages }) {
+    yield { state: 'loading' as const };
+
     // count the number of assistant messages. throw error if 2 or less
     const assistantMessageCount = messages.filter(
       message => message.role === 'assistant',
     ).length;
 
-    if (assistantMessageCount <= 2) {
-      throw new Error('could not get weather information');
-    }
+    // if (assistantMessageCount <= 2) {
+    //   throw new Error('could not get weather information');
+    // }
 
     // Add artificial delay of 5 seconds
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
-    return weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
+    const weather =
+      weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
+
+    yield {
+      state: 'ready' as const,
+      temperature: 72,
+      weather,
+    };
   },
 
   onInputStart: () => {

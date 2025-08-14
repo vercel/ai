@@ -1,5 +1,22 @@
 # @ai-sdk/gateway
 
+## 1.0.6
+
+### Patch Changes
+
+- eefa730: refactor(provider/gateway): Make claude-sonnet-4 and similar the primary model slug for Anthropic v4 models
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
+## 1.0.5
+
+### Patch Changes
+
+- cf7b2ad: feat(provider/gateway): Add GLM-4.5V
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
 ## 1.0.4
 
 ### Patch Changes

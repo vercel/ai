@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 3.0.3
+
+### Patch Changes
+
+- 034e229: fix(provider/utils): fix FlexibleSchema type inference with zod/v3
+- f25040d: fix(provider-utils): fix tools type inference
+
+## 3.0.2
+
+### Patch Changes
+
+- 38ac190: feat(ai): preliminary tool results
+
 ## 3.0.1
 
 ### Patch Changes
