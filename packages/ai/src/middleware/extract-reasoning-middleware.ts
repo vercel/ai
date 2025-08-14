@@ -110,6 +110,11 @@ export function extractReasoningMiddleware({
                 return;
               }
 
+              if (chunk.type === 'text-end' && delayedTextStart) {
+                controller.enqueue(delayedTextStart);
+                delayedTextStart = undefined;
+              }
+
               if (chunk.type !== 'text-delta') {
                 controller.enqueue(chunk);
                 return;
@@ -150,10 +155,6 @@ export function extractReasoningMiddleware({
                       type: 'reasoning-start',
                       id: `reasoning-${activeExtraction.idCounter}`,
                     });
-                    if (delayedTextStart) {
-                      controller.enqueue(delayedTextStart);
-                      delayedTextStart = undefined;
-                    }
                   }
 
                   if (activeExtraction.isReasoning) {
