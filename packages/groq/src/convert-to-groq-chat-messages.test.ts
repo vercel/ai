@@ -144,4 +144,44 @@ describe('tool calls', () => {
       ]
     `);
   });
+
+  it('should send reasoning if present', () => {
+    const result = convertToGroqChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'I think the tool will return the correct value.',
+          },
+          {
+            type: 'tool-call',
+            input: { foo: 'bar123' },
+            toolCallId: 'quux',
+            toolName: 'thwomp',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "reasoning": "I think the tool will return the correct value.",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{"foo":"bar123"}",
+                "name": "thwomp",
+              },
+              "id": "quux",
+              "type": "function",
+            },
+          ],
+        },
+      ]
+    `);
+  });
 });
