@@ -1,4 +1,4 @@
-import { IdGenerator } from '@ai-sdk/provider-utils';
+import { IdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
 import {
   generateText,
   GenerateTextOnStepFinishCallback,
@@ -125,6 +125,12 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
    */
       providerMetadata?: ProviderMetadata;
+      /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+         */
+      providerOptions?: ProviderOptions;
     },
   ): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
     return generateText({ ...this.settings, ...options });
@@ -138,6 +144,12 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
    */
       providerMetadata?: ProviderMetadata;
+      /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+         */
+      providerOptions?: ProviderOptions;
     },
   ): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
     return streamText({ ...this.settings, ...options });
