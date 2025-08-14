@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 2.0.13
+
+### Patch Changes
+
+- ddc9d99: Implements `logprobs` for OpenAI `providerOptions` and `providerMetaData` in `OpenAIResponsesLanguageModel`
+
+  You can now set `providerOptions.openai.logprobs` when using `generateText()` and retrieve logprobs from the response via `result.providerMetadata?.openai`
+
 ## 2.0.12
 
 ### Patch Changes

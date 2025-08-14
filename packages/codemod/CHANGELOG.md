@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 2.0.5
+
+### Patch Changes
+
+- bc330ec: feat(codemod): add DataStream to UIMessage method renaming codemod
+
 ## 2.0.4
 
 ### Patch Changes
