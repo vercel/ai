@@ -123,7 +123,7 @@ describe('tool calls', () => {
       [
         {
           "content": "",
-          "reasoning": "",
+          "reasoning": undefined,
           "role": "assistant",
           "tool_calls": [
             {
@@ -180,6 +180,28 @@ describe('tool calls', () => {
               "type": "function",
             },
           ],
+        },
+      ]
+    `);
+  });
+
+  it('should not include reasoning field when no reasoning content is present', () => {
+    const result = convertToGroqChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Hello, how can I help you?' },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "Hello, how can I help you?",
+          "reasoning": undefined,
+          "role": "assistant",
+          "tool_calls": undefined,
         },
       ]
     `);
