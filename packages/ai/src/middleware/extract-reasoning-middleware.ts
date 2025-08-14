@@ -94,6 +94,8 @@ export function extractReasoningMiddleware({
         }
       > = {};
 
+      let delayedTextStart: LanguageModelV2StreamPart | undefined;
+
       return {
         stream: stream.pipeThrough(
           new TransformStream<
@@ -101,6 +103,13 @@ export function extractReasoningMiddleware({
             LanguageModelV2StreamPart
           >({
             transform: (chunk, controller) => {
+              // do not send `text-start` before `reasoning-start`
+              // https://github.com/vercel/ai/issues/7774
+              if (chunk.type === 'text-start') {
+                delayedTextStart = chunk;
+                return;
+              }
+
               if (chunk.type !== 'text-delta') {
                 controller.enqueue(chunk);
                 return;
@@ -141,21 +150,29 @@ export function extractReasoningMiddleware({
                       type: 'reasoning-start',
                       id: `reasoning-${activeExtraction.idCounter}`,
                     });
+                    if (delayedTextStart) {
+                      controller.enqueue(delayedTextStart);
+                      delayedTextStart = undefined;
+                    }
                   }
 
-                  controller.enqueue(
-                    activeExtraction.isReasoning
-                      ? {
-                          type: 'reasoning-delta',
-                          delta: prefix + text,
-                          id: `reasoning-${activeExtraction.idCounter}`,
-                        }
-                      : {
-                          type: 'text-delta',
-                          delta: prefix + text,
-                          id: activeExtraction.textId,
-                        },
-                  );
+                  if (activeExtraction.isReasoning) {
+                    controller.enqueue({
+                      type: 'reasoning-delta',
+                      delta: prefix + text,
+                      id: `reasoning-${activeExtraction.idCounter}`,
+                    });
+                  } else {
+                    if (delayedTextStart) {
+                      controller.enqueue(delayedTextStart);
+                      delayedTextStart = undefined;
+                    }
+                    controller.enqueue({
+                      type: 'text-delta',
+                      delta: prefix + text,
+                      id: activeExtraction.textId,
+                    });
+                  }
                   activeExtraction.afterSwitch = false;
 
                   if (activeExtraction.isReasoning) {
