@@ -1,5 +1,12 @@
 # @ai-sdk/google-vertex
 
+## 3.0.8
+
+### Patch Changes
+
+- 9010126: add autoTruncate support for google vertex
+- c0a9d12: fix(provider/vertex): pass taskType for each content value. taskType needs to be passed in instances and not parameters for google-vertex
+
 ## 3.0.7
 
 ### Patch Changes
