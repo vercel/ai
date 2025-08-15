@@ -446,7 +446,7 @@ When building an agent for tasks like mathematical analysis or report generation
 ```ts highlight="6,16-29,31,45"
 import { openai } from '@ai-sdk/openai';
 import { generateText, tool, stepCountIs } from 'ai';
-import 'dotenv/config';
+import * as mathjs from 'mathjs';
 import { z } from 'zod';
 
 const { toolCalls } = await generateText({
