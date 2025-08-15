@@ -38,6 +38,14 @@ const sourceDocumentUIPartSchema = z.object({
   providerMetadata: providerMetadataSchema.optional(),
 });
 
+const fileUIPartSchema = z.object({
+  type: z.literal('file'),
+  mediaType: z.string(),
+  filename: z.string().optional(),
+  url: z.string(),
+  providerMetadata: providerMetadataSchema.optional(),
+});
+
 const uiMessageSchema = z.object({
   id: z.string(),
   role: z.enum(['system', 'user', 'assistant']),
@@ -48,6 +56,7 @@ const uiMessageSchema = z.object({
       reasoningUIPartSchema,
       sourceUrlUIPartSchema,
       sourceDocumentUIPartSchema,
+      fileUIPartSchema,
     ]),
   ),
 });

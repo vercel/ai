@@ -207,4 +207,42 @@ describe('validateUIMessages', () => {
       `);
     });
   });
+
+  describe('file parts', () => {
+    it('should validate an assistant message with a file part', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'file',
+                mediaType: 'text/plain',
+                url: 'https://example.com',
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "mediaType": "text/plain",
+                "type": "file",
+                "url": "https://example.com",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+  });
 });
