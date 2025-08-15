@@ -123,7 +123,6 @@ describe('tool calls', () => {
       [
         {
           "content": "",
-          "reasoning": undefined,
           "role": "assistant",
           "tool_calls": [
             {
@@ -197,9 +196,7 @@ describe('tool calls', () => {
       [
         {
           "content": "Hello, how can I help you?",
-          "reasoning": undefined,
           "role": "assistant",
-          "tool_calls": undefined,
         },
       ]
     `);
