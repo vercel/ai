@@ -21,12 +21,34 @@ const reasoningUIPartSchema = z.object({
   providerMetadata: providerMetadataSchema.optional(),
 });
 
+const sourceUrlUIPartSchema = z.object({
+  type: z.literal('source-url'),
+  sourceId: z.string(),
+  url: z.string(),
+  title: z.string().optional(),
+  providerMetadata: providerMetadataSchema.optional(),
+});
+
+const sourceDocumentUIPartSchema = z.object({
+  type: z.literal('source-document'),
+  sourceId: z.string(),
+  mediaType: z.string(),
+  title: z.string(),
+  filename: z.string().optional(),
+  providerMetadata: providerMetadataSchema.optional(),
+});
+
 const uiMessageSchema = z.object({
   id: z.string(),
   role: z.enum(['system', 'user', 'assistant']),
   metadata: z.unknown().optional(),
   parts: z.array(
-    z.discriminatedUnion('type', [textUIPartSchema, reasoningUIPartSchema]),
+    z.discriminatedUnion('type', [
+      textUIPartSchema,
+      reasoningUIPartSchema,
+      sourceUrlUIPartSchema,
+      sourceDocumentUIPartSchema,
+    ]),
   ),
 });
 

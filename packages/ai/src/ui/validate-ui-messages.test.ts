@@ -125,4 +125,86 @@ describe('validateUIMessages', () => {
       `);
     });
   });
+
+  describe('source url parts', () => {
+    it('should validate an assistant message with a source url part', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'source-url',
+                sourceId: '1',
+                url: 'https://example.com',
+                title: 'Example',
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "sourceId": "1",
+                "title": "Example",
+                "type": "source-url",
+                "url": "https://example.com",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('source document parts', () => {
+    it('should validate an assistant message with a source document part', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'source-document',
+                sourceId: '1',
+                mediaType: 'text/plain',
+                title: 'Example',
+                filename: 'example.txt',
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "filename": "example.txt",
+                "mediaType": "text/plain",
+                "sourceId": "1",
+                "title": "Example",
+                "type": "source-document",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+  });
 });
