@@ -1,12 +1,20 @@
-import { z } from 'zod/v4';
-import { UIMessage } from './ui-messages';
 import { validateTypes } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import { providerMetadataSchema } from '../types/provider-metadata';
+import { UIMessage } from './ui-messages';
+
+const textUIPartSchema = z.object({
+  type: z.literal('text'),
+  text: z.string(),
+  state: z.enum(['streaming', 'done']).optional(),
+  providerMetadata: providerMetadataSchema.optional(),
+});
 
 const uiMessageSchema = z.object({
   id: z.string(),
   role: z.enum(['system', 'user', 'assistant']),
   metadata: z.unknown().optional(),
-  parts: z.array(z.unknown()),
+  parts: z.array(z.discriminatedUnion('type', [textUIPartSchema])),
 });
 
 export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
