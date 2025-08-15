@@ -189,7 +189,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     const choice = response.choices[0];
     const content: Array<LanguageModelV2Content> = [];
 
-    // extract reasoning content first
+    // process content parts in order to preserve sequence
     if (
       choice.message.content != null &&
       Array.isArray(choice.message.content)
@@ -200,27 +200,23 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
           if (reasoningText.length > 0) {
             content.push({ type: 'reasoning', text: reasoningText });
           }
+        } else if (part.type === 'text') {
+          if (part.text.length > 0) {
+            content.push({ type: 'text', text: part.text });
+          }
         }
       }
+    } else {
+      // handle legacy string content
+      const text = extractTextContent(choice.message.content);
+      if (text != null && text.length > 0) {
+        content.push({ type: 'text', text });
+      }
     }
-
-    // text content:
-    let text = extractTextContent(choice.message.content);
 
     // when there is a trailing assistant message, mistral will send the
     // content of that message again. we skip this repeated content to
     // avoid duplication, e.g. in continuation mode.
-    const lastMessage = body.messages[body.messages.length - 1];
-    if (
-      lastMessage.role === 'assistant' &&
-      text?.startsWith(lastMessage.content)
-    ) {
-      text = text.slice(lastMessage.content.length);
-    }
-
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
-    }
 
     // tool calls:
     if (choice.message.tool_calls != null) {
@@ -332,6 +328,12 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
                   const reasoningDelta = extractReasoningContent(part.thinking);
                   if (reasoningDelta.length > 0) {
                     if (activeReasoningId == null) {
+                      // end any active text before starting reasoning
+                      if (activeText) {
+                        controller.enqueue({ type: 'text-end', id: '0' });
+                        activeText = false;
+                      }
+                      
                       activeReasoningId = generateId();
                       controller.enqueue({
                         type: 'reasoning-start',

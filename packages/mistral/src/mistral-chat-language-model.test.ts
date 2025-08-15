@@ -103,7 +103,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "text": "and more content",
+          "text": "prefix and more content",
           "type": "text",
         },
       ]
@@ -205,6 +205,116 @@ describe('doGenerate', () => {
         },
         {
           "text": "Here is my answer.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should preserve ordering of mixed thinking and text content', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'mixed-content-test',
+        object: 'chat.completion',
+        created: 1722349660,
+        model: 'magistral-medium-2507',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'thinking',
+                  thinking: [{ type: 'text', text: 'First thought.' }],
+                },
+                {
+                  type: 'text',
+                  text: 'Partial answer.',
+                },
+                {
+                  type: 'thinking',
+                  thinking: [{ type: 'text', text: 'Second thought.' }],
+                },
+                {
+                  type: 'text',
+                  text: 'Final answer.',
+                },
+              ],
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 10, total_tokens: 30, completion_tokens: 20 },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "First thought.",
+          "type": "reasoning",
+        },
+        {
+          "text": "Partial answer.",
+          "type": "text",
+        },
+        {
+          "text": "Second thought.",
+          "type": "reasoning",
+        },
+        {
+          "text": "Final answer.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should handle empty thinking content', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'empty-thinking-test',
+        object: 'chat.completion',
+        created: 1722349660,
+        model: 'magistral-medium-2507',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'thinking',
+                  thinking: [],
+                },
+                {
+                  type: 'text',
+                  text: 'Just the answer.',
+                },
+              ],
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 10, total_tokens: 30, completion_tokens: 20 },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Just the answer.",
           "type": "text",
         },
       ]
