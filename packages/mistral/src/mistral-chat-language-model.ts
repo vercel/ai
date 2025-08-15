@@ -459,11 +459,9 @@ function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
         textContent.push(chunk.text);
         break;
       case 'thinking':
-        // thinking content is currently ignored in text extraction
-        break;
       case 'image_url':
       case 'reference':
-        // image content or reference content is currently ignored
+        // thinking, image content, and reference content are currently ignored
         break;
       default: {
         const _exhaustiveCheck: never = type;
