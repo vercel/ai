@@ -185,6 +185,21 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     const choice = response.choices[0];
     const content: Array<LanguageModelV2Content> = [];
 
+    // extract reasoning content first
+    if (choice.message.content != null && Array.isArray(choice.message.content)) {
+      for (const part of choice.message.content) {
+        if (part.type === 'thinking') {
+          const reasoningText = part.thinking
+            .filter(chunk => chunk.type === 'text')
+            .map(chunk => chunk.text)
+            .join('');
+          if (reasoningText.length > 0) {
+            content.push({ type: 'reasoning', text: reasoningText });
+          }
+        }
+      }
+    }
+
     // text content:
     let text = extractTextContent(choice.message.content);
 
@@ -391,9 +406,12 @@ function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
       case 'text':
         textContent.push(chunk.text);
         break;
+      case 'thinking':
+        // thinking content is currently ignored in text extraction
+        break;
       case 'image_url':
       case 'reference':
-        // image content or reference content is currently ignored.
+        // image content or reference content is currently ignored
         break;
       default: {
         const _exhaustiveCheck: never = type;
@@ -427,6 +445,15 @@ const mistralContentSchema = z
         z.object({
           type: z.literal('reference'),
           reference_ids: z.array(z.number()),
+        }),
+        z.object({
+          type: z.literal('thinking'),
+          thinking: z.array(
+            z.object({
+              type: z.literal('text'),
+              text: z.string(),
+            }),
+          ),
         }),
       ]),
     ),

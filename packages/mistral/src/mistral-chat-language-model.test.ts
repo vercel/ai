@@ -153,6 +153,60 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract thinking content as reasoning', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'test-thinking-id',
+        object: 'chat.completion',
+        created: 1722349660,
+        model: 'magistral-medium-2507',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'thinking',
+                  thinking: [
+                    {
+                      type: 'text',
+                      text: 'Let me think about this problem step by step.',
+                    },
+                  ],
+                },
+                {
+                  type: 'text',
+                  text: 'Here is my answer.',
+                },
+              ],
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 10, total_tokens: 30, completion_tokens: 20 },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Let me think about this problem step by step.",
+          "type": "reasoning",
+        },
+        {
+          "text": "Here is my answer.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
   it('should extract usage', async () => {
     prepareJsonResponse({
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
