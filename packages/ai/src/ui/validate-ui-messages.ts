@@ -1,4 +1,8 @@
-import { validateTypes } from '@ai-sdk/provider-utils';
+import {
+  StandardSchemaV1,
+  validateTypes,
+  Validator,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import { UIMessage } from './ui-messages';
@@ -19,13 +23,26 @@ const uiMessageSchema = z.object({
 
 export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
   messages,
+  metadataSchema,
 }: {
   messages: unknown;
+  metadataSchema?:
+    | Validator<UIMessage['metadata']>
+    | StandardSchemaV1<unknown, UI_MESSAGE['metadata']>;
 }): Promise<Array<UI_MESSAGE>> {
   const validatedMessages = await validateTypes({
     value: messages,
     schema: z.array(uiMessageSchema),
   });
+
+  if (metadataSchema) {
+    for (const message of validatedMessages) {
+      await validateTypes({
+        value: message.metadata,
+        schema: metadataSchema,
+      });
+    }
+  }
 
   return validatedMessages as Array<UI_MESSAGE>;
 }
