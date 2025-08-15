@@ -2,6 +2,7 @@ import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
+  mockId,
 } from '@ai-sdk/provider-utils/test';
 import { createMistral } from './mistral-provider';
 import { vi } from 'vitest';
@@ -10,7 +11,7 @@ const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const provider = createMistral({ apiKey: 'test-api-key' });
+const provider = createMistral({ apiKey: 'test-api-key', generateId: mockId() });
 const model = provider.chat('mistral-small-latest');
 
 const server = createTestServer({
@@ -883,16 +884,16 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "id": "reasoning",
+          "id": "id-0",
           "type": "reasoning-start",
         },
         {
           "delta": "Let me think...",
-          "id": "reasoning",
+          "id": "id-0",
           "type": "reasoning-delta",
         },
         {
-          "id": "reasoning",
+          "id": "id-0",
           "type": "reasoning-end",
         },
         {

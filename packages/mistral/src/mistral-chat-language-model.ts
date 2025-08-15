@@ -11,6 +11,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
+  generateId,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -31,6 +32,7 @@ type MistralChatConfig = {
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
+  generateId?: () => string;
 };
 
 export class MistralChatLanguageModel implements LanguageModelV2 {
@@ -39,10 +41,12 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
   readonly modelId: MistralChatModelId;
 
   private readonly config: MistralChatConfig;
+  private readonly generateId: () => string;
 
   constructor(modelId: MistralChatModelId, config: MistralChatConfig) {
     this.modelId = modelId;
     this.config = config;
+    this.generateId = config.generateId ?? generateId;
   }
 
   get provider(): string {
@@ -278,7 +282,9 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
 
     let isFirstChunk = true;
     let activeText = false;
-    let activeReasoning = false;
+    let activeReasoningId: string | null = null;
+
+    const generateId = this.generateId;
 
     return {
       stream: response.pipeThrough(
@@ -331,16 +337,16 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
                     .map(chunk => chunk.text)
                     .join('');
                   if (reasoningDelta.length > 0) {
-                    if (!activeReasoning) {
+                    if (activeReasoningId == null) {
+                      activeReasoningId = generateId();
                       controller.enqueue({
                         type: 'reasoning-start',
-                        id: 'reasoning',
+                        id: activeReasoningId,
                       });
-                      activeReasoning = true;
                     }
                     controller.enqueue({
                       type: 'reasoning-delta',
-                      id: 'reasoning',
+                      id: activeReasoningId!,
                       delta: reasoningDelta,
                     });
                   }
@@ -351,12 +357,12 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
             if (textContent != null && textContent.length > 0) {
               if (!activeText) {
                 // if we were in reasoning mode, end it before starting text
-                if (activeReasoning) {
+                if (activeReasoningId != null) {
                   controller.enqueue({
                     type: 'reasoning-end',
-                    id: 'reasoning',
+                    id: activeReasoningId!,
                   });
-                  activeReasoning = false;
+                  activeReasoningId = null;
                 }
                 controller.enqueue({ type: 'text-start', id: '0' });
                 activeText = true;
@@ -407,8 +413,8 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
-            if (activeReasoning) {
-              controller.enqueue({ type: 'reasoning-end', id: 'reasoning' });
+            if (activeReasoningId != null) {
+              controller.enqueue({ type: 'reasoning-end', id: activeReasoningId! });
             }
             if (activeText) {
               controller.enqueue({ type: 'text-end', id: '0' });
