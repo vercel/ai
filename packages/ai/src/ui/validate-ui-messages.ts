@@ -1,12 +1,20 @@
+import { TypeValidationError } from '@ai-sdk/provider';
 import {
   StandardSchemaV1,
+  tool,
+  Tool,
   validateTypes,
   Validator,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import { DataUIPart, InferUIMessageData, UIMessage } from './ui-messages';
-import { TypeValidationError } from '@ai-sdk/provider';
+import {
+  DataUIPart,
+  InferUIMessageData,
+  InferUIMessageTools,
+  ToolUIPart,
+  UIMessage,
+} from './ui-messages';
 
 const textUIPartSchema = z.object({
   type: z.literal('text'),
@@ -100,6 +108,45 @@ const dynamicToolUIPartSchemas = [
   }),
 ];
 
+const toolUIPartSchemas = [
+  z.object({
+    type: z.string().startsWith('tool-'),
+    toolCallId: z.string(),
+    state: z.literal('input-streaming'),
+    input: z.unknown().optional(),
+    output: z.never().optional(),
+    errorText: z.never().optional(),
+  }),
+  z.object({
+    type: z.string().startsWith('tool-'),
+    toolCallId: z.string(),
+    state: z.literal('input-available'),
+    input: z.unknown(),
+    output: z.never().optional(),
+    errorText: z.never().optional(),
+    callProviderMetadata: providerMetadataSchema.optional(),
+  }),
+  z.object({
+    type: z.string().startsWith('tool-'),
+    toolCallId: z.string(),
+    state: z.literal('output-available'),
+    input: z.unknown(),
+    output: z.unknown(),
+    errorText: z.never().optional(),
+    callProviderMetadata: providerMetadataSchema.optional(),
+    preliminary: z.boolean().optional(),
+  }),
+  z.object({
+    type: z.string().startsWith('tool-'),
+    toolCallId: z.string(),
+    state: z.literal('output-error'),
+    input: z.unknown(),
+    output: z.never().optional(),
+    errorText: z.string(),
+    callProviderMetadata: providerMetadataSchema.optional(),
+  }),
+];
+
 const uiMessageSchema = z.object({
   id: z.string(),
   role: z.enum(['system', 'user', 'assistant']),
@@ -114,6 +161,7 @@ const uiMessageSchema = z.object({
       stepStartUIPartSchema,
       dataUIPartSchema,
       ...dynamicToolUIPartSchemas,
+      ...toolUIPartSchemas,
     ]),
   ),
 });
@@ -129,6 +177,7 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
   messages,
   metadataSchema,
   dataSchemas,
+  tools,
 }: {
   messages: unknown;
   metadataSchema?:
@@ -138,6 +187,12 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
     [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?:
       | Validator<InferUIMessageData<UI_MESSAGE>[NAME]>
       | StandardSchemaV1<unknown, InferUIMessageData<UI_MESSAGE>[NAME]>;
+  };
+  tools?: {
+    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
+      InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
+      InferUIMessageTools<UI_MESSAGE>[NAME]['output']
+    >;
   };
 }): Promise<Array<UI_MESSAGE>> {
   const validatedMessages = await validateTypes({
@@ -175,6 +230,44 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
           value: dataPart.data,
           schema: dataSchema,
         });
+      }
+    }
+  }
+
+  if (tools) {
+    for (const message of validatedMessages) {
+      const toolParts = message.parts.filter(part =>
+        part.type.startsWith('tool-'),
+      ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>[];
+
+      for (const toolPart of toolParts) {
+        const toolName = toolPart.type.slice(5);
+        const tool = tools[toolName];
+
+        if (!tool) {
+          throw new TypeValidationError({
+            value: toolPart.input,
+            cause: `No tool schema found for tool part ${toolName}`,
+          });
+        }
+
+        if (
+          toolPart.state === 'input-available' ||
+          toolPart.state === 'output-available' ||
+          toolPart.state === 'output-error'
+        ) {
+          await validateTypes({
+            value: toolPart.input,
+            schema: tool.inputSchema,
+          });
+        }
+
+        if (toolPart.state === 'output-available' && tool.outputSchema) {
+          await validateTypes({
+            value: toolPart.output,
+            schema: tool.outputSchema,
+          });
+        }
       }
     }
   }
