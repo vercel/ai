@@ -247,18 +247,22 @@ describe('BasetenProvider', () => {
 
       expect(() => {
         provider.textEmbeddingModel();
-      }).toThrow('Not supported. You must use a /sync endpoint for embeddings.');
+      }).toThrow('Not supported. You must use a /sync or /sync/v1 endpoint for embeddings.');
     });
 
-    it('should throw error for /sync/v1 endpoints (not supported to avoid double /v1)', () => {
+    it('should support /sync/v1 endpoints (strips /v1 before passing to Performance Client)', () => {
       const provider = createBaseten({
         modelURL:
           'https://model-123.api.baseten.co/environments/production/sync/v1',
       });
 
-      expect(() => {
-        provider.textEmbeddingModel();
-      }).toThrow('Not supported. You must use a /sync endpoint for embeddings.');
+      const model = provider.textEmbeddingModel();
+
+      expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
+      expect(OpenAICompatibleEmbeddingModelMock).toHaveBeenCalledWith(
+        'embeddings',
+        expect.any(Object),
+      );
     });
 
     it('should support custom modelId for embeddings', () => {

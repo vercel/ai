@@ -5,7 +5,7 @@ description: Learn how to use Baseten models with the AI SDK.
 
 # Baseten Provider
 
-[Baseten](https://baseten.ai/) is a platform for deploying and serving machine learning models through their [API](https://docs.baseten.co/overview).
+[Baseten](https://baseten.ai/) is an inference platform for serving frontier, enterprise-grade open source AI models[API](https://docs.baseten.co/overview).
 
 ## Setup
 
@@ -105,7 +105,7 @@ For models deployed with Baseten's OpenAI-compatible endpoints:
 import { createBaseten } from '@ai-sdk/baseten';
 
 const baseten = createBaseten({
-  modelURL: 'https://model-xyz123.api.baseten.co/sync/v1',
+  modelURL: 'https://model-{MODEL_ID}.api.baseten.co/sync/v1',
 });
 // No modelId is needed because we specified modelURL
 const model = baseten();
@@ -128,7 +128,7 @@ import { createBaseten } from '@ai-sdk/baseten';
 import { embed, embedMany } from 'ai';
 
 const baseten = createBaseten({
-  modelURL: 'https://model-xyz123.api.baseten.co/sync',
+  modelURL: 'https://model-{MODEL_ID}.api.baseten.co/sync',
 });
 
 const embeddingModel = baseten.textEmbeddingModel();
@@ -199,7 +199,7 @@ try {
 try {
   const baseten = createBaseten({
     modelURL:
-      'https://model-xyz123.api.baseten.co/environments/production/predict',
+      'https://model-{MODEL_ID}.api.baseten.co/environments/production/predict',
   });
   baseten(); // This will throw an error
 } catch (error) {
@@ -210,7 +210,7 @@ try {
 try {
   const baseten = createBaseten({
     modelURL:
-      'https://model-xyz123.api.baseten.co/environments/production/sync/v1',
+      'https://model-{MODEL_ID}.api.baseten.co/environments/production/sync/v1',
   });
   baseten.textEmbeddingModel(); // This will throw an error
 } catch (error) {
@@ -221,7 +221,7 @@ try {
 try {
   const baseten = createBaseten({
     modelURL:
-      'https://model-xyz123.api.baseten.co/environments/production/predict',
+      'https://model-{MODEL_ID}.api.baseten.co/environments/production/predict',
   });
   baseten.textEmbeddingModel(); // This will throw an error
 } catch (error) {
