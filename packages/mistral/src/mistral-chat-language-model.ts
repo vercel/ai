@@ -431,7 +431,9 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
   }
 }
 
-function extractReasoningContent(thinking: Array<{ type: string; text: string }>) {
+function extractReasoningContent(
+  thinking: Array<{ type: string; text: string }>,
+) {
   return thinking
     .filter(chunk => chunk.type === 'text')
     .map(chunk => chunk.text)
