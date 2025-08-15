@@ -7,6 +7,7 @@ import {
   tool,
   UIDataTypes,
   UIMessage,
+  validateUIMessages,
 } from 'ai';
 import { z } from 'zod/v4';
 
@@ -84,7 +85,12 @@ export type UseChatToolsMessage = UIMessage<
 >;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const body = await req.json();
+
+  const messages = await validateUIMessages<UseChatToolsMessage>({
+    messages: body.messages,
+    tools,
+  });
 
   const result = streamText({
     model: openai('gpt-4o'),
