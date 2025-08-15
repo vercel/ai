@@ -24,6 +24,7 @@ export type GatewayModelId =
   | 'google/gemini-2.0-flash'
   | 'google/gemini-2.0-flash-lite'
   | 'google/gemini-2.5-flash'
+  | 'google/gemini-2.5-flash-lite'
   | 'google/gemini-2.5-pro'
   | 'google/gemma-2-9b'
   | 'inception/mercury-coder-small'

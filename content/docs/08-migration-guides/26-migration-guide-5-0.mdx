@@ -1587,6 +1587,37 @@ const { messages } = useChat({
 
 For more details on request configuration, see the [Chatbot guide](/docs/ai-sdk-ui/chatbot#request-configuration).
 
+#### Request Body Preparation: experimental_prepareRequestBody → prepareSendMessagesRequest
+
+The `experimental_prepareRequestBody` option has been replaced with `prepareSendMessagesRequest` in the transport configuration.
+
+```tsx filename="AI SDK 4.0"
+import { useChat } from '@ai-sdk/react';
+
+const { messages } = useChat({
+  api: '/api/chat',
+  // Only send the last message to the server:
+  experimental_prepareRequestBody({ messages, id }) {
+    return { message: messages[messages.length - 1], id };
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+
+const { messages } = useChat({
+  transport: new DefaultChatTransport({
+    api: '/api/chat',
+    // Only send the last message to the server:
+    prepareSendMessagesRequest({ messages, id }) {
+      return { body: { message: messages[messages.length - 1], id } };
+    },
+  }),
+});
+```
+
 ### `@ai-sdk/vue` Changes
 
 The Vue.js integration has been completely restructured, replacing the `useChat` composable with a `Chat` class.
@@ -2869,6 +2900,22 @@ import {
   ToolChoice,
 } from '@ai-sdk/provider-utils';
 ```
+
+## Troubleshooting
+
+### TypeScript Performance Issues with Zod
+
+If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0, you need to use the Zod v3 import path:
+
+```typescript
+// ❌ Avoid: Standard import causes TypeScript issues
+import { z } from 'zod';
+
+// ✅ Use: v3-specific import for AI SDK 5.0 compatibility
+import { z } from 'zod/v3';
+```
+
+This is particularly important when using `generateObject`, `tool`, or other AI SDK functions with Zod schemas. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
 
 ## Codemod Table
 
