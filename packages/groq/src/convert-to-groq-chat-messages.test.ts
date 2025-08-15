@@ -189,9 +189,7 @@ describe('tool calls', () => {
     const result = convertToGroqChatMessages([
       {
         role: 'assistant',
-        content: [
-          { type: 'text', text: 'Hello, how can I help you?' },
-        ],
+        content: [{ type: 'text', text: 'Hello, how can I help you?' }],
       },
     ]);
 
