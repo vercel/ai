@@ -333,7 +333,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
                         controller.enqueue({ type: 'text-end', id: '0' });
                         activeText = false;
                       }
-                      
+
                       activeReasoningId = generateId();
                       controller.enqueue({
                         type: 'reasoning-start',
