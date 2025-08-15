@@ -853,6 +853,73 @@ describe('doStream', () => {
       ]
     `);
   });
+
+  it('should stream thinking content as reasoning deltas', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"thinking-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"thinking","thinking":[{"type":"text","text":"Let me think..."}]}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"thinking-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"text","text":"The answer is 4."}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"thinking-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"content":""},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"total_tokens":25,"completion_tokens":20}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "thinking-test",
+          "modelId": "magistral-small-2507",
+          "timestamp": 2025-06-21T20:33:20.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "reasoning",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Let me think...",
+          "id": "reasoning",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "reasoning",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "The answer is 4.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 5,
+            "outputTokens": 20,
+            "totalTokens": 25,
+          },
+        },
+      ]
+    `);
+  });
 });
 
 describe('doStream with raw chunks', () => {

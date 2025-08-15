@@ -278,6 +278,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
 
     let isFirstChunk = true;
     let activeText = false;
+    let activeReasoning = false;
 
     return {
       stream: response.pipeThrough(
@@ -322,8 +323,35 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
 
             const textContent = extractTextContent(delta.content);
 
+            if (delta.content != null && Array.isArray(delta.content)) {
+              for (const part of delta.content) {
+                if (part.type === 'thinking') {
+                  const reasoningDelta = part.thinking
+                    .filter(chunk => chunk.type === 'text')
+                    .map(chunk => chunk.text)
+                    .join('');
+                  if (reasoningDelta.length > 0) {
+                    if (!activeReasoning) {
+                      controller.enqueue({ type: 'reasoning-start', id: 'reasoning' });
+                      activeReasoning = true;
+                    }
+                    controller.enqueue({
+                      type: 'reasoning-delta',
+                      id: 'reasoning',
+                      delta: reasoningDelta,
+                    });
+                  }
+                }
+              }
+            }
+
             if (textContent != null && textContent.length > 0) {
               if (!activeText) {
+                // if we were in reasoning mode, end it before starting text
+                if (activeReasoning) {
+                  controller.enqueue({ type: 'reasoning-end', id: 'reasoning' });
+                  activeReasoning = false;
+                }
                 controller.enqueue({ type: 'text-start', id: '0' });
                 activeText = true;
               }
@@ -373,6 +401,9 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            if (activeReasoning) {
+              controller.enqueue({ type: 'reasoning-end', id: 'reasoning' });
+            }
             if (activeText) {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
