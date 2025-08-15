@@ -332,7 +332,10 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
                     .join('');
                   if (reasoningDelta.length > 0) {
                     if (!activeReasoning) {
-                      controller.enqueue({ type: 'reasoning-start', id: 'reasoning' });
+                      controller.enqueue({
+                        type: 'reasoning-start',
+                        id: 'reasoning',
+                      });
                       activeReasoning = true;
                     }
                     controller.enqueue({
@@ -349,7 +352,10 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
               if (!activeText) {
                 // if we were in reasoning mode, end it before starting text
                 if (activeReasoning) {
-                  controller.enqueue({ type: 'reasoning-end', id: 'reasoning' });
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: 'reasoning',
+                  });
                   activeReasoning = false;
                 }
                 controller.enqueue({ type: 'text-start', id: '0' });
