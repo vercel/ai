@@ -102,8 +102,18 @@ console.log(
 );
 ```
 
-## Alternative Providers
+ ## Alternative Providers
 
-There is an alternative provider package called [`ai-sdk-ollama` by jagreehal](https://github.com/jagreehal/ai-sdk-ollama), which is fundamentally different from this provider. Instead of using the HTTP API directly, it leverages the [`ollama`](https://www.npmjs.com/package/ollama) package for communication.
+  There is an alternative provider package called [`ai-sdk-ollama` by jagreehal](https://github.com/jagreehal/ai-sdk-ollama), which uses the official
+  Ollama JavaScript client library instead of direct HTTP API calls.
 
-This approach may have different tradeoffs in terms of performance, compatibility, and features. It may be better or worse for your use case, so you may want to review both options to decide which fits your needs best.
+  Key differences:
+  - Uses the official `ollama` npm package for communication
+  - Provides automatic environment detection (Node.js vs browser)
+  - Includes built-in error handling and retries via the official client
+  - Supports both CommonJS and ESM module formats
+  - Full TypeScript support with type-safe Ollama-specific options via `providerOptions.ollama`
+
+  This approach leverages Ollama's official client library, which may provide better compatibility with
+  Ollama updates and additional features like model management. Both providers implement the AI SDK
+  specification, so you can choose based on your specific requirements and preferences.
