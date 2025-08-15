@@ -99,19 +99,3 @@ const validatedMessages = await validateUIMessages({
   tools,
 });
 ```
-
-## Key Features
-
-- **Async validation**: Returns a Promise for validated message arrays
-- **Optional schemas**: Only validates parts that have corresponding schemas provided
-- **Type safety**: Maintains TypeScript types throughout the validation process
-- **Error handling**: Throws `TypeValidationError` for invalid data or missing schemas
-- **Flexible validation**: Validates metadata, custom data parts, and tool inputs/outputs independently
-
-## Validation Behavior
-
-- **Messages structure**: Always validates basic message structure (id, role, parts)
-- **Metadata**: Only validated if `metadataSchema` is provided
-- **Data parts**: Only validated if matching schema exists in `dataSchemas`
-- **Tools**: Only validated if matching tool exists in `tools` object
-- **Missing schemas**: Throws error if data/tool parts exist without corresponding schemas
