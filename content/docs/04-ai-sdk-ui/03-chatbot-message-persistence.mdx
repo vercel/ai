@@ -112,21 +112,21 @@ export async function POST(req: Request) {
   // Load previous messages from database
   const rawMessages = await loadChat(id);
 
+  // Append new message to raw messages
+  const messages = [...rawMessages, message];
+
   // Validate loaded messages against
   // tools, data parts schema, and metadata schema
   const validatedMessages = await validateUIMessages({
-    messages: rawMessages,
+    messages,
     tools, // Ensures tool calls in messages match current schemas
     dataPartsSchema,
     metadataSchema,
   });
 
-  // Append new message to validated messages
-  const messages = [...validatedMessages, message];
-
   const result = streamText({
     model: openai('gpt-4o-mini'),
-    messages: convertToModelMessages(messages),
+    messages: convertToModelMessages(validatedMessages),
     tools,
   });
 
