@@ -1,0 +1,37 @@
+---
+title: TypeScript performance issues with Zod and AI SDK 5
+description: Troubleshooting TypeScript server crashes and slow performance when using Zod with AI SDK 5
+---
+
+# TypeScript performance issues with Zod and AI SDK 5
+
+## Issue
+
+When using the AI SDK 5 with Zod, you may experience:
+
+- TypeScript server crashes or hangs
+- Extremely slow type checking in files that import AI SDK functions
+- Error messages like "Type instantiation is excessively deep and possibly infinite"
+- IDE becoming unresponsive when working with AI SDK code
+
+## Background
+
+The AI SDK 5 has specific compatibility requirements with Zod versions. When importing Zod using the standard import path (`import { z } from 'zod'`), TypeScript's type inference can become excessively complex, leading to performance degradation or crashes.
+
+## Solution
+
+### Use the Zod Version-Specific Import Path
+
+The recommended solution is to import Zod using a version-specific import path:
+
+```typescript
+// ❌ Avoid: Standard import causes TypeScript issues
+import { z } from 'zod';
+
+// ✅ Use: version-specific import for AI SDK 5 compatibility
+import { z } from 'zod/v3';
+// or
+import { z } from 'zod/v4';
+```
+
+After making this change, restart your TypeScript server (in VS Code: `Cmd/Ctrl + Shift + P` → "TypeScript: Restart TS Server").

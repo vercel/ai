@@ -2901,6 +2901,22 @@ import {
 } from '@ai-sdk/provider-utils';
 ```
 
+## Troubleshooting
+
+### TypeScript Performance Issues with Zod
+
+If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0, you need to use the Zod v3 import path:
+
+```typescript
+// ❌ Avoid: Standard import causes TypeScript issues
+import { z } from 'zod';
+
+// ✅ Use: v3-specific import for AI SDK 5.0 compatibility
+import { z } from 'zod/v3';
+```
+
+This is particularly important when using `generateObject`, `tool`, or other AI SDK functions with Zod schemas. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
+
 ## Codemod Table
 
 The following table lists available codemods for the AI SDK 5.0 upgrade
