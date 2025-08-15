@@ -186,7 +186,10 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     const content: Array<LanguageModelV2Content> = [];
 
     // extract reasoning content first
-    if (choice.message.content != null && Array.isArray(choice.message.content)) {
+    if (
+      choice.message.content != null &&
+      Array.isArray(choice.message.content)
+    ) {
       for (const part of choice.message.content) {
         if (part.type === 'thinking') {
           const reasoningText = part.thinking
