@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.10
+
+### Patch Changes
+
+- ff008b9: fix(groq): strip unsupported `reasoning` fields for non-reasoning models
+
 ## 2.0.9
 
 ### Patch Changes
