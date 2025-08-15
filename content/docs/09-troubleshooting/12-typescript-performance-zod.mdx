@@ -20,16 +20,18 @@ The AI SDK 5 has specific compatibility requirements with Zod versions. When imp
 
 ## Solution
 
-### Use the Zod v3 Import Path
+### Use the Zod Version-Specific Import Path
 
-The recommended solution is to import Zod using the v3-specific import path:
+The recommended solution is to import Zod using a version-specific import path:
 
 ```typescript
 // ❌ Avoid: Standard import causes TypeScript issues
 import { z } from 'zod';
 
-// ✅ Use: v3-specific import for AI SDK 5 compatibility
+// ✅ Use: version-specific import for AI SDK 5 compatibility
 import { z } from 'zod/v3';
+// or
+import { z } from 'zod/v4';
 ```
 
 After making this change, restart your TypeScript server (in VS Code: `Cmd/Ctrl + Shift + P` → "TypeScript: Restart TS Server").
