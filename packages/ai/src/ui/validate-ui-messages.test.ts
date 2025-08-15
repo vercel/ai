@@ -245,4 +245,34 @@ describe('validateUIMessages', () => {
       `);
     });
   });
+
+  describe('step start parts', () => {
+    it('should validate an assistant message with a step start part', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [{ type: 'step-start' }],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "type": "step-start",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+  });
 });

@@ -46,6 +46,10 @@ const fileUIPartSchema = z.object({
   providerMetadata: providerMetadataSchema.optional(),
 });
 
+const stepStartUIPartSchema = z.object({
+  type: z.literal('step-start'),
+});
+
 const uiMessageSchema = z.object({
   id: z.string(),
   role: z.enum(['system', 'user', 'assistant']),
@@ -57,6 +61,7 @@ const uiMessageSchema = z.object({
       sourceUrlUIPartSchema,
       sourceDocumentUIPartSchema,
       fileUIPartSchema,
+      stepStartUIPartSchema,
     ]),
   ),
 });
