@@ -6,32 +6,26 @@ import { DefaultChatTransport } from 'ai';
 import { ReasoningToolsMessage } from '../api/use-chat-reasoning-tools/route';
 
 export default function Chat() {
-  const { messages, sendMessage, addToolResult, status } =
-    useChat<ReasoningToolsMessage>({
-      transport: new DefaultChatTransport({
-        api: '/api/use-chat-reasoning-tools',
-      }),
+  const { messages, sendMessage, status } = useChat<ReasoningToolsMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/use-chat-reasoning-tools',
+    }),
 
-      // run client-side tools that are automatically executed:
-      async onToolCall({ toolCall }) {
-        // artificial 2 second delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
+    // run client-side tools that are automatically executed:
+    async onToolCall({ toolCall, addToolResult }) {
+      // artificial 2 second delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-        if (toolCall.toolName === 'getLocation') {
-          const cities = [
-            'New York',
-            'Los Angeles',
-            'Chicago',
-            'San Francisco',
-          ];
-          addToolResult({
-            tool: 'getLocation',
-            toolCallId: toolCall.toolCallId,
-            output: cities[Math.floor(Math.random() * cities.length)],
-          });
-        }
-      },
-    });
+      if (toolCall.toolName === 'getLocation') {
+        const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+        addToolResult({
+          tool: 'getLocation',
+          toolCallId: toolCall.toolCallId,
+          output: cities[Math.floor(Math.random() * cities.length)],
+        });
+      }
+    },
+  });
 
   console.log(structuredClone(messages));
 

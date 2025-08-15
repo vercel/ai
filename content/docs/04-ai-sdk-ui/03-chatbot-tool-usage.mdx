@@ -124,7 +124,7 @@ import {
 import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, sendMessage, addToolResult } = useChat({
+  const { messages, sendMessage } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
@@ -132,7 +132,7 @@ export default function Chat() {
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 
     // run client-side tools that are automatically executed:
-    async onToolCall({ toolCall }) {
+    async onToolCall({ toolCall, addToolResult }) {
       if (toolCall.toolName === 'getLocation') {
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
 
@@ -145,6 +145,7 @@ export default function Chat() {
       }
     },
   });
+
   const [input, setInput] = useState('');
 
   return (

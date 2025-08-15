@@ -4946,6 +4946,90 @@ describe('processUIMessageStream', () => {
     `);
   });
 
+  it('should call onToolCall without addToolResult parameter (backward compatibility)', async () => {
+    let onToolCallInvoked = false;
+    let receivedAddToolResult: any = 'NOT_SET';
+
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'tool-call-id',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        onToolCall: async ({ toolCall, addToolResult }) => {
+          onToolCallInvoked = true;
+          receivedAddToolResult = addToolResult;
+        },
+        // Note: addToolResult is not provided - testing old API
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(onToolCallInvoked).toBe(true);
+    expect(receivedAddToolResult).toBeUndefined();
+  });
+
+  it('should call onToolCall with addToolResult parameter when provided', async () => {
+    let onToolCallInvoked = false;
+    let receivedAddToolResult: any = 'NOT_SET';
+
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'tool-call-id',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    const mockAddToolResult = async () => {};
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        onToolCall: async ({ toolCall, addToolResult }) => {
+          onToolCallInvoked = true;
+          receivedAddToolResult = addToolResult;
+        },
+        addToolResult: mockAddToolResult,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(onToolCallInvoked).toBe(true);
+    expect(receivedAddToolResult).toBe(mockAddToolResult);
+  });
+
   describe('dynamic tools', () => {
     let onToolCallInvoked: boolean;
 
