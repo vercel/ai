@@ -101,6 +101,50 @@ describe('validateUIMessages', () => {
         Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
       `);
     });
+
+    it('should validate text part with provider metadata', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'user',
+            parts: [
+              {
+                type: 'text',
+                text: 'Hello, world!',
+                providerMetadata: {
+                  someProvider: {
+                    custom: 'metadata',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "providerMetadata": {
+                  "someProvider": {
+                    "custom": "metadata",
+                  },
+                },
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
   });
 
   describe('text parts', () => {
