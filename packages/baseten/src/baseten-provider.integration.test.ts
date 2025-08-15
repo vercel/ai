@@ -2,6 +2,10 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { baseten, createBaseten } from '@ai-sdk/baseten';
 import { embed, embedMany, generateText } from '../../ai';
 
+// You need to fill these values to run this test suite
+const EMBEDDING_MODEL_ID = '03y7n6e3';
+const CHAT_MODEL_ID = '6wg17egw';
+
 // ============================================================================
 // BASETEN EMBEDDING PROVIDER INTEGRATION TESTS
 // ============================================================================
@@ -25,15 +29,15 @@ import { embed, embedMany, generateText } from '../../ai';
 
 // Embedding model URLs - Performance Client with different endpoint types
 const EMBEDDING_SYNC_URL =
-  'https://model-03y7n6e3.api.baseten.co/environments/production/sync';
+  `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync`;
 const EMBEDDING_SYNC_V1_URL =
-'https://model-03y7n6e3.api.baseten.co/environments/production/sync/v1';
+`https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync/v1`;
 const EMBEDDING_PREDICT_URL =
-  'https://model-03y7n6e3.api.baseten.co/environments/production/predict';
+  `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/predict`;
 
 // Chat model URL (example: Qwen 3 4B)
 const CHAT_SYNC_V1_URL =
-  'https://model-6wg17egw.api.baseten.co/environments/production/sync/v1';
+  `https://model-${CHAT_MODEL_ID}.api.baseten.co/environments/production/sync/v1`;
 
 // ============================================================================
 // TEST CONFIGURATION
@@ -76,7 +80,7 @@ describe('BasetenProvider Integration Tests', () => {
       }
 
       const { text } = await generateText({
-        model: baseten('meta-llama/Llama-4-Maverick-17B-128E-Instruct') as any,
+        model: baseten('openai/gpt-oss-120b') as any,
         prompt: 'Explain quantum computing in simple terms.',
       });
 
@@ -178,15 +182,35 @@ describe('BasetenProvider Integration Tests', () => {
       expect(embeddings[0].length).toBeGreaterThan(0);
     }, 30000);
 
-    it('should fail with /sync/v1 endpoint for embeddings (not supported to avoid double /v1)', () => {
-      // Test that /sync/v1 URLs are rejected for embeddings
-      expect(() => {
-        const embeddingBaseten = createBaseten({
-          modelURL: EMBEDDING_SYNC_V1_URL,
-        });
-        embeddingBaseten.textEmbeddingModel();
-      }).toThrow('Not supported. You must use a /sync endpoint for embeddings.');
-    });
+    it('should work with embeddings using /sync/v1 endpoint (strips /v1 for Performance Client)', async () => {
+      if (!hasApiKey) {
+        console.log('⏭️  Skipping test - no API key');
+        return;
+      }
+      // Test that /sync/v1 URLs work for embeddings (strips /v1 before passing to Performance Client)
+      const embeddingBaseten = createBaseten({
+        modelURL: EMBEDDING_SYNC_V1_URL,
+      });
+
+      const embeddingModel = embeddingBaseten.textEmbeddingModel();
+      expect(embeddingModel).toBeDefined();
+
+      console.log('🔍 Testing embed with /sync/v1 URL:', EMBEDDING_SYNC_V1_URL);
+      
+      const { embedding, usage } = await embed({
+        model: embeddingModel as any,
+        value: 'sunny day at the beach',
+      });
+
+      console.log('📊 Embed result with /sync/v1:');
+      console.log('  - Embedding length:', embedding.length);
+      console.log('  - First 5 values:', embedding.slice(0, 5));
+      console.log('  - Usage:', usage);
+
+      expect(embedding).toBeDefined();
+      expect(Array.isArray(embedding)).toBe(true);
+      expect(embedding.length).toBeGreaterThan(0);
+    }, 30000);
 
     it('should fail with /predict endpoint for embeddings (not supported with Performance Client)', () => {
       // Test that /predict URLs are rejected for embeddings
@@ -195,7 +219,7 @@ describe('BasetenProvider Integration Tests', () => {
           modelURL: EMBEDDING_PREDICT_URL,
         });
         embeddingBaseten.textEmbeddingModel();
-      }).toThrow('Not supported. You must use a /sync endpoint for embeddings.');
+      }).toThrow('Not supported. You must use a /sync or /sync/v1 endpoint for embeddings.');
     });
 
     it('should work with chat using /sync/v1 endpoint', async () => {

@@ -90,18 +90,12 @@ export function createBaseten(
   options: BasetenProviderSettings = {},
 ): BasetenProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
-  const getHeaders = (isPredict = false) => ({
-    Authorization: isPredict
-      ? `Api-Key ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'BASETEN_API_KEY',
-          description: 'Baseten API key',
-        })}`
-      : `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'BASETEN_API_KEY',
-          description: 'Baseten API key',
-        })}`,
+  const getHeaders = () => ({
+    Authorization: `Bearer ${loadApiKey({
+      apiKey: options.apiKey,
+      environmentVariableName: 'BASETEN_API_KEY',
+      description: 'Baseten API key',
+    })}`,
     ...options.headers,
   });
 
@@ -118,7 +112,7 @@ export function createBaseten(
   ): CommonModelConfig => ({
     provider: `baseten.${modelType}`,
     url: ({ path }) => {
-      // For embeddings with /sync URLs, we need to add /v1
+      // For embeddings with /sync URLs (but not /sync/v1), we need to add /v1
       if (modelType === 'embedding' && customURL?.includes('/sync') && !customURL?.includes('/sync/v1')) {
         return `${customURL}/v1${path}`;
       }
@@ -165,9 +159,10 @@ export function createBaseten(
       );
     }
 
-    // Check if this is a /sync endpoint (OpenAI-compatible) or /predict endpoint (custom)
-    // We only support /sync (not /sync/v1) to avoid double /v1 issue with Performance Client
-    const isOpenAICompatible = customURL.includes('/sync') && !customURL.includes('/sync/v1');
+    // Check if this is a /sync or /sync/v1 endpoint (OpenAI-compatible)
+    // We support both /sync and /sync/v1, stripping /v1 before passing to Performance Client, as Performance Client adds /v1 itself
+    const isOpenAICompatible = customURL.includes('/sync');
+    
 
     if (isOpenAICompatible) {
       // Create the model using OpenAICompatibleEmbeddingModel and override doEmbed
@@ -176,9 +171,12 @@ export function createBaseten(
         errorStructure: basetenErrorStructure,
       });
 
+      // Strip /v1 from URL if present before passing to Performance Client to avoid double /v1
+      const performanceClientURL = customURL.replace('/sync/v1', '/sync');
+      
       // Initialize the B10 Performance Client once for reuse
       const performanceClient = new PerformanceClient(
-        customURL,
+        performanceClientURL,
         loadApiKey({
           apiKey: options.apiKey,
           environmentVariableName: 'BASETEN_API_KEY',
@@ -211,7 +209,7 @@ export function createBaseten(
       return model;
     } else {
       throw new Error(
-        'Not supported. You must use a /sync endpoint for embeddings.',
+        'Not supported. You must use a /sync or /sync/v1 endpoint for embeddings.',
       );
     }
   };
