@@ -1033,6 +1033,101 @@ describe('doStream', () => {
       ]
     `);
   });
+
+  it('should handle interleaved thinking and text content in streaming', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"interleaved-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"thinking","thinking":[{"type":"text","text":"First thought."}]}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"interleaved-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"text","text":"Partial answer."}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"interleaved-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"thinking","thinking":[{"type":"text","text":"Second thought."}]}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"interleaved-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"text","text":"Final answer."}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"interleaved-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"content":""},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"total_tokens":40,"completion_tokens":30}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "interleaved-test",
+          "modelId": "magistral-small-2507",
+          "timestamp": 2025-06-21T20:33:20.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "id-1",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "First thought.",
+          "id": "id-1",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "id-1",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Partial answer.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "id": "id-2",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Second thought.",
+          "id": "id-2",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "id-2",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Final answer.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 10,
+            "outputTokens": 30,
+            "totalTokens": 40,
+          },
+        },
+      ]
+    `);
+  });
 });
 
 describe('doStream with raw chunks', () => {

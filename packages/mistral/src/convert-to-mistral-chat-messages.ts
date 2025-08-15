@@ -86,6 +86,13 @@ export function convertToMistralChatMessages(
               });
               break;
             }
+            case 'reasoning': {
+              text += part.text;
+              break;
+            }
+            default: {
+              throw new Error(`Unsupported content type in assistant message: ${part.type}`);
+            }
           }
         }
 
