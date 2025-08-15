@@ -91,7 +91,9 @@ export function convertToMistralChatMessages(
               break;
             }
             default: {
-              throw new Error(`Unsupported content type in assistant message: ${part.type}`);
+              throw new Error(
+                `Unsupported content type in assistant message: ${part.type}`,
+              );
             }
           }
         }

@@ -7,13 +7,16 @@ async function main() {
     model: mistral('magistral-small-2507'),
     messages: [
       {
-        role: 'user', 
+        role: 'user',
         content: 'Previous context: I solved 3+5=8',
       },
       {
         role: 'assistant',
         content: [
-          { type: 'reasoning', text: 'User mentioned they solved 3+5=8, which is correct.' },
+          {
+            type: 'reasoning',
+            text: 'User mentioned they solved 3+5=8, which is correct.',
+          },
           { type: 'text', text: 'Yes, 3 + 5 equals 8.' },
         ],
       },
