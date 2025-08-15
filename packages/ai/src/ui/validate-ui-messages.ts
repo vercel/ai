@@ -14,11 +14,20 @@ const textUIPartSchema = z.object({
   providerMetadata: providerMetadataSchema.optional(),
 });
 
+const reasoningUIPartSchema = z.object({
+  type: z.literal('reasoning'),
+  text: z.string(),
+  state: z.enum(['streaming', 'done']).optional(),
+  providerMetadata: providerMetadataSchema.optional(),
+});
+
 const uiMessageSchema = z.object({
   id: z.string(),
   role: z.enum(['system', 'user', 'assistant']),
   metadata: z.unknown().optional(),
-  parts: z.array(z.discriminatedUnion('type', [textUIPartSchema])),
+  parts: z.array(
+    z.discriminatedUnion('type', [textUIPartSchema, reasoningUIPartSchema]),
+  ),
 });
 
 export async function validateUIMessages<UI_MESSAGE extends UIMessage>({

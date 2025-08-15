@@ -94,4 +94,35 @@ describe('validateUIMessages', () => {
       `);
     });
   });
+
+  describe('reasoning parts', () => {
+    it('should validate an assistant message with a reasoning part', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [{ type: 'reasoning', text: 'Hello, world!' }],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "reasoning",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+  });
 });
