@@ -41,6 +41,27 @@ describe('validateUIMessages', () => {
         ]
       `);
     });
+
+    it('should throw type validation error when metadata is invalid ', async () => {
+      await expect(
+        validateUIMessages<UIMessage<{ foo: string }>>({
+          messages: [
+            {
+              id: '1',
+              role: 'user',
+              metadata: { foo: 123 },
+              parts: [{ type: 'text', text: 'Hello, world!' }],
+            },
+          ],
+          metadataSchema: z.object({
+            foo: z.string(),
+          }),
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
+        Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
+      `);
+    });
   });
 
   describe('text parts', () => {
