@@ -56,6 +56,49 @@ const dataUIPartSchema = z.object({
   data: z.unknown(),
 });
 
+const dynamicToolUIPartSchemas = [
+  z.object({
+    type: z.literal('dynamic-tool'),
+    toolName: z.string(),
+    toolCallId: z.string(),
+    state: z.literal('input-streaming'),
+    input: z.unknown().optional(),
+    output: z.never().optional(),
+    errorText: z.never().optional(),
+  }),
+  z.object({
+    type: z.literal('dynamic-tool'),
+    toolName: z.string(),
+    toolCallId: z.string(),
+    state: z.literal('input-available'),
+    input: z.unknown(),
+    output: z.never().optional(),
+    errorText: z.never().optional(),
+    callProviderMetadata: providerMetadataSchema.optional(),
+  }),
+  z.object({
+    type: z.literal('dynamic-tool'),
+    toolName: z.string(),
+    toolCallId: z.string(),
+    state: z.literal('output-available'),
+    input: z.unknown(),
+    output: z.unknown(),
+    errorText: z.never().optional(),
+    callProviderMetadata: providerMetadataSchema.optional(),
+    preliminary: z.boolean().optional(),
+  }),
+  z.object({
+    type: z.literal('dynamic-tool'),
+    toolName: z.string(),
+    toolCallId: z.string(),
+    state: z.literal('output-error'),
+    input: z.unknown(),
+    output: z.never().optional(),
+    errorText: z.string(),
+    callProviderMetadata: providerMetadataSchema.optional(),
+  }),
+];
+
 const uiMessageSchema = z.object({
   id: z.string(),
   role: z.enum(['system', 'user', 'assistant']),
@@ -69,10 +112,18 @@ const uiMessageSchema = z.object({
       fileUIPartSchema,
       stepStartUIPartSchema,
       dataUIPartSchema,
+      ...dynamicToolUIPartSchemas,
     ]),
   ),
 });
 
+/**
+ * Validates a list of UI messages.
+ *
+ * Metadata, data parts, and generic tool call structures are only validated if
+ * the corresponding schemas are provided. Otherwise, they are assumed to be
+ * valid.
+ */
 export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
   messages,
   metadataSchema,
@@ -113,7 +164,7 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
         const dataSchema = dataSchemas[dataName];
 
         if (!dataSchema) {
-          continue;
+          continue; // TODO: throw error
         }
 
         await validateTypes({
