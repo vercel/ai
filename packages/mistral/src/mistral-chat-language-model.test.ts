@@ -11,7 +11,10 @@ const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const provider = createMistral({ apiKey: 'test-api-key', generateId: mockId() });
+const provider = createMistral({
+  apiKey: 'test-api-key',
+  generateId: mockId(),
+});
 const model = provider.chat('mistral-small-latest');
 
 const server = createTestServer({

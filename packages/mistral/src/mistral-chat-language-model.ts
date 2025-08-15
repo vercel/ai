@@ -414,7 +414,10 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
 
           flush(controller) {
             if (activeReasoningId != null) {
-              controller.enqueue({ type: 'reasoning-end', id: activeReasoningId! });
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: activeReasoningId!,
+              });
             }
             if (activeText) {
               controller.enqueue({ type: 'text-end', id: '0' });
