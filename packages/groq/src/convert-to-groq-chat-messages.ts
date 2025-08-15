@@ -97,8 +97,8 @@ export function convertToGroqChatMessages(
         messages.push({
           role: 'assistant',
           content: text,
-          ... (reasoning.length > 0 ? { reasoning } : null ),
-          ... (toolCalls.length > 0 ? { tool_calls: toolCalls } : null ),
+          ...(reasoning.length > 0 ? { reasoning } : null),
+          ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : null),
         });
 
         break;
