@@ -55,18 +55,7 @@ function getChatFile(id: string): string {
 
 ## Loading an existing chat
 
-When the user navigates to the chat page with a chat ID, we need to load the chat messages and display them.
-
-```tsx filename="app/chat/[id]/page.tsx"
-import { loadChat } from '@util/chat-store';
-import Chat from '@ui/chat';
-
-export default async function Page(props: { params: Promise<{ id: string }> }) {
-  const { id } = await props.params; // get the chat ID from the URL
-  const messages = await loadChat(id); // load the chat messages
-  return <Chat id={id} initialMessages={messages} />; // display the chat
-}
-```
+When the user navigates to the chat page with a chat ID, we need to load the chat messages from storage.
 
 The `loadChat` function in our file-based chat store is implemented as follows:
 
@@ -81,8 +70,135 @@ export async function loadChat(id: string): Promise<UIMessage[]> {
 // ... rest of the file
 ```
 
-The display component is a simple chat component that uses the `useChat` hook to
-send and receive messages:
+## Validating messages on the server
+
+When processing messages on the server that contain tool calls, custom metadata, or data parts, you should validate them using `validateUIMessages` before sending them to the model.
+
+### Validation with tools
+
+When your messages include tool calls, validate them against your tool definitions:
+
+```tsx filename="app/api/chat/route.ts" highlight="7-25,32-37"
+import {
+  convertToModelMessages,
+  streamText,
+  UIMessage,
+  validateUIMessages,
+  tool,
+} from 'ai';
+import { z } from 'zod';
+import { loadChat, saveChat } from '@util/chat-store';
+import { openai } from '@ai-sdk/openai';
+import { dataPartsSchema, metadataSchema } from '@util/schemas';
+
+// Define your tools
+const tools = {
+  weather: tool({
+    description: 'Get weather information',
+    parameters: z.object({
+      location: z.string(),
+      units: z.enum(['celsius', 'fahrenheit']),
+    }),
+    execute: async ({ location, units }) => {
+      /* tool implementation */
+    },
+  }),
+  // other tools
+};
+
+export async function POST(req: Request) {
+  const { message, id } = await req.json();
+
+  // Load previous messages from database
+  const rawMessages = await loadChat(id);
+
+  // Validate loaded messages against
+  // tools, data parts schema, and metadata schema
+  const validatedMessages = await validateUIMessages({
+    messages: rawMessages,
+    tools, // Ensures tool calls in messages match current schemas
+    dataPartsSchema,
+    metadataSchema,
+  });
+
+  // Append new message to validated messages
+  const messages = [...validatedMessages, message];
+
+  const result = streamText({
+    model: openai('gpt-4o-mini'),
+    messages: convertToModelMessages(messages),
+    tools,
+  });
+
+  return result.toUIMessageStreamResponse({
+    originalMessages: messages,
+    onFinish: ({ messages }) => {
+      saveChat({ chatId: id, messages });
+    },
+  });
+}
+```
+
+### Handling validation errors
+
+Handle validation errors gracefully when messages from the database don't match current schemas:
+
+```tsx filename="app/api/chat/route.ts" highlight="3,10-24"
+import {
+  convertToModelMessages,
+  streamText,
+  validateUIMessages,
+  AITypeValidationError,
+} from 'ai';
+import { type MyUIMessage } from '@/types';
+
+export async function POST(req: Request) {
+  const { message, id } = await req.json();
+
+  // Load and validate messages from database
+  let validatedMessages: MyUIMessage[];
+
+  try {
+    const dbMessages = await loadMessagesFromDB(id);
+    validatedMessages = await validateUIMessages({
+      messages: dbMessages,
+      tools,
+      metadataSchema,
+    });
+  } catch (error) {
+    if (error instanceof AITypeValidationError) {
+      // Log validation error for monitoring
+      console.error('Database messages validation failed:', error);
+      // Could implement message migration or filtering here
+      // For now, start with empty history
+      validatedMessages = [];
+    } else {
+      throw error;
+    }
+  }
+
+  const messages = [...validatedMessages, message];
+
+  // Continue with validated messages...
+}
+```
+
+## Displaying the chat
+
+Once messages are loaded from storage, you can display them in your chat UI. Here's how to set up the page component and the chat display:
+
+```tsx filename="app/chat/[id]/page.tsx"
+import { loadChat } from '@util/chat-store';
+import Chat from '@ui/chat';
+
+export default async function Page(props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
+  const messages = await loadChat(id);
+  return <Chat id={id} initialMessages={messages} />;
+}
+```
+
+The chat component uses the `useChat` hook to manage the conversation:
 
 ```tsx filename="ui/chat.tsx" highlight="10-16"
 'use client';
@@ -146,6 +262,11 @@ export default function Chat({
   `useChat` message format is designed for frontend display, and contains
   additional fields such as `id` and `createdAt`. We recommend storing the
   messages in the `useChat` message format.
+
+When loading messages from storage that contain tools, metadata, or custom data
+parts, validate them using `validateUIMessages` before processing (see the
+[validation section](#validating-messages-from-database) above).
+
 </Note>
 
 Storing messages is done in the `onFinish` callback of the `toUIMessageStreamResponse` function.
@@ -328,10 +449,11 @@ const {
 });
 ```
 
-On the server, you can then load the previous messages and append the new message to the previous messages:
+On the server, you can then load the previous messages and append the new message to the previous messages. If your messages contain tools, metadata, or custom data parts, you should validate them:
 
-```tsx filename="app/api/chat/route.ts" highlight="2-11"
-import { convertToModelMessages, UIMessage } from 'ai';
+```tsx filename="app/api/chat/route.ts" highlight="2-11,14-18"
+import { convertToModelMessages, UIMessage, validateUIMessages } from 'ai';
+// import your tools and schemas
 
 export async function POST(req: Request) {
   // get the last message from the client:
@@ -340,8 +462,16 @@ export async function POST(req: Request) {
   // load the previous messages from the server:
   const previousMessages = await loadChat(id);
 
-  // append the new message to the previous messages:
-  const messages = [...previousMessages, message];
+  // validate messages if they contain tools, metadata, or data parts:
+  const validatedMessages = await validateUIMessages({
+    messages: previousMessages,
+    tools, // if using tools
+    metadataSchema, // if using custom metadata
+    dataSchemas, // if using custom data parts
+  });
+
+  // append the new message to the validated messages:
+  const messages = [...validatedMessages, message];
 
   const result = streamText({
     // ...
