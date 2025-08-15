@@ -110,10 +110,10 @@ export async function POST(req: Request) {
   const { message, id } = await req.json();
 
   // Load previous messages from database
-  const rawMessages = await loadChat(id);
+  const previousMessages = await loadChat(id);
 
-  // Append new message to raw messages
-  const messages = [...rawMessages, message];
+  // Append new message to previousMessages messages
+  const messages = [...previousMessages, message];
 
   // Validate loaded messages against
   // tools, data parts schema, and metadata schema
@@ -159,9 +159,10 @@ export async function POST(req: Request) {
   let validatedMessages: MyUIMessage[];
 
   try {
-    const dbMessages = await loadMessagesFromDB(id);
+    const previousMessages = await loadMessagesFromDB(id);
     validatedMessages = await validateUIMessages({
-      messages: dbMessages,
+      // append the new message to the previous messages:
+      messages: [...previousMessages, message],
       tools,
       metadataSchema,
     });
@@ -176,8 +177,6 @@ export async function POST(req: Request) {
       throw error;
     }
   }
-
-  const messages = [...validatedMessages, message];
 
   // Continue with validated messages...
 }
@@ -464,22 +463,20 @@ export async function POST(req: Request) {
 
   // validate messages if they contain tools, metadata, or data parts:
   const validatedMessages = await validateUIMessages({
-    messages: previousMessages,
+    // append the new message to the previous messages:
+    messages: [...previousMessages, message],
     tools, // if using tools
     metadataSchema, // if using custom metadata
     dataSchemas, // if using custom data parts
   });
 
-  // append the new message to the validated messages:
-  const messages = [...validatedMessages, message];
-
   const result = streamText({
     // ...
-    messages: convertToModelMessages(messages),
+    messages: convertToModelMessages(validatedMessages),
   });
 
   return result.toUIMessageStreamResponse({
-    originalMessages: messages,
+    originalMessages: validatedMessages,
     onFinish: ({ messages }) => {
       saveChat({ chatId: id, messages });
     },
