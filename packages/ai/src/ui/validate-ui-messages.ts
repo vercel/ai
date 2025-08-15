@@ -164,7 +164,7 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
         const dataName = dataPart.type.slice(5);
         const dataSchema = dataSchemas[dataName];
 
-        if (dataSchema == null) {
+        if (!dataSchema) {
           throw new TypeValidationError({
             value: dataPart.data,
             cause: `No data schema found for data part ${dataName}`,
