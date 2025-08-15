@@ -196,10 +196,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     ) {
       for (const part of choice.message.content) {
         if (part.type === 'thinking') {
-          const reasoningText = part.thinking
-            .filter(chunk => chunk.type === 'text')
-            .map(chunk => chunk.text)
-            .join('');
+          const reasoningText = extractReasoningContent(part.thinking);
           if (reasoningText.length > 0) {
             content.push({ type: 'reasoning', text: reasoningText });
           }
@@ -332,10 +329,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
             if (delta.content != null && Array.isArray(delta.content)) {
               for (const part of delta.content) {
                 if (part.type === 'thinking') {
-                  const reasoningDelta = part.thinking
-                    .filter(chunk => chunk.type === 'text')
-                    .map(chunk => chunk.text)
-                    .join('');
+                  const reasoningDelta = extractReasoningContent(part.thinking);
                   if (reasoningDelta.length > 0) {
                     if (activeReasoningId == null) {
                       activeReasoningId = generateId();
@@ -346,7 +340,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
                     }
                     controller.enqueue({
                       type: 'reasoning-delta',
-                      id: activeReasoningId!,
+                      id: activeReasoningId,
                       delta: reasoningDelta,
                     });
                   }
@@ -360,7 +354,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
                 if (activeReasoningId != null) {
                   controller.enqueue({
                     type: 'reasoning-end',
-                    id: activeReasoningId!,
+                    id: activeReasoningId,
                   });
                   activeReasoningId = null;
                 }
@@ -416,7 +410,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
             if (activeReasoningId != null) {
               controller.enqueue({
                 type: 'reasoning-end',
-                id: activeReasoningId!,
+                id: activeReasoningId,
               });
             }
             if (activeText) {
@@ -435,6 +429,13 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function extractReasoningContent(thinking: Array<{ type: string; text: string }>) {
+  return thinking
+    .filter(chunk => chunk.type === 'text')
+    .map(chunk => chunk.text)
+    .join('');
 }
 
 function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
