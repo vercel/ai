@@ -6,6 +6,7 @@ import {
 import { z } from 'zod/v4';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import { DataUIPart, InferUIMessageData, UIMessage } from './ui-messages';
+import { TypeValidationError } from '@ai-sdk/provider';
 
 const textUIPartSchema = z.object({
   type: z.literal('text'),
@@ -163,8 +164,11 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
         const dataName = dataPart.type.slice(5);
         const dataSchema = dataSchemas[dataName];
 
-        if (!dataSchema) {
-          continue; // TODO: throw error
+        if (dataSchema == null) {
+          throw new TypeValidationError({
+            value: dataPart.data,
+            cause: `No data schema found for data part ${dataName}`,
+          });
         }
 
         await validateTypes({

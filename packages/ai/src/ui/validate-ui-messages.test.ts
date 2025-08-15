@@ -432,6 +432,26 @@ describe('validateUIMessages', () => {
         Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
       `);
     });
+
+    it('should throw type validation error when there is no data schema for a data part', async () => {
+      await expect(
+        validateUIMessages<UIMessage<never, { foo: { foo: string } }>>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [{ type: 'data-bar', data: { foo: 'bar' } }],
+            },
+          ],
+          dataSchemas: {
+            foo: z.object({ foo: z.string() }),
+          },
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: {"foo":"bar"}.
+        Error message: No data schema found for data part bar]
+      `);
+    });
   });
 
   describe('dynamic tool parts', () => {
