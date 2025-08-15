@@ -1,7 +1,6 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import {
   StandardSchemaV1,
-  tool,
   Tool,
   validateTypes,
   Validator,
