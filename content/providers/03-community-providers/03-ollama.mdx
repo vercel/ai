@@ -5,47 +5,40 @@ description: Learn how to use the Ollama provider.
 
 # Ollama Provider
 
-<Note type="warning">
-  This community provider is not yet compatible with AI SDK 5. It uses the
-  deprecated `.embedding()` method instead of the standard
-  `.textEmbeddingModel()` method. Please wait for the provider to be updated or
-  consider using an [AI SDK 5 compatible provider](/providers/ai-sdk-providers).
-</Note>
-
-[sgomez/ollama-ai-provider](https://github.com/sgomez/ollama-ai-provider) is a community provider that uses [Ollama](https://ollama.com/) to provide language model support for the AI SDK.
+[nordwestt/ollama-ai-provider-v2](https://github.com/nordwestt/ollama-ai-provider-v2) is a community provider that uses [Ollama](https://ollama.com/) to provide language model support for the AI SDK.
 
 ## Setup
 
-The Ollama provider is available in the `ollama-ai-provider` module. You can install it with
+The Ollama provider is available in the `ollama-ai-provider-v2` module. You can install it with
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    <Snippet text="pnpm add ollama-ai-provider" dark />
+    <Snippet text="pnpm add ollama-ai-provider-v2" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install ollama-ai-provider" dark />
+    <Snippet text="npm install ollama-ai-provider-v2" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add ollama-ai-provider" dark />
+    <Snippet text="yarn add ollama-ai-provider-v2" dark />
   </Tab>
 
   <Tab>
-    <Snippet text="bun add ollama-ai-provider" dark />
+    <Snippet text="bun add ollama-ai-provider-v2" dark />
   </Tab>
 </Tabs>
 
 ## Provider Instance
 
-You can import the default provider instance `ollama` from `ollama-ai-provider`:
+You can import the default provider instance `ollama` from `ollama-ai-provider-v2`:
 
 ```ts
-import { ollama } from 'ollama-ai-provider';
+import { ollama } from 'ollama-ai-provider-v2';
 ```
 
-If you need a customized setup, you can import `createOllama` from `ollama-ai-provider` and create a provider instance with your settings:
+If you need a customized setup, you can import `createOllama` from `ollama-ai-provider-v2` and create a provider instance with your settings:
 
 ```ts
-import { createOllama } from 'ollama-ai-provider';
+import { createOllama } from 'ollama-ai-provider-v2';
 
 const ollama = createOllama({
   // optional settings, e.g.
@@ -77,21 +70,40 @@ You can find more models on the [Ollama Library](https://ollama.com/library) hom
 
 ### Model Capabilities
 
-This provider is capable of generating and streaming text and objects. Object generation may fail depending
-on the model used and the schema used.
+This provider is capable of using hybrid reasoning models such as qwen3, allowing toggling of reasoning between messages.
 
-The following models have been tested with image inputs:
+```ts
+import { ollama } from 'ollama-ai-provider-v2';
+import { generateText } from 'ai';
 
-- llava
-- llava-llama3
-- llava-phi3
-- moondream
+const { text } = await generateText({
+  model: ollama('qwen3:4b'),
+  providerOptions: { ollama: { think: true } },
+  prompt:
+    'Write a vegetarian lasagna recipe for 4 people, but really think about it',
+});
+```
 
 ## Embedding Models
 
 You can create models that call the [Ollama embeddings API](https://github.com/ollama/ollama/blob/main/docs/api.md#generate-embeddings)
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = ollama.embedding('nomic-embed-text');
+const model = ollama.textEmbeddingModel('nomic-embed-text');
+
+const { embeddings } = await embedMany({
+  model: model,
+  values: ['sunny day at the beach', 'rainy afternoon in the city'],
+});
+
+console.log(
+  `cosine similarity: ${cosineSimilarity(embeddings[0], embeddings[1])}`,
+);
 ```
+
+## Alternative Providers
+
+There is an alternative provider package called [`ai-sdk-ollama` by jagreehal](https://github.com/jagreehal/ai-sdk-ollama), which is fundamentally different from this provider. Instead of using the HTTP API directly, it leverages the [`ollama`](https://www.npmjs.com/package/ollama) package for communication.
+
+This approach may have different tradeoffs in terms of performance, compatibility, and features. It may be better or worse for your use case, so you may want to review both options to decide which fits your needs best.
