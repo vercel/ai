@@ -1047,7 +1047,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           );
 
           const newTools = prepareStepResult?.tools ?? tools;
-          console.log('++++++++ newTools', newTools);
           // Keep UI helpers (toUIMessageStream) in sync with step tools for dynamic detection
           self.tools = newTools as TOOLS | undefined;
 
