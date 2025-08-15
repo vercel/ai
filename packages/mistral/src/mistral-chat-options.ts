@@ -7,10 +7,13 @@ export type MistralChatModelId =
   | 'ministral-8b-latest'
   | 'mistral-large-latest'
   | 'mistral-medium-latest'
+  | 'mistral-medium-2508'
   | 'mistral-medium-2505'
   | 'mistral-small-latest'
   | 'pixtral-large-latest'
   // reasoning models
+  | 'magistral-small-2507'
+  | 'magistral-medium-2507'
   | 'magistral-small-2506'
   | 'magistral-medium-2506'
   // free
