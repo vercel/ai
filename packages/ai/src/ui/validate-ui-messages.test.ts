@@ -4,8 +4,47 @@ import { validateUIMessages } from './validate-ui-messages';
 
 describe('validateUIMessages', () => {
   describe('metadata', () => {
+    it('should validate a user message with metadata when no metadata schema is provided', async () => {
+      type TestMessage = UIMessage<{ foo: string }>;
+
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'user',
+            metadata: {
+              foo: 'bar',
+            },
+            parts: [{ type: 'text', text: 'Hello, world!' }],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "metadata": {
+                "foo": "bar",
+              },
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ]
+        `);
+    });
+
     it('should validate a user message with metadata', async () => {
-      const messages = await validateUIMessages<UIMessage<{ foo: string }>>({
+      type TestMessage = UIMessage<{ foo: string }>;
+
+      const messages = await validateUIMessages<TestMessage>({
         messages: [
           {
             id: '1',
@@ -21,7 +60,7 @@ describe('validateUIMessages', () => {
         }),
       });
 
-      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage<{ foo: string }>>>();
+      expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
 
       expect(messages).toMatchInlineSnapshot(`
         [
@@ -272,6 +311,81 @@ describe('validateUIMessages', () => {
             "role": "assistant",
           },
         ]
+      `);
+    });
+  });
+
+  describe('data parts', () => {
+    it('should validate an assistant message with two data parts', async () => {
+      type TestMessage = UIMessage<
+        never,
+        {
+          foo: { foo: string };
+          bar: { bar: number };
+        },
+        never
+      >;
+
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'data-foo', data: { foo: 'bar' } },
+              { type: 'data-bar', data: { bar: 123 } },
+            ],
+          },
+        ],
+        dataSchemas: {
+          foo: z.object({ foo: z.string() }),
+          bar: z.object({ bar: z.number() }),
+        },
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "data": {
+                  "foo": "bar",
+                },
+                "type": "data-foo",
+              },
+              {
+                "data": {
+                  "bar": 123,
+                },
+                "type": "data-bar",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should throw type validation error when data is invalid', async () => {
+      await expect(
+        validateUIMessages<UIMessage<never, { foo: { foo: string } }>>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [{ type: 'data-foo', data: { foo: 123 } }],
+            },
+          ],
+          dataSchemas: {
+            foo: z.object({ foo: z.string() }),
+          },
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
+        Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
       `);
     });
   });

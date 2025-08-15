@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import { UIMessage } from './ui-messages';
+import { DataUIPart, InferUIMessageData, UIMessage } from './ui-messages';
 
 const textUIPartSchema = z.object({
   type: z.literal('text'),
@@ -50,18 +50,25 @@ const stepStartUIPartSchema = z.object({
   type: z.literal('step-start'),
 });
 
+const dataUIPartSchema = z.object({
+  type: z.string().startsWith('data-'),
+  id: z.string().optional(),
+  data: z.unknown(),
+});
+
 const uiMessageSchema = z.object({
   id: z.string(),
   role: z.enum(['system', 'user', 'assistant']),
   metadata: z.unknown().optional(),
   parts: z.array(
-    z.discriminatedUnion('type', [
+    z.union([
       textUIPartSchema,
       reasoningUIPartSchema,
       sourceUrlUIPartSchema,
       sourceDocumentUIPartSchema,
       fileUIPartSchema,
       stepStartUIPartSchema,
+      dataUIPartSchema,
     ]),
   ),
 });
@@ -69,11 +76,17 @@ const uiMessageSchema = z.object({
 export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
   messages,
   metadataSchema,
+  dataSchemas,
 }: {
   messages: unknown;
   metadataSchema?:
     | Validator<UIMessage['metadata']>
     | StandardSchemaV1<unknown, UI_MESSAGE['metadata']>;
+  dataSchemas?: {
+    [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?:
+      | Validator<InferUIMessageData<UI_MESSAGE>[NAME]>
+      | StandardSchemaV1<unknown, InferUIMessageData<UI_MESSAGE>[NAME]>;
+  };
 }): Promise<Array<UI_MESSAGE>> {
   const validatedMessages = await validateTypes({
     value: messages,
@@ -86,6 +99,28 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
         value: message.metadata,
         schema: metadataSchema,
       });
+    }
+  }
+
+  if (dataSchemas) {
+    for (const message of validatedMessages) {
+      const dataParts = message.parts.filter(part =>
+        part.type.startsWith('data-'),
+      ) as DataUIPart<InferUIMessageData<UI_MESSAGE>>[];
+
+      for (const dataPart of dataParts) {
+        const dataName = dataPart.type.slice(5);
+        const dataSchema = dataSchemas[dataName];
+
+        if (!dataSchema) {
+          continue;
+        }
+
+        await validateTypes({
+          value: dataPart.data,
+          schema: dataSchema,
+        });
+      }
     }
   }
 
