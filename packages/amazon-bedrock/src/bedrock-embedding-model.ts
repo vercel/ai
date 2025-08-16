@@ -70,7 +70,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV2<string> {
 
     // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html
     const args = {
-      inputText: values[0],
+      inputText: this.modelId.startsWith('cohere.')? values: values[0],
       dimensions: bedrockOptions.dimensions,
       normalize: bedrockOptions.normalize,
     };
