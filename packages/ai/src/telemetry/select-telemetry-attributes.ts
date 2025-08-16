@@ -1,5 +1,5 @@
+import type { TelemetrySettings } from '@ai-sdk/provider';
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
-import type { TelemetrySettings } from './telemetry-settings';
 
 export function selectTelemetryAttributes({
   telemetry,

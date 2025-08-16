@@ -6348,6 +6348,7 @@ describe('streamText', () => {
               "responseFormat": undefined,
               "seed": undefined,
               "stopSequences": undefined,
+              "telemetry": undefined,
               "temperature": undefined,
               "toolChoice": {
                 "toolName": "tool1",
@@ -6436,6 +6437,7 @@ describe('streamText', () => {
               "responseFormat": undefined,
               "seed": undefined,
               "stopSequences": undefined,
+              "telemetry": undefined,
               "temperature": undefined,
               "toolChoice": {
                 "type": "auto",
@@ -11099,6 +11101,7 @@ describe('streamText', () => {
             },
             "seed": undefined,
             "stopSequences": undefined,
+            "telemetry": undefined,
             "temperature": undefined,
             "toolChoice": undefined,
             "tools": undefined,

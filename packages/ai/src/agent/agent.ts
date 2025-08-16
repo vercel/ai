@@ -1,3 +1,4 @@
+import type { TelemetrySettings } from '@ai-sdk/provider';
 import { IdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
 import {
   generateText,
@@ -13,7 +14,6 @@ import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-functi
 import { ToolSet } from '../generate-text/tool-set';
 import { CallSettings } from '../prompt/call-settings';
 import { Prompt } from '../prompt/prompt';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 

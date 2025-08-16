@@ -2135,6 +2135,9 @@ importers:
 
   packages/provider:
     dependencies:
+      '@opentelemetry/api':
+        specifier: 1.9.0
+        version: 1.9.0
       json-schema:
         specifier: ^0.4.0
         version: 0.4.0

@@ -2446,37 +2446,38 @@ describe('generateText', () => {
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
-        {
-          "abortSignal": undefined,
-          "frequencyPenalty": undefined,
-          "headers": undefined,
-          "maxOutputTokens": undefined,
-          "presencePenalty": undefined,
-          "prompt": [
-            {
-              "content": [
-                {
-                  "text": "prompt",
-                  "type": "text",
-                },
-              ],
-              "providerOptions": undefined,
-              "role": "user",
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": undefined,
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "text": "prompt",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": {
+              "type": "text",
             },
-          ],
-          "providerOptions": undefined,
-          "responseFormat": {
-            "type": "text",
-          },
-          "seed": undefined,
-          "stopSequences": undefined,
-          "temperature": undefined,
-          "toolChoice": undefined,
-          "tools": undefined,
-          "topK": undefined,
-          "topP": undefined,
-        }
-      `);
+            "seed": undefined,
+            "stopSequences": undefined,
+            "telemetry": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
       });
     });
 
@@ -2518,50 +2519,51 @@ describe('generateText', () => {
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
-        {
-          "abortSignal": undefined,
-          "frequencyPenalty": undefined,
-          "headers": undefined,
-          "maxOutputTokens": undefined,
-          "presencePenalty": undefined,
-          "prompt": [
-            {
-              "content": [
-                {
-                  "text": "prompt",
-                  "type": "text",
-                },
-              ],
-              "providerOptions": undefined,
-              "role": "user",
-            },
-          ],
-          "providerOptions": undefined,
-          "responseFormat": {
-            "schema": {
-              "$schema": "http://json-schema.org/draft-07/schema#",
-              "additionalProperties": false,
-              "properties": {
-                "value": {
-                  "type": "string",
-                },
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": undefined,
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "text": "prompt",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
               },
-              "required": [
-                "value",
-              ],
-              "type": "object",
+            ],
+            "providerOptions": undefined,
+            "responseFormat": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "type": "json",
             },
-            "type": "json",
-          },
-          "seed": undefined,
-          "stopSequences": undefined,
-          "temperature": undefined,
-          "toolChoice": undefined,
-          "tools": undefined,
-          "topK": undefined,
-          "topP": undefined,
-        }
-      `);
+            "seed": undefined,
+            "stopSequences": undefined,
+            "telemetry": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
       });
     });
   });

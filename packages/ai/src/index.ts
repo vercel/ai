@@ -35,8 +35,5 @@ export * from './ui';
 export * from './ui-message-stream';
 export * from './util';
 
-// telemetry types:
-export type { TelemetrySettings } from './telemetry/telemetry-settings';
-
 // import globals
 import './global';
