@@ -5,12 +5,47 @@ export function createAsyncIterableStream<T>(
 ): AsyncIterableStream<T> {
   const stream = source.pipeThrough(new TransformStream<T, T>());
 
-  (stream as AsyncIterableStream<T>)[Symbol.asyncIterator] = () => {
-    const reader = stream.getReader();
+  (stream as AsyncIterableStream<T>)[Symbol.asyncIterator] = function (
+    this: ReadableStream<T>,
+  ): AsyncIterator<T> {
+    const reader = this.getReader();
+    let finished = false;
+
     return {
       async next(): Promise<IteratorResult<T>> {
+        if (finished) return { done: true } as IteratorResult<T>;
         const { done, value } = await reader.read();
-        return done ? { done: true, value: undefined } : { done: false, value };
+        if (done) {
+          finished = true;
+          reader.releaseLock();
+          return { done: true } as IteratorResult<T>;
+        }
+        return { done: false, value } as IteratorResult<T>;
+      },
+
+      async return(): Promise<IteratorResult<T>> {
+        // Called on early exit (e.g., break from for-await)
+        finished = true;
+        try {
+          await reader.cancel?.();
+        } finally {
+          try {
+            reader.releaseLock();
+          } catch {}
+        }
+        return { done: true } as IteratorResult<T>;
+      },
+
+      async throw(err: unknown): Promise<IteratorResult<T>> {
+        finished = true;
+        try {
+          await reader.cancel?.(err);
+        } finally {
+          try {
+            reader.releaseLock();
+          } catch {}
+        }
+        throw err;
       },
     };
   };
