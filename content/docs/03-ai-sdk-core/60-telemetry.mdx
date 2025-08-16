@@ -246,12 +246,24 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.values`: the values that were sent to the provider
   - `ai.embeddings`: an array of JSON-stringified embeddings for each value
 
+### Middleware Spans
+
+When you use a `LanguageModelV2Middleware`, additional spans may be recorded.
+
+- `ai.languageModelMiddleware.transformParams` (span): This span is recorded when a middleware's `transformParams` function is executed. It wraps the transformation, showing how the parameters are modified before being sent to the model.
+  It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
+
+  - `operation.name`: `ai.languageModelMiddleware.transformParams` and the functionId that was set through `telemetry.functionId`
+  - `ai.operationId`: `"ai.languageModelMiddleware.transformParams"`
+  - `ai.prompt.messages`: The messages that were passed into the middleware.
+  - `ai.prompt.messages.transformed`: The messages after they have been transformed by the middleware.
+
 ## Span Details
 
 ### Basic LLM span information
 
 Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.streamText`, `ai.streamText.doStream`,
-`ai.generateObject`, `ai.generateObject.doGenerate`, `ai.streamObject`, `ai.streamObject.doStream`) contain the following attributes:
+`ai.generateObject`, `ai.generateObject.doGenerate`, `ai.streamObject`, `ai.streamObject.doStream`, `ai.languageModelMiddleware.transformParams`) contain the following attributes:
 
 - `resource.name`: the functionId that was set through `telemetry.functionId`
 - `ai.model.id`: the id of the model
