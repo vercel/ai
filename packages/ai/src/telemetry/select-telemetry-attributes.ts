@@ -8,10 +8,10 @@ export function selectTelemetryAttributes({
   telemetry?: TelemetrySettings;
   attributes: {
     [attributeKey: string]:
-    | AttributeValue
-    | { input: () => AttributeValue | undefined }
-    | { output: () => AttributeValue | undefined }
-    | undefined;
+      | AttributeValue
+      | { input: () => AttributeValue | undefined }
+      | { output: () => AttributeValue | undefined }
+      | undefined;
   };
 }): Attributes {
   // when telemetry is disabled, return an empty object to avoid serialization overhead:

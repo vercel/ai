@@ -210,9 +210,9 @@ Only applicable for HTTP-based providers.
       const embeddings: Array<Embedding> = [];
       const responses: Array<
         | {
-          headers?: Record<string, string>;
-          body?: unknown;
-        }
+            headers?: Record<string, string>;
+            body?: unknown;
+          }
         | undefined
       > = [];
       let tokens = 0;

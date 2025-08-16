@@ -105,7 +105,11 @@ const doWrap = ({
         },
       }),
       fn: async span => {
-        const transformedParams = await transformParams({ params, type, model });
+        const transformedParams = await transformParams({
+          params,
+          type,
+          model,
+        });
 
         span.setAttributes(
           selectTelemetryAttributes({
@@ -123,7 +127,6 @@ const doWrap = ({
     });
   }
 
-
   return {
     specificationVersion: 'v2',
 
@@ -139,11 +142,11 @@ const doWrap = ({
       const doStream = async () => model.doStream(transformedParams);
       return wrapGenerate
         ? wrapGenerate({
-          doGenerate,
-          doStream,
-          params: transformedParams,
-          model,
-        })
+            doGenerate,
+            doStream,
+            params: transformedParams,
+            model,
+          })
         : doGenerate();
     },
 

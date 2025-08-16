@@ -26,58 +26,58 @@ import { ToolSet } from './tool-set';
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   // Text blocks:
   | {
-    type: 'text-start';
-    providerMetadata?: ProviderMetadata;
-    id: string;
-  }
+      type: 'text-start';
+      providerMetadata?: ProviderMetadata;
+      id: string;
+    }
   | {
-    type: 'text-delta';
-    id: string;
-    providerMetadata?: ProviderMetadata;
-    delta: string;
-  }
+      type: 'text-delta';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+      delta: string;
+    }
   | {
-    type: 'text-end';
-    providerMetadata?: ProviderMetadata;
-    id: string;
-  }
+      type: 'text-end';
+      providerMetadata?: ProviderMetadata;
+      id: string;
+    }
 
   // Reasoning blocks:
   | {
-    type: 'reasoning-start';
-    providerMetadata?: ProviderMetadata;
-    id: string;
-  }
+      type: 'reasoning-start';
+      providerMetadata?: ProviderMetadata;
+      id: string;
+    }
   | {
-    type: 'reasoning-delta';
-    id: string;
-    providerMetadata?: ProviderMetadata;
-    delta: string;
-  }
+      type: 'reasoning-delta';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+      delta: string;
+    }
   | {
-    type: 'reasoning-end';
-    id: string;
-    providerMetadata?: ProviderMetadata;
-  }
+      type: 'reasoning-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
 
   // Tool calls:
   | {
-    type: 'tool-input-start';
-    id: string;
-    toolName: string;
-    providerMetadata?: ProviderMetadata;
-  }
+      type: 'tool-input-start';
+      id: string;
+      toolName: string;
+      providerMetadata?: ProviderMetadata;
+    }
   | {
-    type: 'tool-input-delta';
-    id: string;
-    delta: string;
-    providerMetadata?: ProviderMetadata;
-  }
+      type: 'tool-input-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: ProviderMetadata;
+    }
   | {
-    type: 'tool-input-end';
-    id: string;
-    providerMetadata?: ProviderMetadata;
-  }
+      type: 'tool-input-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
@@ -86,17 +86,17 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | { type: 'stream-start'; warnings: LanguageModelV2CallWarning[] }
   | {
-    type: 'response-metadata';
-    id?: string;
-    timestamp?: Date;
-    modelId?: string;
-  }
+      type: 'response-metadata';
+      id?: string;
+      timestamp?: Date;
+      modelId?: string;
+    }
   | {
-    type: 'finish';
-    finishReason: FinishReason;
-    usage: LanguageModelUsage;
-    providerMetadata?: ProviderMetadata;
-  }
+      type: 'finish';
+      finishReason: FinishReason;
+      usage: LanguageModelUsage;
+      providerMetadata?: ProviderMetadata;
+    }
   | { type: 'error'; error: unknown }
   | { type: 'raw'; rawValue: unknown };
 

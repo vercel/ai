@@ -168,8 +168,8 @@ When the condition is an array, any of the conditions can be met to stop the gen
 @default stepCountIs(1)
      */
     stopWhen?:
-    | StopCondition<NoInfer<TOOLS>>
-    | Array<StopCondition<NoInfer<TOOLS>>>;
+      | StopCondition<NoInfer<TOOLS>>
+      | Array<StopCondition<NoInfer<TOOLS>>>;
 
     /**
 Optional telemetry configuration (experimental).
@@ -377,7 +377,7 @@ A function that attempts to repair a tool call that failed to parse.
                   providerOptions,
                   abortSignal,
                   headers,
-                  telemetry
+                  telemetry,
                 });
 
                 // Fill in default values:
@@ -708,7 +708,8 @@ async function executeTools<TOOLS extends ToolSet>({
 }
 
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
-  implements GenerateTextResult<TOOLS, OUTPUT> {
+  implements GenerateTextResult<TOOLS, OUTPUT>
+{
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
 
   private readonly resolvedOutput: OUTPUT;

@@ -65,25 +65,25 @@ Response format. The output can either be text or JSON. Default is text.
 If JSON is selected, a schema can optionally be provided to guide the LLM.
  */
   responseFormat?:
-  | { type: 'text' }
-  | {
-    type: 'json';
+    | { type: 'text' }
+    | {
+        type: 'json';
 
-    /**
-     * JSON schema that the generated output should conform to.
-     */
-    schema?: JSONSchema7;
+        /**
+         * JSON schema that the generated output should conform to.
+         */
+        schema?: JSONSchema7;
 
-    /**
-     * Name of output that should be generated. Used by some providers for additional LLM guidance.
-     */
-    name?: string;
+        /**
+         * Name of output that should be generated. Used by some providers for additional LLM guidance.
+         */
+        name?: string;
 
-    /**
-     * Description of the output that should be generated. Used by some providers for additional LLM guidance.
-     */
-    description?: string;
-  };
+        /**
+         * Description of the output that should be generated. Used by some providers for additional LLM guidance.
+         */
+        description?: string;
+      };
 
   /**
 The seed (integer) to use for random sampling. If set and supported
@@ -127,7 +127,7 @@ Only applicable for HTTP-based providers.
   providerOptions?: SharedV2ProviderOptions;
 
   /**
-   * @internal
+   *
    */
   telemetry?: TelemetrySettings;
 };

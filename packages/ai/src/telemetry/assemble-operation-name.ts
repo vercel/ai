@@ -9,8 +9,9 @@ export function assembleOperationName({
 }) {
   return {
     // standardized operation and resource name:
-    'operation.name': `${operationId}${telemetry?.functionId != null ? ` ${telemetry.functionId}` : ''
-      }`,
+    'operation.name': `${operationId}${
+      telemetry?.functionId != null ? ` ${telemetry.functionId}` : ''
+    }`,
     'resource.name': telemetry?.functionId,
 
     // detailed, AI SDK specific data:

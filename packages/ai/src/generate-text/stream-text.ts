@@ -2,7 +2,7 @@ import {
   getErrorMessage,
   LanguageModelV2,
   LanguageModelV2CallWarning,
-  TelemetrySettings
+  TelemetrySettings,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -131,14 +131,14 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
     TextStreamPart<TOOLS>,
     {
       type:
-      | 'text-delta'
-      | 'reasoning-delta'
-      | 'source'
-      | 'tool-call'
-      | 'tool-input-start'
-      | 'tool-input-delta'
-      | 'tool-result'
-      | 'raw';
+        | 'text-delta'
+        | 'reasoning-delta'
+        | 'source'
+        | 'tool-call'
+        | 'tool-input-start'
+        | 'tool-input-delta'
+        | 'tool-result'
+        | 'raw';
     }
   >;
 }) => PromiseLike<void> | void;
@@ -284,8 +284,8 @@ When the condition is an array, any of the conditions can be met to stop the gen
 @default stepCountIs(1)
      */
     stopWhen?:
-    | StopCondition<NoInfer<TOOLS>>
-    | Array<StopCondition<NoInfer<TOOLS>>>;
+      | StopCondition<NoInfer<TOOLS>>
+      | Array<StopCondition<NoInfer<TOOLS>>>;
 
     /**
 Optional telemetry configuration (experimental).
@@ -339,8 +339,8 @@ They are applied in the order they are provided.
 The stream transformations must maintain the stream structure for streamText to work correctly.
      */
     experimental_transform?:
-    | StreamTextTransform<TOOLS>
-    | Array<StreamTextTransform<TOOLS>>;
+      | StreamTextTransform<TOOLS>
+      | Array<StreamTextTransform<TOOLS>>;
 
     /**
 Whether to include raw chunks from the provider in the stream.
@@ -538,7 +538,8 @@ function createOutputTransformStream<
 }
 
 class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
-  implements StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
+  implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
+{
   private readonly _totalUsage = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['usage']>
   >();
@@ -1115,7 +1116,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     abortSignal,
                     headers,
                     includeRawChunks,
-                    telemetry
+                    telemetry,
                   }),
                 };
               },
@@ -1690,9 +1691,9 @@ However, the LLM results are expected to be small enough to not cause issues.
     const responseMessageId =
       generateMessageId != null
         ? getResponseUIMessageId({
-          originalMessages,
-          responseMessageId: generateMessageId,
-        })
+            originalMessages,
+            responseMessageId: generateMessageId,
+          })
         : undefined;
 
     const toolNamesByCallId: Record<string, string> = {};
