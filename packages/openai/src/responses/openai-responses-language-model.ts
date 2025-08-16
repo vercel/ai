@@ -373,14 +373,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }),
               z.object({
                 type: z.literal('image_generation_call'),
-                id: z.string(),
-                status: z.string().nullish(),
-                background: z.string().nullish(),
                 output_format: z.string().nullish(),
-                quality: z.string().nullish(),
                 result: z.string().nullish(),
-                revised_prompt: z.string().nullish(),
-                size: z.string().nullish(),
               }),
               z.object({
                 type: z.literal('function_call'),
@@ -1151,11 +1145,6 @@ const responseOutputItemAddedSchema = z.object({
         )
         .optional(),
     }),
-    z.object({
-      type: z.literal('image_generation_call'),
-      id: z.string(),
-      status: z.string().nullish(),
-    }),
   ]),
 });
 
@@ -1206,14 +1195,8 @@ const responseOutputItemDoneSchema = z.object({
     }),
     z.object({
       type: z.literal('image_generation_call'),
-      id: z.string(),
-      status: z.literal('completed'),
-      background: z.string().nullish(),
       output_format: z.string().nullish(),
-      quality: z.string().nullish(),
       result: z.string().nullish(),
-      revised_prompt: z.string().nullish(),
-      size: z.string().nullish(),
     }),
   ]),
 });
@@ -1361,19 +1344,6 @@ function isErrorChunk(
   return chunk.type === 'error';
 }
 
-type OpenAIImagePartialChunk = {
-  type: 'response.image_generation_call.partial_image';
-  sequence_number: number;
-  output_index: number;
-  item_id: string;
-  partial_image_index: number;
-  partial_image_b64: string;
-  size?: string;
-  quality?: string;
-  background?: string;
-  output_format?: string;
-};
-
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
@@ -1437,24 +1407,6 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     ...defaults,
     isReasoningModel: false,
   };
-}
-
-function supportsFlexProcessing(modelId: string): boolean {
-  return (
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini') ||
-    modelId.startsWith('gpt-5')
-  );
-}
-
-function supportsPriorityProcessing(modelId: string): boolean {
-  return (
-    modelId.startsWith('gpt-4') ||
-    modelId.startsWith('gpt-5-mini') ||
-    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-nano')) ||
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini')
-  );
 }
 
 function mapOpenAIImageFormatToMediaTypeSimple(formatOrType: string): string {

@@ -911,7 +911,6 @@ OpenAI's Responses API supports multimodal image generation as a provider-define
   - `moderation`: `'auto'`
   - `outputFormat`: `'png' | 'jpeg' | 'webp'`
   - `outputCompression`: `0..100`
-  - `n`: `1..4`
 
 You can use the image tool with either `generateText` or `streamText`.
 
@@ -927,7 +926,7 @@ const result = await generateText({
   prompt:
     'Generate an image of an echidna swimming across the Mozambique channel.',
   tools: {
-    image_generation: openai.tools.generateImage({ outputFormat: 'png' }),
+    image_generation: openai.tools.generateImage({ outputFormat: 'webp' }),
   },
 });
 
@@ -949,7 +948,7 @@ const result = streamText({
     'Generate an image of an echidna swimming across the Mozambique channel.',
   tools: {
     image_generation: openai.tools.generateImage({
-      outputFormat: 'png',
+      outputFormat: 'webp',
       quality: 'low',
     }),
   },
