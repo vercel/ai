@@ -70,6 +70,45 @@ describe('OpenAIResponsesLanguageModel', () => {
       };
     }
 
+    it('should map image_generation_call to file content with mediaType', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_img_1',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          model: 'gpt-5',
+          output: [
+            {
+              type: 'image_generation_call',
+              id: 'ig_1',
+              status: 'completed',
+              output_format: 'png',
+              result: 'BASE64DATA',
+              size: '1536x1024',
+            },
+          ],
+          usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
+        },
+      };
+
+      const result = await createModel('gpt-5').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [],
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'BASE64DATA',
+        },
+      ]);
+    });
+
     describe('basic text response', () => {
       beforeEach(() => {
         prepareJsonResponse({

@@ -349,6 +349,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 ),
               }),
               z.object({
+                type: z.literal('image_generation_call'),
+                output_format: z.string().nullish(),
+                result: z.string().nullish(),
+              }),
+              z.object({
                 type: z.literal('function_call'),
                 call_id: z.string(),
                 name: z.string(),
@@ -444,6 +449,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   reasoningEncryptedContent: part.encrypted_content ?? null,
                 },
               },
+            });
+          }
+          break;
+        }
+
+        case 'image_generation_call': {
+          const data = part.result;
+          if (typeof data === 'string' && data.length > 0) {
+            content.push({
+              type: 'file',
+              mediaType: mapOpenAIImageFormatToMediaTypeSimple(
+                part.output_format ?? 'png',
+              ),
+              data,
             });
           }
           break;
@@ -888,6 +907,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 }
 
                 delete activeReasoning[value.item.id];
+              } else if (value.item.type === 'image_generation_call') {
+                const data = value.item.result;
+                if (typeof data === 'string' && data.length > 0) {
+                  controller.enqueue({
+                    type: 'file',
+                    mediaType: mapOpenAIImageFormatToMediaTypeSimple(
+                      value.item.output_format ?? 'png',
+                    ),
+                    data,
+                  });
+                }
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
@@ -1169,6 +1199,11 @@ const responseOutputItemDoneSchema = z.object({
         )
         .nullish(),
     }),
+    z.object({
+      type: z.literal('image_generation_call'),
+      output_format: z.string().nullish(),
+      result: z.string().nullish(),
+    }),
   ]),
 });
 
@@ -1380,7 +1415,11 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   };
 }
 
-// TODO AI SDK 6: use optional here instead of nullish
+function mapOpenAIImageFormatToMediaTypeSimple(formatOrType: string): string {
+  const lower = (formatOrType ?? 'png').toLowerCase().trim();
+  return lower.includes('/') ? lower : `image/${lower}`;
+}
+
 const openaiResponsesProviderOptionsSchema = z.object({
   metadata: z.any().nullish(),
   parallelToolCalls: z.boolean().nullish(),
