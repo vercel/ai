@@ -5,6 +5,7 @@ import {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
+  TelemetrySettings
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -28,7 +29,6 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import {
@@ -168,52 +168,52 @@ A result object for accessing the partial object stream and additional informati
  */
 export function streamObject<
   SCHEMA extends
-    | z3.Schema
-    | z4.core.$ZodType
-    | Schema = z4.core.$ZodType<JSONValue>,
+  | z3.Schema
+  | z4.core.$ZodType
+  | Schema = z4.core.$ZodType<JSONValue>,
   OUTPUT extends
-    | 'object'
-    | 'array'
-    | 'enum'
-    | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
+  | 'object'
+  | 'array'
+  | 'enum'
+  | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
   RESULT = OUTPUT extends 'array'
-    ? Array<InferSchema<SCHEMA>>
-    : InferSchema<SCHEMA>,
+  ? Array<InferSchema<SCHEMA>>
+  : InferSchema<SCHEMA>,
 >(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
     (OUTPUT extends 'enum'
       ? {
-          /**
+        /**
 The enum values that the model should use.
-        */
-          enum: Array<RESULT>;
-          mode?: 'json';
-          output: 'enum';
-        }
-      : OUTPUT extends 'no-schema'
-        ? {}
-        : {
-            /**
-The schema of the object that the model should generate.
       */
-            schema: SCHEMA;
+        enum: Array<RESULT>;
+        mode?: 'json';
+        output: 'enum';
+      }
+      : OUTPUT extends 'no-schema'
+      ? {}
+      : {
+        /**
+The schema of the object that the model should generate.
+  */
+        schema: SCHEMA;
 
-            /**
+        /**
 Optional name of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema name.
-      */
-            schemaName?: string;
+  */
+        schemaName?: string;
 
-            /**
+        /**
 Optional description of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
-      */
-            schemaDescription?: string;
+  */
+        schemaDescription?: string;
 
-            /**
+        /**
 The mode to use for object generation.
 
 The schema is converted into a JSON schema and used in one of the following ways
@@ -225,68 +225,68 @@ The schema is converted into a JSON schema and used in one of the following ways
 Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
-      */
-            mode?: 'auto' | 'json' | 'tool';
-          }) & {
-      output?: OUTPUT;
+  */
+        mode?: 'auto' | 'json' | 'tool';
+      }) & {
+        output?: OUTPUT;
 
-      /**
-The language model to use.
-     */
-      model: LanguageModel;
-
-      /**
-A function that attempts to repair the raw output of the model
-to enable JSON parsing.
+        /**
+  The language model to use.
        */
-      experimental_repairText?: RepairTextFunction;
+        model: LanguageModel;
 
-      /**
-Optional telemetry configuration (experimental).
+        /**
+  A function that attempts to repair the raw output of the model
+  to enable JSON parsing.
+         */
+        experimental_repairText?: RepairTextFunction;
+
+        /**
+  Optional telemetry configuration (experimental).
+         */
+
+        experimental_telemetry?: TelemetrySettings;
+
+        /**
+  Additional provider-specific options. They are passed through
+  to the provider from the AI SDK and enable provider-specific
+  functionality that can be fully encapsulated in the provider.
+   */
+        providerOptions?: ProviderOptions;
+
+        /**
+  Callback that is invoked when an error occurs during streaming.
+  You can use it to log errors.
+  The stream processing will pause until the callback promise is resolved.
        */
+        onError?: StreamObjectOnErrorCallback;
 
-      experimental_telemetry?: TelemetrySettings;
+        /**
+  Callback that is called when the LLM response and the final object validation are finished.
+  */
+        onFinish?: StreamObjectOnFinishCallback<RESULT>;
 
-      /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-      providerOptions?: ProviderOptions;
-
-      /**
-Callback that is invoked when an error occurs during streaming.
-You can use it to log errors.
-The stream processing will pause until the callback promise is resolved.
-     */
-      onError?: StreamObjectOnErrorCallback;
-
-      /**
-Callback that is called when the LLM response and the final object validation are finished.
-*/
-      onFinish?: StreamObjectOnFinishCallback<RESULT>;
-
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-        now?: () => number;
-      };
-    },
+        /**
+         * Internal. For test use only. May change without notice.
+         */
+        _internal?: {
+          generateId?: () => string;
+          currentDate?: () => Date;
+          now?: () => number;
+        };
+      },
 ): StreamObjectResult<
   OUTPUT extends 'enum'
-    ? string
-    : OUTPUT extends 'array'
-      ? RESULT
-      : DeepPartial<RESULT>,
+  ? string
+  : OUTPUT extends 'array'
+  ? RESULT
+  : DeepPartial<RESULT>,
   OUTPUT extends 'array' ? RESULT : RESULT,
   OUTPUT extends 'array'
-    ? RESULT extends Array<infer U>
-      ? AsyncIterableStream<U>
-      : never
-    : never
+  ? RESULT extends Array<infer U>
+  ? AsyncIterableStream<U>
+  : never
+  : never
 > {
   const {
     model,
@@ -359,8 +359,7 @@ Callback that is called when the LLM response and the final object validation ar
 }
 
 class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
-  implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
-{
+  implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   private readonly _object = new DelayedPromise<RESULT>();
   private readonly _usage = new DelayedPromise<LanguageModelUsage>();
   private readonly _providerMetadata = new DelayedPromise<
@@ -960,22 +959,22 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 export type ObjectStreamInputPart =
   | string
   | {
-      type: 'stream-start';
-      warnings: LanguageModelV2CallWarning[];
-    }
+    type: 'stream-start';
+    warnings: LanguageModelV2CallWarning[];
+  }
   | {
-      type: 'error';
-      error: unknown;
-    }
+    type: 'error';
+    error: unknown;
+  }
   | {
-      type: 'response-metadata';
-      id?: string;
-      timestamp?: Date;
-      modelId?: string;
-    }
+    type: 'response-metadata';
+    id?: string;
+    timestamp?: Date;
+    modelId?: string;
+  }
   | {
-      type: 'finish';
-      finishReason: LanguageModelV2FinishReason;
-      usage: LanguageModelV2Usage;
-      providerMetadata?: SharedV2ProviderMetadata;
-    };
+    type: 'finish';
+    finishReason: LanguageModelV2FinishReason;
+    usage: LanguageModelV2Usage;
+    providerMetadata?: SharedV2ProviderMetadata;
+  };

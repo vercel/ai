@@ -1,3 +1,4 @@
+import type { TelemetrySettings } from '@ai-sdk/provider';
 import { JSONValue } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -22,7 +23,6 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   CallWarning,
   FinishReason,
@@ -108,52 +108,52 @@ A result object that contains the generated object, the finish reason, the token
  */
 export async function generateObject<
   SCHEMA extends
-    | z3.Schema
-    | z4.core.$ZodType
-    | Schema = z4.core.$ZodType<JSONValue>,
+  | z3.Schema
+  | z4.core.$ZodType
+  | Schema = z4.core.$ZodType<JSONValue>,
   OUTPUT extends
-    | 'object'
-    | 'array'
-    | 'enum'
-    | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
+  | 'object'
+  | 'array'
+  | 'enum'
+  | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
   RESULT = OUTPUT extends 'array'
-    ? Array<InferSchema<SCHEMA>>
-    : InferSchema<SCHEMA>,
+  ? Array<InferSchema<SCHEMA>>
+  : InferSchema<SCHEMA>,
 >(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
     (OUTPUT extends 'enum'
       ? {
-          /**
+        /**
 The enum values that the model should use.
-        */
-          enum: Array<RESULT>;
-          mode?: 'json';
-          output: 'enum';
-        }
+      */
+        enum: Array<RESULT>;
+        mode?: 'json';
+        output: 'enum';
+      }
       : OUTPUT extends 'no-schema'
-        ? {}
-        : {
-            /**
+      ? {}
+      : {
+        /**
 The schema of the object that the model should generate.
-        */
-            schema: SCHEMA;
+    */
+        schema: SCHEMA;
 
-            /**
+        /**
 Optional name of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema name.
-        */
-            schemaName?: string;
+    */
+        schemaName?: string;
 
-            /**
+        /**
 Optional description of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
-        */
-            schemaDescription?: string;
+    */
+        schemaDescription?: string;
 
-            /**
+        /**
 The mode to use for object generation.
 
 The schema is converted into a JSON schema and used in one of the following ways
@@ -165,42 +165,42 @@ The schema is converted into a JSON schema and used in one of the following ways
 Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
-        */
-            mode?: 'auto' | 'json' | 'tool';
-          }) & {
-      output?: OUTPUT;
+    */
+        mode?: 'auto' | 'json' | 'tool';
+      }) & {
+        output?: OUTPUT;
 
-      /**
-  The language model to use.
-       */
-      model: LanguageModel;
-      /**
-  A function that attempts to repair the raw output of the model
-  to enable JSON parsing.
-       */
-      experimental_repairText?: RepairTextFunction;
-
-      /**
-  Optional telemetry configuration (experimental).
+        /**
+    The language model to use.
          */
+        model: LanguageModel;
+        /**
+    A function that attempts to repair the raw output of the model
+    to enable JSON parsing.
+         */
+        experimental_repairText?: RepairTextFunction;
 
-      experimental_telemetry?: TelemetrySettings;
+        /**
+    Optional telemetry configuration (experimental).
+           */
 
-      /**
-  Additional provider-specific options. They are passed through
-  to the provider from the AI SDK and enable provider-specific
-  functionality that can be fully encapsulated in the provider.
-   */
-      providerOptions?: ProviderOptions;
+        experimental_telemetry?: TelemetrySettings;
 
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-      };
-    },
+        /**
+    Additional provider-specific options. They are passed through
+    to the provider from the AI SDK and enable provider-specific
+    functionality that can be fully encapsulated in the provider.
+     */
+        providerOptions?: ProviderOptions;
+
+        /**
+         * Internal. For test use only. May change without notice.
+         */
+        _internal?: {
+          generateId?: () => string;
+          currentDate?: () => Date;
+        };
+      },
 ): Promise<GenerateObjectResult<RESULT>> {
   const {
     model: modelArg,

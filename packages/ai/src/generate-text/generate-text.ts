@@ -2,6 +2,7 @@ import {
   LanguageModelV2,
   LanguageModelV2Content,
   LanguageModelV2ToolCall,
+  TelemetrySettings,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -27,7 +28,6 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
@@ -168,8 +168,8 @@ When the condition is an array, any of the conditions can be met to stop the gen
 @default stepCountIs(1)
      */
     stopWhen?:
-      | StopCondition<NoInfer<TOOLS>>
-      | Array<StopCondition<NoInfer<TOOLS>>>;
+    | StopCondition<NoInfer<TOOLS>>
+    | Array<StopCondition<NoInfer<TOOLS>>>;
 
     /**
 Optional telemetry configuration (experimental).
@@ -707,8 +707,7 @@ async function executeTools<TOOLS extends ToolSet>({
 }
 
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
-  implements GenerateTextResult<TOOLS, OUTPUT>
-{
+  implements GenerateTextResult<TOOLS, OUTPUT> {
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
 
   private readonly resolvedOutput: OUTPUT;
