@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.15
+
+### Patch Changes
+
+- ca4f68f: feat(ai): add validateUIMessages function
+- Updated dependencies [28a4006]
+  - @ai-sdk/gateway@1.0.7
+
 ## 5.0.14
 
 ### Patch Changes

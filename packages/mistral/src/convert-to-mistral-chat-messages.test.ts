@@ -70,6 +70,29 @@ describe('user messages', () => {
 
     expect(result).toMatchSnapshot();
   });
+
+  it('should convert messages with reasoning content', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'reasoning', text: 'Let me think about this...' },
+          { type: 'text', text: 'The answer is 42.' },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "Let me think about this...The answer is 42.",
+          "prefix": true,
+          "role": "assistant",
+          "tool_calls": undefined,
+        },
+      ]
+    `);
+  });
 });
 
 describe('tool calls', () => {

@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 2.0.5
+
+### Patch Changes
+
+- 266ef91: fix(provider/mistral): add support for magistral reasoning models with thinking content type
+
 ## 2.0.4
 
 ### Patch Changes
