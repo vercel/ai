@@ -1115,6 +1115,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     abortSignal,
                     headers,
                     includeRawChunks,
+                    telemetry
                   }),
                 };
               },

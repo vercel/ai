@@ -506,6 +506,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           abortSignal,
           headers,
           includeRawChunks: false,
+          telemetry,
         };
 
         const transformer: Transformer<

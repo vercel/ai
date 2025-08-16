@@ -2,8 +2,15 @@ import {
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2Middleware,
+  TelemetrySettings,
 } from '@ai-sdk/provider';
 import { asArray } from '../util/as-array';
+import { getTracer } from '../telemetry/get-tracer';
+import { recordSpan } from '../telemetry/record-span';
+import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
+import { assembleOperationName } from '../telemetry/assemble-operation-name';
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 
 /**
  * Wraps a LanguageModelV2 instance with middleware functionality.
@@ -60,10 +67,62 @@ const doWrap = ({
     params: LanguageModelV2CallOptions;
     type: 'generate' | 'stream';
   }) {
-    return transformParams
-      ? await transformParams({ params, type, model })
-      : params;
+    // an 'as' cast is needed here because the telemetry property is optional
+    const telemetry = params.telemetry as TelemetrySettings | undefined;
+    if (params.telemetry) {
+      delete params.telemetry;
+    }
+
+    if (transformParams == null) {
+      return params;
+    }
+
+    if (telemetry?.isEnabled !== true) {
+      return await transformParams({ params, type, model });
+    }
+
+    const tracer = getTracer(telemetry);
+
+    return recordSpan({
+      name: 'ai.languageModelMiddleware.transformParams',
+      tracer,
+      attributes: selectTelemetryAttributes({
+        telemetry,
+        attributes: {
+          ...assembleOperationName({
+            operationId: 'ai.languageModelMiddleware.transformParams',
+            telemetry,
+          }),
+          ...getBaseTelemetryAttributes({
+            model,
+            telemetry,
+            headers: params.headers,
+            settings: params,
+          }),
+          'ai.prompt.messages': {
+            input: () => stringifyForTelemetry(params.prompt),
+          },
+        },
+      }),
+      fn: async span => {
+        const transformedParams = await transformParams({ params, type, model });
+
+        span.setAttributes(
+          selectTelemetryAttributes({
+            telemetry,
+            attributes: {
+              'ai.prompt.messages.transformed': {
+                output: () => stringifyForTelemetry(transformedParams.prompt),
+              },
+            },
+          }),
+        );
+
+        return transformedParams;
+      },
+    });
   }
+
 
   return {
     specificationVersion: 'v2',
@@ -80,11 +139,11 @@ const doWrap = ({
       const doStream = async () => model.doStream(transformedParams);
       return wrapGenerate
         ? wrapGenerate({
-            doGenerate,
-            doStream,
-            params: transformedParams,
-            model,
-          })
+          doGenerate,
+          doStream,
+          params: transformedParams,
+          model,
+        })
         : doGenerate();
     },
 

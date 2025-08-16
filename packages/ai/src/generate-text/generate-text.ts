@@ -377,6 +377,7 @@ A function that attempts to repair a tool call that failed to parse.
                   providerOptions,
                   abortSignal,
                   headers,
+                  telemetry
                 });
 
                 // Fill in default values:

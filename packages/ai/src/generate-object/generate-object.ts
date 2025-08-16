@@ -346,6 +346,7 @@ Default and recommended: 'auto' (best mode for the model).
                 providerOptions,
                 abortSignal,
                 headers,
+                telemetry
               });
 
               const responseData = {
