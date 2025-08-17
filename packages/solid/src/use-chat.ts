@@ -5,7 +5,7 @@ import {
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';
-import { Chat } from './chat.callbacks';
+import { Chat } from './chat.solid';
 import { Accessor, createEffect, createMemo } from 'solid-js';
 import { useSyncSignalCallback } from './util/use-sync-store';
 
