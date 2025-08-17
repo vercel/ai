@@ -12450,7 +12450,7 @@ describe('streamText', () => {
       });
     });
 
-    describe('abort in 2nd step during tool call', () => {
+    describe('abort during tool call', () => {
       let result: StreamTextResult<any, TextStreamPart<any>>;
       let onErrorCalls: Array<{ error: unknown }> = [];
       let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
