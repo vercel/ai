@@ -13,10 +13,10 @@
   ],
   "references": [
     {
-      "path": "../provider-utils"
+      "path": "../ai"
     },
     {
-      "path": "../ai"
+      "path": "../provider-utils"
     }
   ]
 }

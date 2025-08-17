@@ -4,16 +4,21 @@
     "declaration": true,
     "sourceMap": true,
     "target": "es2022",
-    "lib": ["es2022", "dom"],
+    "lib": [
+      "es2022",
+      "dom"
+    ],
     "module": "esnext",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "Bundler",
     "rootDir": "./src",
     "outDir": "./build",
     "skipLibCheck": true,
-    "composite": true,
+    "composite": true
   },
   "include": [
     "src/**/*.ts"
@@ -29,16 +34,13 @@
       "path": "../../packages/anthropic"
     },
     {
+      "path": "../../packages/assemblyai"
+    },
+    {
       "path": "../../packages/azure"
     },
     {
       "path": "../../packages/cerebras"
-    },
-    {
-      "path": "../../packages/elevenlabs"
-    },
-    {
-      "path": "../../packages/revai"
     },
     {
       "path": "../../packages/cohere"
@@ -47,31 +49,25 @@
       "path": "../../packages/deepgram"
     },
     {
-      "path": "../../packages/revai"
-    },
-    {
       "path": "../../packages/deepinfra"
-    },
-    {
-      "path": "../../packages/gladia"
-    },
-    {
-      "path": "../../packages/lmnt"
     },
     {
       "path": "../../packages/deepseek"
     },
     {
-      "path": "../../packages/hume"
+      "path": "../../packages/elevenlabs"
     },
     {
       "path": "../../packages/fal"
     },
     {
-      "path": "../../packages/assemblyai"
+      "path": "../../packages/fireworks"
     },
     {
-      "path": "../../packages/fireworks"
+      "path": "../../packages/gateway"
+    },
+    {
+      "path": "../../packages/gladia"
     },
     {
       "path": "../../packages/google"
@@ -81,6 +77,12 @@
     },
     {
       "path": "../../packages/groq"
+    },
+    {
+      "path": "../../packages/hume"
+    },
+    {
+      "path": "../../packages/lmnt"
     },
     {
       "path": "../../packages/luma"
@@ -104,10 +106,16 @@
       "path": "../../packages/replicate"
     },
     {
+      "path": "../../packages/revai"
+    },
+    {
       "path": "../../packages/togetherai"
     },
     {
       "path": "../../packages/valibot"
+    },
+    {
+      "path": "../../packages/vercel"
     },
     {
       "path": "../../packages/xai"

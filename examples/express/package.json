@@ -9,14 +9,15 @@
   "dependencies": {
     "@ai-sdk/openai": "workspace:*",
     "ai": "workspace:*",
+    "cors": "^2.8.5",
     "dotenv": "16.4.5",
     "express": "5.0.1"
   },
   "devDependencies": {
     "@types/express": "5.0.0",
     "@types/node": "20.17.24",
+    "@vercel/ai-tsconfig": "workspace:*",
     "tsx": "4.19.2",
-    "typescript": "5.8.3",
-    "@vercel/ai-tsconfig": "workspace:*"
+    "typescript": "5.8.3"
   }
 }

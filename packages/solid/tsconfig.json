@@ -1,5 +1,5 @@
 {
-  "extends": "./node_modules/@vercel/ai-tsconfig/react-library.json",
+  "extends": "./node_modules/@vercel/ai-tsconfig/solid-library.json",
   "compilerOptions": {
     "target": "ES2018",
     "stripInternal": true,

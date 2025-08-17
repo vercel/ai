@@ -17,17 +17,23 @@
     "stripInternal": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "lib": ["esnext", "dom", "dom.iterable"],
-    "types": ["vitest/globals"],
+    "lib": [
+      "esnext",
+      "dom",
+      "dom.iterable"
+    ],
+    "types": [
+      "vitest/globals"
+    ],
     "rootDir": "src",
     "outDir": "dist"
   },
   "references": [
     {
-      "path": "../provider-utils"
+      "path": "../ai"
     },
     {
-      "path": "../ai"
+      "path": "../provider-utils"
     }
   ],
   "include": [

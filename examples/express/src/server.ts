@@ -2,8 +2,11 @@ import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
+import cors from 'cors';
 
 const app = express();
+
+app.use(cors());
 
 app.post('/', async (req: Request, res: Response) => {
   const result = streamText({

@@ -9,16 +9,23 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["vitest/globals"]
+    "types": [
+      "vitest/globals"
+    ]
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["dist", "node_modules"],
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ],
   "references": [
     {
-      "path": "../provider-utils"
+      "path": "../ai"
     },
     {
-      "path": "../ai"
+      "path": "../provider-utils"
     }
   ]
 }
