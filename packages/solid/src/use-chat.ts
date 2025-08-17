@@ -8,6 +8,7 @@ import {
 import { Chat } from './chat.solid';
 import { Accessor, createEffect, createMemo } from 'solid-js';
 import { useSyncSignalCallback } from './util/use-sync-store';
+import { createStore } from 'solid-js/store';
 
 export type { CreateUIMessage, UIMessage };
 
@@ -60,15 +61,17 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   resume = false,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
-  let chatRef: Chat<UI_MESSAGE> = 'chat' in options ? options.chat : new Chat(options);
+  const [chatRef, setChatRef] = createStore('chat' in options ? options.chat : new Chat(options));
 
+  createEffect(() => {
   const shouldRecreateChat =
     ('chat' in options && options.chat !== chatRef) ||
     ('id' in options && chatRef.id !== options.id);
 
   if (shouldRecreateChat) {
-    chatRef = 'chat' in options ? options.chat : new Chat(options);
+    setChatRef('chat' in options ? options.chat : new Chat(options));
   }
+});
 
   const setMessages = 
     (

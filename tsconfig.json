@@ -184,6 +184,9 @@
       "path": "examples/nuxt-openai"
     },
     {
+      "path": "examples/solidjs"
+    },
+    {
       "path": "examples/sveltekit-openai"
     }
   ],

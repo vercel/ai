@@ -52,7 +52,7 @@ describe('initial messages', () => {
         <div>
           <div data-testid="id">{idKey}</div>
           <div data-testid="status">{status().toString()}</div>
-          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+          <div data-testid="messages">{JSON.stringify(messages(), null, 2)}</div>
         </div>
       );
     },
@@ -110,7 +110,7 @@ describe('data protocol stream', () => {
           <div data-testid="status">{status().toString()}</div>
           {error() && <div data-testid="error">{error()?.toString()}</div>}
           <div data-testid="isFinished">{isFinished().toString()}</div>
-          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+          <div data-testid="messages">{JSON.stringify(messages(), null, 2)}</div>
           <button
             data-testid="do-send"
             onClick={() => {
@@ -2104,7 +2104,7 @@ describe('id changes', () => {
           <div data-testid="id">{idKey}</div>
           <div data-testid="status">{status().toString()}</div>
           {error() && <div data-testid="error">{error()?.toString()}</div>}
-          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+          <div data-testid="messages">{JSON.stringify(messages(), null, 2)}</div>
           <button
             data-testid="do-send"
             onClick={() => {
@@ -2198,7 +2198,7 @@ describe('chat instance changes', () => {
           <div data-testid="id">{idKey}</div>
           <div data-testid="status">{status().toString()}</div>
           {error() && <div data-testid="error">{error()?.toString()}</div>}
-          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+          <div data-testid="messages">{JSON.stringify(messages(), null, 2)}</div>
           <button
             data-testid="do-send"
             onClick={() => {
@@ -2284,7 +2284,7 @@ describe('streaming with id change from undefined to defined', () => {
       return (
         <div>
           <div data-testid="status">{status().toString()}</div>
-          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+          <div data-testid="messages">{JSON.stringify(messages(), null, 2)}</div>
           <button
             data-testid="change-id"
             onClick={() => {
