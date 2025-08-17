@@ -1,103 +1,130 @@
-import { AbstractChat, ChatInit, ChatState, ChatStatus, UIMessage } from "ai";
-import { Accessor, createSignal, Signal } from "solid-js";
-import { createStore, produce, reconcile, SetStoreFunction } from "solid-js/store";
+import { AbstractChat, ChatInit, ChatState, ChatStatus, UIMessage } from 'ai';
+import { throttle } from './throttle';
 
+class ReactChatState<UI_MESSAGE extends UIMessage>
+  implements ChatState<UI_MESSAGE>
+{
+  #messages: UI_MESSAGE[];
+  #status: ChatStatus = 'ready';
+  #error: Error | undefined = undefined;
 
-
-
-export class SolidChatState<UI_MESSAGE extends UIMessage> implements ChatState<UI_MESSAGE> {
-  private messagesSignal: Signal<UI_MESSAGE[]>;
-  private statusSignal: Signal<ChatStatus>;
-  private errorSignal: Signal<Error | undefined>;
+  #messagesCallbacks = new Set<() => void>();
+  #statusCallbacks = new Set<() => void>();
+  #errorCallbacks = new Set<() => void>();
 
   constructor(initialMessages: UI_MESSAGE[] = []) {
-    this.messagesSignal = createSignal(initialMessages);
-    this.statusSignal = createSignal<ChatStatus>('ready');
-    this.errorSignal = createSignal<Error | undefined>(undefined);
+    this.#messages = initialMessages;
   }
 
   get status(): ChatStatus {
-    return this.statusSignal[0]();
+    return this.#status;
   }
 
-  set status(status: ChatStatus) {
-    const [, setStatus] = this.statusSignal;
-    setStatus(status);
-  }
-
-  get messages(): UI_MESSAGE[] {
-    const [messages] = this.messagesSignal;
-    return messages();
-  }
-
-  set messages(messages: UI_MESSAGE[]) {
-    const [, setMessages] = this.messagesSignal;
-    setMessages([...messages]);
+  set status(newStatus: ChatStatus) {
+    this.#status = newStatus;
+    this.#callStatusCallbacks();
   }
 
   get error(): Error | undefined {
-    return this.errorSignal[0]();
+    return this.#error;
   }
 
-  set error(error: Error | undefined) {
-    this.errorSignal[1](() => error);
+  set error(newError: Error | undefined) {
+    this.#error = newError;
+    this.#callErrorCallbacks();
   }
 
-  get statusAccessor(): Accessor<ChatStatus> {
-    return this.statusSignal[0];
+  get messages(): UI_MESSAGE[] {
+    return this.#messages;
   }
 
-  get errorAccessor(): Accessor<Error | undefined> {
-    return this.errorSignal[0];
-  }
-
-  get messagesAccessor(): Accessor<UI_MESSAGE[]> {
-    return this.messagesSignal[0];
+  set messages(newMessages: UI_MESSAGE[]) {
+    this.#messages = [...newMessages];
+    this.#callMessagesCallbacks();
   }
 
   pushMessage = (message: UI_MESSAGE) => {
-    const [, setMessages] = this.messagesSignal;
-    setMessages((m) => [...m.map(m => ({...m, parts: [...m.parts]})), message]);
-  }
+    this.#messages = this.#messages.concat(message);
+    this.#callMessagesCallbacks();
+  };
+
   popMessage = () => {
-    const [, setMessages] = this.messagesSignal;
-    setMessages((m) => [...m.map(m => ({...m, parts: [...m.parts]}))].slice(0, -1));
-  }
+    this.#messages = this.#messages.slice(0, -1);
+    this.#callMessagesCallbacks();
+  };
+
   replaceMessage = (index: number, message: UI_MESSAGE) => {
-    const [, setMessages] = this.messagesSignal;
-    setMessages((m) => [...m.map(m => ({...m, parts: [...m.parts]}))].map((m, i) => i === index ? message : m));
-  }
-  snapshot = <T>(thing: T): T => structuredClone(thing);
+    this.#messages = [
+      ...this.#messages.slice(0, index),
+      // We deep clone the message here to ensure the new React Compiler (currently in RC) detects deeply nested parts/metadata changes:
+      this.snapshot(message),
+      ...this.#messages.slice(index + 1),
+    ];
+    this.#callMessagesCallbacks();
+  };
+
+  snapshot = <T>(value: T): T => structuredClone(value);
+
+  '~registerMessagesCallback' = (
+    onChange: () => void,
+    throttleWaitMs?: number,
+  ): (() => void) => {
+    const callback = throttleWaitMs
+      ? throttle(onChange, throttleWaitMs)
+      : onChange;
+    this.#messagesCallbacks.add(callback);
+    return () => {
+      this.#messagesCallbacks.delete(callback);
+    };
+  };
+
+  '~registerStatusCallback' = (onChange: () => void): (() => void) => {
+    this.#statusCallbacks.add(onChange);
+    return () => {
+      this.#statusCallbacks.delete(onChange);
+    };
+  };
+
+  '~registerErrorCallback' = (onChange: () => void): (() => void) => {
+    this.#errorCallbacks.add(onChange);
+    return () => {
+      this.#errorCallbacks.delete(onChange);
+    };
+  };
+
+  #callMessagesCallbacks = () => {
+    this.#messagesCallbacks.forEach(callback => callback());
+  };
+
+  #callStatusCallbacks = () => {
+    this.#statusCallbacks.forEach(callback => callback());
+  };
+
+  #callErrorCallbacks = () => {
+    this.#errorCallbacks.forEach(callback => callback());
+  };
 }
 
 export class Chat<
   UI_MESSAGE extends UIMessage,
 > extends AbstractChat<UI_MESSAGE> {
-  #state: SolidChatState<UI_MESSAGE>;
+  #state: ReactChatState<UI_MESSAGE>;
+
   constructor({ messages, ...init }: ChatInit<UI_MESSAGE>) {
-    const state = new SolidChatState<UI_MESSAGE>(messages);
+    const state = new ReactChatState(messages);
     super({ ...init, state });
     this.#state = state;
   }
 
-  get statusAccessor(): Accessor<ChatStatus> {
-    return this.#state.statusAccessor;
-  }
+  '~registerMessagesCallback' = (
+    onChange: () => void,
+    throttleWaitMs?: number,
+  ): (() => void) =>
+    this.#state['~registerMessagesCallback'](onChange, throttleWaitMs);
 
-  get messages(): UI_MESSAGE[] {
-    return this.#state.messages;
-  }
+  '~registerStatusCallback' = (onChange: () => void): (() => void) =>
+    this.#state['~registerStatusCallback'](onChange);
 
-  set messages(messages: UI_MESSAGE[]) {
-    this.#state.messages = messages;
-  }
-
-  get errorAccessor(): Accessor<Error | undefined> {
-    return this.#state.errorAccessor;
-  }
-
-  get messagesAccessor(): Accessor<UI_MESSAGE[]> {
-    return this.#state.messagesAccessor;
-  }
-  
+  '~registerErrorCallback' = (onChange: () => void): (() => void) =>
+    this.#state['~registerErrorCallback'](onChange);
 }

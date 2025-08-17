@@ -5,8 +5,9 @@ import {
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';
-import { Chat } from './chat.solid';
+import { Chat } from './chat.callbacks';
 import { Accessor, createEffect, createMemo } from 'solid-js';
+import { useSyncSignalCallback } from './util/use-sync-store';
 
 export type { CreateUIMessage, UIMessage };
 
@@ -86,17 +87,22 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     }
   });
 
+
+  const messages = useSyncSignalCallback('messages', chatRef.messages, chatRef['~registerMessagesCallback'], () => chatRef.messages);
+  const status = useSyncSignalCallback('status', chatRef.status, chatRef['~registerStatusCallback'], () => chatRef.status);
+  const error = useSyncSignalCallback('error', chatRef.error, chatRef['~registerErrorCallback'], () => chatRef.error);
+
   return {
     id: chatRef.id,
-    messages: chatRef.messagesAccessor,
+    messages: messages,
     setMessages,
     sendMessage: chatRef.sendMessage,
     regenerate: chatRef.regenerate,
     clearError: chatRef.clearError,
     stop: chatRef.stop,
-    error: chatRef.errorAccessor,
+    error: error,
     resumeStream: chatRef.resumeStream,
-    status: chatRef.statusAccessor,
+    status: status,
     addToolResult: chatRef.addToolResult,
   };
 }
