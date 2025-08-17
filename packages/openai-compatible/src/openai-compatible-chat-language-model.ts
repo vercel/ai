@@ -538,9 +538,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                     // send delta if the argument text has already started:
                     if (toolCall.function.arguments.length > 0) {
                       controller.enqueue({
-                        type: 'tool-input-start',
+                        type: 'tool-input-delta',
                         id: toolCall.id,
-                        toolName: toolCall.function.name,
+                        delta: toolCall.function.arguments,
                       });
                     }
 
