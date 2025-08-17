@@ -12449,6 +12449,123 @@ describe('streamText', () => {
         `);
       });
     });
+
+    describe('abort in 2nd step during tool call', () => {
+      let result: StreamTextResult<any, TextStreamPart<any>>;
+      let onErrorCalls: Array<{ error: unknown }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+
+      beforeEach(() => {
+        onErrorCalls = [];
+        onAbortCalls = [];
+
+        const abortController = new AbortController();
+        let pullCalls = 0;
+        let streamCalls = 0;
+
+        result = streamText({
+          abortSignal: abortController.signal,
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV2({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start(controller) {
+                  streamCalls++;
+                  pullCalls = 0;
+                },
+                pull(controller) {
+                  if (streamCalls === 1) {
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({
+                          type: 'tool-call',
+                          toolCallId: 'call-1',
+                          toolName: 'tool1',
+                          input: `{ "value": "value" }`,
+                        });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'finish',
+                          finishReason: 'tool-calls',
+                          usage: testUsage,
+                        });
+                        controller.close();
+                        break;
+                    }
+                  } else
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({
+                          type: 'text-start',
+                          id: '1',
+                        });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: '1',
+                          delta: 'Hello',
+                        });
+                        break;
+                      case 3:
+                        controller.enqueue({
+                          type: 'text-end',
+                          id: '1',
+                        });
+                        controller.enqueue({
+                          type: 'finish',
+                          finishReason: 'tool-calls',
+                          usage: testUsage,
+                        });
+                        controller.close();
+                        break;
+                    }
+                },
+              }),
+            }),
+          }),
+          tools: {
+            tool1: {
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => {
+                abortController.abort();
+                return 'result1';
+              },
+            },
+          },
+          stopWhen: stepCountIs(3),
+          ...defaultSettings(),
+          onError: error => {
+            onErrorCalls.push({ error });
+          },
+        });
+      });
+
+      it('should not call onError for abort errors', async () => {
+        await result.consumeStream();
+        expect(onErrorCalls).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should call onAbort when the abort signal is triggered during tool call', async () => {
+        await result.consumeStream();
+        expect(onAbortCalls.length).toBe(1);
+      });
+    });
   });
 
   describe('tool execution context', () => {
