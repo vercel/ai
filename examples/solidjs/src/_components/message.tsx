@@ -26,14 +26,12 @@ export default function Message(props: {
     <div
       class="whitespace-pre-wrap my-2 p-3 rounded-lg shadow"
       classList={{
-        "bg-blue-100 text-right ml-10": isUser,
-        "bg-gray-100 text-left mr-10": !isUser,
+        'bg-blue-100 text-right ml-10': isUser,
+        'bg-gray-100 text-left mr-10': !isUser,
       }}
     >
       <div class="font-semibold">{isUser ? 'User:' : 'AI:'}</div>
-      <div>
-        {text()}
-      </div>
+      <div>{text()}</div>
       {props.message.role === 'user' && (
         <>
           <button

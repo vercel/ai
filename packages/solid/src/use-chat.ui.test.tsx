@@ -52,7 +52,9 @@ describe('initial messages', () => {
         <div>
           <div data-testid="id">{idKey}</div>
           <div data-testid="status">{status().toString()}</div>
-          <div data-testid="messages">{JSON.stringify(messages(), null, 2)}</div>
+          <div data-testid="messages">
+            {JSON.stringify(messages(), null, 2)}
+          </div>
         </div>
       );
     },
@@ -110,7 +112,9 @@ describe('data protocol stream', () => {
           <div data-testid="status">{status().toString()}</div>
           {error() && <div data-testid="error">{error()?.toString()}</div>}
           <div data-testid="isFinished">{isFinished().toString()}</div>
-          <div data-testid="messages">{JSON.stringify(messages(), null, 2)}</div>
+          <div data-testid="messages">
+            {JSON.stringify(messages(), null, 2)}
+          </div>
           <button
             data-testid="do-send"
             onClick={() => {
@@ -430,22 +434,23 @@ describe('text stream', () => {
         <For each={messages()}>
           {(m, idx) => {
             console.log(m);
-            return (<div data-testid={`message-${idx()}-text-stream`}>
-            <div data-testid={`message-${idx()}-id`}>{m.id}</div>
-            <div data-testid={`message-${idx()}-role`}>
-              {m.role === 'user' ? 'User: ' : 'AI: '}
-            </div>
-            <div data-testid={`message-${idx()}-content`}>
-              <For each={m.parts}>
-                {part => part.type === 'text' ? part.text : ''}
-              </For>
-              {/* {m.parts
+            return (
+              <div data-testid={`message-${idx()}-text-stream`}>
+                <div data-testid={`message-${idx()}-id`}>{m.id}</div>
+                <div data-testid={`message-${idx()}-role`}>
+                  {m.role === 'user' ? 'User: ' : 'AI: '}
+                </div>
+                <div data-testid={`message-${idx()}-content`}>
+                  <For each={m.parts}>
+                    {part => (part.type === 'text' ? part.text : '')}
+                  </For>
+                  {/* {m.parts
                 .map(part => (part.type === 'text' ? part.text : ''))
                 .join('')} */}
-            </div>
-          </div>)
-          }
-        }
+                </div>
+              </div>
+            );
+          }}
         </For>
 
         <button
@@ -567,12 +572,12 @@ describe('prepareChatRequest', () => {
         <div data-testid="status">{status().toString()}</div>
         <For each={messages()}>
           {(m, idx) => (
-          <div data-testid={`message-${idx()}`}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.parts
-              .map(part => (part.type === 'text' ? part.text : ''))
-              .join('')}
-          </div>
+            <div data-testid={`message-${idx()}`}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
           )}
         </For>
 
@@ -700,7 +705,7 @@ describe('onToolCall', () => {
                   </div>
                 )}
               </For>
-          </div>
+            </div>
           )}
         </For>
 
@@ -778,33 +783,33 @@ describe('tool invocations', () => {
               <For each={m.parts.filter(isToolUIPart)}>
                 {(toolPart, toolIdx) => (
                   <div>
-                  <div data-testid={`tool-invocation-${toolIdx()}`}>
-                    {JSON.stringify(toolPart)}
+                    <div data-testid={`tool-invocation-${toolIdx()}`}>
+                      {JSON.stringify(toolPart)}
+                    </div>
+                    {toolPart.state === 'input-available' && (
+                      <button
+                        data-testid={`add-result-${toolIdx()}`}
+                        onClick={() => {
+                          addToolResult({
+                            tool: 'test-tool',
+                            toolCallId: toolPart.toolCallId,
+                            output: 'test-result',
+                          });
+                        }}
+                      />
+                    )}
                   </div>
-                  {toolPart.state === 'input-available' && (
-                    <button
-                      data-testid={`add-result-${toolIdx()}`}
-                      onClick={() => {
-                        addToolResult({
-                          tool: 'test-tool',
-                          toolCallId: toolPart.toolCallId,
-                          output: 'test-result',
-                        });
-                      }}
-                    />
-                  )}
+                )}
+              </For>
+              {m.role === 'assistant' && (
+                <div data-testid={`message-${idx()}-text`}>
+                  {m.parts
+                    .map(part => (part.type === 'text' ? part.text : ''))
+                    .join('')}
                 </div>
               )}
-            </For>
-            {m.role === 'assistant' && (
-              <div data-testid={`message-${idx()}-text`}>
-                {m.parts
-                  .map(part => (part.type === 'text' ? part.text : ''))
-                  .join('')}
-              </div>
-            )}
-          </div>
-            )}
+            </div>
+          )}
         </For>
 
         <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
@@ -1083,7 +1088,7 @@ describe('file attachments with data url', () => {
     });
 
     const [files, setFiles] = createSignal<FileList | undefined>(undefined);
-    let fileInputRef: HTMLInputElement|undefined;
+    let fileInputRef: HTMLInputElement | undefined;
     const [input, setInput] = createSignal('');
 
     return (
@@ -1091,7 +1096,7 @@ describe('file attachments with data url', () => {
         <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
-          onSubmit={(e) => {
+          onSubmit={e => {
             e.preventDefault();
 
             sendMessage({ text: input(), files: files() });
@@ -1099,7 +1104,6 @@ describe('file attachments with data url', () => {
             if (fileInputRef) {
               fileInputRef = undefined;
             }
-
           }}
           data-testid="chat-form"
         >
@@ -1111,7 +1115,7 @@ describe('file attachments with data url', () => {
               }
             }}
             multiple
-            ref={(e) => fileInputRef = e}
+            ref={e => (fileInputRef = e)}
             data-testid="file-input"
           />
           <input
@@ -1322,7 +1326,7 @@ describe('file attachments with url', () => {
         <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
-          onSubmit={(e) => {
+          onSubmit={e => {
             e.preventDefault();
 
             sendMessage({
@@ -1445,7 +1449,7 @@ describe('attachments with empty submit', () => {
         <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
-          onSubmit={(e) => {
+          onSubmit={e => {
             e.preventDefault();
 
             sendMessage({
@@ -1666,9 +1670,9 @@ describe('regenerate', () => {
             <div data-testid={`message-${idx()}`}>
               {m.role === 'user' ? 'User: ' : 'AI: '}
               {m.parts
-              .map(part => (part.type === 'text' ? part.text : ''))
-              .join('')}
-          </div>
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
           )}
         </For>
 
@@ -1777,9 +1781,9 @@ describe('test sending additional fields during message submission', () => {
             <div data-testid={`message-${idx()}`}>
               {m.role === 'user' ? 'User: ' : 'AI: '}
               {m.parts
-              .map(part => (part.type === 'text' ? part.text : ''))
-              .join('')}
-          </div>
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
           )}
         </For>
 
@@ -1865,9 +1869,9 @@ describe('resume ongoing stream and return assistant message', () => {
               <div data-testid={`message-${idx()}`}>
                 {m.role === 'user' ? 'User: ' : 'AI: '}
                 {m.parts
-                .map(part => (part.type === 'text' ? part.text : ''))
-                .join('')}
-            </div>
+                  .map(part => (part.type === 'text' ? part.text : ''))
+                  .join('')}
+              </div>
             )}
           </For>
 
@@ -1944,9 +1948,9 @@ describe('stop', () => {
             <div data-testid={`message-${idx()}`}>
               {m.role === 'user' ? 'User: ' : 'AI: '}
               {m.parts
-              .map(part => (part.type === 'text' ? part.text : ''))
-              .join('')}
-          </div>
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
           )}
         </For>
 
@@ -2023,9 +2027,9 @@ describe('experimental_throttle', () => {
             <div data-testid={`message-${idx()}`}>
               {m.role === 'user' ? 'User: ' : 'AI: '}
               {m.parts
-              .map(part => (part.type === 'text' ? part.text : ''))
-              .join('')}
-          </div>
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
           )}
         </For>
         <button
@@ -2055,7 +2059,7 @@ describe('experimental_throttle', () => {
     controller.write(
       formatChunk({ type: 'text-delta', id: '0', delta: 'Hel' }),
     );
-      
+
     await vi.advanceTimersByTimeAsync(throttleMs + 10);
 
     expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
@@ -2104,7 +2108,9 @@ describe('id changes', () => {
           <div data-testid="id">{idKey}</div>
           <div data-testid="status">{status().toString()}</div>
           {error() && <div data-testid="error">{error()?.toString()}</div>}
-          <div data-testid="messages">{JSON.stringify(messages(), null, 2)}</div>
+          <div data-testid="messages">
+            {JSON.stringify(messages(), null, 2)}
+          </div>
           <button
             data-testid="do-send"
             onClick={() => {
@@ -2198,7 +2204,9 @@ describe('chat instance changes', () => {
           <div data-testid="id">{idKey}</div>
           <div data-testid="status">{status().toString()}</div>
           {error() && <div data-testid="error">{error()?.toString()}</div>}
-          <div data-testid="messages">{JSON.stringify(messages(), null, 2)}</div>
+          <div data-testid="messages">
+            {JSON.stringify(messages(), null, 2)}
+          </div>
           <button
             data-testid="do-send"
             onClick={() => {
@@ -2284,7 +2292,9 @@ describe('streaming with id change from undefined to defined', () => {
       return (
         <div>
           <div data-testid="status">{status().toString()}</div>
-          <div data-testid="messages">{JSON.stringify(messages(), null, 2)}</div>
+          <div data-testid="messages">
+            {JSON.stringify(messages(), null, 2)}
+          </div>
           <button
             data-testid="change-id"
             onClick={() => {

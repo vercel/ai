@@ -11,7 +11,12 @@ import {
   parsePartialJson,
   Schema,
 } from 'ai';
-import { type Accessor, createMemo, createSignal, createUniqueId } from 'solid-js';
+import {
+  type Accessor,
+  createMemo,
+  createSignal,
+  createUniqueId,
+} from 'solid-js';
 import { useSwr } from 'solid-swr';
 import useSWR from 'swr';
 import * as z3 from 'zod/v3';
@@ -163,7 +168,7 @@ function useObject<
       setIsLoading(false);
       abortControllerRef = null;
     }
-  }
+  };
 
   const submit = async (input: INPUT) => {
     try {

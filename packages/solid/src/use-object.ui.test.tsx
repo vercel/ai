@@ -252,14 +252,14 @@ describe('text stream', () => {
       chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
     };
 
-    render(() =>
+    render(() => (
       <TestComponent
         headers={{
           Authorization: 'Bearer TEST_TOKEN',
           'X-Custom-Header': 'CustomValue',
         }}
-      />,
-    );
+      />
+    ));
 
     await userEvent.click(screen.getByTestId('submit-button'));
 
@@ -276,7 +276,7 @@ describe('text stream', () => {
       chunks: ['{ ', '"content": "Authenticated ', 'content', '!"', '}'],
     };
 
-    render(() =><TestComponent credentials="include" />);
+    render(() => <TestComponent credentials="include" />);
     await userEvent.click(screen.getByTestId('submit-button'));
     expect(server.calls[0].requestCredentials).toBe('include');
   });
@@ -287,7 +287,7 @@ describe('text stream', () => {
       chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
     };
 
-    render(() =><TestComponent />);
+    render(() => <TestComponent />);
     await userEvent.click(screen.getByTestId('submit-button'));
 
     await screen.findByTestId('object');

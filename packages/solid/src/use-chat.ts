@@ -61,28 +61,28 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   resume = false,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
-  const [chatRef, setChatRef] = createStore('chat' in options ? options.chat : new Chat(options));
+  const [chatRef, setChatRef] = createStore(
+    'chat' in options ? options.chat : new Chat(options),
+  );
 
   createEffect(() => {
-  const shouldRecreateChat =
-    ('chat' in options && options.chat !== chatRef) ||
-    ('id' in options && chatRef.id !== options.id);
+    const shouldRecreateChat =
+      ('chat' in options && options.chat !== chatRef) ||
+      ('id' in options && chatRef.id !== options.id);
 
-  if (shouldRecreateChat) {
-    setChatRef('chat' in options ? options.chat : new Chat(options));
-  }
-});
+    if (shouldRecreateChat) {
+      setChatRef('chat' in options ? options.chat : new Chat(options));
+    }
+  });
 
-  const setMessages = 
-    (
-      messagesParam: UI_MESSAGE[] | ((messages: UI_MESSAGE[]) => UI_MESSAGE[]),
-    ) => {
-      if (typeof messagesParam === 'function') {
-        messagesParam = messagesParam(chatRef.messages);
-      }
-      chatRef.messages = messagesParam;
-    };
-  
+  const setMessages = (
+    messagesParam: UI_MESSAGE[] | ((messages: UI_MESSAGE[]) => UI_MESSAGE[]),
+  ) => {
+    if (typeof messagesParam === 'function') {
+      messagesParam = messagesParam(chatRef.messages);
+    }
+    chatRef.messages = messagesParam;
+  };
 
   createEffect(() => {
     if (resume) {
@@ -90,10 +90,24 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     }
   });
 
-
-  const messages = useSyncSignalCallback('messages', chatRef.messages, chatRef['~registerMessagesCallback'], () => chatRef.messages);
-  const status = useSyncSignalCallback('status', chatRef.status, chatRef['~registerStatusCallback'], () => chatRef.status);
-  const error = useSyncSignalCallback('error', chatRef.error, chatRef['~registerErrorCallback'], () => chatRef.error);
+  const messages = useSyncSignalCallback(
+    'messages',
+    chatRef.messages,
+    chatRef['~registerMessagesCallback'],
+    () => chatRef.messages,
+  );
+  const status = useSyncSignalCallback(
+    'status',
+    chatRef.status,
+    chatRef['~registerStatusCallback'],
+    () => chatRef.status,
+  );
+  const error = useSyncSignalCallback(
+    'error',
+    chatRef.error,
+    chatRef['~registerErrorCallback'],
+    () => chatRef.error,
+  );
 
   return {
     id: chatRef.id,

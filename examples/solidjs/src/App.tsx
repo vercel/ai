@@ -7,13 +7,13 @@ const baseUrl = import.meta.env.VITE_BASE_URL;
 
 const App: Component = () => {
   const [newMessage, setNewMessage] = createSignal<UIMessage[]>([]);
-  const {messages, sendMessage, status, regenerate, } = useChat({
+  const { messages, sendMessage, status, regenerate } = useChat({
     transport: new DefaultChatTransport({
-      api: `${baseUrl}/`
+      api: `${baseUrl}/`,
     }),
-    onFinish: (message) => {
+    onFinish: message => {
       console.log('onFinish', message);
-    }
+    },
   });
 
   createEffect(() => {
@@ -24,11 +24,24 @@ const App: Component = () => {
   return (
     <div class="text-4xl text-green-700 text-center py-20">
       <For each={newMessage()}>
-        {(message) => <Message message={message} status={status()} regenerate={regenerate} sendMessage={sendMessage} />}
+        {message => (
+          <Message
+            message={message}
+            status={status()}
+            regenerate={regenerate}
+            sendMessage={sendMessage}
+          />
+        )}
       </For>
-      <button onClick={() => sendMessage({
-        text: 'Hello, world!'
-      })}>Send</button>
+      <button
+        onClick={() =>
+          sendMessage({
+            text: 'Hello, world!',
+          })
+        }
+      >
+        Send
+      </button>
     </div>
   );
 };
