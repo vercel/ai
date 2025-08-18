@@ -47,12 +47,13 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
 
-const { messages, sendMessage, addToolResult } = useChat({
+// Enhanced API (recommended): addToolResult is passed as parameter
+const { messages, sendMessage } = useChat({
   // Automatically submit when all tool results are available
   sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 
   // Handle tool calls in onToolCall
-  onToolCall: async ({ toolCall }) => {
+  onToolCall: async ({ toolCall, addToolResult }) => {
     if (toolCall.toolName === 'getLocation') {
       const result = await getLocationData();
 

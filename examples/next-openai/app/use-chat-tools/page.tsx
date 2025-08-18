@@ -9,32 +9,26 @@ import {
 import { UseChatToolsMessage } from '../api/use-chat-tools/route';
 
 export default function Chat() {
-  const { messages, sendMessage, addToolResult, status } =
-    useChat<UseChatToolsMessage>({
-      transport: new DefaultChatTransport({ api: '/api/use-chat-tools' }),
-      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+  const { messages, sendMessage, status } = useChat<UseChatToolsMessage>({
+    transport: new DefaultChatTransport({ api: '/api/use-chat-tools' }),
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 
-      // run client-side tools that are automatically executed:
-      async onToolCall({ toolCall }) {
-        // artificial 2 second delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
+    // run client-side tools that are automatically executed:
+    async onToolCall({ toolCall, addToolResult }) {
+      // artificial 2 second delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-        if (toolCall.toolName === 'getLocation') {
-          const cities = [
-            'New York',
-            'Los Angeles',
-            'Chicago',
-            'San Francisco',
-          ];
+      if (toolCall.toolName === 'getLocation') {
+        const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
 
-          addToolResult({
-            tool: 'getLocation',
-            toolCallId: toolCall.toolCallId,
-            output: cities[Math.floor(Math.random() * cities.length)],
-          });
-        }
-      },
-    });
+        addToolResult({
+          tool: 'getLocation',
+          toolCallId: toolCall.toolCallId,
+          output: cities[Math.floor(Math.random() * cities.length)],
+        });
+      }
+    },
+  });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
