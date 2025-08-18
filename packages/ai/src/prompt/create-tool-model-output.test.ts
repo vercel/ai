@@ -1,5 +1,6 @@
 import { Tool } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from './create-tool-model-output';
+import z from 'zod/v4';
 
 describe('createToolModelOutput', () => {
   describe('error cases', () => {
@@ -58,6 +59,7 @@ describe('createToolModelOutput', () => {
           type: 'text',
           value: `Custom output: ${output}`,
         }),
+        inputSchema: z.object({}),
       };
 
       const result = createToolModelOutput({
@@ -78,6 +80,7 @@ describe('createToolModelOutput', () => {
           type: 'json',
           value: { processed: output, timestamp: '2023-01-01' },
         }),
+        inputSchema: z.object({}),
       };
 
       const complexOutput = { data: [1, 2, 3], status: 'success' };
@@ -102,6 +105,7 @@ describe('createToolModelOutput', () => {
             { type: 'text', text: 'Additional information' },
           ],
         }),
+        inputSchema: z.object({}),
       };
 
       const result = createToolModelOutput({
@@ -137,6 +141,7 @@ describe('createToolModelOutput', () => {
     it('should return text type for string output even with tool that has no toModelOutput', () => {
       const toolWithoutToModelOutput: Tool = {
         description: 'A tool without toModelOutput',
+        inputSchema: z.object({}),
       };
 
       const result = createToolModelOutput({
@@ -269,6 +274,7 @@ describe('createToolModelOutput', () => {
   describe('edge cases', () => {
     it('should prioritize isError over tool.toModelOutput', () => {
       const mockTool: Tool = {
+        inputSchema: z.object({}),
         toModelOutput: () => ({
           type: 'text',
           value: 'This should not be called',

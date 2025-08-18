@@ -1,5 +1,51 @@
 # ai
 
+## 5.0.15
+
+### Patch Changes
+
+- ca4f68f: feat(ai): add validateUIMessages function
+- Updated dependencies [28a4006]
+  - @ai-sdk/gateway@1.0.7
+
+## 5.0.14
+
+### Patch Changes
+
+- 7729e32: fix(ai): expand mp3 detection to support all mpeg frame headers
+
+## 5.0.13
+
+### Patch Changes
+
+- a7b2e66: Added providerOptions to agent stream and generate calls
+- 9bed210: ### `extractReasoningMiddleware()`: delay sending `text-start` chunk to prevent rendering final text before reasoning
+
+  When wrapping a text stream in `extractReasoningMiddleware()`, delay queing the `text-start` chunk until either `reasoning-start` chunk was queued or the first `text-delta` chunk is about to be queued, whichever comes first.
+
+  https://github.com/vercel/ai/pull/8036
+
+## 5.0.12
+
+### Patch Changes
+
+- Updated dependencies [eefa730]
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/gateway@1.0.6
+  - @ai-sdk/provider-utils@3.0.3
+
+## 5.0.11
+
+### Patch Changes
+
+- 38ac190: feat(ai): preliminary tool results
+- e3a63cb: fix(ai): streamText promises reject when stream has errors
+- Updated dependencies [38ac190]
+- Updated dependencies [cf7b2ad]
+  - @ai-sdk/provider-utils@3.0.2
+  - @ai-sdk/gateway@1.0.5
+
 ## 5.0.10
 
 ### Patch Changes

@@ -782,7 +782,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(part);
         }
 
-        if (part.type === 'tool-result') {
+        if (part.type === 'tool-result' && !part.preliminary) {
           recordedContent.push(part);
         }
 
@@ -1238,7 +1238,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'tool-result': {
                       controller.enqueue(chunk);
-                      stepToolOutputs.push(chunk);
+
+                      if (!chunk.preliminary) {
+                        stepToolOutputs.push(chunk);
+                      }
+
                       break;
                     }
 
@@ -1891,6 +1895,9 @@ However, the LLM results are expected to be small enough to not cause issues.
                 output: part.output,
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.preliminary != null
+                  ? { preliminary: part.preliminary }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
               });

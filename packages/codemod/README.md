@@ -89,6 +89,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/migrate-to-data-stream-protocol-v2`                               | Transforms v5/migrate to data stream protocol v2                               |
 | `v5/move-image-model-maxImagesPerCall`                                | Transforms v5/move image model maxImagesPerCall                                |
 | `v5/move-langchain-adapter`                                           | Transforms v5/move langchain adapter                                           |
+| `v5/move-maxsteps-to-stopwhen`                                        | Transforms v5/move maxsteps to stopwhen                                        |
 | `v5/move-provider-options`                                            | Transforms v5/move provider options                                            |
 | `v5/move-react-to-ai-sdk`                                             | Transforms v5/move react to ai sdk                                             |
 | `v5/move-ui-utils-to-ai`                                              | Transforms v5/move ui utils to ai                                              |
@@ -99,6 +100,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/rename-IDGenerator-to-IdGenerator`                                | Transforms v5/rename IDGenerator to IdGenerator                                |
 | `v5/rename-converttocoremessages-to-converttomodelmessages`           | Transforms v5/rename converttocoremessages to converttomodelmessages           |
 | `v5/rename-core-message-to-model-message`                             | Transforms v5/rename core message to model message                             |
+| `v5/rename-datastream-methods-to-uimessage`                           | Transforms v5/rename datastream methods to uimessage                           |
 | `v5/rename-datastream-transform-stream`                               | Transforms v5/rename datastream transform stream                               |
 | `v5/rename-languagemodelv1providermetadata`                           | Transforms v5/rename languagemodelv1providermetadata                           |
 | `v5/rename-max-tokens-to-max-output-tokens`                           | Transforms v5/rename max tokens to max output tokens                           |

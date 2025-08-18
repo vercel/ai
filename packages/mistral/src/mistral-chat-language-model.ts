@@ -11,6 +11,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
+  generateId,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -31,6 +32,7 @@ type MistralChatConfig = {
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
+  generateId?: () => string;
 };
 
 export class MistralChatLanguageModel implements LanguageModelV2 {
@@ -39,10 +41,12 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
   readonly modelId: MistralChatModelId;
 
   private readonly config: MistralChatConfig;
+  private readonly generateId: () => string;
 
   constructor(modelId: MistralChatModelId, config: MistralChatConfig) {
     this.modelId = modelId;
     this.config = config;
+    this.generateId = config.generateId ?? generateId;
   }
 
   get provider(): string {
@@ -185,23 +189,34 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     const choice = response.choices[0];
     const content: Array<LanguageModelV2Content> = [];
 
-    // text content:
-    let text = extractTextContent(choice.message.content);
+    // process content parts in order to preserve sequence
+    if (
+      choice.message.content != null &&
+      Array.isArray(choice.message.content)
+    ) {
+      for (const part of choice.message.content) {
+        if (part.type === 'thinking') {
+          const reasoningText = extractReasoningContent(part.thinking);
+          if (reasoningText.length > 0) {
+            content.push({ type: 'reasoning', text: reasoningText });
+          }
+        } else if (part.type === 'text') {
+          if (part.text.length > 0) {
+            content.push({ type: 'text', text: part.text });
+          }
+        }
+      }
+    } else {
+      // handle legacy string content
+      const text = extractTextContent(choice.message.content);
+      if (text != null && text.length > 0) {
+        content.push({ type: 'text', text });
+      }
+    }
 
     // when there is a trailing assistant message, mistral will send the
     // content of that message again. we skip this repeated content to
     // avoid duplication, e.g. in continuation mode.
-    const lastMessage = body.messages[body.messages.length - 1];
-    if (
-      lastMessage.role === 'assistant' &&
-      text?.startsWith(lastMessage.content)
-    ) {
-      text = text.slice(lastMessage.content.length);
-    }
-
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
-    }
 
     // tool calls:
     if (choice.message.tool_calls != null) {
@@ -260,6 +275,9 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
 
     let isFirstChunk = true;
     let activeText = false;
+    let activeReasoningId: string | null = null;
+
+    const generateId = this.generateId;
 
     return {
       stream: response.pipeThrough(
@@ -304,8 +322,44 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
 
             const textContent = extractTextContent(delta.content);
 
+            if (delta.content != null && Array.isArray(delta.content)) {
+              for (const part of delta.content) {
+                if (part.type === 'thinking') {
+                  const reasoningDelta = extractReasoningContent(part.thinking);
+                  if (reasoningDelta.length > 0) {
+                    if (activeReasoningId == null) {
+                      // end any active text before starting reasoning
+                      if (activeText) {
+                        controller.enqueue({ type: 'text-end', id: '0' });
+                        activeText = false;
+                      }
+
+                      activeReasoningId = generateId();
+                      controller.enqueue({
+                        type: 'reasoning-start',
+                        id: activeReasoningId,
+                      });
+                    }
+                    controller.enqueue({
+                      type: 'reasoning-delta',
+                      id: activeReasoningId,
+                      delta: reasoningDelta,
+                    });
+                  }
+                }
+              }
+            }
+
             if (textContent != null && textContent.length > 0) {
               if (!activeText) {
+                // if we were in reasoning mode, end it before starting text
+                if (activeReasoningId != null) {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: activeReasoningId,
+                  });
+                  activeReasoningId = null;
+                }
                 controller.enqueue({ type: 'text-start', id: '0' });
                 activeText = true;
               }
@@ -355,6 +409,12 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            if (activeReasoningId != null) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: activeReasoningId,
+              });
+            }
             if (activeText) {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
@@ -371,6 +431,15 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function extractReasoningContent(
+  thinking: Array<{ type: string; text: string }>,
+) {
+  return thinking
+    .filter(chunk => chunk.type === 'text')
+    .map(chunk => chunk.text)
+    .join('');
 }
 
 function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
@@ -391,9 +460,10 @@ function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
       case 'text':
         textContent.push(chunk.text);
         break;
+      case 'thinking':
       case 'image_url':
       case 'reference':
-        // image content or reference content is currently ignored.
+        // thinking, image content, and reference content are currently ignored
         break;
       default: {
         const _exhaustiveCheck: never = type;
@@ -427,6 +497,15 @@ const mistralContentSchema = z
         z.object({
           type: z.literal('reference'),
           reference_ids: z.array(z.number()),
+        }),
+        z.object({
+          type: z.literal('thinking'),
+          thinking: z.array(
+            z.object({
+              type: z.literal('text'),
+              text: z.string(),
+            }),
+          ),
         }),
       ]),
     ),

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/rsc",
-  "version": "1.0.10",
+  "version": "1.0.15",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/rsc-client.mjs",
