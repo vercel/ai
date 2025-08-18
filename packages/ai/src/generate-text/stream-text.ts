@@ -2,6 +2,7 @@ import {
   getErrorMessage,
   LanguageModelV2,
   LanguageModelV2CallWarning,
+  TelemetrySettings,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -27,7 +28,6 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import { LanguageModelRequestMetadata } from '../types';
@@ -1116,6 +1116,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     abortSignal,
                     headers,
                     includeRawChunks,
+                    telemetry,
                   }),
                 };
               },

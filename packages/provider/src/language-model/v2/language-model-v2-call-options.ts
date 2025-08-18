@@ -4,6 +4,7 @@ import { LanguageModelV2FunctionTool } from './language-model-v2-function-tool';
 import { LanguageModelV2Prompt } from './language-model-v2-prompt';
 import { LanguageModelV2ProviderDefinedTool } from './language-model-v2-provider-defined-tool';
 import { LanguageModelV2ToolChoice } from './language-model-v2-tool-choice';
+import { TelemetrySettings } from '../../telemetry/telemetry-settings';
 
 export type LanguageModelV2CallOptions = {
   /**
@@ -124,4 +125,9 @@ Only applicable for HTTP-based providers.
    * functionality that can be fully encapsulated in the provider.
    */
   providerOptions?: SharedV2ProviderOptions;
+
+  /**
+   *
+   */
+  telemetry?: TelemetrySettings;
 };

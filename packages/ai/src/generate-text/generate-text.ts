@@ -2,6 +2,7 @@ import {
   LanguageModelV2,
   LanguageModelV2Content,
   LanguageModelV2ToolCall,
+  TelemetrySettings,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -27,7 +28,6 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
@@ -377,6 +377,7 @@ A function that attempts to repair a tool call that failed to parse.
                   providerOptions,
                   abortSignal,
                   headers,
+                  telemetry,
                 });
 
                 // Fill in default values:

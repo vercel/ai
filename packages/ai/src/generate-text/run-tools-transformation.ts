@@ -1,6 +1,7 @@
 import {
   LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
+  TelemetrySettings,
 } from '@ai-sdk/provider';
 import {
   executeTool,
@@ -12,7 +13,6 @@ import { Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
