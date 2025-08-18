@@ -110,17 +110,17 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       });
     }
 
+    const structuredOutputs = options.structuredOutputs ?? true;
+    const strictJsonSchema = options.strictJsonSchema ?? false;
+
     // For Mistral we need to need to instruct the model to return a JSON object.
     // https://docs.mistral.ai/capabilities/structured-output/structured_output_overview/
-    if (responseFormat?.type === 'json') {
+    if (responseFormat?.type === 'json' && !responseFormat?.schema) {
       prompt = injectJsonInstructionIntoMessages({
         messages: prompt,
         schema: responseFormat.schema,
       });
     }
-
-    const structuredOutputs = options.structuredOutputs ?? true;
-    const strictJsonSchema = options.strictJsonSchema ?? false;
 
     const baseArgs = {
       // model id:
@@ -138,7 +138,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       // response format:
       response_format:
         responseFormat?.type === 'json'
-          ? structuredOutputs && responseFormat.schema != null
+          ? structuredOutputs && responseFormat?.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
