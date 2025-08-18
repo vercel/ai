@@ -1211,6 +1211,46 @@ function ChatComponent({ initialMessages }: { initialMessages: UIMessage[] }) {
 }
 ```
 
+#### Sharing Chat Instances
+
+In v4, you could share chat state between components by using the same `id` parameter in multiple `useChat` hooks.
+
+```tsx filename="AI SDK 4.0"
+// Component A
+const { messages } = useChat({
+  id: 'shared-chat',
+  api: '/api/chat',
+});
+
+// Component B - would share the same chat state
+const { messages } = useChat({
+  id: 'shared-chat',
+  api: '/api/chat',
+});
+```
+
+In v5, you need to explicitly share chat instances by passing a shared `Chat` instance.
+
+```tsx filename="AI SDK 5.0"
+// e.g. Store Chat instance in React Context and create a custom hook
+
+// Component A
+const { chat } = useSharedChat(); // Custom hook that accesses shared Chat from context
+
+const { messages, sendMessage } = useChat({
+  chat, // Pass the shared chat instance
+});
+
+// Component B - shares the same chat instance
+const { chat } = useSharedChat(); // Same hook to access shared Chat from context
+
+const { messages } = useChat({
+  chat, // Same shared chat instance
+});
+```
+
+For a complete example of sharing chat state across components, see the [Share Chat State Across Components](/docs/cookbook/use-shared-chat-context) recipe.
+
 #### Chat Transport Architecture
 
 Configuration is now handled through transport objects instead of direct API options.
