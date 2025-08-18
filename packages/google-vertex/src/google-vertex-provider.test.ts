@@ -3,7 +3,6 @@ import { createVertex } from './google-vertex-provider';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
-import { googleVertexTools } from './google-vertex-tools';
 
 // Mock the imported modules
 vi.mock('@ai-sdk/provider-utils', () => ({
@@ -222,7 +221,10 @@ describe('google-vertex-provider', () => {
       location: 'test-location',
     });
 
-    expect(provider.tools).toBe(googleVertexTools);
+    expect(provider.tools).toBeDefined();
+    expect(provider.tools.googleSearch).toBeDefined();
+    expect(provider.tools.urlContext).toBeDefined();
+    expect(provider.tools.codeExecution).toBeDefined();
   });
 
   it('should use region-prefixed URL for non-global regions', () => {

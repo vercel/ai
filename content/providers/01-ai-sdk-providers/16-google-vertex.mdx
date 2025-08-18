@@ -354,9 +354,7 @@ The response will contain `tool-call` and `tool-result` parts for the executed c
 
 #### URL Context
 
-With [URL Context](https://cloud.google.com/vertex-ai/generative-ai/docs/url-context), certain Gemini models on Vertex AI can retrieve and analyze content from provided URLs.
-
-Supported models: Gemini 2.5 Flash-Lite, 2.5 Pro, 2.5 Flash, 2.0 Flash
+URL Context allows Gemini models to retrieve and analyze content from URLs. Supported models: Gemini 2.5 Flash-Lite, 2.5 Pro, 2.5 Flash, 2.0 Flash.
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
@@ -371,9 +369,7 @@ const result = await generateText({
 
 #### Google Search
 
-With [Google Search](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-search), certain Gemini models on Vertex AI can access real-time web information.
-
-Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro
+Google Search enables Gemini models to access real-time web information. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro.
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
