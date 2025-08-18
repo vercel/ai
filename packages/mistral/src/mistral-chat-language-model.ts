@@ -12,7 +12,7 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   generateId,
-  injectJsonInstruction,
+  injectJsonInstructionIntoMessages,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -123,25 +123,13 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       });
     }
 
+    // For Mistral we need to need to instruct the model to return a JSON object.
+    // https://docs.mistral.ai/capabilities/structured-output/structured_output_overview/
     if (responseFormat?.type === 'json') {
-      let systemMessage = prompt.find(message => message.role === 'system');
-
-      if (systemMessage == null) {
-        systemMessage = {
-          role: 'system',
-          content: '',
-        };
-
-        prompt.unshift(systemMessage);
-      }
-
-      // inject JSON schema instruction
-      const jsonSchemaInstruction = injectJsonInstruction({
-        prompt: systemMessage.content,
+      prompt = injectJsonInstructionIntoMessages({
+        messages: prompt,
         schema: responseFormat.schema,
       });
-
-      systemMessage.content = jsonSchemaInstruction;
     }
 
     const baseArgs = {

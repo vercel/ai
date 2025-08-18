@@ -1,4 +1,8 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import {
+  JSONSchema7,
+  LanguageModelV2Message,
+  LanguageModelV2Prompt,
+} from '@ai-sdk/provider';
 
 const DEFAULT_SCHEMA_PREFIX = 'JSON schema:';
 const DEFAULT_SCHEMA_SUFFIX =
@@ -27,4 +31,33 @@ export function injectJsonInstruction({
   ]
     .filter(line => line != null)
     .join('\n');
+}
+
+export function injectJsonInstructionIntoMessages({
+  messages,
+  schema,
+  schemaPrefix,
+  schemaSuffix,
+}: {
+  messages: LanguageModelV2Prompt;
+  schema?: JSONSchema7;
+  schemaPrefix?: string;
+  schemaSuffix?: string;
+}): LanguageModelV2Prompt {
+  const systemMessage: LanguageModelV2Message =
+    messages[0]?.role === 'system'
+      ? { ...messages[0] }
+      : { role: 'system', content: '' };
+
+  systemMessage.content = injectJsonInstruction({
+    prompt: systemMessage.content,
+    schema,
+    schemaPrefix,
+    schemaSuffix,
+  });
+
+  return [
+    systemMessage,
+    ...(messages[0]?.role === 'system' ? messages.slice(1) : messages),
+  ];
 }

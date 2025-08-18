@@ -6,7 +6,7 @@ export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
-export * from './inject-json-instruction';
+export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
