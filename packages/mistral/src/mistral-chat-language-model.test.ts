@@ -590,7 +590,20 @@ describe('doGenerate', () => {
           "model": "mistral-small-latest",
           "random_seed": undefined,
           "response_format": {
-            "type": "json_object",
+            "json_schema": {
+              "description": undefined,
+              "name": "response",
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "json_schema",
           },
           "safe_prompt": undefined,
           "temperature": undefined,
