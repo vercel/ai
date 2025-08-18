@@ -9,18 +9,18 @@ const CHAT_MODEL_ID = '6wg17egw';
 // ============================================================================
 // BASETEN EMBEDDING PROVIDER INTEGRATION TESTS
 // ============================================================================
-// 
+//
 // This test suite validates the Baseten embedding provider with Performance Client.
-// 
+//
 // Endpoint Types:
 // - /sync: OpenAI-compatible endpoints (Performance Client adds /v1/embeddings)
 // - /predict: Custom Baseten endpoints (Performance Client uses URL as-is)
-// 
+//
 // Performance Client Configuration:
 // - Max concurrent requests: 128
 // - Batch size: 16
 // - Timeout: 720 seconds
-// 
+//
 // ============================================================================
 
 // ============================================================================
@@ -28,16 +28,12 @@ const CHAT_MODEL_ID = '6wg17egw';
 // ============================================================================
 
 // Embedding model URLs - Performance Client with different endpoint types
-const EMBEDDING_SYNC_URL =
-  `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync`;
-const EMBEDDING_SYNC_V1_URL =
-`https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync/v1`;
-const EMBEDDING_PREDICT_URL =
-  `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/predict`;
+const EMBEDDING_SYNC_URL = `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync`;
+const EMBEDDING_SYNC_V1_URL = `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync/v1`;
+const EMBEDDING_PREDICT_URL = `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/predict`;
 
 // Chat model URL (example: Qwen 3 4B)
-const CHAT_SYNC_V1_URL =
-  `https://model-${CHAT_MODEL_ID}.api.baseten.co/environments/production/sync/v1`;
+const CHAT_SYNC_V1_URL = `https://model-${CHAT_MODEL_ID}.api.baseten.co/environments/production/sync/v1`;
 
 // ============================================================================
 // TEST CONFIGURATION
@@ -110,8 +106,6 @@ describe('BasetenProvider Integration Tests', () => {
   });
 
   describe('Custom Model URLs', () => {
-
-
     it('should work with embeddings using /sync endpoint (Performance Client)', async () => {
       if (!hasApiKey) {
         console.log('⏭️  Skipping test - no API key');
@@ -126,7 +120,7 @@ describe('BasetenProvider Integration Tests', () => {
       expect(embeddingModel).toBeDefined();
 
       console.log('🔍 Testing embed with URL:', EMBEDDING_SYNC_URL);
-      
+
       const { embedding, usage } = await embed({
         model: embeddingModel as any,
         value: 'sunny day at the beach',
@@ -158,7 +152,7 @@ describe('BasetenProvider Integration Tests', () => {
       expect(embeddingModel).toBeDefined();
 
       console.log('🔍 Testing embedMany with URL:', EMBEDDING_SYNC_URL);
-      
+
       const { embeddings, usage } = await embedMany({
         model: embeddingModel as any,
         values: [
@@ -196,7 +190,7 @@ describe('BasetenProvider Integration Tests', () => {
       expect(embeddingModel).toBeDefined();
 
       console.log('🔍 Testing embed with /sync/v1 URL:', EMBEDDING_SYNC_V1_URL);
-      
+
       const { embedding, usage } = await embed({
         model: embeddingModel as any,
         value: 'sunny day at the beach',
@@ -219,7 +213,9 @@ describe('BasetenProvider Integration Tests', () => {
           modelURL: EMBEDDING_PREDICT_URL,
         });
         embeddingBaseten.textEmbeddingModel();
-      }).toThrow('Not supported. You must use a /sync or /sync/v1 endpoint for embeddings.');
+      }).toThrow(
+        'Not supported. You must use a /sync or /sync/v1 endpoint for embeddings.',
+      );
     });
 
     it('should work with chat using /sync/v1 endpoint', async () => {

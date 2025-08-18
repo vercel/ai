@@ -153,15 +153,18 @@ const { embeddings } = await embedMany({
 ### Endpoint Support for Embeddings
 
 **Supported:**
+
 - `/sync` endpoints (Performance Client automatically adds `/v1/embeddings`)
 
 **Not Supported:**
+
 - `/sync/v1` endpoints (to avoid double `/v1` issue with Performance Client)
 - `/predict` endpoints (not compatible with Performance Client)
 
 ### Performance Features
 
 The embedding implementation includes:
+
 - **High-performance client**: Uses `@basetenlabs/performance-client` for optimal performance
 - **Automatic batching**: Efficiently handles multiple texts in a single request
 - **Connection reuse**: Performance Client is created once and reused for all requests

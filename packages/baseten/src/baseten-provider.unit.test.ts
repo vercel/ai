@@ -247,7 +247,9 @@ describe('BasetenProvider', () => {
 
       expect(() => {
         provider.textEmbeddingModel();
-      }).toThrow('Not supported. You must use a /sync or /sync/v1 endpoint for embeddings.');
+      }).toThrow(
+        'Not supported. You must use a /sync or /sync/v1 endpoint for embeddings.',
+      );
     });
 
     it('should support /sync/v1 endpoints (strips /v1 before passing to Performance Client)', () => {

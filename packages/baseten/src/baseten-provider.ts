@@ -113,7 +113,11 @@ export function createBaseten(
     provider: `baseten.${modelType}`,
     url: ({ path }) => {
       // For embeddings with /sync URLs (but not /sync/v1), we need to add /v1
-      if (modelType === 'embedding' && customURL?.includes('/sync') && !customURL?.includes('/sync/v1')) {
+      if (
+        modelType === 'embedding' &&
+        customURL?.includes('/sync') &&
+        !customURL?.includes('/sync/v1')
+      ) {
         return `${customURL}/v1${path}`;
       }
       return `${customURL || baseURL}${path}`;
@@ -162,18 +166,20 @@ export function createBaseten(
     // Check if this is a /sync or /sync/v1 endpoint (OpenAI-compatible)
     // We support both /sync and /sync/v1, stripping /v1 before passing to Performance Client, as Performance Client adds /v1 itself
     const isOpenAICompatible = customURL.includes('/sync');
-    
 
     if (isOpenAICompatible) {
       // Create the model using OpenAICompatibleEmbeddingModel and override doEmbed
-      const model = new OpenAICompatibleEmbeddingModel(modelId ?? 'embeddings', {
-        ...getCommonModelConfig('embedding', customURL),
-        errorStructure: basetenErrorStructure,
-      });
+      const model = new OpenAICompatibleEmbeddingModel(
+        modelId ?? 'embeddings',
+        {
+          ...getCommonModelConfig('embedding', customURL),
+          errorStructure: basetenErrorStructure,
+        },
+      );
 
       // Strip /v1 from URL if present before passing to Performance Client to avoid double /v1
       const performanceClientURL = customURL.replace('/sync/v1', '/sync');
-      
+
       // Initialize the B10 Performance Client once for reuse
       const performanceClient = new PerformanceClient(
         performanceClientURL,
@@ -186,7 +192,6 @@ export function createBaseten(
 
       // Override the doEmbed method to use the pre-created Performance Client
       model.doEmbed = async params => {
-        
         if (!params.values || !Array.isArray(params.values)) {
           throw new Error('params.values must be an array of strings');
         }
@@ -198,10 +203,12 @@ export function createBaseten(
         );
         // Transform the response to match the expected format
         const embeddings = response.data.map((item: any) => item.embedding);
-        
+
         return {
           embeddings: embeddings,
-          usage: response.usage ? { tokens: response.usage.total_tokens } : undefined,
+          usage: response.usage
+            ? { tokens: response.usage.total_tokens }
+            : undefined,
           response: { headers: {}, body: response },
         };
       };
