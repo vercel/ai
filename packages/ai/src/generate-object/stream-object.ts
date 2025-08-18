@@ -521,6 +521,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               case 'response-metadata':
               case 'finish':
               case 'error':
+              case 'stream-start':
                 controller.enqueue(chunk);
                 break;
             }
