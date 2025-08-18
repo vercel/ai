@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.8
+
+### Patch Changes
+
+- 515c891: fix duplicated tool-input-start in certain cases
+
 ## 1.0.7
 
 ### Patch Changes
