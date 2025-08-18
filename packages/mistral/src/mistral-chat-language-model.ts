@@ -12,6 +12,7 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   generateId,
+  injectJsonInstruction,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -109,6 +110,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       });
     }
 
+    // TODO remove when we have JSON schema support
     if (
       responseFormat != null &&
       responseFormat.type === 'json' &&
@@ -119,6 +121,27 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
         setting: 'responseFormat',
         details: 'JSON response format schema is not supported',
       });
+    }
+
+    if (responseFormat?.type === 'json') {
+      let systemMessage = prompt.find(message => message.role === 'system');
+
+      if (systemMessage == null) {
+        systemMessage = {
+          role: 'system',
+          content: '',
+        };
+
+        prompt.unshift(systemMessage);
+      }
+
+      // inject JSON schema instruction
+      const jsonSchemaInstruction = injectJsonInstruction({
+        prompt: systemMessage.content,
+        schema: responseFormat.schema,
+      });
+
+      systemMessage.content = jsonSchemaInstruction;
     }
 
     const baseArgs = {
@@ -135,6 +158,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       random_seed: seed,
 
       // response format:
+      // TODO add JSON schema support
       response_format:
         responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
