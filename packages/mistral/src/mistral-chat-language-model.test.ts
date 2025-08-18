@@ -502,6 +502,106 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should inject JSON instruction for JSON response format', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const { request } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+      },
+    });
+
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "document_image_limit": undefined,
+          "document_page_limit": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": "You MUST answer with JSON.",
+              "role": "system",
+            },
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "mistral-small-latest",
+          "random_seed": undefined,
+          "response_format": {
+            "type": "json_object",
+          },
+          "safe_prompt": undefined,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+          "top_p": undefined,
+        },
+      }
+    `);
+  });
+
+  it('should inject JSON instruction for JSON response format with schema', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const { request } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+        },
+      },
+    });
+
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "document_image_limit": undefined,
+          "document_page_limit": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": "JSON schema:
+      {"type":"object","properties":{"name":{"type":"string"}}}
+      You MUST answer with a JSON object that matches the JSON schema above.",
+              "role": "system",
+            },
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "mistral-small-latest",
+          "random_seed": undefined,
+          "response_format": {
+            "type": "json_object",
+          },
+          "safe_prompt": undefined,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+          "top_p": undefined,
+        },
+      }
+    `);
+  });
+
   it('should extract content when message content is a content object', async () => {
     server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
       type: 'json-value',
