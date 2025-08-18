@@ -110,7 +110,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    // TODO remove when we have JSON schema support
+    // TODO remove when we have JSON schema support (see OpenAI implementation)
     if (
       responseFormat != null &&
       responseFormat.type === 'json' &&
@@ -146,7 +146,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       random_seed: seed,
 
       // response format:
-      // TODO add JSON schema support
+      // TODO add JSON schema support (see OpenAI implementation)
       response_format:
         responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
