@@ -572,12 +572,6 @@ describe('doGenerate', () => {
           "max_tokens": undefined,
           "messages": [
             {
-              "content": "JSON schema:
-      {"type":"object","properties":{"name":{"type":"string"}}}
-      You MUST answer with a JSON object that matches the JSON schema above.",
-              "role": "system",
-            },
-            {
               "content": [
                 {
                   "text": "Hello",
