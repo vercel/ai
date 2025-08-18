@@ -4,3 +4,4 @@ export type {
   GoogleVertexProvider,
   GoogleVertexProviderSettings,
 } from './google-vertex-provider-node';
+export { googleVertexTools } from './google-vertex-tools';

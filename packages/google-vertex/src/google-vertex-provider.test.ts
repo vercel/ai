@@ -3,6 +3,7 @@ import { createVertex } from './google-vertex-provider';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
+import { googleVertexTools } from './google-vertex-tools';
 
 // Mock the imported modules
 vi.mock('@ai-sdk/provider-utils', () => ({
@@ -13,6 +14,11 @@ vi.mock('@ai-sdk/provider-utils', () => ({
 
 vi.mock('@ai-sdk/google/internal', () => ({
   GoogleGenerativeAILanguageModel: vi.fn(),
+  googleTools: {
+    googleSearch: vi.fn(),
+    urlContext: vi.fn(),
+    codeExecution: vi.fn(),
+  },
 }));
 
 vi.mock('./google-vertex-embedding-model', () => ({
@@ -208,6 +214,15 @@ describe('google-vertex-provider', () => {
         headers: expect.any(Object),
       }),
     );
+  });
+
+  it('should expose tools', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+
+    expect(provider.tools).toBe(googleVertexTools);
   });
 
   it('should use region-prefixed URL for non-global regions', () => {
