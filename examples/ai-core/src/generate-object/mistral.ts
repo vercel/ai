@@ -1,5 +1,5 @@
 import { mistral } from '@ai-sdk/mistral';
-import { generateObject, NoObjectGeneratedError } from 'ai';
+import { generateObject } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod/v4';
 
@@ -27,11 +27,4 @@ async function main() {
   console.log('Finish reason:', result.finishReason);
 }
 
-main().catch(error => {
-  if (NoObjectGeneratedError.isInstance(error)) {
-    console.error(JSON.stringify(error.response, null, 2));
-  }
-
-  console.error(error);
-  process.exit(1);
-});
+main().catch(console.error);
