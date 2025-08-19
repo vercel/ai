@@ -113,14 +113,17 @@ The following optional provider options are available for Mistral models:
 
 - **strictJsonSchema** _boolean_
 
-  Whether to use strict JSON schema validation for structured outputs. Only applies when a schema is
-  provided and only sets the
-  [`strict` flag](https://docs.mistral.ai/api/#tag/chat/operation/chat_completion_v1_chat_completions_post)
-  in addition to using
-  [Custom Structured Outputs](https://docs.mistral.ai/capabilities/structured-output/custom_structured_output/),
-  which is used by default if a schema is provided.
+  Whether to use strict JSON schema validation for structured outputs. Only applies when a schema is provided and only sets the [`strict` flag](https://docs.mistral.ai/api/#tag/chat/operation/chat_completion_v1_chat_completions_post) in addition to using [Custom Structured Outputs](https://docs.mistral.ai/capabilities/structured-output/custom_structured_output/), which is used by default if a schema is provided.
 
   Defaults to `false`.
+
+- **structuredOutputs** _boolean_
+
+  Whether to use [structured outputs](#structured-outputs). When enabled, tool calls and object generation will be strict and follow the provided schema.
+  
+  Defaults to `true`.
+
+  
 
 ### Document OCR
 
