@@ -1,4 +1,3 @@
-import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
   LanguageModelV2,
   NoSuchModelError,
@@ -6,10 +5,10 @@ import {
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
+  generateId,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { HuggingFaceChatModelId } from './huggingface-chat-options';
 import { HuggingFaceResponsesLanguageModel } from './responses/huggingface-responses-language-model';
 import { HuggingFaceResponsesModelId } from './responses/huggingface-responses-settings';
 
@@ -31,23 +30,20 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
 */
   fetch?: FetchFunction;
+
+  generateId?: () => string;
 }
 
 export interface HuggingFaceProvider extends ProviderV2 {
   /**
-Creates a model for text generation.
+Creates a Hugging Face responses model for text generation.
 */
-  (modelId: HuggingFaceChatModelId): LanguageModelV2;
+  (modelId: HuggingFaceResponsesModelId): LanguageModelV2;
 
   /**
-Creates a Hugging Face model for text generation.
+Creates a Hugging Face responses model for text generation.
 */
-  languageModel(modelId: HuggingFaceChatModelId): LanguageModelV2;
-
-  /**
-Creates a Hugging Face chat model for text generation.
-*/
-  chat(modelId: HuggingFaceChatModelId): LanguageModelV2;
+  languageModel(modelId: HuggingFaceResponsesModelId): LanguageModelV2;
 
   /**
 Creates a Hugging Face responses model for text generation.
@@ -73,29 +69,20 @@ export function createHuggingFace(
     ...options.headers,
   });
 
-  const createLanguageModel = (modelId: HuggingFaceChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, {
-      provider: 'huggingface.chat',
-      url: ({ path }) => `${baseURL}${path}`,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
-  };
-
   const createResponsesModel = (modelId: HuggingFaceResponsesModelId) => {
     return new HuggingFaceResponsesLanguageModel(modelId, {
       provider: 'huggingface.responses',
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      generateId: options.generateId ?? generateId,
     });
   };
 
-  const provider = (modelId: HuggingFaceChatModelId) =>
-    createLanguageModel(modelId);
+  const provider = (modelId: HuggingFaceResponsesModelId) =>
+    createResponsesModel(modelId);
 
-  provider.languageModel = createLanguageModel;
-  provider.chat = createLanguageModel;
+  provider.languageModel = createResponsesModel;
   provider.responses = createResponsesModel;
 
   provider.textEmbeddingModel = (modelId: string) => {
@@ -103,7 +90,7 @@ export function createHuggingFace(
       modelId,
       modelType: 'textEmbeddingModel',
       message:
-        'Hugging Face OpenAI-compatible API does not support text embeddings. Use the Hugging Face Inference API directly for embeddings.',
+        'Hugging Face Responses API does not support text embeddings. Use the Hugging Face Inference API directly for embeddings.',
     });
   };
 
@@ -112,7 +99,7 @@ export function createHuggingFace(
       modelId,
       modelType: 'imageModel',
       message:
-        'Hugging Face OpenAI-compatible API does not support image generation. Use the Hugging Face Inference API directly for image models.',
+        'Hugging Face Responses API does not support image generation. Use the Hugging Face Inference API directly for image models.',
     });
   };
 

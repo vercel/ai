@@ -9,6 +9,7 @@ async function main() {
   });
 
   console.log(result.text);
+  console.log(result.usage);
 }
 
 main().catch(console.error);
