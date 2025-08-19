@@ -13,15 +13,15 @@ const OpenAICompatibleEmbeddingModelMock = vi.mocked(
   OpenAICompatibleEmbeddingModel,
 );
 
-vi.mock('./openai-compatible-chat-language-model', () => ({
+vi.mock('./chat/openai-compatible-chat-language-model', () => ({
   OpenAICompatibleChatLanguageModel: vi.fn(),
 }));
 
-vi.mock('./openai-compatible-completion-language-model', () => ({
+vi.mock('./completion/openai-compatible-completion-language-model', () => ({
   OpenAICompatibleCompletionLanguageModel: vi.fn(),
 }));
 
-vi.mock('./openai-compatible-embedding-model', () => ({
+vi.mock('./embedding/openai-compatible-embedding-model', () => ({
   OpenAICompatibleEmbeddingModel: vi.fn(),
 }));
 
