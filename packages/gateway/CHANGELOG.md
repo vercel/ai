@@ -1,5 +1,18 @@
 # @ai-sdk/gateway
 
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 1.0.7
+
+### Patch Changes
+
+- 28a4006: feat (provider/gateway): add gemini-2.5-flash-lite model id
+
 ## 1.0.6
 
 ### Patch Changes

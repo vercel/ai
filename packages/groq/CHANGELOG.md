@@ -1,5 +1,24 @@
 # @ai-sdk/groq
 
+## 2.0.11
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 2.0.10
+
+### Patch Changes
+
+- ff008b9: fix(groq): strip unsupported `reasoning` fields for non-reasoning models
+
+## 2.0.9
+
+### Patch Changes
+
+- d48613a: Added support for browser use tool in groq
+
 ## 2.0.8
 
 ### Patch Changes

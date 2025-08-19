@@ -1211,6 +1211,46 @@ function ChatComponent({ initialMessages }: { initialMessages: UIMessage[] }) {
 }
 ```
 
+#### Sharing Chat Instances
+
+In v4, you could share chat state between components by using the same `id` parameter in multiple `useChat` hooks.
+
+```tsx filename="AI SDK 4.0"
+// Component A
+const { messages } = useChat({
+  id: 'shared-chat',
+  api: '/api/chat',
+});
+
+// Component B - would share the same chat state
+const { messages } = useChat({
+  id: 'shared-chat',
+  api: '/api/chat',
+});
+```
+
+In v5, you need to explicitly share chat instances by passing a shared `Chat` instance.
+
+```tsx filename="AI SDK 5.0"
+// e.g. Store Chat instance in React Context and create a custom hook
+
+// Component A
+const { chat } = useSharedChat(); // Custom hook that accesses shared Chat from context
+
+const { messages, sendMessage } = useChat({
+  chat, // Pass the shared chat instance
+});
+
+// Component B - shares the same chat instance
+const { chat } = useSharedChat(); // Same hook to access shared Chat from context
+
+const { messages } = useChat({
+  chat, // Same shared chat instance
+});
+```
+
+For a complete example of sharing chat state across components, see the [Share Chat State Across Components](/docs/cookbook/use-shared-chat-context) recipe.
+
 #### Chat Transport Architecture
 
 Configuration is now handled through transport objects instead of direct API options.
@@ -1586,6 +1626,148 @@ const { messages } = useChat({
 ```
 
 For more details on request configuration, see the [Chatbot guide](/docs/ai-sdk-ui/chatbot#request-configuration).
+
+#### Usage Information
+
+In v4, usage information was directly accessible through the `onFinish` callback's options parameter. In v5, usage data is attached as metadata to individual messages using the `messageMetadata` function in `toUIMessageStreamResponse`.
+
+```tsx filename="AI SDK 4.0"
+const { messages } = useChat({
+  onFinish(message, options) {
+    const usage = options.usage;
+    console.log('Usage:', usage);
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+import {
+  convertToModelMessages,
+  streamText,
+  UIMessage,
+  type LanguageModelUsage,
+} from 'ai';
+
+// Create a new metadata type (optional for type-safety)
+type MyMetadata = {
+  totalUsage: LanguageModelUsage;
+};
+
+// Create a new custom message type with your own metadata
+export type MyUIMessage = UIMessage<MyMetadata>;
+
+export async function POST(req: Request) {
+  const { messages }: { messages: MyUIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
+  });
+
+  return result.toUIMessageStreamResponse({
+    originalMessages: messages,
+    messageMetadata: ({ part }) => {
+      // Send total usage when generation is finished
+      if (part.type === 'finish') {
+        return { totalUsage: part.totalUsage };
+      }
+    },
+  });
+}
+```
+
+Then, on the client, you can access the message-level metadata.
+
+```tsx filename="AI SDK 5.0 - Client"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { MyUIMessage } from './api/chat/route';
+import { DefaultChatTransport } from 'ai';
+
+export default function Chat() {
+  // Use custom message type defined on the server (optional for type-safety)
+  const { messages } = useChat<MyUIMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
+
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(m => (
+        <div key={m.id} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.parts.map(part => {
+            if (part.type === 'text') {
+              return part.text;
+            }
+          })}
+          {/* Render usage via metadata */}
+          {m.metadata?.totalUsage && (
+            <div>Total usage: {m.metadata?.totalUsage.totalTokens} tokens</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+You can also access your metadata from the `onFinish` callback of `useChat`:
+
+```tsx filename="AI SDK 5.0 - onFinish"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { MyUIMessage } from './api/chat/route';
+import { DefaultChatTransport } from 'ai';
+
+export default function Chat() {
+  // Use custom message type defined on the server (optional for type-safety)
+  const { messages } = useChat<MyUIMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+    onFinish: ({ message }) => {
+      // Access message metadata via onFinish callback
+      console.log(message.metadata?.totalUsage);
+    },
+  });
+}
+```
+
+#### Request Body Preparation: experimental_prepareRequestBody → prepareSendMessagesRequest
+
+The `experimental_prepareRequestBody` option has been replaced with `prepareSendMessagesRequest` in the transport configuration.
+
+```tsx filename="AI SDK 4.0"
+import { useChat } from '@ai-sdk/react';
+
+const { messages } = useChat({
+  api: '/api/chat',
+  // Only send the last message to the server:
+  experimental_prepareRequestBody({ messages, id }) {
+    return { message: messages[messages.length - 1], id };
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+
+const { messages } = useChat({
+  transport: new DefaultChatTransport({
+    api: '/api/chat',
+    // Only send the last message to the server:
+    prepareSendMessagesRequest({ messages, id }) {
+      return { body: { message: messages[messages.length - 1], id } };
+    },
+  }),
+});
+```
 
 ### `@ai-sdk/vue` Changes
 
@@ -2869,6 +3051,22 @@ import {
   ToolChoice,
 } from '@ai-sdk/provider-utils';
 ```
+
+## Troubleshooting
+
+### TypeScript Performance Issues with Zod
+
+If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0, you need to use the Zod v3 import path:
+
+```typescript
+// ❌ Avoid: Standard import causes TypeScript issues
+import { z } from 'zod';
+
+// ✅ Use: v3-specific import for AI SDK 5.0 compatibility
+import { z } from 'zod/v3';
+```
+
+This is particularly important when using `generateObject`, `tool`, or other AI SDK functions with Zod schemas. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
 
 ## Codemod Table
 

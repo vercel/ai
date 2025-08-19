@@ -1,8 +1,8 @@
 import type {
   LanguageModelV2Content,
-  LanguageModelV2Middleware,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
+import { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 /**
@@ -21,7 +21,7 @@ export function extractReasoningMiddleware({
   tagName: string;
   separator?: string;
   startWithReasoning?: boolean;
-}): LanguageModelV2Middleware {
+}): LanguageModelMiddleware {
   const openingTag = `<${tagName}>`;
   const closingTag = `<\/${tagName}>`;
 

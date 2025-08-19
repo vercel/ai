@@ -6,6 +6,7 @@ import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
 import { textEditor_20250429 } from './tool/text-editor_20250429';
 import { webSearch_20250305 } from './tool/web-search_20250305';
+import { codeExecution_20250522 } from './tool/code-execution_20250522';
 
 export const anthropicTools = {
   /**
@@ -75,4 +76,9 @@ export const anthropicTools = {
    * @param userLocation - Optional user location information to provide geographically relevant search results.
    */
   webSearch_20250305,
+
+  /**
+   * Creates a tool for executing Python code. Must have name "code_execution".
+   */
+  codeExecution_20250522,
 };

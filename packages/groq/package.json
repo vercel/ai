@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/groq",
-  "version": "2.0.8",
+  "version": "2.0.11",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",

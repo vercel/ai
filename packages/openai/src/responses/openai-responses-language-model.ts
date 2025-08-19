@@ -240,7 +240,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // Validate flex processing support
     if (
       openaiOptions?.serviceTier === 'flex' &&
-      !supportsFlexProcessing(this.modelId)
+      !modelConfig.supportsFlexProcessing
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -255,7 +255,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // Validate priority processing support
     if (
       openaiOptions?.serviceTier === 'priority' &&
-      !supportsPriorityProcessing(this.modelId)
+      !modelConfig.supportsPriorityProcessing
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -328,13 +328,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     text: z.string(),
                     logprobs: LOGPROBS_SCHEMA.nullish(),
                     annotations: z.array(
-                      z.object({
-                        type: z.literal('url_citation'),
-                        start_index: z.number(),
-                        end_index: z.number(),
-                        url: z.string(),
-                        title: z.string(),
-                      }),
+                      z.discriminatedUnion('type', [
+                        z.object({
+                          type: z.literal('url_citation'),
+                          start_index: z.number(),
+                          end_index: z.number(),
+                          url: z.string(),
+                          title: z.string(),
+                        }),
+                        z.object({
+                          type: z.literal('file_citation'),
+                          start_index: z.number(),
+                          end_index: z.number(),
+                          file_id: z.string(),
+                          quote: z.string(),
+                        }),
+                      ]),
                     ),
                   }),
                 ),
@@ -350,6 +359,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 type: z.literal('web_search_call'),
                 id: z.string(),
                 status: z.string().optional(),
+                action: z
+                  .object({
+                    type: z.literal('search'),
+                    query: z.string().optional(),
+                  })
+                  .nullish(),
               }),
               z.object({
                 type: z.literal('computer_call'),
@@ -454,13 +469,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             });
 
             for (const annotation of contentPart.annotations) {
-              content.push({
-                type: 'source',
-                sourceType: 'url',
-                id: this.config.generateId?.() ?? generateId(),
-                url: annotation.url,
-                title: annotation.title,
-              });
+              if (annotation.type === 'url_citation') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: this.config.generateId?.() ?? generateId(),
+                  url: annotation.url,
+                  title: annotation.title,
+                });
+              } else if (annotation.type === 'file_citation') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: this.config.generateId?.() ?? generateId(),
+                  mediaType: 'text/plain',
+                  title: annotation.quote,
+                  filename: annotation.file_id,
+                });
+              }
             }
           }
 
@@ -487,7 +513,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: 'web_search_preview',
-            input: '',
+            input: part.action?.query ?? '',
             providerExecuted: true,
           });
 
@@ -495,7 +521,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-result',
             toolCallId: part.id,
             toolName: 'web_search_preview',
-            result: { status: part.status || 'completed' },
+            result: {
+              status: part.status || 'completed',
+              ...(part.action?.query && { query: part.action.query }),
+            },
             providerExecuted: true,
           });
           break;
@@ -763,7 +792,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'tool-call',
                   toolCallId: value.item.id,
                   toolName: 'web_search_preview',
-                  input: '',
+                  input: value.item.action?.query ?? '',
                   providerExecuted: true,
                 });
 
@@ -774,6 +803,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   result: {
                     type: 'web_search_tool_result',
                     status: value.item.status || 'completed',
+                    ...(value.item.action?.query && {
+                      query: value.item.action.query,
+                    }),
                   },
                   providerExecuted: true,
                 });
@@ -933,13 +965,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 value.response.usage.input_tokens_details?.cached_tokens ??
                 undefined;
             } else if (isResponseAnnotationAddedChunk(value)) {
-              controller.enqueue({
-                type: 'source',
-                sourceType: 'url',
-                id: self.config.generateId?.() ?? generateId(),
-                url: value.annotation.url,
-                title: value.annotation.title,
-              });
+              if (value.annotation.type === 'url_citation') {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: self.config.generateId?.() ?? generateId(),
+                  url: value.annotation.url,
+                  title: value.annotation.title,
+                });
+              } else if (value.annotation.type === 'file_citation') {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: self.config.generateId?.() ?? generateId(),
+                  mediaType: 'text/plain',
+                  title: value.annotation.quote,
+                  filename: value.annotation.file_id,
+                });
+              }
             } else if (isErrorChunk(value)) {
               controller.enqueue({ type: 'error', error: value });
             }
@@ -1038,6 +1081,12 @@ const responseOutputItemAddedSchema = z.object({
       type: z.literal('web_search_call'),
       id: z.string(),
       status: z.string(),
+      action: z
+        .object({
+          type: z.literal('search'),
+          query: z.string().optional(),
+        })
+        .nullish(),
     }),
     z.object({
       type: z.literal('computer_call'),
@@ -1090,6 +1139,12 @@ const responseOutputItemDoneSchema = z.object({
       type: z.literal('web_search_call'),
       id: z.string(),
       status: z.literal('completed'),
+      action: z
+        .object({
+          type: z.literal('search'),
+          query: z.string().optional(),
+        })
+        .nullish(),
     }),
     z.object({
       type: z.literal('computer_call'),
@@ -1126,11 +1181,18 @@ const responseFunctionCallArgumentsDeltaSchema = z.object({
 
 const responseAnnotationAddedSchema = z.object({
   type: z.literal('response.output_text.annotation.added'),
-  annotation: z.object({
-    type: z.literal('url_citation'),
-    url: z.string(),
-    title: z.string(),
-  }),
+  annotation: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('url_citation'),
+      url: z.string(),
+      title: z.string(),
+    }),
+    z.object({
+      type: z.literal('file_citation'),
+      file_id: z.string(),
+      quote: z.string(),
+    }),
+  ]),
 });
 
 const responseReasoningSummaryPartAddedSchema = z.object({
@@ -1257,15 +1319,35 @@ type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
   requiredAutoTruncation: boolean;
+  supportsFlexProcessing: boolean;
+  supportsPriorityProcessing: boolean;
 };
 
 function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
+  const supportsFlexProcessing =
+    modelId.startsWith('o3') ||
+    modelId.startsWith('o4-mini') ||
+    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'));
+  const supportsPriorityProcessing =
+    modelId.startsWith('gpt-4') ||
+    modelId.startsWith('gpt-5-mini') ||
+    (modelId.startsWith('gpt-5') &&
+      !modelId.startsWith('gpt-5-nano') &&
+      !modelId.startsWith('gpt-5-chat')) ||
+    modelId.startsWith('o3') ||
+    modelId.startsWith('o4-mini');
+  const defaults = {
+    requiredAutoTruncation: false,
+    systemMessageMode: 'system' as const,
+    supportsFlexProcessing,
+    supportsPriorityProcessing,
+  };
+
   // gpt-5-chat models are non-reasoning
   if (modelId.startsWith('gpt-5-chat')) {
     return {
+      ...defaults,
       isReasoningModel: false,
-      systemMessageMode: 'system',
-      requiredAutoTruncation: false,
     };
   }
 
@@ -1278,45 +1360,24 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   ) {
     if (modelId.startsWith('o1-mini') || modelId.startsWith('o1-preview')) {
       return {
+        ...defaults,
         isReasoningModel: true,
         systemMessageMode: 'remove',
-        requiredAutoTruncation: false,
       };
     }
 
     return {
+      ...defaults,
       isReasoningModel: true,
       systemMessageMode: 'developer',
-      requiredAutoTruncation: false,
     };
   }
 
   // gpt models:
   return {
+    ...defaults,
     isReasoningModel: false,
-    systemMessageMode: 'system',
-    requiredAutoTruncation: false,
   };
-}
-
-function supportsFlexProcessing(modelId: string): boolean {
-  return (
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini') ||
-    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'))
-  );
-}
-
-function supportsPriorityProcessing(modelId: string): boolean {
-  return (
-    modelId.startsWith('gpt-4') ||
-    modelId.startsWith('gpt-5-mini') ||
-    (modelId.startsWith('gpt-5') &&
-      !modelId.startsWith('gpt-5-nano') &&
-      !modelId.startsWith('gpt-5-chat')) ||
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini')
-  );
 }
 
 // TODO AI SDK 6: use optional here instead of nullish

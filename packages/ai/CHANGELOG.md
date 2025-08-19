@@ -1,5 +1,34 @@
 # ai
 
+## 5.0.17
+
+### Patch Changes
+
+- 4176ecb: feat(ai): add reasoning text to generateObject result
+- 20f23f9: feat(ai): export LanguageModelMiddleware type
+
+## 5.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - @ai-sdk/gateway@1.0.8
+
+## 5.0.15
+
+### Patch Changes
+
+- ca4f68f: feat(ai): add validateUIMessages function
+- Updated dependencies [28a4006]
+  - @ai-sdk/gateway@1.0.7
+
+## 5.0.14
+
+### Patch Changes
+
+- 7729e32: fix(ai): expand mp3 detection to support all mpeg frame headers
+
 ## 5.0.13
 
 ### Patch Changes

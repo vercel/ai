@@ -1,5 +1,27 @@
 # @ai-sdk/openai
 
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 2.0.15
+
+### Patch Changes
+
+- a4bef93: feat(provider/openai): expose web search queries in responses api
+- 6ed34cb: refactor(openai): consolidate model config into `getResponsesModelConfig()`
+
+  https://github.com/vercel/ai/pull/8038
+
+## 2.0.14
+
+### Patch Changes
+
+- 7f47105: fix(provider/openai): support file_citation annotations in responses api
+
 ## 2.0.13
 
 ### Patch Changes
