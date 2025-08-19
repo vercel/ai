@@ -1793,6 +1793,65 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass tool cache points correctly', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool-1',
+          inputSchema: {
+            type: 'object',
+          },
+        },
+        {
+          type: 'function',
+          name: 'test-tool-2',
+          inputSchema: {
+            type: 'object',
+          },
+          providerOptions: {
+            bedrock: { cachePoint: { type: 'default' } },
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      toolConfig: {
+        tools: [
+          {
+            toolSpec: {
+              name: 'test-tool-1',
+              inputSchema: {
+                json: {
+                  type: 'object',
+                },
+              },
+            },
+          },
+          {
+            toolSpec: {
+              name: 'test-tool-2',
+              inputSchema: {
+                json: {
+                  type: 'object',
+                },
+              },
+            },
+          },
+          {
+            cachePoint: {
+              type: 'default',
+            },
+          },
+        ],
+      },
+    });
+  });
+
   it('should handle Anthropic provider-defined tools', async () => {
     mockPrepareAnthropicTools.mockReturnValue({
       tools: [{ name: 'bash', type: 'bash_20241022' }],

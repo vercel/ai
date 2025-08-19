@@ -22,7 +22,7 @@ import {
 } from './bedrock-api-types';
 import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
 
-function getCachePoint(
+export function getCachePoint(
   providerMetadata: SharedV2ProviderMetadata | undefined,
 ): BedrockCachePoint | undefined {
   return providerMetadata?.bedrock?.cachePoint as BedrockCachePoint | undefined;
