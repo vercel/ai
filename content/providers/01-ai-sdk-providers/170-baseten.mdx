@@ -155,10 +155,10 @@ const { embeddings } = await embedMany({
 **Supported:**
 
 - `/sync` endpoints (Performance Client automatically adds `/v1/embeddings`)
+- `/sync/v1` endpoints (automatically strips `/v1` before passing to Performance Client)
 
 **Not Supported:**
 
-- `/sync/v1` endpoints (to avoid double `/v1` issue with Performance Client)
 - `/predict` endpoints (not compatible with Performance Client)
 
 ### Performance Features
@@ -209,16 +209,12 @@ try {
   // Error: "Not supported. You must use a /sync/v1 endpoint for chat models."
 }
 
-// /sync/v1 endpoints are not supported for embeddings (to avoid double /v1)
-try {
-  const baseten = createBaseten({
-    modelURL:
-      'https://model-{MODEL_ID}.api.baseten.co/environments/production/sync/v1',
-  });
-  baseten.textEmbeddingModel(); // This will throw an error
-} catch (error) {
-  // Error: "Not supported. You must use a /sync endpoint for embeddings."
-}
+// /sync/v1 endpoints are now supported for embeddings
+const baseten = createBaseten({
+  modelURL:
+    'https://model-{MODEL_ID}.api.baseten.co/environments/production/sync/v1',
+});
+const embeddingModel = baseten.textEmbeddingModel(); // This works fine!
 
 // /predict endpoints are not supported for embeddings
 try {
@@ -228,7 +224,7 @@ try {
   });
   baseten.textEmbeddingModel(); // This will throw an error
 } catch (error) {
-  // Error: "Not supported. You must use a /sync endpoint for embeddings."
+  // Error: "Not supported. You must use a /sync or /sync/v1 endpoint for embeddings."
 }
 
 // Image models are not supported
