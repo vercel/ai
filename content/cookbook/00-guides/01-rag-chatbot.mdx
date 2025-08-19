@@ -429,7 +429,7 @@ const index = search.index<ChunkContent>('knowledge-base');
 export const createResource = async (input: { content: string }) => {
   try {
     const { content } = input;
-
+    
     if (!content) {
       return { error: 'Content is required' };
     }
@@ -439,9 +439,9 @@ export const createResource = async (input: { content: string }) => {
       .split('.')
       .map(chunk => chunk.trim())
       .filter(chunk => chunk.length > 0);
-
+    
     const timestamp = Date.now();
-
+    
     await index.upsert(
       chunks.map((chunk, i) => ({
         id: `${timestamp}-chunk-${i}`,
@@ -450,7 +450,7 @@ export const createResource = async (input: { content: string }) => {
           source: 'user-input',
           timestamp,
         },
-      })),
+      }))
     );
 
     return { success: true };
@@ -851,7 +851,7 @@ const index = search.index<ChunkContent>('knowledge-base');
 
 export const findRelevantContent = async (
   query: string,
-  maxResults: number = 10,
+  maxResults: number = 10
 ): Promise<string> => {
   const results = await index.search({
     query,
