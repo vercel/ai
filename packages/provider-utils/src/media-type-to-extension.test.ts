@@ -18,6 +18,8 @@ describe('mediaTypeToExtension()', () => {
     // upper case
     ['AUDIO/MPEG', 'mp3'],
     ['AUDIO/MP3', 'mp3'],
+    // invalid
+    ['nope', ""],
   ])('should map %s to %s', (mediaType, expectedExtension) => {
     expect(mediaTypeToExtension(mediaType)).toBe(expectedExtension);
   });
