@@ -774,22 +774,7 @@ describe('HuggingFaceResponsesLanguageModel', () => {
         ],
       });
 
-      expect(warnings).toMatchInlineSnapshot(`
-        [
-          {
-            "setting": "tool-calls in assistant messages",
-            "type": "unsupported-setting",
-          },
-          {
-            "message": "tool result parts in assistant messages are not supported for HuggingFace responses",
-            "type": "other",
-          },
-          {
-            "message": "reasoning parts are not supported for HuggingFace responses",
-            "type": "other",
-          },
-        ]
-      `);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
     });
 
     it('should warn about tool messages', async () => {

@@ -72,25 +72,20 @@ export async function convertToHuggingFaceResponsesMessages({
               break;
             }
             case 'tool-call': {
-              warnings.push({
-                type: 'unsupported-setting',
-                setting: 'tool-calls in assistant messages',
-              });
+              // tool calls are handled by the responses API
               break;
             }
 
             case 'tool-result': {
-              warnings.push({
-                type: 'other',
-                message: `tool result parts in assistant messages are not supported for HuggingFace responses`,
-              });
+              // tool results are handled by the responses API
               break;
             }
 
             case 'reasoning': {
-              warnings.push({
-                type: 'other',
-                message: `reasoning parts are not supported for HuggingFace responses`,
+              // include reasoning content in the message text
+              messages.push({
+                role: 'assistant',
+                content: [{ type: 'output_text', text: part.text }],
               });
               break;
             }
