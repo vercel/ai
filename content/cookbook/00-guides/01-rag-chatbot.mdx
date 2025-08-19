@@ -86,7 +86,7 @@ As mentioned above, embeddings are a way to represent the semantic meaning of **
 
 Chunking refers to the process of breaking down a particular source material into smaller pieces. There are many different approaches to chunking and it’s worth experimenting as the most effective approach can differ by use case. A simple and common approach to chunking (and what you will be using in this guide) is separating written content by sentences.
 
-Once your source material is appropriately chunked, you can embed each one and then store the embedding and the chunk together in a database. Embeddings can be stored in any database that supports vectors. For this tutorial, you will be using [Postgres](https://www.postgresql.org/) alongside the [pgvector](https://github.com/pgvector/pgvector) plugin.
+Once your source material is appropriately chunked, you can embed each one and then store the embedding and the chunk together in a database. Embeddings can be stored in any database that supports vectors. For this tutorial, you will be using [Postgres](https://www.postgresql.org/) alongside the [pgvector](https://github.com/pgvector/pgvector) plugin. Alternatively, you can use [Upstash Search](https://upstash.com/docs/search) which provides hybrid search combining input enrichment, reranking, semantic search, full-text search for more accurate results.
 
 <MDXImage
   srcLight="/images/rag-guide-1.png"
@@ -120,7 +120,7 @@ This project will use the following stack:
 - [ AI SDK ](/docs)
 - [OpenAI](https://openai.com)
 - [ Drizzle ORM ](https://orm.drizzle.team)
-- [ Postgres ](https://www.postgresql.org/) with [ pgvector ](https://github.com/pgvector/pgvector)
+- [ Postgres ](https://www.postgresql.org/) with [ pgvector ](https://github.com/pgvector/pgvector) or [Upstash Search](https://upstash.com/docs/search)
 - [ shadcn-ui ](https://ui.shadcn.com) and [ TailwindCSS ](https://tailwindcss.com) for styling
 
 ### Clone Repo
@@ -360,6 +360,8 @@ export const createResource = async (input: NewResourceParams) => {
 
 This function is a [Server Action](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations#with-client-components), as denoted by the `“use server”;` directive at the top of the file. This means that it can be called anywhere in your Next.js application. This function will take an input, run it through a [Zod](https://zod.dev) schema to ensure it adheres to the correct schema, and then creates a new resource in the database. This is the ideal location to generate and store embeddings of the newly created resources.
 
+#### PostgreSQL Implementation
+
 Update the file with the following code:
 
 ```tsx filename="lib/actions/resources.ts" highlight="9-10,21-27,29"
@@ -401,6 +403,64 @@ export const createResource = async (input: NewResourceParams) => {
 ```
 
 First, you call the `generateEmbeddings` function created in the previous step, passing in the source material (`content`). Once you have your embeddings (`e`) of the source material, you can save them to the database, passing the `resourceId` alongside each embedding.
+
+#### Upstash Search Implementation
+
+Alternatively, for Upstash Search, update the file like this:
+
+```tsx filename="lib/actions/resources.ts"
+'use server';
+
+import { Search } from '@upstash/search';
+
+type ChunkContent = {
+  text: string;
+  source: string;
+  timestamp: number;
+};
+
+const search = new Search({
+  url: process.env.UPSTASH_SEARCH_REST_URL!,
+  token: process.env.UPSTASH_SEARCH_REST_TOKEN!,
+});
+
+const index = search.index<ChunkContent>('knowledge-base');
+
+export const createResource = async (input: { content: string }) => {
+  try {
+    const { content } = input;
+    
+    if (!content) {
+      return { error: 'Content is required' };
+    }
+
+    // Chunk and store directly in Upstash Search
+    const chunks = content
+      .split('.')
+      .map(chunk => chunk.trim())
+      .filter(chunk => chunk.length > 0);
+    
+    const timestamp = Date.now();
+    
+    await index.upsert(
+      chunks.map((chunk, i) => ({
+        id: `${timestamp}-chunk-${i}`,
+        content: {
+          text: chunk,
+          source: 'user-input',
+          timestamp,
+        },
+      }))
+    );
+
+    return { success: true };
+  } catch (error) {
+    return { error: 'Failed to create resource' };
+  }
+};
+```
+
+When using Upstash Search, you can directly chunk the content and store it in the search index. The `createResource` function will take the input, split it into chunks, and then upsert each chunk into the Upstash Search index.
 
 ### Create Root Page
 
@@ -770,6 +830,41 @@ In this code, you add two functions:
 
 - `generateEmbedding`: generate a single embedding from an input string
 - `findRelevantContent`: embeds the user’s query, searches the database for similar items, then returns relevant items
+
+If you wish to use [Upstash Search](https://upstash.com/docs/search), you can define `findRelevantContent` in the following way:
+
+```tsx filename="lib/ai/upstash-search.ts"
+import { Search } from '@upstash/search';
+
+type ChunkContent = {
+  text: string;
+  source: string;
+  timestamp: number;
+};
+
+const search = new Search({
+  url: process.env.UPSTASH_SEARCH_REST_URL!,
+  token: process.env.UPSTASH_SEARCH_REST_TOKEN!,
+});
+
+const index = search.index<ChunkContent>('knowledge-base');
+
+export const findRelevantContent = async (
+  query: string,
+  maxResults: number = 10
+): Promise<string> => {
+  const results = await index.search({
+    query,
+    limit: maxResults,
+    reranking: true,
+  });
+
+  return results.hits
+    .map(hit => hit.data?.text)
+    .filter(Boolean)
+    .join('\n\n');
+};
+```
 
 With that done, it’s onto the final step: creating the tool.
 
