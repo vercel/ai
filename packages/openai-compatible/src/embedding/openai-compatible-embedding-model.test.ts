@@ -1,6 +1,6 @@
 import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
-import { createOpenAICompatible } from './openai-compatible-provider';
+import { createOpenAICompatible } from '../openai-compatible-provider';
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3, 0.4, 0.5],

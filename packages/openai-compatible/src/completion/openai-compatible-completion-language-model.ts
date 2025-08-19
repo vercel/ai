@@ -19,6 +19,10 @@ import {
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  defaultOpenAICompatibleErrorStructure,
+  ProviderErrorStructure,
+} from '../openai-compatible-error';
 import { convertToOpenAICompatibleCompletionPrompt } from './convert-to-openai-compatible-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
@@ -26,10 +30,6 @@ import {
   OpenAICompatibleCompletionModelId,
   openaiCompatibleCompletionProviderOptions,
 } from './openai-compatible-completion-options';
-import {
-  defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
-} from './openai-compatible-error';
 
 type OpenAICompatibleCompletionConfig = {
   provider: string;
