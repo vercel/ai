@@ -6,6 +6,7 @@ import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
@@ -68,7 +69,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV2 {
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
-    const [, fileExtension] = mediaType.split('/');
+    const fileExtension = mediaTypeToExtension(mediaType);
     formData.append(
       'file',
       new File([blob], 'audio', { type: mediaType }),

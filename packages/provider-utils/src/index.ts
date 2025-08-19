@@ -12,6 +12,7 @@ export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';
+export { mediaTypeToExtension } from './media-type-to-extension';
 export * from './parse-json';
 export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
@@ -20,7 +21,7 @@ export {
   createProviderDefinedToolFactory,
   createProviderDefinedToolFactoryWithOutputSchema,
   type ProviderDefinedToolFactory,
-  type ProviderDefinedToolFactoryWithOutputSchema,
+  type ProviderDefinedToolFactoryWithOutputSchema
 } from './provider-defined-tool-factory';
 export * from './remove-undefined-entries';
 export * from './resolve';
@@ -30,7 +31,7 @@ export {
   jsonSchema,
   type FlexibleSchema,
   type InferSchema,
-  type Schema,
+  type Schema
 } from './schema';
 export * from './uint8-utils';
 export * from './validate-types';
@@ -45,5 +46,6 @@ export * from './types';
 export * from '@standard-schema/spec';
 export {
   EventSourceParserStream,
-  type EventSourceMessage,
+  type EventSourceMessage
 } from 'eventsource-parser/stream';
+
