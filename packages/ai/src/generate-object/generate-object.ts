@@ -8,7 +8,8 @@ import {
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
-import { extractContentText } from '../generate-text/extract-content-text';
+import { extractReasoningContent } from '../generate-text/extract-reasoning-content';
+import { extractTextContent } from '../generate-text/extract-text-content';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -293,6 +294,7 @@ Default and recommended: 'auto' (best mode for the model).
         let response: LanguageModelResponseMetadata;
         let request: LanguageModelRequestMetadata;
         let resultProviderMetadata: ProviderMetadata | undefined;
+        let reasoning: string | undefined;
 
         const standardizedPrompt = await standardizePrompt({
           system,
@@ -356,7 +358,8 @@ Default and recommended: 'auto' (best mode for the model).
                 body: result.response?.body,
               };
 
-              const text = extractContentText(result.content);
+              const text = extractTextContent(result.content);
+              const reasoning = extractReasoningContent(result.content);
 
               if (text === undefined) {
                 throw new NoObjectGeneratedError({
@@ -397,7 +400,12 @@ Default and recommended: 'auto' (best mode for the model).
                 }),
               );
 
-              return { ...result, objectText: text, responseData };
+              return {
+                ...result,
+                objectText: text,
+                reasoning,
+                responseData,
+              };
             },
           }),
         );
@@ -409,6 +417,7 @@ Default and recommended: 'auto' (best mode for the model).
         resultProviderMetadata = generateResult.providerMetadata;
         request = generateResult.request ?? {};
         response = generateResult.responseData;
+        reasoning = generateResult.reasoning;
 
         const object = await parseAndValidateObjectResultWithRepair(
           result,
@@ -443,6 +452,7 @@ Default and recommended: 'auto' (best mode for the model).
 
         return new DefaultGenerateObjectResult({
           object,
+          reasoning,
           finishReason,
           usage,
           warnings,
@@ -465,6 +475,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly providerMetadata: GenerateObjectResult<T>['providerMetadata'];
   readonly response: GenerateObjectResult<T>['response'];
   readonly request: GenerateObjectResult<T>['request'];
+  readonly reasoning: GenerateObjectResult<T>['reasoning'];
 
   constructor(options: {
     object: GenerateObjectResult<T>['object'];
@@ -474,6 +485,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     providerMetadata: GenerateObjectResult<T>['providerMetadata'];
     response: GenerateObjectResult<T>['response'];
     request: GenerateObjectResult<T>['request'];
+    reasoning: GenerateObjectResult<T>['reasoning'];
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
@@ -482,6 +494,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     this.providerMetadata = options.providerMetadata;
     this.response = options.response;
     this.request = options.request;
+    this.reasoning = options.reasoning;
   }
 
   toJsonResponse(init?: ResponseInit): Response {
