@@ -107,11 +107,10 @@ There are three things worth mentioning:
    You call `addToolResult` to provide the result (without `await` to avoid potential deadlocks).
 
    <Note>
-     **TypeScript Type Narrowing**: When using TypeScript, always check `if (toolCall.dynamic)`
-     first in your `onToolCall` handler. Without this check, TypeScript will throw an error like:
-     `Type 'string' is not assignable to type '"toolName1" | "toolName2"'` when you try to use
-     `toolCall.toolName` in `addToolResult`. The dynamic check tells TypeScript that you're handling
-     static tools with known names.
+     Always check `if (toolCall.dynamic)` first in your `onToolCall` handler.
+     Without this check, TypeScript will throw an error like: `Type 'string' is
+     not assignable to type '"toolName1" | "toolName2"'` when you try to use
+     `toolCall.toolName` in `addToolResult`.
    </Note>
 
 2. The [`sendAutomaticallyWhen`](/docs/reference/ai-sdk-ui/use-chat#send-automatically-when) option with `lastAssistantMessageIsCompleteWithToolCalls` helper automatically submits when all tool results are available.
