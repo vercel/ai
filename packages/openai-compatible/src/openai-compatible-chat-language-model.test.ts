@@ -1523,9 +1523,9 @@ describe('doStream', () => {
           "type": "tool-input-start",
         },
         {
+          "delta": "{"",
           "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolName": "test-tool",
-          "type": "tool-input-start",
+          "type": "tool-input-delta",
         },
         {
           "delta": "va",
@@ -1773,9 +1773,9 @@ describe('doStream', () => {
           "type": "tool-input-start",
         },
         {
+          "delta": "{"value":"Sparkle Day"}",
           "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolName": "test-tool",
-          "type": "tool-input-start",
+          "type": "tool-input-delta",
         },
         {
           "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
