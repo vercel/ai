@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     await req.json();
 
   const stream = createUIMessageStream({
+    originalMessages: messages,
     execute: async ({ writer }) => {
       // Utility function to handle tools that require human confirmation
       // Checks for confirmation in last message and then runs associated tool
@@ -48,6 +49,10 @@ export async function POST(req: Request) {
       writer.merge(
         result.toUIMessageStream({ originalMessages: processedMessages }),
       );
+    },
+    onFinish: ({}) => {
+      // save messages here
+      console.log('Finished!');
     },
   });
 
