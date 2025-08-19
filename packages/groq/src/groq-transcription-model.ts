@@ -68,7 +68,12 @@ export class GroqTranscriptionModel implements TranscriptionModelV2 {
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
-    formData.append('file', new File([blob], 'audio', { type: mediaType }));
+    const [, fileExtension] = mediaType.split('/');
+    formData.append(
+      'file',
+      new File([blob], 'audio', { type: mediaType }),
+      `audio.${fileExtension}`,
+    );
 
     // Add provider-specific options
     if (groqOptions) {
@@ -148,24 +153,26 @@ export class GroqTranscriptionModel implements TranscriptionModelV2 {
 }
 
 const groqTranscriptionResponseSchema = z.object({
-  task: z.string(),
-  language: z.string(),
-  duration: z.number(),
+  task: z.string().optional(),
+  language: z.string().optional(),
+  duration: z.number().optional(),
   text: z.string(),
-  segments: z.array(
-    z.object({
-      id: z.number(),
-      seek: z.number(),
-      start: z.number(),
-      end: z.number(),
-      text: z.string(),
-      tokens: z.array(z.number()),
-      temperature: z.number(),
-      avg_logprob: z.number(),
-      compression_ratio: z.number(),
-      no_speech_prob: z.number(),
-    }),
-  ),
+  segments: z
+    .array(
+      z.object({
+        id: z.number(),
+        seek: z.number(),
+        start: z.number(),
+        end: z.number(),
+        text: z.string(),
+        tokens: z.array(z.number()),
+        temperature: z.number(),
+        avg_logprob: z.number(),
+        compression_ratio: z.number(),
+        no_speech_prob: z.number(),
+      }),
+    )
+    .optional(),
   x_groq: z.object({
     id: z.string(),
   }),
