@@ -373,7 +373,8 @@ Likewise, tools can also have cache points set:
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { generateText } from 'ai';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
 
 const result = await generateText({
   model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
