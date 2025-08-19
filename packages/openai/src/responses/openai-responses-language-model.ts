@@ -1328,7 +1328,6 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini') ||
     (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'));
-
   const supportsPriorityProcessing =
     modelId.startsWith('gpt-4') ||
     modelId.startsWith('gpt-5-mini') ||
@@ -1337,18 +1336,19 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
       !modelId.startsWith('gpt-5-chat')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini');
-
   const defaults = {
     requiredAutoTruncation: false,
     systemMessageMode: 'system' as const,
     supportsFlexProcessing,
     supportsPriorityProcessing,
-    isReasoningModel: false,
   };
 
   // gpt-5-chat models are non-reasoning
   if (modelId.startsWith('gpt-5-chat')) {
-    return defaults;
+    return {
+      ...defaults,
+      isReasoningModel: false,
+    };
   }
 
   // o series reasoning models:
@@ -1374,7 +1374,10 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   }
 
   // gpt models:
-  return defaults;
+  return {
+    ...defaults,
+    isReasoningModel: false,
+  };
 }
 
 // TODO AI SDK 6: use optional here instead of nullish
