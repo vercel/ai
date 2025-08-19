@@ -1026,4 +1026,36 @@ describe('generateObject', () => {
       expect(supportedUrlsCalled).toBe(true);
     });
   });
+
+  describe('reasoning', () => {
+    it('should include reasoning in the result', async () => {
+      const model = new MockLanguageModelV2({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [
+            { type: 'reasoning', text: 'This is a test reasoning.' },
+            { type: 'reasoning', text: 'This is another test reasoning.' },
+            { type: 'text', text: '{ "content": "Hello, world!" }' },
+          ],
+        }),
+      });
+
+      const result = await generateObject({
+        model,
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+      });
+
+      expect(result.reasoning).toMatchInlineSnapshot(`
+        "This is a test reasoning.
+        This is another test reasoning."
+      `);
+
+      expect(result.object).toMatchInlineSnapshot(`
+        {
+          "content": "Hello, world!",
+        }
+      `);
+    });
+  });
 });
