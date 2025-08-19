@@ -5,7 +5,7 @@ describe('HuggingFaceProvider', () => {
   describe('createHuggingFace', () => {
     it('should create provider with default configuration', () => {
       const provider = createHuggingFace();
-      
+
       expect(provider).toMatchInlineSnapshot(`[Function]`);
       expect(typeof provider.responses).toBe('function');
       expect(typeof provider.languageModel).toBe('function');
@@ -27,13 +27,13 @@ describe('HuggingFaceProvider', () => {
   describe('model creation methods', () => {
     it('should expose responses method', () => {
       const provider = createHuggingFace();
-      
+
       expect(typeof provider.responses).toBe('function');
     });
 
     it('should expose languageModel method', () => {
       const provider = createHuggingFace();
-      
+
       expect(typeof provider.languageModel).toBe('function');
     });
   });
@@ -42,7 +42,9 @@ describe('HuggingFaceProvider', () => {
     it('should throw for text embedding models', () => {
       const provider = createHuggingFace();
 
-      expect(() => provider.textEmbeddingModel('any-model')).toThrowErrorMatchingInlineSnapshot(
+      expect(() =>
+        provider.textEmbeddingModel('any-model'),
+      ).toThrowErrorMatchingInlineSnapshot(
         `[AI_NoSuchModelError: Hugging Face Responses API does not support text embeddings. Use the Hugging Face Inference API directly for embeddings.]`,
       );
     });
@@ -50,7 +52,9 @@ describe('HuggingFaceProvider', () => {
     it('should throw for image models', () => {
       const provider = createHuggingFace();
 
-      expect(() => provider.imageModel('any-model')).toThrowErrorMatchingInlineSnapshot(
+      expect(() =>
+        provider.imageModel('any-model'),
+      ).toThrowErrorMatchingInlineSnapshot(
         `[AI_NoSuchModelError: Hugging Face Responses API does not support image generation. Use the Hugging Face Inference API directly for image models.]`,
       );
     });
