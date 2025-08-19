@@ -153,32 +153,29 @@ export class GroqTranscriptionModel implements TranscriptionModelV2 {
   }
 }
 
-const minimalSchema = z.object({
+const groqTranscriptionResponseSchema = z.object({
   text: z.string(),
   x_groq: z.object({
     id: z.string(),
   }),
+  // additional properties are returned when `response_format: 'verbose_json'` is
+  task: z.string().optional(),
+  language: z.string().optional(),
+  duration: z.number().optional(),
+  segments: z
+    .array(
+      z.object({
+        id: z.number(),
+        seek: z.number(),
+        start: z.number(),
+        end: z.number(),
+        text: z.string(),
+        tokens: z.array(z.number()),
+        temperature: z.number(),
+        avg_logprob: z.number(),
+        compression_ratio: z.number(),
+        no_speech_prob: z.number(),
+      }),
+    )
+    .optional(),
 });
-
-// additional properties are returned when `response_format: 'verbose_json'` is set
-const verboseSchema = minimalSchema.extend({
-  task: z.string(),
-  language: z.string(),
-  duration: z.number(),
-  segments: z.array(
-    z.object({
-      id: z.number(),
-      seek: z.number(),
-      start: z.number(),
-      end: z.number(),
-      text: z.string(),
-      tokens: z.array(z.number()),
-      temperature: z.number(),
-      avg_logprob: z.number(),
-      compression_ratio: z.number(),
-      no_speech_prob: z.number(),
-    }),
-  ),
-});
-
-const groqTranscriptionResponseSchema = z.union([minimalSchema, verboseSchema]);
