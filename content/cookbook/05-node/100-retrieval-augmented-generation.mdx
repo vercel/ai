@@ -112,7 +112,7 @@ async function main() {
         text: chunk,
         section: `section-${Math.floor(i / 10)}`, // Group chunks into sections
       },
-    }))
+    })),
   );
 
   const input =
@@ -137,7 +137,7 @@ async function main() {
 
              Question: ${input}`,
   });
-  
+
   console.log(text);
 }
 
