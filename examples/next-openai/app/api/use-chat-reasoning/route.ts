@@ -1,10 +1,5 @@
-import { fireworks } from '@ai-sdk/fireworks';
-import {
-  convertToModelMessages,
-  extractReasoningMiddleware,
-  streamText,
-  wrapLanguageModel,
-} from 'ai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -12,14 +7,14 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  console.log(JSON.stringify(messages, null, 2));
-
   const result = streamText({
-    model: wrapLanguageModel({
-      model: fireworks('accounts/fireworks/models/deepseek-r1'),
-      middleware: extractReasoningMiddleware({ tagName: 'think' }),
-    }),
+    model: openai('gpt-5-nano'),
     messages: convertToModelMessages(messages),
+    providerOptions: {
+      openai: {
+        reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
+      } satisfies OpenAIResponsesProviderOptions,
+    },
   });
 
   return result.toUIMessageStreamResponse({

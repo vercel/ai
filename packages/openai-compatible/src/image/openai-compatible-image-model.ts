@@ -10,7 +10,7 @@ import { z } from 'zod/v4';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
-} from './openai-compatible-error';
+} from '../openai-compatible-error';
 import { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
 
 export type OpenAICompatibleImageModelConfig = {
