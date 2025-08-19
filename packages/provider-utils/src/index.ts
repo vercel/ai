@@ -21,7 +21,7 @@ export {
   createProviderDefinedToolFactory,
   createProviderDefinedToolFactoryWithOutputSchema,
   type ProviderDefinedToolFactory,
-  type ProviderDefinedToolFactoryWithOutputSchema
+  type ProviderDefinedToolFactoryWithOutputSchema,
 } from './provider-defined-tool-factory';
 export * from './remove-undefined-entries';
 export * from './resolve';
@@ -31,7 +31,7 @@ export {
   jsonSchema,
   type FlexibleSchema,
   type InferSchema,
-  type Schema
+  type Schema,
 } from './schema';
 export * from './uint8-utils';
 export * from './validate-types';
@@ -46,6 +46,5 @@ export * from './types';
 export * from '@standard-schema/spec';
 export {
   EventSourceParserStream,
-  type EventSourceMessage
+  type EventSourceMessage,
 } from 'eventsource-parser/stream';
-

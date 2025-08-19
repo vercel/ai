@@ -9,9 +9,9 @@ async function main() {
     audio: Buffer.from(await readFile('./data/galileo.mp3')).toString('base64'),
     providerOptions: {
       groq: {
-        responseFormat: 'verbose_json'
-      }
-    }
+        responseFormat: 'verbose_json',
+      },
+    },
   });
 
   console.log('Text:', result.text);
