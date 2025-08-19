@@ -32,7 +32,7 @@ import {
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
-} from './openai-compatible-error';
+} from '../openai-compatible-error';
 import { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
 

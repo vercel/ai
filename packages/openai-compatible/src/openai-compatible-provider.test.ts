@@ -1,7 +1,7 @@
 import { createOpenAICompatible } from './openai-compatible-provider';
-import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
-import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
-import { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
+import { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
+import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
+import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 
 const OpenAICompatibleChatLanguageModelMock = vi.mocked(
   OpenAICompatibleChatLanguageModel,

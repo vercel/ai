@@ -4,8 +4,8 @@ import {
   createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
-import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
-import { createOpenAICompatible } from './openai-compatible-provider';
+import { createOpenAICompatible } from '../openai-compatible-provider';
+import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -27,7 +27,7 @@ const server = createTestServer({
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleCompletionLanguageModel('gpt-4', {
       provider: 'anthropic.beta',
       url: () => '',
       headers: () => ({}),
@@ -37,7 +37,7 @@ describe('config', () => {
   });
 
   it('should handle provider without dot notation', () => {
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleCompletionLanguageModel('gpt-4', {
       provider: 'openai',
       url: () => '',
       headers: () => ({}),
@@ -47,7 +47,7 @@ describe('config', () => {
   });
 
   it('should return empty for empty provider', () => {
-    const model = new OpenAICompatibleChatLanguageModel(
+    const model = new OpenAICompatibleCompletionLanguageModel(
       'gpt-4',
 
       {
