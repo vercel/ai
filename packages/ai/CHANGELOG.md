@@ -1,5 +1,12 @@
 # ai
 
+## 5.0.17
+
+### Patch Changes
+
+- 4176ecb: feat(ai): add reasoning text to generateObject result
+- 20f23f9: feat(ai): export LanguageModelMiddleware type
+
 ## 5.0.16
 
 ### Patch Changes
