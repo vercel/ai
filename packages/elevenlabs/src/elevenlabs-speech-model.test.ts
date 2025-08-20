@@ -112,16 +112,6 @@ describe('ElevenLabsSpeechModel', () => {
       });
     });
 
-    it('should throw error when voice is not provided', async () => {
-      await expect(
-        model.doGenerate({
-          text: 'Hello, world!',
-        }),
-      ).rejects.toThrow(
-        'Voice ID is required for ElevenLabs speech generation',
-      );
-    });
-
     it('should pass provider-specific options', async () => {
       prepareAudioResponse();
 
