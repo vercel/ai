@@ -17,16 +17,16 @@ import {
 const ElevenLabsProviderOptionsSchema = z.object({
   voice_settings: z
     .object({
-      stability: z.number().min(0).max(1).nullish(),
-      similarity_boost: z.number().min(0).max(1).nullish(),
-      style: z.number().min(0).max(1).nullish(),
-      use_speaker_boost: z.boolean().nullish(),
+      stability: z.number().min(0).max(1).optional(),
+      similarity_boost: z.number().min(0).max(1).optional(),
+      style: z.number().min(0).max(1).optional(),
+      use_speaker_boost: z.boolean().optional(),
     })
-    .nullish(),
-  seed: z.number().nullish(),
-  previous_text: z.string().nullish(),
-  next_text: z.string().nullish(),
-  enable_logging: z.boolean().nullish(),
+    .optional(),
+  seed: z.number().optional(),
+  previous_text: z.string().optional(),
+  next_text: z.string().optional(),
+  enable_logging: z.boolean().optional(),
 });
 
 export type ElevenLabsSpeechCallOptions = z.infer<
@@ -55,7 +55,6 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
     text,
     voice,
     outputFormat = 'mp3_44100_128',
-    speed,
     instructions,
     language,
     providerOptions,
@@ -125,38 +124,23 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
       if (elevenLabsOptions.voice_settings) {
         // Filter out null values from voice_settings
         const voiceSettings: typeof requestBody.voice_settings = {};
-        if (
-          elevenLabsOptions.voice_settings.stability !== null &&
-          elevenLabsOptions.voice_settings.stability !== undefined
-        ) {
+        if (elevenLabsOptions.voice_settings.stability != null) {
           voiceSettings.stability = elevenLabsOptions.voice_settings.stability;
         }
-        if (
-          elevenLabsOptions.voice_settings.similarity_boost !== null &&
-          elevenLabsOptions.voice_settings.similarity_boost !== undefined
-        ) {
+        if (elevenLabsOptions.voice_settings.similarity_boost != null) {
           voiceSettings.similarity_boost =
             elevenLabsOptions.voice_settings.similarity_boost;
         }
-        if (
-          elevenLabsOptions.voice_settings.style !== null &&
-          elevenLabsOptions.voice_settings.style !== undefined
-        ) {
+        if (elevenLabsOptions.voice_settings.style != null) {
           voiceSettings.style = elevenLabsOptions.voice_settings.style;
         }
-        if (
-          elevenLabsOptions.voice_settings.use_speaker_boost !== null &&
-          elevenLabsOptions.voice_settings.use_speaker_boost !== undefined
-        ) {
+        if (elevenLabsOptions.voice_settings.use_speaker_boost != null) {
           voiceSettings.use_speaker_boost =
             elevenLabsOptions.voice_settings.use_speaker_boost;
         }
         requestBody.voice_settings = voiceSettings;
       }
-      if (
-        elevenLabsOptions.seed !== undefined &&
-        elevenLabsOptions.seed !== null
-      ) {
+      if (elevenLabsOptions.seed != null) {
         requestBody.seed = elevenLabsOptions.seed;
       }
       if (elevenLabsOptions.previous_text) {
@@ -165,21 +149,9 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
       if (elevenLabsOptions.next_text) {
         requestBody.next_text = elevenLabsOptions.next_text;
       }
-      if (
-        elevenLabsOptions.enable_logging !== undefined &&
-        elevenLabsOptions.enable_logging !== null
-      ) {
+      if (elevenLabsOptions.enable_logging != null) {
         requestBody.enable_logging = elevenLabsOptions.enable_logging;
       }
-    }
-
-    // Warnings for unsupported parameters
-    if (speed !== undefined) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'speed',
-        details: `ElevenLabs speech models do not support speed adjustment. Speed parameter "${speed}" was ignored.`,
-      });
     }
 
     if (instructions) {
