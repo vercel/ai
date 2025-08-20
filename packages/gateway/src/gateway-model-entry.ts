@@ -40,4 +40,6 @@ export interface GatewayLanguageModelEntry {
 export type GatewayLanguageModelSpecification = Pick<
   LanguageModelV2,
   'specificationVersion' | 'provider' | 'modelId'
->;
+> & {
+  type?: 'language' | 'embedding' | 'image';
+};
