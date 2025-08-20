@@ -1,31 +1,28 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  stepCountIs,
+  InferUITools,
   streamText,
-  tool,
   UIDataTypes,
   UIMessage,
 } from 'ai';
-import { z } from 'zod/v4';
+
+const tools = {
+  web_search_preview: openai.tools.webSearchPreview({
+    searchContextSize: 'high',
+    userLocation: {
+      type: 'approximate',
+      city: 'San Francisco',
+      region: 'California',
+      country: 'US',
+    },
+  }),
+} as const;
 
 export type ReasoningToolsMessage = UIMessage<
   never, // could define metadata here
   UIDataTypes, // could define data parts here
-  {
-    getWeatherInformation: {
-      input: { city: string };
-      output: string;
-    };
-    askForConfirmation: {
-      input: { message: string };
-      output: string;
-    };
-    getLocation: {
-      input: {};
-      output: string;
-    };
-  }
+  InferUITools<typeof tools>
 >;
 
 // Allow streaming responses up to 30 seconds
@@ -37,41 +34,15 @@ export async function POST(req: Request) {
   console.log(JSON.stringify(messages, null, 2));
 
   const result = streamText({
-    model: openai('o3'),
+    model: openai('gpt-5'),
     messages: convertToModelMessages(messages),
-    stopWhen: stepCountIs(5), // multi-steps for server-side tools
-    tools: {
-      // server-side tool with execute function:
-      getWeatherInformation: tool({
-        description: 'show the weather in a given city to the user',
-        inputSchema: z.object({ city: z.string() }),
-        execute: async ({ city }: { city: string }) => {
-          // Add artificial delay of 2 seconds
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
-          const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
-          return weatherOptions[
-            Math.floor(Math.random() * weatherOptions.length)
-          ];
-        },
-      }),
-      // client-side tool that starts user interaction:
-      askForConfirmation: tool({
-        description: 'Ask the user for confirmation.',
-        inputSchema: z.object({
-          message: z.string().describe('The message to ask for confirmation.'),
-        }),
-      }),
-      // client-side tool that is automatically executed on the client:
-      getLocation: tool({
-        description:
-          'Get the user location. Always ask for confirmation before using this tool.',
-        inputSchema: z.object({}),
-      }),
+    tools,
+    providerOptions: {
+      openai: {
+        reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
+      } satisfies OpenAIResponsesProviderOptions,
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    sendReasoning: true,
-  });
+  return result.toUIMessageStreamResponse();
 }

@@ -12577,7 +12577,9 @@ describe('streamText', () => {
               "message": "Invalid input: expected string, received undefined"
             }
           ]],
-              "input": "{ "cities": "San Francisco" }",
+              "input": {
+                "cities": "San Francisco",
+              },
               "invalid": true,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
@@ -12596,7 +12598,9 @@ describe('streamText', () => {
               "message": "Invalid input: expected string, received undefined"
             }
           ]",
-              "input": "{ "cities": "San Francisco" }",
+              "input": {
+                "cities": "San Francisco",
+              },
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-error",
@@ -12645,7 +12649,9 @@ describe('streamText', () => {
                 "message": "Invalid input: expected string, received undefined"
               }
             ]],
-                "input": "{ "cities": "San Francisco" }",
+                "input": {
+                  "cities": "San Francisco",
+                },
                 "invalid": true,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
@@ -12664,7 +12670,9 @@ describe('streamText', () => {
                 "message": "Invalid input: expected string, received undefined"
               }
             ]",
-                "input": "{ "cities": "San Francisco" }",
+                "input": {
+                  "cities": "San Francisco",
+                },
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-error",
@@ -12734,7 +12742,9 @@ describe('streamText', () => {
                 "message": "Invalid input: expected string, received undefined"
               }
             ]",
-                "input": "{ "cities": "San Francisco" }",
+                "input": {
+                  "cities": "San Francisco",
+                },
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-input-error",
@@ -12762,6 +12772,333 @@ describe('streamText', () => {
               },
             ]
           `);
+      });
+    });
+  });
+
+  describe('tools with preliminary results', () => {
+    describe('single tool with preliminary results', () => {
+      let result: StreamTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                input: `{ "city": "San Francisco" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          _internal: {
+            currentDate: mockValues(new Date(2000)),
+            generateId: mockId(),
+          },
+          tools: {
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+              async *execute({ city }) {
+                yield {
+                  status: 'loading',
+                  text: `Getting weather for ${city}`,
+                };
+
+                yield {
+                  status: 'success',
+                  text: `The weather in ${city} is 72°F`,
+                  temperature: 72,
+                };
+              },
+            }),
+          },
+        });
+      });
+
+      it('should include preliminary tool results in full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "output": {
+                "status": "loading",
+                "text": "Getting weather for San Francisco",
+              },
+              "preliminary": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-result",
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "preliminary": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-result",
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-result",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:02.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
+      });
+
+      it('should include preliminary tool results in ui message stream', async () => {
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-input-available",
+            },
+            {
+              "output": {
+                "status": "loading",
+                "text": "Getting weather for San Francisco",
+              },
+              "preliminary": true,
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "preliminary": true,
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
+      });
+
+      it('should only include final tool result in content', async () => {
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+
+      it('should only include final tool result in step content', async () => {
+        expect(await result.steps).toMatchInlineSnapshot(`
+          [
+            DefaultStepResult {
+              "content": [
+                {
+                  "input": {
+                    "city": "San Francisco",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-call",
+                },
+                {
+                  "input": {
+                    "city": "San Francisco",
+                  },
+                  "output": {
+                    "status": "success",
+                    "temperature": 72,
+                    "text": "The weather in San Francisco is 72°F",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-result",
+                },
+              ],
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "input": {
+                          "city": "San Francisco",
+                        },
+                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
+                        "toolCallId": "call-1",
+                        "toolName": "cityAttractions",
+                        "type": "tool-call",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                  {
+                    "content": [
+                      {
+                        "output": {
+                          "type": "json",
+                          "value": {
+                            "status": "success",
+                            "temperature": 72,
+                            "text": "The weather in San Francisco is 72°F",
+                          },
+                        },
+                        "toolCallId": "call-1",
+                        "toolName": "cityAttractions",
+                        "type": "tool-result",
+                      },
+                    ],
+                    "role": "tool",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:02.000Z,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "warnings": [],
+            },
+          ]
+        `);
       });
     });
   });

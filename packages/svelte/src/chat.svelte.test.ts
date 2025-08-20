@@ -408,6 +408,7 @@ describe('onToolCall', () => {
           input: { testArg: 'test-value' },
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -426,6 +427,7 @@ describe('onToolCall', () => {
         output:
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
         providerExecuted: undefined,
+        preliminary: undefined,
       },
     ]);
   });
@@ -475,6 +477,7 @@ describe('tool invocations', () => {
           input: undefined,
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -498,6 +501,7 @@ describe('tool invocations', () => {
           input: { testArg: 't' },
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -521,6 +525,7 @@ describe('tool invocations', () => {
           input: { testArg: 'test-value' },
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -545,6 +550,7 @@ describe('tool invocations', () => {
           input: { testArg: 'test-value' },
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -569,6 +575,7 @@ describe('tool invocations', () => {
         input: { testArg: 'test-value' },
         output: 'test-result',
         providerExecuted: undefined,
+        preliminary: undefined,
       },
     ]);
   });
@@ -602,6 +609,7 @@ describe('tool invocations', () => {
           input: { testArg: 'test-value' },
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -627,6 +635,7 @@ describe('tool invocations', () => {
         input: { testArg: 'test-value' },
         output: 'test-result',
         providerExecuted: undefined,
+        preliminary: undefined,
       },
     ]);
   });
@@ -659,6 +668,7 @@ describe('tool invocations', () => {
           input: { testArg: 'test-value' },
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -680,6 +690,7 @@ describe('tool invocations', () => {
           input: { testArg: 'test-value' },
           output: 'test-result',
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });

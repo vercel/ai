@@ -1,12 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import {
-  DefaultChatTransport,
-  getToolName,
-  isToolUIPart,
-  lastAssistantMessageIsCompleteWithToolCalls,
-} from 'ai';
+import { DefaultChatTransport, getToolName, isToolUIPart } from 'ai';
 import { tools } from '../api/use-chat-human-in-the-loop/tools';
 import {
   APPROVAL,
@@ -25,7 +20,6 @@ export default function Chat() {
       transport: new DefaultChatTransport({
         api: '/api/use-chat-human-in-the-loop',
       }),
-      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     });
 
   const toolsRequiringConfirmation = getToolsRequiringConfirmation(tools);
@@ -75,6 +69,8 @@ export default function Chat() {
                             tool: toolName,
                             output: APPROVAL.YES,
                           });
+                          // trigger new message
+                          // can also use sendAutomaticallyWhen on useChat
                           sendMessage();
                         }}
                       >
@@ -88,6 +84,8 @@ export default function Chat() {
                             tool: toolName,
                             output: APPROVAL.NO,
                           });
+                          // trigger new message
+                          // can also use sendAutomaticallyWhen on useChat
                           sendMessage();
                         }}
                       >
@@ -105,6 +103,9 @@ export default function Chat() {
                       ? 'ed'
                       : 'ing'}{' '}
                     {toolName}
+                    {part.output && (
+                      <div>{JSON.stringify(part.output, null, 2)}</div>
+                    )}
                   </div>
                 </div>
               );

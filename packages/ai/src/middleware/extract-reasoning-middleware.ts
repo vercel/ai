@@ -1,8 +1,8 @@
 import type {
   LanguageModelV2Content,
-  LanguageModelV2Middleware,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
+import { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 /**
@@ -21,7 +21,7 @@ export function extractReasoningMiddleware({
   tagName: string;
   separator?: string;
   startWithReasoning?: boolean;
-}): LanguageModelV2Middleware {
+}): LanguageModelMiddleware {
   const openingTag = `<${tagName}>`;
   const closingTag = `<\/${tagName}>`;
 
@@ -94,6 +94,8 @@ export function extractReasoningMiddleware({
         }
       > = {};
 
+      let delayedTextStart: LanguageModelV2StreamPart | undefined;
+
       return {
         stream: stream.pipeThrough(
           new TransformStream<
@@ -101,6 +103,18 @@ export function extractReasoningMiddleware({
             LanguageModelV2StreamPart
           >({
             transform: (chunk, controller) => {
+              // do not send `text-start` before `reasoning-start`
+              // https://github.com/vercel/ai/issues/7774
+              if (chunk.type === 'text-start') {
+                delayedTextStart = chunk;
+                return;
+              }
+
+              if (chunk.type === 'text-end' && delayedTextStart) {
+                controller.enqueue(delayedTextStart);
+                delayedTextStart = undefined;
+              }
+
               if (chunk.type !== 'text-delta') {
                 controller.enqueue(chunk);
                 return;
@@ -143,19 +157,23 @@ export function extractReasoningMiddleware({
                     });
                   }
 
-                  controller.enqueue(
-                    activeExtraction.isReasoning
-                      ? {
-                          type: 'reasoning-delta',
-                          delta: prefix + text,
-                          id: `reasoning-${activeExtraction.idCounter}`,
-                        }
-                      : {
-                          type: 'text-delta',
-                          delta: prefix + text,
-                          id: activeExtraction.textId,
-                        },
-                  );
+                  if (activeExtraction.isReasoning) {
+                    controller.enqueue({
+                      type: 'reasoning-delta',
+                      delta: prefix + text,
+                      id: `reasoning-${activeExtraction.idCounter}`,
+                    });
+                  } else {
+                    if (delayedTextStart) {
+                      controller.enqueue(delayedTextStart);
+                      delayedTextStart = undefined;
+                    }
+                    controller.enqueue({
+                      type: 'text-delta',
+                      delta: prefix + text,
+                      id: activeExtraction.textId,
+                    });
+                  }
                   activeExtraction.afterSwitch = false;
 
                   if (activeExtraction.isReasoning) {

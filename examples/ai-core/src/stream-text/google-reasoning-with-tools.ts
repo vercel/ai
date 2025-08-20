@@ -10,7 +10,7 @@ async function main() {
     tools: {
       calculate: {
         description: 'Calculate the result of a mathematical expression',
-        parameters: z.object({
+        inputSchema: z.object({
           a: z.number().describe('First number'),
           b: z.number().describe('Second number'),
           operation: z

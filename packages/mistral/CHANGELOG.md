@@ -1,5 +1,39 @@
 # @ai-sdk/mistral
 
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 2.0.6
+
+### Patch Changes
+
+- f8d99df: fix(provider/mistral): inject JSON generation instruction when response format is JSON
+
+## 2.0.5
+
+### Patch Changes
+
+- 266ef91: fix(provider/mistral): add support for magistral reasoning models with thinking content type
+
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
 ## 2.0.2
 
 ### Patch Changes

@@ -1,5 +1,41 @@
 # @ai-sdk/gateway
 
+## 1.0.9
+
+### Patch Changes
+
+- 8b96f99: feat(provider/gateway): Add DeepSeek v3.1 Base
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 1.0.7
+
+### Patch Changes
+
+- 28a4006: feat (provider/gateway): add gemini-2.5-flash-lite model id
+
+## 1.0.6
+
+### Patch Changes
+
+- eefa730: refactor(provider/gateway): Make claude-sonnet-4 and similar the primary model slug for Anthropic v4 models
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
+## 1.0.5
+
+### Patch Changes
+
+- cf7b2ad: feat(provider/gateway): Add GLM-4.5V
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
 ## 1.0.4
 
 ### Patch Changes

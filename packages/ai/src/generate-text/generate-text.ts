@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  executeTool,
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
@@ -32,7 +33,7 @@ import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
 import { prepareRetries } from '../util/prepare-retries';
 import { ContentPart } from './content-part';
-import { extractContentText } from './extract-content-text';
+import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { Output } from './output';
@@ -394,7 +395,7 @@ A function that attempts to repair a tool call that failed to parse.
                     attributes: {
                       'ai.response.finishReason': result.finishReason,
                       'ai.response.text': {
-                        output: () => extractContentText(result.content),
+                        output: () => extractTextContent(result.content),
                       },
                       'ai.response.toolCalls': {
                         output: () => {
@@ -555,7 +556,7 @@ A function that attempts to repair a tool call that failed to parse.
             attributes: {
               'ai.response.finishReason': currentModelResponse.finishReason,
               'ai.response.text': {
-                output: () => extractContentText(currentModelResponse.content),
+                output: () => extractTextContent(currentModelResponse.content),
               },
               'ai.response.toolCalls': {
                 output: () => {
@@ -641,13 +642,23 @@ async function executeTools<TOOLS extends ToolSet>({
         tracer,
         fn: async span => {
           try {
-            const output = await tool.execute!(input, {
-              toolCallId,
-              messages,
-              abortSignal,
-              experimental_context,
+            const stream = executeTool({
+              execute: tool.execute!.bind(tool),
+              input,
+              options: {
+                toolCallId,
+                messages,
+                abortSignal,
+                experimental_context,
+              },
             });
 
+            let output: unknown;
+            for await (const part of stream) {
+              if (part.type === 'final') {
+                output = part.output;
+              }
+            }
             try {
               span.setAttributes(
                 selectTelemetryAttributes({
