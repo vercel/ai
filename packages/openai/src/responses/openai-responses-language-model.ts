@@ -358,13 +358,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               z.object({
                 type: z.literal('web_search_call'),
                 id: z.string(),
-                status: z.string().optional(),
-                action: z
-                  .object({
+                status: z.string(),
+                action: z.discriminatedUnion('type', [
+                  z.object({
                     type: z.literal('search'),
-                    query: z.string().optional(),
-                  })
-                  .nullish(),
+                    query: z.string(),
+                  }),
+                  z.object({
+                    type: z.literal('open_page'),
+                    url: z.string(),
+                  }),
+                  z.object({
+                    type: z.literal('find'),
+                    url: z.string(),
+                    pattern: z.string(),
+                  }),
+                ]),
               }),
               z.object({
                 type: z.literal('computer_call'),
@@ -513,7 +522,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: 'web_search_preview',
-            input: part.action?.query ?? '',
+            input: JSON.stringify({ action: part.action }),
             providerExecuted: true,
           });
 
@@ -521,10 +530,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-result',
             toolCallId: part.id,
             toolName: 'web_search_preview',
-            result: {
-              status: part.status || 'completed',
-              ...(part.action?.query && { query: part.action.query }),
-            },
+            result: { status: part.status },
             providerExecuted: true,
           });
           break;
