@@ -41,10 +41,10 @@ describe('ElevenLabsSpeechModel', () => {
       expect(await server.calls[0].requestBodyJson).toMatchObject({
         text: 'Hello, world!',
         model_id: 'eleven_multilingual_v2',
-        output_format: 'mp3_44100_128',
       });
 
-      // The URL check isn't needed since we're checking the body
+      // Check output_format is in query params
+      expect(server.calls[0].requestUrl).toContain('output_format=mp3_44100_128');
     });
 
     it('should handle custom output format', async () => {
@@ -59,8 +59,10 @@ describe('ElevenLabsSpeechModel', () => {
       expect(await server.calls[0].requestBodyJson).toMatchObject({
         text: 'Hello, world!',
         model_id: 'eleven_multilingual_v2',
-        output_format: 'pcm_44100',
       });
+
+      // Check output_format is in query params
+      expect(server.calls[0].requestUrl).toContain('output_format=pcm_44100');
     });
 
     it('should handle language parameter', async () => {
@@ -75,24 +77,28 @@ describe('ElevenLabsSpeechModel', () => {
       expect(await server.calls[0].requestBodyJson).toMatchObject({
         text: 'Hola, mundo!',
         model_id: 'eleven_multilingual_v2',
-        output_format: 'mp3_44100_128',
         language_code: 'es',
       });
+
+      // Check output_format is in query params
+      expect(server.calls[0].requestUrl).toContain('output_format=mp3_44100_128');
     });
 
-    it('should warn about unsupported speed parameter', async () => {
+    it('should handle speed parameter in voice settings', async () => {
       prepareAudioResponse();
 
-      const result = await model.doGenerate({
+      await model.doGenerate({
         text: 'Hello, world!',
         voice: 'test-voice-id',
         speed: 1.5,
       });
 
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'speed',
-        details: expect.stringContaining('speed adjustment'),
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        text: 'Hello, world!',
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          speed: 1.5,
+        },
       });
     });
 
@@ -132,13 +138,15 @@ describe('ElevenLabsSpeechModel', () => {
       expect(await server.calls[0].requestBodyJson).toMatchObject({
         text: 'Hello, world!',
         model_id: 'eleven_multilingual_v2',
-        output_format: 'mp3_44100_128',
         voice_settings: {
           stability: 0.5,
           similarity_boost: 0.75,
         },
         seed: 123,
       });
+
+      // Check output_format is in query params
+      expect(server.calls[0].requestUrl).toContain('output_format=mp3_44100_128');
     });
   });
 });
