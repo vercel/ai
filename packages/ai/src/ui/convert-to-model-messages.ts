@@ -148,12 +148,7 @@ export function convertToModelMessages(
               } else if (part.type === 'dynamic-tool') {
                 const toolName = part.toolName;
 
-                if (part.state === 'input-streaming') {
-                  throw new MessageConversionError({
-                    originalMessage: message,
-                    message: `incomplete tool input is not supported: ${part.toolCallId}`,
-                  });
-                } else {
+                if (part.state !== 'input-streaming') {
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
@@ -167,12 +162,7 @@ export function convertToModelMessages(
               } else if (isToolUIPart(part)) {
                 const toolName = getToolName(part);
 
-                if (part.state === 'input-streaming') {
-                  throw new MessageConversionError({
-                    originalMessage: message,
-                    message: `incomplete tool input is not supported: ${part.toolCallId}`,
-                  });
-                } else {
+                if (part.state !== 'input-streaming') {
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
@@ -230,39 +220,42 @@ export function convertToModelMessages(
             if (toolParts.length > 0) {
               modelMessages.push({
                 role: 'tool',
-                content: toolParts.map((toolPart): ToolResultPart => {
-                  switch (toolPart.state) {
-                    case 'output-error':
-                    case 'output-available': {
-                      const toolName =
-                        toolPart.type === 'dynamic-tool'
-                          ? toolPart.toolName
-                          : getToolName(toolPart);
+                content: toolParts
+                  .map((toolPart): ToolResultPart | null => {
+                    switch (toolPart.state) {
+                      case 'output-error':
+                      case 'output-available': {
+                        const toolName =
+                          toolPart.type === 'dynamic-tool'
+                            ? toolPart.toolName
+                            : getToolName(toolPart);
 
-                      return {
-                        type: 'tool-result',
-                        toolCallId: toolPart.toolCallId,
-                        toolName,
-                        output: createToolModelOutput({
-                          output:
-                            toolPart.state === 'output-error'
-                              ? toolPart.errorText
-                              : toolPart.output,
-                          tool: options?.tools?.[toolName],
-                          errorMode:
-                            toolPart.state === 'output-error' ? 'text' : 'none',
-                        }),
-                      };
+                        return {
+                          type: 'tool-result',
+                          toolCallId: toolPart.toolCallId,
+                          toolName,
+                          output: createToolModelOutput({
+                            output:
+                              toolPart.state === 'output-error'
+                                ? toolPart.errorText
+                                : toolPart.output,
+                            tool: options?.tools?.[toolName],
+                            errorMode:
+                              toolPart.state === 'output-error'
+                                ? 'text'
+                                : 'none',
+                          }),
+                        };
+                      }
+                      default: {
+                        return null;
+                      }
                     }
-
-                    default: {
-                      throw new MessageConversionError({
-                        originalMessage: message,
-                        message: `Unsupported tool part state: ${toolPart.state}`,
-                      });
-                    }
-                  }
-                }),
+                  })
+                  .filter(
+                    (output): output is NonNullable<typeof output> =>
+                      output != null,
+                  ),
               });
             }
 

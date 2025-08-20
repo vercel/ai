@@ -136,7 +136,6 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   either synchronously or asynchronously.
      */
   onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
-
   /**
    * Optional callback function that is called when the assistant message is finished streaming.
    *
