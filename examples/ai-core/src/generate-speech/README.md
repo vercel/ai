@@ -5,6 +5,7 @@ This directory contains examples of generating speech from text using various pr
 ## Providers
 
 ### OpenAI
+
 - `openai.ts` - Basic text-to-speech generation
 - `openai-voice.ts` - Using different voice options
 - `openai-speed.ts` - Adjusting speech speed
@@ -12,6 +13,7 @@ This directory contains examples of generating speech from text using various pr
 - `openai-instructions.ts` - Using instructions for speech style
 
 ### ElevenLabs
+
 - `elevenlabs.ts` - Basic text-to-speech generation with ElevenLabs
 - `elevenlabs-voice-settings.ts` - Advanced voice customization (stability, similarity, style)
 - `elevenlabs-language.ts` - Multi-language support (74+ languages)
@@ -22,12 +24,14 @@ This directory contains examples of generating speech from text using various pr
 - `elevenlabs-test.ts` - Test script to verify integration setup
 
 ### LMNT
+
 - `lmnt.ts` - Basic LMNT speech generation
 - `lmnt-voice.ts` - LMNT voice selection
 - `lmnt-speed.ts` - Speed control
 - `lmnt-language.ts` - Language settings
 
 ### Hume
+
 - `hume.ts` - Basic Hume speech generation
 - `hume-voice.ts` - Voice selection
 - `hume-speed.ts` - Speed adjustments
@@ -35,6 +39,7 @@ This directory contains examples of generating speech from text using various pr
 - `hume-instructions.ts` - Custom instructions
 
 ### FAL
+
 - `fal-basic.ts` - Basic FAL speech generation
 - `fal-voice.ts` - Voice options
 - `fal-dia.ts` - DIA voice model
@@ -42,6 +47,7 @@ This directory contains examples of generating speech from text using various pr
 - `fal-chatterbox.ts` - Chatterbox model
 
 ### Azure
+
 - `azure.ts` - Azure Speech Services integration
 
 ## Setup
@@ -71,14 +77,14 @@ npx tsx src/generate-speech/elevenlabs.ts
 
 ## ElevenLabs Models
 
-| Model | Description | Languages | Latency |
-|-------|-------------|-----------|---------|
-| `eleven_v3` | Latest and most advanced model | 74+ languages | Normal |
-| `eleven_multilingual_v2` | Most life-like, emotionally rich | Multiple | Normal |
-| `eleven_flash_v2_5` | Ultra-low latency (~75ms) | 32 languages | Ultra-low |
-| `eleven_flash_v2` | Ultra-low latency English | English only | Ultra-low |
-| `eleven_turbo_v2_5` | High-quality, low-latency | 32 languages | Low |
-| `eleven_turbo_v2` | High-quality English | English only | Low |
+| Model                    | Description                      | Languages     | Latency   |
+| ------------------------ | -------------------------------- | ------------- | --------- |
+| `eleven_v3`              | Latest and most advanced model   | 74+ languages | Normal    |
+| `eleven_multilingual_v2` | Most life-like, emotionally rich | Multiple      | Normal    |
+| `eleven_flash_v2_5`      | Ultra-low latency (~75ms)        | 32 languages  | Ultra-low |
+| `eleven_flash_v2`        | Ultra-low latency English        | English only  | Ultra-low |
+| `eleven_turbo_v2_5`      | High-quality, low-latency        | 32 languages  | Low       |
+| `eleven_turbo_v2`        | High-quality English             | English only  | Low       |
 
 ## Output
 

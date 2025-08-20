@@ -9,18 +9,20 @@ import { z } from 'zod/v4';
 import { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
 import { ElevenLabsSpeechAPITypes } from './elevenlabs-speech-api-types';
-import { 
-  ElevenLabsSpeechModelId, 
-  ElevenLabsSpeechVoiceId 
+import {
+  ElevenLabsSpeechModelId,
+  ElevenLabsSpeechVoiceId,
 } from './elevenlabs-speech-options';
 
 const ElevenLabsProviderOptionsSchema = z.object({
-  voice_settings: z.object({
-    stability: z.number().min(0).max(1).nullish(),
-    similarity_boost: z.number().min(0).max(1).nullish(),
-    style: z.number().min(0).max(1).nullish(),
-    use_speaker_boost: z.boolean().nullish(),
-  }).nullish(),
+  voice_settings: z
+    .object({
+      stability: z.number().min(0).max(1).nullish(),
+      similarity_boost: z.number().min(0).max(1).nullish(),
+      style: z.number().min(0).max(1).nullish(),
+      use_speaker_boost: z.boolean().nullish(),
+    })
+    .nullish(),
   seed: z.number().nullish(),
   previous_text: z.string().nullish(),
   next_text: z.string().nullish(),

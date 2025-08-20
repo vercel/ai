@@ -92,7 +92,8 @@ const result = await generateSpeech({
   Optional. Language code (ISO 639-1) used to enforce a language for the model. Currently, only Turbo v2.5 and Flash v2.5 support language enforcement. For other models, providing a language code will result in an error.
 
 - **voice_settings** _object or null_  
-  Optional. Voice settings that override stored settings for the given voice. These are applied only to the current request.  
+  Optional. Voice settings that override stored settings for the given voice. These are applied only to the current request.
+
   - **stability** _double or null_  
     Optional. Determines how stable the voice is and the randomness between each generation. Lower values introduce broader emotional range; higher values result in a more monotonous voice.
   - **use_speaker_boost** _boolean or null_  
@@ -106,7 +107,8 @@ const result = await generateSpeech({
 
 - **pronunciation_dictionary_locators** _array of objects or null_  
   Optional. A list of pronunciation dictionary locators to apply to the text, in order. Up to 3 locators per request.  
-  Each locator object:  
+  Each locator object:
+
   - **pronunciation_dictionary_id** _string_ (required)  
     The ID of the pronunciation dictionary.
   - **version_id** _string or null_ (optional)  
@@ -129,27 +131,28 @@ const result = await generateSpeech({
 
 - **apply_text_normalization** _enum_  
   Optional. Controls text normalization.  
-  Allowed values: `'auto'` (default), `'on'`, `'off'`.  
-  - `'auto'`: System decides whether to apply normalization (e.g., spelling out numbers).  
-  - `'on'`: Always apply normalization.  
+  Allowed values: `'auto'` (default), `'on'`, `'off'`.
+
+  - `'auto'`: System decides whether to apply normalization (e.g., spelling out numbers).
+  - `'on'`: Always apply normalization.
   - `'off'`: Never apply normalization.  
-  For `eleven_turbo_v2_5` and `eleven_flash_v2_5`, can only be enabled with Enterprise plans.
+    For `eleven_turbo_v2_5` and `eleven_flash_v2_5`, can only be enabled with Enterprise plans.
 
 - **apply_language_text_normalization** _boolean_  
   Optional. Defaults to `false`. Controls language text normalization, which helps with proper pronunciation in some supported languages (currently only Japanese). May significantly increase latency.
 
 ### Model Capabilities
 
-| Model                        | Instructions        |
-| ---------------------------- | ------------------- |
-| `eleven_v3`                  | <Check size={18} /> |
-| `eleven_multilingual_v2`     | <Check size={18} /> |
-| `eleven_flash_v2_5`          | <Check size={18} /> |
-| `eleven_flash_v2`            | <Check size={18} /> |
-| `eleven_turbo_v2_5`          | <Check size={18} /> |
-| `eleven_turbo_v2`            | <Check size={18} /> |
-| `eleven_monolingual_v1`      | <Check size={18} /> |
-| `eleven_multilingual_v1`     | <Check size={18} /> |
+| Model                    | Instructions        |
+| ------------------------ | ------------------- |
+| `eleven_v3`              | <Check size={18} /> |
+| `eleven_multilingual_v2` | <Check size={18} /> |
+| `eleven_flash_v2_5`      | <Check size={18} /> |
+| `eleven_flash_v2`        | <Check size={18} /> |
+| `eleven_turbo_v2_5`      | <Check size={18} /> |
+| `eleven_turbo_v2`        | <Check size={18} /> |
+| `eleven_monolingual_v1`  | <Check size={18} /> |
+| `eleven_multilingual_v1` | <Check size={18} /> |
 
 ## Transcription Models
 

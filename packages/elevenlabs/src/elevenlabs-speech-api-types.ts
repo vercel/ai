@@ -16,7 +16,7 @@ export type ElevenLabsSpeechAPITypes = {
   next_text?: string;
   language_code?: string;
   enable_logging?: boolean;
-  output_format?: 
+  output_format?:
     | 'mp3_44100_32'
     | 'mp3_44100_64'
     | 'mp3_44100_96'

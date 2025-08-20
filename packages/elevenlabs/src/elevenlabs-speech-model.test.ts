@@ -117,7 +117,9 @@ describe('ElevenLabsSpeechModel', () => {
         model.doGenerate({
           text: 'Hello, world!',
         }),
-      ).rejects.toThrow('Voice ID is required for ElevenLabs speech generation');
+      ).rejects.toThrow(
+        'Voice ID is required for ElevenLabs speech generation',
+      );
     });
 
     it('should pass provider-specific options', async () => {
