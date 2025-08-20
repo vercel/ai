@@ -87,7 +87,7 @@ Optional error object. This is e.g. a TypeValidationError when the final object 
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   /**
-   * Calls the API with the provided input as JSON body.
+   * Calls the API with the provided input as JSON body or FormData.
    */
   submit: (input: INPUT) => void;
 
