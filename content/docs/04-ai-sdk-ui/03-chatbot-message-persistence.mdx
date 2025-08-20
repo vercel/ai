@@ -148,7 +148,7 @@ import {
   convertToModelMessages,
   streamText,
   validateUIMessages,
-  AITypeValidationError,
+  TypeValidationError,
 } from 'ai';
 import { type MyUIMessage } from '@/types';
 
@@ -167,7 +167,7 @@ export async function POST(req: Request) {
       metadataSchema,
     });
   } catch (error) {
-    if (error instanceof AITypeValidationError) {
+    if (error instanceof TypeValidationError) {
       // Log validation error for monitoring
       console.error('Database messages validation failed:', error);
       // Could implement message migration or filtering here
