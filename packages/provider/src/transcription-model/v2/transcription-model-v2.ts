@@ -58,13 +58,13 @@ Generates a transcript.
      * The detected language of the audio content, as an ISO-639-1 code (e.g., 'en' for English).
      * May be undefined if the language couldn't be detected.
      */
-    language: string | undefined;
+    language: string | null | undefined;
 
     /**
      * The total duration of the audio file in seconds.
      * May be undefined if the duration couldn't be determined.
      */
-    durationInSeconds: number | undefined;
+    durationInSeconds: number | null | undefined;
 
     /**
 Warnings for the call, e.g. unsupported settings.
