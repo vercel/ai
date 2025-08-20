@@ -7,13 +7,14 @@ async function main() {
   const result = await generateSpeech({
     model: elevenlabs.speech('eleven_multilingual_v2'),
     text: 'This speech has custom voice settings for more expressive output.',
+    speed: 1.2,
     providerOptions: {
       elevenlabs: {
-        voice_settings: {
+        voiceSettings: {
           stability: 0.3, // Lower for more variation
-          similarity_boost: 0.8, // Higher for closer to original voice
+          similarityBoost: 0.8, // Higher for closer to original voice
           style: 0.6, // Control speaking style
-          use_speaker_boost: true, // Enhance voice clarity
+          useSpeakerBoost: true, // Enhance voice clarity
         },
       },
     },
