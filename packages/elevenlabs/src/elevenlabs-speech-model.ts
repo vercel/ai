@@ -53,7 +53,7 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
 
   private async getArgs({
     text,
-    voice = '21m00Tcm4TlvDq8ikWAM',
+    voice,
     outputFormat = 'mp3_44100_128',
     speed,
     instructions,
@@ -61,6 +61,11 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
     providerOptions,
   }: Parameters<SpeechModelV2['doGenerate']>[0]) {
     const warnings: SpeechModelV2CallWarning[] = [];
+
+    // Validate voice is provided
+    if (!voice) {
+      throw new Error('Voice ID is required for ElevenLabs speech generation');
+    }
 
     // Parse provider options
     const elevenLabsOptions = await parseProviderOptions({
