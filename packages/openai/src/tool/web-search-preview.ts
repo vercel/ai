@@ -83,20 +83,22 @@ export const webSearchPreview = createProviderDefinedToolFactory<
   id: 'openai.web_search_preview',
   name: 'web_search_preview',
   inputSchema: z.object({
-    action: z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('search'),
-        query: z.string(),
-      }),
-      z.object({
-        type: z.literal('open_page'),
-        url: z.string(),
-      }),
-      z.object({
-        type: z.literal('find'),
-        url: z.string(),
-        pattern: z.string(),
-      }),
-    ]),
+    action: z
+      .discriminatedUnion('type', [
+        z.object({
+          type: z.literal('search'),
+          query: z.string(),
+        }),
+        z.object({
+          type: z.literal('open_page'),
+          url: z.string(),
+        }),
+        z.object({
+          type: z.literal('find'),
+          url: z.string(),
+          pattern: z.string(),
+        }),
+      ])
+      .nullish(),
   }),
 });

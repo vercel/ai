@@ -359,21 +359,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 type: z.literal('web_search_call'),
                 id: z.string(),
                 status: z.string(),
-                action: z.discriminatedUnion('type', [
-                  z.object({
-                    type: z.literal('search'),
-                    query: z.string(),
-                  }),
-                  z.object({
-                    type: z.literal('open_page'),
-                    url: z.string(),
-                  }),
-                  z.object({
-                    type: z.literal('find'),
-                    url: z.string(),
-                    pattern: z.string(),
-                  }),
-                ]),
+                action: z
+                  .discriminatedUnion('type', [
+                    z.object({
+                      type: z.literal('search'),
+                      query: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('open_page'),
+                      url: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('find'),
+                      url: z.string(),
+                      pattern: z.string(),
+                    }),
+                  ])
+                  .nullish(),
               }),
               z.object({
                 type: z.literal('computer_call'),

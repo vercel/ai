@@ -2178,6 +2178,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 type: 'web_search_call',
                 id: 'ws_67cf2b3051e88190b006770db6fdb13d',
                 status: 'completed',
+                action: {
+                  type: 'search',
+                  query: 'Vercel AI SDK next version features',
+                },
               },
               {
                 type: 'message',
@@ -2287,7 +2291,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "",
+              "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
               "providerExecuted": true,
               "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
               "toolName": "web_search_preview",
@@ -2575,7 +2579,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "Vercel AI SDK next version features",
+              "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
               "providerExecuted": true,
               "toolCallId": "ws_test",
               "toolName": "web_search_preview",
@@ -2584,7 +2588,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerExecuted": true,
               "result": {
-                "query": "Vercel AI SDK next version features",
                 "status": "completed",
               },
               "toolCallId": "ws_test",
@@ -4683,7 +4686,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "",
+              "input": "{}",
               "providerExecuted": true,
               "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
               "toolName": "web_search_preview",
