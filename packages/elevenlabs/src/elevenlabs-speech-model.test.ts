@@ -44,7 +44,9 @@ describe('ElevenLabsSpeechModel', () => {
       });
 
       // Check output_format is in query params
-      expect(server.calls[0].requestUrl).toContain('output_format=mp3_44100_128');
+      expect(server.calls[0].requestUrl).toContain(
+        'output_format=mp3_44100_128',
+      );
     });
 
     it('should handle custom output format', async () => {
@@ -81,7 +83,9 @@ describe('ElevenLabsSpeechModel', () => {
       });
 
       // Check output_format is in query params
-      expect(server.calls[0].requestUrl).toContain('output_format=mp3_44100_128');
+      expect(server.calls[0].requestUrl).toContain(
+        'output_format=mp3_44100_128',
+      );
     });
 
     it('should handle speed parameter in voice settings', async () => {
@@ -146,7 +150,9 @@ describe('ElevenLabsSpeechModel', () => {
       });
 
       // Check output_format is in query params
-      expect(server.calls[0].requestUrl).toContain('output_format=mp3_44100_128');
+      expect(server.calls[0].requestUrl).toContain(
+        'output_format=mp3_44100_128',
+      );
     });
   });
 });
