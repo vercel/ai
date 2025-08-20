@@ -16,6 +16,7 @@ import {
 
 // Schema for camelCase input from users
 const ElevenLabsProviderOptionsSchema = z.object({
+  languageCode: z.string().optional(),
   voiceSettings: z
     .object({
       stability: z.number().min(0).max(1).optional(),
@@ -24,9 +25,22 @@ const ElevenLabsProviderOptionsSchema = z.object({
       useSpeakerBoost: z.boolean().optional(),
     })
     .optional(),
-  seed: z.number().optional(),
+  pronunciationDictionaryLocators: z
+    .array(
+      z.object({
+        pronunciationDictionaryId: z.string(),
+        versionId: z.string().optional(),
+      })
+    )
+    .max(3)
+    .optional(),
+  seed: z.number().min(0).max(4294967295).optional(),
   previousText: z.string().optional(),
   nextText: z.string().optional(),
+  previousRequestIds: z.array(z.string()).max(3).optional(),
+  nextRequestIds: z.array(z.string()).max(3).optional(),
+  applyTextNormalization: z.enum(['auto', 'on', 'off']).optional(),
+  applyLanguageTextNormalization: z.boolean().optional(),
   enableLogging: z.boolean().optional(),
 });
 
@@ -118,8 +132,9 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
 
     const voiceSettings: typeof requestBody.voice_settings = {};
 
-    // @ts-expect-error - Injecting our root speed prop into the voice settings
-    voiceSettings.speed = speed;
+    if (speed != null) {
+      voiceSettings.speed = speed;
+    }
 
     // Add provider-specific options - map from camelCase to snake_case
     if (elevenLabsOptions) {
@@ -139,7 +154,6 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
           voiceSettings.use_speaker_boost =
             elevenLabsOptions.voiceSettings.useSpeakerBoost;
         }
-        requestBody.voice_settings = voiceSettings;
       }
       if (elevenLabsOptions.seed != null) {
         requestBody.seed = elevenLabsOptions.seed;
@@ -154,6 +168,8 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
         requestBody.enable_logging = elevenLabsOptions.enableLogging;
       }
     }
+
+    requestBody.voice_settings = voiceSettings;
 
     if (instructions) {
       warnings.push({
