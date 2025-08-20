@@ -116,11 +116,15 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
       requestBody.language_code = language;
     }
 
+    const voiceSettings: typeof requestBody.voice_settings = {};
+
+    // @ts-expect-error - Injecting our root speed prop into the voice settings
+    voiceSettings.speed = speed;
+
     // Add provider-specific options - map from camelCase to snake_case
     if (elevenLabsOptions) {
       if (elevenLabsOptions.voiceSettings) {
         // Map camelCase voice settings to snake_case for API
-        const voiceSettings: typeof requestBody.voice_settings = {};
         if (elevenLabsOptions.voiceSettings.stability != null) {
           voiceSettings.stability = elevenLabsOptions.voiceSettings.stability;
         }
@@ -149,14 +153,6 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
       if (elevenLabsOptions.enableLogging != null) {
         requestBody.enable_logging = elevenLabsOptions.enableLogging;
       }
-    }
-
-    if (speed != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'speed',
-        details: `ElevenLabs speech models do not support speed adjustment. Speed parameter was ignored.`,
-      });
     }
 
     if (instructions) {
