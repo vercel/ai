@@ -25,7 +25,7 @@ curl -X POST http://localhost:8080
 
 ### Data Stream
 
-You can use the `pipeDataStreamToResponse` method to pipe the stream data to the server response.
+You can use the `pipeUIMessageStreamToResponse` method to pipe the stream data to the server response.
 
 ```ts filename='index.ts'
 import { openai } from '@ai-sdk/openai';
@@ -40,7 +40,7 @@ app.post('/', async (req: Request, res: Response) => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  result.pipeDataStreamToResponse(res);
+  result.pipeUIMessageStreamToResponse(res);
 });
 
 app.listen(8080, () => {
@@ -50,33 +50,41 @@ app.listen(8080, () => {
 
 ### Sending Custom Data
 
-`pipeDataStreamToResponse` can be used to send custom data to the client.
+`pipeUIMessageStreamToResponse` can be used to send custom data to the client.
 
 ```ts filename='index.ts' highlight="8-11,18"
 import { openai } from '@ai-sdk/openai';
-import { pipeDataStreamToResponse, streamText } from 'ai';
+import {
+  createUIMessageStream,
+  pipeUIMessageStreamToResponse,
+  streamText,
+} from 'ai';
 import express, { Request, Response } from 'express';
 
 const app = express();
 
-app.post('/stream-data', async (req: Request, res: Response) => {
-  // immediately start streaming the response
-  pipeDataStreamToResponse(res, {
-    execute: async dataStreamWriter => {
-      dataStreamWriter.writeData('initialized call');
+app.post('/custom-data-parts', async (req: Request, res: Response) => {
+  pipeUIMessageStreamToResponse({
+    response: res,
+    stream: createUIMessageStream({
+      execute: async ({ writer }) => {
+        writer.write({ type: 'start' });
 
-      const result = streamText({
-        model: openai('gpt-4o'),
-        prompt: 'Invent a new holiday and describe its traditions.',
-      });
+        writer.write({
+          type: 'data-custom',
+          data: {
+            custom: 'Hello, world!',
+          },
+        });
 
-      result.mergeIntoDataStream(dataStreamWriter);
-    },
-    onError: error => {
-      // Error messages are masked by default for security reasons.
-      // If you want to expose the error message to the client, you can do so here:
-      return error instanceof Error ? error.message : String(error);
-    },
+        const result = streamText({
+          model: openai('gpt-4o'),
+          prompt: 'Invent a new holiday and describe its traditions.',
+        });
+
+        writer.merge(result.toUIMessageStream({ sendStart: false }));
+      },
+    }),
   });
 });
 

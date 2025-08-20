@@ -12577,7 +12577,9 @@ describe('streamText', () => {
               "message": "Invalid input: expected string, received undefined"
             }
           ]],
-              "input": "{ "cities": "San Francisco" }",
+              "input": {
+                "cities": "San Francisco",
+              },
               "invalid": true,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
@@ -12596,7 +12598,9 @@ describe('streamText', () => {
               "message": "Invalid input: expected string, received undefined"
             }
           ]",
-              "input": "{ "cities": "San Francisco" }",
+              "input": {
+                "cities": "San Francisco",
+              },
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-error",
@@ -12645,7 +12649,9 @@ describe('streamText', () => {
                 "message": "Invalid input: expected string, received undefined"
               }
             ]],
-                "input": "{ "cities": "San Francisco" }",
+                "input": {
+                  "cities": "San Francisco",
+                },
                 "invalid": true,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
@@ -12664,7 +12670,9 @@ describe('streamText', () => {
                 "message": "Invalid input: expected string, received undefined"
               }
             ]",
-                "input": "{ "cities": "San Francisco" }",
+                "input": {
+                  "cities": "San Francisco",
+                },
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-error",
@@ -12734,7 +12742,9 @@ describe('streamText', () => {
                 "message": "Invalid input: expected string, received undefined"
               }
             ]",
-                "input": "{ "cities": "San Francisco" }",
+                "input": {
+                  "cities": "San Francisco",
+                },
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-input-error",
