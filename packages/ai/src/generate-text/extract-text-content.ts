@@ -1,6 +1,6 @@
 import { LanguageModelV2Content, LanguageModelV2Text } from '@ai-sdk/provider';
 
-export function extractContentText(
+export function extractTextContent(
   content: LanguageModelV2Content[],
 ): string | undefined {
   const parts = content.filter(

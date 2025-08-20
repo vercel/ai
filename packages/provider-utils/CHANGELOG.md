@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.4
+
+### Patch Changes
+
+- 68751f9: fix(provider-utils): add inject json utility function
+
 ## 3.0.3
 
 ### Patch Changes
