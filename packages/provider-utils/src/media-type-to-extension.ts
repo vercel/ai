@@ -17,6 +17,6 @@ export function mediaTypeToExtension(mediaType: string) {
       opus: 'ogg',
       mp4: 'm4a',
       'x-m4a': 'm4a',
-    }[subtype] || subtype
+    }[subtype] ?? subtype
   );
 }
