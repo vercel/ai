@@ -133,8 +133,8 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     startSecond: number;
     endSecond: number;
   }>;
-  readonly language: string | undefined;
-  readonly durationInSeconds: number | undefined;
+  readonly language: string | null | undefined;
+  readonly durationInSeconds: number | null | undefined;
   readonly warnings: Array<TranscriptionWarning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
   readonly providerMetadata: Record<string, Record<string, JSONValue>>;
@@ -146,8 +146,8 @@ class DefaultTranscriptionResult implements TranscriptionResult {
       startSecond: number;
       endSecond: number;
     }>;
-    language: string | undefined;
-    durationInSeconds: number | undefined;
+    language: string | null | undefined;
+    durationInSeconds: number | null | undefined;
     warnings: Array<TranscriptionWarning>;
     responses: Array<TranscriptionModelResponseMetadata>;
     providerMetadata: Record<string, Record<string, JSONValue>> | undefined;

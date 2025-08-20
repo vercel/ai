@@ -35,13 +35,13 @@ export interface TranscriptionResult {
    * The detected language of the audio content, as an ISO-639-1 code (e.g., 'en' for English).
    * May be undefined if the language couldn't be detected.
    */
-  readonly language: string | undefined;
+  readonly language: string | null | undefined;
 
   /**
    * The total duration of the audio file in seconds.
    * May be undefined if the duration couldn't be determined.
    */
-  readonly durationInSeconds: number | undefined;
+  readonly durationInSeconds: number | null | undefined;
 
   /**
   Warnings for the call, e.g. unsupported settings.
