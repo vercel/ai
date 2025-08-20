@@ -20,16 +20,4 @@ export type ElevenLabsSpeechAPITypes = {
   next_request_ids?: string[];
   apply_text_normalization?: 'auto' | 'on' | 'off';
   apply_language_text_normalization?: boolean;
-  enable_logging?: boolean;
-  output_format?:
-    | 'mp3_44100_32'
-    | 'mp3_44100_64'
-    | 'mp3_44100_96'
-    | 'mp3_44100_128'
-    | 'mp3_44100_192'
-    | 'pcm_16000'
-    | 'pcm_22050'
-    | 'pcm_24000'
-    | 'pcm_44100'
-    | 'ulaw_8000';
 };

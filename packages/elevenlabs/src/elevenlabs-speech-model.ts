@@ -90,12 +90,12 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
       model_id: this.modelId,
     };
 
-    // Map outputFormat to ElevenLabs format
+    // Prepare query parameters
+    const queryParams: Record<string, string> = {};
+    
+    // Map outputFormat to ElevenLabs format (as query param)
     if (outputFormat) {
-      const formatMap: Record<
-        string,
-        ElevenLabsSpeechAPITypes['output_format']
-      > = {
+      const formatMap: Record<string, string> = {
         mp3: 'mp3_44100_128',
         mp3_32: 'mp3_44100_32',
         mp3_64: 'mp3_44100_64',
@@ -110,19 +110,8 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
         ulaw: 'ulaw_8000',
       };
 
-      const mappedFormat =
-        formatMap[outputFormat] ||
-        (outputFormat as ElevenLabsSpeechAPITypes['output_format']);
-
-      if (mappedFormat) {
-        requestBody.output_format = mappedFormat;
-      } else {
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'outputFormat',
-          details: `Unsupported output format: ${outputFormat}. Using mp3_44100_128 instead.`,
-        });
-      }
+      const mappedFormat = formatMap[outputFormat] || outputFormat;
+      queryParams.output_format = mappedFormat;
     }
 
     // Add language code if provided
@@ -155,6 +144,20 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
             elevenLabsOptions.voiceSettings.useSpeakerBoost;
         }
       }
+      // Add language code from provider options if not already set
+      if (elevenLabsOptions.languageCode && !requestBody.language_code) {
+        requestBody.language_code = elevenLabsOptions.languageCode;
+      }
+      
+      // Map pronunciation dictionary locators
+      if (elevenLabsOptions.pronunciationDictionaryLocators) {
+        requestBody.pronunciation_dictionary_locators = 
+          elevenLabsOptions.pronunciationDictionaryLocators.map(locator => ({
+            pronunciation_dictionary_id: locator.pronunciationDictionaryId,
+            ...(locator.versionId && { version_id: locator.versionId }),
+          }));
+      }
+      
       if (elevenLabsOptions.seed != null) {
         requestBody.seed = elevenLabsOptions.seed;
       }
@@ -164,12 +167,34 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
       if (elevenLabsOptions.nextText) {
         requestBody.next_text = elevenLabsOptions.nextText;
       }
+      
+      // Add previous and next request IDs
+      if (elevenLabsOptions.previousRequestIds) {
+        requestBody.previous_request_ids = elevenLabsOptions.previousRequestIds;
+      }
+      if (elevenLabsOptions.nextRequestIds) {
+        requestBody.next_request_ids = elevenLabsOptions.nextRequestIds;
+      }
+      
+      // Add text normalization options
+      if (elevenLabsOptions.applyTextNormalization) {
+        requestBody.apply_text_normalization = elevenLabsOptions.applyTextNormalization;
+      }
+      if (elevenLabsOptions.applyLanguageTextNormalization != null) {
+        requestBody.apply_language_text_normalization = 
+          elevenLabsOptions.applyLanguageTextNormalization;
+      }
+      
+      // enable_logging is a query parameter
       if (elevenLabsOptions.enableLogging != null) {
-        requestBody.enable_logging = elevenLabsOptions.enableLogging;
+        queryParams.enable_logging = String(elevenLabsOptions.enableLogging);
       }
     }
 
-    requestBody.voice_settings = voiceSettings;
+    // Only add voice_settings if there are settings to add
+    if (Object.keys(voiceSettings).length > 0) {
+      requestBody.voice_settings = voiceSettings;
+    }
 
     if (instructions) {
       warnings.push({
@@ -181,6 +206,7 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
 
     return {
       requestBody,
+      queryParams,
       warnings,
       voiceId: voice as ElevenLabsSpeechVoiceId,
     };
@@ -190,17 +216,21 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
     options: Parameters<SpeechModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<SpeechModelV2['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestBody, warnings, voiceId } = await this.getArgs(options);
+    const { requestBody, queryParams, warnings, voiceId } = await this.getArgs(options);
 
     const {
       value: audio,
       responseHeaders,
       rawValue: rawResponse,
     } = await postJsonToApi({
-      url: this.config.url({
-        path: `/v1/text-to-speech/${voiceId}`,
-        modelId: this.modelId,
-      }),
+      url: (() => {
+        const baseUrl = this.config.url({
+          path: `/v1/text-to-speech/${voiceId}`,
+          modelId: this.modelId,
+        });
+        const queryString = new URLSearchParams(queryParams).toString();
+        return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+      })(),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: requestBody,
       failedResponseHandler: elevenlabsFailedResponseHandler,
