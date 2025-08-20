@@ -7,7 +7,6 @@ async function main() {
   const result = await generateSpeech({
     model: elevenlabs.speech('eleven_turbo_v2_5'),
     text: 'This uses the Turbo model which balances quality and speed, supporting 32 languages.',
-    voice: process.env.ELEVENLABS_VOICE_ID || 'your-voice-id-here',
     language: 'en', // Can be any of the 32 supported languages
   });
 

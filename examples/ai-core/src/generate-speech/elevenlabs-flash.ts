@@ -7,7 +7,6 @@ async function main() {
   const result = await generateSpeech({
     model: elevenlabs.speech('eleven_flash_v2_5'),
     text: 'This is using the ultra-low latency Flash model for real-time applications.',
-    voice: process.env.ELEVENLABS_VOICE_ID || 'your-voice-id-here',
   });
 
   console.log('Audio:', result.audio);

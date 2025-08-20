@@ -7,7 +7,6 @@ async function main() {
   const result = await generateSpeech({
     model: elevenlabs.speech('eleven_multilingual_v2'),
     text: 'This speech has custom voice settings for more expressive output.',
-    voice: process.env.ELEVENLABS_VOICE_ID || 'your-voice-id-here',
     providerOptions: {
       elevenlabs: {
         voice_settings: {

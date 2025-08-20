@@ -51,7 +51,7 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
 
   private async getArgs({
     text,
-    voice,
+    voice = '21m00Tcm4TlvDq8ikWAM',
     outputFormat = 'mp3_44100_128',
     speed,
     instructions,
@@ -67,11 +67,6 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
       schema: ElevenLabsProviderOptionsSchema,
     });
 
-    // Voice is required for ElevenLabs (it's the voice_id in the URL)
-    if (!voice) {
-      throw new Error('Voice ID is required for ElevenLabs speech generation');
-    }
-
     // Create request body
     const requestBody: ElevenLabsSpeechAPITypes = {
       text,
@@ -80,24 +75,28 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
 
     // Map outputFormat to ElevenLabs format
     if (outputFormat) {
-      const formatMap: Record<string, ElevenLabsSpeechAPITypes['output_format']> = {
-        'mp3': 'mp3_44100_128',
-        'mp3_32': 'mp3_44100_32',
-        'mp3_64': 'mp3_44100_64',
-        'mp3_96': 'mp3_44100_96',
-        'mp3_128': 'mp3_44100_128',
-        'mp3_192': 'mp3_44100_192',
-        'pcm': 'pcm_44100',
-        'pcm_16000': 'pcm_16000',
-        'pcm_22050': 'pcm_22050',
-        'pcm_24000': 'pcm_24000',
-        'pcm_44100': 'pcm_44100',
-        'ulaw': 'ulaw_8000',
+      const formatMap: Record<
+        string,
+        ElevenLabsSpeechAPITypes['output_format']
+      > = {
+        mp3: 'mp3_44100_128',
+        mp3_32: 'mp3_44100_32',
+        mp3_64: 'mp3_44100_64',
+        mp3_96: 'mp3_44100_96',
+        mp3_128: 'mp3_44100_128',
+        mp3_192: 'mp3_44100_192',
+        pcm: 'pcm_44100',
+        pcm_16000: 'pcm_16000',
+        pcm_22050: 'pcm_22050',
+        pcm_24000: 'pcm_24000',
+        pcm_44100: 'pcm_44100',
+        ulaw: 'ulaw_8000',
       };
 
-      const mappedFormat = formatMap[outputFormat] || 
+      const mappedFormat =
+        formatMap[outputFormat] ||
         (outputFormat as ElevenLabsSpeechAPITypes['output_format']);
-      
+
       if (mappedFormat) {
         requestBody.output_format = mappedFormat;
       } else {

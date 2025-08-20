@@ -7,7 +7,6 @@ async function main() {
   const result = await generateSpeech({
     model: elevenlabs.speech('eleven_multilingual_v2'),
     text: 'This audio is generated in high-quality MP3 format.',
-    voice: process.env.ELEVENLABS_VOICE_ID || 'your-voice-id-here',
     outputFormat: 'mp3_44100_192', // High-quality MP3 at 192kbps
   });
 
