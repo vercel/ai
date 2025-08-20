@@ -1,5 +1,18 @@
 # @ai-sdk/mistral
 
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 2.0.6
+
+### Patch Changes
+
+- f8d99df: fix(provider/mistral): inject JSON generation instruction when response format is JSON
+
 ## 2.0.5
 
 ### Patch Changes
