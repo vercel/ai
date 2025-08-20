@@ -120,9 +120,9 @@ describe('ElevenLabsSpeechModel', () => {
         voice: 'test-voice-id',
         providerOptions: {
           elevenlabs: {
-            voice_settings: {
+            voiceSettings: {
               stability: 0.5,
-              similarity_boost: 0.75,
+              similarityBoost: 0.75,
             },
             seed: 123,
           },
@@ -133,9 +133,9 @@ describe('ElevenLabsSpeechModel', () => {
         text: 'Hello, world!',
         model_id: 'eleven_multilingual_v2',
         output_format: 'mp3_44100_128',
-        voice_settings: {
+        voiceSettings: {
           stability: 0.5,
-          similarity_boost: 0.75,
+          similarityBoost: 0.75,
         },
         seed: 123,
       });
