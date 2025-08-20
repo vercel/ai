@@ -30,7 +30,7 @@ const ElevenLabsProviderOptionsSchema = z.object({
       z.object({
         pronunciationDictionaryId: z.string(),
         versionId: z.string().optional(),
-      })
+      }),
     )
     .max(3)
     .optional(),
@@ -92,7 +92,7 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
 
     // Prepare query parameters
     const queryParams: Record<string, string> = {};
-    
+
     // Map outputFormat to ElevenLabs format (as query param)
     if (outputFormat) {
       const formatMap: Record<string, string> = {
@@ -148,16 +148,16 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
       if (elevenLabsOptions.languageCode && !requestBody.language_code) {
         requestBody.language_code = elevenLabsOptions.languageCode;
       }
-      
+
       // Map pronunciation dictionary locators
       if (elevenLabsOptions.pronunciationDictionaryLocators) {
-        requestBody.pronunciation_dictionary_locators = 
+        requestBody.pronunciation_dictionary_locators =
           elevenLabsOptions.pronunciationDictionaryLocators.map(locator => ({
             pronunciation_dictionary_id: locator.pronunciationDictionaryId,
             ...(locator.versionId && { version_id: locator.versionId }),
           }));
       }
-      
+
       if (elevenLabsOptions.seed != null) {
         requestBody.seed = elevenLabsOptions.seed;
       }
@@ -167,7 +167,7 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
       if (elevenLabsOptions.nextText) {
         requestBody.next_text = elevenLabsOptions.nextText;
       }
-      
+
       // Add previous and next request IDs
       if (elevenLabsOptions.previousRequestIds) {
         requestBody.previous_request_ids = elevenLabsOptions.previousRequestIds;
@@ -175,16 +175,17 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
       if (elevenLabsOptions.nextRequestIds) {
         requestBody.next_request_ids = elevenLabsOptions.nextRequestIds;
       }
-      
+
       // Add text normalization options
       if (elevenLabsOptions.applyTextNormalization) {
-        requestBody.apply_text_normalization = elevenLabsOptions.applyTextNormalization;
+        requestBody.apply_text_normalization =
+          elevenLabsOptions.applyTextNormalization;
       }
       if (elevenLabsOptions.applyLanguageTextNormalization != null) {
-        requestBody.apply_language_text_normalization = 
+        requestBody.apply_language_text_normalization =
           elevenLabsOptions.applyLanguageTextNormalization;
       }
-      
+
       // enable_logging is a query parameter
       if (elevenLabsOptions.enableLogging != null) {
         queryParams.enable_logging = String(elevenLabsOptions.enableLogging);
@@ -216,7 +217,8 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
     options: Parameters<SpeechModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<SpeechModelV2['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestBody, queryParams, warnings, voiceId } = await this.getArgs(options);
+    const { requestBody, queryParams, warnings, voiceId } =
+      await this.getArgs(options);
 
     const {
       value: audio,
