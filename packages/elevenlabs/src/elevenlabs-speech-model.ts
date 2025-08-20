@@ -14,19 +14,20 @@ import {
   ElevenLabsSpeechVoiceId,
 } from './elevenlabs-speech-options';
 
+// Schema for camelCase input from users
 const ElevenLabsProviderOptionsSchema = z.object({
-  voice_settings: z
+  voiceSettings: z
     .object({
       stability: z.number().min(0).max(1).optional(),
-      similarity_boost: z.number().min(0).max(1).optional(),
+      similarityBoost: z.number().min(0).max(1).optional(),
       style: z.number().min(0).max(1).optional(),
-      use_speaker_boost: z.boolean().optional(),
+      useSpeakerBoost: z.boolean().optional(),
     })
     .optional(),
   seed: z.number().optional(),
-  previous_text: z.string().optional(),
-  next_text: z.string().optional(),
-  enable_logging: z.boolean().optional(),
+  previousText: z.string().optional(),
+  nextText: z.string().optional(),
+  enableLogging: z.boolean().optional(),
 });
 
 export type ElevenLabsSpeechCallOptions = z.infer<
@@ -114,38 +115,38 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
       requestBody.language_code = language;
     }
 
-    // Add provider-specific options
+    // Add provider-specific options - map from camelCase to snake_case
     if (elevenLabsOptions) {
-      if (elevenLabsOptions.voice_settings) {
-        // Filter out null values from voice_settings
+      if (elevenLabsOptions.voiceSettings) {
+        // Map camelCase voice settings to snake_case for API
         const voiceSettings: typeof requestBody.voice_settings = {};
-        if (elevenLabsOptions.voice_settings.stability != null) {
-          voiceSettings.stability = elevenLabsOptions.voice_settings.stability;
+        if (elevenLabsOptions.voiceSettings.stability != null) {
+          voiceSettings.stability = elevenLabsOptions.voiceSettings.stability;
         }
-        if (elevenLabsOptions.voice_settings.similarity_boost != null) {
+        if (elevenLabsOptions.voiceSettings.similarityBoost != null) {
           voiceSettings.similarity_boost =
-            elevenLabsOptions.voice_settings.similarity_boost;
+            elevenLabsOptions.voiceSettings.similarityBoost;
         }
-        if (elevenLabsOptions.voice_settings.style != null) {
-          voiceSettings.style = elevenLabsOptions.voice_settings.style;
+        if (elevenLabsOptions.voiceSettings.style != null) {
+          voiceSettings.style = elevenLabsOptions.voiceSettings.style;
         }
-        if (elevenLabsOptions.voice_settings.use_speaker_boost != null) {
+        if (elevenLabsOptions.voiceSettings.useSpeakerBoost != null) {
           voiceSettings.use_speaker_boost =
-            elevenLabsOptions.voice_settings.use_speaker_boost;
+            elevenLabsOptions.voiceSettings.useSpeakerBoost;
         }
         requestBody.voice_settings = voiceSettings;
       }
       if (elevenLabsOptions.seed != null) {
         requestBody.seed = elevenLabsOptions.seed;
       }
-      if (elevenLabsOptions.previous_text) {
-        requestBody.previous_text = elevenLabsOptions.previous_text;
+      if (elevenLabsOptions.previousText) {
+        requestBody.previous_text = elevenLabsOptions.previousText;
       }
-      if (elevenLabsOptions.next_text) {
-        requestBody.next_text = elevenLabsOptions.next_text;
+      if (elevenLabsOptions.nextText) {
+        requestBody.next_text = elevenLabsOptions.nextText;
       }
-      if (elevenLabsOptions.enable_logging != null) {
-        requestBody.enable_logging = elevenLabsOptions.enable_logging;
+      if (elevenLabsOptions.enableLogging != null) {
+        requestBody.enable_logging = elevenLabsOptions.enableLogging;
       }
     }
 
