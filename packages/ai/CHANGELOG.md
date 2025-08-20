@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.19
+
+### Patch Changes
+
+- 8da6e9c: fix(ai): use parsed tool input if possible when validation fails
+
 ## 5.0.18
 
 ### Patch Changes
