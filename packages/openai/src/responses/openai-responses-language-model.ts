@@ -5,7 +5,6 @@ import {
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
-  LanguageModelV2Text,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
@@ -25,6 +24,29 @@ import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
+
+const webSearchCallItem = z.object({
+  type: z.literal('web_search_call'),
+  id: z.string(),
+  status: z.string(),
+  action: z
+    .discriminatedUnion('type', [
+      z.object({
+        type: z.literal('search'),
+        query: z.string(),
+      }),
+      z.object({
+        type: z.literal('open_page'),
+        url: z.string(),
+      }),
+      z.object({
+        type: z.literal('find'),
+        url: z.string(),
+        pattern: z.string(),
+      }),
+    ])
+    .nullish(),
+});
 
 /**
  * `top_logprobs` request body argument can be set to an integer between
@@ -355,28 +377,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 arguments: z.string(),
                 id: z.string(),
               }),
-              z.object({
-                type: z.literal('web_search_call'),
-                id: z.string(),
-                status: z.string(),
-                action: z
-                  .discriminatedUnion('type', [
-                    z.object({
-                      type: z.literal('search'),
-                      query: z.string(),
-                    }),
-                    z.object({
-                      type: z.literal('open_page'),
-                      url: z.string(),
-                    }),
-                    z.object({
-                      type: z.literal('find'),
-                      url: z.string(),
-                      pattern: z.string(),
-                    }),
-                  ])
-                  .nullish(),
-              }),
+              webSearchCallItem,
               z.object({
                 type: z.literal('computer_call'),
                 id: z.string(),
@@ -800,7 +801,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'tool-call',
                   toolCallId: value.item.id,
                   toolName: 'web_search_preview',
-                  input: value.item.action?.query ?? '',
+                  input: JSON.stringify({ action: value.item.action }),
                   providerExecuted: true,
                 });
 
@@ -808,13 +809,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: 'web_search_preview',
-                  result: {
-                    type: 'web_search_tool_result',
-                    status: value.item.status || 'completed',
-                    ...(value.item.action?.query && {
-                      query: value.item.action.query,
-                    }),
-                  },
+                  result: { status: value.item.status },
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
@@ -1143,17 +1138,7 @@ const responseOutputItemDoneSchema = z.object({
       arguments: z.string(),
       status: z.literal('completed'),
     }),
-    z.object({
-      type: z.literal('web_search_call'),
-      id: z.string(),
-      status: z.literal('completed'),
-      action: z
-        .object({
-          type: z.literal('search'),
-          query: z.string().optional(),
-        })
-        .nullish(),
-    }),
+    webSearchCallItem,
     z.object({
       type: z.literal('computer_call'),
       id: z.string(),
