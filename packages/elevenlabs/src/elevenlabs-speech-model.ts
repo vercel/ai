@@ -123,9 +123,40 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
     // Add provider-specific options
     if (elevenLabsOptions) {
       if (elevenLabsOptions.voice_settings) {
-        requestBody.voice_settings = elevenLabsOptions.voice_settings;
+        // Filter out null values from voice_settings
+        const voiceSettings: typeof requestBody.voice_settings = {};
+        if (
+          elevenLabsOptions.voice_settings.stability !== null &&
+          elevenLabsOptions.voice_settings.stability !== undefined
+        ) {
+          voiceSettings.stability = elevenLabsOptions.voice_settings.stability;
+        }
+        if (
+          elevenLabsOptions.voice_settings.similarity_boost !== null &&
+          elevenLabsOptions.voice_settings.similarity_boost !== undefined
+        ) {
+          voiceSettings.similarity_boost =
+            elevenLabsOptions.voice_settings.similarity_boost;
+        }
+        if (
+          elevenLabsOptions.voice_settings.style !== null &&
+          elevenLabsOptions.voice_settings.style !== undefined
+        ) {
+          voiceSettings.style = elevenLabsOptions.voice_settings.style;
+        }
+        if (
+          elevenLabsOptions.voice_settings.use_speaker_boost !== null &&
+          elevenLabsOptions.voice_settings.use_speaker_boost !== undefined
+        ) {
+          voiceSettings.use_speaker_boost =
+            elevenLabsOptions.voice_settings.use_speaker_boost;
+        }
+        requestBody.voice_settings = voiceSettings;
       }
-      if (elevenLabsOptions.seed !== undefined) {
+      if (
+        elevenLabsOptions.seed !== undefined &&
+        elevenLabsOptions.seed !== null
+      ) {
         requestBody.seed = elevenLabsOptions.seed;
       }
       if (elevenLabsOptions.previous_text) {
@@ -134,7 +165,10 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
       if (elevenLabsOptions.next_text) {
         requestBody.next_text = elevenLabsOptions.next_text;
       }
-      if (elevenLabsOptions.enable_logging !== undefined) {
+      if (
+        elevenLabsOptions.enable_logging !== undefined &&
+        elevenLabsOptions.enable_logging !== null
+      ) {
         requestBody.enable_logging = elevenLabsOptions.enable_logging;
       }
     }
