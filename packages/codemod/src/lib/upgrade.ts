@@ -69,6 +69,7 @@ const bundle = [
   'v5/replace-simulate-streaming',
   'v5/replace-textdelta-with-text',
   'v5/replace-usage-token-properties',
+  'v5/replace-zod-import-with-v3',
   'v5/require-createIdGenerator-size-argument',
   'v5/restructure-file-stream-parts',
   'v5/restructure-source-stream-parts',
