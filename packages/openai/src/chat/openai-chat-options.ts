@@ -39,7 +39,7 @@ export type OpenAIChatModelId =
   | 'gpt-5-chat-latest'
   | (string & {});
 
-export const openaiProviderOptions = z.object({
+export const openaiLanguageModelOptions = z.object({
   /**
    * Modify the likelihood of specified tokens appearing in the completion.
    *
@@ -141,4 +141,4 @@ export const openaiProviderOptions = z.object({
   safetyIdentifier: z.string().optional(),
 });
 
-export type OpenAIProviderOptions = z.infer<typeof openaiProviderOptions>;
+export type OpenAILanguageModelOptions = z.infer<typeof openaiLanguageModelOptions>;
