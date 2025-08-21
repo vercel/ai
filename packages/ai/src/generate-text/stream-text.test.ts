@@ -12086,9 +12086,8 @@ describe('streamText', () => {
       });
 
       it('should only stream initial chunks in full stream', async () => {
-        expect(
-          await convertAsyncIterableToArray(result.fullStream),
-        ).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
           [
             {
               "type": "start",
