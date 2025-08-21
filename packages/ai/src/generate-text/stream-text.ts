@@ -58,7 +58,6 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DelayedPromise } from '../util/delayed-promise';
-import { filterStreamErrors } from '../util/filter-stream-errors';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { ContentPart } from './content-part';
@@ -928,6 +927,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
 
+    // resilient stream that handles abort errors:
     let stream = new ReadableStream<TextStreamPart<TOOLS>>({
       async start(controller) {
         // send start event:
