@@ -159,9 +159,9 @@ const groqTranscriptionResponseSchema = z.object({
     id: z.string(),
   }),
   // additional properties are returned when `response_format: 'verbose_json'` is
-  task: z.string().nullish(),
-  language: z.string().nullish(),
-  duration: z.number().nullish(),
+  task: z.string().optional(),
+  language: z.string().optional(),
+  duration: z.number().optional(),
   segments: z
     .array(
       z.object({
@@ -177,5 +177,5 @@ const groqTranscriptionResponseSchema = z.object({
         no_speech_prob: z.number(),
       }),
     )
-    .nullish(),
+    .optional(),
 });
