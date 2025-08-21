@@ -928,27 +928,36 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
 
-    let stream = stitchableStream.stream;
+    let stream = new ReadableStream<TextStreamPart<TOOLS>>({
+      async start(controller) {
+        // send start event:
+        controller.enqueue({ type: 'start' });
 
-    // filter out abort errors:
-    stream = filterStreamErrors(stream, ({ error, controller }) => {
-      if (isAbortError(error) && abortSignal?.aborted) {
-        onAbort?.({ steps: recordedSteps });
-        controller.enqueue({ type: 'abort' });
-        controller.close();
-      } else {
-        controller.error(error);
-      }
+        const reader = stitchableStream.stream.getReader();
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              controller.close();
+              break;
+            }
+            controller.enqueue(value);
+          }
+        } catch (error) {
+          if (isAbortError(error) && abortSignal?.aborted) {
+            onAbort?.({ steps: recordedSteps });
+            controller.enqueue({ type: 'abort' });
+            controller.close();
+          } else {
+            controller.error(error);
+          }
+        }
+      },
+      cancel(reason) {
+        return stitchableStream.stream.cancel(reason);
+      },
     });
-
-    // add a stream that emits a start event:
-    stream = stream.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
-        start(controller) {
-          controller.enqueue({ type: 'start' });
-        },
-      }),
-    );
 
     // transform the stream before output parsing
     // to enable replacement of stream segments:

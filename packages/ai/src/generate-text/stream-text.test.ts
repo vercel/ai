@@ -12464,7 +12464,11 @@ describe('streamText', () => {
         let streamCalls = 0;
 
         result = streamText({
+          ...defaultSettings(),
           abortSignal: abortController.signal,
+          onError: error => {
+            onErrorCalls.push({ error });
+          },
           onAbort: event => {
             onAbortCalls.push(event);
           },
@@ -12549,10 +12553,6 @@ describe('streamText', () => {
             },
           },
           stopWhen: stepCountIs(3),
-          ...defaultSettings(),
-          onError: error => {
-            onErrorCalls.push({ error });
-          },
         });
       });
 
@@ -12563,7 +12563,110 @@ describe('streamText', () => {
 
       it('should call onAbort when the abort signal is triggered during tool call', async () => {
         await result.consumeStream();
-        expect(onAbortCalls.length).toBe(1);
+        expect(onAbortCalls).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should end full stream with abort part', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "output": "result1",
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+            {
+              "finishReason": "tool-calls",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "tool-calls",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-1",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "tool-calls",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 6,
+                "outputTokens": 20,
+                "reasoningTokens": undefined,
+                "totalTokens": 26,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
       });
     });
   });
