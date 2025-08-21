@@ -1,5 +1,5 @@
 // @ts-nocheck
-import z from 'zod';
+import { z } from 'zod';
 import { generateText } from 'ai';
 
 const schema = z.object({
@@ -15,7 +15,9 @@ const result = await generateText({
 
 // Other imports should not be affected
 import x from 'other-package';
-import { y } from 'zod';
+import { someFunction } from 'zod/v4';
 
-// Default import with different name should not be transformed
-import zod from 'zod';
+// Mixed import with z and other zod types
+import { z as zodValidator, ZodSchema } from 'zod';
+
+const mixedSchema: ZodSchema = zodValidator.string();
