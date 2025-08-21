@@ -39,7 +39,7 @@ export interface GatewayLanguageModelEntry {
   /**
    * Optional field to differentiate between model types.
    */
-  modelType?: 'language' | 'embedding' | 'image';
+  modelType?: 'language' | 'embedding' | 'image' | null;
 }
 
 export type GatewayLanguageModelSpecification = Pick<
