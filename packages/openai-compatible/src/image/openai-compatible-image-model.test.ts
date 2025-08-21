@@ -2,7 +2,7 @@ import { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
 import { z } from 'zod/v4';
-import { ProviderErrorStructure } from './openai-compatible-error';
+import { ProviderErrorStructure } from '../openai-compatible-error';
 import { ImageModelV2CallOptions } from '@ai-sdk/provider';
 
 const prompt = 'A photorealistic astronaut riding a horse';

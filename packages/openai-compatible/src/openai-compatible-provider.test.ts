@@ -1,7 +1,7 @@
 import { createOpenAICompatible } from './openai-compatible-provider';
-import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
-import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
-import { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
+import { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
+import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
+import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 
 const OpenAICompatibleChatLanguageModelMock = vi.mocked(
   OpenAICompatibleChatLanguageModel,
@@ -13,15 +13,15 @@ const OpenAICompatibleEmbeddingModelMock = vi.mocked(
   OpenAICompatibleEmbeddingModel,
 );
 
-vi.mock('./openai-compatible-chat-language-model', () => ({
+vi.mock('./chat/openai-compatible-chat-language-model', () => ({
   OpenAICompatibleChatLanguageModel: vi.fn(),
 }));
 
-vi.mock('./openai-compatible-completion-language-model', () => ({
+vi.mock('./completion/openai-compatible-completion-language-model', () => ({
   OpenAICompatibleCompletionLanguageModel: vi.fn(),
 }));
 
-vi.mock('./openai-compatible-embedding-model', () => ({
+vi.mock('./embedding/openai-compatible-embedding-model', () => ({
   OpenAICompatibleEmbeddingModel: vi.fn(),
 }));
 

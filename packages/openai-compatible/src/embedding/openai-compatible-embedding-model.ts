@@ -18,7 +18,7 @@ import {
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
-} from './openai-compatible-error';
+} from '../openai-compatible-error';
 
 type OpenAICompatibleEmbeddingConfig = {
   /**

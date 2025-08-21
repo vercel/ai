@@ -2914,7 +2914,9 @@ describe('generateText', () => {
               "message": "Invalid input: expected string, received undefined"
             }
           ]],
-              "input": "{ "cities": "San Francisco" }",
+              "input": {
+                "cities": "San Francisco",
+              },
               "invalid": true,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
@@ -2933,7 +2935,9 @@ describe('generateText', () => {
               "message": "Invalid input: expected string, received undefined"
             }
           ]",
-              "input": "{ "cities": "San Francisco" }",
+              "input": {
+                "cities": "San Francisco",
+              },
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-error",
@@ -2948,7 +2952,9 @@ describe('generateText', () => {
             {
               "content": [
                 {
-                  "input": "{ "cities": "San Francisco" }",
+                  "input": {
+                    "cities": "San Francisco",
+                  },
                   "providerExecuted": undefined,
                   "providerOptions": undefined,
                   "toolCallId": "call-1",

@@ -1,4 +1,5 @@
-import type { LanguageModelV2Middleware, ProviderV2 } from '@ai-sdk/provider';
+import type { ProviderV2 } from '@ai-sdk/provider';
+import { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { wrapLanguageModel } from './wrap-language-model';
 
 /**
@@ -17,9 +18,7 @@ export function wrapProvider({
   languageModelMiddleware,
 }: {
   provider: ProviderV2;
-  languageModelMiddleware:
-    | LanguageModelV2Middleware
-    | LanguageModelV2Middleware[];
+  languageModelMiddleware: LanguageModelMiddleware | LanguageModelMiddleware[];
 }): ProviderV2 {
   const wrappedProvider = {
     languageModel(modelId: string) {

@@ -1,5 +1,18 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.10
+
+### Patch Changes
+
+- 7ca3aee: refactoring(provider/openai-compatible): move models into folders
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
 ## 1.0.8
 
 ### Patch Changes

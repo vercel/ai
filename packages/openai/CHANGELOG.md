@@ -1,5 +1,30 @@
 # @ai-sdk/openai
 
+## 2.0.18
+
+### Patch Changes
+
+- 5e47d00: Support Responses API input_file file_url passthrough for PDFs.
+
+  This adds:
+
+  - file_url variant to OpenAIResponses user content
+  - PDF URL mapping to input_file with file_url in Responses converter
+  - PDF URL support in supportedUrls to avoid auto-download
+
+## 2.0.17
+
+### Patch Changes
+
+- 70bb696: fix(provider/openai): correct web search tool input
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
 ## 2.0.15
 
 ### Patch Changes

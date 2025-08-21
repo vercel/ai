@@ -1,5 +1,39 @@
 # ai
 
+## 5.0.20
+
+### Patch Changes
+
+- 8a87693: fix(ai) Make sure warnings promise in streamObject is resolved and properly collects and passes warnings
+
+## 5.0.19
+
+### Patch Changes
+
+- 8da6e9c: fix(ai): use parsed tool input if possible when validation fails
+
+## 5.0.18
+
+### Patch Changes
+
+- Updated dependencies [8b96f99]
+  - @ai-sdk/gateway@1.0.9
+
+## 5.0.17
+
+### Patch Changes
+
+- 4176ecb: feat(ai): add reasoning text to generateObject result
+- 20f23f9: feat(ai): export LanguageModelMiddleware type
+
+## 5.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - @ai-sdk/gateway@1.0.8
+
 ## 5.0.15
 
 ### Patch Changes
