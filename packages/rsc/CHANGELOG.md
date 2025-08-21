@@ -1,5 +1,16 @@
 # @ai-sdk/rsc
 
+## 1.0.21
+
+### Patch Changes
+
+- 3c178ec: feat(ai): improved type checking for prompt/messages input
+- Updated dependencies [581abea]
+- Updated dependencies [0857788]
+- Updated dependencies [3c178ec]
+  - ai@5.0.21
+  - @ai-sdk/provider-utils@3.0.5
+
 ## 1.0.20
 
 ### Patch Changes
