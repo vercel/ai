@@ -141,4 +141,6 @@ export const openaiLanguageModelOptions = z.object({
   safetyIdentifier: z.string().optional(),
 });
 
-export type OpenAILanguageModelOptions = z.infer<typeof openaiLanguageModelOptions>;
+export type OpenAILanguageModelOptions = z.infer<
+  typeof openaiLanguageModelOptions
+>;
