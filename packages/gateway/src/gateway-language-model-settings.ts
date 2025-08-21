@@ -21,6 +21,8 @@ export type GatewayModelId =
   | 'deepseek/deepseek-r1'
   | 'deepseek/deepseek-r1-distill-llama-70b'
   | 'deepseek/deepseek-v3'
+  | 'deepseek/deepseek-v3.1'
+  | 'deepseek/deepseek-v3.1-base'
   | 'google/gemini-2.0-flash'
   | 'google/gemini-2.0-flash-lite'
   | 'google/gemini-2.5-flash'

@@ -33,7 +33,7 @@ import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
 import { prepareRetries } from '../util/prepare-retries';
 import { ContentPart } from './content-part';
-import { extractContentText } from './extract-content-text';
+import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { Output } from './output';
@@ -256,7 +256,7 @@ A function that attempts to repair a tool call that failed to parse.
     system,
     prompt,
     messages,
-  });
+  } as Prompt);
 
   const tracer = getTracer(telemetry);
 
@@ -395,7 +395,7 @@ A function that attempts to repair a tool call that failed to parse.
                     attributes: {
                       'ai.response.finishReason': result.finishReason,
                       'ai.response.text': {
-                        output: () => extractContentText(result.content),
+                        output: () => extractTextContent(result.content),
                       },
                       'ai.response.toolCalls': {
                         output: () => {
@@ -556,7 +556,7 @@ A function that attempts to repair a tool call that failed to parse.
             attributes: {
               'ai.response.finishReason': currentModelResponse.finishReason,
               'ai.response.text': {
-                output: () => extractContentText(currentModelResponse.content),
+                output: () => extractTextContent(currentModelResponse.content),
               },
               'ai.response.toolCalls': {
                 output: () => {

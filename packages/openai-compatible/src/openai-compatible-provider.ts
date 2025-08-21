@@ -5,10 +5,10 @@ import {
   ProviderV2,
 } from '@ai-sdk/provider';
 import { FetchFunction, withoutTrailingSlash } from '@ai-sdk/provider-utils';
-import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
-import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
-import { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
-import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
+import { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
+import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
+import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
+import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
 
 export interface OpenAICompatibleProvider<
   CHAT_MODEL_IDS extends string = string,
