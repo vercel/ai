@@ -36,4 +36,6 @@ Defaults to `false`.
   documentPageLimit: z.number().optional(),
 });
 
-export type MistralLanguageModelOptions = z.infer<typeof mistralLanguageModelOptions>;
+export type MistralLanguageModelOptions = z.infer<
+  typeof mistralLanguageModelOptions
+>;
