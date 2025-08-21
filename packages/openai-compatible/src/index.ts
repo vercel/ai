@@ -1,24 +1,24 @@
-export { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
+export { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
 export type {
   OpenAICompatibleChatModelId,
   OpenAICompatibleProviderOptions,
-} from './openai-compatible-chat-options';
-export { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
+} from './chat/openai-compatible-chat-options';
+export { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 export type {
   OpenAICompatibleCompletionModelId,
   OpenAICompatibleCompletionProviderOptions,
-} from './openai-compatible-completion-options';
-export { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
+} from './completion/openai-compatible-completion-options';
+export { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 export type {
   OpenAICompatibleEmbeddingModelId,
   OpenAICompatibleEmbeddingProviderOptions,
-} from './openai-compatible-embedding-options';
-export { OpenAICompatibleImageModel } from './openai-compatible-image-model';
+} from './embedding/openai-compatible-embedding-options';
+export { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
 export type {
   OpenAICompatibleErrorData,
   ProviderErrorStructure,
 } from './openai-compatible-error';
-export type { MetadataExtractor } from './openai-compatible-metadata-extractor';
+export type { MetadataExtractor } from './chat/openai-compatible-metadata-extractor';
 export { createOpenAICompatible } from './openai-compatible-provider';
 export type {
   OpenAICompatibleProvider,

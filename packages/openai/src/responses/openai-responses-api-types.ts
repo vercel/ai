@@ -24,6 +24,7 @@ export type OpenAIResponsesUserMessage = {
     | { type: 'input_text'; text: string }
     | { type: 'input_image'; image_url: string }
     | { type: 'input_image'; file_id: string }
+    | { type: 'input_file'; file_url: string }
     | { type: 'input_file'; filename: string; file_data: string }
     | { type: 'input_file'; file_id: string }
   >;
