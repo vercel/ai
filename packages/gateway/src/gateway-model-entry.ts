@@ -35,11 +35,13 @@ export interface GatewayLanguageModelEntry {
    * Additional AI SDK language model specifications for the model.
    */
   specification: GatewayLanguageModelSpecification;
+  /**
+   * Optional field to differentiate between model types.
+   */
+  modelType?: 'language' | 'embedding' | 'image';
 }
 
 export type GatewayLanguageModelSpecification = Pick<
   LanguageModelV2,
   'specificationVersion' | 'provider' | 'modelId'
-> & {
-  type?: 'language' | 'embedding' | 'image';
-};
+>;

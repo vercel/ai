@@ -44,7 +44,6 @@ const gatewayLanguageModelSpecificationSchema = z.object({
   specificationVersion: z.literal('v2'),
   provider: z.string(),
   modelId: z.string(),
-  type: z.enum(['language', 'embedding', 'image']).optional(),
 });
 
 const gatewayLanguageModelPricingSchema = z.object({
@@ -58,6 +57,7 @@ const gatewayLanguageModelEntrySchema = z.object({
   description: z.string().nullish(),
   pricing: gatewayLanguageModelPricingSchema.nullish(),
   specification: gatewayLanguageModelSpecificationSchema,
+  modelType: z.enum(['language', 'embedding', 'image']).optional(),
 });
 
 const gatewayFetchMetadataSchema = z.object({
