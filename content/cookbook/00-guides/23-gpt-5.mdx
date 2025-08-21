@@ -273,14 +273,11 @@ Finally, update the root page (`app/page.tsx`) to use the `useChat` hook:
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
 import { useState } from 'react';
 
 export default function Page() {
   const [input, setInput] = useState('');
-  const { messages, sendMessage, error } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/chat' }),
-  });
+  const { messages, sendMessage } = useChat({});
 
   return (
     <>
