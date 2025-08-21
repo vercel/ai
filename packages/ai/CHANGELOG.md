@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.20
+
+### Patch Changes
+
+- 8a87693: fix(ai) Make sure warnings promise in streamObject is resolved and properly collects and passes warnings
+
 ## 5.0.19
 
 ### Patch Changes

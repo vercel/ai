@@ -1,5 +1,11 @@
 # @ai-sdk/elevenlabs
 
+## 1.0.5
+
+### Patch Changes
+
+- 6aaf688: feat(speech): add elevenlabs text-to-speech
+
 ## 1.0.4
 
 ### Patch Changes
