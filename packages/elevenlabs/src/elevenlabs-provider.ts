@@ -1,11 +1,14 @@
 import {
   TranscriptionModelV2,
+  SpeechModelV2,
   ProviderV2,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
+import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
 
 export interface ElevenLabsProvider extends ProviderV2 {
   (
@@ -19,6 +22,11 @@ export interface ElevenLabsProvider extends ProviderV2 {
 Creates a model for transcription.
    */
   transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV2;
+
+  /**
+Creates a model for speech generation.
+   */
+  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV2;
 }
 
 export interface ElevenLabsProviderSettings {
@@ -62,6 +70,14 @@ export function createElevenLabs(
       fetch: options.fetch,
     });
 
+  const createSpeechModel = (modelId: ElevenLabsSpeechModelId) =>
+    new ElevenLabsSpeechModel(modelId, {
+      provider: `elevenlabs.speech`,
+      url: ({ path }) => `https://api.elevenlabs.io${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: ElevenLabsTranscriptionModelId) {
     return {
       transcription: createTranscriptionModel(modelId),
@@ -70,6 +86,8 @@ export function createElevenLabs(
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
 
   provider.languageModel = () => {
     throw new NoSuchModelError({
