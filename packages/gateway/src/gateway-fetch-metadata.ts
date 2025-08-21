@@ -44,7 +44,6 @@ const gatewayLanguageModelSpecificationSchema = z.object({
   specificationVersion: z.literal('v2'),
   provider: z.string(),
   modelId: z.string(),
-  type: z.enum(['language', 'embedding', 'image']).optional(),
 });
 
 const gatewayLanguageModelPricingSchema = z.object({
