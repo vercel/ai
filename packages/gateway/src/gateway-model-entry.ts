@@ -35,7 +35,7 @@ export interface GatewayLanguageModelEntry {
    * Additional AI SDK language model specifications for the model.
    */
   specification: GatewayLanguageModelSpecification;
-  
+
   /**
    * Optional field to differentiate between model types.
    */
