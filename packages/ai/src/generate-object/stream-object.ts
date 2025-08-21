@@ -489,7 +489,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           system,
           prompt,
           messages,
-        });
+        } as Prompt);
 
         const callOptions = {
           responseFormat: {

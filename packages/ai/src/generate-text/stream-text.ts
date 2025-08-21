@@ -1020,7 +1020,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             system,
             prompt,
             messages,
-          });
+          } as Prompt);
 
           const stepInputMessages = [
             ...initialPrompt.messages,
