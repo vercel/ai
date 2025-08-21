@@ -927,33 +927,45 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
 
-    // resilient stream that handles abort errors:
+    // resilient stream that handles abort signals and errors:
+    const reader = stitchableStream.stream.getReader();
     let stream = new ReadableStream<TextStreamPart<TOOLS>>({
       async start(controller) {
         // send start event:
         controller.enqueue({ type: 'start' });
+      },
 
-        const reader = stitchableStream.stream.getReader();
+      async pull(controller) {
+        // abort handling:
+        function abort() {
+          onAbort?.({ steps: recordedSteps });
+          controller.enqueue({ type: 'abort' });
+          controller.close();
+        }
 
         try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              controller.close();
-              break;
-            }
-            controller.enqueue(value);
+          const { done, value } = await reader.read();
+
+          if (done) {
+            controller.close();
+            return;
           }
+
+          if (abortSignal?.aborted) {
+            abort();
+            return;
+          }
+
+          controller.enqueue(value);
         } catch (error) {
           if (isAbortError(error) && abortSignal?.aborted) {
-            onAbort?.({ steps: recordedSteps });
-            controller.enqueue({ type: 'abort' });
-            controller.close();
+            abort();
           } else {
             controller.error(error);
           }
         }
       },
+
       cancel(reason) {
         return stitchableStream.stream.cancel(reason);
       },
