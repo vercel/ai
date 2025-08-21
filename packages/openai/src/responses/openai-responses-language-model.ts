@@ -84,6 +84,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
   readonly supportedUrls: Record<string, RegExp[]> = {
     'image/*': [/^https?:\/\/.*$/],
+    'application/pdf': [/^https?:\/\/.*$/],
   };
 
   get provider(): string {
