@@ -1,5 +1,13 @@
 # @ai-sdk/groq
 
+## 2.0.12
+
+### Patch Changes
+
+- 0857788: fix(provider/groq): `experimental_transcribe` fails with valid Buffer
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
 ## 2.0.11
 
 ### Patch Changes
