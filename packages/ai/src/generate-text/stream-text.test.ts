@@ -13201,4 +13201,127 @@ describe('streamText', () => {
       });
     });
   });
+
+  describe('providerOptions merging', () => {
+    it('should deep-merge providerOptions with outer per step', async () => {
+      let responseCount = 0;
+
+      const overridingModel = new MockLanguageModelV2({
+        doStream: async ({ providerOptions }) => {
+          if (responseCount === 0) {
+            expect(providerOptions).toStrictEqual({
+              providerA: { outer: 'keep', nested: { inner: 1 }, step: 0 },
+              providerB: { untouched: true },
+            });
+          }
+
+          if (responseCount === 1) {
+            expect(providerOptions).toStrictEqual({
+              providerA: { outer: 'keep', nested: { inner: 2 }, step: 1 },
+              providerB: { untouched: true },
+            });
+          }
+
+          switch (responseCount++) {
+            case 0:
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ \"value\": \"value\" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: 'tool-calls',
+                    usage: testUsage,
+                  },
+                ]),
+                response: { headers: { call: '1' } },
+              };
+            case 1:
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'id-1',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(1000),
+                  },
+                  { type: 'text-start', id: '2' },
+                  { type: 'text-delta', id: '2', delta: 'ok' },
+                  { type: 'text-end', id: '2' },
+                  {
+                    type: 'finish',
+                    finishReason: 'stop',
+                    usage: testUsage2,
+                  },
+                ]),
+                response: { headers: { call: '2' } },
+              };
+            default:
+              throw new Error('unexpected call');
+          }
+        },
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-x',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: 'x' },
+              { type: 'text-delta', id: 'x', delta: 'noop' },
+              { type: 'text-end', id: 'x' },
+              { type: 'finish', finishReason: 'stop', usage: testUsage },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test-input',
+        providerOptions: {
+          providerA: { outer: 'keep', nested: { inner: 1 } },
+          providerB: { untouched: true },
+        },
+        stopWhen: stepCountIs(3),
+        prepareStep: async ({ stepNumber }) => {
+          if (stepNumber === 0) {
+            return {
+              model: overridingModel,
+              toolChoice: { type: 'tool', toolName: 'tool1' },
+              providerOptions: { providerA: { step: 0 } } as any,
+            };
+          }
+          if (stepNumber === 1) {
+            return {
+              model: overridingModel,
+              activeTools: [],
+              providerOptions: {
+                providerA: { step: 1, nested: { inner: 2 } },
+              } as any,
+            };
+          }
+        },
+      });
+
+      await result.consumeStream();
+    });
+  });
 });

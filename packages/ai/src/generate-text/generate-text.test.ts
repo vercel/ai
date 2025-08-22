@@ -772,6 +772,100 @@ describe('generateText', () => {
       });
     });
 
+    it('should deep-merge providerOptions with outer per step', async () => {
+      let responseCount = 0;
+
+      const overridingModel = new MockLanguageModelV2({
+        doGenerate: async ({ providerOptions }) => {
+          if (responseCount === 0) {
+            expect(providerOptions).toStrictEqual({
+              providerA: { outer: 'keep', nested: { inner: 1 }, step: 0 },
+              providerB: { untouched: true },
+            });
+          }
+
+          if (responseCount === 1) {
+            expect(providerOptions).toStrictEqual({
+              providerA: { outer: 'keep', nested: { inner: 2 }, step: 1 },
+              providerB: { untouched: true },
+            });
+          }
+
+          switch (responseCount++) {
+            case 0:
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ "value": "value" }`,
+                  },
+                ],
+                toolResults: [
+                  {
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: { value: 'value' },
+                    output: 'result1',
+                  },
+                ],
+                finishReason: 'tool-calls',
+              };
+            case 1:
+              return {
+                ...dummyResponseValues,
+                content: [{ type: 'text', text: 'ok' }],
+                finishReason: 'stop',
+              };
+            default:
+              throw new Error('unexpected call');
+          }
+        },
+      });
+
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'noop' }],
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test-input',
+        providerOptions: {
+          providerA: { outer: 'keep', nested: { inner: 1 } },
+          providerB: { untouched: true },
+        },
+        stopWhen: stepCountIs(3),
+        prepareStep: async ({ stepNumber }) => {
+          if (stepNumber === 0) {
+            return {
+              model: overridingModel,
+              toolChoice: { type: 'tool', toolName: 'tool1' },
+              providerOptions: { providerA: { step: 0 } } as any,
+            };
+          }
+          if (stepNumber === 1) {
+            return {
+              model: overridingModel,
+              activeTools: [],
+              providerOptions: {
+                providerA: { step: 1, nested: { inner: 2 } },
+              } as any,
+            };
+          }
+        },
+      });
+    });
+
     describe('2 steps: initial, tool-result with prepareStep', () => {
       let result: GenerateTextResult<any, any>;
       let onStepFinishResults: StepResult<any>[];
