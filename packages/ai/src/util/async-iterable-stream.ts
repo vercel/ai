@@ -32,10 +32,12 @@ export function createAsyncIterableStream<T>(
     /**
      * Cleans up the reader by cancelling and releasing the lock.
      */
-    async function cleanup() {
+    async function cleanup(cancelStream: boolean) {
       finished = true;
       try {
-        await reader.cancel?.();
+        if (cancelStream) {
+          await reader.cancel?.();
+        }
       } finally {
         try {
           reader.releaseLock();
@@ -56,7 +58,7 @@ export function createAsyncIterableStream<T>(
         const { done, value } = await reader.read();
 
         if (done) {
-          await cleanup();
+          await cleanup(true);
           return { done: true, value: undefined };
         }
 
@@ -69,7 +71,7 @@ export function createAsyncIterableStream<T>(
        * @returns A promise resolving to a completed IteratorResult.
        */
       async return(): Promise<IteratorResult<T>> {
-        await cleanup();
+        await cleanup(true);
         return { done: true, value: undefined };
       },
 
@@ -80,7 +82,7 @@ export function createAsyncIterableStream<T>(
        * @returns A promise that rejects with the provided error.
        */
       async throw(err: unknown): Promise<IteratorResult<T>> {
-        await cleanup();
+        await cleanup(true);
         throw err;
       },
     };

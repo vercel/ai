@@ -95,6 +95,32 @@ describe('createAsyncIterableStream()', () => {
     expect(streamCancelled).toBe(true);
   });
 
+  it('should not cancel stream when exception thrown inside for-await loop', async () => {
+    let streamCancelled = false;
+
+    const source = new ReadableStream({
+      start(controller) {
+        controller.enqueue('chunk1');
+        controller.enqueue('chunk2');
+        controller.enqueue('chunk3');
+        controller.close();
+      },
+      cancel() {
+        streamCancelled = true;
+      },
+    });
+
+    const asyncIterableStream = createAsyncIterableStream(source);
+
+    expect(await convertAsyncIterableToArray(asyncIterableStream)).toEqual([
+      'chunk1',
+      'chunk2',
+      'chunk3',
+    ]);
+
+    expect(streamCancelled).toBe(false);
+  });
+
   it('should not allow iterating twice after breaking', async () => {
     const source = convertArrayToReadableStream(['chunk1', 'chunk2', 'chunk3']);
 
