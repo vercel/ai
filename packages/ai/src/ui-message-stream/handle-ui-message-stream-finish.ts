@@ -89,26 +89,6 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     await job({ state, write: () => {} });
   };
 
-  let finishCalled = false;
-
-  const callOnFinish = async () => {
-    if (finishCalled || !onFinish) {
-      return;
-    }
-    finishCalled = true;
-
-    const isContinuation = state.message.id === lastMessage?.id;
-    await onFinish({
-      isAborted,
-      isContinuation,
-      responseMessage: state.message as UI_MESSAGE,
-      messages: [
-        ...(isContinuation ? originalMessages.slice(0, -1) : originalMessages),
-        state.message,
-      ] as UI_MESSAGE[],
-    });
-  };
-
   return processUIMessageStream<UI_MESSAGE>({
     stream: idInjectedStream,
     runUpdateMessageJob,
@@ -121,13 +101,20 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       transform(chunk, controller) {
         controller.enqueue(chunk);
       },
-      // @ts-expect-error cancel is still new and missing from types https://developer.mozilla.org/en-US/docs/Web/API/TransformStream#browser_compatibility
-      async cancel() {
-        await callOnFinish();
-      },
 
       async flush() {
-        await callOnFinish();
+        const isContinuation = state.message.id === lastMessage?.id;
+        await onFinish({
+          isAborted,
+          isContinuation,
+          responseMessage: state.message as UI_MESSAGE,
+          messages: [
+            ...(isContinuation
+              ? originalMessages.slice(0, -1)
+              : originalMessages),
+            state.message,
+          ] as UI_MESSAGE[],
+        });
       },
     }),
   );
