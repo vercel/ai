@@ -12148,7 +12148,6 @@ describe('streamText', () => {
                   pullCalls = 0;
                 },
                 pull(controller) {
-                  console.log('pull', { streamCalls, pullCalls });
                   if (streamCalls === 1) {
                     switch (pullCalls++) {
                       case 0:
