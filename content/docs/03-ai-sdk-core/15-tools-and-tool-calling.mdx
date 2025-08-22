@@ -10,7 +10,7 @@ AI SDK Core tools contain three elements:
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
 - **`inputSchema`**: A [Zod schema](/docs/foundations/tools#schemas) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the input parameters. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
-- **`execute`**: An optional async function that is called with the arguments from the tool call. It produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
+- **`execute`**: An optional async function that is called with the inputs from the tool call. It produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
 
 <Note className="mb-2">
   You can use the [`tool`](/docs/reference/ai-sdk-core/tool) helper function to
@@ -532,7 +532,7 @@ async function generateSomething(prompt: string): Promise<{
 The AI SDK has three tool-call related errors:
 
 - [`NoSuchToolError`](/docs/reference/ai-sdk-errors/ai-no-such-tool-error): the model tries to call a tool that is not defined in the tools object
-- [`InvalidToolArgumentsError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-arguments-error): the model calls a tool with arguments that do not match the tool's input schema
+- [`InvalidToolInputError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-input-error): the model calls a tool with inputs that do not match the tool's input schema
 - [`ToolCallRepairError`](/docs/reference/ai-sdk-errors/ai-tool-call-repair-error): an error that occurred during tool call repair
 
 When tool execution fails (errors thrown by your tool's `execute` function), the AI SDK adds them as `tool-error` content parts to enable automated LLM roundtrips in multi-step scenarios.
@@ -549,8 +549,8 @@ try {
 } catch (error) {
   if (NoSuchToolError.isInstance(error)) {
     // handle the no such tool error
-  } else if (InvalidToolArgumentsError.isInstance(error)) {
-    // handle the invalid tool arguments error
+  } else if (InvalidToolInputError.isInstance(error)) {
+    // handle the invalid tool inputs error
   } else {
     // handle other errors
   }
@@ -591,8 +591,8 @@ return result.toUIMessageStreamResponse({
   onError: error => {
     if (NoSuchToolError.isInstance(error)) {
       return 'The model tried to call a unknown tool.';
-    } else if (InvalidToolArgumentsError.isInstance(error)) {
-      return 'The model called a tool with invalid arguments.';
+    } else if (InvalidToolInputError.isInstance(error)) {
+      return 'The model called a tool with invalid inputs.';
     } else {
       return 'An unknown error occurred.';
     }
@@ -614,8 +614,8 @@ with a custom function.
 
 You can use different strategies to repair the tool call:
 
-- Use a model with structured outputs to generate the arguments.
-- Send the messages, system prompt, and tool schema to a stronger model to generate the arguments.
+- Use a model with structured outputs to generate the inputs.
+- Send the messages, system prompt, and tool schema to a stronger model to generate the inputs.
 - Provide more specific repair instructions based on which tool was called.
 
 ### Example: Use a model with structured outputs for repair
@@ -646,11 +646,11 @@ const result = await generateText({
       schema: tool.inputSchema,
       prompt: [
         `The model tried to call the tool "${toolCall.toolName}"` +
-          ` with the following arguments:`,
+          ` with the following inputs:`,
         JSON.stringify(toolCall.input),
         `The tool accepts the following schema:`,
         JSON.stringify(inputSchema(toolCall)),
-        'Please fix the arguments.',
+        'Please fix the inputs.',
       ].join('\n'),
     });
 
@@ -978,7 +978,7 @@ const tools = await mcpClient.tools({
         format: z.enum(['json', 'text']).optional(),
       }),
     },
-    // For tools with zero arguments, you should use an empty object:
+    // For tools with zero inputs, you should use an empty object:
     'tool-with-no-args': {
       inputSchema: z.object({}),
     },
