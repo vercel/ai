@@ -5913,4 +5913,111 @@ describe('processUIMessageStream', () => {
       `);
     });
   });
+
+  describe('multiple messages in same HTTP response', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        // First message
+        { type: 'start', messageId: '1' },
+        { type: 'text-start', id: 'text1' },
+        { type: 'text-delta', id: 'text1', delta: 'Retrieving the weather!' },
+        { type: 'text-end', id: 'text1' },
+        {
+          type: 'data-notification',
+          data: { agent: 'weather', status: 'fetching' },
+        },
+        { type: 'finish' },
+
+        // Second message
+        { type: 'start', messageId: '2' },
+        { type: 'text-start', id: 'text2' },
+        { type: 'text-delta', id: 'text2', delta: 'Got the temp!' },
+        { type: 'text-end', id: 'text2' },
+        {
+          type: 'data-notification',
+          data: { agent: 'weather', status: 'ready', temperature: 100 },
+        },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: '1',
+        lastMessage: undefined,
+      });
+
+      await consumeStream(
+        processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: () => {},
+        }),
+      );
+    });
+
+    it('should handle multiple messages without carrying over parts', () => {
+      // Should have writes for both message 1 and message 2
+      expect(writeCalls.length).toBeGreaterThan(2);
+
+      // Find the final state of message 1 (before message 2 starts)
+      const message1Writes = writeCalls.filter(call => call.message.id === '1');
+      const finalMessage1 = message1Writes[message1Writes.length - 1]?.message;
+
+      // Find the final state of message 2
+      const message2Writes = writeCalls.filter(call => call.message.id === '2');
+      const finalMessage2 = message2Writes[message2Writes.length - 1]?.message;
+
+      // Message 1 should only have its own parts
+      expect(finalMessage1).toMatchObject({
+        id: '1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'text',
+            text: 'Retrieving the weather!',
+            state: 'done',
+          },
+          {
+            type: 'data-notification',
+            data: { agent: 'weather', status: 'fetching' },
+          },
+        ],
+      });
+
+      // Message 2 should only have its own parts, not message 1's parts
+      expect(finalMessage2).toMatchObject({
+        id: '2',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'text',
+            text: 'Got the temp!',
+            state: 'done',
+          },
+          {
+            type: 'data-notification',
+            data: { agent: 'weather', status: 'ready', temperature: 100 },
+          },
+        ],
+      });
+
+      // Verify message 2 does NOT contain message 1's parts
+      const message2Parts = finalMessage2?.parts || [];
+      const hasMessage1Text = message2Parts.some(
+        part => part.type === 'text' && part.text === 'Retrieving the weather!',
+      );
+      const hasMessage1Data = message2Parts.some(
+        part =>
+          part.type === 'data-notification' &&
+          part.data &&
+          typeof part.data === 'object' &&
+          'agent' in part.data &&
+          'status' in part.data &&
+          part.data.agent === 'weather' &&
+          part.data.status === 'fetching',
+      );
+
+      expect(hasMessage1Text).toBe(false);
+      expect(hasMessage1Data).toBe(false);
+    });
+  });
 });

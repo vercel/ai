@@ -40,6 +40,35 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   >;
 };
 
+/**
+ * Creates a fresh assistant message with empty parts array.
+ * Used when starting a new message to ensure clean state.
+ */
+function createFreshAssistantMessage<UI_MESSAGE extends UIMessage>(
+  messageId: string,
+): UI_MESSAGE {
+  return {
+    id: messageId,
+    metadata: undefined,
+    role: 'assistant',
+    parts: [] as UIMessagePart<
+      InferUIMessageData<UI_MESSAGE>,
+      InferUIMessageTools<UI_MESSAGE>
+    >[],
+  } as UI_MESSAGE;
+}
+
+/**
+ * Resets all active streaming parts to prevent carryover between messages.
+ */
+function resetActiveStreamingParts<UI_MESSAGE extends UIMessage>(
+  state: StreamingUIMessageState<UI_MESSAGE>,
+): void {
+  state.activeTextParts = {};
+  state.activeReasoningParts = {};
+  state.partialToolCalls = {};
+}
+
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage,
   messageId,
@@ -51,15 +80,7 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
     message:
       lastMessage?.role === 'assistant'
         ? lastMessage
-        : ({
-            id: messageId,
-            metadata: undefined,
-            role: 'assistant',
-            parts: [] as UIMessagePart<
-              InferUIMessageData<UI_MESSAGE>,
-              InferUIMessageTools<UI_MESSAGE>
-            >[],
-          } as UI_MESSAGE),
+        : createFreshAssistantMessage<UI_MESSAGE>(messageId),
     activeTextParts: {},
     activeReasoningParts: {},
     partialToolCalls: {},
@@ -600,7 +621,18 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'start': {
-              if (chunk.messageId != null) {
+              // If a new messageId is provided and it's different from the current message,
+              // we need to start a fresh message to avoid carrying over parts from the previous message
+              if (
+                chunk.messageId != null &&
+                chunk.messageId !== state.message.id
+              ) {
+                // Create a fresh message and reset all active streaming parts
+                state.message = createFreshAssistantMessage<UI_MESSAGE>(
+                  chunk.messageId,
+                );
+                resetActiveStreamingParts(state);
+              } else if (chunk.messageId != null) {
                 state.message.id = chunk.messageId;
               }
 
