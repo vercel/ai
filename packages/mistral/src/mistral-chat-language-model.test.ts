@@ -595,7 +595,7 @@ describe('doGenerate', () => {
                 },
                 "type": "object",
               },
-              "strict": true,
+              "strict": false,
             },
             "type": "json_schema",
           },

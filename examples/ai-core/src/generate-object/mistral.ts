@@ -19,6 +19,14 @@ async function main() {
       }),
     }),
     prompt: 'Generate a lasagna recipe.',
+    providerOptions: {
+      mistral: {
+        // `open-mistral-7b` model has problems with the `$schema` property
+        // in the JSON schema unless `strict` is set to true
+        // See https://github.com/vercel/ai/pull/8130#issuecomment-3213138032
+        strictJsonSchema: true,
+      },
+    },
   });
 
   console.log(JSON.stringify(result.object.recipe, null, 2));
