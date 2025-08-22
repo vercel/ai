@@ -97,6 +97,7 @@ const result = await generateText({
       reasoningEffort: 'default',
       parallelToolCalls: true, // Enable parallel function calling (default: true)
       user: 'user-123', // Unique identifier for end-user (optional)
+      serviceTier: 'flex', // Use flex tier for higher throughput (optional)
     },
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
@@ -142,6 +143,16 @@ The following optional provider options are available for Groq language models:
 - **user** _string_
 
   A unique identifier representing your end-user, which can help with monitoring and abuse detection.
+
+- **serviceTier** _'on_demand' | 'flex' | 'auto'_
+
+  Service tier for the request. Defaults to `'on_demand'`.
+
+  - `'on_demand'`: Default tier with consistent performance and fairness
+  - `'flex'`: Higher throughput tier (10x rate limits) optimized for workloads that can handle occasional request failures
+  - `'auto'`: Uses on_demand rate limits first, then falls back to flex tier if exceeded
+
+  For more details about service tiers and their benefits, see [Groq's Flex Processing documentation](https://console.groq.com/docs/flex-processing).
 
 <Note>Only Groq reasoning models support the `reasoningFormat` option.</Note>
 
