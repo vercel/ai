@@ -1,7 +1,7 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import zodToJsonSchema from 'zod-to-json-schema';
+import zodToJsonSchema from './zod-to-json-schema';
 import { jsonSchema, Schema } from './schema';
 
 export function zod3Schema<OBJECT>(
