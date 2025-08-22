@@ -220,7 +220,7 @@ with Zod, Valibot, or raw JSON Schema. The SDK sends your schema via Mistral's `
 ```ts
 import { mistral } from '@ai-sdk/mistral';
 import { generateObject } from 'ai';
-import { z } from 'zod';
+import { z } from 'zod/v3';
 
 const result = await generateObject({
   model: mistral('mistral-large-latest'),
@@ -242,7 +242,7 @@ You can enable strict JSON Schema validation using a provider option:
 ```ts highlight="7-11"
 import { mistral } from '@ai-sdk/mistral';
 import { generateObject } from 'ai';
-import { z } from 'zod';
+import { z } from 'zod/v3';
 
 const result = await generateObject({
   model: mistral('mistral-large-latest'),
