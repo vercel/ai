@@ -489,7 +489,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           system,
           prompt,
           messages,
-        });
+        } as Prompt);
 
         const callOptions = {
           responseFormat: {
@@ -521,6 +521,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               case 'response-metadata':
               case 'finish':
               case 'error':
+              case 'stream-start':
                 controller.enqueue(chunk);
                 break;
             }
@@ -715,6 +716,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     // resolve promises that can be resolved now:
                     self._usage.resolve(usage);
                     self._providerMetadata.resolve(providerMetadata);
+                    self._warnings.resolve(warnings);
                     self._response.resolve({
                       ...fullResponse,
                       headers: response?.headers,

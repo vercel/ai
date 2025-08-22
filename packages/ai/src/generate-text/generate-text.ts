@@ -256,7 +256,7 @@ A function that attempts to repair a tool call that failed to parse.
     system,
     prompt,
     messages,
-  });
+  } as Prompt);
 
   const tracer = getTracer(telemetry);
 

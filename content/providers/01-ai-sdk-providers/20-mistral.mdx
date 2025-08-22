@@ -80,9 +80,10 @@ const model = mistral('mistral-large-latest');
 ```
 
 Mistral chat models also support additional model settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
-You can pass them as an options argument:
+You can pass them as an options argument and utilize `MistralLanguageModelOptions` for typing:
 
 ```ts
+import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
 const model = mistral('mistral-large-latest');
 
 await generateText({
@@ -90,7 +91,7 @@ await generateText({
   providerOptions: {
     mistral: {
       safePrompt: true, // optional safety prompt injection
-    },
+    } satisfies MistralLanguageModelOptions,
   },
 });
 ```

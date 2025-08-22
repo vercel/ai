@@ -23,7 +23,7 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
   MistralChatModelId,
-  mistralProviderOptions,
+  mistralLanguageModelOptions,
 } from './mistral-chat-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { prepareTools } from './mistral-prepare-tools';
@@ -79,7 +79,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       (await parseProviderOptions({
         provider: 'mistral',
         providerOptions,
-        schema: mistralProviderOptions,
+        schema: mistralLanguageModelOptions,
       })) ?? {};
 
     if (topK != null) {
