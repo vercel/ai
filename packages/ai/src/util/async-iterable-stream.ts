@@ -9,18 +9,19 @@ export function createAsyncIterableStream<T>(
     this: ReadableStream<T>,
   ): AsyncIterator<T> {
     const reader = this.getReader();
+
     let finished = false;
 
     return {
       async next(): Promise<IteratorResult<T>> {
-        if (finished) return { done: true } as IteratorResult<T>;
+        if (finished) return { done: true, value: undefined };
         const { done, value } = await reader.read();
         if (done) {
           finished = true;
           reader.releaseLock();
-          return { done: true } as IteratorResult<T>;
+          return { done: true, value: undefined };
         }
-        return { done: false, value } as IteratorResult<T>;
+        return { done: false, value };
       },
 
       async return(): Promise<IteratorResult<T>> {
@@ -33,7 +34,7 @@ export function createAsyncIterableStream<T>(
             reader.releaseLock();
           } catch {}
         }
-        return { done: true } as IteratorResult<T>;
+        return { done: true, value: undefined };
       },
 
       async throw(err: unknown): Promise<IteratorResult<T>> {
