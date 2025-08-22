@@ -117,7 +117,7 @@ You can use other AI SDK methods exactly as you usually would.
 You can wrap `traceable` calls around AI SDK calls or within AI SDK tool calls. This is useful if you
 want to group runs together in LangSmith:
 
-```ts highlight="40"
+```ts
 import * as ai from 'ai';
 import { tool, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
