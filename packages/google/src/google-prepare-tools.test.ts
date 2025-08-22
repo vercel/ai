@@ -185,6 +185,25 @@ it('should handle tool choice "tool"', () => {
   });
 });
 
+it('should passthrough provider-defined toolChoice', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'Test',
+        inputSchema: {},
+      },
+    ],
+    toolChoice: {
+      type: 'provider-defined',
+      toolChoice: { some: 'config' } as any,
+    },
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.toolConfig).toEqual({ some: 'config' });
+});
+
 it('should warn when mixing function and provider-defined tools', () => {
   const result = prepareTools({
     tools: [

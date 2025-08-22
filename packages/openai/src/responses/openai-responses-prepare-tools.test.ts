@@ -202,4 +202,134 @@ describe('prepareResponsesTools', () => {
       expect(result.toolWarnings).toEqual([]);
     });
   });
+
+  describe('provider-defined toolChoice passthrough', () => {
+    it.each([['none'], ['auto'], ['required']])(
+      'should passthrough primitive toolChoice %s',
+      primitive => {
+        const result = prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.code_interpreter',
+              name: 'code_interpreter',
+              args: {},
+            },
+          ],
+          toolChoice: { type: 'provider-defined', toolChoice: primitive },
+          strictJsonSchema: false,
+        });
+
+        expect(result.toolChoice).toEqual(primitive);
+        expect(result.toolWarnings).toEqual([]);
+      },
+    );
+
+    it('should passthrough built-in type selection: code_interpreter', () => {
+      const choice = { type: 'code_interpreter' } as const;
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'provider-defined', toolChoice: choice },
+        strictJsonSchema: false,
+      });
+
+      expect(result.toolChoice).toEqual(choice);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it('should passthrough function selection', () => {
+      const choice = { type: 'function', name: 'my_function' } as const;
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'provider-defined', toolChoice: choice },
+        strictJsonSchema: false,
+      });
+
+      expect(result.toolChoice).toEqual(choice);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it('should passthrough custom tool selection', () => {
+      const choice = { type: 'custom', name: 'my_custom_tool' } as const;
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'provider-defined', toolChoice: choice },
+        strictJsonSchema: false,
+      });
+
+      expect(result.toolChoice).toEqual(choice);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it('should passthrough MCP selection', () => {
+      const choice = {
+        type: 'mcp',
+        server_label: 'deepwiki',
+        name: 'search',
+      } as const;
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'provider-defined', toolChoice: choice },
+        strictJsonSchema: false,
+      });
+
+      expect(result.toolChoice).toEqual(choice);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it('should passthrough allowed_tools selection', () => {
+      const choice = {
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [
+          { type: 'function', name: 'get_weather' },
+          { type: 'mcp', server_label: 'deepwiki' },
+          { type: 'image_generation' },
+        ],
+      } as const;
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'provider-defined', toolChoice: choice },
+        strictJsonSchema: false,
+      });
+
+      expect(result.toolChoice).toEqual(choice);
+      expect(result.toolWarnings).toEqual([]);
+    });
+  });
 });

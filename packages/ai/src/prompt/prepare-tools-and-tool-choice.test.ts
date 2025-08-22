@@ -369,4 +369,56 @@ describe('prepareToolsAndToolChoice', () => {
       }
     `);
   });
+
+  it('should handle provider-defined toolChoice passthrough', () => {
+    const result = prepareToolsAndToolChoice({
+      tools: mockTools,
+      toolChoice: { type: 'provider-defined', toolChoice: { any: 'thing' } },
+      activeTools: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "toolChoice": {
+          "toolChoice": {
+            "any": "thing",
+          },
+          "type": "provider-defined",
+        },
+        "tools": [
+          {
+            "description": "Tool 1 description",
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {},
+              "type": "object",
+            },
+            "name": "tool1",
+            "providerOptions": undefined,
+            "type": "function",
+          },
+          {
+            "description": "Tool 2 description",
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "city": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "city",
+              ],
+              "type": "object",
+            },
+            "name": "tool2",
+            "providerOptions": undefined,
+            "type": "function",
+          },
+        ],
+      }
+    `);
+  });
 });

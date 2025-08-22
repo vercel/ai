@@ -103,6 +103,12 @@ export function prepareChatTools({
         },
         toolWarnings,
       };
+    case 'provider-defined':
+      return {
+        tools: openaiTools,
+        toolChoice: toolChoice.toolChoice as OpenAIChatToolChoice,
+        toolWarnings,
+      };
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({

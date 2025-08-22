@@ -284,3 +284,20 @@ it('should handle tool choice "tool"', () => {
     function: { name: 'testFunction' },
   });
 });
+
+it('should passthrough provider-defined toolChoice', () => {
+  const result = prepareChatTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'Test',
+        inputSchema: {},
+      },
+    ],
+    toolChoice: { type: 'provider-defined', toolChoice: { type: 'required' } },
+    structuredOutputs: false,
+    strictJsonSchema: false,
+  });
+  expect(result.toolChoice).toEqual({ type: 'required' });
+});

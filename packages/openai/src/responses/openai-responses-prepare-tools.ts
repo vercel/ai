@@ -3,7 +3,10 @@ import {
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { OpenAIResponsesTool } from './openai-responses-api-types';
+import {
+  OpenAIResponsesTool,
+  OpenAIResponsesToolChoice,
+} from './openai-responses-api-types';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
@@ -18,14 +21,7 @@ export function prepareResponsesTools({
   strictJsonSchema: boolean;
 }): {
   tools?: Array<OpenAIResponsesTool>;
-  toolChoice?:
-    | 'auto'
-    | 'none'
-    | 'required'
-    | { type: 'file_search' }
-    | { type: 'web_search_preview' }
-    | { type: 'function'; name: string }
-    | { type: 'code_interpreter' };
+  toolChoice?: OpenAIResponsesToolChoice;
   toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -120,6 +116,12 @@ export function prepareResponsesTools({
           toolChoice.toolName === 'web_search_preview'
             ? { type: toolChoice.toolName }
             : { type: 'function', name: toolChoice.toolName },
+        toolWarnings,
+      };
+    case 'provider-defined':
+      return {
+        tools: openaiTools,
+        toolChoice: toolChoice.toolChoice as OpenAIResponsesToolChoice,
         toolWarnings,
       };
     default: {

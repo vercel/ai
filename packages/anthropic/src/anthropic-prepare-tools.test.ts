@@ -176,6 +176,24 @@ describe('prepareTools', () => {
     expect(result.toolChoice).toEqual({ type: 'tool', name: 'testFunction' });
   });
 
+  it('should passthrough provider-defined toolChoice', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'Test',
+          inputSchema: {},
+        },
+      ],
+      toolChoice: {
+        type: 'provider-defined',
+        toolChoice: { type: 'any' } as any,
+      },
+    });
+    expect(result.toolChoice).toEqual({ type: 'any' });
+  });
+
   it('should set cache control', () => {
     const result = prepareTools({
       tools: [
