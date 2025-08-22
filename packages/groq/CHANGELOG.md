@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.13
+
+### Patch Changes
+
+- 72757a0: feat (provider/groq): add service tier provider option
+
 ## 2.0.12
 
 ### Patch Changes
