@@ -34,6 +34,20 @@ Defaults to `false`.
 
   documentImageLimit: z.number().optional(),
   documentPageLimit: z.number().optional(),
+
+  /**
+   * Whether to use structured outputs.
+   *
+   * @default true
+   */
+  structuredOutputs: z.boolean().optional(),
+
+  /**
+   * Whether to use strict JSON schema validation.
+   *
+   * @default false
+   */
+  strictJsonSchema: z.boolean().optional(),
 });
 
 export type MistralLanguageModelOptions = z.infer<
