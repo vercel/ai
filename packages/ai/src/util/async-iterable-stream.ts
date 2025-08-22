@@ -12,6 +12,17 @@ export function createAsyncIterableStream<T>(
 
     let finished = false;
 
+    async function cleanup() {
+      finished = true;
+      try {
+        await reader.cancel?.();
+      } finally {
+        try {
+          reader.releaseLock();
+        } catch {}
+      }
+    }
+
     return {
       async next(): Promise<IteratorResult<T>> {
         if (finished) {
@@ -21,36 +32,22 @@ export function createAsyncIterableStream<T>(
         const { done, value } = await reader.read();
 
         if (done) {
-          finished = true;
-          reader.releaseLock();
+          await cleanup();
           return { done: true, value: undefined };
         }
 
         return { done: false, value };
       },
 
+      // Called on early exit (e.g., break from for-await)
       async return(): Promise<IteratorResult<T>> {
-        // Called on early exit (e.g., break from for-await)
-        finished = true;
-        try {
-          await reader.cancel?.();
-        } finally {
-          try {
-            reader.releaseLock();
-          } catch {}
-        }
+        await cleanup();
         return { done: true, value: undefined };
       },
 
+      // Called on early exit with error
       async throw(err: unknown): Promise<IteratorResult<T>> {
-        finished = true;
-        try {
-          await reader.cancel?.(err);
-        } finally {
-          try {
-            reader.releaseLock();
-          } catch {}
-        }
+        await cleanup();
         throw err;
       },
     };
