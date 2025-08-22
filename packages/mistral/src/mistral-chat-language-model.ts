@@ -111,7 +111,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     }
 
     const structuredOutputs = options.structuredOutputs ?? true;
-    const strictJsonSchema = options.strictJsonSchema ?? false;
+    const strictJsonSchema = options.strictJsonSchema ?? true;
 
     // For Mistral we need to need to instruct the model to return a JSON object.
     // https://docs.mistral.ai/capabilities/structured-output/structured_output_overview/
@@ -143,7 +143,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
                 type: 'json_schema',
                 json_schema: {
                   schema: responseFormat.schema,
-                  strict: strictJsonSchema ?? false,
+                  strict: strictJsonSchema,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
                 },
