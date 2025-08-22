@@ -3,19 +3,19 @@ import {
   convertAsyncIterableToArray,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
 import { createAsyncIterableStream } from './async-iterable-stream';
 
 describe('createAsyncIterableStream()', () => {
   it('should read all chunks from a non-empty stream using async iteration', async () => {
-    const testData = ['Hello', 'World', 'Stream'];
+    const source = convertArrayToReadableStream(['chunk1', 'chunk2', 'chunk3']);
 
-    const source = convertArrayToReadableStream(testData);
     const asyncIterableStream = createAsyncIterableStream(source);
 
-    expect(await convertAsyncIterableToArray(asyncIterableStream)).toEqual(
-      testData,
-    );
+    expect(await convertAsyncIterableToArray(asyncIterableStream)).toEqual([
+      'chunk1',
+      'chunk2',
+      'chunk3',
+    ]);
   });
 
   it('should handle an empty stream gracefully', async () => {
@@ -26,18 +26,20 @@ describe('createAsyncIterableStream()', () => {
   });
 
   it('should maintain ReadableStream functionality', async () => {
-    const testData = ['Hello', 'World'];
+    const source = convertArrayToReadableStream(['chunk1', 'chunk2', 'chunk3']);
 
-    const source = convertArrayToReadableStream(testData);
     const asyncIterableStream = createAsyncIterableStream(source);
 
-    expect(await convertReadableStreamToArray(asyncIterableStream)).toEqual(
-      testData,
-    );
+    expect(await convertReadableStreamToArray(asyncIterableStream)).toEqual([
+      'chunk1',
+      'chunk2',
+      'chunk3',
+    ]);
   });
 
   it('should cancel stream on early exit from for-await loop', async () => {
     let streamCancelled = false;
+
     const source = new ReadableStream({
       start(controller) {
         controller.enqueue('chunk1');
@@ -65,6 +67,7 @@ describe('createAsyncIterableStream()', () => {
 
   it('should cancel stream when exception thrown inside for-await loop', async () => {
     let streamCancelled = false;
+
     const source = new ReadableStream({
       start(controller) {
         controller.enqueue('chunk1');
@@ -93,13 +96,7 @@ describe('createAsyncIterableStream()', () => {
   });
 
   it('should not allow iterating twice after breaking', async () => {
-    const source = new ReadableStream({
-      start(controller) {
-        controller.enqueue('chunk1');
-        controller.enqueue('chunk2');
-        controller.enqueue('chunk3');
-      },
-    });
+    const source = convertArrayToReadableStream(['chunk1', 'chunk2', 'chunk3']);
 
     const asyncIterableStream = createAsyncIterableStream(source);
 
@@ -149,13 +146,7 @@ describe('createAsyncIterableStream()', () => {
     let iterationCompleted = false;
     let errorCaught: Error | null = null;
 
-    const source = new ReadableStream({
-      start(controller) {
-        controller.enqueue('chunk1');
-        controller.enqueue('chunk2');
-        controller.enqueue('chunk3');
-      },
-    });
+    const source = convertArrayToReadableStream(['chunk1', 'chunk2', 'chunk3']);
 
     const asyncIterableStream = createAsyncIterableStream(source);
 
@@ -175,13 +166,7 @@ describe('createAsyncIterableStream()', () => {
   });
 
   it('should not collect any chunks when iterating on already cancelled stream', async () => {
-    const source = new ReadableStream({
-      start(controller) {
-        controller.enqueue('chunk1');
-        controller.enqueue('chunk2');
-        controller.enqueue('chunk3');
-      },
-    });
+    const source = convertArrayToReadableStream(['chunk1', 'chunk2', 'chunk3']);
 
     const asyncIterableStream = createAsyncIterableStream(source);
 
