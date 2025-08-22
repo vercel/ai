@@ -208,7 +208,7 @@ describe('parseToolCall', () => {
     `);
   });
 
-  it('should throw InvalidToolArgumentsError when args are invalid', async () => {
+  it('should throw InvalidToolInputError when args are invalid', async () => {
     const result = await parseToolCall({
       toolCall: {
         type: 'tool-call',
