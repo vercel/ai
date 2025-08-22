@@ -14,13 +14,18 @@ export function createAsyncIterableStream<T>(
 
     return {
       async next(): Promise<IteratorResult<T>> {
-        if (finished) return { done: true, value: undefined };
+        if (finished) {
+          return { done: true, value: undefined };
+        }
+
         const { done, value } = await reader.read();
+
         if (done) {
           finished = true;
           reader.releaseLock();
           return { done: true, value: undefined };
         }
+
         return { done: false, value };
       },
 
