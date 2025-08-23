@@ -19,7 +19,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   execute: (options: {
     writer: UIMessageStreamWriter<UI_MESSAGE>;
   }) => Promise<void> | void;
-  onError?: (error: unknown) => string;
+  onError?: (error: unknown) => string | Promise<string>;
 
   /**
    * The original messages. If they are provided, persistence mode is assumed,
@@ -51,6 +51,22 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     }
   }
 
+  async function handleError(error: unknown) {
+    try {
+      const errorText = await onError(error);
+      safeEnqueue({
+        type: 'error',
+        errorText,
+      } as InferUIMessageChunk<UI_MESSAGE>);
+    } catch (onErrorException) {
+      // If onError itself throws, fall back to default error message
+      safeEnqueue({
+        type: 'error',
+        errorText: getErrorMessage(onErrorException),
+      } as InferUIMessageChunk<UI_MESSAGE>);
+    }
+  }
+
   try {
     const result = execute({
       writer: {
@@ -67,10 +83,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
                 safeEnqueue(value);
               }
             })().catch(error => {
-              safeEnqueue({
-                type: 'error',
-                errorText: onError(error),
-              } as InferUIMessageChunk<UI_MESSAGE>);
+              handleError(error);
             }),
           );
         },
@@ -81,18 +94,12 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     if (result) {
       ongoingStreamPromises.push(
         result.catch(error => {
-          safeEnqueue({
-            type: 'error',
-            errorText: onError(error),
-          } as InferUIMessageChunk<UI_MESSAGE>);
+          handleError(error);
         }),
       );
     }
   } catch (error) {
-    safeEnqueue({
-      type: 'error',
-      errorText: onError(error),
-    } as InferUIMessageChunk<UI_MESSAGE>);
+    handleError(error);
   }
 
   // Wait until all ongoing streams are done. This approach enables merging
