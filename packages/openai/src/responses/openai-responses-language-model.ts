@@ -918,7 +918,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 delta: value.delta,
               });
 
-              if (value.logprobs) {
+              if (options.providerOptions?.openai?.logprobs && value.logprobs) {
                 logprobs.push(value.logprobs);
               }
             } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
