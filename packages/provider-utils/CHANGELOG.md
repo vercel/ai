@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.5
+
+### Patch Changes
+
+- 0857788: fix(provider/groq): `experimental_transcribe` fails with valid Buffer
+
 ## 3.0.4
 
 ### Patch Changes

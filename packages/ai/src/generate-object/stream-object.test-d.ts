@@ -10,6 +10,7 @@ describe('streamObject', () => {
     const result = streamObject({
       schema: z.object({ number: z.number() }),
       model: undefined!,
+      prompt: 'test',
     });
 
     expectTypeOf<typeof result.finishReason>().toEqualTypeOf<
@@ -22,6 +23,7 @@ describe('streamObject', () => {
       output: 'enum',
       enum: ['a', 'b', 'c'] as const,
       model: undefined!,
+      prompt: 'test',
     });
 
     expectTypeOf<typeof result.object>().toEqualTypeOf<
@@ -37,6 +39,7 @@ describe('streamObject', () => {
     const result = streamObject({
       schema: z.object({ number: z.number() }),
       model: undefined!,
+      prompt: 'test',
     });
 
     expectTypeOf<typeof result.object>().toEqualTypeOf<
@@ -48,6 +51,7 @@ describe('streamObject', () => {
     const result = streamObject({
       output: 'no-schema',
       model: undefined!,
+      prompt: 'test',
     });
 
     expectTypeOf<typeof result.object>().toEqualTypeOf<Promise<JSONValue>>();
@@ -58,6 +62,7 @@ describe('streamObject', () => {
       output: 'array',
       schema: z.number(),
       model: undefined!,
+      prompt: 'test',
     });
 
     expectTypeOf<typeof result.partialObjectStream>().toEqualTypeOf<

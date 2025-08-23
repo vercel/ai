@@ -259,6 +259,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass serviceTier provider option', async () => {
+    prepareJsonResponse();
+
+    await provider('gemma2-9b-it').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        groq: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      service_tier: 'flex',
+    });
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonResponse({ content: '' });
 

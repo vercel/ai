@@ -117,6 +117,7 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
   provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
 
   provider.tools = groqTools;
 
