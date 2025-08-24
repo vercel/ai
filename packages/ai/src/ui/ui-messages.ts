@@ -293,7 +293,7 @@ export function isToolOrDynamicToolUIPart<TOOLS extends UITools>(
 }
 
 export function getToolName<TOOLS extends UITools>(
-  part: ToolUIPart<TOOLS>
+  part: ToolUIPart<TOOLS>,
 ): keyof TOOLS {
   return part.type.split('-').slice(1).join('-') as keyof TOOLS;
 }
