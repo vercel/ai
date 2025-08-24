@@ -644,9 +644,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     let rootSpan!: Span;
 
-    let streamStep!: (args: { currentStep: number; responseMessages: Array<ResponseMessage>; usage: LanguageModelUsage; retriedError?: any }) => Promise<void>;
+    let streamStep!: (args: {
+      currentStep: number;
+      responseMessages: Array<ResponseMessage>;
+      usage: LanguageModelUsage;
+      retriedError?: any;
+    }) => Promise<void>;
     let retryRequested = false;
-    
+
     // Variables to capture current step state for retry
     let currentStepNumber: number;
     let currentResponseMessages: Array<ResponseMessage>;
@@ -1086,7 +1091,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           currentStepNumber = currentStep;
           currentResponseMessages = responseMessages;
           currentUsage = usage;
-          
+
           const includeRawChunks = self.includeRawChunks;
 
           stepFinish = new DelayedPromise<void>();

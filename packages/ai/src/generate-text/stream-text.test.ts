@@ -4359,17 +4359,23 @@ describe('streamText', () => {
 
       // Check there are no errors in the stream (retry handled transparently)
       expect(parts.filter(p => p.type === 'error')).toHaveLength(0);
-      
+
       // Check we got both text parts
       const textDeltas = parts.filter(p => p.type === 'text-delta');
       expect(textDeltas).toHaveLength(2);
-      expect(textDeltas[0]).toMatchObject({ type: 'text-delta', text: 'Hello' });
-      expect(textDeltas[1]).toMatchObject({ type: 'text-delta', text: ' world' });
-      
+      expect(textDeltas[0]).toMatchObject({
+        type: 'text-delta',
+        text: 'Hello',
+      });
+      expect(textDeltas[1]).toMatchObject({
+        type: 'text-delta',
+        text: ' world',
+      });
+
       // Check we have two steps (original + retry)
       const stepStarts = parts.filter(p => p.type === 'start-step');
       expect(stepStarts).toHaveLength(2);
-      
+
       const stepFinishes = parts.filter(p => p.type === 'finish-step');
       expect(stepFinishes).toHaveLength(2);
       expect(stepFinishes[0]).toMatchObject({ finishReason: 'error' });
@@ -4492,7 +4498,9 @@ describe('streamText', () => {
         },
         {
           role: 'assistant',
-          content: [{ type: 'text', text: 'Hello', providerOptions: undefined }],
+          content: [
+            { type: 'text', text: 'Hello', providerOptions: undefined },
+          ],
           providerOptions: undefined,
         },
       ]);
@@ -4508,7 +4516,10 @@ describe('streamText', () => {
             stream: convertArrayToReadableStream([
               { type: 'text-start', id: '1' },
               { type: 'text-delta', id: '1', delta: 'Hello' },
-              { type: 'error', error: { type: 'overloaded', message: 'Model overloaded' } },
+              {
+                type: 'error',
+                error: { type: 'overloaded', message: 'Model overloaded' },
+              },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
@@ -4541,7 +4552,7 @@ describe('streamText', () => {
       const result = streamText({
         model: firstModel,
         prompt: 'test-input',
-        prepareStep: (options) => {
+        prepareStep: options => {
           prepareStepCalls.push({
             stepNumber: options.stepNumber,
             retriedError: options.retriedError,
@@ -4564,7 +4575,7 @@ describe('streamText', () => {
 
       // Verify first model was called exactly once
       expect(firstModelSpy).toHaveBeenCalledTimes(1);
-      
+
       // Verify second model was called exactly once (proving model switch worked)
       expect(secondModelSpy).toHaveBeenCalledTimes(1);
 
