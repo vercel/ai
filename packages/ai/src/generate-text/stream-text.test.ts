@@ -4429,17 +4429,6 @@ describe('streamText', () => {
             },
           },
           {
-            "finishReason": "error",
-            "totalUsage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": undefined,
-              "outputTokens": undefined,
-              "reasoningTokens": undefined,
-              "totalTokens": undefined,
-            },
-            "type": "finish",
-          },
-          {
             "request": {},
             "type": "start-step",
             "warnings": [],
