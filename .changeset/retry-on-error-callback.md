@@ -1,5 +1,5 @@
 ---
-'ai': minor
+'ai': patch
 ---
 
 feat(ai/streamText): Add retry capability to onError callback
