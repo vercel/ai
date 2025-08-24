@@ -105,12 +105,13 @@ export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
 /**
 Callback that is set using the `onError` option.
 
-@param event - The event that is passed to the callback.
+@param error - The error that occurred.
+@param options - Options object containing the retry function.
  */
-export type StreamTextOnErrorCallback = (event: {
-  error: unknown;
-  retry: () => Promise<void>;
-}) => PromiseLike<void> | void;
+export type StreamTextOnErrorCallback = (
+  error: unknown,
+  options: { retry: () => Promise<void> },
+) => PromiseLike<void> | void;
 
 /**
 Callback that is set using the `onStepFinish` option.
@@ -247,7 +248,7 @@ export function streamText<
   experimental_transform: transform,
   includeRawChunks = false,
   onChunk,
-  onError = ({ error }) => {
+  onError = error => {
     console.error(error);
   },
   onFinish,
@@ -732,7 +733,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             });
           };
 
-          await onError({ error: wrappedError, retry });
+          await onError(wrappedError, { retry });
 
           // Only forward the error if retry was not requested
           if (!retryRequested) {

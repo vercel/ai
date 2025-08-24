@@ -1462,8 +1462,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(onError).toHaveBeenCalledWith({
-        error: new Error('test error'),
+      expect(onError).toHaveBeenCalledWith(new Error('test error'), {
         retry: expect.any(Function),
       });
     });
@@ -1516,8 +1515,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(onError).toHaveBeenCalledWith({
-        error: new Error('test error'),
+      expect(onError).toHaveBeenCalledWith(new Error('test error'), {
         retry: expect.any(Function),
       });
     });
@@ -4301,8 +4299,8 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
-        onError(event) {
-          result.push(event);
+        onError(error, options) {
+          result.push({ error, retry: options.retry });
         },
       });
 
@@ -4350,7 +4348,7 @@ describe('streamText', () => {
       const result = streamText({
         model,
         prompt: 'test-input',
-        onError: async ({ retry }) => {
+        onError: async (error, { retry }) => {
           await retry();
         },
       });
@@ -4542,7 +4540,7 @@ describe('streamText', () => {
       const result = streamText({
         model,
         prompt: 'test-input',
-        onError: async ({ retry }) => {
+        onError: async (error, { retry }) => {
           await retry();
         },
       });
@@ -4613,7 +4611,7 @@ describe('streamText', () => {
           }
           return undefined;
         },
-        onError: async ({ retry }) => {
+        onError: async (error, { retry }) => {
           await retry();
         },
       });
