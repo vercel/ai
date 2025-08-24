@@ -652,6 +652,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       retriedError?: any;
     }) => Promise<void>;
     let retryRequested = false;
+    let isInRetryStream = false;
 
     // Variables to capture current step state for retry
     let currentStepNumber: number;
@@ -681,8 +682,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
     >({
       async transform(chunk, controller) {
-        // Only forward non-error chunks immediately, errors are handled below
-        if (chunk.part.type !== 'error') {
+        // Only forward non-error and non-finish chunks immediately
+        // Errors and finish events are handled specially below
+        if (chunk.part.type !== 'error' && chunk.part.type !== 'finish') {
           controller.enqueue(chunk); // forward the chunk to the next stream
         }
 
@@ -884,9 +886,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'finish') {
-          if (retryRequested) {
-            return;
+          // Don't forward finish event if retry was requested and we're not in the retry stream yet
+          if (retryRequested && !isInRetryStream) {
+            return; // Don't forward or record finish event from error stream when retrying
           }
+          // Forward the finish event to the output stream
+          controller.enqueue(chunk);
           recordedTotalUsage = part.totalUsage;
           recordedFinishReason = part.finishReason;
         }
@@ -1096,6 +1101,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           currentStepNumber = currentStep;
           currentResponseMessages = responseMessages;
           currentUsage = usage;
+          
+          // Mark if this is a retry stream
+          if (retriedError) {
+            isInRetryStream = true;
+          }
 
           const includeRawChunks = self.includeRawChunks;
 
