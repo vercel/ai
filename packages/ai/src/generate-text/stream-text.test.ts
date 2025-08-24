@@ -4506,6 +4506,56 @@ describe('streamText', () => {
       ]);
     });
 
+    it('should handle retry correctly when streams use same IDs', async () => {
+      let callCount = 0;
+      const model = new MockLanguageModelV2({
+        doStream: async ({ prompt }) => {
+          callCount++;
+          if (callCount === 1) {
+            // First attempt: text-start with id '1', partial text, then error (no text-end)
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'First attempt' },
+                { type: 'error', error: new Error('Connection lost') },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          }
+          // Retry: also uses id '1' - should work without conflicts
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Retry successful' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test-input',
+        onError: async ({ retry }) => {
+          await retry();
+        },
+      });
+
+      const textParts = [];
+      for await (const part of result.textStream) {
+        textParts.push(part);
+      }
+
+      // Should contain text from first attempt and retry
+      expect(textParts.join('')).toBe('First attemptRetry successful');
+    });
+
     it('should pass retriedError to prepareStep on retry and allow model change', async () => {
       const prepareStepCalls: Array<any> = [];
 

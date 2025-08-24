@@ -713,6 +713,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             // Reset state for retry
             recordedContent = [...contentSnapshot];
 
+            // Clear active content tracking to avoid conflicts with retry stream
+            activeTextContent = {};
+            activeReasoningContent = {};
+
             // Re-run the step with the accumulated content and the error
             await streamStep({
               currentStep: currentStepNumber,
