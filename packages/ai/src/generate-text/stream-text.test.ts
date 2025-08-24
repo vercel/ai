@@ -1464,6 +1464,7 @@ describe('streamText', () => {
 
       expect(onError).toHaveBeenCalledWith({
         error: new Error('test error'),
+        retry: expect.any(Function),
       });
     });
 
@@ -1517,6 +1518,7 @@ describe('streamText', () => {
 
       expect(onError).toHaveBeenCalledWith({
         error: new Error('test error'),
+        retry: expect.any(Function),
       });
     });
 
@@ -4290,7 +4292,7 @@ describe('streamText', () => {
 
   describe('options.onError', () => {
     it('should invoke onError', async () => {
-      const result: Array<{ error: unknown }> = [];
+      const result: Array<{ error: unknown; retry: () => Promise<void> }> = [];
 
       const resultObject = streamText({
         model: new MockLanguageModelV2({
@@ -4306,7 +4308,285 @@ describe('streamText', () => {
 
       await resultObject.consumeStream();
 
-      expect(result).toStrictEqual([{ error: new Error('test error') }]);
+      expect(result).toStrictEqual([
+        { error: new Error('test error'), retry: expect.any(Function) },
+      ]);
+    });
+
+    it('should retry streaming with previous parts', async () => {
+      const prompts: Array<any> = [];
+      let call = 0;
+
+      const model = new MockLanguageModelV2({
+        doStream: async ({ prompt }) => {
+          prompts.push(prompt);
+          call++;
+          if (call === 1) {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'error', error: 'boom' },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          }
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '2' },
+              { type: 'text-delta', id: '2', delta: ' world' },
+              { type: 'text-end', id: '2' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test-input',
+        onError: async ({ retry }) => {
+          await retry();
+        },
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      // Check there are no errors in the stream (retry handled transparently)
+      expect(parts.filter(p => p.type === 'error')).toHaveLength(0);
+      
+      // Check we got both text parts
+      const textDeltas = parts.filter(p => p.type === 'text-delta');
+      expect(textDeltas).toHaveLength(2);
+      expect(textDeltas[0]).toMatchObject({ type: 'text-delta', text: 'Hello' });
+      expect(textDeltas[1]).toMatchObject({ type: 'text-delta', text: ' world' });
+      
+      // Check we have two steps (original + retry)
+      const stepStarts = parts.filter(p => p.type === 'start-step');
+      expect(stepStarts).toHaveLength(2);
+      
+      const stepFinishes = parts.filter(p => p.type === 'finish-step');
+      expect(stepFinishes).toHaveLength(2);
+      expect(stepFinishes[0]).toMatchObject({ finishReason: 'error' });
+      expect(stepFinishes[1]).toMatchObject({ finishReason: 'stop' });
+
+      // Use snapshot for the structure without volatile fields
+      const sanitizedParts = parts.map(part => {
+        const sanitized = { ...part };
+        if ('response' in sanitized && sanitized.response) {
+          sanitized.response = {
+            ...sanitized.response,
+            id: 'id-x',
+            timestamp: new Date(0),
+          };
+        }
+        return sanitized;
+      });
+
+      expect(sanitizedParts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "error",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-x",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "inputTokens": undefined,
+              "outputTokens": undefined,
+              "totalTokens": undefined,
+            },
+          },
+          {
+            "finishReason": "error",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": undefined,
+              "outputTokens": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": undefined,
+            },
+            "type": "finish",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "2",
+            "type": "text-start",
+          },
+          {
+            "id": "2",
+            "providerMetadata": undefined,
+            "text": " world",
+            "type": "text-delta",
+          },
+          {
+            "id": "2",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-x",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "reasoningTokens": undefined,
+              "totalTokens": 0,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
+
+      expect(prompts[1]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello', providerOptions: undefined }],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
+    it('should pass retriedError to prepareStep on retry and allow model change', async () => {
+      const prepareStepCalls: Array<any> = [];
+
+      const firstModel = new MockLanguageModelV2({
+        doStream: async ({ prompt }) => {
+          // First model should only be called once, then error
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'error', error: { type: 'overloaded', message: 'Model overloaded' } },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      });
+
+      const secondModel = new MockLanguageModelV2({
+        doStream: async ({ prompt }) => {
+          // Second model provides successful response
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '2' },
+              { type: 'text-delta', id: '2', delta: ' from backup model' },
+              { type: 'text-end', id: '2' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      });
+
+      // Spy on doStream methods to verify they're called
+      const firstModelSpy = vi.spyOn(firstModel, 'doStream');
+      const secondModelSpy = vi.spyOn(secondModel, 'doStream');
+
+      const result = streamText({
+        model: firstModel,
+        prompt: 'test-input',
+        prepareStep: (options) => {
+          prepareStepCalls.push({
+            stepNumber: options.stepNumber,
+            retriedError: options.retriedError,
+          });
+          // Switch to second model on retry after overloaded error
+          if (options.retriedError?.type === 'overloaded') {
+            return { model: secondModel };
+          }
+          return undefined;
+        },
+        onError: async ({ retry }) => {
+          await retry();
+        },
+      });
+
+      const textParts = [];
+      for await (const part of result.textStream) {
+        textParts.push(part);
+      }
+
+      // Verify first model was called exactly once
+      expect(firstModelSpy).toHaveBeenCalledTimes(1);
+      
+      // Verify second model was called exactly once (proving model switch worked)
+      expect(secondModelSpy).toHaveBeenCalledTimes(1);
+
+      // Verify prepareStep was called twice
+      expect(prepareStepCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "retriedError": undefined,
+            "stepNumber": 0,
+          },
+          {
+            "retriedError": {
+              "message": "Model overloaded",
+              "type": "overloaded",
+            },
+            "stepNumber": 0,
+          },
+        ]
+      `);
+
+      // Verify the output contains text from both models
+      expect(textParts.join('')).toBe('Hello from backup model');
     });
   });
 
