@@ -29,6 +29,7 @@ describe('meta', () => {
     });
 
     expect(jsonSchema).toStrictEqual({
+      $schema: 'http://json-schema.org/draft-07/schema#',
       additionalProperties: false,
       description: 'sssssssss',
       properties: {

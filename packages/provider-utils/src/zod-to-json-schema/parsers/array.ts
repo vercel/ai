@@ -1,5 +1,4 @@
 import { ZodArrayDef, ZodFirstPartyTypeKind } from 'zod/v3';
-import { ErrorMessages, setResponseValueAndErrors } from '../error-messages';
 import { parseDef } from '../parse-def';
 import { JsonSchema7Type } from '../parse-types';
 import { Refs } from '../refs';
@@ -9,7 +8,6 @@ export type JsonSchema7ArrayType = {
   items?: JsonSchema7Type;
   minItems?: number;
   maxItems?: number;
-  errorMessages?: ErrorMessages<JsonSchema7ArrayType, 'items'>;
 };
 
 export function parseArrayDef(def: ZodArrayDef, refs: Refs) {
@@ -27,38 +25,14 @@ export function parseArrayDef(def: ZodArrayDef, refs: Refs) {
   }
 
   if (def.minLength) {
-    setResponseValueAndErrors(
-      res,
-      'minItems',
-      def.minLength.value,
-      def.minLength.message,
-      refs,
-    );
+    res.minItems = def.minLength.value;
   }
   if (def.maxLength) {
-    setResponseValueAndErrors(
-      res,
-      'maxItems',
-      def.maxLength.value,
-      def.maxLength.message,
-      refs,
-    );
+    res.maxItems = def.maxLength.value;
   }
   if (def.exactLength) {
-    setResponseValueAndErrors(
-      res,
-      'minItems',
-      def.exactLength.value,
-      def.exactLength.message,
-      refs,
-    );
-    setResponseValueAndErrors(
-      res,
-      'maxItems',
-      def.exactLength.value,
-      def.exactLength.message,
-      refs,
-    );
+    res.minItems = def.exactLength.value;
+    res.maxItems = def.exactLength.value;
   }
   return res;
 }

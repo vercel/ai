@@ -3,7 +3,5 @@ export type JsonSchema7BooleanType = {
 };
 
 export function parseBooleanDef(): JsonSchema7BooleanType {
-  return {
-    type: 'boolean',
-  };
+  return { type: 'boolean' };
 }

@@ -1,6 +1,5 @@
 import { ZodBigIntDef } from 'zod/v3';
 import { Refs } from '../refs';
-import { ErrorMessages, setResponseValueAndErrors } from '../error-messages';
 
 export type JsonSchema7BigintType = {
   type: 'integer';
@@ -10,7 +9,6 @@ export type JsonSchema7BigintType = {
   maximum?: BigInt;
   exclusiveMaximum?: BigInt;
   multipleOf?: BigInt;
-  errorMessage?: ErrorMessages<JsonSchema7BigintType>;
 };
 
 export function parseBigintDef(
@@ -27,77 +25,22 @@ export function parseBigintDef(
   for (const check of def.checks) {
     switch (check.kind) {
       case 'min':
-        if (refs.target === 'jsonSchema7') {
-          if (check.inclusive) {
-            setResponseValueAndErrors(
-              res,
-              'minimum',
-              check.value,
-              check.message,
-              refs,
-            );
-          } else {
-            setResponseValueAndErrors(
-              res,
-              'exclusiveMinimum',
-              check.value,
-              check.message,
-              refs,
-            );
-          }
+        if (check.inclusive) {
+          res.minimum = check.value;
         } else {
-          if (!check.inclusive) {
-            res.exclusiveMinimum = true as any;
-          }
-          setResponseValueAndErrors(
-            res,
-            'minimum',
-            check.value,
-            check.message,
-            refs,
-          );
+          res.exclusiveMaximum = check.value;
         }
         break;
       case 'max':
-        if (refs.target === 'jsonSchema7') {
-          if (check.inclusive) {
-            setResponseValueAndErrors(
-              res,
-              'maximum',
-              check.value,
-              check.message,
-              refs,
-            );
-          } else {
-            setResponseValueAndErrors(
-              res,
-              'exclusiveMaximum',
-              check.value,
-              check.message,
-              refs,
-            );
-          }
+        if (check.inclusive) {
+          res.maximum = check.value;
         } else {
-          if (!check.inclusive) {
-            res.exclusiveMaximum = true as any;
-          }
-          setResponseValueAndErrors(
-            res,
-            'maximum',
-            check.value,
-            check.message,
-            refs,
-          );
+          res.exclusiveMaximum = check.value;
         }
+
         break;
       case 'multipleOf':
-        setResponseValueAndErrors(
-          res,
-          'multipleOf',
-          check.value,
-          check.message,
-          refs,
-        );
+        res.multipleOf = check.value;
         break;
     }
   }

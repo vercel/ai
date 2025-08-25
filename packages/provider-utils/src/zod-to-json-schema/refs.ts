@@ -1,5 +1,5 @@
 import { ZodTypeDef } from 'zod/v3';
-import { getDefaultOptions, Options, Targets } from './options';
+import { getDefaultOptions, Options } from './options';
 import { JsonSchema7Type } from './parse-types';
 
 export type Refs = {
@@ -7,7 +7,7 @@ export type Refs = {
   currentPath: string[];
   propertyPath: string[] | undefined;
   flags: { hasReferencedOpenAiAnyType: boolean };
-} & Options<Targets>;
+} & Options;
 
 export type Seen = {
   def: ZodTypeDef;
@@ -15,7 +15,7 @@ export type Seen = {
   jsonSchema: JsonSchema7Type | undefined;
 };
 
-export const getRefs = (options?: string | Partial<Options<Targets>>): Refs => {
+export const getRefs = (options?: string | Partial<Options>): Refs => {
   const _options = getDefaultOptions(options);
   const currentPath =
     _options.name !== undefined

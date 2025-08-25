@@ -2,8 +2,6 @@ import { ZodSchema, ZodTypeDef } from 'zod/v3';
 import { Refs, Seen } from './refs';
 import { JsonSchema7Type } from './parse-types';
 
-export type Targets = 'jsonSchema7' | 'openApi3' | 'openAi';
-
 export type DateStrategy =
   | 'format:date-time'
   | 'format:date'
@@ -40,7 +38,7 @@ export const jsonDescription: PostProcessCallback = (jsonSchema, def) => {
   return jsonSchema;
 };
 
-export type Options<Target extends Targets = 'jsonSchema7'> = {
+export type Options = {
   name: string | undefined;
   $refStrategy: 'root' | 'relative' | 'none' | 'seen';
   basePath: string[];
@@ -51,7 +49,6 @@ export type Options<Target extends Targets = 'jsonSchema7'> = {
   removeAdditionalStrategy: 'passthrough' | 'strict';
   allowedAdditionalProperties: true | undefined;
   rejectedAdditionalProperties: false | undefined;
-  target: Target;
   strictUnions: boolean;
   definitionPath: string;
   definitions: Record<string, ZodSchema>;
@@ -78,7 +75,6 @@ export const defaultOptions: Options = {
   allowedAdditionalProperties: true,
   rejectedAdditionalProperties: false,
   definitionPath: 'definitions',
-  target: 'jsonSchema7',
   strictUnions: false,
   definitions: {},
   errorMessages: false,
@@ -90,8 +86,8 @@ export const defaultOptions: Options = {
   openAiAnyTypeName: 'OpenAiAnyType',
 };
 
-export const getDefaultOptions = <Target extends Targets>(
-  options: Partial<Options<Target>> | string | undefined,
+export const getDefaultOptions = (
+  options: Partial<Options> | string | undefined,
 ) =>
   (typeof options === 'string'
     ? {
@@ -101,4 +97,4 @@ export const getDefaultOptions = <Target extends Targets>(
     : {
         ...defaultOptions,
         ...options,
-      }) as Options<Target>;
+      }) as Options;
