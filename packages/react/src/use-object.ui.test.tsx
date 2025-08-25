@@ -40,6 +40,16 @@ describe('text stream', () => {
         credentials,
       });
 
+    const handleSubmitFormData = () => {
+      const formData = new FormData();
+      formData.append(
+        'file',
+        new Blob(['test content'], { type: 'text/plain' }),
+        'test.txt',
+      );
+      submit(formData);
+    };
+
     return (
       <div>
         <div data-testid="loading">{isLoading.toString()}</div>
@@ -50,6 +60,12 @@ describe('text stream', () => {
           onClick={() => submit('test-input')}
         >
           Generate
+        </button>
+        <button
+          data-testid="submit-formdata-button"
+          onClick={handleSubmitFormData}
+        >
+          Submit FormData
         </button>
         <button data-testid="stop-button" onClick={stop}>
           Stop
@@ -96,6 +112,35 @@ describe('text stream', () => {
 
       it("should send 'test' to the API", async () => {
         expect(await server.calls[0].requestBodyJson).toBe('test-input');
+      });
+
+      it('should not have an error', async () => {
+        await screen.findByTestId('error');
+        expect(screen.getByTestId('error')).toBeEmptyDOMElement();
+        expect(onErrorResult).toBeUndefined();
+      });
+    });
+
+    describe('submitting formData', () => {
+      beforeEach(async () => {
+        server.urls['/api/use-object'].response = {
+          type: 'stream-chunks',
+          chunks: ['{ ', '"content": "Hello, ', 'world', '!"'],
+        };
+        await userEvent.click(screen.getByTestId('submit-formdata-button'));
+      });
+
+      it('should render stream', async () => {
+        await screen.findByTestId('object');
+        expect(screen.getByTestId('object')).toHaveTextContent(
+          JSON.stringify({ content: 'Hello, world!' }),
+        );
+      });
+
+      it('should send FormData to the API', async () => {
+        expect(server.calls[0].requestHeaders['content-type']).toMatch(
+          /^multipart\/form-data; boundary=/,
+        );
       });
 
       it('should not have an error', async () => {
