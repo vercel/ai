@@ -2,10 +2,7 @@ import { cohere } from '@ai-sdk/cohere';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
-// https://docs.cohere.com/docs/reasoning
-
 async function main() {
-  debugger;
   const result = await generateText({
     model: cohere('command-a-reasoning-08-2025'),
     prompt:
