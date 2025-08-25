@@ -18,7 +18,6 @@ import TestChatToolInvocationsComponent from './TestChatToolInvocationsComponent
 import TestChatUrlAttachmentsComponent from './TestChatUrlAttachmentsComponent.vue';
 import { describe, it, expect } from 'vitest';
 
-
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }

@@ -1,7 +1,6 @@
 import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
 import { describe, it, expect } from 'vitest';
 
-
 describe('convertToXaiChatMessages', () => {
   it('should convert simple text messages', () => {
     const { messages, warnings } = convertToXaiChatMessages([

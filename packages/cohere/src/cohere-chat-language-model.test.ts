@@ -7,7 +7,6 @@ import {
 import { createCohere } from './cohere-provider';
 import { describe, it, expect, vi } from 'vitest';
 
-
 const TEST_PROMPT: LanguageModelV2Prompt = [
   {
     role: 'system',

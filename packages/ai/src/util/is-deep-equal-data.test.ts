@@ -2,7 +2,6 @@ import assert from 'node:assert';
 import { isDeepEqualData } from './is-deep-equal-data';
 import { it } from 'vitest';
 
-
 it('should check if two primitives are equal', async () => {
   let x = 1;
   let y = 1;

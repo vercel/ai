@@ -17,7 +17,6 @@ import { groundingMetadataSchema } from './tool/google-search';
 import { urlContextMetadataSchema } from './tool/url-context';
 import { describe, it, expect } from 'vitest';
 
-
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];

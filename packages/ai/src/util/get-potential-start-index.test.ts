@@ -1,7 +1,6 @@
 import { getPotentialStartIndex } from './get-potential-start-index';
 import { describe, it, expect } from 'vitest';
 
-
 describe('getPotentialStartIndex', () => {
   it('should return null when searchedText is empty', () => {
     const result = getPotentialStartIndex('1234567890', '');

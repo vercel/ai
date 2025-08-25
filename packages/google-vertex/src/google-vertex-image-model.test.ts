@@ -2,7 +2,6 @@ import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { describe, it, expect } from 'vitest';
 
-
 const prompt = 'A cute baby sea otter';
 
 const model = new GoogleVertexImageModel('imagen-3.0-generate-002', {

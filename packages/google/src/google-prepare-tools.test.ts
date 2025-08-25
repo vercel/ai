@@ -1,7 +1,6 @@
 import { prepareTools } from './google-prepare-tools';
 import { it, expect } from 'vitest';
 
-
 it('should return undefined tools and tool_choice when tools are null', () => {
   const result = prepareTools({
     tools: undefined,

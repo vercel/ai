@@ -18,7 +18,6 @@ import {
 } from './errors';
 import { describe, it, expect, vi } from 'vitest';
 
-
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];

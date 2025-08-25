@@ -4,7 +4,6 @@ import { parsePartialJson } from './parse-partial-json';
 import { JSONParseError } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
 
-
 vi.mock('@ai-sdk/provider-utils');
 vi.mock('./fix-json');
 

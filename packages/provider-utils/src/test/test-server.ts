@@ -191,12 +191,7 @@ export function createTestServer<
           }
 
           case 'binary': {
-            const arrayBuffer = response.body.buffer.slice(
-              response.body.byteOffset,
-              response.body.byteOffset + response.body.byteLength,
-            );
-
-            return HttpResponse.arrayBuffer(arrayBuffer, {
+            return HttpResponse.arrayBuffer(response.body, {
               status: 200,
               headers: response.headers,
             });

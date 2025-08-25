@@ -6,7 +6,6 @@ import { Completion } from './completion.ng';
 import { beforeAll } from 'vitest';
 import { describe, it, expect, vi } from 'vitest';
 
-
 function formatStreamPart(part: object) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }

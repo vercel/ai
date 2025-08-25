@@ -2,7 +2,6 @@ import { DelayedPromise } from './delayed-promise';
 import { delay } from '@ai-sdk/provider-utils';
 import { describe, it, expect } from 'vitest';
 
-
 describe('DelayedPromise', () => {
   it('should resolve when accessed after resolution', async () => {
     const dp = new DelayedPromise<string>();

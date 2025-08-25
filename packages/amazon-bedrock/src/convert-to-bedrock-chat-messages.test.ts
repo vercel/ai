@@ -2,7 +2,6 @@ import { BedrockReasoningMetadata } from './bedrock-chat-language-model';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { describe, it, expect } from 'vitest';
 
-
 describe('system messages', () => {
   it('should combine multiple leading system messages into a single system message', async () => {
     const { system } = await convertToBedrockChatMessages([

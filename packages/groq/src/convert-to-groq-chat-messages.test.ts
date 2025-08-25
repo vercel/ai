@@ -1,7 +1,6 @@
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { describe, it, expect } from 'vitest';
 
-
 describe('user messages', () => {
   it('should convert messages with image parts', async () => {
     const result = convertToGroqChatMessages([

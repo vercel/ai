@@ -5,7 +5,6 @@ import {
 import { toUIMessageStream } from './llamaindex-adapter';
 import { describe, it, expect } from 'vitest';
 
-
 describe('toUIMessageStream', () => {
   it('should convert AsyncIterable<EngineResponse>', async () => {
     const inputStream = convertArrayToAsyncIterable([

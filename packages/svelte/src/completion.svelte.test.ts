@@ -8,7 +8,6 @@ import { Completion } from './completion.svelte.js';
 import CompletionSynchronization from './tests/completion-synchronization.svelte';
 import { describe, it, expect, vi } from 'vitest';
 
-
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
