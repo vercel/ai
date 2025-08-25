@@ -1,5 +1,25 @@
 # @ai-sdk/groq
 
+## 2.0.14
+
+### Patch Changes
+
+- 1e8f9b7: fix (provider/groq): add missing provider.transcriptionModel
+
+## 2.0.13
+
+### Patch Changes
+
+- 72757a0: feat (provider/groq): add service tier provider option
+
+## 2.0.12
+
+### Patch Changes
+
+- 0857788: fix(provider/groq): `experimental_transcribe` fails with valid Buffer
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
 ## 2.0.11
 
 ### Patch Changes

@@ -300,7 +300,7 @@ Default and recommended: 'auto' (best mode for the model).
           system,
           prompt,
           messages,
-        });
+        } as Prompt);
 
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: standardizedPrompt,

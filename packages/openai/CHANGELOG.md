@@ -1,5 +1,30 @@
 # @ai-sdk/openai
 
+## 2.0.20
+
+### Patch Changes
+
+- 974de40: fix(provider/ai): do not set `.providerMetadata.openai.logprobs` to an array of empty arrays when using `streamText()`
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 2.0.18
+
+### Patch Changes
+
+- 5e47d00: Support Responses API input_file file_url passthrough for PDFs.
+
+  This adds:
+
+  - file_url variant to OpenAIResponses user content
+  - PDF URL mapping to input_file with file_url in Responses converter
+  - PDF URL support in supportedUrls to avoid auto-download
+
 ## 2.0.17
 
 ### Patch Changes

@@ -10,6 +10,7 @@ import {
   DynamicToolUIPart,
   FileUIPart,
   getToolName,
+  isToolOrDynamicToolUIPart,
   isToolUIPart,
   ReasoningUIPart,
   TextUIPart,
@@ -40,7 +41,7 @@ export function convertToModelMessages(
       ...message,
       parts: message.parts.filter(
         part =>
-          !isToolUIPart(part) ||
+          !isToolOrDynamicToolUIPart(part) ||
           (part.state !== 'input-streaming' &&
             part.state !== 'input-available'),
       ),

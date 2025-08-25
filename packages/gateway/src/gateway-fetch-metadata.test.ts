@@ -145,6 +145,47 @@ describe('GatewayFetchMetadata', () => {
       expect(result.models[0].description).toBe('A powerful language model');
     });
 
+    it('should accept top-level modelType when present', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [
+            {
+              ...mockModelEntry,
+              modelType: 'language',
+            },
+          ],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+      expect(result.models[0].modelType).toBe('language');
+    });
+
+    it('should reject invalid top-level modelType values', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [
+            {
+              id: 'model-invalid-type',
+              name: 'Invalid Type Model',
+              specification: {
+                specificationVersion: 'v2' as const,
+                provider: 'test-provider',
+                modelId: 'model-invalid-type',
+              },
+              modelType: 'text',
+            },
+          ],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      await expect(metadata.getAvailableModels()).rejects.toThrow();
+    });
+
     it('should pass headers correctly', async () => {
       const metadata = createBasicMetadataFetcher({
         headers: () => ({
