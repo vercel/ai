@@ -301,10 +301,7 @@ export function getToolName<TOOLS extends UITools>(
 export function getToolOrDynamicToolName(
   part: ToolUIPart<UITools> | DynamicToolUIPart,
 ): string {
-  if (isDynamicToolUIPart(part)) {
-    return part.toolName;
-  }
-  return part.type.split('-').slice(1).join('-');
+  return isDynamicToolUIPart(part) ? part.toolName : getToolName(part);
 }
 
 export type InferUIMessageMetadata<T extends UIMessage> =
