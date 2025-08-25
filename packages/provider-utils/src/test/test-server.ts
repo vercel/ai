@@ -193,7 +193,7 @@ export function createTestServer<
           case 'binary': {
             const arrayBuffer = response.body.buffer.slice(
               response.body.byteOffset,
-              response.body.byteOffset + response.body.byteLength
+              response.body.byteOffset + response.body.byteLength,
             );
 
             return HttpResponse.arrayBuffer(arrayBuffer, {
@@ -201,7 +201,6 @@ export function createTestServer<
               headers: response.headers,
             });
           }
-
 
           case 'error':
             return HttpResponse.text(response.body ?? 'Error', {
