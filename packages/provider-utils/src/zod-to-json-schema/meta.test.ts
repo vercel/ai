@@ -24,7 +24,6 @@ describe('meta', () => {
       .describe('sssssssss');
 
     const jsonSchema = zodToJsonSchema(zodSchema, {
-      target: 'openApi3',
       $refStrategy: 'none',
     });
 
