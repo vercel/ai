@@ -6,7 +6,6 @@ export type Refs = {
   seen: Map<ZodTypeDef, Seen>;
   currentPath: string[];
   propertyPath: string[] | undefined;
-  flags: { hasReferencedOpenAiAnyType: boolean };
 } & Options;
 
 export type Seen = {
@@ -23,7 +22,6 @@ export const getRefs = (options?: string | Partial<Options>): Refs => {
       : _options.basePath;
   return {
     ..._options,
-    flags: { hasReferencedOpenAiAnyType: false },
     currentPath: currentPath,
     propertyPath: undefined,
     seen: new Map(

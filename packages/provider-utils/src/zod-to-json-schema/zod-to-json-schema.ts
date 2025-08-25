@@ -65,29 +65,6 @@ const zodToJsonSchema = (
     main.title = title;
   }
 
-  if (refs.flags.hasReferencedOpenAiAnyType) {
-    if (!definitions) {
-      definitions = {};
-    }
-
-    if (!definitions[refs.openAiAnyTypeName]) {
-      definitions[refs.openAiAnyTypeName] = {
-        // Skipping "object" as no properties can be defined and additionalProperties must be "false"
-        type: ['string', 'number', 'integer', 'boolean', 'array', 'null'],
-        items: {
-          $ref:
-            refs.$refStrategy === 'relative'
-              ? '1'
-              : [
-                  ...refs.basePath,
-                  refs.definitionPath,
-                  refs.openAiAnyTypeName,
-                ].join('/'),
-        },
-      } as JsonSchema7Type;
-    }
-  }
-
   const combined: ReturnType<typeof zodToJsonSchema> =
     name === undefined
       ? definitions
