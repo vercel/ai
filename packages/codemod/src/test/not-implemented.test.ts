@@ -1,0 +1,9 @@
+import { describe, it } from 'vitest';
+import transformer from '../codemods/v5/not-implemented';
+import { testTransform } from './test-utils';
+
+describe('not-implemented', () => {
+  it('transforms correctly', () => {
+    testTransform(transformer, 'not-implemented');
+  });
+});
