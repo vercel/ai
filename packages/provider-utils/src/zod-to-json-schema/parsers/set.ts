@@ -1,11 +1,11 @@
-import { ZodSetDef } from "zod";
-import { ErrorMessages, setResponseValueAndErrors } from "../errorMessages.js";
-import { parseDef } from "../parseDef.js";
-import { JsonSchema7Type } from "../parseTypes.js";
-import { Refs } from "../Refs.js";
+import { ZodSetDef } from 'zod';
+import { ErrorMessages, setResponseValueAndErrors } from '../errorMessages.js';
+import { parseDef } from '../parseDef.js';
+import { JsonSchema7Type } from '../parseTypes.js';
+import { Refs } from '../Refs.js';
 
 export type JsonSchema7SetType = {
-  type: "array";
+  type: 'array';
   uniqueItems: true;
   items?: JsonSchema7Type;
   minItems?: number;
@@ -16,11 +16,11 @@ export type JsonSchema7SetType = {
 export function parseSetDef(def: ZodSetDef, refs: Refs): JsonSchema7SetType {
   const items = parseDef(def.valueType._def, {
     ...refs,
-    currentPath: [...refs.currentPath, "items"],
+    currentPath: [...refs.currentPath, 'items'],
   });
 
   const schema: JsonSchema7SetType = {
-    type: "array",
+    type: 'array',
     uniqueItems: true,
     items,
   };
@@ -28,7 +28,7 @@ export function parseSetDef(def: ZodSetDef, refs: Refs): JsonSchema7SetType {
   if (def.minSize) {
     setResponseValueAndErrors(
       schema,
-      "minItems",
+      'minItems',
       def.minSize.value,
       def.minSize.message,
       refs,
@@ -38,7 +38,7 @@ export function parseSetDef(def: ZodSetDef, refs: Refs): JsonSchema7SetType {
   if (def.maxSize) {
     setResponseValueAndErrors(
       schema,
-      "maxItems",
+      'maxItems',
       def.maxSize.value,
       def.maxSize.message,
       refs,

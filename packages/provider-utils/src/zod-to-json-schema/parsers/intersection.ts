@@ -1,8 +1,8 @@
-import { ZodIntersectionDef } from "zod";
-import { parseDef } from "../parseDef.js";
-import { JsonSchema7Type } from "../parseTypes.js";
-import { Refs } from "../Refs.js";
-import { JsonSchema7StringType } from "./string.js";
+import { ZodIntersectionDef } from 'zod';
+import { parseDef } from '../parseDef.js';
+import { JsonSchema7Type } from '../parseTypes.js';
+import { Refs } from '../Refs.js';
+import { JsonSchema7StringType } from './string.js';
 
 export type JsonSchema7AllOfType = {
   allOf: JsonSchema7Type[];
@@ -12,8 +12,8 @@ export type JsonSchema7AllOfType = {
 const isJsonSchema7AllOfType = (
   type: JsonSchema7Type | JsonSchema7StringType,
 ): type is JsonSchema7AllOfType => {
-  if ("type" in type && type.type === "string") return false;
-  return "allOf" in type;
+  if ('type' in type && type.type === 'string') return false;
+  return 'allOf' in type;
 };
 
 export function parseIntersectionDef(
@@ -23,24 +23,24 @@ export function parseIntersectionDef(
   const allOf = [
     parseDef(def.left._def, {
       ...refs,
-      currentPath: [...refs.currentPath, "allOf", "0"],
+      currentPath: [...refs.currentPath, 'allOf', '0'],
     }),
     parseDef(def.right._def, {
       ...refs,
-      currentPath: [...refs.currentPath, "allOf", "1"],
+      currentPath: [...refs.currentPath, 'allOf', '1'],
     }),
   ].filter((x): x is JsonSchema7Type => !!x);
 
   let unevaluatedProperties:
-    | Pick<JsonSchema7AllOfType, "unevaluatedProperties">
+    | Pick<JsonSchema7AllOfType, 'unevaluatedProperties'>
     | undefined =
-    refs.target === "jsonSchema2019-09"
+    refs.target === 'jsonSchema2019-09'
       ? { unevaluatedProperties: false }
       : undefined;
 
   const mergedAllOf: JsonSchema7Type[] = [];
   // If either of the schemas is an allOf, merge them into a single allOf
-  allOf.forEach((schema) => {
+  allOf.forEach(schema => {
     if (isJsonSchema7AllOfType(schema)) {
       mergedAllOf.push(...schema.allOf);
       if (schema.unevaluatedProperties === undefined) {
@@ -51,7 +51,7 @@ export function parseIntersectionDef(
     } else {
       let nestedSchema: JsonSchema7Type = schema;
       if (
-        "additionalProperties" in schema &&
+        'additionalProperties' in schema &&
         schema.additionalProperties === false
       ) {
         const { additionalProperties, ...rest } = schema;

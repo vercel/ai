@@ -1,10 +1,10 @@
-import { ZodTupleDef, ZodTupleItems, ZodTypeAny } from "zod";
-import { parseDef } from "../parseDef.js";
-import { JsonSchema7Type } from "../parseTypes.js";
-import { Refs } from "../Refs.js";
+import { ZodTupleDef, ZodTupleItems, ZodTypeAny } from 'zod';
+import { parseDef } from '../parseDef.js';
+import { JsonSchema7Type } from '../parseTypes.js';
+import { Refs } from '../Refs.js';
 
 export type JsonSchema7TupleType = {
-  type: "array";
+  type: 'array';
   minItems: number;
   items: JsonSchema7Type[];
 } & (
@@ -22,13 +22,13 @@ export function parseTupleDef(
 ): JsonSchema7TupleType {
   if (def.rest) {
     return {
-      type: "array",
+      type: 'array',
       minItems: def.items.length,
       items: def.items
         .map((x, i) =>
           parseDef(x._def, {
             ...refs,
-            currentPath: [...refs.currentPath, "items", `${i}`],
+            currentPath: [...refs.currentPath, 'items', `${i}`],
           }),
         )
         .reduce(
@@ -37,19 +37,19 @@ export function parseTupleDef(
         ),
       additionalItems: parseDef(def.rest._def, {
         ...refs,
-        currentPath: [...refs.currentPath, "additionalItems"],
+        currentPath: [...refs.currentPath, 'additionalItems'],
       }),
     };
   } else {
     return {
-      type: "array",
+      type: 'array',
       minItems: def.items.length,
       maxItems: def.items.length,
       items: def.items
         .map((x, i) =>
           parseDef(x._def, {
             ...refs,
-            currentPath: [...refs.currentPath, "items", `${i}`],
+            currentPath: [...refs.currentPath, 'items', `${i}`],
           }),
         )
         .reduce(

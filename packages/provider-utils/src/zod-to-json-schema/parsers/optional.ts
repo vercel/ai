@@ -1,8 +1,8 @@
-import { ZodOptionalDef } from "zod";
-import { parseDef } from "../parseDef.js";
-import { JsonSchema7Type } from "../parseTypes.js";
-import { Refs } from "../Refs.js";
-import { parseAnyDef } from "./any.js";
+import { ZodOptionalDef } from 'zod';
+import { parseDef } from '../parseDef.js';
+import { JsonSchema7Type } from '../parseTypes.js';
+import { Refs } from '../Refs.js';
+import { parseAnyDef } from './any.js';
 
 export const parseOptionalDef = (
   def: ZodOptionalDef,
@@ -14,7 +14,7 @@ export const parseOptionalDef = (
 
   const innerSchema = parseDef(def.innerType._def, {
     ...refs,
-    currentPath: [...refs.currentPath, "anyOf", "1"],
+    currentPath: [...refs.currentPath, 'anyOf', '1'],
   });
 
   return innerSchema

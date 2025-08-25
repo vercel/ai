@@ -3,17 +3,17 @@ import {
   ZodLiteralDef,
   ZodTypeAny,
   ZodUnionDef,
-} from "zod";
-import { parseDef } from "../parseDef.js";
-import { JsonSchema7Type } from "../parseTypes.js";
-import { Refs } from "../Refs.js";
+} from 'zod';
+import { parseDef } from '../parseDef.js';
+import { JsonSchema7Type } from '../parseTypes.js';
+import { Refs } from '../Refs.js';
 
 export const primitiveMappings = {
-  ZodString: "string",
-  ZodNumber: "number",
-  ZodBigInt: "integer",
-  ZodBoolean: "boolean",
-  ZodNull: "null",
+  ZodString: 'string',
+  ZodNumber: 'number',
+  ZodBigInt: 'integer',
+  ZodBoolean: 'boolean',
+  ZodNull: 'null',
 } as const;
 type ZodPrimitive = keyof typeof primitiveMappings;
 type JsonSchema7Primitive =
@@ -40,7 +40,7 @@ export function parseUnionDef(
   def: ZodUnionDef | ZodDiscriminatedUnionDef<any, any>,
   refs: Refs,
 ): JsonSchema7PrimitiveUnionType | JsonSchema7AnyOfType | undefined {
-  if (refs.target === "openApi3") return asAnyOf(def, refs);
+  if (refs.target === 'openApi3') return asAnyOf(def, refs);
 
   const options: readonly ZodTypeAny[] =
     def.options instanceof Map ? Array.from(def.options.values()) : def.options;
@@ -48,7 +48,7 @@ export function parseUnionDef(
   // This blocks tries to look ahead a bit to produce nicer looking schemas with type array instead of anyOf.
   if (
     options.every(
-      (x) =>
+      x =>
         x._def.typeName in primitiveMappings &&
         (!x._def.checks || !x._def.checks.length),
     )
@@ -64,7 +64,7 @@ export function parseUnionDef(
       type: types.length > 1 ? types : types[0],
     };
   } else if (
-    options.every((x) => x._def.typeName === "ZodLiteral" && !x.description)
+    options.every(x => x._def.typeName === 'ZodLiteral' && !x.description)
   ) {
     // all options literals
 
@@ -72,17 +72,17 @@ export function parseUnionDef(
       (acc: JsonSchema7Primitive[], x: { _def: ZodLiteralDef }) => {
         const type = typeof x._def.value;
         switch (type) {
-          case "string":
-          case "number":
-          case "boolean":
+          case 'string':
+          case 'number':
+          case 'boolean':
             return [...acc, type];
-          case "bigint":
-            return [...acc, "integer" as const];
-          case "object":
-            if (x._def.value === null) return [...acc, "null" as const];
-          case "symbol":
-          case "undefined":
-          case "function":
+          case 'bigint':
+            return [...acc, 'integer' as const];
+          case 'object':
+            if (x._def.value === null) return [...acc, 'null' as const];
+          case 'symbol':
+          case 'undefined':
+          case 'function':
           default:
             return acc;
         }
@@ -104,9 +104,9 @@ export function parseUnionDef(
         ),
       };
     }
-  } else if (options.every((x) => x._def.typeName === "ZodEnum")) {
+  } else if (options.every(x => x._def.typeName === 'ZodEnum')) {
     return {
-      type: "string",
+      type: 'string',
       enum: options.reduce(
         (acc: string[], x) => [
           ...acc,
@@ -132,14 +132,14 @@ const asAnyOf = (
     .map((x, i) =>
       parseDef(x._def, {
         ...refs,
-        currentPath: [...refs.currentPath, "anyOf", `${i}`],
+        currentPath: [...refs.currentPath, 'anyOf', `${i}`],
       }),
     )
     .filter(
       (x): x is JsonSchema7Type =>
         !!x &&
         (!refs.strictUnions ||
-          (typeof x === "object" && Object.keys(x).length > 0)),
+          (typeof x === 'object' && Object.keys(x).length > 0)),
     );
 
   return anyOf.length ? { anyOf } : undefined;

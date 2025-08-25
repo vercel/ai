@@ -1,6 +1,6 @@
-import { ZodStringDef } from "zod";
-import { ErrorMessages, setResponseValueAndErrors } from "../errorMessages.js";
-import { Refs } from "../Refs.js";
+import { ZodStringDef } from 'zod';
+import { ErrorMessages, setResponseValueAndErrors } from '../errorMessages.js';
+import { Refs } from '../Refs.js';
 
 let emojiRegex: RegExp | undefined = undefined;
 
@@ -36,8 +36,8 @@ export const zodPatterns = {
   emoji: () => {
     if (emojiRegex === undefined) {
       emojiRegex = RegExp(
-        "^(\\p{Extended_Pictographic}|\\p{Emoji_Component})+$",
-        "u",
+        '^(\\p{Extended_Pictographic}|\\p{Emoji_Component})+$',
+        'u',
       );
     }
     return emojiRegex;
@@ -66,20 +66,20 @@ export const zodPatterns = {
 } as const;
 
 export type JsonSchema7StringType = {
-  type: "string";
+  type: 'string';
   minLength?: number;
   maxLength?: number;
   format?:
-    | "email"
-    | "idn-email"
-    | "uri"
-    | "uuid"
-    | "date-time"
-    | "ipv4"
-    | "ipv6"
-    | "date"
-    | "time"
-    | "duration";
+    | 'email'
+    | 'idn-email'
+    | 'uri'
+    | 'uuid'
+    | 'date-time'
+    | 'ipv4'
+    | 'ipv6'
+    | 'date'
+    | 'time'
+    | 'duration';
   pattern?: string;
   allOf?: {
     pattern: string;
@@ -98,28 +98,28 @@ export function parseStringDef(
   refs: Refs,
 ): JsonSchema7StringType {
   const res: JsonSchema7StringType = {
-    type: "string",
+    type: 'string',
   };
 
   if (def.checks) {
     for (const check of def.checks) {
       switch (check.kind) {
-        case "min":
+        case 'min':
           setResponseValueAndErrors(
             res,
-            "minLength",
-            typeof res.minLength === "number"
+            'minLength',
+            typeof res.minLength === 'number'
               ? Math.max(res.minLength, check.value)
               : check.value,
             check.message,
             refs,
           );
           break;
-        case "max":
+        case 'max':
           setResponseValueAndErrors(
             res,
-            "maxLength",
-            typeof res.maxLength === "number"
+            'maxLength',
+            typeof res.maxLength === 'number'
               ? Math.min(res.maxLength, check.value)
               : check.value,
             check.message,
@@ -127,36 +127,36 @@ export function parseStringDef(
           );
 
           break;
-        case "email":
+        case 'email':
           switch (refs.emailStrategy) {
-            case "format:email":
-              addFormat(res, "email", check.message, refs);
+            case 'format:email':
+              addFormat(res, 'email', check.message, refs);
               break;
-            case "format:idn-email":
-              addFormat(res, "idn-email", check.message, refs);
+            case 'format:idn-email':
+              addFormat(res, 'idn-email', check.message, refs);
               break;
-            case "pattern:zod":
+            case 'pattern:zod':
               addPattern(res, zodPatterns.email, check.message, refs);
               break;
           }
 
           break;
-        case "url":
-          addFormat(res, "uri", check.message, refs);
+        case 'url':
+          addFormat(res, 'uri', check.message, refs);
           break;
-        case "uuid":
-          addFormat(res, "uuid", check.message, refs);
+        case 'uuid':
+          addFormat(res, 'uuid', check.message, refs);
           break;
-        case "regex":
+        case 'regex':
           addPattern(res, check.regex, check.message, refs);
           break;
-        case "cuid":
+        case 'cuid':
           addPattern(res, zodPatterns.cuid, check.message, refs);
           break;
-        case "cuid2":
+        case 'cuid2':
           addPattern(res, zodPatterns.cuid2, check.message, refs);
           break;
-        case "startsWith":
+        case 'startsWith':
           addPattern(
             res,
             RegExp(`^${escapeLiteralCheckValue(check.value, refs)}`),
@@ -164,7 +164,7 @@ export function parseStringDef(
             refs,
           );
           break;
-        case "endsWith":
+        case 'endsWith':
           addPattern(
             res,
             RegExp(`${escapeLiteralCheckValue(check.value, refs)}$`),
@@ -172,23 +172,23 @@ export function parseStringDef(
             refs,
           );
           break;
-        case "datetime":
-          addFormat(res, "date-time", check.message, refs);
+        case 'datetime':
+          addFormat(res, 'date-time', check.message, refs);
           break;
-        case "date":
-          addFormat(res, "date", check.message, refs);
+        case 'date':
+          addFormat(res, 'date', check.message, refs);
           break;
-        case "time":
-          addFormat(res, "time", check.message, refs);
+        case 'time':
+          addFormat(res, 'time', check.message, refs);
           break;
-        case "duration":
-          addFormat(res, "duration", check.message, refs);
+        case 'duration':
+          addFormat(res, 'duration', check.message, refs);
           break;
-        case "length":
+        case 'length':
           setResponseValueAndErrors(
             res,
-            "minLength",
-            typeof res.minLength === "number"
+            'minLength',
+            typeof res.minLength === 'number'
               ? Math.max(res.minLength, check.value)
               : check.value,
             check.message,
@@ -196,15 +196,15 @@ export function parseStringDef(
           );
           setResponseValueAndErrors(
             res,
-            "maxLength",
-            typeof res.maxLength === "number"
+            'maxLength',
+            typeof res.maxLength === 'number'
               ? Math.min(res.maxLength, check.value)
               : check.value,
             check.message,
             refs,
           );
           break;
-        case "includes": {
+        case 'includes': {
           addPattern(
             res,
             RegExp(escapeLiteralCheckValue(check.value, refs)),
@@ -213,68 +213,68 @@ export function parseStringDef(
           );
           break;
         }
-        case "ip": {
-          if (check.version !== "v6") {
-            addFormat(res, "ipv4", check.message, refs);
+        case 'ip': {
+          if (check.version !== 'v6') {
+            addFormat(res, 'ipv4', check.message, refs);
           }
-          if (check.version !== "v4") {
-            addFormat(res, "ipv6", check.message, refs);
+          if (check.version !== 'v4') {
+            addFormat(res, 'ipv6', check.message, refs);
           }
           break;
         }
-        case "base64url":
+        case 'base64url':
           addPattern(res, zodPatterns.base64url, check.message, refs);
           break;
-        case "jwt":
+        case 'jwt':
           addPattern(res, zodPatterns.jwt, check.message, refs);
           break;
-        case "cidr": {
-          if (check.version !== "v6") {
+        case 'cidr': {
+          if (check.version !== 'v6') {
             addPattern(res, zodPatterns.ipv4Cidr, check.message, refs);
           }
-          if (check.version !== "v4") {
+          if (check.version !== 'v4') {
             addPattern(res, zodPatterns.ipv6Cidr, check.message, refs);
           }
           break;
         }
-        case "emoji":
+        case 'emoji':
           addPattern(res, zodPatterns.emoji(), check.message, refs);
           break;
-        case "ulid": {
+        case 'ulid': {
           addPattern(res, zodPatterns.ulid, check.message, refs);
           break;
         }
-        case "base64": {
+        case 'base64': {
           switch (refs.base64Strategy) {
-            case "format:binary": {
-              addFormat(res, "binary" as any, check.message, refs);
+            case 'format:binary': {
+              addFormat(res, 'binary' as any, check.message, refs);
               break;
             }
 
-            case "contentEncoding:base64": {
+            case 'contentEncoding:base64': {
               setResponseValueAndErrors(
                 res,
-                "contentEncoding",
-                "base64",
+                'contentEncoding',
+                'base64',
                 check.message,
                 refs,
               );
               break;
             }
 
-            case "pattern:zod": {
+            case 'pattern:zod': {
               addPattern(res, zodPatterns.base64, check.message, refs);
               break;
             }
           }
           break;
         }
-        case "nanoid": {
+        case 'nanoid': {
           addPattern(res, zodPatterns.nanoid, check.message, refs);
         }
-        case "toLowerCase":
-        case "toUpperCase":
-        case "trim":
+        case 'toLowerCase':
+        case 'toUpperCase':
+        case 'trim':
           break;
         default:
           /* c8 ignore next */
@@ -287,21 +287,21 @@ export function parseStringDef(
 }
 
 function escapeLiteralCheckValue(literal: string, refs: Refs): string {
-  return refs.patternStrategy === "escape"
+  return refs.patternStrategy === 'escape'
     ? escapeNonAlphaNumeric(literal)
     : literal;
 }
 
 const ALPHA_NUMERIC = new Set(
-  "ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvxyz0123456789",
+  'ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvxyz0123456789',
 );
 
 function escapeNonAlphaNumeric(source: string) {
-  let result = "";
+  let result = '';
 
   for (let i = 0; i < source.length; i++) {
     if (!ALPHA_NUMERIC.has(source[i])) {
-      result += "\\";
+      result += '\\';
     }
 
     result += source[i];
@@ -313,11 +313,11 @@ function escapeNonAlphaNumeric(source: string) {
 // Adds a "format" keyword to the schema. If a format exists, both formats will be joined in an allOf-node, along with subsequent ones.
 function addFormat(
   schema: JsonSchema7StringType,
-  value: Required<JsonSchema7StringType>["format"],
+  value: Required<JsonSchema7StringType>['format'],
   message: string | undefined,
   refs: Refs,
 ) {
-  if (schema.format || schema.anyOf?.some((x) => x.format)) {
+  if (schema.format || schema.anyOf?.some(x => x.format)) {
     if (!schema.anyOf) {
       schema.anyOf = [];
     }
@@ -345,7 +345,7 @@ function addFormat(
         refs.errorMessages && { errorMessage: { format: message } }),
     });
   } else {
-    setResponseValueAndErrors(schema, "format", value, message, refs);
+    setResponseValueAndErrors(schema, 'format', value, message, refs);
   }
 }
 
@@ -356,7 +356,7 @@ function addPattern(
   message: string | undefined,
   refs: Refs,
 ) {
-  if (schema.pattern || schema.allOf?.some((x) => x.pattern)) {
+  if (schema.pattern || schema.allOf?.some(x => x.pattern)) {
     if (!schema.allOf) {
       schema.allOf = [];
     }
@@ -386,7 +386,7 @@ function addPattern(
   } else {
     setResponseValueAndErrors(
       schema,
-      "pattern",
+      'pattern',
       stringifyRegExpWithFlags(regex, refs),
       message,
       refs,
@@ -402,14 +402,14 @@ function stringifyRegExpWithFlags(regex: RegExp, refs: Refs): string {
 
   // Currently handled flags
   const flags = {
-    i: regex.flags.includes("i"), // Case-insensitive
-    m: regex.flags.includes("m"), // `^` and `$` matches adjacent to newline characters
-    s: regex.flags.includes("s"), // `.` matches newlines
+    i: regex.flags.includes('i'), // Case-insensitive
+    m: regex.flags.includes('m'), // `^` and `$` matches adjacent to newline characters
+    s: regex.flags.includes('s'), // `.` matches newlines
   };
 
   // The general principle here is to step through each character, one at a time, applying mutations as flags require. We keep track when the current character is escaped, and when it's inside a group /like [this]/ or (also) a range like /[a-z]/. The following is fairly brittle imperative code; edit at your peril!
   const source = flags.i ? regex.source.toLowerCase() : regex.source;
-  let pattern = "";
+  let pattern = '';
   let isEscaped = false;
   let inCharGroup = false;
   let inCharRange = false;
@@ -428,7 +428,7 @@ function stringifyRegExpWithFlags(regex: RegExp, refs: Refs): string {
             pattern += source[i];
             pattern += `${source[i - 2]}-${source[i]}`.toUpperCase();
             inCharRange = false;
-          } else if (source[i + 1] === "-" && source[i + 2]?.match(/[a-z]/)) {
+          } else if (source[i + 1] === '-' && source[i + 2]?.match(/[a-z]/)) {
             pattern += source[i];
             inCharRange = true;
           } else {
@@ -443,26 +443,26 @@ function stringifyRegExpWithFlags(regex: RegExp, refs: Refs): string {
     }
 
     if (flags.m) {
-      if (source[i] === "^") {
+      if (source[i] === '^') {
         pattern += `(^|(?<=[\r\n]))`;
         continue;
-      } else if (source[i] === "$") {
+      } else if (source[i] === '$') {
         pattern += `($|(?=[\r\n]))`;
         continue;
       }
     }
 
-    if (flags.s && source[i] === ".") {
+    if (flags.s && source[i] === '.') {
       pattern += inCharGroup ? `${source[i]}\r\n` : `[${source[i]}\r\n]`;
       continue;
     }
 
     pattern += source[i];
-    if (source[i] === "\\") {
+    if (source[i] === '\\') {
       isEscaped = true;
-    } else if (inCharGroup && source[i] === "]") {
+    } else if (inCharGroup && source[i] === ']') {
       inCharGroup = false;
-    } else if (!inCharGroup && source[i] === "[") {
+    } else if (!inCharGroup && source[i] === '[') {
       inCharGroup = true;
     }
   }
@@ -472,7 +472,7 @@ function stringifyRegExpWithFlags(regex: RegExp, refs: Refs): string {
   } catch {
     console.warn(
       `Could not convert regex pattern at ${refs.currentPath.join(
-        "/",
+        '/',
       )} to a flag-independent form! Falling back to the flag-ignorant source`,
     );
     return regex.source;

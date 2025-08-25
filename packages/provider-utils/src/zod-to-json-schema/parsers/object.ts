@@ -1,20 +1,20 @@
-import { ZodObjectDef, ZodTypeAny } from "zod";
-import { parseDef } from "../parseDef.js";
-import { JsonSchema7Type } from "../parseTypes.js";
-import { Refs } from "../Refs.js";
+import { ZodObjectDef, ZodTypeAny } from 'zod';
+import { parseDef } from '../parseDef.js';
+import { JsonSchema7Type } from '../parseTypes.js';
+import { Refs } from '../Refs.js';
 
 export type JsonSchema7ObjectType = {
-  type: "object";
+  type: 'object';
   properties: Record<string, JsonSchema7Type>;
   additionalProperties?: boolean | JsonSchema7Type;
   required?: string[];
 };
 
 export function parseObjectDef(def: ZodObjectDef, refs: Refs) {
-  const forceOptionalIntoNullable = refs.target === "openAi";
+  const forceOptionalIntoNullable = refs.target === 'openAi';
 
   const result: JsonSchema7ObjectType = {
-    type: "object",
+    type: 'object',
     properties: {},
   };
 
@@ -32,7 +32,7 @@ export function parseObjectDef(def: ZodObjectDef, refs: Refs) {
     let propOptional = safeIsOptional(propDef);
 
     if (propOptional && forceOptionalIntoNullable) {
-      if (propDef._def.typeName === "ZodOptional") {
+      if (propDef._def.typeName === 'ZodOptional') {
         propDef = propDef._def.innerType;
       }
 
@@ -45,8 +45,8 @@ export function parseObjectDef(def: ZodObjectDef, refs: Refs) {
 
     const parsedDef = parseDef(propDef._def, {
       ...refs,
-      currentPath: [...refs.currentPath, "properties", propName],
-      propertyPath: [...refs.currentPath, "properties", propName],
+      currentPath: [...refs.currentPath, 'properties', propName],
+      propertyPath: [...refs.currentPath, 'properties', propName],
     });
 
     if (parsedDef === undefined) {
@@ -74,20 +74,20 @@ export function parseObjectDef(def: ZodObjectDef, refs: Refs) {
 }
 
 function decideAdditionalProperties(def: ZodObjectDef, refs: Refs) {
-  if (def.catchall._def.typeName !== "ZodNever") {
+  if (def.catchall._def.typeName !== 'ZodNever') {
     return parseDef(def.catchall._def, {
       ...refs,
-      currentPath: [...refs.currentPath, "additionalProperties"],
+      currentPath: [...refs.currentPath, 'additionalProperties'],
     });
   }
 
   switch (def.unknownKeys) {
-    case "passthrough":
+    case 'passthrough':
       return refs.allowedAdditionalProperties;
-    case "strict":
+    case 'strict':
       return refs.rejectedAdditionalProperties;
-    case "strip":
-      return refs.removeAdditionalStrategy === "strict"
+    case 'strip':
+      return refs.removeAdditionalStrategy === 'strict'
         ? refs.allowedAdditionalProperties
         : refs.rejectedAdditionalProperties;
   }

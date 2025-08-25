@@ -1,20 +1,20 @@
-import { ZodArrayDef, ZodFirstPartyTypeKind } from "zod";
-import { ErrorMessages, setResponseValueAndErrors } from "../errorMessages.js";
-import { parseDef } from "../parseDef.js";
-import { JsonSchema7Type } from "../parseTypes.js";
-import { Refs } from "../Refs.js";
+import { ZodArrayDef, ZodFirstPartyTypeKind } from 'zod';
+import { ErrorMessages, setResponseValueAndErrors } from '../errorMessages.js';
+import { parseDef } from '../parseDef.js';
+import { JsonSchema7Type } from '../parseTypes.js';
+import { Refs } from '../Refs.js';
 
 export type JsonSchema7ArrayType = {
-  type: "array";
+  type: 'array';
   items?: JsonSchema7Type;
   minItems?: number;
   maxItems?: number;
-  errorMessages?: ErrorMessages<JsonSchema7ArrayType, "items">;
+  errorMessages?: ErrorMessages<JsonSchema7ArrayType, 'items'>;
 };
 
 export function parseArrayDef(def: ZodArrayDef, refs: Refs) {
   const res: JsonSchema7ArrayType = {
-    type: "array",
+    type: 'array',
   };
   if (
     def.type?._def &&
@@ -22,14 +22,14 @@ export function parseArrayDef(def: ZodArrayDef, refs: Refs) {
   ) {
     res.items = parseDef(def.type._def, {
       ...refs,
-      currentPath: [...refs.currentPath, "items"],
+      currentPath: [...refs.currentPath, 'items'],
     });
   }
 
   if (def.minLength) {
     setResponseValueAndErrors(
       res,
-      "minItems",
+      'minItems',
       def.minLength.value,
       def.minLength.message,
       refs,
@@ -38,7 +38,7 @@ export function parseArrayDef(def: ZodArrayDef, refs: Refs) {
   if (def.maxLength) {
     setResponseValueAndErrors(
       res,
-      "maxItems",
+      'maxItems',
       def.maxLength.value,
       def.maxLength.message,
       refs,
@@ -47,14 +47,14 @@ export function parseArrayDef(def: ZodArrayDef, refs: Refs) {
   if (def.exactLength) {
     setResponseValueAndErrors(
       res,
-      "minItems",
+      'minItems',
       def.exactLength.value,
       def.exactLength.message,
       refs,
     );
     setResponseValueAndErrors(
       res,
-      "maxItems",
+      'maxItems',
       def.exactLength.value,
       def.exactLength.message,
       refs,

@@ -1,10 +1,10 @@
-import { ZodBigIntDef } from "zod";
-import { Refs } from "../Refs.js";
-import { ErrorMessages, setResponseValueAndErrors } from "../errorMessages.js";
+import { ZodBigIntDef } from 'zod';
+import { Refs } from '../Refs.js';
+import { ErrorMessages, setResponseValueAndErrors } from '../errorMessages.js';
 
 export type JsonSchema7BigintType = {
-  type: "integer";
-  format: "int64";
+  type: 'integer';
+  format: 'int64';
   minimum?: BigInt;
   exclusiveMinimum?: BigInt;
   maximum?: BigInt;
@@ -18,20 +18,20 @@ export function parseBigintDef(
   refs: Refs,
 ): JsonSchema7BigintType {
   const res: JsonSchema7BigintType = {
-    type: "integer",
-    format: "int64",
+    type: 'integer',
+    format: 'int64',
   };
 
   if (!def.checks) return res;
 
   for (const check of def.checks) {
     switch (check.kind) {
-      case "min":
-        if (refs.target === "jsonSchema7") {
+      case 'min':
+        if (refs.target === 'jsonSchema7') {
           if (check.inclusive) {
             setResponseValueAndErrors(
               res,
-              "minimum",
+              'minimum',
               check.value,
               check.message,
               refs,
@@ -39,7 +39,7 @@ export function parseBigintDef(
           } else {
             setResponseValueAndErrors(
               res,
-              "exclusiveMinimum",
+              'exclusiveMinimum',
               check.value,
               check.message,
               refs,
@@ -51,19 +51,19 @@ export function parseBigintDef(
           }
           setResponseValueAndErrors(
             res,
-            "minimum",
+            'minimum',
             check.value,
             check.message,
             refs,
           );
         }
         break;
-      case "max":
-        if (refs.target === "jsonSchema7") {
+      case 'max':
+        if (refs.target === 'jsonSchema7') {
           if (check.inclusive) {
             setResponseValueAndErrors(
               res,
-              "maximum",
+              'maximum',
               check.value,
               check.message,
               refs,
@@ -71,7 +71,7 @@ export function parseBigintDef(
           } else {
             setResponseValueAndErrors(
               res,
-              "exclusiveMaximum",
+              'exclusiveMaximum',
               check.value,
               check.message,
               refs,
@@ -83,17 +83,17 @@ export function parseBigintDef(
           }
           setResponseValueAndErrors(
             res,
-            "maximum",
+            'maximum',
             check.value,
             check.message,
             refs,
           );
         }
         break;
-      case "multipleOf":
+      case 'multipleOf':
         setResponseValueAndErrors(
           res,
-          "multipleOf",
+          'multipleOf',
           check.value,
           check.message,
           refs,

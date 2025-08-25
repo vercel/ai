@@ -1,7 +1,7 @@
-import { ZodNativeEnumDef } from "zod";
+import { ZodNativeEnumDef } from 'zod';
 
 export type JsonSchema7NativeEnumType = {
-  type: "string" | "number" | ["string", "number"];
+  type: 'string' | 'number' | ['string', 'number'];
   enum: (string | number)[];
 };
 
@@ -10,7 +10,7 @@ export function parseNativeEnumDef(
 ): JsonSchema7NativeEnumType {
   const object = def.values;
   const actualKeys = Object.keys(def.values).filter((key: string) => {
-    return typeof object[object[key]] !== "number";
+    return typeof object[object[key]] !== 'number';
   });
 
   const actualValues = actualKeys.map((key: string) => object[key]);
@@ -22,10 +22,10 @@ export function parseNativeEnumDef(
   return {
     type:
       parsedTypes.length === 1
-        ? parsedTypes[0] === "string"
-          ? "string"
-          : "number"
-        : ["string", "number"],
+        ? parsedTypes[0] === 'string'
+          ? 'string'
+          : 'number'
+        : ['string', 'number'],
     enum: actualValues,
   };
 }

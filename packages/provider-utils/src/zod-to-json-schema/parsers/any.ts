@@ -1,10 +1,10 @@
-import { Refs } from "../Refs.js";
-import { getRelativePath } from "../getRelativePath.js";
+import { Refs } from '../Refs.js';
+import { getRelativePath } from '../getRelativePath.js';
 
 export type JsonSchema7AnyType = { $ref?: string };
 
 export function parseAnyDef(refs: Refs): JsonSchema7AnyType {
-  if (refs.target !== "openAi") {
+  if (refs.target !== 'openAi') {
     return {};
   }
 
@@ -18,8 +18,8 @@ export function parseAnyDef(refs: Refs): JsonSchema7AnyType {
 
   return {
     $ref:
-      refs.$refStrategy === "relative"
+      refs.$refStrategy === 'relative'
         ? getRelativePath(anyDefinitionPath, refs.currentPath)
-        : anyDefinitionPath.join("/"),
+        : anyDefinitionPath.join('/'),
   };
 }

@@ -1,10 +1,10 @@
-import { ZodTypeDef } from "zod";
-import { Refs, Seen } from "./Refs.js";
-import { ignoreOverride } from "./Options.js";
-import { JsonSchema7Type } from "./parseTypes.js";
-import { selectParser } from "./selectParser.js";
-import { getRelativePath } from "./getRelativePath.js";
-import { parseAnyDef } from "./parsers/any.js";
+import { ZodTypeDef } from 'zod';
+import { Refs, Seen } from './Refs.js';
+import { ignoreOverride } from './Options.js';
+import { JsonSchema7Type } from './parseTypes.js';
+import { selectParser } from './selectParser.js';
+import { getRelativePath } from './getRelativePath.js';
+import { parseAnyDef } from './parsers/any.js';
 
 export function parseDef(
   def: ZodTypeDef,
@@ -42,7 +42,7 @@ export function parseDef(
 
   // If the return was a function, then the inner definition needs to be extracted before a call to parseDef (recursive)
   const jsonSchema =
-    typeof jsonSchemaOrGetter === "function"
+    typeof jsonSchemaOrGetter === 'function'
       ? parseDef(jsonSchemaOrGetter(), refs)
       : jsonSchemaOrGetter;
 
@@ -73,26 +73,26 @@ const get$ref = (
   | {}
   | undefined => {
   switch (refs.$refStrategy) {
-    case "root":
-      return { $ref: item.path.join("/") };
-    case "relative":
+    case 'root':
+      return { $ref: item.path.join('/') };
+    case 'relative':
       return { $ref: getRelativePath(refs.currentPath, item.path) };
-    case "none":
-    case "seen": {
+    case 'none':
+    case 'seen': {
       if (
         item.path.length < refs.currentPath.length &&
         item.path.every((value, index) => refs.currentPath[index] === value)
       ) {
         console.warn(
           `Recursive reference detected at ${refs.currentPath.join(
-            "/",
+            '/',
           )}! Defaulting to any`,
         );
 
         return parseAnyDef(refs);
       }
 
-      return refs.$refStrategy === "seen" ? parseAnyDef(refs) : undefined;
+      return refs.$refStrategy === 'seen' ? parseAnyDef(refs) : undefined;
     }
   }
 };

@@ -1,13 +1,13 @@
-import { ZodLiteralDef } from "zod";
-import { Refs } from "../Refs.js";
+import { ZodLiteralDef } from 'zod';
+import { Refs } from '../Refs.js';
 
 export type JsonSchema7LiteralType =
   | {
-      type: "string" | "number" | "integer" | "boolean";
+      type: 'string' | 'number' | 'integer' | 'boolean';
       const: string | number | boolean;
     }
   | {
-      type: "object" | "array";
+      type: 'object' | 'array';
     };
 
 export function parseLiteralDef(
@@ -16,25 +16,25 @@ export function parseLiteralDef(
 ): JsonSchema7LiteralType {
   const parsedType = typeof def.value;
   if (
-    parsedType !== "bigint" &&
-    parsedType !== "number" &&
-    parsedType !== "boolean" &&
-    parsedType !== "string"
+    parsedType !== 'bigint' &&
+    parsedType !== 'number' &&
+    parsedType !== 'boolean' &&
+    parsedType !== 'string'
   ) {
     return {
-      type: Array.isArray(def.value) ? "array" : "object",
+      type: Array.isArray(def.value) ? 'array' : 'object',
     };
   }
 
-  if (refs.target === "openApi3") {
+  if (refs.target === 'openApi3') {
     return {
-      type: parsedType === "bigint" ? "integer" : parsedType,
+      type: parsedType === 'bigint' ? 'integer' : parsedType,
       enum: [def.value],
     } as any;
   }
 
   return {
-    type: parsedType === "bigint" ? "integer" : parsedType,
+    type: parsedType === 'bigint' ? 'integer' : parsedType,
     const: def.value,
   };
 }

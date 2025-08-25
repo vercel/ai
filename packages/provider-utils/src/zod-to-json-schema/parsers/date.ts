@@ -1,13 +1,13 @@
-import { ZodDateDef } from "zod";
-import { Refs } from "../Refs.js";
-import { ErrorMessages, setResponseValueAndErrors } from "../errorMessages.js";
-import { JsonSchema7NumberType } from "./number.js";
-import { DateStrategy } from "../Options.js";
+import { ZodDateDef } from 'zod';
+import { Refs } from '../Refs.js';
+import { ErrorMessages, setResponseValueAndErrors } from '../errorMessages.js';
+import { JsonSchema7NumberType } from './number.js';
+import { DateStrategy } from '../Options.js';
 
 export type JsonSchema7DateType =
   | {
-      type: "integer" | "string";
-      format: "unix-time" | "date-time" | "date";
+      type: 'integer' | 'string';
+      format: 'unix-time' | 'date-time' | 'date';
       minimum?: number;
       maximum?: number;
       errorMessage?: ErrorMessages<JsonSchema7NumberType>;
@@ -30,47 +30,47 @@ export function parseDateDef(
   }
 
   switch (strategy) {
-    case "string":
-    case "format:date-time":
+    case 'string':
+    case 'format:date-time':
       return {
-        type: "string",
-        format: "date-time",
+        type: 'string',
+        format: 'date-time',
       };
-    case "format:date":
+    case 'format:date':
       return {
-        type: "string",
-        format: "date",
+        type: 'string',
+        format: 'date',
       };
-    case "integer":
+    case 'integer':
       return integerDateParser(def, refs);
   }
 }
 
 const integerDateParser = (def: ZodDateDef, refs: Refs) => {
   const res: JsonSchema7DateType = {
-    type: "integer",
-    format: "unix-time",
+    type: 'integer',
+    format: 'unix-time',
   };
 
-  if (refs.target === "openApi3") {
+  if (refs.target === 'openApi3') {
     return res;
   }
 
   for (const check of def.checks) {
     switch (check.kind) {
-      case "min":
+      case 'min':
         setResponseValueAndErrors(
           res,
-          "minimum",
+          'minimum',
           check.value, // This is in milliseconds
           check.message,
           refs,
         );
         break;
-      case "max":
+      case 'max':
         setResponseValueAndErrors(
           res,
-          "maximum",
+          'maximum',
           check.value, // This is in milliseconds
           check.message,
           refs,
