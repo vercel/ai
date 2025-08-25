@@ -225,8 +225,9 @@ The following optional provider options are available for OpenAI chat models:
 
 - **strictJsonSchema** _boolean_
 
-  Whether to use strict JSON schema validation.
-  Defaults to `false`.
+  Whether to use strict JSON schema validation when generating structured outputs.
+  Defaults to `true` when a JSON schema is provided or tools are present, unless explicitly set.
+  You can opt out by setting `providerOptions.openai.strictJsonSchema = false`.
 
 - **textVerbosity** _'low' | 'medium' | 'high'_
 

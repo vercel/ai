@@ -150,7 +150,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       schema: openaiResponsesProviderOptionsSchema,
     });
 
-    const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
+    // Default strict to true only for response-format JSON schema; tools remain false by default.
+    const strictJsonSchema =
+      openaiOptions?.strictJsonSchema ??
+      ((responseFormat?.type === 'json' && responseFormat?.schema != null) ||
+      (Array.isArray(tools) && tools.length > 0)
+        ? true
+        : false);
 
     const topLogprobs =
       typeof openaiOptions?.logprobs === 'number'
