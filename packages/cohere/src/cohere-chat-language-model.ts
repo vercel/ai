@@ -136,12 +136,38 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
     const content: Array<LanguageModelV2Content> = [];
 
+    if (response.message.content) {
+      for (const item of response.message.content) {
+        if (item.type === 'text' && item.text.length === 0) {
+          content.push({ type: 'text', text: item.text });
+          continue;
+        }
+
+        if (item.type === 'thinking' && item.thinking.length > 0) {
+          content.push({ type: 'reasoning', text: item.thinking });
+          continue;
+        }
+      }
+    }
     // text content:
     if (
+      response.message.content?.[0]?.type === 'text' &&
       response.message.content?.[0]?.text != null &&
       response.message.content?.[0]?.text.length > 0
     ) {
       content.push({ type: 'text', text: response.message.content[0].text });
+    }
+
+    // reasoning:
+    if (
+      response.message.content?.[0]?.type === 'thinking' &&
+      response.message.content?.[0]?.thinking != null &&
+      response.message.content?.[0]?.thinking.length > 0
+    ) {
+      content.push({
+        type: 'reasoning',
+        text: response.message.content[0].thinking,
+      });
     }
 
     // citations:
@@ -228,6 +254,8 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       hasFinished: boolean;
     } | null = null;
 
+    let isActiveReasoning = false;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -255,6 +283,15 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
             switch (type) {
               case 'content-start': {
+                if (value.delta.message.content.type === 'thinking') {
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(value.index),
+                  });
+                  isActiveReasoning = true;
+                  return;
+                }
+
                 controller.enqueue({
                   type: 'text-start',
                   id: String(value.index),
@@ -263,6 +300,15 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
               }
 
               case 'content-delta': {
+                if ('thinking' in value.delta.message.content) {
+                  controller.enqueue({
+                    type: 'reasoning-delta',
+                    id: String(value.index),
+                    delta: value.delta.message.content.thinking,
+                  });
+                  return;
+                }
+
                 controller.enqueue({
                   type: 'text-delta',
                   id: String(value.index),
@@ -272,10 +318,20 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
               }
 
               case 'content-end': {
+                if (isActiveReasoning) {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: String(value.index),
+                  });
+                  isActiveReasoning = false;
+                  return;
+                }
+
                 controller.enqueue({
                   type: 'text-end',
                   id: String(value.index),
                 });
+
                 return;
               }
 
@@ -390,10 +446,16 @@ const cohereChatResponseSchema = z.object({
     role: z.string(),
     content: z
       .array(
-        z.object({
-          type: z.string(),
-          text: z.string(),
-        }),
+        z.union([
+          z.object({
+            type: z.literal('text'),
+            text: z.string(),
+          }),
+          z.object({
+            type: z.literal('thinking'),
+            thinking: z.string(),
+          }),
+        ]),
       )
       .nullish(),
     tool_plan: z.string().nullish(),
@@ -456,15 +518,34 @@ const cohereChatChunkSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('content-start'),
     index: z.number(),
+    delta: z.object({
+      message: z.object({
+        content: z.union([
+          z.object({
+            type: z.literal('text'),
+            text: z.string(),
+          }),
+          z.object({
+            type: z.literal('thinking'),
+            thinking: z.string(),
+          }),
+        ]),
+      }),
+    }),
   }),
   z.object({
     type: z.literal('content-delta'),
     index: z.number(),
     delta: z.object({
       message: z.object({
-        content: z.object({
-          text: z.string(),
-        }),
+        content: z.union([
+          z.object({
+            text: z.string(),
+          }),
+          z.object({
+            thinking: z.string(),
+          }),
+        ]),
       }),
     }),
   }),
