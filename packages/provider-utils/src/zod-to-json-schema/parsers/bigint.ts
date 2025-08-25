@@ -24,7 +24,7 @@ export function parseBigintDef(def: ZodBigIntDef): JsonSchema7BigintType {
         if (check.inclusive) {
           res.minimum = check.value;
         } else {
-          res.exclusiveMaximum = check.value;
+          res.exclusiveMinimum = check.value;
         }
         break;
       case 'max':

@@ -1,5 +1,4 @@
 import { ZodSetDef } from 'zod/v3';
-import { ErrorMessages, setResponseValueAndErrors } from '../error-messages';
 import { parseDef } from '../parse-def';
 import { JsonSchema7Type } from '../parse-types';
 import { Refs } from '../refs';
@@ -10,7 +9,6 @@ export type JsonSchema7SetType = {
   items?: JsonSchema7Type;
   minItems?: number;
   maxItems?: number;
-  errorMessage?: ErrorMessages<JsonSchema7SetType>;
 };
 
 export function parseSetDef(def: ZodSetDef, refs: Refs): JsonSchema7SetType {
@@ -26,23 +24,11 @@ export function parseSetDef(def: ZodSetDef, refs: Refs): JsonSchema7SetType {
   };
 
   if (def.minSize) {
-    setResponseValueAndErrors(
-      schema,
-      'minItems',
-      def.minSize.value,
-      def.minSize.message,
-      refs,
-    );
+    schema.minItems = def.minSize.value;
   }
 
   if (def.maxSize) {
-    setResponseValueAndErrors(
-      schema,
-      'maxItems',
-      def.maxSize.value,
-      def.maxSize.message,
-      refs,
-    );
+    schema.maxItems = def.maxSize.value;
   }
 
   return schema;

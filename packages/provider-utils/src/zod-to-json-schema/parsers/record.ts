@@ -7,11 +7,9 @@ import {
 import { parseDef } from '../parse-def';
 import { JsonSchema7Type } from '../parse-types';
 import { Refs } from '../refs';
-import { JsonSchema7EnumType } from './enum';
-import { JsonSchema7ObjectType } from './object';
-import { JsonSchema7StringType, parseStringDef } from './string';
 import { parseBrandedDef } from './branded';
-import { parseAnyDef } from './any';
+import { JsonSchema7EnumType } from './enum';
+import { JsonSchema7StringType, parseStringDef } from './string';
 
 type JsonSchema7RecordPropertyNamesType =
   | Omit<JsonSchema7StringType, 'type'>
@@ -27,34 +25,6 @@ export function parseRecordDef(
   def: ZodRecordDef<ZodTypeAny, ZodTypeAny> | ZodMapDef,
   refs: Refs,
 ): JsonSchema7RecordType {
-  if (refs.target === 'openAi') {
-    console.warn(
-      'Warning: OpenAI may not support records in schemas! Try an array of key-value pairs instead.',
-    );
-  }
-
-  if (
-    refs.target === 'openApi3' &&
-    def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodEnum
-  ) {
-    return {
-      type: 'object',
-      required: def.keyType._def.values,
-      properties: def.keyType._def.values.reduce(
-        (acc: Record<string, JsonSchema7Type>, key: string) => ({
-          ...acc,
-          [key]:
-            parseDef(def.valueType._def, {
-              ...refs,
-              currentPath: [...refs.currentPath, 'properties', key],
-            }) ?? parseAnyDef(refs),
-        }),
-        {},
-      ),
-      additionalProperties: refs.rejectedAdditionalProperties,
-    } satisfies JsonSchema7ObjectType as any;
-  }
-
   const schema: JsonSchema7RecordType = {
     type: 'object',
     additionalProperties:
@@ -63,10 +33,6 @@ export function parseRecordDef(
         currentPath: [...refs.currentPath, 'additionalProperties'],
       }) ?? refs.allowedAdditionalProperties,
   };
-
-  if (refs.target === 'openApi3') {
-    return schema;
-  }
 
   if (
     def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodString &&

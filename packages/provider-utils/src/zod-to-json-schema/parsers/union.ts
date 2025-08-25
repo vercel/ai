@@ -40,8 +40,6 @@ export function parseUnionDef(
   def: ZodUnionDef | ZodDiscriminatedUnionDef<any, any>,
   refs: Refs,
 ): JsonSchema7PrimitiveUnionType | JsonSchema7AnyOfType | undefined {
-  if (refs.target === 'openApi3') return asAnyOf(def, refs);
-
   const options: readonly ZodTypeAny[] =
     def.options instanceof Map ? Array.from(def.options.values()) : def.options;
 

@@ -53,7 +53,7 @@ export const selectParser = (
     case ZodFirstPartyTypeKind.ZodDate:
       return parseDateDef(def, refs);
     case ZodFirstPartyTypeKind.ZodUndefined:
-      return parseUndefinedDef(refs);
+      return parseUndefinedDef();
     case ZodFirstPartyTypeKind.ZodNull:
       return parseNullDef();
     case ZodFirstPartyTypeKind.ZodArray:
@@ -87,13 +87,13 @@ export const selectParser = (
       return parsePromiseDef(def, refs);
     case ZodFirstPartyTypeKind.ZodNaN:
     case ZodFirstPartyTypeKind.ZodNever:
-      return parseNeverDef(refs);
+      return parseNeverDef();
     case ZodFirstPartyTypeKind.ZodEffects:
       return parseEffectsDef(def, refs);
     case ZodFirstPartyTypeKind.ZodAny:
       return parseAnyDef();
     case ZodFirstPartyTypeKind.ZodUnknown:
-      return parseUnknownDef(refs);
+      return parseUnknownDef();
     case ZodFirstPartyTypeKind.ZodDefault:
       return parseDefaultDef(def, refs);
     case ZodFirstPartyTypeKind.ZodBranded:

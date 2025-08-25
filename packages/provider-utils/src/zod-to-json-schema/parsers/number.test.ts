@@ -1,11 +1,10 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import { z } from 'zod/v3';
-import { getRefs } from '../refs';
 import { parseNumberDef } from './number';
 
 describe('number', () => {
   it('should be possible to describe minimum number', () => {
-    const parsedSchema = parseNumberDef(z.number().min(5)._def, getRefs());
+    const parsedSchema = parseNumberDef(z.number().min(5)._def);
 
     expect(parsedSchema).toStrictEqual({
       type: 'number',
@@ -14,7 +13,7 @@ describe('number', () => {
   });
 
   it('should be possible to describe maximum number', () => {
-    const parsedSchema = parseNumberDef(z.number().max(5)._def, getRefs());
+    const parsedSchema = parseNumberDef(z.number().max(5)._def);
 
     expect(parsedSchema).toStrictEqual({
       type: 'number',
@@ -23,10 +22,7 @@ describe('number', () => {
   });
 
   it('should be possible to describe both minimum and maximum number', () => {
-    const parsedSchema = parseNumberDef(
-      z.number().min(5).max(5)._def,
-      getRefs(),
-    );
+    const parsedSchema = parseNumberDef(z.number().min(5).max(5)._def);
 
     expect(parsedSchema).toStrictEqual({
       type: 'number',
@@ -36,7 +32,7 @@ describe('number', () => {
   });
 
   it('should be possible to describe an integer', () => {
-    const parsedSchema = parseNumberDef(z.number().int()._def, getRefs());
+    const parsedSchema = parseNumberDef(z.number().int()._def);
 
     expect(parsedSchema).toStrictEqual({
       type: 'integer',
@@ -44,10 +40,7 @@ describe('number', () => {
   });
 
   it('should be possible to describe multiples of n', () => {
-    const parsedSchema = parseNumberDef(
-      z.number().multipleOf(2)._def,
-      getRefs(),
-    );
+    const parsedSchema = parseNumberDef(z.number().multipleOf(2)._def);
 
     expect(parsedSchema).toStrictEqual({
       type: 'number',
@@ -58,7 +51,6 @@ describe('number', () => {
   it('should be possible to describe positive, negative, nonpositive and nonnegative numbers', () => {
     const parsedSchema = parseNumberDef(
       z.number().positive().negative().nonpositive().nonnegative()._def,
-      getRefs(),
     );
 
     expect(parsedSchema).toStrictEqual({

@@ -2,8 +2,8 @@ import { ZodMapDef } from 'zod/v3';
 import { parseDef } from '../parse-def';
 import { JsonSchema7Type } from '../parse-types';
 import { Refs } from '../refs';
-import { JsonSchema7RecordType, parseRecordDef } from './record';
 import { parseAnyDef } from './any';
+import { JsonSchema7RecordType, parseRecordDef } from './record';
 
 export type JsonSchema7MapType = {
   type: 'array';
@@ -28,12 +28,12 @@ export function parseMapDef(
     parseDef(def.keyType._def, {
       ...refs,
       currentPath: [...refs.currentPath, 'items', 'items', '0'],
-    }) || parseAnyDef(refs);
+    }) || parseAnyDef();
   const values =
     parseDef(def.valueType._def, {
       ...refs,
       currentPath: [...refs.currentPath, 'items', 'items', '1'],
-    }) || parseAnyDef(refs);
+    }) || parseAnyDef();
   return {
     type: 'array',
     maxItems: 125,

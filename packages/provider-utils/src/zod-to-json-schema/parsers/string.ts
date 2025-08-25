@@ -1,5 +1,4 @@
 import { ZodStringDef } from 'zod/v3';
-import { ErrorMessages, setResponseValueAndErrors } from '../error-messages';
 import { Refs } from '../refs';
 
 let emojiRegex: RegExp | undefined = undefined;
@@ -83,13 +82,10 @@ export type JsonSchema7StringType = {
   pattern?: string;
   allOf?: {
     pattern: string;
-    errorMessage?: ErrorMessages<{ pattern: string }>;
   }[];
   anyOf?: {
     format: string;
-    errorMessage?: ErrorMessages<{ format: string }>;
   }[];
-  errorMessage?: ErrorMessages<JsonSchema7StringType>;
   contentEncoding?: string;
 };
 
@@ -105,26 +101,16 @@ export function parseStringDef(
     for (const check of def.checks) {
       switch (check.kind) {
         case 'min':
-          setResponseValueAndErrors(
-            res,
-            'minLength',
+          res.minLength =
             typeof res.minLength === 'number'
               ? Math.max(res.minLength, check.value)
-              : check.value,
-            check.message,
-            refs,
-          );
+              : check.value;
           break;
         case 'max':
-          setResponseValueAndErrors(
-            res,
-            'maxLength',
+          res.maxLength =
             typeof res.maxLength === 'number'
               ? Math.min(res.maxLength, check.value)
-              : check.value,
-            check.message,
-            refs,
-          );
+              : check.value;
 
           break;
         case 'email':
@@ -185,24 +171,14 @@ export function parseStringDef(
           addFormat(res, 'duration', check.message, refs);
           break;
         case 'length':
-          setResponseValueAndErrors(
-            res,
-            'minLength',
+          res.minLength =
             typeof res.minLength === 'number'
               ? Math.max(res.minLength, check.value)
-              : check.value,
-            check.message,
-            refs,
-          );
-          setResponseValueAndErrors(
-            res,
-            'maxLength',
+              : check.value;
+          res.maxLength =
             typeof res.maxLength === 'number'
               ? Math.min(res.maxLength, check.value)
-              : check.value,
-            check.message,
-            refs,
-          );
+              : check.value;
           break;
         case 'includes': {
           addPattern(
@@ -252,13 +228,7 @@ export function parseStringDef(
             }
 
             case 'contentEncoding:base64': {
-              setResponseValueAndErrors(
-                res,
-                'contentEncoding',
-                'base64',
-                check.message,
-                refs,
-              );
+              res.contentEncoding = 'base64';
               break;
             }
 
@@ -325,18 +295,8 @@ function addFormat(
     if (schema.format) {
       schema.anyOf!.push({
         format: schema.format,
-        ...(schema.errorMessage &&
-          refs.errorMessages && {
-            errorMessage: { format: schema.errorMessage.format },
-          }),
       });
       delete schema.format;
-      if (schema.errorMessage) {
-        delete schema.errorMessage.format;
-        if (Object.keys(schema.errorMessage).length === 0) {
-          delete schema.errorMessage;
-        }
-      }
     }
 
     schema.anyOf!.push({
@@ -345,7 +305,7 @@ function addFormat(
         refs.errorMessages && { errorMessage: { format: message } }),
     });
   } else {
-    setResponseValueAndErrors(schema, 'format', value, message, refs);
+    schema.format = value;
   }
 }
 
@@ -364,18 +324,8 @@ function addPattern(
     if (schema.pattern) {
       schema.allOf!.push({
         pattern: schema.pattern,
-        ...(schema.errorMessage &&
-          refs.errorMessages && {
-            errorMessage: { pattern: schema.errorMessage.pattern },
-          }),
       });
       delete schema.pattern;
-      if (schema.errorMessage) {
-        delete schema.errorMessage.pattern;
-        if (Object.keys(schema.errorMessage).length === 0) {
-          delete schema.errorMessage;
-        }
-      }
     }
 
     schema.allOf!.push({
@@ -384,13 +334,7 @@ function addPattern(
         refs.errorMessages && { errorMessage: { pattern: message } }),
     });
   } else {
-    setResponseValueAndErrors(
-      schema,
-      'pattern',
-      stringifyRegExpWithFlags(regex, refs),
-      message,
-      refs,
-    );
+    schema.pattern = stringifyRegExpWithFlags(regex, refs);
   }
 }
 
