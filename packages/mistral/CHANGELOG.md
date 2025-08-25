@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 2.0.10
+
+### Patch Changes
+
+- e214cb3: feat(provider/mistral): `response_format.type === 'json_schema'`
+
 ## 2.0.9
 
 ### Patch Changes
