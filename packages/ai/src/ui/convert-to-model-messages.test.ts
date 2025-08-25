@@ -1044,6 +1044,13 @@ describe('convertToModelMessages', () => {
                 toolCallId: 'call-3',
                 input: { value: 'value-3' },
               },
+              {
+                type: 'dynamic-tool',
+                toolName: 'tool-screenshot2',
+                state: 'input-available',
+                toolCallId: 'call-3',
+                input: { value: 'value-3' },
+              },
               { type: 'text', text: 'response', state: 'done' },
             ],
           },
