@@ -11,8 +11,6 @@ export type JsonSchema7ObjectType = {
 };
 
 export function parseObjectDef(def: ZodObjectDef, refs: Refs) {
-  const forceOptionalIntoNullable = refs.target === 'openAi';
-
   const result: JsonSchema7ObjectType = {
     type: 'object',
     properties: {},
@@ -29,19 +27,7 @@ export function parseObjectDef(def: ZodObjectDef, refs: Refs) {
       continue;
     }
 
-    let propOptional = safeIsOptional(propDef);
-
-    if (propOptional && forceOptionalIntoNullable) {
-      if (propDef._def.typeName === 'ZodOptional') {
-        propDef = propDef._def.innerType;
-      }
-
-      if (!propDef.isNullable()) {
-        propDef = propDef.nullable();
-      }
-
-      propOptional = false;
-    }
+    const propOptional = safeIsOptional(propDef);
 
     const parsedDef = parseDef(propDef._def, {
       ...refs,
