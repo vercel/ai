@@ -50,8 +50,8 @@ const gatewayLanguageModelPricingSchema = z
   .object({
     input: z.string(),
     output: z.string(),
-    input_cache_read: z.string().optional(),
-    input_cache_write: z.string().optional(),
+    input_cache_read: z.string().nullish(),
+    input_cache_write: z.string().nullish(),
   })
   .transform(({ input, output, input_cache_read, input_cache_write }) => ({
     input,
