@@ -3072,7 +3072,7 @@ describe('streamText', () => {
       // Get the UI message stream and break after third chunk
       const stream = result.toUIMessageStream();
       let chunkCount = 0;
-      
+
       for await (const chunk of stream) {
         chunkCount++;
         if (chunkCount === 3) {
@@ -3128,7 +3128,6 @@ describe('streamText', () => {
       // Verify that onFinish was NOT called when stream was cancelled
       expect(onFinishCallback).not.toHaveBeenCalled();
     });
-
   });
 
   describe('result.toUIMessageStreamResponse', () => {
