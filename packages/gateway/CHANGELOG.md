@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.13
+
+### Patch Changes
+
+- c9994f9: feat(provider/gateway): Add cache pricing fields to model metadata
+
 ## 1.0.12
 
 ### Patch Changes
