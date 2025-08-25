@@ -22,7 +22,6 @@ export function zod3Schema<OBJECT>(
   return jsonSchema(
     zodToJsonSchema(zodSchema, {
       $refStrategy: useReferences ? 'root' : 'none',
-      target: 'jsonSchema7', // note: openai mode breaks various gemini conversions
     }) as JSONSchema7,
     {
       validate: async value => {

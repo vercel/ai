@@ -18,13 +18,6 @@ export const parseOptionalDef = (
   });
 
   return innerSchema
-    ? {
-        anyOf: [
-          {
-            not: parseAnyDef(refs),
-          },
-          innerSchema,
-        ],
-      }
-    : parseAnyDef(refs);
+    ? { anyOf: [{ not: parseAnyDef() }, innerSchema] }
+    : parseAnyDef();
 };
