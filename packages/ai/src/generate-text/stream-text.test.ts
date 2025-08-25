@@ -1468,6 +1468,52 @@ describe('streamText', () => {
       });
     });
 
+    it('should call onFinish even when error chunk occurs mid-stream', async () => {
+      const onFinish = vi.fn();
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'error', error: new Error('chunk error') },
+            // Note: finish-step and finish are still added after error
+            {
+              type: 'finish',
+              finishReason: 'error',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError,
+        onFinish,
+      });
+
+      await result.consumeStream();
+
+      // Verify onError was called
+      expect(onError).toHaveBeenCalledWith({
+        error: new Error('chunk error'),
+      });
+
+      // Verify onFinish was still called after the error
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finishReason: 'error',
+          text: 'Hello',
+          usage: testUsage,
+        }),
+      );
+    });
+
     it('should invoke onError callback when error is thrown in 2nd step', async () => {
       const onError = vi.fn();
       let responseCount = 0;
@@ -3046,52 +3092,6 @@ describe('streamText', () => {
       expect(onFinish).not.toHaveBeenCalled();
     });
 
-    it('should call onFinish even when error chunk occurs mid-stream', async () => {
-      const onFinish = vi.fn();
-      const onError = vi.fn();
-
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            { type: 'text-start', id: '1' },
-            { type: 'text-delta', id: '1', delta: 'Hello' },
-            { type: 'error', error: new Error('chunk error') },
-            // Note: finish-step and finish are still added after error
-            {
-              type: 'finish',
-              finishReason: 'error',
-              usage: testUsage,
-            },
-          ]),
-        }),
-        prompt: 'test-input',
-        onError,
-        onFinish,
-      });
-
-      await result.consumeStream();
-
-      // Verify onError was called
-      expect(onError).toHaveBeenCalledWith({
-        error: new Error('chunk error'),
-      });
-
-      // Verify onFinish was still called after the error
-      expect(onFinish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          finishReason: 'error',
-          text: 'Hello',
-          usage: testUsage,
-        }),
-      );
-    });
-  });
   });
 
   describe('result.toUIMessageStreamResponse', () => {
