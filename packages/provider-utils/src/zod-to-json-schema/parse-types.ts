@@ -26,7 +26,6 @@ type JsonSchema7Meta = {
   title?: string;
   default?: any;
   description?: string;
-  markdownDescription?: string;
 };
 
 export type JsonSchema7TypeUnion =

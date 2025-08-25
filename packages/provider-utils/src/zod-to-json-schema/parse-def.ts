@@ -104,10 +104,6 @@ const addMeta = (
 ): JsonSchema7Type => {
   if (def.description) {
     jsonSchema.description = def.description;
-
-    if (refs.markdownDescription) {
-      jsonSchema.markdownDescription = def.description;
-    }
   }
   return jsonSchema;
 };
