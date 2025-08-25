@@ -280,10 +280,31 @@ export function isToolUIPart<TOOLS extends UITools>(
   return part.type.startsWith('tool-');
 }
 
+export function isDynamicToolUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is DynamicToolUIPart {
+  return part.type === 'dynamic-tool';
+}
+
+export function isToolOrDynamicToolUIPart<TOOLS extends UITools>(
+  part: UIMessagePart<UIDataTypes, TOOLS>,
+): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
+  return isToolUIPart(part) || isDynamicToolUIPart(part);
+}
+
 export function getToolName<TOOLS extends UITools>(
   part: ToolUIPart<TOOLS>,
 ): keyof TOOLS {
   return part.type.split('-').slice(1).join('-') as keyof TOOLS;
+}
+
+export function getToolOrDynamicToolName(
+  part: ToolUIPart<UITools> | DynamicToolUIPart,
+): string {
+  if (isDynamicToolUIPart(part)) {
+    return part.toolName;
+  }
+  return part.type.split('-').slice(1).join('-');
 }
 
 export type InferUIMessageMetadata<T extends UIMessage> =
