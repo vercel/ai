@@ -1,8 +1,156 @@
-import { z } from 'zod/v3';
-import { zodToJsonSchema } from './zod-to-json-schema';
 import { JSONSchema7 } from '@ai-sdk/provider';
+import { z } from 'zod/v3';
+import {
+  ignoreOverride,
+  jsonDescription,
+  PostProcessCallback,
+} from './options';
+import { zodToJsonSchema } from './zod-to-json-schema';
 
 describe('zod-to-json-schema', () => {
+  describe('override', () => {
+    it('the readme example', () => {
+      expect(
+        zodToJsonSchema(
+          z.object({
+            ignoreThis: z.string(),
+            overrideThis: z.string(),
+            removeThis: z.string(),
+          }),
+          {
+            override: (def, refs) => {
+              const path = refs.currentPath.join('/');
+
+              if (path === '#/properties/overrideThis') {
+                return {
+                  type: 'integer',
+                };
+              }
+
+              if (path === '#/properties/removeThis') {
+                return undefined;
+              }
+
+              // Important! Do not return `undefined` or void unless you want to remove the property from the resulting schema completely.
+              return ignoreOverride;
+            },
+          },
+        ),
+      ).toStrictEqual({
+        $schema: 'http://json-schema.org/draft-07/schema#',
+        type: 'object',
+        required: ['ignoreThis', 'overrideThis'],
+        properties: {
+          ignoreThis: {
+            type: 'string',
+          },
+          overrideThis: {
+            type: 'integer',
+          },
+        },
+        additionalProperties: false,
+      });
+    });
+  });
+
+  describe('postProcess', () => {
+    it('the readme example', () => {
+      const zodSchema = z.object({
+        myString: z.string().describe(
+          JSON.stringify({
+            title: 'My string',
+            description: 'My description',
+            examples: ['Foo', 'Bar'],
+          }),
+        ),
+        myNumber: z.number(),
+      });
+
+      // Define the callback to be used to process the output using the PostProcessCallback type:
+      const postProcess: PostProcessCallback = (
+        // The original output produced by the package itself:
+        jsonSchema,
+        // The ZodSchema def used to produce the original schema:
+        def,
+        // The refs object containing the current path, passed options, etc.
+        refs,
+      ) => {
+        if (!jsonSchema) {
+          return jsonSchema;
+        }
+
+        // Try to expand description as JSON meta:
+        if (jsonSchema.description) {
+          try {
+            jsonSchema = {
+              ...jsonSchema,
+              ...JSON.parse(jsonSchema.description),
+            };
+          } catch {}
+        }
+
+        // Make all numbers nullable:
+        if ('type' in jsonSchema! && jsonSchema.type === 'number') {
+          jsonSchema.type = ['number', 'null'];
+        }
+
+        // Add the refs path, just because
+        (jsonSchema as any).path = refs.currentPath;
+
+        return jsonSchema;
+      };
+
+      const jsonSchemaResult = zodToJsonSchema(zodSchema, {
+        postProcess,
+      });
+
+      expect(jsonSchemaResult).toStrictEqual({
+        $schema: 'http://json-schema.org/draft-07/schema#',
+        type: 'object',
+        required: ['myString', 'myNumber'],
+        properties: {
+          myString: {
+            type: 'string',
+            title: 'My string',
+            description: 'My description',
+            examples: ['Foo', 'Bar'],
+            path: ['#', 'properties', 'myString'],
+          },
+          myNumber: {
+            type: ['number', 'null'],
+            path: ['#', 'properties', 'myNumber'],
+          },
+        },
+        additionalProperties: false,
+        path: ['#'],
+      });
+    });
+
+    it('expanding description json', () => {
+      const zodSchema = z.string().describe(
+        JSON.stringify({
+          title: 'My string',
+          description: 'My description',
+          examples: ['Foo', 'Bar'],
+          whatever: 123,
+        }),
+      );
+
+      const jsonSchemaResult = zodToJsonSchema(zodSchema, {
+        postProcess: jsonDescription,
+      });
+
+      expect(jsonSchemaResult).toStrictEqual({
+        $schema: 'http://json-schema.org/draft-07/schema#',
+        type: 'string',
+        title: 'My string',
+        description: 'My description',
+        examples: ['Foo', 'Bar'],
+        whatever: 123,
+      });
+    });
+  });
+
   it('should return the schema directly in the root if no name is passed', () => {
     expect(zodToJsonSchema(z.any())).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
