@@ -1535,9 +1535,7 @@ describe('streamText', () => {
         'No output generated. Check the stream for errors.',
       );
     });
-
-
-
+  });
 
   describe('result.pipeUIMessageStreamToResponse', async () => {
     it('should write data stream parts to a Node.js response-like object', async () => {
