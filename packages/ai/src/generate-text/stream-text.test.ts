@@ -4322,15 +4322,33 @@ describe('streamText', () => {
           if (call === 1) {
             return {
               stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'msg_001',
+                  modelId: 'mock-model-id',
+                },
                 { type: 'text-start', id: '1' },
                 { type: 'text-delta', id: '1', delta: 'Hello' },
                 { type: 'error', error: 'boom' },
+                {
+                  type: 'finish',
+                  finishReason: 'error',
+                  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                },
               ]),
+
               rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
           }
           return {
             stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'msg_002',
+                modelId: 'mock-model-id',
+              },
               { type: 'text-start', id: '2' },
               { type: 'text-delta', id: '2', delta: ' world' },
               { type: 'text-end', id: '2' },
@@ -4487,9 +4505,20 @@ describe('streamText', () => {
             // First attempt: text-start with id '1', partial text, then error (no text-end)
             return {
               stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'msg_001',
+                  modelId: 'mock-model-id',
+                },
                 { type: 'text-start', id: '1' },
                 { type: 'text-delta', id: '1', delta: 'First attempt' },
                 { type: 'error', error: new Error('Connection lost') },
+                {
+                  type: 'finish',
+                  finishReason: 'error',
+                  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                },
               ]),
               rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
@@ -4497,6 +4526,12 @@ describe('streamText', () => {
           // Retry: also uses id '1' - should work without conflicts
           return {
             stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'msg_002',
+                modelId: 'mock-model-id',
+              },
               { type: 'text-start', id: '1' },
               { type: 'text-delta', id: '1', delta: 'Retry successful' },
               { type: 'text-end', id: '1' },
@@ -4634,15 +4669,32 @@ describe('streamText', () => {
           if (call === 1) {
             return {
               stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'msg_001',
+                  modelId: 'mock-model-id',
+                },
                 { type: 'text-start', id: '1' },
                 { type: 'text-delta', id: '1', delta: 'Partial response' },
                 { type: 'error', error: 'boom' },
+                {
+                  type: 'finish',
+                  finishReason: 'error',
+                  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                },
               ]),
               rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
           }
           return {
             stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'msg_002',
+                modelId: 'mock-model-id',
+              },
               { type: 'text-start', id: '2' },
               { type: 'text-delta', id: '2', delta: 'Fresh start' },
               { type: 'text-end', id: '2' },
@@ -4690,15 +4742,32 @@ describe('streamText', () => {
           if (call === 1) {
             return {
               stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'msg_001',
+                  modelId: 'mock-model-id',
+                },
                 { type: 'text-start', id: '1' },
                 { type: 'text-delta', id: '1', delta: 'Partial response' },
                 { type: 'error', error: 'boom' },
+                {
+                  type: 'finish',
+                  finishReason: 'error',
+                  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                },
               ]),
               rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
           }
           return {
             stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'msg_002',
+                modelId: 'mock-model-id',
+              },
               { type: 'text-start', id: '2' },
               { type: 'text-delta', id: '2', delta: ' continued' },
               { type: 'text-end', id: '2' },
@@ -4733,7 +4802,13 @@ describe('streamText', () => {
         },
         {
           role: 'assistant',
-          content: [{ type: 'text', text: 'Partial response', providerOptions: undefined }],
+          content: [
+            {
+              type: 'text',
+              text: 'Partial response',
+              providerOptions: undefined,
+            },
+          ],
           providerOptions: undefined,
         },
       ]);
