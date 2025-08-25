@@ -1,5 +1,5 @@
 ---
-'@example/ai-core': minor
+'@example/ai-core': patch
 '@ai-sdk/heroku': patch
 ---
 
