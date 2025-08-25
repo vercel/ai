@@ -110,7 +110,7 @@ Callback that is set using the `onError` option.
  */
 export type StreamTextOnErrorCallback = (
   error: unknown,
-  options: { retry: () => Promise<void> },
+  options: { retry: (options?: { resume?: boolean }) => Promise<void> },
 ) => PromiseLike<void> | void;
 
 /**
@@ -709,9 +709,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const contentSnapshot = [...recordedContent];
           const wrappedError = wrapGatewayError(part.error);
 
-          const retry = async () => {
+          const retry = async (options?: { resume?: boolean }) => {
             if (currentStepNumber === undefined) return;
             retryRequested = true;
+
+            // Default to resume = false (start fresh from user message)
+            const resume = options?.resume ?? false;
 
             // Reset state for retry
             recordedContent = [...contentSnapshot];
@@ -725,10 +728,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               currentStep: currentStepNumber,
               responseMessages: [
                 ...currentResponseMessages,
-                ...toResponseMessages({
-                  content: contentSnapshot,
-                  tools: tools ?? ({} as TOOLS),
-                }),
+                // Only include assistant content if resume is true
+                ...(resume
+                  ? toResponseMessages({
+                      content: contentSnapshot,
+                      tools: tools ?? ({} as TOOLS),
+                    })
+                  : []),
               ],
               usage: currentUsage,
               retriedError: wrappedError,

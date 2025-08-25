@@ -4349,7 +4349,8 @@ describe('streamText', () => {
         model,
         prompt: 'test-input',
         onError: async (error, { retry }) => {
-          await retry();
+          // Keep backward compatibility - use resume: true
+          await retry({ resume: true });
         },
       });
 
@@ -4530,7 +4531,8 @@ describe('streamText', () => {
         model,
         prompt: 'test-input',
         onError: async (error, { retry }) => {
-          await retry();
+          // Use resume: true to keep text from first attempt
+          await retry({ resume: true });
         },
       });
 
@@ -4635,6 +4637,122 @@ describe('streamText', () => {
 
       // Verify the output contains text from both models
       expect(textParts.join('')).toBe('Hello from backup model');
+    });
+
+    it('should start fresh when retry is called with resume=false', async () => {
+      const prompts: Array<any> = [];
+      let call = 0;
+
+      const model = new MockLanguageModelV2({
+        doStream: async ({ prompt }) => {
+          prompts.push(prompt);
+          call++;
+          if (call === 1) {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Partial response' },
+                { type: 'error', error: 'boom' },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          }
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '2' },
+              { type: 'text-delta', id: '2', delta: 'Fresh start' },
+              { type: 'text-end', id: '2' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test-input',
+        onError: async (error, { retry }) => {
+          // Explicitly set resume to false (default behavior)
+          await retry({ resume: false });
+        },
+      });
+
+      await result.consumeStream();
+
+      // Check that the retry didn't include the partial response
+      expect(prompts[1]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+        // No assistant message here when resume=false
+      ]);
+    });
+
+    it('should resume with partial content when retry is called with resume=true', async () => {
+      const prompts: Array<any> = [];
+      let call = 0;
+
+      const model = new MockLanguageModelV2({
+        doStream: async ({ prompt }) => {
+          prompts.push(prompt);
+          call++;
+          if (call === 1) {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Partial response' },
+                { type: 'error', error: 'boom' },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          }
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '2' },
+              { type: 'text-delta', id: '2', delta: ' continued' },
+              { type: 'text-end', id: '2' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test-input',
+        onError: async (error, { retry }) => {
+          // Explicitly set resume to true
+          await retry({ resume: true });
+        },
+      });
+
+      await result.consumeStream();
+
+      // Check that the retry included the partial response as assistant message
+      expect(prompts[1]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Partial response', providerOptions: undefined }],
+          providerOptions: undefined,
+        },
+      ]);
     });
   });
 
