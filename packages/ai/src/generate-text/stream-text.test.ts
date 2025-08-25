@@ -4376,9 +4376,9 @@ describe('streamText', () => {
       expect(stepStarts).toHaveLength(2);
 
       const stepFinishes = parts.filter(p => p.type === 'finish-step');
-      expect(stepFinishes).toHaveLength(2);
-      expect(stepFinishes[0]).toMatchObject({ finishReason: 'error' });
-      expect(stepFinishes[1]).toMatchObject({ finishReason: 'stop' });
+      expect(stepFinishes).toHaveLength(1);
+      // Only the successful retry's finish-step should be present
+      expect(stepFinishes[0]).toMatchObject({ finishReason: 'stop' });
 
       // Use snapshot for the structure without volatile fields
       const sanitizedParts = parts.map(part => {
@@ -4412,22 +4412,6 @@ describe('streamText', () => {
             "providerMetadata": undefined,
             "text": "Hello",
             "type": "text-delta",
-          },
-          {
-            "finishReason": "error",
-            "providerMetadata": undefined,
-            "response": {
-              "headers": undefined,
-              "id": "id-x",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
-            },
-            "type": "finish-step",
-            "usage": {
-              "inputTokens": undefined,
-              "outputTokens": undefined,
-              "totalTokens": undefined,
-            },
           },
           {
             "request": {},

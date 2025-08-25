@@ -682,9 +682,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
     >({
       async transform(chunk, controller) {
-        // Only forward non-error and non-finish chunks immediately
-        // Errors and finish events are handled specially below
-        if (chunk.part.type !== 'error' && chunk.part.type !== 'finish') {
+        // Only forward non-error, non-finish, and non-finish-step chunks immediately
+        // These events are handled specially below
+        if (
+          chunk.part.type !== 'error' && 
+          chunk.part.type !== 'finish' && 
+          chunk.part.type !== 'finish-step'
+        ) {
           controller.enqueue(chunk); // forward the chunk to the next stream
         }
 
@@ -857,6 +861,17 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'finish-step') {
+          // If this is an error finish-step and retry was requested, suppress it
+          if (part.finishReason === 'error' && retryRequested) {
+            // Don't forward finish-step from error stream when retrying
+            // But still need to resolve the promise
+            stepFinish.resolve();
+            return;
+          }
+
+          // Forward the finish-step event to the output stream
+          controller.enqueue(chunk);
+
           const stepMessages = toResponseMessages({
             content: recordedContent,
             tools,
