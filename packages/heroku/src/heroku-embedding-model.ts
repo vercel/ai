@@ -77,7 +77,7 @@ export class HerokuEmbeddingModel implements EmbeddingModelV2<string> {
         input_type: embeddingOptions?.inputType,
         encoding_format: embeddingOptions?.encodingFormat,
         embedding_type: embeddingOptions?.embeddingType,
-        allow_ignored_params: embeddingOptions?.allowIgnoredParams  
+        allow_ignored_params: embeddingOptions?.allowIgnoredParams,
       },
       failedResponseHandler: herokuFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

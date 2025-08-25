@@ -6,7 +6,7 @@ describe('HerokuProvider', () => {
   describe('embedding', () => {
     it('should create embedding model with correct model ID', () => {
       const model = provider.embedding('cohere-embed-multilingual');
-      
+
       expect(model).toBeDefined();
       expect(model.modelId).toBe('cohere-embed-multilingual');
       expect(model.provider).toBe('heroku.textEmbedding');
@@ -16,7 +16,7 @@ describe('HerokuProvider', () => {
   describe('textEmbeddingModel', () => {
     it('should create embedding model with correct model ID', () => {
       const model = provider.textEmbeddingModel('cohere-embed-multilingual');
-      
+
       expect(model).toBeDefined();
       expect(model.modelId).toBe('cohere-embed-multilingual');
       expect(model.provider).toBe('heroku.textEmbedding');

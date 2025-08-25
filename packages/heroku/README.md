@@ -34,7 +34,7 @@ import { heroku } from '@ai-sdk/heroku';
 const model = heroku.embedding(process.env.HEROKU_EMBEDDING_MODEL_ID);
 
 const { embeddings } = await model.doEmbed({
-  values: ['Hello world', 'How are you?']
+  values: ['Hello world', 'How are you?'],
 });
 
 console.log(embeddings);
@@ -50,8 +50,8 @@ const herokuProvider = createHeroku({
   apiKey: 'your-api-key',
   baseURL: 'https://custom-heroku-api.com/v1',
   headers: {
-    'X-Custom-Header': 'custom-value'
-  }
+    'X-Custom-Header': 'custom-value',
+  },
 });
 
 const model = herokuProvider.embedding(process.env.HEROKU_EMBEDDING_MODEL_ID);
@@ -67,9 +67,9 @@ const { embeddings } = await model.doEmbed({
       inputType: 'search_document',
       encodingFormat: 'base64',
       embeddingType: 'binary',
-      allowIgnoredParams: true
-    }
-  }
+      allowIgnoredParams: true,
+    },
+  },
 });
 ```
 

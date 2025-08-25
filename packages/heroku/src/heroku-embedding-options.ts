@@ -20,9 +20,7 @@ export const herokuEmbeddingOptions = z.object({
   /**
    * Determines the encoding format of the model's output. Default is `raw`.
    */
-  encodingFormat: z
-    .enum(['raw', 'base64'])
-    .optional(),
+  encodingFormat: z.enum(['raw', 'base64']).optional(),
 
   /**
    * Specifies the type(s) of embeddings to return. Default is `float`.
@@ -35,10 +33,7 @@ export const herokuEmbeddingOptions = z.object({
    * Specifies whether to ignore unsupported parameters in request instead of throwing an error.
    * Default is `false`.
    */
-  allowIgnoredParams: z
-    .boolean()
-    .optional()
-  
+  allowIgnoredParams: z.boolean().optional(),
 });
 
 export type HerokuEmbeddingOptions = z.infer<typeof herokuEmbeddingOptions>;

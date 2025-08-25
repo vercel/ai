@@ -58,7 +58,7 @@ describe('doEmbed', () => {
     });
 
     const { response } = await model.doEmbed({ values: testValues });
-    
+
     expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '145',
@@ -83,7 +83,10 @@ describe('doEmbed', () => {
   it('should pass the model and the values', async () => {
     prepareJsonResponse();
 
-    await model.doEmbed({ values: testValues, providerOptions: { heroku: { encodingFormat: 'raw' } } });
+    await model.doEmbed({
+      values: testValues,
+      providerOptions: { heroku: { encodingFormat: 'raw' } },
+    });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'cohere-embed-multilingual',
@@ -138,12 +141,12 @@ describe('doEmbed', () => {
   });
 
   it('should prefer an explicitly defined apiKey over the HEROKU_EMBEDDING_KEY', async () => {
-    prepareJsonResponse()
+    prepareJsonResponse();
     const key = 'aromatic-steering-wheel';
-    const provider = createHeroku({ apiKey: key});
+    const provider = createHeroku({ apiKey: key });
 
     await provider.textEmbeddingModel('cohere-embed-multilingual').doEmbed({
-      values: testValues
+      values: testValues,
     });
 
     const requestHeaders = server.calls[0].requestHeaders;
@@ -153,24 +156,24 @@ describe('doEmbed', () => {
   });
 
   it('should use the HEROKU_EMBEDDING_URL by default', async () => {
-    prepareJsonResponse()
+    prepareJsonResponse();
 
     const provider = createHeroku();
 
     await provider.textEmbeddingModel('cohere-embed-multilingual').doEmbed({
-      values: testValues
+      values: testValues,
     });
 
     const requestUrl = server.calls[0].requestUrl;
-    expect(requestUrl).toStrictEqual(`${dummyBaseUrl}/v1/embeddings`)
+    expect(requestUrl).toStrictEqual(`${dummyBaseUrl}/v1/embeddings`);
   });
 
   it('should throw error when too many values are provided', async () => {
     const tooManyValues = Array.from({ length: 100 }, (_, i) => `text ${i}`);
 
-    await expect(
-      model.doEmbed({ values: tooManyValues }),
-    ).rejects.toThrow(/Too many values for a single embedding call/);
+    await expect(model.doEmbed({ values: tooManyValues })).rejects.toThrow(
+      /Too many values for a single embedding call/,
+    );
   });
 
   it('should handle abort signal', async () => {
@@ -178,7 +181,10 @@ describe('doEmbed', () => {
     abortController.abort();
 
     await expect(
-      model.doEmbed({ values: testValues, abortSignal: abortController.signal }),
+      model.doEmbed({
+        values: testValues,
+        abortSignal: abortController.signal,
+      }),
     ).rejects.toThrow();
   });
 });

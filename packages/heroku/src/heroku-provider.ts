@@ -3,11 +3,7 @@ import {
   NoSuchModelError,
   ProviderV2,
 } from '@ai-sdk/provider';
-import {
-  FetchFunction,
-  loadApiKey,
-  loadSetting,
-} from '@ai-sdk/provider-utils';
+import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 import { HerokuEmbeddingModel } from './heroku-embedding-model';
 import { HerokuEmbeddingModelId } from './heroku-embedding-options';
 
@@ -44,8 +40,9 @@ export interface HerokuProviderSettings {
 /**
  * Create a Heroku AI provider instance.
  */
-export function createHeroku(options: HerokuProviderSettings = {}): HerokuProvider {
-
+export function createHeroku(
+  options: HerokuProviderSettings = {},
+): HerokuProvider {
   const getHeaders = (apiKey: string) => ({
     Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
@@ -58,15 +55,15 @@ export function createHeroku(options: HerokuProviderSettings = {}): HerokuProvid
       settingName: 'baseUrl',
       settingValue: options.baseURL,
       environmentVariableName: 'HEROKU_EMBEDDING_URL',
-      description: 'baseUrl'
-    })
+      description: 'baseUrl',
+    });
 
     const apiKey = loadApiKey({
       apiKey: options.apiKey,
       environmentVariableName: 'HEROKU_EMBEDDING_KEY',
-      description: 'Heroku'
-    })
-    
+      description: 'Heroku',
+    });
+
     return new HerokuEmbeddingModel(modelId, {
       provider: 'heroku.textEmbedding',
       baseURL,
@@ -74,7 +71,7 @@ export function createHeroku(options: HerokuProviderSettings = {}): HerokuProvid
       fetch: options.fetch,
     });
   };
-  
+
   const provider = function (modelId: string) {
     if (new.target) {
       throw new Error(

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-01-XX
 
 ### Added
+
 - Initial release of Heroku AI embeddings provider
 - Support for Cohere embedding models through Heroku's AI endpoint
 - Comprehensive embedding options including input type, truncation, and dimensions
