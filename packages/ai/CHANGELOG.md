@@ -1,5 +1,16 @@
 # ai
 
+## 5.0.24
+
+### Patch Changes
+
+- f8f3682: fix: call onFinish when stream is cancelled in toUIMessageStream
+
+  Previously, onFinish was only called on normal stream completion. Now it's also called when the reader is cancelled (e.g., browser close, navigation), ensuring partial messages are persisted.
+
+- Updated dependencies [c9994f9]
+  - @ai-sdk/gateway@1.0.13
+
 ## 5.0.23
 
 ### Patch Changes
