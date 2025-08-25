@@ -81,6 +81,12 @@ export function prepareTools({
         toolChoice: 'any',
         toolWarnings,
       };
+    case 'provider-defined':
+      return {
+        tools: mistralTools,
+        toolChoice: toolChoice.toolChoice as MistralToolChoice,
+        toolWarnings,
+      };
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({

@@ -82,6 +82,12 @@ export function prepareTools({
         },
         toolWarnings,
       };
+    case 'provider-defined':
+      return {
+        tools: xaiTools,
+        toolChoice: toolChoice.toolChoice as XaiToolChoice,
+        toolWarnings,
+      };
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({

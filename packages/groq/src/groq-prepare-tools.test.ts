@@ -150,6 +150,22 @@ describe('prepareTools', () => {
     });
   });
 
+  it('should passthrough provider-defined toolChoice', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'Test',
+          inputSchema: {},
+        },
+      ],
+      toolChoice: { type: 'provider-defined', toolChoice: 'auto' },
+      modelId: 'gemma2-9b-it',
+    });
+    expect(result.toolChoice).toEqual('auto');
+  });
+
   describe('browser search tool', () => {
     it('should handle browser search tool with supported model', () => {
       const result = prepareTools({

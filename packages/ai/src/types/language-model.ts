@@ -41,9 +41,11 @@ Tool choice for the generation. It supports the following settings:
 - `required`: the model must call a tool. It can choose which tool to call.
 - `none`: the model must not call tools
 - `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
+- `{ type: 'provider-defined', toolChoice: unknown }`: pass through the tool choice to the provider
  */
 export type ToolChoice<TOOLS extends Record<string, unknown>> =
   | 'auto'
   | 'none'
   | 'required'
-  | { type: 'tool'; toolName: Extract<keyof TOOLS, string> };
+  | { type: 'tool'; toolName: Extract<keyof TOOLS, string> }
+  | { type: 'provider-defined'; toolChoice: unknown };

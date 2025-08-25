@@ -151,4 +151,13 @@ describe('tool choice handling', () => {
       toolWarnings: [],
     });
   });
+
+  it('should passthrough provider-defined toolChoice', () => {
+    const result = prepareTools({
+      tools: [basicTool],
+      toolChoice: { type: 'provider-defined', toolChoice: 'REQUIRED' as any },
+    });
+
+    expect(result.toolChoice).toBe('REQUIRED');
+  });
 });
