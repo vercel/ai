@@ -1,4 +1,4 @@
-import { ZodNumberDef } from 'zod';
+import { ZodNumberDef } from 'zod/v3';
 import {
   addErrorMessage,
   ErrorMessages,

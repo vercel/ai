@@ -1,4 +1,4 @@
-import { ZodNativeEnumDef } from 'zod';
+import { ZodNativeEnumDef } from 'zod/v3';
 
 export type JsonSchema7NativeEnumType = {
   type: 'string' | 'number' | ['string', 'number'];

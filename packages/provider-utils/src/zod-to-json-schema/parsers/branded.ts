@@ -1,4 +1,4 @@
-import { ZodBrandedDef } from 'zod';
+import { ZodBrandedDef } from 'zod/v3';
 import { parseDef } from '../parse-def';
 import { Refs } from '../refs';
 

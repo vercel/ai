@@ -1,4 +1,4 @@
-import { ZodTupleDef, ZodTupleItems, ZodTypeAny } from 'zod';
+import { ZodTupleDef, ZodTupleItems, ZodTypeAny } from 'zod/v3';
 import { parseDef } from '../parse-def';
 import { JsonSchema7Type } from '../parse-types';
 import { Refs } from '../refs';
