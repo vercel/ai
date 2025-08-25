@@ -1,4 +1,3 @@
-import { NoSuchModelError } from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
   withoutTrailingSlash,
@@ -15,12 +14,15 @@ import {
 } from './gateway-fetch-metadata';
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
+import { GatewayImageModel } from './gateway-image-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
+import type { GatewayImageModelId } from './gateway-image-model-settings';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
   LanguageModelV2,
   EmbeddingModelV2,
+  ImageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
 
@@ -43,6 +45,11 @@ Creates a model for generating text embeddings.
   textEmbeddingModel(
     modelId: GatewayEmbeddingModelId,
   ): EmbeddingModelV2<string>;
+
+  /**
+Creates a model for generating images.
+*/
+  imageModel(modelId: GatewayImageModelId): ImageModelV2;
 }
 
 export interface GatewayProviderSettings {
@@ -185,8 +192,14 @@ export function createGatewayProvider(
   };
 
   provider.getAvailableModels = getAvailableModels;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
+  provider.imageModel = (modelId: GatewayImageModelId) => {
+    return new GatewayImageModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
   };
   provider.languageModel = createLanguageModel;
   provider.textEmbeddingModel = (modelId: GatewayEmbeddingModelId) => {
