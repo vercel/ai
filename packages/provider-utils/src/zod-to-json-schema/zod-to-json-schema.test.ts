@@ -114,6 +114,177 @@ describe('zod-to-json-schema', () => {
     } satisfies JSONSchema7);
   });
 
+  it('should be possible to use description', () => {
+    const parsedSchema = zodToJsonSchema(z.string().describe('My neat string'));
+
+    expect(parsedSchema).toStrictEqual({
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'string',
+      description: 'My neat string',
+    } satisfies JSONSchema7);
+  });
+
+  it('should handle optional schemas with different descriptions', () => {
+    const recurringSchema = z.object({});
+    const zodSchema = z
+      .object({
+        p1: recurringSchema.optional().describe('aaaaaaaaa'),
+        p2: recurringSchema.optional().describe('bbbbbbbbb'),
+        p3: recurringSchema.optional().describe('ccccccccc'),
+      })
+      .describe('sssssssss');
+
+    const jsonSchema = zodToJsonSchema(zodSchema, {
+      $refStrategy: 'none',
+    });
+
+    expect(jsonSchema).toStrictEqual({
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      additionalProperties: false,
+      description: 'sssssssss',
+      properties: {
+        p1: {
+          additionalProperties: false,
+          description: 'aaaaaaaaa',
+          properties: {},
+          type: 'object',
+        },
+        p2: {
+          additionalProperties: false,
+          description: 'bbbbbbbbb',
+          properties: {},
+          type: 'object',
+        },
+        p3: {
+          additionalProperties: false,
+          description: 'ccccccccc',
+          properties: {},
+          type: 'object',
+        },
+      },
+      type: 'object',
+    } satisfies JSONSchema7);
+  });
+
+  it('should be possible to use superRefine', () => {
+    const schema = z.object({
+      test: z
+        .string()
+        .optional()
+        .superRefine(async (value, ctx) => {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          if (value === 'fail') {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'This is a test error',
+            });
+          }
+        }),
+    });
+
+    const output = zodToJsonSchema(schema);
+
+    expect(output).toStrictEqual({
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: { test: { type: 'string' } },
+      additionalProperties: false,
+    } satisfies JSONSchema7);
+  });
+
+  it('should be possible to use describe on arrays', () => {
+    const topicSchema = z.object({
+      topics: z
+        .array(
+          z.object({
+            topic: z.string().describe('The topic of the position'),
+          }),
+        )
+        .describe('An array of topics'),
+    });
+
+    const res = zodToJsonSchema(topicSchema);
+
+    expect(res).toStrictEqual({
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      required: ['topics'],
+      properties: {
+        topics: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['topic'],
+            properties: {
+              topic: {
+                type: 'string',
+                description: 'The topic of the position',
+              },
+            },
+            additionalProperties: false,
+          },
+          description: 'An array of topics',
+        },
+      },
+      additionalProperties: false,
+    } satisfies JSONSchema7);
+  });
+
+  it('should be possible to use regex with error messages', () => {
+    const urlRegex =
+      /^((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=+$,\w]+@)?[A-Za-z0-9.-]+|(?:www\.|[-;:&=+$,\w]+@)[A-Za-z0-9.-]+)((?:\/[+~%,/.\w\-_]*)?\??(?:[-+=&;%@.\w:()_]*)#?(?:[.!/\\\w]*))?)/;
+
+    const URLSchema = z
+      .string()
+      .min(1)
+      .max(1000)
+      .regex(urlRegex, { message: 'Please enter a valid URL' })
+      .brand('url');
+
+    const jsonSchemaJs = zodToJsonSchema(URLSchema, { errorMessages: true });
+    const jsonSchema = JSON.parse(JSON.stringify(jsonSchemaJs));
+
+    expect(jsonSchema).toStrictEqual({
+      type: 'string',
+      minLength: 1,
+      maxLength: 1000,
+      pattern:
+        '^((([A-Za-z]{3,9}:(?:\\/\\/)?)(?:[-;:&=+$,\\w]+@)?[A-Za-z0-9.-]+|(?:www\\.|[-;:&=+$,\\w]+@)[A-Za-z0-9.-]+)((?:\\/[+~%,/.\\w\\-_]*)?\\??(?:[-+=&;%@.\\w:()_]*)#?(?:[.!/\\\\\\w]*))?)',
+      $schema: 'http://json-schema.org/draft-07/schema#',
+    } satisfies JSONSchema7);
+  });
+
+  it('should be possible to use lazy recursion @162', () => {
+    const A: any = z.object({
+      ref1: z.lazy(() => B),
+    });
+
+    const B = z.object({
+      ref1: A,
+    });
+
+    const result = zodToJsonSchema(A);
+
+    expect(result).toStrictEqual({
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        ref1: {
+          type: 'object',
+          properties: {
+            ref1: {
+              $ref: '#',
+            },
+          },
+          required: ['ref1'],
+          additionalProperties: false,
+        },
+      },
+      required: ['ref1'],
+      additionalProperties: false,
+    } satisfies JSONSchema7);
+  });
+
   it('should produce valid json schema for all parsers', () => {
     enum nativeEnum {
       'a',
