@@ -5,7 +5,7 @@ import { z } from 'zod/v4';
 
 async function main() {
   const { experimental_output } = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-4o'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
@@ -23,13 +23,14 @@ async function main() {
       schema: z.object({
         location: z.string(),
         temperature: z.number(),
+        suggestions: z.array(z.string()).max(3),
       }),
     }),
     stopWhen: stepCountIs(2),
-    prompt: 'What is the weather in San Francisco?',
+    prompt: 'What is the weather in San Francisco and what should I wear?',
   });
 
-  // { location: 'San Francisco', temperature: 81 }
+  // { location: 'San Francisco', temperature: 81, suggestions: ['Wear a jacket', 'Bring an umbrella'] }
   console.log(experimental_output);
 }
 

@@ -20,6 +20,12 @@ You can use [Zod schemas](/docs/reference/ai-sdk-core/zod-schema), [Valibot](/do
 and the AI model will generate data that conforms to that structure.
 
 <Note>
+  When using the OpenAI provider, strict JSON schema enforcement now defaults to
+  on when a schema is provided or tools are present. You can opt out per-request
+  with `providerOptions.openai.strictJsonSchema = false`.
+</Note>
+
+<Note>
   You can pass Zod objects directly to the AI SDK functions or use the
   `zodSchema` helper function.
 </Note>

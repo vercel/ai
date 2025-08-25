@@ -117,7 +117,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
     warnings.push(...messageWarnings);
 
-    const strictJsonSchema = openaiOptions.strictJsonSchema ?? false;
+    const strictJsonSchema =
+      openaiOptions.strictJsonSchema ??
+      ((responseFormat?.type === 'json' && responseFormat?.schema != null) ||
+      (Array.isArray(tools) && tools.length > 0)
+        ? true
+        : false);
 
     const baseArgs = {
       // model id:

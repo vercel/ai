@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## Unreleased
+
+### Patch Changes
+
+- Default strict JSON schema enforcement to true when a JSON schema is provided or tools are present. You can opt out by setting `providerOptions.openai.strictJsonSchema = false`.
+
 ## 2.0.20
 
 ### Patch Changes

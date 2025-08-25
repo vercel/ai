@@ -351,7 +351,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
+                "strict": true,
                 "type": "json_schema",
               },
             },
@@ -868,7 +868,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
+                "strict": true,
                 "type": "json_schema",
               },
             },
@@ -905,7 +905,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           text: {
             format: {
               type: 'json_schema',
-              strict: false,
+              strict: true,
               name: 'response',
               description: 'A response',
               schema: {
