@@ -9,10 +9,8 @@ async function main() {
       "Alice has 3 brothers and she also has 2 sisters. How many sisters does Alice's brother have?",
   });
 
-  console.log('response');
-  console.dir(result.response, { depth: null });
-  console.log('content');
-  console.dir(result.content, { depth: null });
+  console.log(JSON.stringify(result.request.body, null, 2));
+  console.log(JSON.stringify(result.content, null, 2));
 }
 
 main().catch(console.error);
