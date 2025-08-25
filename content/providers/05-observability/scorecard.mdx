@@ -25,11 +25,11 @@ OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your Scorecard API Key>"
 Next, create an `instrumentation.ts` file in your project root to initialize OpenTelemetry (You can configure it as needed):
 
 ```typescript
-import { registerOTel } from "@vercel/otel";
+import { registerOTel } from '@vercel/otel';
 
 export function register() {
   registerOTel({
-    serviceName: "my-service-name",
+    serviceName: 'my-service-name',
   });
 }
 ```
