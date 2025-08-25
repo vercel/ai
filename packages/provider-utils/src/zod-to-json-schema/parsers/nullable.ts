@@ -23,15 +23,6 @@ export function parseNullableDef(
     ) &&
     (!def.innerType._def.checks || !def.innerType._def.checks.length)
   ) {
-    if (refs.target === 'openApi3') {
-      return {
-        type: primitiveMappings[
-          def.innerType._def.typeName as keyof typeof primitiveMappings
-        ],
-        nullable: true,
-      } as any;
-    }
-
     return {
       type: [
         primitiveMappings[
@@ -40,17 +31,6 @@ export function parseNullableDef(
         'null',
       ],
     };
-  }
-
-  if (refs.target === 'openApi3') {
-    const base = parseDef(def.innerType._def, {
-      ...refs,
-      currentPath: [...refs.currentPath],
-    });
-
-    if (base && '$ref' in base) return { allOf: [base], nullable: true } as any;
-
-    return base && ({ ...base, nullable: true } as any);
   }
 
   const base = parseDef(def.innerType._def, {

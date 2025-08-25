@@ -89,10 +89,10 @@ const get$ref = (
           )}! Defaulting to any`,
         );
 
-        return parseAnyDef(refs);
+        return parseAnyDef();
       }
 
-      return refs.$refStrategy === 'seen' ? parseAnyDef(refs) : undefined;
+      return refs.$refStrategy === 'seen' ? parseAnyDef() : undefined;
     }
   }
 };

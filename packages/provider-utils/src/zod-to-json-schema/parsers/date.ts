@@ -1,7 +1,5 @@
 import { ZodDateDef } from 'zod/v3';
 import { Refs } from '../refs';
-import { ErrorMessages, setResponseValueAndErrors } from '../error-messages';
-import { JsonSchema7NumberType } from './number';
 import { DateStrategy } from '../options';
 
 export type JsonSchema7DateType =
@@ -10,7 +8,6 @@ export type JsonSchema7DateType =
       format: 'unix-time' | 'date-time' | 'date';
       minimum?: number;
       maximum?: number;
-      errorMessage?: ErrorMessages<JsonSchema7NumberType>;
     }
   | {
       anyOf: JsonSchema7DateType[];
@@ -42,39 +39,23 @@ export function parseDateDef(
         format: 'date',
       };
     case 'integer':
-      return integerDateParser(def, refs);
+      return integerDateParser(def);
   }
 }
 
-const integerDateParser = (def: ZodDateDef, refs: Refs) => {
+const integerDateParser = (def: ZodDateDef) => {
   const res: JsonSchema7DateType = {
     type: 'integer',
     format: 'unix-time',
   };
 
-  if (refs.target === 'openApi3') {
-    return res;
-  }
-
   for (const check of def.checks) {
     switch (check.kind) {
       case 'min':
-        setResponseValueAndErrors(
-          res,
-          'minimum',
-          check.value, // This is in milliseconds
-          check.message,
-          refs,
-        );
+        res.minimum = check.value;
         break;
       case 'max':
-        setResponseValueAndErrors(
-          res,
-          'maximum',
-          check.value, // This is in milliseconds
-          check.message,
-          refs,
-        );
+        res.maximum = check.value;
         break;
     }
   }

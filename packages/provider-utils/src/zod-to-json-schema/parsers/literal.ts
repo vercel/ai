@@ -1,5 +1,4 @@
 import { ZodLiteralDef } from 'zod/v3';
-import { Refs } from '../refs';
 
 export type JsonSchema7LiteralType =
   | {
@@ -10,10 +9,7 @@ export type JsonSchema7LiteralType =
       type: 'object' | 'array';
     };
 
-export function parseLiteralDef(
-  def: ZodLiteralDef,
-  refs: Refs,
-): JsonSchema7LiteralType {
+export function parseLiteralDef(def: ZodLiteralDef): JsonSchema7LiteralType {
   const parsedType = typeof def.value;
   if (
     parsedType !== 'bigint' &&
@@ -24,13 +20,6 @@ export function parseLiteralDef(
     return {
       type: Array.isArray(def.value) ? 'array' : 'object',
     };
-  }
-
-  if (refs.target === 'openApi3') {
-    return {
-      type: parsedType === 'bigint' ? 'integer' : parsedType,
-      enum: [def.value],
-    } as any;
   }
 
   return {

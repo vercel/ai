@@ -43,11 +43,11 @@ export const selectParser = (
     case ZodFirstPartyTypeKind.ZodString:
       return parseStringDef(def, refs);
     case ZodFirstPartyTypeKind.ZodNumber:
-      return parseNumberDef(def, refs);
+      return parseNumberDef(def);
     case ZodFirstPartyTypeKind.ZodObject:
       return parseObjectDef(def, refs);
     case ZodFirstPartyTypeKind.ZodBigInt:
-      return parseBigintDef(def, refs);
+      return parseBigintDef(def);
     case ZodFirstPartyTypeKind.ZodBoolean:
       return parseBooleanDef();
     case ZodFirstPartyTypeKind.ZodDate:
@@ -55,7 +55,7 @@ export const selectParser = (
     case ZodFirstPartyTypeKind.ZodUndefined:
       return parseUndefinedDef(refs);
     case ZodFirstPartyTypeKind.ZodNull:
-      return parseNullDef(refs);
+      return parseNullDef();
     case ZodFirstPartyTypeKind.ZodArray:
       return parseArrayDef(def, refs);
     case ZodFirstPartyTypeKind.ZodUnion:
@@ -68,7 +68,7 @@ export const selectParser = (
     case ZodFirstPartyTypeKind.ZodRecord:
       return parseRecordDef(def, refs);
     case ZodFirstPartyTypeKind.ZodLiteral:
-      return parseLiteralDef(def, refs);
+      return parseLiteralDef(def);
     case ZodFirstPartyTypeKind.ZodEnum:
       return parseEnumDef(def);
     case ZodFirstPartyTypeKind.ZodNativeEnum:
@@ -91,7 +91,7 @@ export const selectParser = (
     case ZodFirstPartyTypeKind.ZodEffects:
       return parseEffectsDef(def, refs);
     case ZodFirstPartyTypeKind.ZodAny:
-      return parseAnyDef(refs);
+      return parseAnyDef();
     case ZodFirstPartyTypeKind.ZodUnknown:
       return parseUnknownDef(refs);
     case ZodFirstPartyTypeKind.ZodDefault:

@@ -129,10 +129,6 @@ describe('union', () => {
         },
       ],
     } satisfies JSONSchema7);
-
-    const resolvedSchema = deref(jsonSchema);
-    assert(resolvedSchema.anyOf[0], resolvedSchema.anyOf[1]);
-    assert(resolvedSchema.anyOf[1], resolvedSchema.anyOf[2]);
   });
 
   it('nullable primitives should come out fine', () => {

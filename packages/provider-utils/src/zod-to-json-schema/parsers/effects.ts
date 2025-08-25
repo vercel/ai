@@ -10,5 +10,5 @@ export function parseEffectsDef(
 ): JsonSchema7Type | undefined {
   return refs.effectStrategy === 'input'
     ? parseDef(_def.schema._def, refs)
-    : parseAnyDef(refs);
+    : parseAnyDef();
 }

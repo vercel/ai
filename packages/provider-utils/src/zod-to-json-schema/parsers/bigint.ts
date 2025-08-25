@@ -1,5 +1,4 @@
 import { ZodBigIntDef } from 'zod/v3';
-import { Refs } from '../refs';
 
 export type JsonSchema7BigintType = {
   type: 'integer';
@@ -11,10 +10,7 @@ export type JsonSchema7BigintType = {
   multipleOf?: BigInt;
 };
 
-export function parseBigintDef(
-  def: ZodBigIntDef,
-  refs: Refs,
-): JsonSchema7BigintType {
+export function parseBigintDef(def: ZodBigIntDef): JsonSchema7BigintType {
   const res: JsonSchema7BigintType = {
     type: 'integer',
     format: 'int64',

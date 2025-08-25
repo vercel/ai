@@ -1,17 +1,17 @@
 import { ZodSchema } from 'zod/v3';
-import { Options, Targets } from './options';
+import { Options } from './options';
 import { parseDef } from './parse-def';
 import { JsonSchema7Type } from './parse-types';
 import { getRefs } from './refs';
 import { parseAnyDef } from './parsers/any';
 
-const zodToJsonSchema = <Target extends Targets = 'jsonSchema7'>(
+const zodToJsonSchema = (
   schema: ZodSchema<any>,
-  options?: Partial<Options<Target>> | string,
-): (Target extends 'jsonSchema7' ? JsonSchema7Type : object) & {
+  options?: Partial<Options> | string,
+): JsonSchema7Type & {
   $schema?: string;
   definitions?: {
-    [key: string]: Target extends 'jsonSchema7' ? JsonSchema7Type : object;
+    [key: string]: JsonSchema7Type;
   };
 } => {
   const refs = getRefs(options);
@@ -29,7 +29,7 @@ const zodToJsonSchema = <Target extends Targets = 'jsonSchema7'>(
                   currentPath: [...refs.basePath, refs.definitionPath, name],
                 },
                 true,
-              ) ?? parseAnyDef(refs),
+              ) ?? parseAnyDef(),
           }),
           {},
         )
@@ -52,7 +52,7 @@ const zodToJsonSchema = <Target extends Targets = 'jsonSchema7'>(
             currentPath: [...refs.basePath, refs.definitionPath, name],
           },
       false,
-    ) ?? (parseAnyDef(refs) as JsonSchema7Type);
+    ) ?? (parseAnyDef() as JsonSchema7Type);
 
   const title =
     typeof options === 'object' &&
@@ -88,7 +88,7 @@ const zodToJsonSchema = <Target extends Targets = 'jsonSchema7'>(
     }
   }
 
-  const combined: ReturnType<typeof zodToJsonSchema<Target>> =
+  const combined: ReturnType<typeof zodToJsonSchema> =
     name === undefined
       ? definitions
         ? {
@@ -109,18 +109,6 @@ const zodToJsonSchema = <Target extends Targets = 'jsonSchema7'>(
         };
 
   combined.$schema = 'http://json-schema.org/draft-07/schema#';
-
-  if (
-    refs.target === 'openAi' &&
-    ('anyOf' in combined ||
-      'oneOf' in combined ||
-      'allOf' in combined ||
-      ('type' in combined && Array.isArray(combined.type)))
-  ) {
-    console.warn(
-      'Warning: OpenAI may not support schemas with unions as roots! Try wrapping it in an object property.',
-    );
-  }
 
   return combined;
 };
