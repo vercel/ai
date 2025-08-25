@@ -2,11 +2,7 @@ import { ZodSchema, ZodTypeDef } from 'zod/v3';
 import { Refs, Seen } from './refs';
 import { JsonSchema7Type } from './parse-types';
 
-export type Targets =
-  | 'jsonSchema7'
-  | 'jsonSchema2019-09'
-  | 'openApi3'
-  | 'openAi';
+export type Targets = 'jsonSchema7' | 'openApi3' | 'openAi';
 
 export type DateStrategy =
   | 'format:date-time'

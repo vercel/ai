@@ -31,23 +31,11 @@ export function parseIntersectionDef(
     }),
   ].filter((x): x is JsonSchema7Type => !!x);
 
-  let unevaluatedProperties:
-    | Pick<JsonSchema7AllOfType, 'unevaluatedProperties'>
-    | undefined =
-    refs.target === 'jsonSchema2019-09'
-      ? { unevaluatedProperties: false }
-      : undefined;
-
   const mergedAllOf: JsonSchema7Type[] = [];
   // If either of the schemas is an allOf, merge them into a single allOf
   allOf.forEach(schema => {
     if (isJsonSchema7AllOfType(schema)) {
       mergedAllOf.push(...schema.allOf);
-      if (schema.unevaluatedProperties === undefined) {
-        // If one of the schemas has no unevaluatedProperties set,
-        // the merged schema should also have no unevaluatedProperties set
-        unevaluatedProperties = undefined;
-      }
     } else {
       let nestedSchema: JsonSchema7Type = schema;
       if (
@@ -56,17 +44,9 @@ export function parseIntersectionDef(
       ) {
         const { additionalProperties, ...rest } = schema;
         nestedSchema = rest;
-      } else {
-        // As soon as one of the schemas has additionalProperties set not to false, we allow unevaluatedProperties
-        unevaluatedProperties = undefined;
       }
       mergedAllOf.push(nestedSchema);
     }
   });
-  return mergedAllOf.length
-    ? {
-        allOf: mergedAllOf,
-        ...unevaluatedProperties,
-      }
-    : undefined;
+  return mergedAllOf.length ? { allOf: mergedAllOf } : undefined;
 }

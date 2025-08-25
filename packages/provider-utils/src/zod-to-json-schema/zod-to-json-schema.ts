@@ -11,11 +11,7 @@ const zodToJsonSchema = <Target extends Targets = 'jsonSchema7'>(
 ): (Target extends 'jsonSchema7' ? JsonSchema7Type : object) & {
   $schema?: string;
   definitions?: {
-    [key: string]: Target extends 'jsonSchema7'
-      ? JsonSchema7Type
-      : Target extends 'jsonSchema2019-09'
-        ? JsonSchema7Type
-        : object;
+    [key: string]: Target extends 'jsonSchema7' ? JsonSchema7Type : object;
   };
 } => {
   const refs = getRefs(options);
@@ -112,11 +108,7 @@ const zodToJsonSchema = <Target extends Targets = 'jsonSchema7'>(
           },
         };
 
-  if (refs.target === 'jsonSchema7') {
-    combined.$schema = 'http://json-schema.org/draft-07/schema#';
-  } else if (refs.target === 'jsonSchema2019-09' || refs.target === 'openAi') {
-    combined.$schema = 'https://json-schema.org/draft/2019-09/schema#';
-  }
+  combined.$schema = 'http://json-schema.org/draft-07/schema#';
 
   if (
     refs.target === 'openAi' &&

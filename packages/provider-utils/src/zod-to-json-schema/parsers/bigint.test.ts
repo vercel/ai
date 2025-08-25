@@ -27,22 +27,6 @@ describe('bigint', () => {
     } satisfies JSONSchema7);
   });
 
-  it('should be possible to define gt/lt (jsonSchema2019-09)', () => {
-    const parsedSchema = parseBigintDef(
-      z.bigint().gte(BigInt(10)).lte(BigInt(20))._def,
-      getRefs({
-        target: 'jsonSchema2019-09',
-      }),
-    );
-
-    expect(parsedSchema).toStrictEqual({
-      type: 'integer',
-      format: 'int64',
-      minimum: BigInt(10) as any, // json schema type does not support bigint
-      maximum: BigInt(20) as any, // json schema type does not support bigint
-    } satisfies JSONSchema7);
-  });
-
   it('should be possible to define gt/lt', () => {
     const parsedSchema = parseBigintDef(
       z.bigint().gt(BigInt(10)).lt(BigInt(20))._def,
