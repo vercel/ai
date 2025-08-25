@@ -2184,15 +2184,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                 },
               },
               {
-                type: 'web_search_call',
-                id: 'ws_67cf2b3051e88190b006234456fdb13d',
-                status: 'completed',
-                action: {
-                  type: 'search',
-                  // sometimes search calls do not have a query
-                },
-              },
-              {
                 type: 'message',
                 id: 'msg_67cf2b35467481908f24412e4fd40d66',
                 status: 'completed',
@@ -2312,22 +2303,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "status": "completed",
               },
               "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "web_search_preview",
-              "type": "tool-result",
-            },
-            {
-              "input": "{"action":{"type":"search"}}",
-              "providerExecuted": true,
-              "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-              "toolName": "web_search_preview",
-              "type": "tool-call",
-            },
-            {
-              "providerExecuted": true,
-              "result": {
-                "status": "completed",
-              },
-              "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
               "toolName": "web_search_preview",
               "type": "tool-result",
             },

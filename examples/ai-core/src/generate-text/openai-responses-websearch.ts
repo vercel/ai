@@ -4,12 +4,10 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-5'),
+    model: openai.responses('gpt-4o-mini'),
     prompt: 'What happened in San Francisco last week?',
     tools: {
-      web_search_preview: openai.tools.webSearchPreview({
-        searchContextSize: 'high',
-      }),
+      web_search_preview: openai.tools.webSearchPreview({}),
     },
   });
 

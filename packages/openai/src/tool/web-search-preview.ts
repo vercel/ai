@@ -87,7 +87,7 @@ export const webSearchPreview = createProviderDefinedToolFactory<
       .discriminatedUnion('type', [
         z.object({
           type: z.literal('search'),
-          query: z.string().nullish(),
+          query: z.string(),
         }),
         z.object({
           type: z.literal('open_page'),
