@@ -11,3 +11,5 @@ export * from '../transcription/openai-transcription-options';
 export * from '../speech/openai-speech-model';
 export * from '../speech/openai-speech-options';
 export * from '../responses/openai-responses-language-model';
+export * from '../tool/code-interpreter';
+export * from '../tool/file-search';
