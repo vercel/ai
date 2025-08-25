@@ -4,14 +4,14 @@ import {
   ZodRecordDef,
   ZodTypeAny,
 } from 'zod';
-import { parseDef } from '../parseDef.js';
-import { JsonSchema7Type } from '../parseTypes.js';
-import { Refs } from '../Refs.js';
+import { parseDef } from '../parse-def';
+import { JsonSchema7Type } from '../parse-types';
+import { Refs } from '../refs';
 import { JsonSchema7EnumType } from './enum.js';
-import { JsonSchema7ObjectType } from './object.js';
-import { JsonSchema7StringType, parseStringDef } from './string.js';
-import { parseBrandedDef } from './branded.js';
-import { parseAnyDef } from './any.js';
+import { JsonSchema7ObjectType } from './object';
+import { JsonSchema7StringType, parseStringDef } from './string';
+import { parseBrandedDef } from './branded';
+import { parseAnyDef } from './any';
 
 type JsonSchema7RecordPropertyNamesType =
   | Omit<JsonSchema7StringType, 'type'>

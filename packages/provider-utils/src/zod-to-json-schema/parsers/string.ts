@@ -1,6 +1,6 @@
 import { ZodStringDef } from 'zod';
-import { ErrorMessages, setResponseValueAndErrors } from '../errorMessages.js';
-import { Refs } from '../Refs.js';
+import { ErrorMessages, setResponseValueAndErrors } from '../error-messages';
+import { Refs } from '../refs';
 
 let emojiRegex: RegExp | undefined = undefined;
 

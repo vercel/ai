@@ -1,5 +1,5 @@
-import { Refs } from '../Refs.js';
-import { getRelativePath } from '../getRelativePath.js';
+import { Refs } from '../refs';
+import { getRelativePath } from '../get-relative-path';
 
 export type JsonSchema7AnyType = { $ref?: string };
 

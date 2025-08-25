@@ -1,5 +1,5 @@
-import { JsonSchema7TypeUnion } from './parseTypes.js';
-import { Refs } from './Refs.js';
+import { JsonSchema7TypeUnion } from './parse-types';
+import { Refs } from './refs';
 
 export type ErrorMessages<
   T extends JsonSchema7TypeUnion | { format: string } | { pattern: string },

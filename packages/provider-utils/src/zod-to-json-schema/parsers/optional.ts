@@ -1,8 +1,8 @@
 import { ZodOptionalDef } from 'zod';
-import { parseDef } from '../parseDef.js';
-import { JsonSchema7Type } from '../parseTypes.js';
-import { Refs } from '../Refs.js';
-import { parseAnyDef } from './any.js';
+import { parseDef } from '../parse-def';
+import { JsonSchema7Type } from '../parse-types';
+import { Refs } from '../refs';
+import { parseAnyDef } from './any';
 
 export const parseOptionalDef = (
   def: ZodOptionalDef,

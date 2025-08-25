@@ -1,8 +1,8 @@
 import { ZodDateDef } from 'zod';
-import { Refs } from '../Refs.js';
-import { ErrorMessages, setResponseValueAndErrors } from '../errorMessages.js';
-import { JsonSchema7NumberType } from './number.js';
-import { DateStrategy } from '../Options.js';
+import { Refs } from '../refs';
+import { ErrorMessages, setResponseValueAndErrors } from '../error-messages';
+import { JsonSchema7NumberType } from './number';
+import { DateStrategy } from '../options';
 
 export type JsonSchema7DateType =
   | {

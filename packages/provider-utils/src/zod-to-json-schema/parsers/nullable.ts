@@ -1,9 +1,9 @@
 import { ZodNullableDef } from 'zod';
-import { parseDef } from '../parseDef.js';
-import { JsonSchema7Type } from '../parseTypes.js';
-import { Refs } from '../Refs.js';
-import { JsonSchema7NullType } from './null.js';
-import { primitiveMappings } from './union.js';
+import { parseDef } from '../parse-def';
+import { JsonSchema7Type } from '../parse-types';
+import { Refs } from '../refs';
+import { JsonSchema7NullType } from './null';
+import { primitiveMappings } from './union';
 
 export type JsonSchema7NullableType =
   | {
