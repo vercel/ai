@@ -592,6 +592,13 @@ To see `generateText` in action, check out [these examples](#examples).
               isOptional: true,
               description: 'Modify the input messages for this step.',
             },
+            {
+              name: 'providerOptions',
+              type: 'Record<string,Record<string,JSONValue>>',
+              isOptional: true,
+              description:
+                'Additional provider-specific options for this step. Merges with and overrides outer providerOptions for this step.',
+            },
           ],
         },
       ],

@@ -32,6 +32,7 @@ import { LanguageModel, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
 import { prepareRetries } from '../util/prepare-retries';
+import { mergeObjects } from '../util/merge-objects';
 import { ContentPart } from './content-part';
 import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
@@ -374,7 +375,10 @@ A function that attempts to repair a tool call that failed to parse.
                   toolChoice: stepToolChoice,
                   responseFormat: output?.responseFormat,
                   prompt: promptMessages,
-                  providerOptions,
+                  providerOptions: mergeObjects(
+                    providerOptions,
+                    prepareStepResult?.providerOptions,
+                  ),
                   abortSignal,
                   headers,
                 });

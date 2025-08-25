@@ -60,6 +60,7 @@ import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DelayedPromise } from '../util/delayed-promise';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import { mergeObjects } from '../util/merge-objects';
 import { ContentPart } from './content-part';
 import { Output } from './output';
 import { PrepareStepFunction } from './prepare-step';
@@ -1133,7 +1134,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     toolChoice: stepToolChoice,
                     responseFormat: output?.responseFormat,
                     prompt: promptMessages,
-                    providerOptions,
+                    providerOptions: mergeObjects(
+                      providerOptions,
+                      prepareStepResult?.providerOptions,
+                    ),
                     abortSignal,
                     headers,
                     includeRawChunks,
