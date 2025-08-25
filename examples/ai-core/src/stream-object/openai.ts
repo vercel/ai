@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod/v3';
 
 async function main() {
   const result = streamObject({
@@ -25,6 +25,8 @@ async function main() {
     console.clear();
     console.log(partialObject);
   }
+
+  console.log(JSON.stringify((await result.request).body, null, 2));
 }
 
 main().catch(console.error);
