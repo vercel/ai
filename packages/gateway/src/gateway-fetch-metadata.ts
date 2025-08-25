@@ -56,9 +56,7 @@ const gatewayLanguageModelPricingSchema = z
   .transform(({ input, output, input_cache_read, input_cache_write }) => ({
     input,
     output,
-    ...(input_cache_read
-      ? { cachedInputTokens: input_cache_read }
-      : {}),
+    ...(input_cache_read ? { cachedInputTokens: input_cache_read } : {}),
     ...(input_cache_write
       ? { cacheCreationInputTokens: input_cache_write }
       : {}),
