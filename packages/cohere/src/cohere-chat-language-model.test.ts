@@ -25,7 +25,8 @@ const server = createTestServer({
 
 describe('doGenerate', () => {
   function prepareJsonResponse({
-    text = '',
+    text = null,
+    thinking = null,
     tool_calls,
     finish_reason = 'COMPLETE',
     tokens = {
@@ -35,7 +36,8 @@ describe('doGenerate', () => {
     generation_id = 'dad0c7cd-7982-42a7-acfb-706ccf598291',
     headers,
   }: {
-    text?: string;
+    text?: string | null;
+    thinking?: string | null;
     tool_calls?: any;
     finish_reason?: string;
     tokens?: {
@@ -45,6 +47,14 @@ describe('doGenerate', () => {
     generation_id?: string;
     headers?: Record<string, string>;
   }) {
+    const content = [];
+    if (typeof text === 'string') {
+      content.push({ type: 'text', text });
+    }
+    if (typeof thinking === 'string') {
+      content.push({ type: 'thinking', thinking });
+    }
+
     server.urls['https://api.cohere.com/v2/chat'].response = {
       type: 'json-value',
       headers,
@@ -53,7 +63,7 @@ describe('doGenerate', () => {
         generation_id,
         message: {
           role: 'assistant',
-          content: [{ type: 'text', text }],
+          content,
           ...(tool_calls ? { tool_calls } : {}),
         },
         finish_reason,
@@ -151,6 +161,7 @@ describe('doGenerate', () => {
 
   it('should send additional response information', async () => {
     prepareJsonResponse({
+      text: '',
       generation_id: 'test-id',
     });
 
@@ -207,6 +218,7 @@ describe('doGenerate', () => {
 
   it('should expose the raw response headers', async () => {
     prepareJsonResponse({
+      text: '',
       headers: { 'test-header': 'test-value' },
     });
 
@@ -759,11 +771,36 @@ describe('doGenerate', () => {
       expect(requestBody.documents).toBeUndefined();
     });
   });
+
+  it('should extract reasoning from response', async () => {
+    prepareJsonResponse({
+      text: '42',
+      thinking: 'So I was thinking ...',
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "So I was thinking ...",
+          "type": "reasoning",
+        },
+        {
+          "text": "42",
+          "type": "text",
+        },
+      ]
+    `);
+  });
 });
 
 describe('doStream', () => {
   function prepareStreamResponse({
-    content,
+    textContent,
+    thinkingContent = [],
     usage = {
       input_tokens: 17,
       output_tokens: 244,
@@ -771,7 +808,8 @@ describe('doStream', () => {
     finish_reason = 'COMPLETE',
     headers,
   }: {
-    content: string[];
+    textContent: string[];
+    thinkingContent?: string[];
     usage?: {
       input_tokens: number;
       output_tokens: number;
@@ -779,13 +817,27 @@ describe('doStream', () => {
     finish_reason?: string;
     headers?: Record<string, string>;
   }) {
+    const thinkingEvents = [];
+
+    if (thinkingContent.length > 0) {
+      thinkingEvents.push(
+        `event: content-start\ndata: {"type":"content-start","index":0,"delta":{"message":{"content":{"type":"thinking","thinking":""}}}}\n\n`,
+        ...thinkingContent.map(
+          text =>
+            `event: content-delta\ndata: {"type":"content-delta","index":0,"delta":{"message":{"content":{"thinking":"${text}"}}}}\n\n`,
+        ),
+        `event: content-end\ndata: {"type":"content-end","index":0}\n\n`,
+      );
+    }
+
     server.urls['https://api.cohere.com/v2/chat'].response = {
       type: 'stream-chunks',
       headers,
       chunks: [
         `event: message-start\ndata: {"type":"message-start","id":"586ac33f-9c64-452c-8f8d-e5890e73b6fb","delta":{"message":{"role":"assistant","content":[],"tool_plan":"","tool_calls":[],"citations":[]}}}\n\n`,
+        ...thinkingEvents,
         `event: content-start\ndata: {"type":"content-start","index":0,"delta":{"message":{"content":{"type":"text","text":""}}}}\n\n`,
-        ...content.map(
+        ...textContent.map(
           text =>
             `event: content-delta\ndata: {"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"${text}"}}}}\n\n`,
         ),
@@ -800,7 +852,7 @@ describe('doStream', () => {
 
   it('should stream text deltas', async () => {
     prepareStreamResponse({
-      content: ['Hello', ', ', 'World!'],
+      textContent: ['Hello', ', ', 'World!'],
       finish_reason: 'COMPLETE',
       usage: {
         input_tokens: 34,
@@ -822,6 +874,101 @@ describe('doStream', () => {
         {
           "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
           "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": ", ",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "World!",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 34,
+            "outputTokens": 12,
+            "totalTokens": 46,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should stream reasoning deltas', async () => {
+    prepareStreamResponse({
+      thinkingContent: ['So', 'I ', 'was ', 'thinking ', '...'],
+      textContent: ['Hello', ', ', 'World!'],
+      finish_reason: 'COMPLETE',
+      usage: {
+        input_tokens: 34,
+        output_tokens: 12,
+      },
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "So",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": "I ",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": "was ",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": "thinking ",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": "...",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "0",
+          "type": "reasoning-end",
         },
         {
           "id": "0",
@@ -1041,7 +1188,7 @@ describe('doStream', () => {
 
   it('should expose the raw response headers', async () => {
     prepareStreamResponse({
-      content: [],
+      textContent: [],
       headers: { 'test-header': 'test-value' },
     });
 
@@ -1062,7 +1209,7 @@ describe('doStream', () => {
   });
 
   it('should pass the messages and the model', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareStreamResponse({ textContent: [] });
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -1086,7 +1233,7 @@ describe('doStream', () => {
   });
 
   it('should pass headers', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareStreamResponse({ textContent: [] });
 
     const provider = createCohere({
       apiKey: 'test-api-key',
@@ -1112,7 +1259,7 @@ describe('doStream', () => {
   });
 
   it('should send request body', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareStreamResponse({ textContent: [] });
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -1220,7 +1367,7 @@ describe('doStream', () => {
 
   it('should include raw chunks when includeRawChunks is enabled', async () => {
     prepareStreamResponse({
-      content: ['Hello', ' World!'],
+      textContent: ['Hello', ' World!'],
     });
 
     const { stream } = await model.doStream({
@@ -1319,7 +1466,7 @@ describe('doStream', () => {
 
   it('should not include raw chunks when includeRawChunks is false', async () => {
     prepareStreamResponse({
-      content: ['Hello', ' World!'],
+      textContent: ['Hello', ' World!'],
     });
 
     const { stream } = await model.doStream({
