@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.20
+
+### Patch Changes
+
+- 974de40: fix(provider/ai): do not set `.providerMetadata.openai.logprobs` to an array of empty arrays when using `streamText()`
+
 ## 2.0.19
 
 ### Patch Changes
