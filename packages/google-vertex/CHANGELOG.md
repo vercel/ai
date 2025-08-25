@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 3.0.12
+
+### Patch Changes
+
+- d09caa5: The taskType parameter now properly maps to snake case in the final payload.
+
 ## 3.0.11
 
 ### Patch Changes

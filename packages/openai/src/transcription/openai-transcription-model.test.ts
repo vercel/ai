@@ -182,7 +182,7 @@ describe('doGenerate', () => {
     expect(result.response.modelId).toBe('whisper-1');
   });
 
-  it('should pass response_format when specified', async () => {
+  it('should pass response_format when `providerOptions.openai.timestampGranularities` is set', async () => {
     prepareJsonResponse();
 
     await model.doGenerate({
@@ -204,6 +204,35 @@ describe('doGenerate', () => {
         },
         "model": "whisper-1",
         "response_format": "verbose_json",
+        "temperature": "0",
+        "timestamp_granularities": "word",
+      }
+    `);
+  });
+
+  it('should not set pass response_format to "verbose_json" when model is "gpt-4o-transcribe"', async () => {
+    prepareJsonResponse();
+
+    const model = provider.transcription('gpt-4o-transcribe');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          timestampGranularities: ['word'],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+      {
+        "file": File {
+          Symbol(kHandle): Blob {},
+          Symbol(kLength): 40169,
+          Symbol(kType): "audio/wav",
+        },
+        "model": "gpt-4o-transcribe",
+        "response_format": "json",
         "temperature": "0",
         "timestamp_granularities": "word",
       }

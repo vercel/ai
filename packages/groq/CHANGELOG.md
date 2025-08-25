@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.14
+
+### Patch Changes
+
+- 1e8f9b7: fix (provider/groq): add missing provider.transcriptionModel
+
 ## 2.0.13
 
 ### Patch Changes
