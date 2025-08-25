@@ -97,6 +97,57 @@ Unlike the native web search examples where searching is built into the model, u
   incorporate those findings into its response.
 </Note>
 
+### Linkup
+[Linkup](https://linkup.so) provides an AI-powered web search API. Here's how you can use it to integrate real-time web search into your application:
+
+```ts
+import { generateText, tool, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import 'dotenv/config';
+import { LinkupClient } from 'linkup-sdk';
+
+if (!process.env.LINKUP_API_KEY) {
+  throw new Error("LINKUP_API_KEY is not defined");
+}
+
+export const client = new LinkupClient({ apiKey: process.env.LINKUP_API_KEY })
+
+export const linkupWebSearch = tool({
+  description: 'Search the web for up-to-date information',
+  inputSchema: z.object({
+    query: z.string().min(1).describe('The search query'),
+    depth: z.enum(['standard','deep']).optional().describe('Search depth'),
+    includeDomains: z.array(z.string()).optional().describe('Include specific domains or urls'),
+    excludeDomains: z.array(z.string()).optional().describe('Exclude specific domains or urls'),
+    fromDate: z.string().datetime().optional().describe('Search after this date'),
+    toDate: z.string().datetime().optional().describe('Search before this date'),
+    includeImage: z.boolean().optional().describe('Include an image'),
+  }),
+  execute: async ({ query }) => {
+    return await client.search({
+      query: query,
+      depth: 'standard', // (standard / deep) "standard" returns results faster; "deep" takes longer but yields more comprehensive results.
+      outputType: 'searchResults',
+      // includeImage: (true / false) To receive image results alongside text results in your search responses (set by default to false)
+      // includeDomains: ["example1.com", "example2.com"] // To include domain(s)
+      // excludeDomains: ["example1.com", "example2.com"] // To exclude domain(s)
+      // toDate: In Date type for eg: new Date("2024-01-01") content published or updated before the specified date
+      // fromDate: In Date type for eg: new Date("2024-12-31") content published after the specified date
+    });
+  },
+});
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'), // can be any model that supports tools
+  prompt: 'What are the latest updates on AI in France?',
+  tools: {
+    linkupWebSearch,
+  },
+  stopWhen: stepCountIs(5),
+});
+```
+
 ### Exa
 
 [Exa](https://exa.ai/) is a search API designed for AI. Let's look at how you could implement a search tool using Exa:
