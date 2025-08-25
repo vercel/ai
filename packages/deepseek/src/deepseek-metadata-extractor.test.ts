@@ -1,4 +1,6 @@
 import { deepSeekMetadataExtractor } from './deepseek-metadata-extractor';
+import { describe, it, expect } from 'vitest';
+
 
 describe('buildMetadataFromResponse', () => {
   it('should extract metadata from complete response with usage data', async () => {

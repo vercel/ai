@@ -1,5 +1,7 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
+import { it, expect } from 'vitest';
+
 
 it('should remove additionalProperties and $schema', () => {
   const input: JSONSchema7 = {

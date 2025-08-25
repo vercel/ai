@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { transcribe } from './transcribe';
+import { describe, it, expect } from 'vitest';
 
 const audioData = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);

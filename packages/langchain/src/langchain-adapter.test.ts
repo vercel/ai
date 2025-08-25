@@ -3,6 +3,8 @@ import {
   convertReadableStreamToArray,
 } from 'ai/test';
 import { toUIMessageStream } from './langchain-adapter';
+import { describe, it, expect } from 'vitest';
+
 
 describe('toUIMessageStream', () => {
   it('should convert ReadableStream<LangChainAIMessageChunk>', async () => {

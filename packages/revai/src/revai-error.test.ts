@@ -1,5 +1,7 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { revaiErrorDataSchema } from './revai-error';
+import { describe, it, expect } from 'vitest';
+
 
 describe('revaiErrorDataSchema', () => {
   it('should parse Rev.ai resource exhausted error', async () => {

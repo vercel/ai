@@ -8,6 +8,7 @@ import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { tool } from '@ai-sdk/provider-utils';
 import { simulateStreamingMiddleware } from './simulate-streaming-middleware';
+import { describe, it, expect } from 'vitest';
 
 const DEFAULT_SETTINGs = {
   prompt: 'Test prompt',

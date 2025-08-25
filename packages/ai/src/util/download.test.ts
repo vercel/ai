@@ -1,6 +1,8 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { download } from './download';
 import { DownloadError } from './download-error';
+import { describe, it, expect } from 'vitest';
+
 
 const server = createTestServer({
   'http://example.com/file': {},

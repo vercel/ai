@@ -1,4 +1,6 @@
 import { getModelPath } from './get-model-path';
+import { it, expect } from 'vitest';
+
 
 it('should pass through model path for models/*', async () => {
   expect(getModelPath('models/some-model')).toEqual('models/some-model');

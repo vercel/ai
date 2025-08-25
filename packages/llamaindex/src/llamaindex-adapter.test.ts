@@ -3,6 +3,8 @@ import {
   convertReadableStreamToArray,
 } from 'ai/test';
 import { toUIMessageStream } from './llamaindex-adapter';
+import { describe, it, expect } from 'vitest';
+
 
 describe('toUIMessageStream', () => {
   it('should convert AsyncIterable<EngineResponse>', async () => {
