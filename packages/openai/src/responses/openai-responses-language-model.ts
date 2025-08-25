@@ -33,7 +33,7 @@ const webSearchCallItem = z.object({
     .discriminatedUnion('type', [
       z.object({
         type: z.literal('search'),
-        query: z.string(),
+        query: z.string().nullish(),
       }),
       z.object({
         type: z.literal('open_page'),
