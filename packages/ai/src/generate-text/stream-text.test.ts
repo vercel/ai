@@ -34,6 +34,7 @@ import { stepCountIs } from './stop-condition';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
+import { consumeStream } from '../util';
 
 const defaultSettings = () =>
   ({
@@ -2995,6 +2996,102 @@ describe('streamText', () => {
           ]
         `);
     });
+
+    it('should NOT call onFinish when stream is cancelled', async () => {
+      const onFinish = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ' World' },
+            { type: 'text-delta', id: '1', delta: '!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onFinish,
+      });
+
+      // Get the UI message stream and cancel it after reading first chunk
+      const stream = result.toUIMessageStream();
+      const reader = stream.getReader();
+
+      // Read first chunk
+      const { value: firstChunk } = await reader.read();
+      expect(firstChunk).toBeDefined();
+
+      // Cancel the stream
+      await reader.cancel('User cancelled');
+
+      // Consume the rest of the stream to ensure all async operations complete
+      try {
+        await consumeStream({ stream });
+      } catch {
+        // Stream may error due to cancellation, which is expected
+      }
+
+      // Verify that onFinish was NOT called when stream was cancelled
+      expect(onFinish).not.toHaveBeenCalled();
+    });
+
+    it('should call onFinish even when error chunk occurs mid-stream', async () => {
+      const onFinish = vi.fn();
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'error', error: new Error('chunk error') },
+            // Note: finish-step and finish are still added after error
+            {
+              type: 'finish',
+              finishReason: 'error',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError,
+        onFinish,
+      });
+
+      await result.consumeStream();
+
+      // Verify onError was called
+      expect(onError).toHaveBeenCalledWith({
+        error: new Error('chunk error'),
+      });
+
+      // Verify onFinish was still called after the error
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finishReason: 'error',
+          text: 'Hello',
+          usage: testUsage,
+        }),
+      );
+    });
+  });
   });
 
   describe('result.toUIMessageStreamResponse', () => {
