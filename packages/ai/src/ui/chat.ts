@@ -562,7 +562,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         },
       });
 
-      this.onFinish?.({ message: activeResponse.state.message });
+      // TODO: pass messages since we have it in memory anyway
+      this.onFinish?.({ message: activeResponse.state.message, messages: [] });
 
       this.setStatus({ status: 'ready' });
     } catch (err) {
