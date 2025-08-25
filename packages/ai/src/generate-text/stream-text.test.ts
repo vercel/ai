@@ -34,7 +34,6 @@ import { stepCountIs } from './stop-condition';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
-import { consumeStream } from '../util';
 
 const defaultSettings = () =>
   ({
@@ -3043,7 +3042,7 @@ describe('streamText', () => {
         `);
     });
 
-    it('should NOT call onFinish when stream is cancelled', async () => {
+    it('should NOT call onFinish when for-await loop breaks early', async () => {
       const onFinish = vi.fn();
 
       const result = streamText({
@@ -3070,26 +3069,64 @@ describe('streamText', () => {
         onFinish,
       });
 
-      // Get the UI message stream and cancel it after reading first chunk
+      // Get the UI message stream and break after third chunk
       const stream = result.toUIMessageStream();
-      const reader = stream.getReader();
-
-      // Read first chunk
-      const { value: firstChunk } = await reader.read();
-      expect(firstChunk).toBeDefined();
-
-      // Cancel the stream
-      await reader.cancel('User cancelled');
-
-      // Consume the rest of the stream to ensure all async operations complete
-      try {
-        await consumeStream({ stream });
-      } catch {
-        // Stream may error due to cancellation, which is expected
+      let chunkCount = 0;
+      
+      for await (const chunk of stream) {
+        chunkCount++;
+        if (chunkCount === 3) {
+          break; // Break the iteration early, simulating cancellation
+        }
       }
 
       // Verify that onFinish was NOT called when stream was cancelled
       expect(onFinish).not.toHaveBeenCalled();
+    });
+
+    it('should NOT call onFinish when reader.cancel() is called', async () => {
+      const onFinishCallback = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ' World' },
+            { type: 'text-delta', id: '1', delta: '!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+      });
+
+      const uiStream = result.toUIMessageStream({
+        onFinish: onFinishCallback,
+      });
+
+      const reader = uiStream.getReader();
+      const chunks = [];
+      for (let i = 0; i < 4; i++) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+
+      await reader.cancel();
+      reader.releaseLock();
+
+      // Verify that onFinish was NOT called when stream was cancelled
+      expect(onFinishCallback).not.toHaveBeenCalled();
     });
 
   });
