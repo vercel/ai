@@ -2,6 +2,7 @@ import { EmbeddingModelV2 } from '@ai-sdk/provider';
 import { Embedding } from '../types';
 import { EmbeddingModelUsage } from '../types/usage';
 import { notImplemented } from './not-implemented';
+import { assert } from 'vitest'
 
 export class MockEmbeddingModelV2<VALUE> implements EmbeddingModelV2<VALUE> {
   readonly specificationVersion = 'v2';

@@ -1,6 +1,7 @@
 import { http, HttpResponse, JsonBodyType } from 'msw';
 import { setupServer } from 'msw/node';
 import { convertArrayToReadableStream } from './convert-array-to-readable-stream';
+import { beforeAll, beforeEach, afterAll } from 'vitest';
 
 export type UrlResponse =
   | {
@@ -190,11 +191,17 @@ export function createTestServer<
           }
 
           case 'binary': {
-            return HttpResponse.arrayBuffer(response.body, {
+            const arrayBuffer = response.body.buffer.slice(
+              response.body.byteOffset,
+              response.body.byteOffset + response.body.byteLength
+            );
+
+            return HttpResponse.arrayBuffer(arrayBuffer, {
               status: 200,
               headers: response.headers,
             });
           }
+
 
           case 'error':
             return HttpResponse.text(response.body ?? 'Error', {

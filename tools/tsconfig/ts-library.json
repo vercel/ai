@@ -6,10 +6,10 @@
         "lib": [
             "dom",
             "dom.iterable",
-            "ES2018"
+            "esnext"
         ],
         "module": "ESNext",
-        "target": "ES2018",
+        "target": "esnext",
         "stripInternal": true
     },
 }

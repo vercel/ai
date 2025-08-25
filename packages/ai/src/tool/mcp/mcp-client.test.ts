@@ -3,6 +3,7 @@ import { MCPClientError } from '../../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
 import { MockMCPTransport } from './mock-mcp-transport';
 import { CallToolResult } from './types';
+import { beforeEach, afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 const createMockTransport = vi.fn(config => new MockMCPTransport(config));
 

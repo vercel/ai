@@ -1,10 +1,10 @@
 {
   "extends": "./node_modules/@vercel/ai-tsconfig/base.json",
   "compilerOptions": {
-    "target": "ES2018",
+    "target": "esnext",
     "stripInternal": true,
     "lib": ["dom", "dom.iterable", "esnext"],
-    "types": ["@types/node", "vitest/globals"],
+    "types": ["@types/node"],
     "composite": true,
     "rootDir": ".",
     "outDir": "dist"
