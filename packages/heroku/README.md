@@ -10,10 +10,18 @@ npm install @ai-sdk/heroku
 
 ## Setup
 
-Set your Heroku API key as an environment variable:
+Provision access to the `cohere-embedding-multilingual` model on your app `$APP_NAME`:
 
 ```bash
-export HEROKU_API_KEY="your-heroku-api-key"
+heroku ai:models:create -a $APP_NAME cohere-embed-multilingual --as EMBEDDING
+```
+
+Set Heroku environment variables:
+
+```bash
+export HEROKU_EMBEDDING_MODEL_ID=$(heroku config:get -a $APP_NAME EMBEDDING_MODEL_ID)
+export HEROKU_EMBEDDING_KEY=$(heroku config:get -a $APP_NAME EMBEDDING_KEY)
+export HEROKU_EMBEDDING_URL=$(heroku config:get -a $APP_NAME EMBEDDING_URL)
 ```
 
 ## Usage
@@ -23,7 +31,7 @@ export HEROKU_API_KEY="your-heroku-api-key"
 ```typescript
 import { heroku } from '@ai-sdk/heroku';
 
-const model = heroku.embedding('cohere-embed-multilingual-v3.0');
+const model = heroku.embedding(process.env.HEROKU_EMBEDDING_MODEL_ID);
 
 const { embeddings } = await model.doEmbed({
   values: ['Hello world', 'How are you?']
@@ -46,7 +54,7 @@ const herokuProvider = createHeroku({
   }
 });
 
-const model = herokuProvider.embedding('cohere-embed-multilingual-v3.0');
+const model = herokuProvider.embedding(process.env.HEROKU_EMBEDDING_MODEL_ID);
 ```
 
 ### With Provider Options
@@ -57,20 +65,13 @@ const { embeddings } = await model.doEmbed({
   providerOptions: {
     heroku: {
       inputType: 'search_document',
-      truncate: 'END',
-      dimensions: 1024,
-      user: 'user-123'
+      encodingFormat: 'base64',
+      embeddingType: 'binary',
+      allowIgnoredParams: true
     }
   }
 });
 ```
-
-## Available Models
-
-- `cohere-embed-multilingual-v3.0` - Multilingual embeddings (recommended)
-- `cohere-embed-english-v3.0` - English-only embeddings
-- `cohere-embed-english-light-v3.0` - Lightweight English embeddings
-- `cohere-embed-multilingual-light-v3.0` - Lightweight multilingual embeddings
 
 ## API Reference
 
@@ -84,7 +85,6 @@ Creates a new Heroku provider instance.
 - `baseURL?: string` - Custom API base URL (defaults to `https://api.heroku.com/v1`)
 - `headers?: Record<string, string>` - Additional headers to include in requests
 - `fetch?: FetchFunction` - Custom fetch implementation
-- `generateId?: () => string` - Custom ID generator function
 
 ### `heroku.embedding(modelId)`
 
@@ -92,7 +92,7 @@ Creates an embedding model instance.
 
 #### Parameters
 
-- `modelId: string` - The model ID to use
+- `modelId: string` - The model ID to use. Currently, `cohere-embedding-multilingual` is the only supported model ID.
 
 #### Returns
 
@@ -121,10 +121,10 @@ Generates embeddings for the provided text values.
 
 ### HerokuEmbeddingOptions
 
-- `inputType?: 'search_document' | 'search_query' | 'classification' | 'clustering'` - Type of input (default: 'search_query')
-- `truncate?: 'NONE' | 'START' | 'END'` - How to handle long inputs (default: 'END')
-- `dimensions?: number` - Custom embedding dimensions
-- `user?: string` - User identifier for abuse monitoring
+- `inputType?: 'search_document' | 'search_query' | 'classification' | 'clustering'` - Type of input (default: 'search_document')
+- `encodingFormat?: 'raw' | 'base64'` - encoding format (default: 'raw')
+- `embeddingType?: 'float' | 'int8' | 'uint8' | 'binary' | 'ubinary'` - Custom embedding type (default: 'float')
+- `allowIgnoredParams?: boolean` - Specifies whether to ignore unsupported parameters in request instead of throwing an error. (default: false)
 
 ## Error Handling
 
@@ -136,12 +136,7 @@ The package includes comprehensive error handling for common API errors:
 - Input validation errors
 - Network errors
 
-## Testing
+## Documentation
 
-```bash
-npm test
-```
-
-## License
-
-Apache-2.0
+- https://devcenter.heroku.com/articles/heroku-inference-api-v1-embeddings
+- https://devcenter.heroku.com/articles/heroku-inference-api-model-cohere-embed-multilingual

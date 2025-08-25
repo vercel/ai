@@ -19,7 +19,7 @@ import { herokuFailedResponseHandler } from './heroku-error';
 type HerokuEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Record<string, string | undefined>;
   fetch?: FetchFunction;
 };
 
@@ -70,11 +70,14 @@ export class HerokuEmbeddingModel implements EmbeddingModelV2<string> {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/v1/embeddings`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers, headers),
       body: {
         model: this.modelId,
         input: values,
-        ...embeddingOptions,
+        input_type: embeddingOptions?.inputType,
+        encoding_format: embeddingOptions?.encodingFormat,
+        embedding_type: embeddingOptions?.embeddingType,
+        allow_ignored_params: embeddingOptions?.allowIgnoredParams  
       },
       failedResponseHandler: herokuFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

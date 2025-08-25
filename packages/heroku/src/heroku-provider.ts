@@ -12,11 +12,7 @@ import { HerokuEmbeddingModel } from './heroku-embedding-model';
 import { HerokuEmbeddingModelId } from './heroku-embedding-options';
 
 export interface HerokuProvider extends ProviderV2 {
-  /**
-   * Creates a model for text embeddings.
-   */
   embedding(modelId: HerokuEmbeddingModelId): EmbeddingModelV2<string>;
-
   textEmbeddingModel(modelId: HerokuEmbeddingModelId): EmbeddingModelV2<string>;
 }
 
@@ -48,45 +44,37 @@ export interface HerokuProviderSettings {
 /**
  * Create a Heroku AI provider instance.
  */
-export function createHeroku(
-  options: HerokuProviderSettings = {},
-): HerokuProvider {
-  const baseURL = loadSetting({
-    settingName: 'baseUrl',
-    settingValue: options.baseURL,
-    environmentVariableName: 'HEROKU_EMBEDDING_URL',
-    description: 'baseUrl'
-  })
-    // withoutTrailingSlash(options.baseURL);
+export function createHeroku(options: HerokuProviderSettings = {}): HerokuProvider {
 
-  const apiKey = loadApiKey({
-    apiKey: options.apiKey,
-    environmentVariableName: 'HEROKU_EMBEDDING_KEY',
-    description: 'Heroku'
-  })
-
-  const getHeaders = () => ({
+  const getHeaders = (apiKey: string) => ({
     Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
     ...options.headers,
   });
 
+  // Support for Heroku Embeddings
   const createTextEmbeddingModel = (modelId: HerokuEmbeddingModelId) => {
-    const model = loadSetting({
-      settingName: 'modelId',
-      settingValue: modelId,
-      environmentVariableName: 'HEROKU_EMBEDDING_MODEL_ID',
-      description: 'modelId'
+    const baseURL = loadSetting({
+      settingName: 'baseUrl',
+      settingValue: options.baseURL,
+      environmentVariableName: 'HEROKU_EMBEDDING_URL',
+      description: 'baseUrl'
     })
 
-    return new HerokuEmbeddingModel(model, {
+    const apiKey = loadApiKey({
+      apiKey: options.apiKey,
+      environmentVariableName: 'HEROKU_EMBEDDING_KEY',
+      description: 'Heroku'
+    })
+    
+    return new HerokuEmbeddingModel(modelId, {
       provider: 'heroku.textEmbedding',
       baseURL,
-      headers: getHeaders,
+      headers: getHeaders(apiKey),
       fetch: options.fetch,
     });
-
   };
+  
   const provider = function (modelId: string) {
     if (new.target) {
       throw new Error(

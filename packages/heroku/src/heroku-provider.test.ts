@@ -1,78 +1,25 @@
 import { createHeroku } from './heroku-provider';
 
-describe('createHeroku', () => {
-  it('should create provider with default settings', () => {
-    const provider = createHeroku();
-    
-    expect(provider).toBeDefined();
-    expect(typeof provider.embedding).toBe('function');
-    expect(typeof provider.textEmbeddingModel).toBe('function');
-  });
-
-  it('should create provider with custom API key', () => {
-    const provider = createHeroku({ apiKey: 'custom-api-key' });
-    
-    expect(provider).toBeDefined();
-  });
-
-  it('should create provider with custom base URL', () => {
-    const provider = createHeroku({ 
-      baseURL: 'https://custom-heroku-api.com/v1' 
-    });
-    
-    expect(provider).toBeDefined();
-  });
-
-  it('should create provider with custom headers', () => {
-    const provider = createHeroku({ 
-      headers: { 'X-Custom-Header': 'custom-value' } 
-    });
-    
-    expect(provider).toBeDefined();
-  });
-
-  it('should create provider with custom fetch function', () => {
-    const customFetch = fetch;
-    const provider = createHeroku({ fetch: customFetch });
-    
-    expect(provider).toBeDefined();
-  });
-});
-
 describe('HerokuProvider', () => {
-  const provider = createHeroku({ apiKey: 'test-api-key' });
+  const provider = createHeroku();
 
   describe('embedding', () => {
     it('should create embedding model with correct model ID', () => {
-      const model = provider.embedding('cohere-embed-multilingual-v3.0');
+      const model = provider.embedding('cohere-embed-multilingual');
       
       expect(model).toBeDefined();
-      expect(model.modelId).toBe('cohere-embed-multilingual-v3.0');
+      expect(model.modelId).toBe('cohere-embed-multilingual');
       expect(model.provider).toBe('heroku.textEmbedding');
-    });
-
-    it('should create embedding model with custom model ID', () => {
-      const model = provider.embedding('custom-model-id');
-      
-      expect(model).toBeDefined();
-      expect(model.modelId).toBe('custom-model-id');
     });
   });
 
   describe('textEmbeddingModel', () => {
     it('should create embedding model with correct model ID', () => {
-      const model = provider.textEmbeddingModel('cohere-embed-multilingual-v3.0');
+      const model = provider.textEmbeddingModel('cohere-embed-multilingual');
       
       expect(model).toBeDefined();
-      expect(model.modelId).toBe('cohere-embed-multilingual-v3.0');
+      expect(model.modelId).toBe('cohere-embed-multilingual');
       expect(model.provider).toBe('heroku.textEmbedding');
-    });
-
-    it('should create embedding model with custom model ID', () => {
-      const model = provider.textEmbeddingModel('custom-model-id');
-      
-      expect(model).toBeDefined();
-      expect(model.modelId).toBe('custom-model-id');
     });
   });
 

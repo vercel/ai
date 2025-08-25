@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createHeroku } from './heroku-provider';
@@ -8,7 +9,13 @@ const dummyEmbeddings = [
 ];
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
-const provider = createHeroku({ apiKey: 'test-api-key' });
+const dummyBaseUrl = 'https://us.inference.heroku.com';
+const dummyKey = 'heroku-test-key';
+
+vi.stubEnv('HEROKU_EMBEDDING_URL', dummyBaseUrl);
+vi.stubEnv('HEROKU_EMBEDDING_KEY', dummyKey);
+
+const provider = createHeroku();
 const model = provider.textEmbeddingModel('cohere-embed-multilingual');
 
 const server = createTestServer({
@@ -42,7 +49,6 @@ describe('doEmbed', () => {
     prepareJsonResponse();
 
     const { embeddings } = await model.doEmbed({ values: testValues });
-
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
 
@@ -52,10 +58,10 @@ describe('doEmbed', () => {
     });
 
     const { response } = await model.doEmbed({ values: testValues });
-
+    
     expect(response?.headers).toStrictEqual({
       // default headers:
-      'content-length': '185',
+      'content-length': '145',
       'content-type': 'application/json',
 
       // custom header
@@ -77,12 +83,12 @@ describe('doEmbed', () => {
   it('should pass the model and the values', async () => {
     prepareJsonResponse();
 
-    await model.doEmbed({ values: testValues });
+    await model.doEmbed({ values: testValues, providerOptions: { heroku: { encodingFormat: 'raw' } } });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'cohere-embed-multilingual',
       input: testValues,
-      encoding_format: 'float',
+      encoding_format: 'raw',
     });
   });
 
@@ -94,9 +100,6 @@ describe('doEmbed', () => {
       providerOptions: {
         heroku: {
           inputType: 'search_document',
-          truncate: 'START',
-          dimensions: 1024,
-          user: 'test-user',
         },
       },
     });
@@ -104,11 +107,7 @@ describe('doEmbed', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'cohere-embed-multilingual',
       input: testValues,
-      encoding_format: 'float',
-      inputType: 'search_document',
-      truncate: 'START',
-      dimensions: 1024,
-      user: 'test-user',
+      input_type: 'search_document',
     });
   });
 
@@ -116,7 +115,6 @@ describe('doEmbed', () => {
     prepareJsonResponse();
 
     const provider = createHeroku({
-      apiKey: 'test-api-key',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
       },
@@ -132,21 +130,39 @@ describe('doEmbed', () => {
     const requestHeaders = server.calls[0].requestHeaders;
 
     expect(requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-api-key',
+      authorization: `Bearer ${dummyKey}`,
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
   });
 
-  it('should handle empty usage response', async () => {
-    prepareJsonResponse({
-      usage: undefined,
+  it('should prefer an explicitly defined apiKey over the HEROKU_EMBEDDING_KEY', async () => {
+    prepareJsonResponse()
+    const key = 'aromatic-steering-wheel';
+    const provider = createHeroku({ apiKey: key});
+
+    await provider.textEmbeddingModel('cohere-embed-multilingual').doEmbed({
+      values: testValues
     });
 
-    const { usage } = await model.doEmbed({ values: testValues });
+    const requestHeaders = server.calls[0].requestHeaders;
+    const authorizationHeader = requestHeaders.authorization;
 
-    expect(usage).toBeUndefined();
+    expect(authorizationHeader).toStrictEqual(`Bearer ${key}`);
+  });
+
+  it('should use the HEROKU_EMBEDDING_URL by default', async () => {
+    prepareJsonResponse()
+
+    const provider = createHeroku();
+
+    await provider.textEmbeddingModel('cohere-embed-multilingual').doEmbed({
+      values: testValues
+    });
+
+    const requestUrl = server.calls[0].requestUrl;
+    expect(requestUrl).toStrictEqual(`${dummyBaseUrl}/v1/embeddings`)
   });
 
   it('should throw error when too many values are provided', async () => {

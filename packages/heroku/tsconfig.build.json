@@ -1,4 +1,7 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/__snapshots__/**"]
+  "compilerOptions": {
+    // Disable project configuration for tsup builds
+    "composite": false
+  }
 }
