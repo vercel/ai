@@ -1,5 +1,162 @@
 # @ai-sdk/openai
 
+## 2.0.20
+
+### Patch Changes
+
+- 974de40: fix(provider/ai): do not set `.providerMetadata.openai.logprobs` to an array of empty arrays when using `streamText()`
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 2.0.18
+
+### Patch Changes
+
+- 5e47d00: Support Responses API input_file file_url passthrough for PDFs.
+
+  This adds:
+
+  - file_url variant to OpenAIResponses user content
+  - PDF URL mapping to input_file with file_url in Responses converter
+  - PDF URL support in supportedUrls to avoid auto-download
+
+## 2.0.17
+
+### Patch Changes
+
+- 70bb696: fix(provider/openai): correct web search tool input
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 2.0.15
+
+### Patch Changes
+
+- a4bef93: feat(provider/openai): expose web search queries in responses api
+- 6ed34cb: refactor(openai): consolidate model config into `getResponsesModelConfig()`
+
+  https://github.com/vercel/ai/pull/8038
+
+## 2.0.14
+
+### Patch Changes
+
+- 7f47105: fix(provider/openai): support file_citation annotations in responses api
+
+## 2.0.13
+
+### Patch Changes
+
+- ddc9d99: Implements `logprobs` for OpenAI `providerOptions` and `providerMetaData` in `OpenAIResponsesLanguageModel`
+
+  You can now set `providerOptions.openai.logprobs` when using `generateText()` and retrieve logprobs from the response via `result.providerMetadata?.openai`
+
+## 2.0.12
+
+### Patch Changes
+
+- ec336a1: feat(provider/openai): add response_format to be supported by default
+- 2935ec7: fix(provider/openai): exclude gpt-5-chat from reasoning model
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
+## 2.0.11
+
+### Patch Changes
+
+- 097b452: feat(openai, azure): add configurable file ID prefixes for Responses API
+
+  - Added `fileIdPrefixes` option to OpenAI Responses API configuration
+  - Azure OpenAI now supports `assistant-` prefixed file IDs (replacing previous `file-` prefix support)
+  - OpenAI maintains backward compatibility with default `file-` prefix
+  - File ID detection is disabled when `fileIdPrefixes` is undefined, gracefully falling back to base64 processing
+
+- 87cf954: feat(provider/openai): add support for prompt_cache_key
+- a3d98a9: feat(provider/openai): add support for safety_identifier
+- 110d167: fix(openai): add missing file_search_call handlers in responses streaming
+- 8d3c747: chore(openai): remove deprecated GPT-4.5-preview models and improve autocomplete control
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
+## 2.0.10
+
+### Patch Changes
+
+- a274b01: refactor(provider/openai): restructure files
+- b48e0ff: feat(provider/openai): add code interpreter tool (responses api)
+
+## 2.0.9
+
+### Patch Changes
+
+- 8f8a521: fix(providers): use convertToBase64 for Uint8Array image parts to produce valid data URLs; keep mediaType normalization and URL passthrough
+
+## 2.0.8
+
+### Patch Changes
+
+- 57fb959: feat(openai): add verbosity parameter support for chat api
+- 2a3fbe6: allow `minimal` in `reasoningEffort` for openai chat
+
+## 2.0.7
+
+### Patch Changes
+
+- 4738f18: feat(openai): add flex processing support for gpt-5 models
+- 013d747: feat(openai): add verbosity parameter support for responses api
+- 35feee8: feat(openai): add priority processing support for gpt-5 models
+
+## 2.0.6
+
+### Patch Changes
+
+- ad2255f: chore(docs): added gpt 5 models + removed deprecated models
+- 64bcb66: feat(provider/openai): models ids on chat
+- 1d42ff2: feat(provider/openai): models ids
+
+## 2.0.5
+
+### Patch Changes
+
+- 6753a2e: feat(examples): add gpt-5 model examples and e2e tests
+- 6cba06a: feat (provider/openai): add reasoning model config
+
+## 2.0.4
+
+### Patch Changes
+
+- c9e0f52: Files from the OpenAI Files API are now supported, mirroring functionality of OpenAI Chat and Responses API, respectively. Also, the AI SDK supports URLs for PDFs in the responses API the same way it did for completions.
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+
+## 2.0.2
+
+### Patch Changes
+
+- 63e2016: fix(openai): missing url citations from web search tools
+
+## 2.0.1
+
+### Patch Changes
+
+- bc45e29: feat(openai): add file_search_call support to responses api
+
 ## 2.0.0
 
 ### Major Changes

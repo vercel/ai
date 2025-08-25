@@ -225,10 +225,12 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         errorText?: never;
         providerExecuted?: boolean;
         callProviderMetadata?: ProviderMetadata;
+        preliminary?: boolean;
       }
     | {
-        state: 'output-error';
-        input: TOOLS[NAME]['input'];
+        state: 'output-error'; // TODO AI SDK 6: change to 'error' state
+        input: TOOLS[NAME]['input'] | undefined;
+        rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
         output?: never;
         errorText: string;
         providerExecuted?: boolean;
@@ -261,9 +263,10 @@ export type DynamicToolUIPart = {
       output: unknown;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
+      preliminary?: boolean;
     }
   | {
-      state: 'output-error';
+      state: 'output-error'; // TODO AI SDK 6: change to 'error' state
       input: unknown;
       output?: never;
       errorText: string;
@@ -277,10 +280,28 @@ export function isToolUIPart<TOOLS extends UITools>(
   return part.type.startsWith('tool-');
 }
 
+export function isDynamicToolUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is DynamicToolUIPart {
+  return part.type === 'dynamic-tool';
+}
+
+export function isToolOrDynamicToolUIPart<TOOLS extends UITools>(
+  part: UIMessagePart<UIDataTypes, TOOLS>,
+): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
+  return isToolUIPart(part) || isDynamicToolUIPart(part);
+}
+
 export function getToolName<TOOLS extends UITools>(
   part: ToolUIPart<TOOLS>,
 ): keyof TOOLS {
   return part.type.split('-').slice(1).join('-') as keyof TOOLS;
+}
+
+export function getToolOrDynamicToolName(
+  part: ToolUIPart<UITools> | DynamicToolUIPart,
+): string {
+  return isDynamicToolUIPart(part) ? part.toolName : getToolName(part);
 }
 
 export type InferUIMessageMetadata<T extends UIMessage> =

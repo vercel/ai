@@ -1,5 +1,99 @@
 # @ai-sdk/google-vertex
 
+## 3.0.12
+
+### Patch Changes
+
+- d09caa5: The taskType parameter now properly maps to snake case in the final payload.
+
+## 3.0.11
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+  - @ai-sdk/anthropic@2.0.6
+  - @ai-sdk/google@2.0.8
+
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - @ai-sdk/anthropic@2.0.5
+  - @ai-sdk/google@2.0.7
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [ae859ce]
+  - @ai-sdk/anthropic@2.0.4
+
+## 3.0.8
+
+### Patch Changes
+
+- 9010126: add autoTruncate support for google vertex
+- c0a9d12: fix(provider/vertex): pass taskType for each content value. taskType needs to be passed in instances and not parameters for google-vertex
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+  - @ai-sdk/anthropic@2.0.3
+  - @ai-sdk/google@2.0.6
+
+## 3.0.6
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+  - @ai-sdk/anthropic@2.0.2
+  - @ai-sdk/google@2.0.5
+
+## 3.0.5
+
+### Patch Changes
+
+- Updated dependencies [961dda1]
+  - @ai-sdk/google@2.0.4
+
+## 3.0.4
+
+### Patch Changes
+
+- Updated dependencies [9fb0252]
+  - @ai-sdk/google@2.0.3
+
+## 3.0.3
+
+### Patch Changes
+
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+  - @ai-sdk/anthropic@2.0.1
+  - @ai-sdk/google@2.0.2
+
+## 3.0.2
+
+### Patch Changes
+
+- b9cd900: feat(providers/google-vertex) Add TaskType support for Text Embedding Model
+- Updated dependencies [f5464aa]
+  - @ai-sdk/google@2.0.1
+
+## 3.0.1
+
+### Patch Changes
+
+- 11e3ba4: Make revisedPrompt nullish in schema
+
 ## 3.0.0
 
 ### Major Changes

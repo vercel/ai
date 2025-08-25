@@ -1,5 +1,89 @@
 # @ai-sdk/gateway
 
+## 1.0.12
+
+### Patch Changes
+
+- 50e2029: feat (provider/gateway): add deepseek v3.1 thinking model id
+- b8478f0: feat (provider/gateway): add mistral medium model id
+
+## 1.0.11
+
+### Patch Changes
+
+- 926259f: feat(provider/gateway): Expose model type in model spec
+- c000f96: feat(provider/gateway): Add DeepSeek V3.1
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 1.0.9
+
+### Patch Changes
+
+- 8b96f99: feat(provider/gateway): Add DeepSeek v3.1 Base
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 1.0.7
+
+### Patch Changes
+
+- 28a4006: feat (provider/gateway): add gemini-2.5-flash-lite model id
+
+## 1.0.6
+
+### Patch Changes
+
+- eefa730: refactor(provider/gateway): Make claude-sonnet-4 and similar the primary model slug for Anthropic v4 models
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
+## 1.0.5
+
+### Patch Changes
+
+- cf7b2ad: feat(provider/gateway): Add GLM-4.5V
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
+## 1.0.4
+
+### Patch Changes
+
+- 35f93ce: feat (provider/gateway): add new model ids
+
+## 1.0.3
+
+### Patch Changes
+
+- 893aed6: feat (provider/gateway): add anthropic claude 4.1 opus model id
+
+## 1.0.2
+
+### Patch Changes
+
+- 444df49: feat (provider/gateway): update model ids
+
+## 1.0.1
+
+### Patch Changes
+
+- 028fb9c: refactor(provider/gateway): Cleanup old gateway-embedding-options file
+- 6331826: feat(provider/gateway): Hide Cohere embedding models with no pricing info
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+
 ## 1.0.0
 
 ### Patch Changes

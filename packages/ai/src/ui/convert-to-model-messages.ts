@@ -10,6 +10,7 @@ import {
   DynamicToolUIPart,
   FileUIPart,
   getToolName,
+  isToolOrDynamicToolUIPart,
   isToolUIPart,
   ReasoningUIPart,
   TextUIPart,
@@ -40,7 +41,7 @@ export function convertToModelMessages(
       ...message,
       parts: message.parts.filter(
         part =>
-          !isToolUIPart(part) ||
+          !isToolOrDynamicToolUIPart(part) ||
           (part.state !== 'input-streaming' &&
             part.state !== 'input-available'),
       ),
@@ -50,11 +51,21 @@ export function convertToModelMessages(
   for (const message of messages) {
     switch (message.role) {
       case 'system': {
+        const textParts = message.parts.filter(part => part.type === 'text');
+
+        const providerMetadata = textParts.reduce((acc, part) => {
+          if (part.providerMetadata != null) {
+            return { ...acc, ...part.providerMetadata };
+          }
+          return acc;
+        }, {});
+
         modelMessages.push({
           role: 'system',
-          content: message.parts
-            .map(part => (part.type === 'text' ? part.text : ''))
-            .join(''),
+          content: textParts.map(part => part.text).join(''),
+          ...(Object.keys(providerMetadata).length > 0
+            ? { providerOptions: providerMetadata }
+            : {}),
         });
         break;
       }
@@ -73,6 +84,9 @@ export function convertToModelMessages(
                   return {
                     type: 'text' as const,
                     text: part.text,
+                    ...(part.providerMetadata != null
+                      ? { providerOptions: part.providerMetadata }
+                      : {}),
                   };
                 case 'file':
                   return {
@@ -80,6 +94,9 @@ export function convertToModelMessages(
                     mediaType: part.mediaType,
                     filename: part.filename,
                     data: part.url,
+                    ...(part.providerMetadata != null
+                      ? { providerOptions: part.providerMetadata }
+                      : {}),
                   };
                 default:
                   return part;
@@ -120,6 +137,7 @@ export function convertToModelMessages(
                 content.push({
                   type: 'file' as const,
                   mediaType: part.mediaType,
+                  filename: part.filename,
                   data: part.url,
                 });
               } else if (part.type === 'reasoning') {
@@ -131,12 +149,7 @@ export function convertToModelMessages(
               } else if (part.type === 'dynamic-tool') {
                 const toolName = part.toolName;
 
-                if (part.state === 'input-streaming') {
-                  throw new MessageConversionError({
-                    originalMessage: message,
-                    message: `incomplete tool input is not supported: ${part.toolCallId}`,
-                  });
-                } else {
+                if (part.state !== 'input-streaming') {
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
@@ -150,17 +163,15 @@ export function convertToModelMessages(
               } else if (isToolUIPart(part)) {
                 const toolName = getToolName(part);
 
-                if (part.state === 'input-streaming') {
-                  throw new MessageConversionError({
-                    originalMessage: message,
-                    message: `incomplete tool input is not supported: ${part.toolCallId}`,
-                  });
-                } else {
+                if (part.state !== 'input-streaming') {
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
                     toolName,
-                    input: part.input,
+                    input:
+                      part.state === 'output-error'
+                        ? (part.input ?? part.rawInput)
+                        : part.input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
                       ? { providerOptions: part.callProviderMetadata }
@@ -210,39 +221,42 @@ export function convertToModelMessages(
             if (toolParts.length > 0) {
               modelMessages.push({
                 role: 'tool',
-                content: toolParts.map((toolPart): ToolResultPart => {
-                  switch (toolPart.state) {
-                    case 'output-error':
-                    case 'output-available': {
-                      const toolName =
-                        toolPart.type === 'dynamic-tool'
-                          ? toolPart.toolName
-                          : getToolName(toolPart);
+                content: toolParts
+                  .map((toolPart): ToolResultPart | null => {
+                    switch (toolPart.state) {
+                      case 'output-error':
+                      case 'output-available': {
+                        const toolName =
+                          toolPart.type === 'dynamic-tool'
+                            ? toolPart.toolName
+                            : getToolName(toolPart);
 
-                      return {
-                        type: 'tool-result',
-                        toolCallId: toolPart.toolCallId,
-                        toolName,
-                        output: createToolModelOutput({
-                          output:
-                            toolPart.state === 'output-error'
-                              ? toolPart.errorText
-                              : toolPart.output,
-                          tool: options?.tools?.[toolName],
-                          errorMode:
-                            toolPart.state === 'output-error' ? 'text' : 'none',
-                        }),
-                      };
+                        return {
+                          type: 'tool-result',
+                          toolCallId: toolPart.toolCallId,
+                          toolName,
+                          output: createToolModelOutput({
+                            output:
+                              toolPart.state === 'output-error'
+                                ? toolPart.errorText
+                                : toolPart.output,
+                            tool: options?.tools?.[toolName],
+                            errorMode:
+                              toolPart.state === 'output-error'
+                                ? 'text'
+                                : 'none',
+                          }),
+                        };
+                      }
+                      default: {
+                        return null;
+                      }
                     }
-
-                    default: {
-                      throw new MessageConversionError({
-                        originalMessage: message,
-                        message: `Unsupported tool part state: ${toolPart.state}`,
-                      });
-                    }
-                  }
-                }),
+                  })
+                  .filter(
+                    (output): output is NonNullable<typeof output> =>
+                      output != null,
+                  ),
               });
             }
 

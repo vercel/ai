@@ -1,5 +1,174 @@
 # @ai-sdk/azure
 
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [974de40]
+  - @ai-sdk/openai@2.0.20
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+  - @ai-sdk/openai@2.0.19
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [5e47d00]
+  - @ai-sdk/openai@2.0.18
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [70bb696]
+  - @ai-sdk/openai@2.0.17
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - @ai-sdk/openai@2.0.16
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [a4bef93]
+- Updated dependencies [6ed34cb]
+  - @ai-sdk/openai@2.0.15
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [7f47105]
+  - @ai-sdk/openai@2.0.14
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [ddc9d99]
+  - @ai-sdk/openai@2.0.13
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [ec336a1]
+- Updated dependencies [f25040d]
+- Updated dependencies [2935ec7]
+  - @ai-sdk/provider-utils@3.0.3
+  - @ai-sdk/openai@2.0.12
+
+## 2.0.11
+
+### Patch Changes
+
+- 097b452: feat(openai, azure): add configurable file ID prefixes for Responses API
+
+  - Added `fileIdPrefixes` option to OpenAI Responses API configuration
+  - Azure OpenAI now supports `assistant-` prefixed file IDs (replacing previous `file-` prefix support)
+  - OpenAI maintains backward compatibility with default `file-` prefix
+  - File ID detection is disabled when `fileIdPrefixes` is undefined, gracefully falling back to base64 processing
+
+- 0853d6b: fix(provider/azure): add deployment-based URL support for transcription compatibility
+- Updated dependencies [097b452]
+- Updated dependencies [87cf954]
+- Updated dependencies [a3d98a9]
+- Updated dependencies [38ac190]
+- Updated dependencies [110d167]
+- Updated dependencies [8d3c747]
+  - @ai-sdk/openai@2.0.11
+  - @ai-sdk/provider-utils@3.0.2
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [a274b01]
+- Updated dependencies [b48e0ff]
+  - @ai-sdk/openai@2.0.10
+
+## 2.0.9
+
+### Patch Changes
+
+- Updated dependencies [8f8a521]
+  - @ai-sdk/openai@2.0.9
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [57fb959]
+- Updated dependencies [2a3fbe6]
+  - @ai-sdk/openai@2.0.8
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [4738f18]
+- Updated dependencies [013d747]
+- Updated dependencies [35feee8]
+  - @ai-sdk/openai@2.0.7
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [ad2255f]
+- Updated dependencies [64bcb66]
+- Updated dependencies [1d42ff2]
+  - @ai-sdk/openai@2.0.6
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [6753a2e]
+- Updated dependencies [6cba06a]
+  - @ai-sdk/openai@2.0.5
+
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [c9e0f52]
+  - @ai-sdk/openai@2.0.4
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+  - @ai-sdk/openai@2.0.3
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [63e2016]
+  - @ai-sdk/openai@2.0.2
+
+## 2.0.1
+
+### Patch Changes
+
+- Updated dependencies [bc45e29]
+  - @ai-sdk/openai@2.0.1
+
 ## 2.0.0
 
 ### Major Changes

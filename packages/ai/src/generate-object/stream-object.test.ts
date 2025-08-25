@@ -1798,4 +1798,58 @@ describe('streamObject', () => {
       }
     });
   });
+
+  describe('warnings', () => {
+    it('should resolve warnings promise with undefined when no warnings are present', async () => {
+      const mockModel = createTestModel({
+        warnings: [], // No warnings
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+      });
+
+      // Consume the stream to completion
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      // Wait for the warnings promise to resolve
+      const warnings = await result.warnings;
+
+      expect(warnings).toEqual([]);
+    });
+
+    it('should resolve warnings promise with warnings when warnings are present', async () => {
+      const expectedWarnings: LanguageModelV2CallWarning[] = [
+        {
+          type: 'unsupported-setting',
+          setting: 'frequency_penalty',
+          details: 'This model does not support the frequency_penalty setting.',
+        },
+        {
+          type: 'other',
+          message: 'Test warning message',
+        },
+      ];
+
+      const mockModel = createTestModel({
+        warnings: expectedWarnings,
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+      });
+
+      // Consume the stream to completion
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      // Wait for the warnings promise to resolve
+      const warnings = await result.warnings;
+
+      expect(warnings).toEqual(expectedWarnings);
+    });
+  });
 });

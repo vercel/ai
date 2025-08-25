@@ -133,7 +133,9 @@ export default function Chat() {
                   case 'output-available':
                     return (
                       <div key={index} className="text-gray-500">
-                        Weather in {part.input.city}: {part.output}
+                        {part.output.state === 'loading'
+                          ? 'Fetching weather information...'
+                          : `Weather in ${part.input.city}: ${part.output.weather}`}
                       </div>
                     );
                   case 'output-error':

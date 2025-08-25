@@ -52,110 +52,129 @@ export const weatherTool = tool({
               isOptional: true,
               type: 'string',
               description:
-                'Information about the purpose of the tool including details on how and when it can be used by the model.'
+                'Information about the purpose of the tool including details on how and when it can be used by the model.',
             },
             {
               name: 'inputSchema',
               type: 'Zod Schema | JSON Schema',
               description:
-                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).'
+                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).',
             },
             {
               name: 'execute',
               isOptional: true,
-              type: 'async (input: T, options: ToolCallOptions) => RESULT',
+              type: 'async (input: INPUT, options: ToolCallOptions) => RESULT | Promise<RESULT> | AsyncIterable<RESULT>',
               description:
-                'An async function that is called with the arguments from the tool call and produces a result. If not provided, the tool will not be executed automatically.',
-                properties: [
-                  {
-                    type: "ToolCallOptions",
-                    parameters: [
-                      {
+                'An async function that is called with the arguments from the tool call and produces a result or a results iterable. If an iterable is provided, all results but the last one are considered preliminary. If not provided, the tool will not be executed automatically.',
+              properties: [
+                {
+                  type: 'ToolCallOptions',
+                  parameters: [
+                    {
                       name: 'toolCallId',
                       type: 'string',
-                      description: 'The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.',
+                      description:
+                        'The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.',
                     },
                     {
-                        name: "messages",
-                        type: "ModelMessage[]",
-                        description: "Messages that were sent to the language model to initiate the response that contained the tool call. The messages do not include the system prompt nor the assistant response that contained the tool call."
-                      },
-                      {
-                        name: "abortSignal",
-                        type: "AbortSignal",
-                        isOptional: true,
-                        description: "An optional abort signal that indicates that the overall operation should be aborted."
-                      }
-                    ]
-                  }
-                ]
+                      name: 'messages',
+                      type: 'ModelMessage[]',
+                      description:
+                        'Messages that were sent to the language model to initiate the response that contained the tool call. The messages do not include the system prompt nor the assistant response that contained the tool call.',
+                    },
+                    {
+                      name: 'abortSignal',
+                      type: 'AbortSignal',
+                      isOptional: true,
+                      description:
+                        'An optional abort signal that indicates that the overall operation should be aborted.',
+                    },
+                    {
+                      name: 'experimental_context',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Context that is passed into tool execution. Experimental (can break in patch releases).',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'outputSchema',
               isOptional: true,
               type: 'Zod Schema | JSON Schema',
-              description: 'The schema of the output that the tool produces. Used for validation and type inference.'
+              description:
+                'The schema of the output that the tool produces. Used for validation and type inference.',
             },
             {
               name: 'toModelOutput',
               isOptional: true,
-              type: '(output: RESULT) => LanguageModelV2ToolResultPart[\'output\']',
-              description: 'Optional conversion function that maps the tool result to an output that can be used by the language model. If not provided, the tool result will be sent as a JSON object.'
+              type: "(output: RESULT) => LanguageModelV2ToolResultPart['output']",
+              description:
+                'Optional conversion function that maps the tool result to an output that can be used by the language model. If not provided, the tool result will be sent as a JSON object.',
             },
             {
               name: 'onInputStart',
               isOptional: true,
               type: '(options: ToolCallOptions) => void | PromiseLike<void>',
-              description: 'Optional function that is called when the argument streaming starts. Only called when the tool is used in a streaming context.'
+              description:
+                'Optional function that is called when the argument streaming starts. Only called when the tool is used in a streaming context.',
             },
             {
               name: 'onInputDelta',
               isOptional: true,
               type: '(options: { inputTextDelta: string } & ToolCallOptions) => void | PromiseLike<void>',
-              description: 'Optional function that is called when an argument streaming delta is available. Only called when the tool is used in a streaming context.'
+              description:
+                'Optional function that is called when an argument streaming delta is available. Only called when the tool is used in a streaming context.',
             },
             {
               name: 'onInputAvailable',
               isOptional: true,
               type: '(options: { input: INPUT } & ToolCallOptions) => void | PromiseLike<void>',
-              description: 'Optional function that is called when a tool call can be started, even if the execute function is not provided.'
+              description:
+                'Optional function that is called when a tool call can be started, even if the execute function is not provided.',
             },
             {
               name: 'providerOptions',
               isOptional: true,
               type: 'ProviderOptions',
-              description: 'Additional provider-specific metadata. They are passed through to the provider from the AI SDK and enable provider-specific functionality that can be fully encapsulated in the provider.'
+              description:
+                'Additional provider-specific metadata. They are passed through to the provider from the AI SDK and enable provider-specific functionality that can be fully encapsulated in the provider.',
             },
             {
               name: 'type',
               isOptional: true,
               type: "'function' | 'provider-defined'",
-              description: 'The type of the tool. Defaults to "function" for regular tools. Use "provider-defined" for provider-specific tools.'
+              description:
+                'The type of the tool. Defaults to "function" for regular tools. Use "provider-defined" for provider-specific tools.',
             },
             {
               name: 'id',
               isOptional: true,
               type: 'string',
-              description: 'The ID of the tool for provider-defined tools. Should follow the format `<provider-name>.<unique-tool-name>`. Required when type is "provider-defined".'
+              description:
+                'The ID of the tool for provider-defined tools. Should follow the format `<provider-name>.<unique-tool-name>`. Required when type is "provider-defined".',
             },
             {
               name: 'name',
               isOptional: true,
               type: 'string',
-              description: 'The name of the tool that the user must use in the tool set. Required when type is "provider-defined".'
+              description:
+                'The name of the tool that the user must use in the tool set. Required when type is "provider-defined".',
             },
             {
               name: 'args',
               isOptional: true,
               type: 'Record<string, unknown>',
-              description: 'The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool. Required when type is "provider-defined".'
-            }
-          ]
-        }
-      ]
-    }
-
-]}
+              description:
+                'The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool. Required when type is "provider-defined".',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
 />
 
 ### Returns

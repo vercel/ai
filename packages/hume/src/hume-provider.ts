@@ -61,7 +61,7 @@ export function createHume(options: HumeProviderSettings = {}): HumeProvider {
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
 
-  return provider as HumeProvider;
+  return provider satisfies HumeProvider;
 }
 
 /**

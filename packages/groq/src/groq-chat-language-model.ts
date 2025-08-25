@@ -107,7 +107,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       tools: groqTools,
       toolChoice: groqToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice });
+    } = prepareTools({ tools, toolChoice, modelId: this.modelId });
 
     return {
       args: {
@@ -144,6 +144,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
         // provider options:
         reasoning_format: groqOptions?.reasoningFormat,
+        reasoning_effort: groqOptions?.reasoningEffort,
+        service_tier: groqOptions?.serviceTier,
 
         // messages:
         messages: convertToGroqChatMessages(prompt),

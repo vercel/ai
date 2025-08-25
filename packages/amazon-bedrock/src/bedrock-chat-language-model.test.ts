@@ -1434,9 +1434,8 @@ describe('doStream', () => {
           budget_tokens: 2000,
         },
       },
-      // Should have adjusted maxOutputTokens (100 + 2000)
       inferenceConfig: {
-        maxOutputTokens: 2100,
+        maxTokens: 2100,
       },
     });
 
@@ -1662,13 +1661,15 @@ describe('doGenerate', () => {
       maxOutputTokens: 100,
       temperature: 0.5,
       topP: 0.5,
+      topK: 1,
     });
 
     expect(await server.calls[0].requestBodyJson).toMatchObject({
       inferenceConfig: {
-        maxOutputTokens: 100,
+        maxTokens: 100,
         temperature: 0.5,
         topP: 0.5,
+        topK: 1,
       },
     });
   });
@@ -2042,9 +2043,8 @@ describe('doGenerate', () => {
           budget_tokens: 2000,
         },
       },
-      // Should have adjusted maxOutputTokens (100 + 2000)
       inferenceConfig: {
-        maxOutputTokens: 2100,
+        maxTokens: 2100,
       },
     });
 

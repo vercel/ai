@@ -15,23 +15,11 @@ import {
 import { ServerResponse } from 'http';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import { NoObjectGeneratedError } from '../error/no-object-generated-error';
-import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
-import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
-import { DeepPartial, isDeepEqualData, parsePartialJson } from '../util';
-import {
-  AsyncIterableStream,
-  createAsyncIterableStream,
-} from '../util/async-iterable-stream';
-import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DelayedPromise } from '../util/delayed-promise';
-import { now as originalNow } from '../util/now';
-import { prepareRetries } from '../util/prepare-retries';
+import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { resolveLanguageModel } from '../prompt/resolve-language-model';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -41,6 +29,8 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
+import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import {
   CallWarning,
   FinishReason,
@@ -50,11 +40,20 @@ import { LanguageModelRequestMetadata } from '../types/language-model-request-me
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
+import { DeepPartial, isDeepEqualData, parsePartialJson } from '../util';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../util/async-iterable-stream';
+import { createStitchableStream } from '../util/create-stitchable-stream';
+import { DelayedPromise } from '../util/delayed-promise';
+import { now as originalNow } from '../util/now';
+import { prepareRetries } from '../util/prepare-retries';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
-import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
-import { RepairTextFunction } from './repair-text';
-import { validateObjectGenerationInput } from './validate-object-generation-input';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
+import { RepairTextFunction } from './repair-text';
+import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
+import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -490,7 +489,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           system,
           prompt,
           messages,
-        });
+        } as Prompt);
 
         const callOptions = {
           responseFormat: {
@@ -522,6 +521,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               case 'response-metadata':
               case 'finish':
               case 'error':
+              case 'stream-start':
                 controller.enqueue(chunk);
                 break;
             }
@@ -716,6 +716,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     // resolve promises that can be resolved now:
                     self._usage.resolve(usage);
                     self._providerMetadata.resolve(providerMetadata);
+                    self._warnings.resolve(warnings);
                     self._response.resolve({
                       ...fullResponse,
                       headers: response?.headers,

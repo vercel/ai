@@ -1,5 +1,175 @@
 # @ai-sdk/vue
 
+## 2.0.23
+
+### Patch Changes
+
+- Updated dependencies [5099b3d]
+- Updated dependencies [7a2bf8d]
+  - ai@5.0.23
+
+## 2.0.22
+
+### Patch Changes
+
+- ai@5.0.22
+
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [581abea]
+- Updated dependencies [0857788]
+- Updated dependencies [3c178ec]
+  - ai@5.0.21
+  - @ai-sdk/provider-utils@3.0.5
+
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [8a87693]
+  - ai@5.0.20
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [8da6e9c]
+  - ai@5.0.19
+
+## 2.0.18
+
+### Patch Changes
+
+- ai@5.0.18
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [4176ecb]
+- Updated dependencies [20f23f9]
+  - ai@5.0.17
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - ai@5.0.16
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [ca4f68f]
+  - ai@5.0.15
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [7729e32]
+  - ai@5.0.14
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [a7b2e66]
+- Updated dependencies [9bed210]
+  - ai@5.0.13
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+  - ai@5.0.12
+
+## 2.0.11
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+- Updated dependencies [38ac190]
+- Updated dependencies [e3a63cb]
+  - ai@5.0.11
+  - @ai-sdk/provider-utils@3.0.2
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [63a5dc5]
+  - ai@5.0.10
+
+## 2.0.9
+
+### Patch Changes
+
+- Updated dependencies [afd5c2a]
+  - ai@5.0.9
+
+## 2.0.8
+
+### Patch Changes
+
+- ai@5.0.8
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [8e72304]
+  - ai@5.0.7
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [d983eee]
+  - ai@5.0.6
+
+## 2.0.5
+
+### Patch Changes
+
+- ai@5.0.5
+
+## 2.0.4
+
+### Patch Changes
+
+- ai@5.0.4
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+  - ai@5.0.3
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [401d73e]
+- Updated dependencies [69fde99]
+  - ai@5.0.2
+
+## 2.0.1
+
+### Patch Changes
+
+- Updated dependencies [4d0c108]
+  - ai@5.0.1
+
 ## 2.0.0
 
 ### Major Changes

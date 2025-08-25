@@ -108,9 +108,7 @@ export class GoogleVertexImageModel implements ImageModelV2 {
                 prompt: revisedPrompt,
               } = prediction;
 
-              return {
-                revisedPrompt,
-              };
+              return { ...(revisedPrompt != null && { revisedPrompt }) };
             }) ?? [],
         },
       },
@@ -126,7 +124,7 @@ const vertexImageResponseSchema = z.object({
       z.object({
         bytesBase64Encoded: z.string(),
         mimeType: z.string(),
-        prompt: z.string(),
+        prompt: z.string().nullish(),
       }),
     )
     .nullish(),

@@ -17,7 +17,7 @@ import {
 } from './process-ui-message-stream';
 import {
   InferUIMessageToolCall,
-  isToolUIPart,
+  isToolOrDynamicToolUIPart,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
@@ -136,7 +136,6 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   either synchronously or asynchronously.
      */
   onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
-
   /**
    * Optional callback function that is called when the assistant message is finished streaming.
    *
@@ -417,7 +416,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       this.state.replaceMessage(messages.length - 1, {
         ...lastMessage,
         parts: lastMessage.parts.map(part =>
-          isToolUIPart(part) && part.toolCallId === toolCallId
+          isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
             ? { ...part, state: 'output-available', output }
             : part,
         ),
@@ -427,7 +426,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (this.activeResponse) {
         this.activeResponse.state.message.parts =
           this.activeResponse.state.message.parts.map(part =>
-            isToolUIPart(part) && part.toolCallId === toolCallId
+            isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
               ? {
                   ...part,
                   state: 'output-available',
@@ -499,6 +498,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         });
 
         if (reconnect == null) {
+          this.setStatus({ status: 'ready' });
           return; // no active stream found, so we do not resume
         }
 
