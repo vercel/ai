@@ -903,7 +903,7 @@ const result = await generateText({
 
 OpenAI's Responses API supports multimodal image generation as a provider-defined tool. Availability is restricted to specific models (for example, `gpt-5` variants). Refer to the OpenAI docs for the current list of supported models.
 
-- Tool factory: `openai.tools.generateImage(options)`
+- Tool factory: `openai.tools.imageGeneration(options)`
 - Supported options (camelCase):
   - `background`: `'auto' | 'opaque' | 'transparent'`
   - `size`: `'auto' | "<width>x<height>"`
@@ -926,7 +926,7 @@ const result = await generateText({
   prompt:
     'Generate an image of an echidna swimming across the Mozambique channel.',
   tools: {
-    image_generation: openai.tools.generateImage({ outputFormat: 'webp' }),
+    image_generation: openai.tools.imageGeneration({ outputFormat: 'webp' }),
   },
 });
 
@@ -947,7 +947,7 @@ const result = streamText({
   prompt:
     'Generate an image of an echidna swimming across the Mozambique channel.',
   tools: {
-    image_generation: openai.tools.generateImage({
+    image_generation: openai.tools.imageGeneration({
       outputFormat: 'webp',
       quality: 'low',
     }),

@@ -14,7 +14,7 @@ export const imageGenerationArgsSchema = z
   })
   .strict();
 
-export const generateImage = createProviderDefinedToolFactory<
+export const imageGeneration = createProviderDefinedToolFactory<
   {},
   {
     background?: 'auto' | 'opaque' | 'transparent';

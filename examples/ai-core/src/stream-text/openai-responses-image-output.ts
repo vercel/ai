@@ -9,7 +9,7 @@ async function main() {
     prompt:
       'Generate an image of an echidna swimming across the Mozambique channel.',
     tools: {
-      image_generation: openai.tools.generateImage({
+      image_generation: openai.tools.imageGeneration({
         outputFormat: 'webp',
         quality: 'low',
       }),
