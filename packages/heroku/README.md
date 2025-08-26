@@ -81,8 +81,8 @@ Creates a new Heroku provider instance.
 
 #### Options
 
-- `apiKey?: string` - Your Heroku API key (defaults to `HEROKU_API_KEY` env var)
-- `baseURL?: string` - Custom API base URL (defaults to `https://api.heroku.com/v1`)
+- `apiKey?: string` - Your Heroku API key (defaults to `HEROKU_EMBEDDING_KEY` env var)
+- `baseURL?: string` - Custom API base URL (defaults to `HEROKU_EMBEDDING_URL` env var)
 - `headers?: Record<string, string>` - Additional headers to include in requests
 - `fetch?: FetchFunction` - Custom fetch implementation
 
