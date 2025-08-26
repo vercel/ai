@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { z } from 'zod/v3';
 import { parseEffectsDef } from './effects';
 import { getRefs } from '../refs';
