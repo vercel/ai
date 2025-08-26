@@ -785,12 +785,12 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "text": "So I was thinking ...",
-          "type": "reasoning",
-        },
-        {
           "text": "42",
           "type": "text",
+        },
+        {
+          "text": "So I was thinking ...",
+          "type": "reasoning",
         },
       ]
     `);
