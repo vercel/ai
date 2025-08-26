@@ -672,6 +672,53 @@ describe('convertToLanguageModelPrompt', () => {
       });
     });
   });
+
+  describe('custom download function', () => {
+    it('should use custom download function to fetch URL content', async () => {
+      const mockDownload = vi.fn().mockResolvedValue({
+        data: new Uint8Array([72, 101, 108, 108, 111]), // "Hello" in ASCII
+        mediaType: 'text/plain',
+      });
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: 'https://example.com/test-file.txt',
+                  mediaType: 'text/plain',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {}, // No URL support, so download should be triggered
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledOnce();
+      expect(mockDownload).toHaveBeenCalledWith({
+        url: new URL('https://example.com/test-file.txt'),
+        isUrlSupportedByModel: false,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              data: new Uint8Array([72, 101, 108, 108, 111]),
+            },
+          ],
+        },
+      ]);
+    });
+  });
 });
 
 describe('convertToLanguageModelMessage', () => {
