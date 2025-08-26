@@ -19,6 +19,7 @@ import { OpenAIEmbeddingModel } from './embedding/openai-embedding-model';
 import { OpenAIEmbeddingModelId } from './embedding/openai-embedding-options';
 import { OpenAIImageModel } from './image/openai-image-model';
 import { OpenAIImageModelId } from './image/openai-image-options';
+import { OpenAIConversations } from './conversations/openai-conversations';
 import { openaiTools } from './openai-tools';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
@@ -89,6 +90,11 @@ Creates a model for speech generation.
 OpenAI-specific tools.
    */
   tools: typeof openaiTools;
+
+  /**
+OpenAI conversations API.
+   */
+  conversations: OpenAIConversations;
 }
 
 export interface OpenAIProviderSettings {
@@ -219,6 +225,15 @@ export function createOpenAI(
     });
   };
 
+  const createConversations = () => {
+    return new OpenAIConversations({
+      provider: `${providerName}.conversations`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+  };
+
   const provider = function (modelId: OpenAIResponsesModelId) {
     return createLanguageModel(modelId);
   };
@@ -241,6 +256,8 @@ export function createOpenAI(
   provider.speechModel = createSpeechModel;
 
   provider.tools = openaiTools;
+
+  provider.conversations = createConversations();
 
   return provider as OpenAIProvider;
 }
