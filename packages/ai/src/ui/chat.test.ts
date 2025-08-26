@@ -102,7 +102,11 @@ describe('Chat', () => {
         transport: new DefaultChatTransport({
           api: 'http://localhost:3000/api/chat',
         }),
-        onFinish: () => finishPromise.resolve(),
+        onFinish: ({ message, messages }) => {
+          expect(messages).toBe(chat.messages);
+          expect(message).toBe(chat.lastMessage);
+          return finishPromise.resolve();
+        },
       });
 
       chat.sendMessage({
