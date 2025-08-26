@@ -5,7 +5,7 @@ import {
   audioMediaTypeSignatures,
   detectMediaType,
 } from '../util/detect-media-type';
-import { download } from '../util/download';
+import { download } from '../util/download/download';
 import { prepareRetries } from '../util/prepare-retries';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { DataContent } from '../prompt';

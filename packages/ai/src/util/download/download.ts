@@ -1,9 +1,14 @@
 import { DownloadError } from './download-error';
 
-export async function download({ url }: { url: URL }): Promise<{
-  data: Uint8Array;
-  mediaType: string | undefined;
-}> {
+/**
+ * Download a file from a URL.
+ *
+ * @param url - The URL to download from.
+ * @returns The downloaded data and media type.
+ *
+ * @throws DownloadError if the download fails.
+ */
+export const download = async ({ url }: { url: URL }) => {
   const urlText = url.toString();
   try {
     const response = await fetch(urlText);
@@ -27,4 +32,4 @@ export async function download({ url }: { url: URL }): Promise<{
 
     throw new DownloadError({ url: urlText, cause: error });
   }
-}
+};

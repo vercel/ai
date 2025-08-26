@@ -22,8 +22,9 @@ describe('download', () => {
       url: new URL('http://example.com/file'),
     });
 
-    expect(result.data).toEqual(expectedBytes);
-    expect(result.mediaType).toBe('application/octet-stream');
+    expect(result).not.toBeNull();
+    expect(result!.data).toEqual(expectedBytes);
+    expect(result!.mediaType).toBe('application/octet-stream');
   });
 
   it('should throw DownloadError when response is not ok', async () => {
@@ -60,5 +61,13 @@ describe('download', () => {
     } catch (error: unknown) {
       expect(error).toBeInstanceOf(DownloadError);
     }
+  });
+
+  it('should return null if the URL is supported by the model', async () => {
+    const result = await download({
+      url: new URL('http://example.com/file'),
+    });
+
+    expect(result).toBeNull();
   });
 });

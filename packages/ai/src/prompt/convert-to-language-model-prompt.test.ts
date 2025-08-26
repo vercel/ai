@@ -22,7 +22,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
@@ -61,7 +61,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
@@ -141,7 +141,7 @@ describe('convertToLanguageModelPrompt', () => {
             // PDF is not supported, but image/* is
             'image/*': [/^https:\/\/.*$/],
           },
-          downloadImplementation: async ({ url }) => {
+          download: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
@@ -253,7 +253,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
@@ -293,7 +293,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
@@ -338,7 +338,7 @@ describe('convertToLanguageModelPrompt', () => {
               /^(?!https:\/\/example\.com\/document\.pdf$).*$/,
             ],
           },
-          downloadImplementation: async ({ url }) => {
+          download: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
@@ -416,7 +416,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
@@ -494,7 +494,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
@@ -535,7 +535,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.jpg'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
@@ -585,7 +585,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.txt'));
             return {
               data: new Uint8Array([72, 101, 108, 108, 111]),
