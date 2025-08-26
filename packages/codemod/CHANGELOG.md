@@ -1,5 +1,12 @@
 # @ai-sdk/codemod
 
+## 2.0.6
+
+### Patch Changes
+
+- 7faddf1: feat(codemod): add zod import v3 transformation
+- 5f85d6f: add codemod for getErrorMessage to onError in toUIMessageStreamResponse
+
 ## 2.0.5
 
 ### Patch Changes

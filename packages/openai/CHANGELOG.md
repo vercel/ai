@@ -1,5 +1,18 @@
 # @ai-sdk/openai
 
+## 2.0.21
+
+### Patch Changes
+
+- d18856a: fix(provider/openai): support websearch tool results without query property
+- 15271d6: fix(provider/openai): do not set `response_format` to `verbose_json` if model is `gpt-4o-transcribe` or `gpt-4o-mini-transcribe`
+
+  These two models do not support it:
+  https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
 ## 2.0.20
 
 ### Patch Changes

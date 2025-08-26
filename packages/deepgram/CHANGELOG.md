@@ -1,5 +1,12 @@
 # @ai-sdk/deepgram
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
 ## 1.0.5
 
 ### Patch Changes
