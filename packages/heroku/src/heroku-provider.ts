@@ -15,7 +15,7 @@ export interface HerokuProvider extends ProviderV2 {
 export interface HerokuProviderSettings {
   /**
    * Use a different URL prefix for API calls, e.g. to use proxy servers.
-   * This value defaults to `HEROKU_EMBEDDING_URL.
+   * This value defaults to `HEROKU_EMBEDDING_URL`.
    */
   baseURL?: string;
 
