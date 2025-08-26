@@ -96,13 +96,17 @@ describe('Chat', () => {
 
       const finishPromise = createResolvablePromise<void>();
 
+      let letOnFinishArgs: any = [];
       const chat = new TestChat({
         id: '123',
         generateId: mockId(),
         transport: new DefaultChatTransport({
           api: 'http://localhost:3000/api/chat',
         }),
-        onFinish: () => finishPromise.resolve(),
+        onFinish: (...args) => {
+          letOnFinishArgs = args;
+          return finishPromise.resolve();
+        },
       });
 
       chat.sendMessage({
@@ -111,6 +115,8 @@ describe('Chat', () => {
 
       await finishPromise.promise;
 
+      expect(letOnFinishArgs[0].message).toBe(chat.lastMessage);
+      expect(letOnFinishArgs[0].messages).toBe(chat.messages);
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(
         `
         {

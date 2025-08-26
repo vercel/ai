@@ -99,6 +99,7 @@ export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
 
 export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
   message: UI_MESSAGE;
+  messages: UI_MESSAGE[];
 }) => void;
 
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
@@ -562,7 +563,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         },
       });
 
-      this.onFinish?.({ message: activeResponse.state.message });
+      this.onFinish?.({
+        message: activeResponse.state.message,
+        messages: this.state.messages,
+      });
 
       this.setStatus({ status: 'ready' });
     } catch (err) {
