@@ -87,7 +87,7 @@ export default createTransformer((fileInfo, api, options, context) => {
 
         if (isInImportDeclaration(path)) return;
 
-        console.warn(
+        context.messages.push(
           `Warning: Found usage of "${keyword}" in ${fileInfo.path}. ${message}`,
         );
 
