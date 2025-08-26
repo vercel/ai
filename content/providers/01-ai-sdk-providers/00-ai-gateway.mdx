@@ -207,10 +207,14 @@ availableModels.models.forEach(model => {
     console.log(`  Input: $${model.pricing.input}/token`);
     console.log(`  Output: $${model.pricing.output}/token`);
     if (model.pricing.cachedInputTokens) {
-      console.log(`  Cached input (read): $${model.pricing.cachedInputTokens}/token`);
+      console.log(
+        `  Cached input (read): $${model.pricing.cachedInputTokens}/token`,
+      );
     }
     if (model.pricing.cacheCreationInputTokens) {
-      console.log(`  Cache creation (write): $${model.pricing.cacheCreationInputTokens}/token`);
+      console.log(
+        `  Cache creation (write): $${model.pricing.cacheCreationInputTokens}/token`,
+      );
     }
   }
 });
