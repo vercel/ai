@@ -361,10 +361,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                         }),
                         z.object({
                           type: z.literal('file_citation'),
-                          start_index: z.number(),
-                          end_index: z.number(),
                           file_id: z.string(),
-                          quote: z.string(),
+                          filename: z.string().optional(),
+                          index: z.number().optional(),
+                          start_index: z.number().optional(),
+                          end_index: z.number().optional(),
+                          quote: z.string().optional(),
                         }),
                       ]),
                     ),
@@ -496,8 +498,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   sourceType: 'document',
                   id: this.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title: annotation.quote,
-                  filename: annotation.file_id,
+                  title: annotation.quote ?? annotation.filename ?? 'Document',
+                  filename: annotation.filename ?? annotation.file_id,
                 });
               }
             }
@@ -983,8 +985,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   sourceType: 'document',
                   id: self.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title: value.annotation.quote,
-                  filename: value.annotation.file_id,
+                  title: value.annotation.quote ?? value.annotation.filename ?? 'Document',
+                  filename: value.annotation.filename ?? value.annotation.file_id,
                 });
               }
             } else if (isErrorChunk(value)) {
@@ -1184,7 +1186,11 @@ const responseAnnotationAddedSchema = z.object({
     z.object({
       type: z.literal('file_citation'),
       file_id: z.string(),
-      quote: z.string(),
+      filename: z.string().optional(),
+      index: z.number().optional(),
+      start_index: z.number().optional(),
+      end_index: z.number().optional(),
+      quote: z.string().optional(),
     }),
   ]),
 });
