@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.6
+
+### Patch Changes
+
+- 1b5a3d3: chore(provider-util): integrate zod-to-json-schema
+
 ## 3.0.5
 
 ### Patch Changes
