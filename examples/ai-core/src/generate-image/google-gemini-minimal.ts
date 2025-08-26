@@ -14,4 +14,4 @@ async function main() {
   console.log(`Generated ${files.length} image files`);
 }
 
-main();
+main().catch(console.error);
