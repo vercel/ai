@@ -28,17 +28,15 @@ export default createTransformer((fileInfo, api, options, context) => {
       return false;
     const maxStepsPropIdx = objExpr.properties.findIndex(
       (prop: any) =>
-        j.Property.check(prop) &&
-        ((j.Identifier.check(prop.key) && prop.key.name === 'maxSteps') ||
-          (j.StringLiteral.check(prop.key) && prop.key.value === 'maxSteps')),
+        (j.Identifier.check(prop.key) && prop.key.name === 'maxSteps') ||
+        (j.StringLiteral.check(prop.key) && prop.key.value === 'maxSteps'),
     );
     if (maxStepsPropIdx === -1) return false;
     const maxStepsProp = objExpr.properties[maxStepsPropIdx];
     if (
-      !j.Property.check(maxStepsProp) ||
-      (!j.Literal.check(maxStepsProp.value) &&
-        !j.Identifier.check(maxStepsProp.value) &&
-        !j.BinaryExpression.check(maxStepsProp.value))
+      !j.Literal.check(maxStepsProp.value) &&
+      !j.Identifier.check(maxStepsProp.value) &&
+      !j.BinaryExpression.check(maxStepsProp.value)
     ) {
       return false;
     }

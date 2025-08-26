@@ -16,6 +16,7 @@
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "vitest --config vitest.config.ts --run",
     "test:watch": "vitest",
+    "test:update": "UPDATE_SNAPSHOT=true vitest -u --run",
     "scaffold": "tsx scripts/scaffold-codemod.ts",
     "generate-readme": "tsx scripts/generate-readme.ts"
   },
