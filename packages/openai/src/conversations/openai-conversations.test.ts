@@ -26,9 +26,7 @@ describe('OpenAIConversations', () => {
 
       const result = await conversations.create({
         metadata: { topic: 'demo' },
-        items: [
-          { type: 'message', role: 'user', content: 'Hello!' },
-        ],
+        items: [{ type: 'message', role: 'user', content: 'Hello!' }],
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -67,15 +65,16 @@ describe('OpenAIConversations', () => {
 
   describe('retrieve', () => {
     it('should retrieve a conversation', async () => {
-      server.urls['https://api.openai.com/v1/conversations/conv_123'].response = {
-        type: 'json-value',
-        body: {
-          id: 'conv_123',
-          object: 'conversation',
-          created_at: 1741900000,
-          metadata: { topic: 'demo' },
-        },
-      };
+      server.urls['https://api.openai.com/v1/conversations/conv_123'].response =
+        {
+          type: 'json-value',
+          body: {
+            id: 'conv_123',
+            object: 'conversation',
+            created_at: 1741900000,
+            metadata: { topic: 'demo' },
+          },
+        };
 
       const result = await conversations.retrieve('conv_123');
 
@@ -94,15 +93,16 @@ describe('OpenAIConversations', () => {
 
   describe('update', () => {
     it('should update conversation metadata', async () => {
-      server.urls['https://api.openai.com/v1/conversations/conv_123'].response = {
-        type: 'json-value',
-        body: {
-          id: 'conv_123',
-          object: 'conversation',
-          created_at: 1741900000,
-          metadata: { topic: 'project-x' },
-        },
-      };
+      server.urls['https://api.openai.com/v1/conversations/conv_123'].response =
+        {
+          type: 'json-value',
+          body: {
+            id: 'conv_123',
+            object: 'conversation',
+            created_at: 1741900000,
+            metadata: { topic: 'project-x' },
+          },
+        };
 
       const result = await conversations.update('conv_123', {
         metadata: { topic: 'project-x' },
@@ -123,14 +123,15 @@ describe('OpenAIConversations', () => {
 
   describe('delete', () => {
     it('should delete a conversation', async () => {
-      server.urls['https://api.openai.com/v1/conversations/conv_123'].response = {
-        type: 'json-value',
-        body: {
-          id: 'conv_123',
-          object: 'conversation.deleted',
-          deleted: true,
-        },
-      };
+      server.urls['https://api.openai.com/v1/conversations/conv_123'].response =
+        {
+          type: 'json-value',
+          body: {
+            id: 'conv_123',
+            object: 'conversation.deleted',
+            deleted: true,
+          },
+        };
 
       const result = await conversations.delete('conv_123');
 
@@ -147,7 +148,9 @@ describe('OpenAIConversations', () => {
   describe('items', () => {
     describe('list', () => {
       it('should list conversation items', async () => {
-        server.urls['https://api.openai.com/v1/conversations/conv_123/items'].response = {
+        server.urls[
+          'https://api.openai.com/v1/conversations/conv_123/items'
+        ].response = {
           type: 'json-value',
           body: {
             object: 'list',
@@ -166,7 +169,9 @@ describe('OpenAIConversations', () => {
           },
         };
 
-        const result = await conversations.items.list('conv_123', { limit: 10 });
+        const result = await conversations.items.list('conv_123', {
+          limit: 10,
+        });
 
         expect(result).toMatchInlineSnapshot(`
           {
@@ -190,7 +195,9 @@ describe('OpenAIConversations', () => {
 
     describe('create', () => {
       it('should create conversation items', async () => {
-        server.urls['https://api.openai.com/v1/conversations/conv_123/items'].response = {
+        server.urls[
+          'https://api.openai.com/v1/conversations/conv_123/items'
+        ].response = {
           type: 'json-value',
           body: {
             object: 'list',
@@ -260,7 +267,9 @@ describe('OpenAIConversations', () => {
 
     describe('retrieve', () => {
       it('should retrieve a conversation item', async () => {
-        server.urls['https://api.openai.com/v1/conversations/conv_123/items/msg_456'].response = {
+        server.urls[
+          'https://api.openai.com/v1/conversations/conv_123/items/msg_456'
+        ].response = {
           type: 'json-value',
           body: {
             type: 'message',
@@ -271,7 +280,10 @@ describe('OpenAIConversations', () => {
           },
         };
 
-        const result = await conversations.items.retrieve('conv_123', 'msg_456');
+        const result = await conversations.items.retrieve(
+          'conv_123',
+          'msg_456',
+        );
 
         expect(result).toMatchInlineSnapshot(`
           {
@@ -287,7 +299,9 @@ describe('OpenAIConversations', () => {
 
     describe('delete', () => {
       it('should delete a conversation item', async () => {
-        server.urls['https://api.openai.com/v1/conversations/conv_123/items/msg_456'].response = {
+        server.urls[
+          'https://api.openai.com/v1/conversations/conv_123/items/msg_456'
+        ].response = {
           type: 'json-value',
           body: {
             id: 'conv_123',

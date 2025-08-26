@@ -85,7 +85,9 @@ async function main() {
 
   // finally, delete the entire conversation
   console.log('\nDeleting entire conversation...');
-  const deletedConversation = await openai.conversations.delete(conversation.id);
+  const deletedConversation = await openai.conversations.delete(
+    conversation.id,
+  );
   console.log('Deleted conversation:', deletedConversation);
 
   console.log('\nFull conversation management demo complete!');

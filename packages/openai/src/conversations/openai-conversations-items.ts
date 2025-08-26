@@ -23,7 +23,9 @@ export class OpenAIConversationItems {
   constructor(private readonly config: OpenAIConfig) {}
 
   private getUrl(path: string): string {
-    const baseUrl = this.config.url({ path: '', modelId: '' }).replace(/\/$/, '');
+    const baseUrl = this.config
+      .url({ path: '', modelId: '' })
+      .replace(/\/$/, '');
     return `${baseUrl}${path}`;
   }
 
@@ -158,7 +160,9 @@ export class OpenAIConversationItems {
       this.getUrl(`/conversations/${conversationId}/items/${itemId}`),
       {
         method: 'DELETE',
-        headers: removeUndefinedEntries(combineHeaders(this.config.headers(), options.headers)),
+        headers: removeUndefinedEntries(
+          combineHeaders(this.config.headers(), options.headers),
+        ),
         signal: options.abortSignal,
       },
     );
@@ -172,6 +176,6 @@ export class OpenAIConversationItems {
       throw errorHandler.value;
     }
 
-    return await response.json() as Conversation;
+    return (await response.json()) as Conversation;
   }
 }

@@ -27,7 +27,9 @@ export class OpenAIConversations {
   }
 
   private getUrl(path: string): string {
-    const baseUrl = this.config.url({ path: '', modelId: '' }).replace(/\/$/, '');
+    const baseUrl = this.config
+      .url({ path: '', modelId: '' })
+      .replace(/\/$/, '');
     return `${baseUrl}${path}`;
   }
 
@@ -107,7 +109,9 @@ export class OpenAIConversations {
       this.getUrl(`/conversations/${conversationId}`),
       {
         method: 'DELETE',
-        headers: removeUndefinedEntries(combineHeaders(this.config.headers(), options.headers)),
+        headers: removeUndefinedEntries(
+          combineHeaders(this.config.headers(), options.headers),
+        ),
         signal: options.abortSignal,
       },
     );
@@ -121,6 +125,6 @@ export class OpenAIConversations {
       throw errorHandler.value;
     }
 
-    return await response.json() as DeletedConversation;
+    return (await response.json()) as DeletedConversation;
   }
 }

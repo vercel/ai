@@ -9,14 +9,16 @@ export const conversationSchema = z.object({
 
 export type Conversation = z.infer<typeof conversationSchema>;
 
-export const conversationItemSchema = z.object({
-  type: z.string(),
-  id: z.string().optional(),
-  status: z.string().optional(),
-  role: z.string().optional(),
-  content: z.union([z.string(), z.array(z.unknown())]).optional(),
-  created_at: z.number().optional(),
-}).passthrough();
+export const conversationItemSchema = z
+  .object({
+    type: z.string(),
+    id: z.string().optional(),
+    status: z.string().optional(),
+    role: z.string().optional(),
+    content: z.union([z.string(), z.array(z.unknown())]).optional(),
+    created_at: z.number().optional(),
+  })
+  .passthrough();
 
 export type ConversationItem = z.infer<typeof conversationItemSchema>;
 
