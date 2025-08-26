@@ -1198,7 +1198,7 @@ The `InferUITools` type helper infers the input and output types of a `ToolSet`:
 import { InferUITools, ToolSet } from 'ai';
 import { z } from 'zod';
 
-const tools: ToolSet = {
+const tools = {
   weather: {
     description: 'Get the current weather',
     inputSchema: z.object({
@@ -1228,7 +1228,7 @@ const tools: ToolSet = {
       }
     },
   },
-};
+} satisfies ToolSet;
 
 // Infer the types from the tool set
 type MyUITools = InferUITools<typeof tools>;
