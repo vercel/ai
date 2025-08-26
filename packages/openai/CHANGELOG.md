@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 2.0.22
+
+### Patch Changes
+
+- 0e272ae: fix(provider/openai): make file_citation annotation fields optional for responses api compatibility
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
 ## 2.0.21
 
 ### Patch Changes
