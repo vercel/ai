@@ -108,7 +108,7 @@ import {
 } from 'ai';
 import { z } from 'zod';
 
-const tools: ToolSet = {
+const tools = {
   getWeather: tool({
     description: 'Get the weather for a location',
     inputSchema: z.object({
@@ -126,7 +126,7 @@ const tools: ToolSet = {
       return `It is currently ${weather.value}°${unit} and ${weather.description} in ${city}!`;
     },
   }),
-};
+} satisfies ToolSet;
 
 export type ChatTools = InferUITools<typeof tools>;
 
