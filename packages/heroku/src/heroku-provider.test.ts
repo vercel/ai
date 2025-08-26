@@ -1,4 +1,4 @@
-// import { vi } from 'vitest';
+import { vi } from 'vitest';
 import { createHeroku } from './heroku-provider';
 
 describe('HerokuProvider', () => {
