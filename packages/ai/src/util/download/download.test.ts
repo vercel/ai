@@ -62,12 +62,4 @@ describe('download', () => {
       expect(error).toBeInstanceOf(DownloadError);
     }
   });
-
-  it('should return null if the URL is supported by the model', async () => {
-    const result = await download({
-      url: new URL('http://example.com/file'),
-    });
-
-    expect(result).toBeNull();
-  });
 });

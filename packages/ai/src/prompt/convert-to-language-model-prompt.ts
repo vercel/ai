@@ -229,8 +229,8 @@ async function downloadAssets(
     .map(part => ({
       url: part.data,
       isUrlSupportedByModel:
-        part.mediaType != null &&
-        !isUrlSupported({
+        part.mediaType == null ||
+        isUrlSupported({
           url: part.data.toString(),
           mediaType: part.mediaType,
           supportedUrls,
