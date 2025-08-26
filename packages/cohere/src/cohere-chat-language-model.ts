@@ -15,10 +15,14 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { CohereChatModelId } from './cohere-chat-options';
+import {
+  CohereChatModelId,
+  cohereChatModelOptions,
+} from './cohere-chat-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
@@ -52,7 +56,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  private getArgs({
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -65,7 +69,16 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     seed,
     tools,
     toolChoice,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
+    // Parse provider options
+    const cohereOptions =
+      (await parseProviderOptions({
+        provider: 'cohere',
+        providerOptions,
+        schema: cohereChatModelOptions,
+      })) ?? {};
+
     const {
       messages: chatPrompt,
       documents: cohereDocuments,
@@ -108,6 +121,14 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
         // documents for RAG:
         ...(cohereDocuments.length > 0 && { documents: cohereDocuments }),
+
+        // reasoning
+        ...(cohereOptions.thinking && {
+          thinking: {
+            type: cohereOptions.thinking.type ?? 'enabled',
+            token_budget: cohereOptions.thinking.tokenBudget,
+          },
+        }),
       },
       warnings: [...toolWarnings, ...promptWarnings],
     };
@@ -116,7 +137,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -138,7 +159,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
     if (response.message.content) {
       for (const item of response.message.content) {
-        if (item.type === 'text' && item.text.length === 0) {
+        if (item.type === 'text' && item.text.length > 0) {
           content.push({ type: 'text', text: item.text });
           continue;
         }
@@ -148,26 +169,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
           continue;
         }
       }
-    }
-    // text content:
-    if (
-      response.message.content?.[0]?.type === 'text' &&
-      response.message.content?.[0]?.text != null &&
-      response.message.content?.[0]?.text.length > 0
-    ) {
-      content.push({ type: 'text', text: response.message.content[0].text });
-    }
-
-    // reasoning:
-    if (
-      response.message.content?.[0]?.type === 'thinking' &&
-      response.message.content?.[0]?.thinking != null &&
-      response.message.content?.[0]?.thinking.length > 0
-    ) {
-      content.push({
-        type: 'reasoning',
-        text: response.message.content[0].thinking,
-      });
     }
 
     // citations:
@@ -226,7 +227,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
