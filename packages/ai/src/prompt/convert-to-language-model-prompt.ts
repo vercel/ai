@@ -197,7 +197,7 @@ async function downloadAssets(
 ): Promise<
   Record<string, { mediaType: string | undefined; data: Uint8Array }>
 > {
-  const potentialDownloads = messages
+  const plannedDownloads = messages
     .filter(message => message.role === 'user')
     .map(message => message.content)
     .filter((content): content is Array<TextPart | ImagePart | FilePart> =>
@@ -239,9 +239,9 @@ async function downloadAssets(
 
   // download in parallel:
   const downloadedFiles = await Promise.all(
-    potentialDownloads.map(async potentialDownload => ({
-      url: potentialDownload.url.toString(),
-      data: await download(potentialDownload),
+    plannedDownloads.map(async plannedDownload => ({
+      url: plannedDownload.url.toString(),
+      data: await download(plannedDownload),
     })),
   );
 
