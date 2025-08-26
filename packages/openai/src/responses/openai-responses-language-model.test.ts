@@ -2184,6 +2184,15 @@ describe('OpenAIResponsesLanguageModel', () => {
                 },
               },
               {
+                type: 'web_search_call',
+                id: 'ws_67cf2b3051e88190b006234456fdb13d',
+                status: 'completed',
+                action: {
+                  type: 'search',
+                  // sometimes search calls do not have a query
+                },
+              },
+              {
                 type: 'message',
                 id: 'msg_67cf2b35467481908f24412e4fd40d66',
                 status: 'completed',
@@ -2303,6 +2312,22 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "status": "completed",
               },
               "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "web_search_preview",
+              "type": "tool-result",
+            },
+            {
+              "input": "{"action":{"type":"search"}}",
+              "providerExecuted": true,
+              "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
+              "toolName": "web_search_preview",
+              "type": "tool-call",
+            },
+            {
+              "providerExecuted": true,
+              "result": {
+                "status": "completed",
+              },
+              "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
               "toolName": "web_search_preview",
               "type": "tool-result",
             },
@@ -2842,6 +2867,102 @@ describe('OpenAIResponsesLanguageModel', () => {
             "mediaType": "text/plain",
             "sourceType": "document",
             "title": "Important information from document",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should handle file_citation annotations without optional fields', async () => {
+      prepareJsonResponse({
+        id: 'resp_789',
+        object: 'response',
+        created_at: 1234567890,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        input: [],
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-5',
+        output: [
+          {
+            id: 'msg_789',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Answer for the specified years....',
+                annotations: [
+                  {
+                    type: 'file_citation',
+                    file_id: 'file-YRcoCqn3Fo2K4JgraG',
+                    filename: 'resource1.json',
+                    index: 145,
+                  },
+                  {
+                    type: 'file_citation',
+                    file_id: 'file-YRcoCqn3Fo2K4JgraG',
+                    filename: 'resource1.json',
+                    index: 192,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        reasoning: { effort: null, summary: null },
+        store: true,
+        temperature: 0,
+        text: { format: { type: 'text' } },
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        truncation: 'disabled',
+        usage: {
+          input_tokens: 50,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens: 25,
+          output_tokens_details: { reasoning_tokens: 0 },
+          total_tokens: 75,
+        },
+        user: null,
+        metadata: {},
+      });
+
+      const result = await createModel('gpt-5').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_789",
+              },
+            },
+            "text": "Answer for the specified years....",
+            "type": "text",
+          },
+          {
+            "filename": "resource1.json",
+            "id": "id-0",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "resource1.json",
+            "type": "source",
+          },
+          {
+            "filename": "resource1.json",
+            "id": "id-1",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "resource1.json",
             "type": "source",
           },
         ]
@@ -5026,6 +5147,70 @@ describe('OpenAIResponsesLanguageModel', () => {
               "outputTokens": 50,
               "reasoningTokens": 0,
               "totalTokens": 150,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should handle file_citation annotations without optional fields in streaming', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.content_part.added","item_id":"msg_456","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_456","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":145}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_456","output_index":0,"content_index":0,"annotation_index":1,"annotation":{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":192}}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_456","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Answer for the specified years....","annotations":[{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":145},{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":192}]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_456","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Answer for the specified years....","annotations":[{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":145},{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":192}]}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_456","object":"response","created_at":1234567890,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-5","output":[{"id":"msg_456","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Answer for the specified years....","annotations":[{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":145},{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":192}]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":50,"input_tokens_details":{"cached_tokens":0},"output_tokens":25,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":75},"user":null,"metadata":{}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+      const { stream } = await createModel('gpt-5').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+      const result = await convertReadableStreamToArray(stream);
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "filename": "resource1.json",
+            "id": "id-0",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "resource1.json",
+            "type": "source",
+          },
+          {
+            "filename": "resource1.json",
+            "id": "id-1",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "resource1.json",
+            "type": "source",
+          },
+          {
+            "id": "msg_456",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 50,
+              "outputTokens": 25,
+              "reasoningTokens": 0,
+              "totalTokens": 75,
             },
           },
         ]
