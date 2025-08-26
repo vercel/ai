@@ -593,7 +593,8 @@ const result = await generateText({
   providerOptions: {
     google: { responseModalities: ['TEXT', 'IMAGE'] },
   },
-  prompt: 'Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme',
+  prompt:
+    'Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme',
 });
 
 for (const file of result.files) {
