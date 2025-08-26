@@ -1,5 +1,20 @@
 # @ai-sdk/google-vertex
 
+## 3.0.13
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/anthropic@2.0.7
+  - @ai-sdk/google@2.0.9
+
+## 3.0.12
+
+### Patch Changes
+
+- d09caa5: The taskType parameter now properly maps to snake case in the final payload.
+
 ## 3.0.11
 
 ### Patch Changes

@@ -121,7 +121,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       instances: testValues.map(value => ({
         content: value,
-        taskType: mockProviderOptions.taskType,
+        task_type: mockProviderOptions.taskType,
       })),
       parameters: {
         outputDimensionality: mockProviderOptions.outputDimensionality,
@@ -141,7 +141,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       instances: testValues.map(value => ({
         content: value,
-        taskType: mockProviderOptions.taskType,
+        task_type: mockProviderOptions.taskType,
       })),
       parameters: {},
     });
