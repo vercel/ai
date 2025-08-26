@@ -96,7 +96,7 @@ describe('Chat', () => {
 
       const finishPromise = createResolvablePromise<void>();
 
-      let letOnFinishArgs: any = []
+      let letOnFinishArgs: any = [];
       const chat = new TestChat({
         id: '123',
         generateId: mockId(),
