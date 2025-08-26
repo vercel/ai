@@ -7,7 +7,7 @@ import {
 } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-/*FIXME(@ai-sdk-codemod-error): The `appendClientMessage` option has been removed. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#message-persistence-changes*/
+/* FIXME(@ai-sdk-upgrade-v5): The `appendClientMessage` option has been removed. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#message-persistence-changes */
 const updatedMessages = appendClientMessage({
   messages,
   message: lastUserMessage,
@@ -19,7 +19,7 @@ const result = streamText({
   experimental_generateMessageId: () => generateId(), // ID generation on streamText
   onFinish: async ({ responseMessages, usage }) => {
     // Use helper functions to format messages
-    /*FIXME(@ai-sdk-codemod-error): The `appendResponseMessages` option has been removed. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#message-persistence-changes*/
+    /* FIXME(@ai-sdk-upgrade-v5): The `appendResponseMessages` option has been removed. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#message-persistence-changes */
     const finalMessages = appendResponseMessages({
       messages: updatedMessages,
       responseMessages,
@@ -32,14 +32,14 @@ const result = streamText({
 
 message.parts.map(part => {
   if (part.type === 'tool-invocation') {
-    /*FIXME(@ai-sdk-codemod-error): The `part.toolInvocation.toolName` property has been removed. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#tool-part-type-changes-uimessage*/
+    /* FIXME(@ai-sdk-upgrade-v5): The `part.toolInvocation.toolName` property has been removed. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#tool-part-type-changes-uimessage */
     return part.toolInvocation.toolName;
   }
 });
 
 message.parts.map(part => {
   if (part.type === 'tool-invocation') {
-    /*FIXME(@ai-sdk-codemod-error): The `part.toolInvocation.state` property has been removed. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#tool-part-type-changes-uimessage*/
+    /* FIXME(@ai-sdk-upgrade-v5): The `part.toolInvocation.state` property has been removed. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#tool-part-type-changes-uimessage */
     switch (part.toolInvocation.state) {
     case 'partial-call':
       return 'Loading...';

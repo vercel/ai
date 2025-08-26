@@ -1,6 +1,6 @@
 import type { API, ASTPath } from 'jscodeshift';
 
-export const AI_SDK_CODEMOD_ERROR_PREFIX = 'FIXME(@ai-sdk-codemod-error): ';
+export const AI_SDK_CODEMOD_ERROR_PREFIX = 'FIXME(@ai-sdk-upgrade-v5): ';
 
 function existsComment(
   comments: ASTPath<any>['node']['comments'],
@@ -10,7 +10,7 @@ function existsComment(
 
   if (comments) {
     comments.forEach((commentNode: any) => {
-      const currentComment = commentNode.value;
+      const currentComment = commentNode.value.trim();
       if (currentComment === comment) {
         hasComment = true;
       }
@@ -35,7 +35,7 @@ export function insertCommentOnce(
   );
 
   if (!hasCommentInInlineComments && !hasCommentInLeadingComments) {
-    node.comments = [...(node.comments || []), j.commentBlock(comment)];
+    node.comments = [...(node.comments || []), j.commentBlock(` ${comment} `)];
     return true;
   }
 
