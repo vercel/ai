@@ -351,6 +351,61 @@ const result = await generateText({
 });
 ```
 
+#### Custom Download Function (Experimental)
+
+The default download implementation automatically downloads files when they are not supported by the model. However, it does not support retries, custom authentication, and more.
+
+You can provide a custom download function:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  experimental_download: async ({ url, isUrlSupportedByModel }) => {
+    // Let model handle supported URLs
+    if (isUrlSupportedByModel) {
+      return null;
+    }
+
+    // Custom download with auth
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${process.env.SOME_API_KEY}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new DownloadError({
+        url: url.toString(),
+        statusCode: response.status,
+        statusText: response.statusText,
+      });
+    }
+
+    return {
+      data: new Uint8Array(await response.arrayBuffer()),
+      mediaType: response.headers.get('content-type') ?? undefined,
+    };
+  },
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'file',
+          data: new URL('https://api.company.com/private/document.pdf'),
+          mediaType: 'application/pdf',
+        },
+      ],
+    },
+  ],
+});
+```
+
+<Note>
+  The `experimental_download` option is experimental and may change in future
+  releases.
+</Note>
+
 ### Assistant Messages
 
 Assistant messages are messages that have a role of `assistant`.
