@@ -1,6 +1,8 @@
 import { download } from './download';
 
 /**
+ * Experimental. Can change in patch versions without warning.
+ *
  * Download function. Called with the URL and media type of the asset.
  *
  * Custom download function can decide:
