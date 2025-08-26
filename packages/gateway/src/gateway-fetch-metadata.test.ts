@@ -92,6 +92,41 @@ describe('GatewayFetchMetadata', () => {
       });
     });
 
+    it('should map cache pricing fields to SDK names when present', async () => {
+      const gatewayEntryWithCache = {
+        ...mockModelEntry,
+        pricing: {
+          input: '0.000003',
+          output: '0.000015',
+          input_cache_read: '0.0000003',
+          input_cache_write: '0.00000375',
+        },
+      };
+
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [gatewayEntryWithCache],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+
+      expect(result.models[0].pricing).toEqual({
+        input: '0.000003',
+        output: '0.000015',
+        cachedInputTokens: '0.0000003',
+        cacheCreationInputTokens: '0.00000375',
+      });
+      const pricing = result.models[0].pricing;
+      expect(pricing).toBeDefined();
+      if (pricing) {
+        expect('input_cache_read' in pricing).toBe(false);
+        expect('input_cache_write' in pricing).toBe(false);
+      }
+    });
+
     it('should handle models without pricing information', async () => {
       server.urls['https://api.example.com/*'].response = {
         type: 'json-value',
