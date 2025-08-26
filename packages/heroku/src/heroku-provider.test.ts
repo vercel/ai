@@ -1,3 +1,4 @@
+// import { vi } from 'vitest';
 import { createHeroku } from './heroku-provider';
 
 describe('HerokuProvider', () => {
@@ -5,6 +6,10 @@ describe('HerokuProvider', () => {
 
   describe('embedding', () => {
     it('should create embedding model with correct model ID', () => {
+
+      vi.stubEnv('HEROKU_EMBEDDING_URL', 'https://test.inference.heroku.com');
+      vi.stubEnv('HEROKU_EMBEDDING_KEY', 'abcdef0123456789');
+
       const model = provider.embedding('cohere-embed-multilingual');
 
       expect(model).toBeDefined();
@@ -15,6 +20,10 @@ describe('HerokuProvider', () => {
 
   describe('textEmbeddingModel', () => {
     it('should create embedding model with correct model ID', () => {
+
+      vi.stubEnv('HEROKU_EMBEDDING_URL', 'https://test.inference.heroku.com');
+      vi.stubEnv('HEROKU_EMBEDDING_KEY', 'abcdef0123456789');
+      
       const model = provider.textEmbeddingModel('cohere-embed-multilingual');
 
       expect(model).toBeDefined();
