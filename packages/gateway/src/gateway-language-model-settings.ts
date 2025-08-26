@@ -81,6 +81,7 @@ export type GatewayModelId =
   | 'perplexity/sonar-reasoning-pro'
   | 'vercel/v0-1.0-md'
   | 'vercel/v0-1.5-md'
+  | 'xai/grok-code-fast-1'
   | 'xai/grok-2'
   | 'xai/grok-2-vision'
   | 'xai/grok-3'
