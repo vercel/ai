@@ -15,7 +15,7 @@ async function main() {
           tokenBudget: 1000,
         },
       } satisfies CohereChatModelOptions,
-    }
+    },
   });
 
   console.log(JSON.stringify(result.request.body, null, 2));
