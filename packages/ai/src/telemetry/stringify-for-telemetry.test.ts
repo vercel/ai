@@ -1,5 +1,6 @@
 import { stringifyForTelemetry } from './stringify-for-telemetry';
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { describe, it, expect } from 'vitest';
 
 describe('stringifyForTelemetry', () => {
   it('should stringify a prompt with text parts', () => {

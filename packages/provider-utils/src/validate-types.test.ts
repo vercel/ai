@@ -3,6 +3,7 @@ import type { StandardSchemaV1 } from '@standard-schema/spec';
 
 import { validateTypes, safeValidateTypes } from './validate-types';
 import { validator } from './validator';
+import { describe, expect, it } from 'vitest';
 
 const customSchema: StandardSchemaV1<{ name: string; age: number }> = {
   '~standard': {

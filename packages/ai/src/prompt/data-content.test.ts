@@ -1,4 +1,5 @@
 import { dataContentSchema } from './data-content';
+import { describe, it, expect } from 'vitest';
 
 describe('dataContentSchema', () => {
   it('should validate a Buffer', () => {

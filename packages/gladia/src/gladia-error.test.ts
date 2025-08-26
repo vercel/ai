@@ -1,5 +1,6 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { gladiaErrorDataSchema } from './gladia-error';
+import { describe, it, expect } from 'vitest';
 
 describe('gladiaErrorDataSchema', () => {
   it('should parse Gladia resource exhausted error', async () => {

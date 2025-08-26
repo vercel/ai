@@ -1,4 +1,5 @@
 import { cleanup, render } from '@testing-library/vue';
+import { beforeEach, afterEach, vi } from 'vitest';
 
 export const setupTestComponent = (
   TestComponent: any,

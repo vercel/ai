@@ -3,6 +3,7 @@ import { tool } from '@ai-sdk/provider-utils';
 import { ChatInit } from './chat';
 import { ToolSet } from '../generate-text/tool-set';
 import { InferUITools, UIDataTypes, UIMessage, UITools } from './ui-messages';
+import { describe, it, expectTypeOf } from 'vitest';
 
 type ToolCallCallback<TOOLS extends ToolSet | UITools> = NonNullable<
   ChatInit<

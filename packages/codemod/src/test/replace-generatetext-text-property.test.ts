@@ -6,6 +6,7 @@ import transform from '../codemods/v5/replace-generatetext-text-property';
 function trim(str: string) {
   return str.replace(/^\s+|\s+$/, '');
 }
+import { describe, it, expect } from 'vitest';
 
 describe('replace-generatetext-text-property', () => {
   it('transforms generateText result.text to result.text.text', () => {

@@ -1,4 +1,5 @@
 import { extractHeaders, convertHeadersToRecord } from './headers-utils';
+import { describe, it, expect } from 'vitest';
 
 describe('extractHeaders', () => {
   it('should handle undefined headers', () => {

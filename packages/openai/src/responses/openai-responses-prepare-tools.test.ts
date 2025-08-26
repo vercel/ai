@@ -1,4 +1,5 @@
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
   describe('code interpreter', () => {

@@ -1,5 +1,6 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { lmntErrorDataSchema } from './lmnt-error';
+import { describe, it, expect } from 'vitest';
 
 describe('lmntErrorDataSchema', () => {
   it('should parse LMNT resource exhausted error', async () => {

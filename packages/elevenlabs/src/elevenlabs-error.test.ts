@@ -1,5 +1,6 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { elevenlabsErrorDataSchema } from './elevenlabs-error';
+import { describe, it, expect } from 'vitest';
 
 describe('elevenlabsErrorDataSchema', () => {
   it('should parse ElevenLabs resource exhausted error', async () => {

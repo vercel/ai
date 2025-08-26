@@ -16,7 +16,7 @@
     "preserveWatchOutput": true,
     "skipLibCheck": true,
     "strict": true,
-    "types": ["@types/node", "vitest/globals"],
+    "types": ["@types/node"],
   },
   "exclude": ["node_modules"]
 }

@@ -1,4 +1,5 @@
 import { prepareHeaders } from './prepare-headers';
+import { describe, it, expect } from 'vitest';
 
 describe('prepareHeaders', () => {
   it('should set Content-Type header if not present', () => {

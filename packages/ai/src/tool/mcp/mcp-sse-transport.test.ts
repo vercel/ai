@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { MCPClientError } from '../../error/mcp-client-error';
 import { SseMCPTransport } from './mcp-sse-transport';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('SseMCPTransport', () => {
   const server = createTestServer({

@@ -4,6 +4,7 @@ import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import { parseToolCall } from './parse-tool-call';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('parseToolCall', () => {
   it('should successfully parse a valid tool call', async () => {

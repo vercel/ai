@@ -9,6 +9,7 @@ import {
   createBinaryResponseHandler,
   createStatusCodeErrorResponseHandler,
 } from './response-handler';
+import { describe, expect, it } from 'vitest';
 
 describe('createJsonStreamResponseHandler', () => {
   it('should return a stream of complete json chunks', async () => {

@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';

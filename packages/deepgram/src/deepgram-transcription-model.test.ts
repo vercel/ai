@@ -3,6 +3,7 @@ import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
 import { createDeepgram } from './deepgram-provider';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { describe, it, expect } from 'vitest';
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createDeepgram({ apiKey: 'test-api-key' });

@@ -1,5 +1,6 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { processTextStream } from './process-text-stream';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('processTextStream', () => {
   it('should process stream chunks correctly', async () => {

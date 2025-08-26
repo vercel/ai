@@ -2,6 +2,7 @@ import { resolve } from '@ai-sdk/provider-utils';
 import { createVertex as createVertexEdge } from './google-vertex-provider-edge';
 import { createVertex as createVertexOriginal } from '../google-vertex-provider';
 import * as edgeAuth from './google-vertex-auth-edge';
+import { describe, beforeEach, expect, it, vi } from 'vitest';
 
 // Mock the imported modules
 vi.mock('./google-vertex-auth-edge', () => ({

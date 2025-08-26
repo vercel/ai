@@ -1,3 +1,4 @@
+import { describe, it, expect, test, vitest } from 'vitest';
 import {
   ImageModelV2,
   ImageModelV2CallWarning,

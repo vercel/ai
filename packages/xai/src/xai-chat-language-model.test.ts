@@ -1,4 +1,6 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { describe, it, expect } from 'vitest';
+
 import {
   convertReadableStreamToArray,
   createTestServer,

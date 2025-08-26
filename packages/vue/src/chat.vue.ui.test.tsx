@@ -16,6 +16,7 @@ import TestChatReloadComponent from './TestChatReloadComponent.vue';
 import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
 import TestChatToolInvocationsComponent from './TestChatToolInvocationsComponent.vue';
 import TestChatUrlAttachmentsComponent from './TestChatUrlAttachmentsComponent.vue';
+import { describe, it, expect } from 'vitest';
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;

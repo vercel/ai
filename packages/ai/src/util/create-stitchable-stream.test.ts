@@ -2,7 +2,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { createStitchableStream } from './create-stitchable-stream';
 
 describe('createStitchableStream', () => {

@@ -1,4 +1,5 @@
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('system messages', () => {
   it('should store system message in system instruction', async () => {

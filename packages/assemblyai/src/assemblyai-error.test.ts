@@ -1,5 +1,6 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { assemblyaiErrorDataSchema } from './assemblyai-error';
+import { describe, it, expect } from 'vitest';
 
 describe('assemblyaiErrorDataSchema', () => {
   it('should parse AssemblyAI resource exhausted error', async () => {

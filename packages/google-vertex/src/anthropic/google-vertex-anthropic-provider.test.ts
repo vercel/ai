@@ -4,6 +4,7 @@ import {
   AnthropicMessagesLanguageModel,
   anthropicTools,
 } from '@ai-sdk/anthropic/internal';
+import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 // Mock the imported modules
 vi.mock('@ai-sdk/provider-utils', () => ({

@@ -1,6 +1,7 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import { injectFetchHeaders } from './inject-fetch-headers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const mockEmbeddings = [
   [-0.09, 0.05, -0.02, 0.01, 0.04],

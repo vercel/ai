@@ -1,6 +1,7 @@
 import { z } from 'zod/v4';
 import { InferUITool, UIMessage } from './ui-messages';
 import { validateUIMessages } from './validate-ui-messages';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 describe('validateUIMessages', () => {
   describe('metadata', () => {

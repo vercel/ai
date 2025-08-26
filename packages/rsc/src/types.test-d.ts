@@ -1,5 +1,5 @@
 import { expectTypeOf } from 'vitest';
-
+import { describe, it } from 'vitest';
 import type { StreamableValue } from '.';
 
 describe('StreamableValue type', () => {

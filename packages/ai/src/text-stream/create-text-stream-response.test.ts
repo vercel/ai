@@ -3,6 +3,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createTextStreamResponse } from './create-text-stream-response';
+import { describe, it, expect } from 'vitest';
 
 describe('createTextStreamResponse', () => {
   it('should create a Response with correct headers and encoded stream', async () => {

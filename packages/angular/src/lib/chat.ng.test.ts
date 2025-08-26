@@ -9,6 +9,7 @@ import {
   TextStreamChatTransport,
 } from 'ai';
 import { Chat } from './chat.ng';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 
 function formatStreamPart(part: object) {
   return `data: ${JSON.stringify(part)}\n\n`;

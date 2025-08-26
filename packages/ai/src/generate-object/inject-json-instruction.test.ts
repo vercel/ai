@@ -1,5 +1,6 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import { injectJsonInstruction } from './inject-json-instruction';
+import { describe, it, expect } from 'vitest';
 
 const basicSchema: JSONSchema7 = {
   type: 'object',

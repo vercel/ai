@@ -19,6 +19,7 @@ import React, { act, useRef, useState } from 'react';
 import { Chat } from './chat.react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;

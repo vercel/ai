@@ -1,4 +1,5 @@
 import { isUrlSupported } from './is-url-supported';
+import { describe, expect, it } from 'vitest';
 
 describe('isUrlSupported', () => {
   describe('when the model does not support any URLs', () => {

@@ -3,6 +3,7 @@ import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError } from '../error/no-object-generated-error';
 import { object } from './output';
 import { FinishReason } from '../types';
+import { describe, it, expect } from 'vitest';
 
 const context = {
   response: {

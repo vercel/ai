@@ -11,6 +11,7 @@ import {
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
 import { type DocumentCitation } from './anthropic-messages-language-model';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },

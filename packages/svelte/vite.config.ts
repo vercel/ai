@@ -6,8 +6,6 @@ export default defineConfig({
   plugins: [svelte()],
 
   test: {
-    globals: true,
-
     workspace: [
       {
         extends: './vite.config.ts',

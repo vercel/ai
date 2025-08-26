@@ -1,4 +1,5 @@
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('convertToOpenAIResponsesMessages', () => {
   describe('system messages', () => {

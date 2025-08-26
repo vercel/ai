@@ -5,6 +5,7 @@ import {
   FlexibleSchema,
 } from '@ai-sdk/provider-utils';
 import { tool } from './tool';
+import { describe, it, expectTypeOf } from 'vitest';
 
 describe('tool helper', () => {
   it('should work with fixed inputSchema', () => {

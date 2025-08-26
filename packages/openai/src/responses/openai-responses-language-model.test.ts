@@ -12,6 +12,7 @@ import {
   openaiResponsesModelIds,
   openaiResponsesReasoningModelIds,
 } from './openai-responses-settings';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },

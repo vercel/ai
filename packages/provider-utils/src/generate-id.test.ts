@@ -1,6 +1,7 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
 import { expect, it } from 'vitest';
 import { createIdGenerator, generateId } from './generate-id';
+import { describe } from 'vitest';
 
 describe('createIdGenerator', () => {
   it('should generate an ID with the correct length', () => {
