@@ -941,6 +941,50 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should not validate tool input when state is output-error and input schema was error cause', async () => {
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-error',
+                rawInput: { bar: 'baz' },
+                errorText: 'Input did not match schema',
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "errorText": "Input did not match schema",
+                "rawInput": {
+                  "bar": "baz",
+                },
+                "state": "output-error",
+                "toolCallId": "1",
+                "type": "tool-foo",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
     it('should throw error when no tool schema is found', async () => {
       await expect(
         validateUIMessages<TestMessage>({
