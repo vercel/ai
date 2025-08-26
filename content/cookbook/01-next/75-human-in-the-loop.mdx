@@ -379,7 +379,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return createUIMessageStreamResponse(stream);
+  return createUIMessageStreamResponse({ stream });
 }
 
 async function executeWeatherTool({ city }: { city: string }) {
