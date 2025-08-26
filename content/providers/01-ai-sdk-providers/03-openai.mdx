@@ -1384,3 +1384,31 @@ const result = await generateSpeech({
 | `tts-1`           | <Check size={18} /> |
 | `tts-1-hd`        | <Check size={18} /> |
 | `gpt-4o-mini-tts` | <Check size={18} /> |
+
+## Conversations
+
+OpenAI provides a conversations API for managing persistent conversation state across Response API calls.
+You can access it using the `.conversations` property:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+
+// create conversation
+const conversation = await openai.conversations.create({
+  metadata: { topic: 'demo' },
+  items: [{ type: 'message', role: 'user', content: 'Hello!' }],
+});
+
+// manage conversation items
+const items = await openai.conversations.items.create(conversation.id, {
+  items: [{ type: 'message', role: 'user', content: 'How are you?' }],
+});
+
+// retrieve and update
+const retrieved = await openai.conversations.retrieve(conversation.id);
+const updated = await openai.conversations.update(conversation.id, {
+  metadata: { topic: 'updated', status: 'active' },
+});
+```
+
+For more information, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference/conversations).
