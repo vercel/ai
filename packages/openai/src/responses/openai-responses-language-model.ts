@@ -985,8 +985,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   sourceType: 'document',
                   id: self.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title: value.annotation.quote ?? value.annotation.filename ?? 'Document',
-                  filename: value.annotation.filename ?? value.annotation.file_id,
+                  title:
+                    value.annotation.quote ??
+                    value.annotation.filename ??
+                    'Document',
+                  filename:
+                    value.annotation.filename ?? value.annotation.file_id,
                 });
               }
             } else if (isErrorChunk(value)) {
