@@ -567,6 +567,59 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
         'Provider-specific options. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
+      name: 'onChunk',
+      type: '(event: OnChunkResult) => Promise<void> |void',
+      isOptional: true,
+      description:
+        'Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.',
+      properties: [
+        {
+          type: 'OnChunkResult',
+          parameters: [
+            {
+              name: 'chunk',
+              type: 'ObjectStreamPart',
+              description: 'The chunk of the stream.',
+              properties: [
+                {
+                  type: 'ObjectStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'object'",
+                      description:
+                        'The type to identify the object as partial object.',
+                    },
+                    {
+                      name: 'object',
+                      type: 'PARTIAL',
+                      description: 'The partial object that has been generated.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ObjectStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'text-delta'",
+                      description:
+                        'The type to identify the object as text delta.',
+                    },
+                    {
+                      name: 'textDelta',
+                      type: 'string',
+                      description: 'The text delta.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'onError',
       type: '(event: OnErrorResult) => Promise<void> |void',
       isOptional: true,

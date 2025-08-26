@@ -108,6 +108,29 @@ const result = streamObject({
 });
 ```
 
+### `onChunk` callback
+
+When using `streamObject`, you can provide an `onChunk` callback that is triggered for each chunk of the stream.
+
+It receives the following chunk types:
+
+- `object`
+- `text-delta`
+
+```tsx highlight="5-10"
+import { streamObject } from 'ai';
+
+const result = streamObject({
+  // ...
+  onChunk({ chunk }) {
+    // implement your own logic here, e.g.:
+    if (chunk.type === 'object') {
+      console.log(chunk.object);
+    }
+  },
+});
+```
+
 ## Output Strategy
 
 You can use both functions with different output strategies, e.g. `array`, `object`, `enum`, or `no-schema`.
