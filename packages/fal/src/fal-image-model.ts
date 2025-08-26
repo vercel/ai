@@ -214,8 +214,8 @@ const falErrorSchema = z.union([falValidationErrorSchema, falHttpErrorSchema]);
 
 const falImageSchema = z.object({
   url: z.string(),
-  width: z.number().optional(),
-  height: z.number().optional(),
+  width: z.number().nullable().optional(),
+  height: z.number().nullable().optional(),
   // e.g. https://fal.ai/models/fal-ai/fashn/tryon/v1.6/api#schema-output
   content_type: z.string().nullable().optional(),
   // e.g. https://fal.ai/models/fal-ai/flowedit/api#schema-output
