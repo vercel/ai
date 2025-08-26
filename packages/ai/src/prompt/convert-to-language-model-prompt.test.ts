@@ -105,6 +105,7 @@ describe('convertToLanguageModelPrompt', () => {
           supportedUrls: {
             '*': [/^https:\/\/.*$/],
           },
+          download: undefined,
         });
 
         expect(result).toEqual([
@@ -184,6 +185,7 @@ describe('convertToLanguageModelPrompt', () => {
           supportedUrls: {
             'image/*': [/^https:\/\/.*$/],
           },
+          download: undefined,
         });
 
         expect(result).toEqual([
@@ -220,6 +222,7 @@ describe('convertToLanguageModelPrompt', () => {
           supportedUrls: {
             'image/*': [/^https:\/\/.*$/],
           },
+          download: undefined,
         });
 
         expect(result).toEqual([
@@ -383,6 +386,7 @@ describe('convertToLanguageModelPrompt', () => {
               /^https:\/\/example\.com\/document\.pdf$/,
             ],
           },
+          download: undefined,
         });
 
         expect(result).toEqual([
@@ -459,6 +463,7 @@ describe('convertToLanguageModelPrompt', () => {
           supportedUrls: {
             'image/*': [/^https:\/\/.*$/],
           },
+          download: undefined,
         });
 
         expect(result).toEqual([
@@ -643,6 +648,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
+          download: undefined,
         });
 
         expect(result).toEqual([

@@ -31,7 +31,7 @@ export async function convertToLanguageModelPrompt({
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
-  download?: DownloadFunction;
+  download: DownloadFunction | undefined;
 }): Promise<LanguageModelV2Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
