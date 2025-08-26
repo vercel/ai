@@ -3351,7 +3351,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
-    it('should should handle logprops', async () => {
+    it('should should handle logprobs and service tier', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -3441,6 +3441,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   ],
                 ],
                 "responseId": "resp_689cec4cf608819583c56813ccb0f5040f92af1765dd5aad",
+                "serviceTier": "default",
               },
             },
             "type": "finish",

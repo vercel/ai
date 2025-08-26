@@ -417,6 +417,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }),
             ]),
           ),
+          service_tier: z.string().nullish(),
           incomplete_details: z.object({ reason: z.string() }).nullable(),
           usage: usageSchema,
         }),
@@ -598,6 +599,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       providerMetadata.openai.logprobs = logprobs;
     }
 
+    if (typeof response.service_tier === 'string') {
+      providerMetadata.openai.serviceTier = response.service_tier;
+    }
+
     return {
       content,
       finishReason: mapOpenAIResponseFinishReason({
@@ -673,6 +678,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }
     > = {};
 
+    const finishChunkProviderMetadata: SharedV2ProviderMetadata = {
+      openai: {},
+    };
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -696,7 +705,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             }
 
             const value = chunk.value;
-
             if (isResponseOutputItemAddedChunk(value)) {
               if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -970,6 +978,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               usage.cachedInputTokens =
                 value.response.usage.input_tokens_details?.cached_tokens ??
                 undefined;
+              if (typeof value.response.service_tier === 'string') {
+                finishChunkProviderMetadata.openai.serviceTier =
+                  value.response.service_tier;
+              }
             } else if (isResponseAnnotationAddedChunk(value)) {
               if (value.annotation.type === 'url_citation') {
                 controller.enqueue({
@@ -999,21 +1011,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
-            const providerMetadata: SharedV2ProviderMetadata = {
-              openai: {
-                responseId,
-              },
-            };
+            finishChunkProviderMetadata.openai.responseId = responseId;
 
             if (logprobs.length > 0) {
-              providerMetadata.openai.logprobs = logprobs;
+              finishChunkProviderMetadata.openai.logprobs = logprobs;
             }
 
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage,
-              providerMetadata,
+              providerMetadata: finishChunkProviderMetadata,
             });
           },
         }),
@@ -1055,6 +1063,7 @@ const responseFinishedChunkSchema = z.object({
   response: z.object({
     incomplete_details: z.object({ reason: z.string() }).nullish(),
     usage: usageSchema,
+    service_tier: z.string().nullish(),
   }),
 });
 
