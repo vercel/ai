@@ -1,21 +1,15 @@
-/**
- * NOTE: Uncomment the rest of this file, once the heroku package has been
- * merged into main. Until then, any reference to '@ai-sdk/heroku' will
- * fail.
- */
+import { heroku } from '@ai-sdk/heroku';
+import { embed } from 'ai';
+import 'dotenv/config';
 
-// import { heroku } from '@ai-sdk/heroku';
-// import { embed } from 'ai';
-// import 'dotenv/config';
+async function main() {
+  const { embedding, usage } = await embed({
+    model: heroku.embedding('cohere-embed-multilingual'),
+    value: 'sunny day at the beach',
+  });
 
-// async function main() {
-//   const { embedding, usage } = await embed({
-//     model: heroku.embedding('cohere-embed-multilingual'),
-//     value: 'sunny day at the beach',
-//   });
+  console.log(embedding);
+  console.log(usage);
+}
 
-//   console.log(embedding);
-//   console.log(usage);
-// }
-
-// main().catch(console.error);
+main().catch(console.error);
