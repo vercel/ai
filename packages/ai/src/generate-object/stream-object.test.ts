@@ -6,10 +6,8 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import assert, { fail } from 'node:assert';
 import { z } from 'zod/v4';
-import {
-  NoObjectGeneratedError,
-  verifyNoObjectGeneratedError,
-} from '../error/no-object-generated-error';
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
+import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
