@@ -125,7 +125,13 @@ const search = new Search({
   token: process.env.UPSTASH_SEARCH_REST_TOKEN!,
 });
 
-const index = search.index('knowledge-base');
+type KnowledgeContent = {
+  text: string;
+  section: string;
+  title?: string;
+};
+
+const index = search.index<KnowledgeContent>('knowledge-base');
 
 async function main(prompt: string) {
   const { text } = await generateText({
