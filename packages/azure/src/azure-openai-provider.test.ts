@@ -719,5 +719,84 @@ describe('responses', () => {
         },
       ]);
     });
+
+    it('should send include provider option for file search results', async () => {
+      prepareJsonResponse();
+
+      const {warnings} = await provider.responses('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_123', 'vs_456'],
+                maxNumResults: 10,
+                ranking: {
+                  ranker: 'auto',
+                },
+              },
+            },
+          ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "input_text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "test-deployment",
+          "tools": [
+            {
+              "max_num_results": 10,
+              "ranking_options": {
+                "ranker": "auto",
+              },
+              "type": "file_search",
+              "vector_store_ids": [
+                "vs_123",
+                "vs_456",
+              ],
+            },
+          ],
+        }
+      `);
+
+      expect(warnings).toStrictEqual([]);
+    });
+
+    it('should send include provider option for file search results', async () => {
+      prepareJsonResponse();
+
+      const {warnings} = await provider.responses('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            include: ['file_search_call.results'],
+          }
+        }
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'test-deployment',
+        input: [
+          { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+        ],
+        include: ['file_search_call.results'],
+      });
+
+      expect(warnings).toStrictEqual([]);
+    });
+
+
   });
 });
