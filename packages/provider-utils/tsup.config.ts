@@ -19,6 +19,17 @@ export default defineConfig([
     // Chai uses BigInt literals; ensure the target supports it and avoid bundling chai
     target: 'es2020',
     platform: 'node',
-    external: ['chai'],
+    external: [
+      'chai',
+      'vitest',
+      'vitest/*',
+      'msw',
+      'msw/*',
+      '@vitest/*',
+      'vitest/dist/*',
+      'vitest/dist/chunks/*',
+      'vitest/dist/node/*',
+      'vitest/dist/node/chunks/*',
+    ],
   },
 ]);

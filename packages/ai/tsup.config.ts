@@ -27,7 +27,17 @@ export default defineConfig([
     entry: ['test/index.ts'],
     outDir: 'dist/test',
     format: ['cjs', 'esm'],
-    external: ['chai', 'chai/*'],
+    external: [
+      'chai',
+      'chai/*',
+      'vitest',
+      'vitest/*',
+      '@vitest/*',
+      'vitest/dist/*',
+      'vitest/dist/chunks/*',
+      'vitest/dist/node/*',
+      'vitest/dist/node/chunks/*',
+    ],
     dts: true,
     sourcemap: true,
     // Allow BigInt in tests
