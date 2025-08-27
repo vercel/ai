@@ -208,6 +208,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
             "model": "claude-3-haiku-20240307",
             "tool_choice": {
+              "disable_parallel_tool_use": true,
               "name": "json",
               "type": "tool",
             },
@@ -1739,6 +1740,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "model": "claude-3-haiku-20240307",
             "stream": true,
             "tool_choice": {
+              "disable_parallel_tool_use": true,
               "name": "json",
               "type": "tool",
             },
