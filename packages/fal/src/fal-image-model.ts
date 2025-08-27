@@ -214,14 +214,14 @@ const falErrorSchema = z.union([falValidationErrorSchema, falHttpErrorSchema]);
 
 const falImageSchema = z.object({
   url: z.string(),
-  width: z.number().nullable().optional(),
-  height: z.number().nullable().optional(),
+  width: z.number().nullish(),
+  height: z.number().nullish(),
   // e.g. https://fal.ai/models/fal-ai/fashn/tryon/v1.6/api#schema-output
-  content_type: z.string().nullable().optional(),
+  content_type: z.string().nullish(),
   // e.g. https://fal.ai/models/fal-ai/flowedit/api#schema-output
-  file_name: z.string().nullable().optional(),
+  file_name: z.string().nullish(),
   file_data: z.string().optional(),
-  file_size: z.number().nullable().optional(),
+  file_size: z.number().nullish(),
 });
 
 // https://fal.ai/models/fal-ai/lora/api#type-File
