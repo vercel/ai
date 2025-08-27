@@ -1,7 +1,4 @@
-import {
-  codeInterpreter,
-  fileSearch,
-} from '@ai-sdk/openai/internal';
+import { codeInterpreter, fileSearch } from '@ai-sdk/openai/internal';
 
 export const azureOpenaiTools = {
   codeInterpreter,

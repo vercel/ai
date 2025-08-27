@@ -723,9 +723,11 @@ describe('responses', () => {
     it('should send include provider option for file search results', async () => {
       prepareJsonResponse();
 
-      const {warnings} = await provider.responses('test-deployment').doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
+      const { warnings } = await provider
+        .responses('test-deployment')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
             {
               type: 'provider-defined',
               id: 'openai.file_search',
@@ -739,7 +741,7 @@ describe('responses', () => {
               },
             },
           ],
-      });
+        });
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
@@ -777,14 +779,16 @@ describe('responses', () => {
     it('should send include provider option for file search results', async () => {
       prepareJsonResponse();
 
-      const {warnings} = await provider.responses('test-deployment').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          openai: {
-            include: ['file_search_call.results'],
-          }
-        }
-      });
+      const { warnings } = await provider
+        .responses('test-deployment')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              include: ['file_search_call.results'],
+            },
+          },
+        });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'test-deployment',
@@ -796,7 +800,5 @@ describe('responses', () => {
 
       expect(warnings).toStrictEqual([]);
     });
-
-
   });
 });
