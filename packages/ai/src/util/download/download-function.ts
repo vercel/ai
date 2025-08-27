@@ -10,8 +10,11 @@ import { download as originalDownload } from './download';
  * - to download the asset and return the data (incl. retries, authentication, etc.)
  *
  * Should throw DownloadError if the download fails.
- * Should return null if the URL should be passed through as is.
- * Should return a Uint8Array if the URL was downloaded.
+ *
+ * Should return an array of objects sorted by the order of the requested downloads.
+ * For each object, the data should be a Uint8Array if the URL was downloaded.
+ * For each object, the mediaType should be the media type of the downloaded asset.
+ * For each object, the data should be null if the URL should be passed through as is.
  */
 export type DownloadFunction = (
   options: Array<{
@@ -31,20 +34,11 @@ export type DownloadFunction = (
  */
 export const createDefaultDownloadFunction =
   (download: typeof originalDownload = originalDownload): DownloadFunction =>
-  async requestedDownloads => {
-    return await Promise.all(
-      requestedDownloads.map(async requestedDownload => {
-        if (requestedDownload.isUrlSupportedByModel) {
-          return null;
-        }
-
-        const downloadedResult = await download(requestedDownload);
-
-        return {
-          url: requestedDownload.url.toString(),
-          data: downloadedResult.data,
-          mediaType: downloadedResult.mediaType,
-        };
-      }),
+  requestedDownloads =>
+    Promise.all(
+      requestedDownloads.map(async requestedDownload =>
+        requestedDownload.isUrlSupportedByModel
+          ? null
+          : download(requestedDownload),
+      ),
     );
-  };

@@ -246,12 +246,14 @@ async function downloadAssets(
         (
           downloadedFile,
         ): downloadedFile is {
-          url: string;
           mediaType: string | undefined;
           data: Uint8Array;
         } => downloadedFile?.data != null,
       )
-      .map(({ url, data, mediaType }) => [url, { data, mediaType }]),
+      .map(({ data, mediaType }, index) => [
+        plannedDownloads[index].url.toString(),
+        { data, mediaType },
+      ]),
   );
 }
 
