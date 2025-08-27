@@ -7,6 +7,10 @@ const ImportMappings: Record<string, string> = {
   LanguageModelV2Middleware: 'LanguageModelV2Middleware',
 };
 
+/**
+ * Codemod to update imports of LanguageModelV2 and related types from 'ai' to '@ai-sdk/provider'.
+ * @see https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#language-model-v2-import
+ */
 export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
 
