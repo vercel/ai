@@ -373,7 +373,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }),
               z.object({
                 type: z.literal('image_generation_call'),
-                output_format: z.string().nullish(),
+                id: z.string(),
                 result: z.string().nullish(),
               }),
               z.object({
@@ -472,10 +472,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           if (typeof data === 'string' && data.length > 0) {
             content.push({
               type: 'file',
-              mediaType: mapOpenAIImageFormatToMediaTypeSimple(
-                part.output_format ?? 'png',
-              ),
+              mediaType: mapOpenAIImageFormatToMediaTypeSimple('png'),
               data,
+            });
+
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: 'image_generation',
+              input: '{}',
+              providerExecuted: true,
+            });
+
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.id,
+              toolName: 'image_generation',
+              result: part.result,
+              providerExecuted: true,
             });
           }
           break;

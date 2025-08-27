@@ -1515,6 +1515,52 @@ describe('convertToOpenAIResponsesMessages', () => {
   });
 
   describe('provider-executed tool calls', () => {
+    it('should convert image generation tool call and result parts', async () => {
+      const result = await convertToOpenAIResponsesMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId:
+                  '1g_68af253e90b881908db732ddae712717094b2a8f20a53d60',
+                toolName: 'image_generation',
+                input: {},
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId:
+                  '1g_68af253e90b881908db732ddae712717094b2a8f20a53d60',
+                toolName: 'image_generation',
+                output: {
+                  type: 'text',
+                  value: 'UklGRooiHwBXRUJQV',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "id": "1g_68af253e90b881908db732ddae712717094b2a8f20a53d60",
+              "result": "UklGRooiHwBXRUJQV",
+              "status": "complete",
+              "type": "image_generation_call",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    // TODO this is incorrect behavior, we need to include the provider executed tool calls
     it('should exclude provider-executed tool calls and results from prompt', async () => {
       const result = await convertToOpenAIResponsesMessages({
         prompt: [

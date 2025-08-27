@@ -152,10 +152,19 @@ export async function convertToOpenAIResponsesMessages({
             }
 
             case 'tool-result': {
-              warnings.push({
-                type: 'other',
-                message: `tool result parts in assistant messages are not supported for OpenAI responses`,
-              });
+              if (part.toolName === 'image_generation') {
+                messages.push({
+                  type: 'image_generation_call',
+                  id: part.toolCallId,
+                  status: 'complete', // TODO bad hack
+                  result: part.output.value as string, // TODO media content
+                });
+              } else {
+                warnings.push({
+                  type: 'other',
+                  message: `tool result parts in assistant messages are not supported for OpenAI responses`,
+                });
+              }
               break;
             }
 

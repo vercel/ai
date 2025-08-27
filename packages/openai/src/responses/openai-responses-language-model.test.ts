@@ -100,13 +100,29 @@ describe('OpenAIResponsesLanguageModel', () => {
         tools: [],
       });
 
-      expect(result.content).toEqual([
-        {
-          type: 'file',
-          mediaType: 'image/png',
-          data: 'BASE64DATA',
-        },
-      ]);
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "data": "BASE64DATA",
+            "mediaType": "image/png",
+            "type": "file",
+          },
+          {
+            "input": "{}",
+            "providerExecuted": true,
+            "toolCallId": "ig_1",
+            "toolName": "image_generation",
+            "type": "tool-call",
+          },
+          {
+            "providerExecuted": true,
+            "result": "BASE64DATA",
+            "toolCallId": "ig_1",
+            "toolName": "image_generation",
+            "type": "tool-result",
+          },
+        ]
+      `);
     });
 
     describe('basic text response', () => {
