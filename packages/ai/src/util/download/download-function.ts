@@ -6,7 +6,7 @@ import { download as originalDownload } from './download';
  * Download function. Called with the array of URLs and a boolean indicating
  * whether the URL is supported by the model.
  *
- * Custom download function can decide for each URL:
+ * The download function can decide for each URL:
  * - to return null (which means that the URL should be passed to the model)
  * - to download the asset and return the data (incl. retries, authentication, etc.)
  *
