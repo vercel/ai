@@ -360,31 +360,8 @@ You can provide a custom download function:
 ```ts
 const result = await generateText({
   model: openai('gpt-4o'),
-  experimental_download: async ({ url, isUrlSupportedByModel }) => {
-    // Let model handle supported URLs
-    if (isUrlSupportedByModel) {
-      return null;
-    }
-
-    // Custom download with auth
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${process.env.SOME_API_KEY}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new DownloadError({
-        url: url.toString(),
-        statusCode: response.status,
-        statusText: response.statusText,
-      });
-    }
-
-    return {
-      data: new Uint8Array(await response.arrayBuffer()),
-      mediaType: response.headers.get('content-type') ?? undefined,
-    };
+  experimental_download: async requestedDownloads => {
+    // ... download the files and return an array with similar order
   },
   messages: [
     {
