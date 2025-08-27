@@ -1,5 +1,23 @@
 # ai
 
+## 5.0.26
+
+### Patch Changes
+
+- 33cf848: feat(ai): pass messages to `useChat({ onFinish })`
+- Updated dependencies [980633d]
+- Updated dependencies [1c5b88d]
+  - @ai-sdk/gateway@1.0.15
+
+## 5.0.25
+
+### Patch Changes
+
+- ca65923: fix(ai): remove use of `expect()` from production code
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/gateway@1.0.14
+
 ## 5.0.24
 
 ### Patch Changes

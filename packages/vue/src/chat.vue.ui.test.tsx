@@ -255,6 +255,18 @@ describe('data protocol stream', () => {
           role: 'assistant',
           parts: [{ text: 'Hello, world.', type: 'text', state: 'done' }],
         },
+        messages: [
+          {
+            id: expect.any(String),
+            role: 'user',
+            parts: [{ text: 'hi', type: 'text' }],
+          },
+          {
+            id: expect.any(String),
+            role: 'assistant',
+            parts: [{ text: 'Hello, world.', type: 'text', state: 'done' }],
+          },
+        ],
       },
     ]);
   });
@@ -307,6 +319,21 @@ describe('text stream', () => {
             { text: 'Hello, world.', type: 'text', state: 'done' },
           ],
         },
+        messages: [
+          {
+            id: expect.any(String),
+            role: 'user',
+            parts: [{ text: 'hi', type: 'text' }],
+          },
+          {
+            id: expect.any(String),
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              { text: 'Hello, world.', type: 'text', state: 'done' },
+            ],
+          },
+        ],
       },
     ]);
   });

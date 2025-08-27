@@ -1,5 +1,19 @@
 # @ai-sdk/gateway
 
+## 1.0.15
+
+### Patch Changes
+
+- 980633d: feat(provider/gateway): Add xAI Grok Code Fast 1
+- 1c5b88d: feat (provider/gateway): add new model ids
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
 ## 1.0.13
 
 ### Patch Changes
