@@ -17,7 +17,7 @@ import {
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
 import {
-  defaultDownloadFunction,
+  createDefaultDownloadFunction,
   DownloadFunction,
 } from '../util/download/download-function';
 import { convertToLanguageModelV2DataContent } from './data-content';
@@ -27,7 +27,7 @@ import { StandardizedPrompt } from './standardize-prompt';
 export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
-  download = defaultDownloadFunction,
+  download = createDefaultDownloadFunction(),
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
@@ -238,24 +238,20 @@ async function downloadAssets(
     }));
 
   // download in parallel:
-  const downloadedFiles = await Promise.all(
-    plannedDownloads.map(async plannedDownload => ({
-      url: plannedDownload.url.toString(),
-      data: await download(plannedDownload),
-    })),
-  );
+  const downloadedFiles = await download(plannedDownloads);
 
   return Object.fromEntries(
     downloadedFiles
       .filter(
         (
-          download,
-        ): download is {
+          downloadedFile,
+        ): downloadedFile is {
           url: string;
-          data: { mediaType: string | undefined; data: Uint8Array };
-        } => download.data != null,
+          mediaType: string | undefined;
+          data: Uint8Array;
+        } => downloadedFile?.data != null,
       )
-      .map(({ url, data }) => [url.toString(), data]),
+      .map(({ url, data, mediaType }) => [url, { data, mediaType }]),
   );
 }
 
