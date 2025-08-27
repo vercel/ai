@@ -776,7 +776,7 @@ describe('responses', () => {
       expect(warnings).toStrictEqual([]);
     });
 
-    it('should send include provider option for file search results', async () => {
+    it('should forward include provider options to request body', async () => {
       prepareJsonResponse();
 
       const { warnings } = await provider
