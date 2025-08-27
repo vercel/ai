@@ -3,7 +3,8 @@ import { download as originalDownload } from './download';
 /**
  * Experimental. Can change in patch versions without warning.
  *
- * Download function. Called with the array of URLs and media types of the assets.
+ * Download function. Called with the array of URLs and a boolean indicating
+ * whether the URL is supported by the model.
  *
  * Custom download function can decide for each URL:
  * - to return null (which means that the URL should be passed to the model)
