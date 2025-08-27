@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.26
+
+### Patch Changes
+
+- 33cf848: feat(ai): pass messages to `useChat({ onFinish })`
+- Updated dependencies [980633d]
+- Updated dependencies [1c5b88d]
+  - @ai-sdk/gateway@1.0.15
+
 ## 5.0.25
 
 ### Patch Changes

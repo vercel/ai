@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.11
+
+### Patch Changes
+
+- a14fc2b: feat(provider/google): add gemini 2.5 flash image preview model support
+
 ## 2.0.10
 
 ### Patch Changes

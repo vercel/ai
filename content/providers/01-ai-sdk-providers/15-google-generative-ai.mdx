@@ -581,7 +581,7 @@ const urlContextMetadata = metadata?.urlContextMetadata;
 
 ### Image Outputs
 
-The model `gemini-2.0-flash-preview-image-generation` supports image generation. Images are exposed as files in the response.
+Gemini models with image generation capabilities (`gemini-2.5-flash-image-preview`) support image generation. Images are exposed as files in the response.
 You need to enable image output in the provider options using the `responseModalities` option.
 
 ```ts
@@ -589,16 +589,17 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-2.0-flash-preview-image-generation'),
+  model: google('gemini-2.5-flash-image-preview'),
   providerOptions: {
     google: { responseModalities: ['TEXT', 'IMAGE'] },
   },
-  prompt: 'Generate an image of a comic cat',
+  prompt:
+    'Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme',
 });
 
 for (const file of result.files) {
   if (file.mediaType.startsWith('image/')) {
-    // show the image
+    console.log('Generated image:', file);
   }
 }
 ```
