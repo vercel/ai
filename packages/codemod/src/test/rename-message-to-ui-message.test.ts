@@ -2,6 +2,7 @@ import { join } from 'path';
 import { readFileSync } from 'fs';
 import jscodeshift from 'jscodeshift';
 import transform from '../codemods/v5/rename-message-to-ui-message';
+import { describe, it, expect } from 'vitest';
 
 function trim(str: string) {
   return str.replace(/^\s+|\s+$/, '');

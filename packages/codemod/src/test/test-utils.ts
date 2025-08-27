@@ -3,6 +3,7 @@ import jscodeshift from 'jscodeshift';
 import { join } from 'path';
 import { existsSync, readFileSync } from 'fs';
 import ts from 'typescript';
+import { expect } from 'vitest';
 
 /**
  * Applies a codemod transform to the input code.

@@ -29,6 +29,7 @@ const testUsage = {
   reasoningTokens: undefined,
   cachedInputTokens: undefined,
 };
+import { beforeEach, describe, expect, it } from 'vitest';
 
 function createTestModel({
   warnings = [],

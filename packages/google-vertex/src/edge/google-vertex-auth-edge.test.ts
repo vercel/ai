@@ -2,6 +2,7 @@ import {
   generateAuthToken,
   GoogleCredentials,
 } from './google-vertex-auth-edge';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('Google Vertex Edge Auth', () => {
   const mockCredentials: GoogleCredentials = {
