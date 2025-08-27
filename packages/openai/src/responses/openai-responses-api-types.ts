@@ -8,6 +8,7 @@ export type OpenAIResponsesMessage =
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
+  | OpenAIResponsesImageGenerationCall
   | OpenAIWebSearchCall
   | OpenAIComputerCall
   | OpenAIFileSearchCall
@@ -53,6 +54,13 @@ export type OpenAIResponsesFunctionCallOutput = {
   type: 'function_call_output';
   call_id: string;
   output: string;
+};
+
+export type OpenAIResponsesImageGenerationCall = {
+  type: 'image_generation_call';
+  id: string;
+  status: 'complete' | 'failed';
+  result: string | null;
 };
 
 export type OpenAIWebSearchCall = {

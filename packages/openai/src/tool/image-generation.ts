@@ -28,4 +28,5 @@ export const imageGeneration = createProviderDefinedToolFactory<
   id: 'openai.image_generation',
   name: 'image_generation',
   inputSchema: z.object({}),
+  // TODO should this tool use toModelOutput?
 });
