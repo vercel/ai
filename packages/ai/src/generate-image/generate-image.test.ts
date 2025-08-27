@@ -9,7 +9,7 @@ import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
-
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 const prompt = 'sunny day at the beach';
 const testDate = new Date(2024, 0, 1);
 

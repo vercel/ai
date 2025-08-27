@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { GroqTranscriptionModel } from './groq-transcription-model';
 import { createGroq } from './groq-provider';

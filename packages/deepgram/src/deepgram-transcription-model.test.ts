@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
 import { createDeepgram } from './deepgram-provider';

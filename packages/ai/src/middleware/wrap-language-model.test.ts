@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';

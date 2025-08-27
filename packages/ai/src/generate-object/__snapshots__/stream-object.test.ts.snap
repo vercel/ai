@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`streamObject > output = "object" > options.onFinish > should be called when a valid object is generated 1`] = `

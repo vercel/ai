@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { z } from 'zod/v3';
 import { parseBrandedDef } from './branded';
 import { getRefs } from '../refs';

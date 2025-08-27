@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
 import { defaultSettingsMiddleware } from './default-settings-middleware';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';

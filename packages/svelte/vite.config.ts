@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [svelte()],
 
   test: {
-    globals: true,
+      // globals: true,,
 
     workspace: [
       {

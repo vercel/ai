@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { Tool } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from './create-tool-model-output';
 import z from 'zod/v4';

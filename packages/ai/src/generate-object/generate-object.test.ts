@@ -7,7 +7,7 @@ import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } 
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
-
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 const dummyResponseValues = {
   finishReason: 'stop' as const,
   usage: {

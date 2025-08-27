@@ -4,7 +4,7 @@ import {
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
-
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];

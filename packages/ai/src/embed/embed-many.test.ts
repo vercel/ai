@@ -6,7 +6,7 @@ import {
 import { MockTracer } from '../test/mock-tracer';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { embedMany } from './embed-many';
-
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3],
   [0.4, 0.5, 0.6],

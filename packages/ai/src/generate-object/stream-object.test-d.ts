@@ -4,7 +4,7 @@ import { z } from 'zod/v4';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { FinishReason } from '../types';
 import { streamObject } from './stream-object';
-
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 describe('streamObject', () => {
   it('should have finishReason property with correct type', () => {
     const result = streamObject({

@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
 
 describe('user messages', () => {

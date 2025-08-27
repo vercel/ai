@@ -9,7 +9,7 @@ import { UIMessageChunk } from 'ai';
 import TestCompletionComponent from './TestCompletionComponent.vue';
 import TestCompletionTextStreamComponent from './TestCompletionTextStreamComponent.vue';
 import { setupTestComponent } from './setup-test-component';
-
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }

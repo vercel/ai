@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { prepareTools } from './google-prepare-tools';
 
 it('should return undefined tools and tool_choice when tools are null', () => {

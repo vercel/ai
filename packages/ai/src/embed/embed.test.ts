@@ -5,7 +5,7 @@ import {
 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { embed } from './embed';
-
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 const dummyEmbedding = [0.1, 0.2, 0.3];
 const testValue = 'sunny day at the beach';
 

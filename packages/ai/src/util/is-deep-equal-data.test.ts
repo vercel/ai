@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import assert from 'node:assert';
 import { isDeepEqualData } from './is-deep-equal-data';
 

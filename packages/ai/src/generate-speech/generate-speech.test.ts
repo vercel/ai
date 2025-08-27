@@ -9,7 +9,7 @@ import {
   GeneratedAudioFile,
   DefaultGeneratedAudioFile,
 } from './generated-audio-file';
-
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 const audio = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
 const mockFile = new DefaultGeneratedAudioFile({

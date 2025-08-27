@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { z } from 'zod/v3';
 import { parseIntersectionDef } from './intersection';
 import { getRefs } from '../refs';

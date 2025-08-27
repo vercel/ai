@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { prepareCallSettings } from './prepare-call-settings';
 

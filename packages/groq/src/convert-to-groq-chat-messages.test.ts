@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 
 describe('user messages', () => {

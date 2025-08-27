@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { LanguageModelV2StreamPart } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import {

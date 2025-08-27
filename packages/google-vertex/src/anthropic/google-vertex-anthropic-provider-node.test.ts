@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { resolve } from '@ai-sdk/provider-utils';
 import { createVertexAnthropic as createVertexAnthropicOriginal } from './google-vertex-anthropic-provider';
 import { createVertexAnthropic as createVertexAnthropicNode } from './google-vertex-anthropic-provider-node';

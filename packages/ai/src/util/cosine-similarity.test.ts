@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { cosineSimilarity } from './cosine-similarity';
 
 it('should calculate cosine similarity correctly', () => {

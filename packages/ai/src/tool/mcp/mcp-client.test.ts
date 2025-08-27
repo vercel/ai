@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { z } from 'zod/v4';
 import { MCPClientError } from '../../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';

@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
 
 describe('convertToOpenAIResponsesMessages', () => {

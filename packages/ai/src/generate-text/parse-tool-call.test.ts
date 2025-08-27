@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { dynamicTool, tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';

@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { stringifyForTelemetry } from './stringify-for-telemetry';
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 

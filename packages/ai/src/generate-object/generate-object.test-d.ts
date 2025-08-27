@@ -2,7 +2,7 @@ import { expectTypeOf } from 'vitest';
 import { generateObject } from './generate-object';
 import { z } from 'zod/v4';
 import { JSONValue } from '@ai-sdk/provider';
-
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 describe('generateObject', () => {
   it('should support enum types', async () => {
     const result = await generateObject({

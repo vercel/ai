@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { prepareTools } from './cohere-prepare-tools';
 
 it('should return undefined tools when no tools are provided', () => {

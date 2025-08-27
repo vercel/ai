@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { selectTelemetryAttributes } from './select-telemetry-attributes';
 
 it('should return an empty object when telemetry is disabled', () => {

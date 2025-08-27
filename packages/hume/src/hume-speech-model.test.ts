@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { HumeSpeechModel } from './hume-speech-model';
 import { createHume } from './hume-provider';

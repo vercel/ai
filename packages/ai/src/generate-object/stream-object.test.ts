@@ -21,7 +21,7 @@ import {
   LanguageModelV2StreamPart,
   TypeValidationError,
 } from '@ai-sdk/provider';
-
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 const testUsage = {
   inputTokens: 3,
   outputTokens: 10,

@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { z } from 'zod/v3';
 import { parseNativeEnumDef } from './native-enum';
 import { JSONSchema7 } from '@ai-sdk/provider';

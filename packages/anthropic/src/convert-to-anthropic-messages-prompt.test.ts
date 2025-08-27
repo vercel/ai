@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 

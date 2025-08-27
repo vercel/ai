@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { isSupportedFileUrl } from './google-supported-file-url';
 
 it('should return true for valid Google generative language file URLs', () => {

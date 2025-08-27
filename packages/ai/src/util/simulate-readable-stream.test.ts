@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { simulateReadableStream } from './simulate-readable-stream';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 

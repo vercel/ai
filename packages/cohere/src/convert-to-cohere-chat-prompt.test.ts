@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 
 describe('convert to cohere chat prompt', () => {

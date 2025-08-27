@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { tool } from '@ai-sdk/provider-utils';
 import z from 'zod/v4';
 import { DefaultGeneratedFile } from './generated-file';

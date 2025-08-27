@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { DelayedPromise } from './delayed-promise';
 import { delay } from '@ai-sdk/provider-utils';
 

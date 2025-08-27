@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { fail } from 'assert';
 import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';

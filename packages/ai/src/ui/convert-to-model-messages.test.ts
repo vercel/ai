@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { ModelMessage } from '@ai-sdk/provider-utils';
 import { convertToModelMessages } from './convert-to-model-messages';
 

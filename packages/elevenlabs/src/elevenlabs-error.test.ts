@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { elevenlabsErrorDataSchema } from './elevenlabs-error';
 

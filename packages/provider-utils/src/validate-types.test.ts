@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { TypeValidationError } from '@ai-sdk/provider';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 

@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { getModelPath } from './get-model-path';
 
 it('should pass through model path for models/*', async () => {

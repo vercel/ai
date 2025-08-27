@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';

@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { processTextStream } from './process-text-stream';
 

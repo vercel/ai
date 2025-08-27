@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { isUrlSupported } from './is-url-supported';
 
 describe('isUrlSupported', () => {

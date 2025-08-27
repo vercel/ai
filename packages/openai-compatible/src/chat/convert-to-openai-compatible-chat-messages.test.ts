@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 
 describe('user messages', () => {

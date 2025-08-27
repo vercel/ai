@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { prepareChatTools } from './openai-chat-prepare-tools';
 
 it('should return undefined tools and toolChoice when tools are null', () => {

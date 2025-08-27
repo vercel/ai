@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
   convertAsyncIterableToArray,

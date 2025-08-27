@@ -9,7 +9,7 @@ const basicSchema: JSONSchema7 = {
   },
   required: ['name', 'age'],
 };
-
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 it('should handle basic case with prompt and schema', () => {
   const result = injectJsonInstruction({
     prompt: 'Generate a person',

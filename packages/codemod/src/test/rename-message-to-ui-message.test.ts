@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { join } from 'path';
 import { readFileSync } from 'fs';
 import jscodeshift from 'jscodeshift';

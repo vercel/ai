@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 
 describe('system messages', () => {

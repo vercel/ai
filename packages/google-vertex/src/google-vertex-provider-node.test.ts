@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { resolve } from '@ai-sdk/provider-utils';
 import { createVertex as createVertexOriginal } from './google-vertex-provider';
 import { createVertex as createVertexNode } from './google-vertex-provider-node';

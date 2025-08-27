@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { JSONSchema7 } from '@ai-sdk/provider';
 import { z } from 'zod/v3';
 import { parseBigintDef } from './bigint';

@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 
 describe('prepareResponsesTools', () => {

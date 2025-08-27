@@ -1,3 +1,5 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+
 import { anthropicErrorDataSchema } from './anthropic-error';
 
 describe('anthropicError', () => {
