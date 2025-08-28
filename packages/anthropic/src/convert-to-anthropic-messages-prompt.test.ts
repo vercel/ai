@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import { describe, expect, it } from 'vitest';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 
 describe('system messages', () => {
@@ -1611,5 +1611,35 @@ describe('citations', () => {
         },
       }
     `);
+  });
+
+  it('should convert container upload message parts into anthropic container uploads', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'container_upload',
+              file_id: 'file-123',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings: [],
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'container_upload', file_id: 'file-123' }],
+          },
+        ],
+      },
+      betas: new Set(),
+    });
   });
 });
