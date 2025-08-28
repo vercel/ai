@@ -23,6 +23,7 @@
     "@ai-sdk/lmnt": "workspace:*",
     "@ai-sdk/luma": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
+    "@ai-sdk/minimax": "workspace:*",
     "@ai-sdk/mistral": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/openai-compatible": "workspace:*",
