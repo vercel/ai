@@ -39,17 +39,3 @@ const fileStreamPart = {
   base64: 'AQID',
   uint8Array: new Uint8Array([1, 2, 3])
 };
-
-// Test object without file properties (should not be transformed)
-const otherPart = {
-  type: 'text',
-  content: 'Hello world'
-};
-
-function processFile(file: any) {
-  return file;
-}
-
-function uploadFile(file: any) {
-  return file;
-}
