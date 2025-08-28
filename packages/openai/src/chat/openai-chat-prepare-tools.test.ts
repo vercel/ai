@@ -1,4 +1,5 @@
 import { prepareChatTools } from './openai-chat-prepare-tools';
+import { it, expect } from 'vitest';
 
 it('should return undefined tools and toolChoice when tools are null', () => {
   const result = prepareChatTools({

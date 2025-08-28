@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
+import { describe, it, expect, vi } from 'vitest';
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3],

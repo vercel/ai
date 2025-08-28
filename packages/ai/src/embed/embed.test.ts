@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   MockEmbeddingModelV2,
   mockEmbed,

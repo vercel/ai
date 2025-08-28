@@ -3,6 +3,7 @@ import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,
 } from './convert-to-language-model-prompt';
+import { describe, it, expect } from 'vitest';
 
 describe('convertToLanguageModelPrompt', () => {
   describe('user message', () => {

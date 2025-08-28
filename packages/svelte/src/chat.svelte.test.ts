@@ -12,6 +12,7 @@ import {
 import { flushSync } from 'svelte';
 import { Chat } from './chat.svelte.js';
 import { promiseWithResolvers } from './utils.svelte.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;

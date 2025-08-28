@@ -18,6 +18,15 @@ import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  assert,
+  vi,
+  assertType,
+} from 'vitest';
 
 const dummyResponseValues = {
   finishReason: 'stop' as const,
