@@ -678,9 +678,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }
     > = {};
 
-    const finishChunkProviderMetadata: SharedV2ProviderMetadata = {
-      openai: {},
-    };
+    let serviceTier: string | undefined;
 
     return {
       stream: response.pipeThrough(
@@ -705,6 +703,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             }
 
             const value = chunk.value;
+
             if (isResponseOutputItemAddedChunk(value)) {
               if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -979,8 +978,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 value.response.usage.input_tokens_details?.cached_tokens ??
                 undefined;
               if (typeof value.response.service_tier === 'string') {
-                finishChunkProviderMetadata.openai.serviceTier =
-                  value.response.service_tier;
+                serviceTier = value.response.service_tier;
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
               if (value.annotation.type === 'url_citation') {
@@ -1011,17 +1009,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
-            finishChunkProviderMetadata.openai.responseId = responseId;
+            const providerMetadata: SharedV2ProviderMetadata = {
+              openai: {
+                responseId,
+              },
+            };
 
             if (logprobs.length > 0) {
-              finishChunkProviderMetadata.openai.logprobs = logprobs;
+              providerMetadata.openai.logprobs = logprobs;
+            }
+
+            if (serviceTier !== undefined) {
+              providerMetadata.openai.serviceTier = serviceTier;
             }
 
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage,
-              providerMetadata: finishChunkProviderMetadata,
+              providerMetadata,
             });
           },
         }),
