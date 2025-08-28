@@ -1,9 +1,9 @@
+import { describe, expect, it, vi } from 'vitest';
 import { createDefaultDownloadFunction } from '../util/download/download-function';
 import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,
 } from './convert-to-language-model-prompt';
-import { describe, it, expect } from 'vitest';
 
 describe('convertToLanguageModelPrompt', () => {
   describe('user message', () => {
