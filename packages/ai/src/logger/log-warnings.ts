@@ -40,9 +40,9 @@ export const logWarnings: LogWarningsFunction = warnings => {
   // display information note on first call
   if (!hasLoggedBefore) {
     hasLoggedBefore = true;
-
     console.info(FIRST_WARNING_INFO_MESSAGE);
   }
+
   // default behavior: log warnings to the console
   for (const warning of warnings) {
     console.warn(JSON.stringify(warning, null, 2));
