@@ -23,8 +23,9 @@ describe('download', () => {
       url: new URL('http://example.com/file'),
     });
 
-    expect(result.data).toEqual(expectedBytes);
-    expect(result.mediaType).toBe('application/octet-stream');
+    expect(result).not.toBeNull();
+    expect(result!.data).toEqual(expectedBytes);
+    expect(result!.mediaType).toBe('application/octet-stream');
   });
 
   it('should throw DownloadError when response is not ok', async () => {
