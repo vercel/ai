@@ -1079,6 +1079,7 @@ const responseCreatedChunkSchema = z.object({
     id: z.string(),
     created_at: z.number(),
     model: z.string(),
+    service_tier: z.string().nullish(),
   }),
 });
 
