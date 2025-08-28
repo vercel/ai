@@ -77,49 +77,48 @@ export default createTransformer((fileInfo, api, options, context) => {
   patterns.forEach(({ keyword, message }) => {
     if (keyword.includes('.')) {
       const parts = keyword.split('.');
-      root.find(j.MemberExpression).forEach(path => {
-        const chain = getMemberExpressionChain(path.node);
-        if (!chain) return;
-        if (chain.length !== parts.length) return;
-        for (let i = 0; i < parts.length; i++) {
-          if (chain[i] !== parts[i]) return;
-        }
-
-        if (isInImportDeclaration(path)) return;
-
-        context.messages.push(
-          `Warning: Found usage of "${keyword}" in ${fileInfo.path}. ${message}`,
-        );
-
-        let statementPath = path;
-        while (statementPath && statementPath.parent) {
-          if (isStatementOrVarDecl(statementPath.parent.node)) {
-            statementPath = statementPath.parent;
-            break;
+      const lastPart = parts[parts.length - 1];
+      root
+        .find(j.MemberExpression, {
+          property: { type: 'Identifier', name: lastPart },
+        })
+        .forEach(path => {
+          const chain = getMemberExpressionChain(path.node);
+          if (!chain) return;
+          if (chain.length !== parts.length) return;
+          for (let i = 0; i < parts.length; i++) {
+            if (chain[i] !== parts[i]) return;
           }
-          statementPath = statementPath.parent;
-        }
-        const targetNode =
-          statementPath && isStatementOrVarDecl(statementPath.node)
-            ? statementPath.node
-            : path.node;
-        insertCommentOnce(
-          targetNode,
-          j,
-          `${AI_SDK_CODEMOD_ERROR_PREFIX}${message}`,
-        );
-        context.hasChanges = true;
-      });
+          if (isInImportDeclaration(path)) return;
+          context.messages.push(
+            `Warning: Found usage of "${keyword}" in ${fileInfo.path}. ${message}`,
+          );
+          let statementPath = path;
+          while (statementPath && statementPath.parent) {
+            if (isStatementOrVarDecl(statementPath.parent.node)) {
+              statementPath = statementPath.parent;
+              break;
+            }
+            statementPath = statementPath.parent;
+          }
+          const targetNode =
+            statementPath && isStatementOrVarDecl(statementPath.node)
+              ? statementPath.node
+              : path.node;
+          insertCommentOnce(
+            targetNode,
+            j,
+            `${AI_SDK_CODEMOD_ERROR_PREFIX}${message}`,
+          );
+          context.hasChanges = true;
+        });
     } else {
       root.find(j.Identifier, { name: keyword }).forEach(path => {
         if (isInImportDeclaration(path)) return;
-
-        console.warn(
+        context.messages.push(
           `Warning: Found usage of "${keyword}" in ${fileInfo.path}. ${message}`,
         );
-
         let statementPath = path;
-
         while (statementPath && statementPath.parent) {
           if (isStatementOrVarDecl(statementPath.parent.node)) {
             statementPath = statementPath.parent;
@@ -127,22 +126,17 @@ export default createTransformer((fileInfo, api, options, context) => {
           }
           statementPath = statementPath.parent;
         }
-
         const targetNode =
           statementPath && isStatementOrVarDecl(statementPath.node)
             ? statementPath.node
             : path.node;
-
         insertCommentOnce(
           targetNode,
           j,
           `${AI_SDK_CODEMOD_ERROR_PREFIX}${message}`,
         );
-
         context.hasChanges = true;
       });
     }
   });
-
-  return root.toSource();
 });
