@@ -22,7 +22,7 @@ function scanCodemodsRecursively(dir: string, prefix: string = ''): string[] {
       stat.isFile() &&
       item.endsWith('.ts') &&
       !item.includes('lib/') &&
-      !item.endsWith('not-implemented.ts')
+      !item.includes('not-implemented')
     ) {
       files.push(prefix + item.replace('.ts', ''));
     }

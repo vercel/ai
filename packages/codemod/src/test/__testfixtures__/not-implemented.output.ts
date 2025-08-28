@@ -4,6 +4,7 @@ import {
   convertToModelMessages,
   appendClientMessage,
   appendResponseMessages,
+  StreamData,
 } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -50,3 +51,19 @@ message.parts.map(part => {
     }
   }
 });
+
+/* FIXME(@ai-sdk-upgrade-v5): The `StreamData` type has been removed. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#stream-data-removal */
+const streamData = new StreamData();
+streamData.append('custom-data');
+streamData.close();
+
+/* FIXME(@ai-sdk-upgrade-v5): The `experimental_attachments` property has been replaced with the parts array. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#attachments--file-parts */
+messages.map(message =>
+  message.experimental_attachments?.map((attachment, index) =>
+    attachment.contentType?.includes('image/')
+      ? 'image'
+      : attachment.contentType?.includes('text/')
+        ? 'text'
+        : null,
+  ),
+);

@@ -4,6 +4,7 @@ import {
   convertToModelMessages,
   appendClientMessage,
   appendResponseMessages,
+  StreamData,
 } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -37,12 +38,26 @@ message.parts.map(part => {
 message.parts.map(part => {
   if (part.type === 'tool-invocation') {
     switch (part.toolInvocation.state) {
-    case 'partial-call':
-      return 'Loading...';
-    case 'call':
-      return `Tool called with ${JSON.stringify(part.toolInvocation.args)}`;
-    case 'result':
-      return `Result: ${part.toolInvocation.result}`;
+      case 'partial-call':
+        return 'Loading...';
+      case 'call':
+        return `Tool called with ${JSON.stringify(part.toolInvocation.args)}`;
+      case 'result':
+        return `Result: ${part.toolInvocation.result}`;
     }
   }
 });
+
+const streamData = new StreamData();
+streamData.append('custom-data');
+streamData.close();
+
+messages.map(message =>
+  message.experimental_attachments?.map((attachment, index) =>
+    attachment.contentType?.includes('image/')
+      ? 'image'
+      : attachment.contentType?.includes('text/')
+        ? 'text'
+        : null,
+  ),
+);

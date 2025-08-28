@@ -1,8 +1,8 @@
-import { createTransformer } from '../lib/create-transformer';
+import { createTransformer } from '../../lib/create-transformer';
 import {
   AI_SDK_CODEMOD_ERROR_PREFIX,
   insertCommentOnce,
-} from '../lib/add-comment';
+} from '../../lib/add-comment';
 import type { ASTPath, Identifier, MemberExpression } from 'jscodeshift';
 
 const patterns = [
@@ -15,6 +15,16 @@ const patterns = [
     keyword: 'appendClientMessage',
     message:
       'The `appendClientMessage` option has been removed. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#message-persistence-changes',
+  },
+  {
+    keyword: 'StreamData',
+    message:
+      'The `StreamData` type has been removed. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#stream-data-removal',
+  },
+  {
+    keyword: 'experimental_attachments',
+    message:
+      'The `experimental_attachments` property has been replaced with the parts array. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#attachments--file-parts',
   },
   {
     keyword: 'part.toolInvocation.toolName',
@@ -74,7 +84,13 @@ function getMemberExpressionChain(node: MemberExpression): string[] | null {
 export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
 
-  patterns.forEach(({ keyword, message }) => {
+  function handlePatternMatch({
+    keyword,
+    message,
+  }: {
+    keyword: string;
+    message: string;
+  }) {
     if (keyword.includes('.')) {
       const parts = keyword.split('.');
       const lastPart = parts[parts.length - 1];
@@ -90,53 +106,39 @@ export default createTransformer((fileInfo, api, options, context) => {
             if (chain[i] !== parts[i]) return;
           }
           if (isInImportDeclaration(path)) return;
-          context.messages.push(
-            `Warning: Found usage of "${keyword}" in ${fileInfo.path}. ${message}`,
-          );
-          let statementPath = path;
-          while (statementPath && statementPath.parent) {
-            if (isStatementOrVarDecl(statementPath.parent.node)) {
-              statementPath = statementPath.parent;
-              break;
-            }
-            statementPath = statementPath.parent;
-          }
-          const targetNode =
-            statementPath && isStatementOrVarDecl(statementPath.node)
-              ? statementPath.node
-              : path.node;
-          insertCommentOnce(
-            targetNode,
-            j,
-            `${AI_SDK_CODEMOD_ERROR_PREFIX}${message}`,
-          );
-          context.hasChanges = true;
+          processMatch(path, keyword, message);
         });
     } else {
       root.find(j.Identifier, { name: keyword }).forEach(path => {
         if (isInImportDeclaration(path)) return;
-        context.messages.push(
-          `Warning: Found usage of "${keyword}" in ${fileInfo.path}. ${message}`,
-        );
-        let statementPath = path;
-        while (statementPath && statementPath.parent) {
-          if (isStatementOrVarDecl(statementPath.parent.node)) {
-            statementPath = statementPath.parent;
-            break;
-          }
-          statementPath = statementPath.parent;
-        }
-        const targetNode =
-          statementPath && isStatementOrVarDecl(statementPath.node)
-            ? statementPath.node
-            : path.node;
-        insertCommentOnce(
-          targetNode,
-          j,
-          `${AI_SDK_CODEMOD_ERROR_PREFIX}${message}`,
-        );
-        context.hasChanges = true;
+        processMatch(path, keyword, message);
       });
     }
-  });
+  }
+
+  function processMatch(path: any, keyword: string, message: string) {
+    context.messages.push(
+      `Warning: Found usage of "${keyword}" in ${fileInfo.path}. ${message}`,
+    );
+    let statementPath = path;
+    while (statementPath && statementPath.parent) {
+      if (isStatementOrVarDecl(statementPath.parent.node)) {
+        statementPath = statementPath.parent;
+        break;
+      }
+      statementPath = statementPath.parent;
+    }
+    const targetNode =
+      statementPath && isStatementOrVarDecl(statementPath.node)
+        ? statementPath.node
+        : path.node;
+    insertCommentOnce(
+      targetNode,
+      j,
+      `${AI_SDK_CODEMOD_ERROR_PREFIX}${message}`,
+    );
+    context.hasChanges = true;
+  }
+
+  patterns.forEach(handlePatternMatch);
 });
