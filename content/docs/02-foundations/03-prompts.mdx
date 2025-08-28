@@ -353,14 +353,26 @@ const result = await generateText({
 
 #### Custom Download Function (Experimental)
 
-The default download implementation automatically downloads files when they are not supported by the model. However, it does not support retries, custom authentication, and more.
+The default download implementation automatically downloads files when they are not supported by the model.
 
-You can provide a custom download function:
+You can use it to implement throttling, retries, authentication, caching, and more.
+
+Custom download function can be passed via the `experimental_download` property:
 
 ```ts
 const result = await generateText({
   model: openai('gpt-4o'),
-  experimental_download: async requestedDownloads => {
+  experimental_download: async (
+    requestedDownloads: Array<{
+      url: URL;
+      isUrlSupportedByModel: boolean;
+    }>,
+  ): PromiseLike<
+    Array<{
+      data: Uint8Array;
+      mediaType: string | undefined;
+    } | null>
+  > => {
     // ... download the files and return an array with similar order
   },
   messages: [
