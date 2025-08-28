@@ -13,6 +13,42 @@ export type Warning =
 
 export type LogWarningsFunction = (warnings: Warning[]) => void;
 
+/**
+ * Formats a warning object into a human-readable string with clear AI SDK branding
+ */
+function formatWarning(warning: Warning): string {
+  const prefix = 'AI SDK Warning:';
+
+  switch (warning.type) {
+    case 'unsupported-setting': {
+      let message = `${prefix} The "${warning.setting}" setting is not supported by this model`;
+      if (warning.details) {
+        message += ` - ${warning.details}`;
+      }
+      return message;
+    }
+
+    case 'unsupported-tool': {
+      const toolName =
+        'name' in warning.tool ? warning.tool.name : 'unknown tool';
+      let message = `${prefix} The tool "${toolName}" is not supported by this model`;
+      if (warning.details) {
+        message += ` - ${warning.details}`;
+      }
+      return message;
+    }
+
+    case 'other': {
+      return `${prefix} ${warning.message}`;
+    }
+
+    default: {
+      // Fallback for any unknown warning types
+      return `${prefix} ${JSON.stringify(warning, null, 2)}`;
+    }
+  }
+}
+
 export const FIRST_WARNING_INFO_MESSAGE =
   'AI SDK Warning System: To turn off warning logging, set the AI_SDK_LOG_WARNINGS global to false.';
 
@@ -45,7 +81,7 @@ export const logWarnings: LogWarningsFunction = warnings => {
 
   // default behavior: log warnings to the console
   for (const warning of warnings) {
-    console.warn(JSON.stringify(warning, null, 2));
+    console.warn(formatWarning(warning));
   }
 };
 

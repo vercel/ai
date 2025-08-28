@@ -132,7 +132,7 @@ describe('logWarnings', () => {
       expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
       expect(mockConsoleWarn).toHaveBeenCalledOnce();
       expect(mockConsoleWarn).toHaveBeenCalledWith(
-        JSON.stringify(warning, null, 2),
+        'AI SDK Warning: Test warning message',
       );
     });
 
@@ -154,11 +154,11 @@ describe('logWarnings', () => {
       expect(mockConsoleWarn).toHaveBeenCalledTimes(2);
       expect(mockConsoleWarn).toHaveBeenNthCalledWith(
         1,
-        JSON.stringify(warning1, null, 2),
+        'AI SDK Warning: First warning',
       );
       expect(mockConsoleWarn).toHaveBeenNthCalledWith(
         2,
-        JSON.stringify(warning2, null, 2),
+        'AI SDK Warning: The "size" setting is not supported by this model - Size parameter not supported',
       );
     });
 
@@ -185,7 +185,7 @@ describe('logWarnings', () => {
         expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
         expect(mockConsoleWarn).toHaveBeenCalledOnce();
         expect(mockConsoleWarn).toHaveBeenCalledWith(
-          JSON.stringify(warning, null, 2),
+          'AI SDK Warning: The "temperature" setting is not supported by this model - Temperature setting is not supported by this model',
         );
       });
 
@@ -206,7 +206,7 @@ describe('logWarnings', () => {
         expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
         expect(mockConsoleWarn).toHaveBeenCalledOnce();
         expect(mockConsoleWarn).toHaveBeenCalledWith(
-          JSON.stringify(warning, null, 2),
+          'AI SDK Warning: The tool "testTool" is not supported by this model - Tool not supported',
         );
       });
 
@@ -223,7 +223,7 @@ describe('logWarnings', () => {
         expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
         expect(mockConsoleWarn).toHaveBeenCalledOnce();
         expect(mockConsoleWarn).toHaveBeenCalledWith(
-          JSON.stringify(warning, null, 2),
+          'AI SDK Warning: The "size" setting is not supported by this model - Image size setting not supported',
         );
       });
 
@@ -240,7 +240,7 @@ describe('logWarnings', () => {
         expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
         expect(mockConsoleWarn).toHaveBeenCalledOnce();
         expect(mockConsoleWarn).toHaveBeenCalledWith(
-          JSON.stringify(warning, null, 2),
+          'AI SDK Warning: The "voice" setting is not supported by this model - Voice setting not supported',
         );
       });
 
@@ -257,7 +257,7 @@ describe('logWarnings', () => {
         expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
         expect(mockConsoleWarn).toHaveBeenCalledOnce();
         expect(mockConsoleWarn).toHaveBeenCalledWith(
-          JSON.stringify(warning, null, 2),
+          'AI SDK Warning: The "mediaType" setting is not supported by this model - MediaType setting not supported',
         );
       });
 
@@ -292,19 +292,19 @@ describe('logWarnings', () => {
         expect(mockConsoleWarn).toHaveBeenCalledTimes(4);
         expect(mockConsoleWarn).toHaveBeenNthCalledWith(
           1,
-          JSON.stringify(languageWarning, null, 2),
+          'AI SDK Warning: Language model warning',
         );
         expect(mockConsoleWarn).toHaveBeenNthCalledWith(
           2,
-          JSON.stringify(imageWarning, null, 2),
+          'AI SDK Warning: Image model warning',
         );
         expect(mockConsoleWarn).toHaveBeenNthCalledWith(
           3,
-          JSON.stringify(speechWarning, null, 2),
+          'AI SDK Warning: Speech model warning',
         );
         expect(mockConsoleWarn).toHaveBeenNthCalledWith(
           4,
-          JSON.stringify(transcriptionWarning, null, 2),
+          'AI SDK Warning: Transcription model warning',
         );
       });
     });
@@ -327,7 +327,7 @@ describe('logWarnings', () => {
       expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
       expect(mockConsoleWarn).toHaveBeenCalledOnce();
       expect(mockConsoleWarn).toHaveBeenCalledWith(
-        JSON.stringify(warning, null, 2),
+        'AI SDK Warning: Test warning with undefined logger',
       );
     });
   });
@@ -349,7 +349,7 @@ describe('logWarnings', () => {
         );
         expect(mockConsoleWarn).toHaveBeenCalledOnce();
         expect(mockConsoleWarn).toHaveBeenCalledWith(
-          JSON.stringify(warning, null, 2),
+          'AI SDK Warning: First warning',
         );
       });
 
@@ -379,11 +379,11 @@ describe('logWarnings', () => {
         expect(mockConsoleWarn).toHaveBeenCalledTimes(2);
         expect(mockConsoleWarn).toHaveBeenNthCalledWith(
           1,
-          JSON.stringify(warning1, null, 2),
+          'AI SDK Warning: First warning',
         );
         expect(mockConsoleWarn).toHaveBeenNthCalledWith(
           2,
-          JSON.stringify(warning2, null, 2),
+          'AI SDK Warning: Second warning',
         );
       });
 
@@ -418,7 +418,7 @@ describe('logWarnings', () => {
         );
         expect(mockConsoleWarn).toHaveBeenCalledOnce();
         expect(mockConsoleWarn).toHaveBeenCalledWith(
-          JSON.stringify(warning, null, 2),
+          'AI SDK Warning: Test warning',
         );
       });
     });
