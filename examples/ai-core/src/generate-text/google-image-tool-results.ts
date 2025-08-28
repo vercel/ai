@@ -12,7 +12,6 @@ async function urlToBase64(url: string): Promise<string> {
   return Buffer.from(bytes).toString('base64');
 }
 
-// Tool that fetches an image and returns it for the model to analyze
 const imageAnalysisTool = tool({
   description: 'Give the image ',
   inputSchema: z.object({}),
@@ -34,7 +33,7 @@ const imageAnalysisTool = tool({
       };
     }
   },
-  // This is the key part - toModelOutput now works correctly with Google models
+
   toModelOutput(output: { base64Image?: string }) {
     return {
       type: 'content',
