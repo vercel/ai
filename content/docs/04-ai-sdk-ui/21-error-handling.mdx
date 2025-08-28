@@ -3,7 +3,56 @@ title: Error Handling
 description: Learn how to handle errors in the AI SDK UI
 ---
 
-# Error Handling
+# Error Handling and warnings
+
+## Warnings
+
+The AI SDK shows warnings when something might not work as expected. These warnings help you fix problems before they cause errors.
+
+### When Warnings Appear
+
+Warnings are shown in the browser console when:
+
+- **Unsupported settings**: You use a setting that the AI model doesn't support
+- **Unsupported tools**: You use a tool that the AI model can't use
+- **Other issues**: The AI model reports other problems
+
+### Warning Messages
+
+All warnings start with "AI SDK Warning:" so you can easily find them. For example:
+
+```
+AI SDK Warning: The "temperature" setting is not supported by this model
+AI SDK Warning: The tool "calculator" is not supported by this model
+```
+
+### Turning Off Warnings
+
+By default, warnings are shown in the console. You can control this behavior:
+
+#### Turn Off All Warnings
+
+Set a global variable to turn off warnings completely:
+
+```ts
+globalThis.AI_SDK_LOG_WARNINGS = false;
+```
+
+#### Custom Warning Handler
+
+You can also provide your own function to handle warnings:
+
+```ts
+globalThis.AI_SDK_LOG_WARNINGS = warnings => {
+  // Handle warnings your own way
+  warnings.forEach(warning => {
+    // Your custom logic here
+    console.log('Custom warning:', warning);
+  });
+};
+```
+
+## Error Handling
 
 ### Error Helper Object
 
