@@ -577,6 +577,37 @@ const result = await generateText({
 });
 ```
 
+#### Container Uploads
+
+You can also add files for code execution using container uploads. For example,
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+const codeExecutionTool = anthropic.tools.codeExecution_20250522();
+const result = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Analyze this csv file',
+        },
+        {
+          type: 'container_upload',
+          file_id: 'file-123',
+        },
+      ],
+    },
+  ],
+  tools: {
+    code_execution: codeExecutionTool,
+  },
+});
+```
+
 #### Error Handling
 
 Code execution errors are handled differently depending on whether you're using streaming or non-streaming:
