@@ -353,9 +353,9 @@ const result = await generateText({
 
 #### Custom Download Function (Experimental)
 
-The default download implementation automatically downloads files when they are not supported by the model.
+You can use custom download functions to implement throttling, retries, authentication, caching, and more.
 
-You can use it to implement throttling, retries, authentication, caching, and more.
+The default download implementation automatically downloads files in parallel when they are not supported by the model.
 
 Custom download function can be passed via the `experimental_download` property:
 
