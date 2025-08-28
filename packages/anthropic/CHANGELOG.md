@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.9
+
+### Patch Changes
+
+- cdc6b7a: fix(provider/anthropic): disable parallel tool use when using json output tool for structured responses
+
 ## 2.0.8
 
 ### Patch Changes

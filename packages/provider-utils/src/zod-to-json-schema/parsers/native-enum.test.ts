@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { z } from 'zod/v3';
 import { parseNativeEnumDef } from './native-enum';
 import { JSONSchema7 } from '@ai-sdk/provider';
