@@ -42,3 +42,22 @@ const fileStreamPart = {
     uint8Array: new Uint8Array([1, 2, 3])
   }
 };
+
+import type { ModelMessage } from 'ai';
+
+export const TEST_PROMPTS: Record<string, ModelMessage> = {
+  USER_IMAGE_ATTACHMENT: {
+    role: 'user',
+    content: [
+      {
+        type: 'file',
+        mediaType: '...',
+        data: '...',
+      },
+      {
+        type: 'text',
+        text: 'Who painted this?',
+      },
+    ],
+  },
+}
