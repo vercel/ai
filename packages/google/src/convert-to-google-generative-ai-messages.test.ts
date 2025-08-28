@@ -351,4 +351,62 @@ describe('assistant messages', () => {
       ]),
     ).toThrow('File data URLs in assistant messages are not supported');
   });
+
+  it('should convert tool result messages with content type (multipart with images)', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'imageGenerator',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'text',
+                  text: 'Here is the generated image:',
+                },
+                {
+                  type: 'media',
+                  data: 'base64encodedimagedata',
+                  mediaType: 'image/jpeg',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                name: 'imageGenerator',
+                response: {
+                  name: 'imageGenerator',
+                  content: 'Tool execution completed',
+                },
+              },
+            },
+            {
+              text: 'Here is the generated image:',
+            },
+            {
+              inlineData: {
+                mimeType: 'image/jpeg',
+                data: 'base64encodedimagedata',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
 });
