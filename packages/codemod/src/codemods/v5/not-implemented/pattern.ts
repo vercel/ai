@@ -159,20 +159,18 @@ export default createTransformer((fileInfo, api, options, context) => {
             if (chain[i] !== parts[i]) return;
           }
           if (isInImportDeclaration(path)) return;
-          processMatch(path, actualKeywordToMatch, message);
+          processMatch(path, message);
         });
     } else {
       root.find(j.Identifier, { name: actualKeywordToMatch }).forEach(path => {
         if (isInImportDeclaration(path)) return;
-        processMatch(path, actualKeywordToMatch, message);
+        processMatch(path, message);
       });
     }
   }
 
-  function processMatch(path: any, keyword: string, message: string) {
-    context.messages.push(
-      `Warning: Found usage of "${keyword}" in ${fileInfo.path}. ${message}`,
-    );
+  function processMatch(path: any, message: string) {
+    context.messages.push(`Not Implemented ${fileInfo.path}: ${message}`);
     let statementPath = path;
     while (statementPath && statementPath.parent) {
       if (isStatementOrVarDecl(statementPath.parent.node)) {

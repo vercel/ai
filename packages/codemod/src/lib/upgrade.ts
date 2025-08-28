@@ -101,9 +101,15 @@ function runCodemods(
   );
   bar.start(modCount, 0, { codemod: 'Starting...' });
   const allErrors: TransformErrors = [];
+  let notImplementedAvailable = false;
   for (const [index, codemod] of codemods.entries()) {
-    const errors = transform(codemod, cwd, options, { logStatus: false });
+    const { errors, notImplementedErrors } = transform(codemod, cwd, options, {
+      logStatus: false,
+    });
     allErrors.push(...errors);
+    if (notImplementedErrors.length > 0) {
+      notImplementedAvailable = true;
+    }
     bar.increment(1, { codemod });
   }
   bar.stop();
@@ -115,6 +121,12 @@ function runCodemods(
     allErrors.forEach(({ transform, filename, summary }) => {
       error(`codemod=${transform}, path=${filename}, summary=${summary}`);
     });
+  }
+
+  if (notImplementedAvailable) {
+    log(
+      `Some ${versionLabel} codemods require manual changes. Please search your codebase for \`FIXME(@ai-sdk-upgrade-v5): \` comments and follow the instructions to complete the upgrade.`,
+    );
   }
 
   log(`${versionLabel} codemods complete.`);
@@ -141,9 +153,15 @@ export function upgrade(options: TransformOptions) {
   );
   bar.start(modCount, 0, { codemod: 'Starting...' });
   const allErrors: TransformErrors = [];
+  let notImplementedAvailable = false;
   for (const [index, codemod] of bundle.entries()) {
-    const errors = transform(codemod, cwd, options, { logStatus: false });
+    const { errors, notImplementedErrors } = transform(codemod, cwd, options, {
+      logStatus: false,
+    });
     allErrors.push(...errors);
+    if (notImplementedErrors.length > 0) {
+      notImplementedAvailable = true;
+    }
     bar.increment(1, { codemod });
   }
   bar.stop();
@@ -153,6 +171,12 @@ export function upgrade(options: TransformOptions) {
     allErrors.forEach(({ transform, filename, summary }) => {
       error(`codemod=${transform}, path=${filename}, summary=${summary}`);
     });
+  }
+
+  if (notImplementedAvailable) {
+    log(
+      'Some codemods require manual changes. Please search your codebase for `FIXME(@ai-sdk-upgrade-v5): ` comments and follow the instructions to complete the upgrade.',
+    );
   }
 
   log('Upgrade complete.');
