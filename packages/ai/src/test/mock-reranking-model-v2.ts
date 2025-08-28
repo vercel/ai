@@ -1,6 +1,7 @@
 import { RerankedDocument, RerankingModelV2 } from '@ai-sdk/provider';
 import { RerankingModelUsage } from '../types/usage';
 import { notImplemented } from './not-implemented';
+import assert from 'node:assert';
 
 export class MockRerankingModelV2<VALUE> implements RerankingModelV2<VALUE> {
   readonly specificationVersion = 'v2';
