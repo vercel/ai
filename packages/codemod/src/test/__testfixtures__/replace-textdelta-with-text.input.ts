@@ -7,40 +7,23 @@ const otherContent = delta.text; // Should NOT be transformed
 const wrongObject = other.textDelta; // Should NOT be transformed (wrong object)
 const wrongProperty = delta.otherProperty; // Should NOT be transformed (wrong property)
 
-// 2. Switch case transformations
-function handleStreamPart(part: any) {
-  switch (part.type) {
-    case 'text-delta':
-      return processTextDelta(part);
-    case 'other-delta':
-      return processOther(part);
-  }
+// 1.1. Destructuring cases
+const { textDelta } = delta; // Should be transformed
+const { text: existingText } = delta; // Should NOT be transformed
+const { textDelta: renamedDelta } = delta; // Should be transformed
+const { text: renamedText } = delta; // Should NOT be transformed
+const { textDelta: deltaContent, otherProp } = delta; // Should transform textDelta only
+const { text: textContent, anotherProp } = delta; // Should NOT be transformed
+const { wrongProp } = other; // Should NOT be transformed (wrong object)
+
+// Function parameter destructuring
+function processTextDelta({ textDelta }: any) { // Should be transformed
+  return textDelta;
+}
+function processText({ text }: any) { // Should NOT be transformed
+  return text;
 }
 
-// 3. String literal transformations
-const partType = 'text-delta'; // Should be transformed
-const otherType = 'text'; // Should NOT be transformed
-const anotherType = 'other-delta'; // Should NOT be transformed
-
-// 4. Conditional checks
-if (part.type === 'text-delta') { // Should be transformed
-  handleTextDelta();
-}
-
-if (part.type === 'text') { // Should NOT be transformed
-  handleText();
-}
-
-// 5. Complex expressions combining multiple patterns
-function processStream(parts: any[]) {
-  return parts.map(part => {
-    if (part.type === 'text-delta') {
-      return {
-        ...part,
-        content: delta.textDelta,
-        type: 'text' // This 'text' should NOT be transformed (not 'text-delta')
-      };
-    }
-    return part;
-  });
-}
+// Nested destructuring
+const { data: { textDelta: nestedTextDelta } } = someObject; // Should NOT be transformed (not direct delta destructuring)
+const { delta: { textDelta: deepTextDelta } } = someObject; // Should NOT be transformed (not direct delta destructuring)
