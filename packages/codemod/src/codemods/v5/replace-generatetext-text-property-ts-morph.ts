@@ -15,6 +15,9 @@ const propertyAccesses = sourceFile.getDescendantsOfKind(
 for (const access of propertyAccesses) {
   if (access.getName() !== 'text') continue;
 
+  const parent = access.getParentIfKind(SyntaxKind.PropertyAccessExpression);
+  if (parent && parent.getName() === 'text') continue;
+
   const expression = access.getExpression();
   if (
     !expression.wasForgotten() &&
