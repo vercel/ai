@@ -15,7 +15,7 @@ import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { streamObject } from './stream-object';
-import { StreamObjectResult } from './stream-object-result';
+import { StreamObjectResult, ObjectStreamPart } from './stream-object-result';
 import {
   JSONParseError,
   LanguageModelV2,
@@ -601,7 +601,7 @@ describe('streamObject', () => {
     describe('options.onChunk', () => {
       let result: Array<
         Extract<
-          import('./stream-object-result').ObjectStreamPart<any>,
+          ObjectStreamPart<any>,
           {
             type: 'object' | 'text-delta';
           }
