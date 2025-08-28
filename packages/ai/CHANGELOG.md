@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.27
+
+### Patch Changes
+
+- ca40fac: feat(ai): support custom download functions (experimental)
+
 ## 5.0.26
 
 ### Patch Changes
