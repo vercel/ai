@@ -9,7 +9,7 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["vitest/globals"]
+    "types": []
   },
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "node_modules"],
