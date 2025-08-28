@@ -31,6 +31,7 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
+import { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
 import { ContentPart } from './content-part';
 import { extractTextContent } from './extract-text-content';
@@ -137,6 +138,7 @@ export async function generateText<
   experimental_prepareStep,
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
+  experimental_download: download,
   experimental_context,
   _internal: {
     generateId = originalGenerateId,
@@ -198,6 +200,13 @@ changing the tool call and result types in the result.
 Optional specification for parsing structured outputs from the LLM response.
      */
     experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
+
+    /**
+Custom download function to use for URLs.
+
+By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+    experimental_download?: DownloadFunction | undefined;
 
     /**
      * @deprecated Use `prepareStep` instead.
@@ -311,6 +320,7 @@ A function that attempts to repair a tool call that failed to parse.
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
             supportedUrls: await model.supportedUrls,
+            download,
           });
 
           const stepModel = resolveLanguageModel(

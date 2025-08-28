@@ -6,6 +6,7 @@ import { generateText, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
+import { describe, it, expect } from 'vitest';
 
 const testUsage = {
   inputTokens: 5,

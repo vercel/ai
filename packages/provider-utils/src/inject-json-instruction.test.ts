@@ -1,4 +1,5 @@
 import { JSONSchema7, LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { expect, it, describe } from 'vitest';
 import {
   injectJsonInstruction,
   injectJsonInstructionIntoMessages,
