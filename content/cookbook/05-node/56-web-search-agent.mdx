@@ -129,11 +129,11 @@ export const linkupWebSearch = tool({
       query: query,
       depth: 'standard', // (standard / deep) "standard" returns results faster; "deep" takes longer but yields more comprehensive results.
       outputType: 'searchResults',
-      // includeImage: (true / false) To receive image results alongside text results in your search responses (set by default to false)
-      // includeDomains: ["example1.com", "example2.com"] // To include domain(s)
-      // excludeDomains: ["example1.com", "example2.com"] // To exclude domain(s)
-      // toDate: In Date type for eg: new Date("2024-01-01") content published or updated before the specified date
-      // fromDate: In Date type for eg: new Date("2024-12-31") content published after the specified date
+      includeImage: (true / false) // To receive image results alongside text results in your search responses (set by default to false)
+      includeDomains: ["example1.com", "example2.com"] // To include domain(s)
+      excludeDomains: ["example1.com", "example2.com"] // To exclude domain(s)
+      toDate: In Date type for eg: new Date("2024-01-01") // content published or updated before the specified date
+      fromDate: In Date type for eg: new Date("2024-12-31") // content published after the specified date
     });
   },
 });
