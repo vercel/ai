@@ -6,10 +6,8 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import assert, { fail } from 'node:assert';
 import { z } from 'zod/v4';
-import {
-  NoObjectGeneratedError,
-  verifyNoObjectGeneratedError,
-} from '../error/no-object-generated-error';
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
+import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
@@ -31,6 +29,7 @@ const testUsage = {
   reasoningTokens: undefined,
   cachedInputTokens: undefined,
 };
+import { beforeEach, describe, expect, it } from 'vitest';
 
 function createTestModel({
   warnings = [],
@@ -1796,6 +1795,60 @@ describe('streamObject', () => {
           finishReason: 'stop',
         });
       }
+    });
+  });
+
+  describe('warnings', () => {
+    it('should resolve warnings promise with undefined when no warnings are present', async () => {
+      const mockModel = createTestModel({
+        warnings: [], // No warnings
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+      });
+
+      // Consume the stream to completion
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      // Wait for the warnings promise to resolve
+      const warnings = await result.warnings;
+
+      expect(warnings).toEqual([]);
+    });
+
+    it('should resolve warnings promise with warnings when warnings are present', async () => {
+      const expectedWarnings: LanguageModelV2CallWarning[] = [
+        {
+          type: 'unsupported-setting',
+          setting: 'frequency_penalty',
+          details: 'This model does not support the frequency_penalty setting.',
+        },
+        {
+          type: 'other',
+          message: 'Test warning message',
+        },
+      ];
+
+      const mockModel = createTestModel({
+        warnings: expectedWarnings,
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+      });
+
+      // Consume the stream to completion
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      // Wait for the warnings promise to resolve
+      const warnings = await result.warnings;
+
+      expect(warnings).toEqual(expectedWarnings);
     });
   });
 });

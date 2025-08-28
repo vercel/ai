@@ -3,6 +3,7 @@ import { injectFetchHeaders } from './inject-fetch-headers';
 import { RerankedDocument } from '@ai-sdk/provider';
 import { BedrockRerankingModel } from './bedrock-reranking-model';
 import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const dummyResultDocuments: RerankedDocument<string>[] = [
   {

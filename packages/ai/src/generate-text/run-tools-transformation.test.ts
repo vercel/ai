@@ -8,6 +8,7 @@ import { z } from 'zod/v4';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockTracer } from '../test/mock-tracer';
 import { runToolsTransformation } from './run-tools-transformation';
+import { describe, it, expect } from 'vitest';
 
 const testUsage = {
   inputTokens: 3,
@@ -39,6 +40,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     const result = await convertReadableStreamToArray(transformedStream);
@@ -104,6 +106,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     expect(await convertReadableStreamToArray(transformedStream))
@@ -176,6 +179,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     expect(await convertReadableStreamToArray(transformedStream))
@@ -251,6 +255,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     const result = await convertReadableStreamToArray(transformedStream);
@@ -334,6 +339,7 @@ describe('runToolsTransformation', () => {
 
         return { ...toolCall, toolName: 'correctTool' };
       },
+      experimental_context: undefined,
     });
 
     expect(await convertReadableStreamToArray(transformedStream))
@@ -419,6 +425,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     await convertReadableStreamToArray(transformedStream);

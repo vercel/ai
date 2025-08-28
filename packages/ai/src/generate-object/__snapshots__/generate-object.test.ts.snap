@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
+exports[`generateObject > telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
 [
   {
     "attributes": {
@@ -46,7 +46,7 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
 ]
 `;
 
-exports[`telemetry > should record telemetry data when enabled 1`] = `
+exports[`generateObject > telemetry > should record telemetry data when enabled 1`] = `
 [
   {
     "attributes": {

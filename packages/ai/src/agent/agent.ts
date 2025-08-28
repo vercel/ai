@@ -1,4 +1,4 @@
-import { IdGenerator } from '@ai-sdk/provider-utils';
+import { IdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
 import {
   generateText,
   GenerateTextOnStepFinishCallback,
@@ -89,6 +89,15 @@ A function that attempts to repair a tool call that failed to parse.
   onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
 
   /**
+   * Context that is passed into tool calls.
+   *
+   * Experimental (can break in patch releases).
+   *
+   * @default undefined
+   */
+  experimental_context?: unknown;
+
+  /**
    * Internal. For test use only. May change without notice.
    */
   _internal?: {
@@ -116,6 +125,12 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
    */
       providerMetadata?: ProviderMetadata;
+      /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+         */
+      providerOptions?: ProviderOptions;
     },
   ): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
     return generateText({ ...this.settings, ...options });
@@ -129,6 +144,12 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
    */
       providerMetadata?: ProviderMetadata;
+      /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+         */
+      providerOptions?: ProviderOptions;
     },
   ): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
     return streamText({ ...this.settings, ...options });

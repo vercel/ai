@@ -2,15 +2,15 @@ import {
   EmbeddingModelV2,
   ImageModelV2,
   LanguageModelV2,
-  LanguageModelV2Middleware,
   NoSuchModelError,
   ProviderV2,
   SpeechModelV2,
   TranscriptionModelV2,
   RerankingModelV2,
 } from '@ai-sdk/provider';
-import { NoSuchProviderError } from './no-such-provider-error';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
+import { LanguageModelMiddleware } from '../types';
+import { NoSuchProviderError } from './no-such-provider-error';
 
 type ExtractLiteralUnion<T> = T extends string
   ? string extends T
@@ -100,8 +100,8 @@ export function createProviderRegistry<
   }: {
     separator?: SEPARATOR;
     languageModelMiddleware?:
-      | LanguageModelV2Middleware
-      | LanguageModelV2Middleware[];
+      | LanguageModelMiddleware
+      | LanguageModelMiddleware[];
   } = {},
 ): ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
   const registry = new DefaultProviderRegistry<PROVIDERS, SEPARATOR>({
@@ -132,8 +132,8 @@ class DefaultProviderRegistry<
   private providers: PROVIDERS = {} as PROVIDERS;
   private separator: SEPARATOR;
   private languageModelMiddleware?:
-    | LanguageModelV2Middleware
-    | LanguageModelV2Middleware[];
+    | LanguageModelMiddleware
+    | LanguageModelMiddleware[];
 
   constructor({
     separator,
@@ -141,8 +141,8 @@ class DefaultProviderRegistry<
   }: {
     separator: SEPARATOR;
     languageModelMiddleware?:
-      | LanguageModelV2Middleware
-      | LanguageModelV2Middleware[];
+      | LanguageModelMiddleware
+      | LanguageModelMiddleware[];
   }) {
     this.separator = separator;
     this.languageModelMiddleware = languageModelMiddleware;

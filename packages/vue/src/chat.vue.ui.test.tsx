@@ -16,6 +16,7 @@ import TestChatReloadComponent from './TestChatReloadComponent.vue';
 import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
 import TestChatToolInvocationsComponent from './TestChatToolInvocationsComponent.vue';
 import TestChatUrlAttachmentsComponent from './TestChatUrlAttachmentsComponent.vue';
+import { describe, it, expect } from 'vitest';
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -255,6 +256,18 @@ describe('data protocol stream', () => {
           role: 'assistant',
           parts: [{ text: 'Hello, world.', type: 'text', state: 'done' }],
         },
+        messages: [
+          {
+            id: expect.any(String),
+            role: 'user',
+            parts: [{ text: 'hi', type: 'text' }],
+          },
+          {
+            id: expect.any(String),
+            role: 'assistant',
+            parts: [{ text: 'Hello, world.', type: 'text', state: 'done' }],
+          },
+        ],
       },
     ]);
   });
@@ -307,6 +320,21 @@ describe('text stream', () => {
             { text: 'Hello, world.', type: 'text', state: 'done' },
           ],
         },
+        messages: [
+          {
+            id: expect.any(String),
+            role: 'user',
+            parts: [{ text: 'hi', type: 'text' }],
+          },
+          {
+            id: expect.any(String),
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              { text: 'Hello, world.', type: 'text', state: 'done' },
+            ],
+          },
+        ],
       },
     ]);
   });

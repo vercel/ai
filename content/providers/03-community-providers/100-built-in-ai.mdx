@@ -6,9 +6,7 @@ description: Learn how to use the Built-in AI provider (browser models) for the 
 # Built-in AI
 
 [jakobhoeg/built-in-ai](https://github.com/jakobhoeg/built-in-ai) is a community provider that serves as the base AI SDK provider for client side in-browser AI models.
-It currently provides a model provider for Chrome & Edge's native browser AI models via the JavaScript [Prompt API](https://github.com/webmachinelearning/prompt-api), as well as a model provider for using open-source in-browser models with [WebLLM](https://github.com/mlc-ai/web-llm).
-
-> We are also working hard to include other browser-based AI frameworks such as [transformers.js](https://huggingface.co/docs/transformers.js/en/index).
+It currently provides a model provider for Chrome & Edge's native browser AI models via the JavaScript [Prompt API](https://github.com/webmachinelearning/prompt-api), as well as a model provider for using open-source in-browser models with both [🤗 Transformers.js](https://github.com/huggingface/transformers.js) and [WebLLM](https://github.com/mlc-ai/web-llm).
 
 <Note type="warning">
   The `@built-in-ai/core` package is under constant development as the Prompt
@@ -22,7 +20,7 @@ It currently provides a model provider for Chrome & Edge's native browser AI mod
 
 The `@built-in-ai/core` package is the AI SDK provider for Chrome and Edge browser's built-in AI models. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @built-in-ai/core" dark />
   </Tab>
@@ -32,11 +30,14 @@ The `@built-in-ai/core` package is the AI SDK provider for Chrome and Edge brows
   <Tab>
     <Snippet text="yarn add @built-in-ai/core" dark />
   </Tab>
+  <Tab>
+    <Snippet text="bun add @built-in-ai/core" dark />
+  </Tab>
 </Tabs>
 
 The `@built-in-ai/web-llm` package is the AI SDK provider for popular open-source models using the WebLLM inference engine. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @built-in-ai/web-llm" dark />
   </Tab>
@@ -45,6 +46,26 @@ The `@built-in-ai/web-llm` package is the AI SDK provider for popular open-sourc
   </Tab>
   <Tab>
     <Snippet text="yarn add @built-in-ai/web-llm" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @built-in-ai/web-llm" dark />
+  </Tab>
+</Tabs>
+
+The `@built-in-ai/transformers-js` package is the AI SDK provider for popular open-source models using Transformers.js. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @built-in-ai/transformers-js" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @built-in-ai/transformers-js" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @built-in-ai/transformers-js" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @built-in-ai/transformers-js" dark />
   </Tab>
 </Tabs>
 
@@ -56,15 +77,14 @@ The `@built-in-ai/web-llm` package is the AI SDK provider for popular open-sourc
   future.
 </Note>
 
-1. You need Chrome (v128 or higher) or Edge Dev/Canary (v138.0.3309.2 or higher)
+1. You need Chrome (v. 128 or higher) or Edge Dev/Canary (v. 138.0.3309.2 or higher)
 
 2. Enable these experimental flags:
    - If you're using Chrome:
-     1. Go to chrome://flags/#prompt-api-for-gemini-nano and set it to Enabled
-     2. Go to chrome://flags/#optimization-guide-on-device-model and set it to Enabled BypassPrefRequirement
-     3. Go to chrome://components and click Check for Update on Optimization Guide On Device Model
+     1. Go to `chrome://flags/`, search for _'Prompt API for Gemini Nano with Multimodal Input'_ and set it to Enabled
+     2. Go to `chrome://components` and click Check for Update on Optimization Guide On Device Model
    - If you're using Edge:
-     1. Go to edge://flags/#prompt-api-for-phi-mini and set it to Enabled
+     1. Go to `edge://flags/#prompt-api-for-phi-mini` and set it to Enabled
 
 For more information, check out [this guide](https://developer.chrome.com/docs/extensions/ai/prompt-api)
 
@@ -100,6 +120,16 @@ import { webLLM } from '@built-in-ai/web-llm';
 const model = webLLM();
 ```
 
+### `@built-in-ai/transformers-js`
+
+You can import the default provider instance `transformersJS` from `@built-in-ai/transformers-js`:
+
+```ts
+import { transformersJS } from '@built-in-ai/transformers-js';
+
+const model = transformersJS();
+```
+
 ## Language Models
 
 ### `@built-in-ai/core`
@@ -110,6 +140,10 @@ For instance, if your client uses Edge, it will use [Phi4-mini](https://learn.mi
 ### `@built-in-ai/web-llm`
 
 The provider allows using a ton of popular open-source models such as Llama3 and Qwen3. To see a complete list, please refer to the official [WebLLM documentation](https://github.com/mlc-ai/web-llm)
+
+### `@built-in-ai/transformers-js`
+
+The provider allows using a ton of popular open-source models from Huggingface with the Transformers.js library.
 
 ### Example usage
 
@@ -137,6 +171,22 @@ import { webLLM } from '@built-in-ai/web-llm';
 
 const result = streamText({
   model: webLLM('Qwen3-0.6B-q0f16-MLC'),
+  prompt: 'Hello, how are you',
+});
+
+for await (const chunk of result.textStream) {
+  console.log(chunk);
+}
+```
+
+#### `@built-in-ai/transformers-js`
+
+```ts
+import { streamText } from 'ai';
+import { transformersJS } from '@built-in-ai/transformers-js';
+
+const result = streamText({
+  model: transformersJS('HuggingFaceTB/SmolLM2-360M-Instruct'),
   prompt: 'Hello, how are you',
 });
 

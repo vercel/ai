@@ -717,22 +717,108 @@ export async function POST(req: Request) {
 
 ### Usage Information
 
-By default, the usage information is sent back to the client. You can disable it by setting the `sendUsage` option to `false`:
+Track token consumption and resource usage with [message metadata](/docs/ai-sdk-ui/message-metadata):
 
-```ts filename="app/api/chat/route.ts" highlight="13"
+1. Define a custom metadata type with usage fields (optional, for type safety)
+2. Attach usage data using `messageMetadata` in your response
+3. Display usage metrics in your UI components
+
+Usage data is attached as metadata to messages and becomes available once the model completes its response generation.
+
+```ts
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  streamText,
+  UIMessage,
+  type LanguageModelUsage,
+} from 'ai';
+
+// Create a new metadata type (optional for type-safety)
+type MyMetadata = {
+  totalUsage: LanguageModelUsage;
+};
+
+// Create a new custom message type with your own metadata
+export type MyUIMessage = UIMessage<MyMetadata>;
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages }: { messages: MyUIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4.1'),
+    model: openai('gpt-4o'),
     messages: convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse({
-    sendUsage: false,
+    originalMessages: messages,
+    messageMetadata: ({ part }) => {
+      // Send total usage when generation is finished
+      if (part.type === 'finish') {
+        return { totalUsage: part.totalUsage };
+      }
+    },
+  });
+}
+```
+
+Then, on the client, you can access the message-level metadata.
+
+```tsx
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { MyUIMessage } from './api/chat/route';
+import { DefaultChatTransport } from 'ai';
+
+export default function Chat() {
+  // Use custom message type defined on the server (optional for type-safety)
+  const { messages } = useChat<MyUIMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
+
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(m => (
+        <div key={m.id} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.parts.map(part => {
+            if (part.type === 'text') {
+              return part.text;
+            }
+          })}
+          {/* Render usage via metadata */}
+          {m.metadata?.totalUsage && (
+            <div>Total usage: {m.metadata?.totalUsage.totalTokens} tokens</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+You can also access your metadata from the `onFinish` callback of `useChat`:
+
+```tsx
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { MyUIMessage } from './api/chat/route';
+import { DefaultChatTransport } from 'ai';
+
+export default function Chat() {
+  // Use custom message type defined on the server (optional for type-safety)
+  const { messages } = useChat<MyUIMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+    onFinish: ({ message }) => {
+      // Access message metadata via onFinish callback
+      console.log(message.metadata?.totalUsage);
+    },
   });
 }
 ```
@@ -1087,7 +1173,7 @@ import { z } from 'zod';
 
 const weatherTool = {
   description: 'Get the current weather',
-  parameters: z.object({
+  inputSchema: z.object({
     location: z.string().describe('The city and state'),
   }),
   execute: async ({ location }) => {
@@ -1112,10 +1198,10 @@ The `InferUITools` type helper infers the input and output types of a `ToolSet`:
 import { InferUITools, ToolSet } from 'ai';
 import { z } from 'zod';
 
-const tools: ToolSet = {
+const tools = {
   weather: {
     description: 'Get the current weather',
-    parameters: z.object({
+    inputSchema: z.object({
       location: z.string().describe('The city and state'),
     }),
     execute: async ({ location }) => {
@@ -1124,7 +1210,7 @@ const tools: ToolSet = {
   },
   calculator: {
     description: 'Perform basic arithmetic',
-    parameters: z.object({
+    inputSchema: z.object({
       operation: z.enum(['add', 'subtract', 'multiply', 'divide']),
       a: z.number(),
       b: z.number(),
@@ -1142,7 +1228,7 @@ const tools: ToolSet = {
       }
     },
   },
-};
+} satisfies ToolSet;
 
 // Infer the types from the tool set
 type MyUITools = InferUITools<typeof tools>;

@@ -1,7 +1,5 @@
-import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2Middleware,
-} from '@ai-sdk/provider';
+import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { LanguageModelMiddleware } from '../types';
 import { mergeObjects } from '../util/merge-objects';
 
 /**
@@ -25,7 +23,7 @@ export function defaultSettingsMiddleware({
     headers?: LanguageModelV2CallOptions['headers'];
     providerOptions?: LanguageModelV2CallOptions['providerOptions'];
   }>;
-}): LanguageModelV2Middleware {
+}): LanguageModelMiddleware {
   return {
     middlewareVersion: 'v2',
     transformParams: async ({ params }) => {

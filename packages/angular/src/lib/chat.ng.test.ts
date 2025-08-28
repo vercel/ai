@@ -9,6 +9,7 @@ import {
   TextStreamChatTransport,
 } from 'ai';
 import { Chat } from './chat.ng';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 
 function formatStreamPart(part: object) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -188,6 +189,22 @@ describe('data protocol stream', () => {
         ],
         role: 'assistant',
       },
+      messages: [
+        {
+          id: 'id-1',
+          role: 'user',
+          metadata: undefined,
+          parts: [{ text: 'hi', type: 'text' }],
+        },
+        {
+          id: 'id-2',
+          role: 'assistant',
+          metadata: {
+            example: 'metadata',
+          },
+          parts: [{ text: 'Hello, world.', type: 'text', state: 'done' }],
+        },
+      ],
     });
   });
 
@@ -352,6 +369,23 @@ describe('text stream', () => {
           { text: 'Hello, world.', type: 'text', state: 'done' },
         ],
       },
+      messages: [
+        {
+          id: expect.any(String),
+          role: 'user',
+          metadata: undefined,
+          parts: [{ text: 'hi', type: 'text' }],
+        },
+        {
+          id: expect.any(String),
+          role: 'assistant',
+          metadata: undefined,
+          parts: [
+            { type: 'step-start' },
+            { text: 'Hello, world.', type: 'text', state: 'done' },
+          ],
+        },
+      ],
     });
   });
 });
@@ -410,11 +444,13 @@ describe('onToolCall', () => {
         {
           state: 'input-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -426,12 +462,14 @@ describe('onToolCall', () => {
       {
         state: 'output-available',
         errorText: undefined,
+        rawInput: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
         output:
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
         providerExecuted: undefined,
+        preliminary: undefined,
       },
     ]);
   });
@@ -475,11 +513,13 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: undefined,
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -497,11 +537,13 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 't' },
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -519,11 +561,13 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -542,11 +586,13 @@ describe('tool invocations', () => {
         {
           state: 'input-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -565,11 +611,13 @@ describe('tool invocations', () => {
       {
         state: 'output-available',
         errorText: undefined,
+        rawInput: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
         output: 'test-result',
         providerExecuted: undefined,
+        preliminary: undefined,
       },
     ]);
   });
@@ -597,11 +645,13 @@ describe('tool invocations', () => {
         {
           state: 'input-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: undefined,
           providerExecuted: undefined,
+          preliminary: undefined,
         },
       ]);
     });
@@ -621,11 +671,13 @@ describe('tool invocations', () => {
       {
         state: 'output-available',
         errorText: undefined,
+        rawInput: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
         output: 'test-result',
         providerExecuted: undefined,
+        preliminary: undefined,
       },
     ]);
   });
@@ -651,11 +703,13 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
+          rawInput: undefined,
           errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: undefined,
+          preliminary: undefined,
           providerExecuted: undefined,
         },
       ]);
@@ -672,10 +726,12 @@ describe('tool invocations', () => {
         {
           state: 'output-available',
           errorText: undefined,
+          rawInput: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: 'test-result',
+          preliminary: undefined,
           providerExecuted: undefined,
         },
       ]);

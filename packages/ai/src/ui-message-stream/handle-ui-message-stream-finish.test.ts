@@ -2,10 +2,10 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it, vi } from 'vitest';
 import { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import { UIMessageChunk } from './ui-message-chunks';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
@@ -367,6 +367,37 @@ describe('handleUIMessageStreamFinish', () => {
 
       const callArgs = onFinishCallback.mock.calls[0][0];
       expect(callArgs.isAborted).toBe(true);
+    });
+
+    it('should call onFinish when reader is cancelled (simulating browser close/navigation)', async () => {
+      const onFinishCallback = vi.fn();
+
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+      ];
+
+      const stream = createUIMessageStream(inputChunks);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-1',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onFinish: onFinishCallback,
+      });
+
+      const reader = resultStream.getReader();
+      await reader.read();
+      await reader.cancel();
+      reader.releaseLock();
+
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.isAborted).toBe(false);
+      expect(callArgs.responseMessage.id).toBe('msg-1');
     });
   });
 });

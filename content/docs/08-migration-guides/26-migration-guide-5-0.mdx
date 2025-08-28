@@ -1,18 +1,9 @@
 ---
-title: Migrate AI SDK 4.0 to 5.0 Beta
-description: Learn how to upgrade AI SDK 4.0 to 5.0 Beta.
+title: Migrate AI SDK 4.0 to 5.0
+description: Learn how to upgrade AI SDK 4.0 to 5.0.
 ---
 
-# Migrate AI SDK 4.0 to 5.0 Beta
-
-<Note>
-  AI SDK 5.0 is currently in beta and introduces significant improvements in
-  type safety, consistency, and developer experience. This guide will help you
-  migrate from AI SDK 4.0 to 5.0. We are continuously improving our automated
-  migration tools to make the upgrade process smoother. Note that you may want
-  to wait until GA for production projects - this is for early adopters who want
-  to help us.
-</Note>
+# Migrate AI SDK 4.0 to 5.0
 
 ## Recommended Migration Process
 
@@ -1220,6 +1211,46 @@ function ChatComponent({ initialMessages }: { initialMessages: UIMessage[] }) {
 }
 ```
 
+#### Sharing Chat Instances
+
+In v4, you could share chat state between components by using the same `id` parameter in multiple `useChat` hooks.
+
+```tsx filename="AI SDK 4.0"
+// Component A
+const { messages } = useChat({
+  id: 'shared-chat',
+  api: '/api/chat',
+});
+
+// Component B - would share the same chat state
+const { messages } = useChat({
+  id: 'shared-chat',
+  api: '/api/chat',
+});
+```
+
+In v5, you need to explicitly share chat instances by passing a shared `Chat` instance.
+
+```tsx filename="AI SDK 5.0"
+// e.g. Store Chat instance in React Context and create a custom hook
+
+// Component A
+const { chat } = useSharedChat(); // Custom hook that accesses shared Chat from context
+
+const { messages, sendMessage } = useChat({
+  chat, // Pass the shared chat instance
+});
+
+// Component B - shares the same chat instance
+const { chat } = useSharedChat(); // Same hook to access shared Chat from context
+
+const { messages } = useChat({
+  chat, // Same shared chat instance
+});
+```
+
+For a complete example of sharing chat state across components, see the [Share Chat State Across Components](/docs/cookbook/use-shared-chat-context) recipe.
+
 #### Chat Transport Architecture
 
 Configuration is now handled through transport objects instead of direct API options.
@@ -1596,13 +1627,155 @@ const { messages } = useChat({
 
 For more details on request configuration, see the [Chatbot guide](/docs/ai-sdk-ui/chatbot#request-configuration).
 
+#### Usage Information
+
+In v4, usage information was directly accessible through the `onFinish` callback's options parameter. In v5, usage data is attached as metadata to individual messages using the `messageMetadata` function in `toUIMessageStreamResponse`.
+
+```tsx filename="AI SDK 4.0"
+const { messages } = useChat({
+  onFinish(message, options) {
+    const usage = options.usage;
+    console.log('Usage:', usage);
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+import {
+  convertToModelMessages,
+  streamText,
+  UIMessage,
+  type LanguageModelUsage,
+} from 'ai';
+
+// Create a new metadata type (optional for type-safety)
+type MyMetadata = {
+  totalUsage: LanguageModelUsage;
+};
+
+// Create a new custom message type with your own metadata
+export type MyUIMessage = UIMessage<MyMetadata>;
+
+export async function POST(req: Request) {
+  const { messages }: { messages: MyUIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
+  });
+
+  return result.toUIMessageStreamResponse({
+    originalMessages: messages,
+    messageMetadata: ({ part }) => {
+      // Send total usage when generation is finished
+      if (part.type === 'finish') {
+        return { totalUsage: part.totalUsage };
+      }
+    },
+  });
+}
+```
+
+Then, on the client, you can access the message-level metadata.
+
+```tsx filename="AI SDK 5.0 - Client"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { MyUIMessage } from './api/chat/route';
+import { DefaultChatTransport } from 'ai';
+
+export default function Chat() {
+  // Use custom message type defined on the server (optional for type-safety)
+  const { messages } = useChat<MyUIMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
+
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(m => (
+        <div key={m.id} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.parts.map(part => {
+            if (part.type === 'text') {
+              return part.text;
+            }
+          })}
+          {/* Render usage via metadata */}
+          {m.metadata?.totalUsage && (
+            <div>Total usage: {m.metadata?.totalUsage.totalTokens} tokens</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+You can also access your metadata from the `onFinish` callback of `useChat`:
+
+```tsx filename="AI SDK 5.0 - onFinish"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { MyUIMessage } from './api/chat/route';
+import { DefaultChatTransport } from 'ai';
+
+export default function Chat() {
+  // Use custom message type defined on the server (optional for type-safety)
+  const { messages } = useChat<MyUIMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+    onFinish: ({ message }) => {
+      // Access message metadata via onFinish callback
+      console.log(message.metadata?.totalUsage);
+    },
+  });
+}
+```
+
+#### Request Body Preparation: experimental_prepareRequestBody → prepareSendMessagesRequest
+
+The `experimental_prepareRequestBody` option has been replaced with `prepareSendMessagesRequest` in the transport configuration.
+
+```tsx filename="AI SDK 4.0"
+import { useChat } from '@ai-sdk/react';
+
+const { messages } = useChat({
+  api: '/api/chat',
+  // Only send the last message to the server:
+  experimental_prepareRequestBody({ messages, id }) {
+    return { message: messages[messages.length - 1], id };
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+
+const { messages } = useChat({
+  transport: new DefaultChatTransport({
+    api: '/api/chat',
+    // Only send the last message to the server:
+    prepareSendMessagesRequest({ messages, id }) {
+      return { body: { message: messages[messages.length - 1], id } };
+    },
+  }),
+});
+```
+
 ### `@ai-sdk/vue` Changes
 
 The Vue.js integration has been completely restructured, replacing the `useChat` composable with a `Chat` class.
 
 #### useChat Replaced with Chat Class
 
-```vue filename="@ai-sdk/vue v1"
+```typescript filename="@ai-sdk/vue v1"
 <script setup>
 import { useChat } from '@ai-sdk/vue';
 
@@ -1612,7 +1785,7 @@ const { messages, input, handleSubmit } = useChat({
 </script>
 ```
 
-```vue filename="@ai-sdk/vue v2"
+```typescript filename="@ai-sdk/vue v2"
 <script setup>
 import { Chat } from '@ai-sdk/vue';
 import { DefaultChatTransport } from 'ai';
@@ -1635,7 +1808,7 @@ const handleSubmit = (e: Event) => {
 
 Messages now use a `parts` array instead of a `content` string.
 
-```vue filename="@ai-sdk/vue v1"
+```typescript filename="@ai-sdk/vue v1"
 <template>
   <div v-for="message in messages" :key="message.id">
     <div>{{ message.role }}: {{ message.content }}</div>
@@ -1643,7 +1816,7 @@ Messages now use a `parts` array instead of a `content` string.
 </template>
 ```
 
-```vue filename="@ai-sdk/vue v2"
+```typescript filename="@ai-sdk/vue v2"
 <template>
   <div v-for="message in chat.messages" :key="message.id">
     <div>{{ message.role }}:</div>
@@ -1722,6 +1895,8 @@ import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
 ```tsx filename="AI SDK 5.0"
 import { getTextFromDataUrl } from 'ai';
 ```
+
+**Note**: `processDataStream` was removed entirely in v5.0. Use `readUIMessageStream` instead for processing UI message streams, or use the more configurable Chat/useChat APIs for most use cases.
 
 ### useCompletion Changes
 
@@ -2871,11 +3046,27 @@ import {
 import {
   ToolCall,
   ToolResult,
-  ResultUnion,
-  ToolCallUnion,
+  TypedToolResult,
+  TypedToolCall,
   ToolChoice,
 } from '@ai-sdk/provider-utils';
 ```
+
+## Troubleshooting
+
+### TypeScript Performance Issues with Zod
+
+If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0, you need to use the Zod v3 import path:
+
+```typescript
+// ❌ Avoid: Standard import causes TypeScript issues
+import { z } from 'zod';
+
+// ✅ Use: v3-specific import for AI SDK 5.0 compatibility
+import { z } from 'zod/v3';
+```
+
+This is particularly important when using `generateObject`, `tool`, or other AI SDK functions with Zod schemas. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
 
 ## Codemod Table
 
@@ -2887,10 +3078,13 @@ For more information, see the [Codemods](#codemods) section.
 | ------------------------------------------------ | ----------------------------------------------------- |
 | **AI SDK Core Changes**                          |                                                       |
 | Flatten streamText file properties               | `v5/flatten-streamtext-file-properties`               |
+| ID Generation Changes                            | `v5/require-createIdGenerator-size-argument`          |
+| IDGenerator → IdGenerator                        | `v5/rename-IDGenerator-to-IdGenerator`                |
 | Import LanguageModelV2 from provider package     | `v5/import-LanguageModelV2-from-provider-package`     |
 | Migrate to data stream protocol v2               | `v5/migrate-to-data-stream-protocol-v2`               |
 | Move image model maxImagesPerCall                | `v5/move-image-model-maxImagesPerCall`                |
 | Move LangChain adapter                           | `v5/move-langchain-adapter`                           |
+| Move maxSteps to stopWhen                        | `v5/move-maxsteps-to-stopwhen`                        |
 | Move provider options                            | `v5/move-provider-options`                            |
 | Move React to AI SDK                             | `v5/move-react-to-ai-sdk`                             |
 | Move UI utils to AI                              | `v5/move-ui-utils-to-ai`                              |

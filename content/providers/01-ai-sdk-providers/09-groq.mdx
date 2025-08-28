@@ -12,7 +12,7 @@ The [Groq](https://groq.com/) provider contains language model support for the G
 The Groq provider is available via the `@ai-sdk/groq` module.
 You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/groq" dark />
   </Tab>
@@ -21,6 +21,10 @@ You can install it with
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/groq" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/groq" dark />
   </Tab>
 </Tabs>
 
@@ -86,12 +90,14 @@ import { groq } from '@ai-sdk/groq';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: groq('qwen-qwq-32b'),
+  model: groq('qwen/qwen3-32b'),
   providerOptions: {
     groq: {
       reasoningFormat: 'parsed',
+      reasoningEffort: 'default',
       parallelToolCalls: true, // Enable parallel function calling (default: true)
       user: 'user-123', // Unique identifier for end-user (optional)
+      serviceTier: 'flex', // Use flex tier for higher throughput (optional)
     },
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
@@ -105,6 +111,22 @@ The following optional provider options are available for Groq language models:
   Controls how reasoning is exposed in the generated text. Only supported by reasoning models like `qwen-qwq-32b` and `deepseek-r1-distill-*` models.
 
   For a complete list of reasoning models and their capabilities, see [Groq's reasoning models documentation](https://console.groq.com/docs/reasoning).
+
+- **reasoningEffort** _'low' | 'meduim' | 'high' | 'none' | 'default'_
+
+  Controls the level of effort the model will put into reasoning.
+
+  - `qwen/qwen3-32b`
+    - Supported values:
+      - `none`: Disable reasoning. The model will not use any reasoning tokens.
+      - `default`: Enable reasoning.
+  - `gpt-oss20b/gpt-oss120b`
+    - Supported values:
+      - `low`: Use a low level of reasoning effort.
+      - `medium`: Use a medium level of reasoning effort.
+      - `high`: Use a high level of reasoning effort.
+
+  Defaults to `default` for `qwen/qwen3-32b.`
 
 - **structuredOutputs** _boolean_
 
@@ -121,6 +143,16 @@ The following optional provider options are available for Groq language models:
 - **user** _string_
 
   A unique identifier representing your end-user, which can help with monitoring and abuse detection.
+
+- **serviceTier** _'on_demand' | 'flex' | 'auto'_
+
+  Service tier for the request. Defaults to `'on_demand'`.
+
+  - `'on_demand'`: Default tier with consistent performance and fairness
+  - `'flex'`: Higher throughput tier (10x rate limits) optimized for workloads that can handle occasional request failures
+  - `'auto'`: Uses on_demand rate limits first, then falls back to flex tier if exceeded
+
+  For more details about service tiers and their benefits, see [Groq's Flex Processing documentation](https://console.groq.com/docs/flex-processing).
 
 <Note>Only Groq reasoning models support the `reasoningFormat` option.</Note>
 
@@ -272,12 +304,111 @@ const { text } = await generateText({
 | `qwen-qwq-32b`                                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `qwen-2.5-32b`                                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `deepseek-r1-distill-qwen-32b`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-oss-20b`                            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-oss-120b`                           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The tables above list the most commonly used models. Please see the [Groq
   docs](https://console.groq.com/docs/models) for a complete list of available
   models. You can also pass any available provider model ID as a string if
   needed.
+</Note>
+
+## Browser Search Tool
+
+Groq provides a browser search tool that offers interactive web browsing capabilities. Unlike traditional web search, browser search navigates websites interactively, providing more detailed and comprehensive results.
+
+### Supported Models
+
+Browser search is only available for these specific models:
+
+- `openai/gpt-oss-20b`
+- `openai/gpt-oss-120b`
+
+<Note type="warning">
+  Browser search will only work with the supported models listed above. Using it
+  with other models will generate a warning and the tool will be ignored.
+</Note>
+
+### Basic Usage
+
+```ts
+import { groq } from '@ai-sdk/groq';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: groq('openai/gpt-oss-120b'), // Must use supported model
+  prompt:
+    'What are the latest developments in AI? Please search for recent news.',
+  tools: {
+    browser_search: groq.tools.browserSearch({}),
+  },
+  toolChoice: 'required', // Ensure the tool is used
+});
+
+console.log(result.text);
+```
+
+### Streaming Example
+
+```ts
+import { groq } from '@ai-sdk/groq';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: groq('openai/gpt-oss-120b'),
+  prompt: 'Search for the latest tech news and summarize it.',
+  tools: {
+    browser_search: groq.tools.browserSearch({}),
+  },
+  toolChoice: 'required',
+});
+
+for await (const delta of result.fullStream) {
+  if (delta.type === 'text-delta') {
+    process.stdout.write(delta.text);
+  }
+}
+```
+
+### Key Features
+
+- **Interactive Browsing**: Navigates websites like a human user
+- **Comprehensive Results**: More detailed than traditional search snippets
+- **Server-side Execution**: Runs on Groq's infrastructure, no setup required
+- **Powered by Exa**: Uses Exa search engine for optimal results
+- **Currently Free**: Available at no additional charge during beta
+
+### Best Practices
+
+- Use `toolChoice: 'required'` to ensure the browser search is activated
+- Only supported on `openai/gpt-oss-20b` and `openai/gpt-oss-120b` models
+- The tool works automatically - no configuration parameters needed
+- Server-side execution means no additional API keys or setup required
+
+### Model Validation
+
+The provider automatically validates model compatibility:
+
+```ts
+// ✅ Supported - will work
+const result = await generateText({
+  model: groq('openai/gpt-oss-120b'),
+  tools: { browser_search: groq.tools.browserSearch({}) },
+});
+
+// ❌ Unsupported - will show warning and ignore tool
+const result = await generateText({
+  model: groq('gemma2-9b-it'),
+  tools: { browser_search: groq.tools.browserSearch({}) },
+});
+// Warning: "Browser search is only supported on models: openai/gpt-oss-20b, openai/gpt-oss-120b"
+```
+
+<Note>
+  For more details about browser search capabilities and limitations, see the
+  [Groq Browser Search
+  Documentation](https://console.groq.com/docs/browser-search).
 </Note>
 
 ## Transcription Models

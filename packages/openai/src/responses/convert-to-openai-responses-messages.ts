@@ -9,13 +9,25 @@ import {
   OpenAIResponsesPrompt,
   OpenAIResponsesReasoning,
 } from './openai-responses-api-types';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
+
+/**
+ * Check if a string is a file ID based on the given prefixes
+ * Returns false if prefixes is undefined (disables file ID detection)
+ */
+function isFileId(data: string, prefixes?: readonly string[]): boolean {
+  if (!prefixes) return false;
+  return prefixes.some(prefix => data.startsWith(prefix));
+}
 
 export async function convertToOpenAIResponsesMessages({
   prompt,
   systemMessageMode,
+  fileIdPrefixes,
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
+  fileIdPrefixes?: readonly string[];
 }): Promise<{
   messages: OpenAIResponsesPrompt;
   warnings: Array<LanguageModelV2CallWarning>;
@@ -69,26 +81,32 @@ export async function convertToOpenAIResponsesMessages({
 
                   return {
                     type: 'input_image',
-                    image_url:
-                      part.data instanceof URL
-                        ? part.data.toString()
-                        : `data:${mediaType};base64,${part.data}`,
-
-                    // OpenAI specific extension: image detail
+                    ...(part.data instanceof URL
+                      ? { image_url: part.data.toString() }
+                      : typeof part.data === 'string' &&
+                          isFileId(part.data, fileIdPrefixes)
+                        ? { file_id: part.data }
+                        : {
+                            image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                          }),
                     detail: part.providerOptions?.openai?.imageDetail,
                   };
                 } else if (part.mediaType === 'application/pdf') {
                   if (part.data instanceof URL) {
-                    // The AI SDK automatically downloads files for user file parts with URLs
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'PDF file parts with URLs',
-                    });
+                    return {
+                      type: 'input_file',
+                      file_url: part.data.toString(),
+                    };
                   }
-
                   return {
                     type: 'input_file',
-                    filename: part.filename ?? `part-${index}.pdf`,
-                    file_data: `data:application/pdf;base64,${part.data}`,
+                    ...(typeof part.data === 'string' &&
+                    isFileId(part.data, fileIdPrefixes)
+                      ? { file_id: part.data }
+                      : {
+                          filename: part.filename ?? `part-${index}.pdf`,
+                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                        }),
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({

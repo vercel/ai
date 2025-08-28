@@ -10,7 +10,7 @@ AI SDK Core tools contain three elements:
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
 - **`inputSchema`**: A [Zod schema](/docs/foundations/tools#schemas) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the input parameters. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
-- **`execute`**: An optional async function that is called with the arguments from the tool call. It produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
+- **`execute`**: An optional async function that is called with the inputs from the tool call. It produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
 
 <Note className="mb-2">
   You can use the [`tool`](/docs/reference/ai-sdk-core/tool) helper function to
@@ -285,6 +285,40 @@ const result = await generateText({
 });
 ```
 
+## Preliminary Tool Results
+
+You can return an `AsyncIterable` over multiple results.
+In this case, the last value from the iterable is the final tool result.
+
+This can be used in combination with generator functions to e.g. stream status information
+during the tool execution:
+
+```ts
+tool({
+  description: 'Get the current weather.',
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  async *execute({ location }) {
+    yield {
+      status: 'loading' as const,
+      text: `Getting weather for ${location}`,
+      weather: undefined,
+    };
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    const temperature = 72 + Math.floor(Math.random() * 21) - 10;
+
+    yield {
+      status: 'success' as const,
+      text: `The weather in ${location} is ${temperature}°F`,
+      temperature,
+    };
+  },
+});
+```
+
 ## Tool Choice
 
 You can use the `toolChoice` setting to influence when a tool is selected.
@@ -421,6 +455,27 @@ const result = await generateText({
 });
 ```
 
+### Context (experimental)
+
+You can pass in arbitrary context from `generateText` or `streamText` via the `experimental_context` setting.
+This context is available in the `experimental_context` tool execution option.
+
+```ts
+const result = await generateText({
+  // ...
+  tools: {
+    someTool: tool({
+      // ...
+      execute: async (input, { experimental_context: context }) => {
+        const typedContext = context as { example: string }; // or use type validation library
+        // ...
+      },
+    }),
+  },
+  experimental_context: { example: '123' },
+});
+```
+
 ## Types
 
 Modularizing your code often requires defining types to ensure type safety and reusability.
@@ -434,13 +489,13 @@ on the tool that has been invoked.
 Similarly, the tool results are typed with `ToolResult<NAME extends string, ARGS, RESULT>`.
 
 The tools in `streamText` and `generateText` are defined as a `ToolSet`.
-The type inference helpers `ToolCallUnion<TOOLS extends ToolSet>`
-and `ToolResultUnion<TOOLS extends ToolSet>` can be used to
+The type inference helpers `TypedToolCall<TOOLS extends ToolSet>`
+and `TypedToolResult<TOOLS extends ToolSet>` can be used to
 extract the tool call and tool result types from the tools.
 
 ```ts highlight="18-19,23-24"
 import { openai } from '@ai-sdk/openai';
-import { ToolCallUnion, ToolResultUnion, generateText, tool } from 'ai';
+import { TypedToolCall, TypedToolResult, generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const myToolSet = {
@@ -456,8 +511,8 @@ const myToolSet = {
   }),
 };
 
-type MyToolCall = ToolCallUnion<typeof myToolSet>;
-type MyToolResult = ToolResultUnion<typeof myToolSet>;
+type MyToolCall = TypedToolCall<typeof myToolSet>;
+type MyToolResult = TypedToolResult<typeof myToolSet>;
 
 async function generateSomething(prompt: string): Promise<{
   text: string;
@@ -477,13 +532,14 @@ async function generateSomething(prompt: string): Promise<{
 The AI SDK has three tool-call related errors:
 
 - [`NoSuchToolError`](/docs/reference/ai-sdk-errors/ai-no-such-tool-error): the model tries to call a tool that is not defined in the tools object
-- [`InvalidToolArgumentsError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-arguments-error): the model calls a tool with arguments that do not match the tool's input schema
-- [`ToolExecutionError`](/docs/reference/ai-sdk-errors/ai-tool-execution-error): an error that occurred during tool execution
+- [`InvalidToolInputError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-input-error): the model calls a tool with inputs that do not match the tool's input schema
 - [`ToolCallRepairError`](/docs/reference/ai-sdk-errors/ai-tool-call-repair-error): an error that occurred during tool call repair
+
+When tool execution fails (errors thrown by your tool's `execute` function), the AI SDK adds them as `tool-error` content parts to enable automated LLM roundtrips in multi-step scenarios.
 
 ### `generateText`
 
-`generateText` throws errors and can be handled using a `try`/`catch` block:
+`generateText` throws errors for tool schema validation issues and other errors, and can be handled using a `try`/`catch` block. Tool execution errors appear as `tool-error` parts in the result steps:
 
 ```ts
 try {
@@ -493,19 +549,36 @@ try {
 } catch (error) {
   if (NoSuchToolError.isInstance(error)) {
     // handle the no such tool error
-  } else if (InvalidToolArgumentsError.isInstance(error)) {
-    // handle the invalid tool arguments error
-  } else if (ToolExecutionError.isInstance(error)) {
-    // handle the tool execution error
+  } else if (InvalidToolInputError.isInstance(error)) {
+    // handle the invalid tool inputs error
   } else {
     // handle other errors
   }
 }
 ```
 
+Tool execution errors are available in the result steps:
+
+```ts
+const { steps } = await generateText({
+  // ...
+});
+
+// check for tool errors in the steps
+const toolErrors = steps.flatMap(step =>
+  step.content.filter(part => part.type === 'tool-error'),
+);
+
+toolErrors.forEach(toolError => {
+  console.log('Tool error:', toolError.error);
+  console.log('Tool name:', toolError.toolName);
+  console.log('Tool input:', toolError.input);
+});
+```
+
 ### `streamText`
 
-`streamText` sends the errors as part of the full stream. The error parts contain the error object.
+`streamText` sends errors as part of the full stream. Tool execution errors appear as `tool-error` parts, while other errors appear as `error` parts.
 
 When using `toUIMessageStreamResponse`, you can pass an `onError` function to extract the error message from the error part and forward it as part of the stream response:
 
@@ -518,10 +591,8 @@ return result.toUIMessageStreamResponse({
   onError: error => {
     if (NoSuchToolError.isInstance(error)) {
       return 'The model tried to call a unknown tool.';
-    } else if (InvalidToolArgumentsError.isInstance(error)) {
-      return 'The model called a tool with invalid arguments.';
-    } else if (ToolExecutionError.isInstance(error)) {
-      return 'An error occurred during tool execution.';
+    } else if (InvalidToolInputError.isInstance(error)) {
+      return 'The model called a tool with invalid inputs.';
     } else {
       return 'An unknown error occurred.';
     }
@@ -538,13 +609,18 @@ return result.toUIMessageStreamResponse({
 Language models sometimes fail to generate valid tool calls,
 especially when the input schema is complex or the model is smaller.
 
+If you use multiple steps, those failed tool calls will be sent back to the LLM
+in the next step to give it an opportunity to fix it.
+However, you may want to control how invalid tool calls are repaired without requiring
+additional steps that pollute the message history.
+
 You can use the `experimental_repairToolCall` function to attempt to repair the tool call
 with a custom function.
 
 You can use different strategies to repair the tool call:
 
-- Use a model with structured outputs to generate the arguments.
-- Send the messages, system prompt, and tool schema to a stronger model to generate the arguments.
+- Use a model with structured outputs to generate the inputs.
+- Send the messages, system prompt, and tool schema to a stronger model to generate the inputs.
 - Provide more specific repair instructions based on which tool was called.
 
 ### Example: Use a model with structured outputs for repair
@@ -575,11 +651,11 @@ const result = await generateText({
       schema: tool.inputSchema,
       prompt: [
         `The model tried to call the tool "${toolCall.toolName}"` +
-          ` with the following arguments:`,
+          ` with the following inputs:`,
         JSON.stringify(toolCall.input),
         `The tool accepts the following schema:`,
         JSON.stringify(inputSchema(toolCall)),
-        'Please fix the arguments.',
+        'Please fix the inputs.',
       ].join('\n'),
     });
 
@@ -907,7 +983,7 @@ const tools = await mcpClient.tools({
         format: z.enum(['json', 'text']).optional(),
       }),
     },
-    // For tools with zero arguments, you should use an empty object:
+    // For tools with zero inputs, you should use an empty object:
     'tool-with-no-args': {
       inputSchema: z.object({}),
     },

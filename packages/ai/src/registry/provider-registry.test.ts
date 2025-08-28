@@ -8,6 +8,7 @@ import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
 import { MockProviderV2 } from '../test/mock-provider-v2';
 import { MockRerankingModelV2 } from '../test/mock-reranking-model-v2';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('languageModel', () => {
   it('should return language model from provider', () => {

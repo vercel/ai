@@ -3,6 +3,10 @@ import { FlexibleSchema } from '../schema';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
 
+/**
+ * Additional options that are sent into each tool call.
+ */
+// TODO AI SDK 6: rename to ToolExecutionOptions
 export interface ToolCallOptions {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
@@ -19,12 +23,19 @@ export interface ToolCallOptions {
    * An optional abort signal that indicates that the overall operation should be aborted.
    */
   abortSignal?: AbortSignal;
+
+  /**
+   * Additional context.
+   *
+   * Experimental (can break in patch releases).
+   */
+  experimental_context?: unknown;
 }
 
 export type ToolExecuteFunction<INPUT, OUTPUT> = (
   input: INPUT,
   options: ToolCallOptions,
-) => PromiseLike<OUTPUT> | OUTPUT;
+) => AsyncIterable<OUTPUT> | PromiseLike<OUTPUT> | OUTPUT;
 
 // 0 extends 1 & N checks for any
 // [N] extends [never] checks for never
@@ -57,72 +68,66 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
    */
   providerOptions?: ProviderOptions;
-} & NeverOptional<
-  INPUT,
-  {
-    /**
+
+  /**
 The schema of the input that the tool expects. The language model will use this to generate the input.
 It is also used to validate the output of the language model.
 Use descriptions to make the input understandable for the language model.
    */
-    inputSchema: FlexibleSchema<INPUT>;
+  inputSchema: FlexibleSchema<INPUT>;
 
-    /**
-     * Optional function that is called when the argument streaming starts.
-     * Only called when the tool is used in a streaming context.
-     */
-    onInputStart?: (options: ToolCallOptions) => void | PromiseLike<void>;
+  /**
+   * Optional function that is called when the argument streaming starts.
+   * Only called when the tool is used in a streaming context.
+   */
+  onInputStart?: (options: ToolCallOptions) => void | PromiseLike<void>;
 
-    /**
-     * Optional function that is called when an argument streaming delta is available.
-     * Only called when the tool is used in a streaming context.
-     */
-    onInputDelta?: (
-      options: { inputTextDelta: string } & ToolCallOptions,
-    ) => void | PromiseLike<void>;
+  /**
+   * Optional function that is called when an argument streaming delta is available.
+   * Only called when the tool is used in a streaming context.
+   */
+  onInputDelta?: (
+    options: { inputTextDelta: string } & ToolCallOptions,
+  ) => void | PromiseLike<void>;
 
+  /**
+   * Optional function that is called when a tool call can be started,
+   * even if the execute function is not provided.
+   */
+  onInputAvailable?: (
+    options: {
+      input: [INPUT] extends [never] ? undefined : INPUT;
+    } & ToolCallOptions,
+  ) => void | PromiseLike<void>;
+} & NeverOptional<
+  OUTPUT,
+  {
     /**
-     * Optional function that is called when a tool call can be started,
-     * even if the execute function is not provided.
-     */
-    onInputAvailable?: (
-      options: {
-        input: [INPUT] extends [never] ? undefined : INPUT;
-      } & ToolCallOptions,
-    ) => void | PromiseLike<void>;
-  }
-> &
-  NeverOptional<
-    OUTPUT,
-    {
-      /**
 Optional conversion function that maps the tool result to an output that can be used by the language model.
 
 If not provided, the tool result will be sent as a JSON object.
       */
-      toModelOutput?: (
-        output: OUTPUT,
-      ) => LanguageModelV2ToolResultPart['output'];
-    } & (
-      | {
-          /**
+    toModelOutput?: (output: OUTPUT) => LanguageModelV2ToolResultPart['output'];
+  } & (
+    | {
+        /**
 An async function that is called with the arguments from the tool call and produces a result.
 If not provided, the tool will not be executed automatically.
 
 @args is the input of the tool call.
 @options.abortSignal is a signal that can be used to abort the tool call.
       */
-          execute: ToolExecuteFunction<INPUT, OUTPUT>;
+        execute: ToolExecuteFunction<INPUT, OUTPUT>;
 
-          outputSchema?: FlexibleSchema<OUTPUT>;
-        }
-      | {
-          outputSchema: FlexibleSchema<OUTPUT>;
+        outputSchema?: FlexibleSchema<OUTPUT>;
+      }
+    | {
+        outputSchema: FlexibleSchema<OUTPUT>;
 
-          execute?: never;
-        }
-    )
-  > &
+        execute?: never;
+      }
+  )
+> &
   (
     | {
         /**

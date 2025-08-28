@@ -1,4 +1,5 @@
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('system messages', () => {
   it('should store system message in system instruction', async () => {
@@ -21,6 +22,66 @@ describe('system messages', () => {
     ).toThrow(
       'system messages are only supported at the beginning of the conversation',
     );
+  });
+});
+
+describe('thought signatures', () => {
+  it('should preserve thought signatures in assistant messages', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'Regular text',
+            providerOptions: { google: { thoughtSignature: 'sig1' } },
+          },
+          {
+            type: 'reasoning',
+            text: 'Reasoning text',
+            providerOptions: { google: { thoughtSignature: 'sig2' } },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'test',
+            input: { value: 'test' },
+            providerOptions: { google: { thoughtSignature: 'sig3' } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Regular text",
+                "thoughtSignature": "sig1",
+              },
+              {
+                "text": "Reasoning text",
+                "thought": true,
+                "thoughtSignature": "sig2",
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "value": "test",
+                  },
+                  "name": "test",
+                },
+                "thoughtSignature": "sig3",
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
   });
 });
 

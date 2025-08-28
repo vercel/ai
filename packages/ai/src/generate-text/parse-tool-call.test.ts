@@ -4,6 +4,7 @@ import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import { parseToolCall } from './parse-tool-call';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('parseToolCall', () => {
   it('should successfully parse a valid tool call', async () => {
@@ -148,68 +149,110 @@ describe('parseToolCall', () => {
   });
 
   it('should throw NoSuchToolError when tools is null', async () => {
-    await expect(
-      parseToolCall({
-        toolCall: {
-          type: 'tool-call',
-          toolName: 'testTool',
-          toolCallId: '123',
-          input: '{}',
-        },
-        tools: undefined,
-        repairToolCall: undefined,
-        messages: [],
-        system: undefined,
-      }),
-    ).rejects.toThrow(NoSuchToolError);
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{}',
+      },
+      tools: undefined,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "dynamic": true,
+        "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'testTool'. No tools are available.],
+        "input": {},
+        "invalid": true,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
   });
 
   it('should throw NoSuchToolError when tool is not found', async () => {
-    await expect(
-      parseToolCall({
-        toolCall: {
-          type: 'tool-call',
-          toolName: 'nonExistentTool',
-          toolCallId: '123',
-          input: '{}',
-        },
-        tools: {
-          testTool: tool({
-            inputSchema: z.object({
-              param1: z.string(),
-              param2: z.number(),
-            }),
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'nonExistentTool',
+        toolCallId: '123',
+        input: '{}',
+      },
+      tools: {
+        testTool: tool({
+          inputSchema: z.object({
+            param1: z.string(),
+            param2: z.number(),
           }),
-        } as const,
-        repairToolCall: undefined,
-        messages: [],
-        system: undefined,
-      }),
-    ).rejects.toThrow(NoSuchToolError);
+        }),
+      } as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "dynamic": true,
+        "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'nonExistentTool'. Available tools: testTool.],
+        "input": {},
+        "invalid": true,
+        "toolCallId": "123",
+        "toolName": "nonExistentTool",
+        "type": "tool-call",
+      }
+    `);
   });
 
-  it('should throw InvalidToolArgumentsError when args are invalid', async () => {
-    await expect(
-      parseToolCall({
-        toolCall: {
-          type: 'tool-call',
-          toolName: 'testTool',
-          toolCallId: '123',
-          input: '{"param1": "test"}', // Missing required param2
-        },
-        tools: {
-          testTool: tool({
-            inputSchema: z.object({
-              param1: z.string(),
-              param2: z.number(),
-            }),
+  it('should throw InvalidToolInputError when args are invalid', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{"param1": "test"}', // Missing required param2
+      },
+      tools: {
+        testTool: tool({
+          inputSchema: z.object({
+            param1: z.string(),
+            param2: z.number(),
           }),
-        } as const,
-        repairToolCall: undefined,
-        messages: [],
-        system: undefined,
-      }),
-    ).rejects.toThrow(InvalidToolInputError);
+        }),
+      } as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "dynamic": true,
+        "error": [AI_InvalidToolInputError: Invalid input for tool testTool: Type validation failed: Value: {"param1":"test"}.
+      Error message: [
+        {
+          "expected": "number",
+          "code": "invalid_type",
+          "path": [
+            "param2"
+          ],
+          "message": "Invalid input: expected number, received undefined"
+        }
+      ]],
+        "input": {
+          "param1": "test",
+        },
+        "invalid": true,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
   });
 
   describe('tool call repair', () => {
@@ -274,35 +317,7 @@ describe('parseToolCall', () => {
     it('should re-throw error if tool call repair returns null', async () => {
       const repairToolCall = vi.fn().mockResolvedValue(null);
 
-      await expect(
-        parseToolCall({
-          toolCall: {
-            type: 'tool-call',
-            toolName: 'testTool',
-            toolCallId: '123',
-            input: 'invalid json',
-          },
-          tools: {
-            testTool: tool({
-              inputSchema: z.object({
-                param1: z.string(),
-                param2: z.number(),
-              }),
-            }),
-          } as const,
-          repairToolCall,
-          messages: [],
-          system: undefined,
-        }),
-      ).rejects.toThrow(InvalidToolInputError);
-
-      expect(repairToolCall).toHaveBeenCalledTimes(1);
-    });
-
-    it('should throw ToolCallRepairError if repairToolCall throws', async () => {
-      const repairToolCall = vi.fn().mockRejectedValue(new Error('test error'));
-
-      const resultPromise = parseToolCall({
+      const result = await parseToolCall({
         toolCall: {
           type: 'tool-call',
           toolName: 'testTool',
@@ -322,12 +337,54 @@ describe('parseToolCall', () => {
         system: undefined,
       });
 
-      await expect(resultPromise).rejects.toThrow(ToolCallRepairError);
-      await expect(resultPromise).rejects.toMatchObject({
-        cause: new Error('test error'),
-        originalError: expect.any(InvalidToolInputError),
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "dynamic": true,
+          "error": [AI_InvalidToolInputError: Invalid input for tool testTool: JSON parsing failed: Text: invalid json.
+        Error message: Unexpected token 'i', "invalid json" is not valid JSON],
+          "input": "invalid json",
+          "invalid": true,
+          "toolCallId": "123",
+          "toolName": "testTool",
+          "type": "tool-call",
+        }
+      `);
+    });
+
+    it('should throw ToolCallRepairError if repairToolCall throws', async () => {
+      const repairToolCall = vi.fn().mockRejectedValue(new Error('test error'));
+
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: 'invalid json',
+        },
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({
+              param1: z.string(),
+              param2: z.number(),
+            }),
+          }),
+        } as const,
+        repairToolCall,
+        messages: [],
+        system: undefined,
       });
-      expect(repairToolCall).toHaveBeenCalledTimes(1);
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "dynamic": true,
+          "error": [AI_ToolCallRepairError: Error repairing tool call: test error],
+          "input": "invalid json",
+          "invalid": true,
+          "toolCallId": "123",
+          "toolName": "testTool",
+          "type": "tool-call",
+        }
+      `);
     });
   });
 

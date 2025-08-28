@@ -30,7 +30,9 @@ export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-me
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
   getToolName,
+  getToolOrDynamicToolName,
   isToolUIPart,
+  isToolOrDynamicToolUIPart,
   type DataUIPart,
   type DynamicToolUIPart,
   type FileUIPart,
@@ -52,3 +54,4 @@ export {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from './use-completion';
+export { validateUIMessages } from './validate-ui-messages';

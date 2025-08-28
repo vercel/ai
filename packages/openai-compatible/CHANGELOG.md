@@ -1,5 +1,94 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 1.0.10
+
+### Patch Changes
+
+- 7ca3aee: refactoring(provider/openai-compatible): move models into folders
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 1.0.8
+
+### Patch Changes
+
+- 515c891: fix duplicated tool-input-start in certain cases
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
+## 1.0.5
+
+### Patch Changes
+
+- 8f8a521: fix(providers): use convertToBase64 for Uint8Array image parts to produce valid data URLs; keep mediaType normalization and URL passthrough
+- e92b78b: fix (provider/openai-compatible): revert usage fallback specific to moonshotai
+
+## 1.0.4
+
+### Patch Changes
+
+- 5f4c71f: feat (provider/openai-compatible): fall back to look for usage in choices
+- da314cd: chore (provider/openai-compatible): inline usage fallback logic
+
+## 1.0.3
+
+### Patch Changes
+
+- a0934f8: feat (provider/openai-compatible): look for reasoning in 'reasoning' field as well
+
+## 1.0.2
+
+### Patch Changes
+
+- b499112: filter empty content to ensure chunk order
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+
+## 1.0.1
+
+### Patch Changes
+
+- 0e8ed8e: feat(provider/openai-compatible): Update OpenAI compat embedding schema to support providerMetadata
+
 ## 1.0.0
 
 ### Major Changes

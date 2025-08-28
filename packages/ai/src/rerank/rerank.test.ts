@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MockTracer } from '../test/mock-tracer';
 import { rerank } from './rerank';
 import {
@@ -41,7 +42,6 @@ describe('result.reranking', () => {
 
 describe('result.response', () => {
   it('should include response in the result', async () => {
-    let callCount = 0;
     const result = await rerank({
       model: new MockRerankingModelV2({
         doRerank: mockRerank(testDocuments, dummyRerankedDocuments),
@@ -72,7 +72,6 @@ describe('result.value', () => {
 
 describe('result.usage', () => {
   it('should include usage in the result', async () => {
-    let callCount = 0;
     const result = await rerank({
       model: new MockRerankingModelV2({
         doRerank: mockRerank(testDocuments, dummyRerankedDocuments, {

@@ -1,4 +1,5 @@
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
+import { describe, it, expect } from 'vitest';
 
 describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
   it('should return false if the last step of a multi-step sequency only has text', () => {
@@ -58,5 +59,252 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
         ],
       }),
     ).toBe(true);
+  });
+
+  it('should return true when dynamic tool call is complete', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_dynamic_123',
+                state: 'output-available',
+                input: {
+                  location: 'San Francisco',
+                },
+                output: 'sunny',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false when dynamic tool call is still streaming input', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_dynamic_123',
+                state: 'input-streaming',
+                input: {
+                  location: 'San Francisco',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when dynamic tool call has input but no output', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_dynamic_123',
+                state: 'input-available',
+                input: {
+                  location: 'San Francisco',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when dynamic tool call has an error', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_dynamic_123',
+                state: 'output-error',
+                input: {
+                  location: 'San Francisco',
+                },
+                errorText: 'Failed to fetch weather data',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return true when mixing regular and dynamic tool calls and all are complete', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeatherInformation',
+                toolCallId: 'call_regular_123',
+                state: 'output-available',
+                input: {
+                  city: 'New York',
+                },
+                output: 'windy',
+              },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_dynamic_123',
+                state: 'output-available',
+                input: {
+                  location: 'San Francisco',
+                },
+                output: 'sunny',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false when mixing regular and dynamic tool calls and some are incomplete', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeatherInformation',
+                toolCallId: 'call_regular_123',
+                state: 'output-available',
+                input: {
+                  city: 'New York',
+                },
+                output: 'windy',
+              },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_dynamic_123',
+                state: 'input-available', // incomplete
+                input: {
+                  location: 'San Francisco',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return true for multi-step sequence where last step has complete dynamic tool calls', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              // First step with regular tool
+              { type: 'step-start' },
+              {
+                type: 'tool-getLocation',
+                toolCallId: 'call_location_123',
+                state: 'output-available',
+                input: {},
+                output: 'New York',
+              },
+              // Second step with dynamic tool
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_dynamic_456',
+                state: 'output-available',
+                input: {
+                  location: 'New York',
+                },
+                output: 'cloudy',
+              },
+              {
+                type: 'text',
+                text: 'The current weather in New York is cloudy.',
+                state: 'done',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false for multi-step sequence where last step has incomplete dynamic tool calls', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              // First step with regular tool
+              { type: 'step-start' },
+              {
+                type: 'tool-getLocation',
+                toolCallId: 'call_location_123',
+                state: 'output-available',
+                input: {},
+                output: 'New York',
+              },
+              // Second step with incomplete dynamic tool
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_dynamic_456',
+                state: 'input-streaming', // incomplete
+                input: {
+                  location: 'New York',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
   });
 });

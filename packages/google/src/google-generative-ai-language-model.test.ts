@@ -15,6 +15,7 @@ import {
 import { createGoogleGenerativeAI } from './google-provider';
 import { groundingMetadataSchema } from './tool/google-search';
 import { urlContextMetadataSchema } from './tool/url-context';
+import { describe, it, expect } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -257,6 +258,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
+          "providerMetadata": undefined,
           "text": "Hello, World!",
           "type": "text",
         },
@@ -366,6 +368,7 @@ describe('doGenerate', () => {
       [
         {
           "input": "{"value":"example value"}",
+          "providerMetadata": undefined,
           "toolCallId": "test-id",
           "toolName": "test-tool",
           "type": "tool-call",
@@ -744,6 +747,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
+          "providerMetadata": undefined,
           "text": "test response",
           "type": "text",
         },
@@ -1227,6 +1231,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
+          "providerMetadata": undefined,
           "text": "Here is an image:",
           "type": "text",
         },
@@ -1236,6 +1241,7 @@ describe('doGenerate', () => {
           "type": "file",
         },
         {
+          "providerMetadata": undefined,
           "text": "And another image:",
           "type": "text",
         },
@@ -1364,6 +1370,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
+          "providerMetadata": undefined,
           "text": "Here is content:",
           "type": "text",
         },
@@ -1415,20 +1422,144 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
+          "providerMetadata": undefined,
           "text": "Visible text part 1. ",
           "type": "text",
         },
         {
+          "providerMetadata": undefined,
           "text": "This is a thought process.",
           "type": "reasoning",
         },
         {
+          "providerMetadata": undefined,
           "text": "Visible text part 2.",
           "type": "text",
         },
         {
+          "providerMetadata": undefined,
           "text": "Another internal thought.",
           "type": "reasoning",
+        },
+      ]
+    `);
+  });
+
+  it('should correctly parse thought signatures with reasoning parts', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                { text: 'Visible text part 1. ', thoughtSignature: 'sig1' },
+                {
+                  text: 'This is a thought process.',
+                  thought: true,
+                  thoughtSignature: 'sig2',
+                },
+                { text: 'Visible text part 2.', thoughtSignature: 'sig3' },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "sig1",
+            },
+          },
+          "text": "Visible text part 1. ",
+          "type": "text",
+        },
+        {
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "sig2",
+            },
+          },
+          "text": "This is a thought process.",
+          "type": "reasoning",
+        },
+        {
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "sig3",
+            },
+          },
+          "text": "Visible text part 2.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should correctly parse thought signatures with function calls', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    name: 'test-tool',
+                    args: { value: 'test' },
+                  },
+                  thoughtSignature: 'func_sig1',
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"value":"test"}",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "func_sig1",
+            },
+          },
+          "toolCallId": "test-id",
+          "toolName": "test-tool",
+          "type": "tool-call",
         },
       ]
     `);
@@ -1739,21 +1870,25 @@ describe('doStream', () => {
         },
         {
           "id": "0",
+          "providerMetadata": undefined,
           "type": "text-start",
         },
         {
           "delta": "Hello",
           "id": "0",
+          "providerMetadata": undefined,
           "type": "text-delta",
         },
         {
           "delta": ", ",
           "id": "0",
+          "providerMetadata": undefined,
           "type": "text-delta",
         },
         {
           "delta": "world!",
           "id": "0",
+          "providerMetadata": undefined,
           "type": "text-delta",
         },
         {
@@ -2486,16 +2621,19 @@ describe('doStream', () => {
         },
         {
           "id": "0",
+          "providerMetadata": undefined,
           "type": "reasoning-start",
         },
         {
           "delta": "I need to think about this carefully. The user wants a simple explanation.",
           "id": "0",
+          "providerMetadata": undefined,
           "type": "reasoning-delta",
         },
         {
           "delta": "Let me organize my thoughts and provide a clear answer.",
           "id": "0",
+          "providerMetadata": undefined,
           "type": "reasoning-delta",
         },
         {
@@ -2504,16 +2642,19 @@ describe('doStream', () => {
         },
         {
           "id": "1",
+          "providerMetadata": undefined,
           "type": "text-start",
         },
         {
           "delta": "Here is a simple explanation: ",
           "id": "1",
+          "providerMetadata": undefined,
           "type": "text-delta",
         },
         {
           "delta": "The concept works because of basic principles.",
           "id": "1",
+          "providerMetadata": undefined,
           "type": "text-delta",
         },
         {
@@ -2542,6 +2683,143 @@ describe('doStream', () => {
             "outputTokens": 18,
             "reasoningTokens": 142,
             "totalTokens": 174,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should stream thought signatures with reasoning and text parts', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: 'I need to think about this.',
+                    thought: true,
+                    thoughtSignature: 'reasoning_sig1',
+                  },
+                ],
+                role: 'model',
+              },
+              index: 0,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: 'Here is the answer.',
+                    thoughtSignature: 'text_sig1',
+                  },
+                ],
+                role: 'model',
+              },
+              index: 0,
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(chunks).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "reasoning_sig1",
+            },
+          },
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "I need to think about this.",
+          "id": "0",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "reasoning_sig1",
+            },
+          },
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "1",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "text_sig1",
+            },
+          },
+          "type": "text-start",
+        },
+        {
+          "delta": "Here is the answer.",
+          "id": "1",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "text_sig1",
+            },
+          },
+          "type": "text-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "google": {
+              "groundingMetadata": null,
+              "safetyRatings": [
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "probability": "NEGLIGIBLE",
+                },
+              ],
+              "urlContextMetadata": null,
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]

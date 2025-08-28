@@ -1,10 +1,9 @@
-import { gateway } from '@ai-sdk/gateway';
 import { embedMany } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = await embedMany({
-    model: gateway.textEmbeddingModel('openai/text-embedding-3-small'),
+    model: 'openai/text-embedding-3-large',
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',

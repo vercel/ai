@@ -499,13 +499,6 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'toolCallStreaming',
-      type: 'boolean',
-      isOptional: true,
-      description:
-        'Enable streaming of tool call deltas as they are generated. Disabled by default.',
-    },
-    {
       name: 'experimental_transform',
       type: 'StreamTextTransform | Array<StreamTextTransform>',
       isOptional: true,
@@ -655,6 +648,13 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'experimental_context',
+      type: 'unknown',
+      isOptional: true,
+      description:
+        'Context that is passed into tool execution. Experimental (can break in patch releases).',
+    },
+    {
       name: 'experimental_repairToolCall',
       type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV2ToolCall | null>',
       isOptional: true,
@@ -692,7 +692,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'error',
-              type: 'NoSuchToolError | InvalidToolArgumentsError',
+              type: 'NoSuchToolError | InvalidToolInputError',
               description:
                 'The error that occurred while parsing the tool call.',
             },
@@ -1395,7 +1395,8 @@ To see `streamText` in action, check out [these examples](#examples).
         },
       ],
     },
-  ]}
+
+]}
 />
 
 ### Returns
@@ -1405,19 +1406,19 @@ To see `streamText` in action, check out [these examples](#examples).
     {
       name: 'content',
       type: 'Promise<Array<ContentPart<TOOLS>>>',
-      description: 'The content that was generated in the last step. Resolved when the response is finished.',
+      description: 'The content that was generated in the last step. Automatically consumes the stream.',
     },
     {
       name: 'finishReason',
       type: "Promise<'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'>",
       description:
-        'The reason why the generation finished. Resolved when the response is finished.',
+        'The reason why the generation finished. Automatically consumes the stream.',
     },
     {
       name: 'usage',
       type: 'Promise<LanguageModelUsage>',
       description:
-        'The token usage of the last step. Resolved when the response is finished.',
+        'The token usage of the last step. Automatically consumes the stream.',
       properties: [
         {
           type: 'LanguageModelUsage',
@@ -1444,7 +1445,7 @@ To see `streamText` in action, check out [these examples](#examples).
     {
       name: 'totalUsage',
       type: 'Promise<LanguageModelUsage>',
-      description: 'The total token usage of the generated response. When there are multiple steps, the usage is the sum of all step usages. Resolved when the response is finished.',
+      description: 'The total token usage of the generated response. When there are multiple steps, the usage is the sum of all step usages. Automatically consumes the stream.',
       properties: [
         {
           type: 'LanguageModelUsage',
@@ -1478,13 +1479,13 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'text',
       type: 'Promise<string>',
       description:
-        'The full text that has been generated. Resolved when the response is finished.',
+        'The full text that has been generated. Automatically consumes the stream.',
     },
     {
       name: 'reasoning',
       type: 'Promise<Array<ReasoningPart>>',
       description:
-        'The full reasoning that the model has generated in the last step. Resolved when the response is finished.',
+        'The full reasoning that the model has generated in the last step. Automatically consumes the stream.',
       properties: [
         {
           type: 'ReasoningPart',
@@ -1507,13 +1508,13 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'reasoningText',
       type: 'Promise<string | undefined>',
       description:
-        'The reasoning text that the model has generated in the last step. Can be undefined if the model has only generated text. Resolved when the response is finished.',
+        'The reasoning text that the model has generated in the last step. Can be undefined if the model has only generated text. Automatically consumes the stream.',
     },
     {
       name: 'sources',
       type: 'Promise<Array<Source>>',
       description:
-        'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps. Resolved when the response is finished.',
+        'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps. Automatically consumes the stream.',
       properties: [
         {
           type: 'Source',
@@ -1554,7 +1555,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'files',
       type: 'Promise<Array<GeneratedFile>>',
       description:
-        'Files that were generated in the final step. Resolved when the response is finished.',
+        'Files that were generated in the final step. Automatically consumes the stream.',
       properties: [
         {
           type: 'GeneratedFile',
@@ -1580,13 +1581,13 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'toolCalls',
-      type: 'Promise<ToolCallUnion<TOOLS>[]>',
+      type: 'Promise<TypedToolCall<TOOLS>[]>',
       description:
-        'The tool calls that have been executed. Resolved when the response is finished.',
+        'The tool calls that have been executed. Automatically consumes the stream.',
     },
     {
       name: 'toolResults',
-      type: 'Promise<ToolResultUnion<TOOLS>[]>',
+      type: 'Promise<TypedToolResult<TOOLS>[]>',
       description:
         'The tool results that have been generated. Resolved when the all tool executions are finished.',
     },

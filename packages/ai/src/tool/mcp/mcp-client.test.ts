@@ -3,6 +3,15 @@ import { MCPClientError } from '../../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
 import { MockMCPTransport } from './mock-mcp-transport';
 import { CallToolResult } from './types';
+import {
+  beforeEach,
+  afterEach,
+  describe,
+  expect,
+  expectTypeOf,
+  it,
+  vi,
+} from 'vitest';
 
 const createMockTransport = vi.fn(config => new MockMCPTransport(config));
 
@@ -114,7 +123,9 @@ describe('MCPClient', () => {
       },
     );
 
-    expectTypeOf<typeof result>().toEqualTypeOf<CallToolResult>();
+    expectTypeOf<
+      Exclude<typeof result, AsyncIterable<any>>
+    >().toEqualTypeOf<CallToolResult>();
   });
 
   it('should not return user-defined tool if it is nonexistent', async () => {
@@ -281,7 +292,9 @@ describe('MCPClient', () => {
       },
     );
 
-    expectTypeOf<typeof result>().toEqualTypeOf<CallToolResult>();
+    expectTypeOf<
+      Exclude<typeof result, AsyncIterable<any>>
+    >().toEqualTypeOf<CallToolResult>();
   });
 
   it('should throw if transport is missing required methods', async () => {

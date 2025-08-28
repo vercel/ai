@@ -3,23 +3,23 @@ title: Cloudflare AI Gateway
 description: Learn how to use the Cloudflare AI Gateway provider for the AI SDK.
 ---
 
-# AI Gateway Provider
+# Cloudflare AI Gateway
 
-The AI Gateway Provider is a library that integrates Cloudflare's AI Gateway with the Vercel AI SDK. It enables seamless access to multiple AI models from various providers through a unified interface, with automatic fallback for high availability.
+The Cloudflare AI Gateway Provider is a library that integrates Cloudflare's AI Gateway with the Vercel AI SDK. It enables seamless access to multiple AI models from various providers through a unified interface, with automatic fallback for high availability.
 
 ## Features
 
 - **Runtime Agnostic**: Compatible with Node.js, Edge Runtime, and other JavaScript runtimes supported by the Vercel AI SDK.
 - **Automatic Fallback**: Automatically switches to the next available model if one fails, ensuring resilience.
 - **Multi-Provider Support**: Supports models from OpenAI, Anthropic, DeepSeek, Google AI Studio, Grok, Mistral, Perplexity AI, Replicate, and Groq.
-- **AI Gateway Integration**: Leverages Cloudflare's AI Gateway for request management, caching, and rate limiting.
+- **Cloudflare AI Gateway Integration**: Leverages Cloudflare's AI Gateway for request management, caching, and rate limiting.
 - **Simplified Configuration**: Easy setup with support for API key authentication or Cloudflare AI bindings.
 
 ## Setup
 
-The AI Gateway Provider is available in the `ai-gateway-provider` module. Install it with:
+The Cloudflare AI Gateway Provider is available in the `ai-gateway-provider` module. Install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add ai-gateway-provider" />
   </Tab>
@@ -28,6 +28,10 @@ The AI Gateway Provider is available in the `ai-gateway-provider` module. Instal
   </Tab>
   <Tab>
     <Snippet text="yarn add ai-gateway-provider" />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add ai-gateway-provider" dark />
   </Tab>
 </Tabs>
 
@@ -100,7 +104,7 @@ const model = aigateway([
 
 ### Request Options
 
-Customize AI Gateway settings per request:
+Customize Cloudflare AI Gateway settings per request:
 
 - `cacheKey`: Custom cache key for the request.
 - `cacheTtl`: Cache time-to-live in seconds.
@@ -137,7 +141,7 @@ const aigateway = createAiGateway({
 
 ### `generateText`
 
-Generate non-streaming text using the AI Gateway Provider:
+Generate non-streaming text using the Cloudflare AI Gateway Provider:
 
 ```typescript
 import { createAiGateway } from 'ai-gateway-provider';
@@ -162,7 +166,7 @@ console.log(text); // Output: "Hello"
 
 ### `streamText`
 
-Stream text responses using the AI Gateway Provider:
+Stream text responses using the Cloudflare AI Gateway Provider:
 
 ```typescript
 import { createAiGateway } from 'ai-gateway-provider';
@@ -207,4 +211,4 @@ console.log(accumulatedText); // Output: "Hello world!"
 The provider throws the following custom errors:
 
 - `AiGatewayUnauthorizedError`: Invalid or missing API key when authentication is enabled.
-- `AiGatewayDoesNotExist`: Specified AI Gateway does not exist.
+- `AiGatewayDoesNotExist`: Specified Cloudflare AI Gateway does not exist.

@@ -1,5 +1,201 @@
 # @ai-sdk/rsc
 
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [33cf848]
+  - ai@5.0.26
+
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+- Updated dependencies [ca65923]
+  - @ai-sdk/provider-utils@3.0.7
+  - ai@5.0.25
+
+## 1.0.24
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+- Updated dependencies [f8f3682]
+  - @ai-sdk/provider-utils@3.0.6
+  - ai@5.0.24
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [5099b3d]
+- Updated dependencies [7a2bf8d]
+  - ai@5.0.23
+
+## 1.0.22
+
+### Patch Changes
+
+- ai@5.0.22
+
+## 1.0.21
+
+### Patch Changes
+
+- 3c178ec: feat(ai): improved type checking for prompt/messages input
+- Updated dependencies [581abea]
+- Updated dependencies [0857788]
+- Updated dependencies [3c178ec]
+  - ai@5.0.21
+  - @ai-sdk/provider-utils@3.0.5
+
+## 1.0.20
+
+### Patch Changes
+
+- Updated dependencies [8a87693]
+  - ai@5.0.20
+
+## 1.0.19
+
+### Patch Changes
+
+- Updated dependencies [8da6e9c]
+  - ai@5.0.19
+
+## 1.0.18
+
+### Patch Changes
+
+- ai@5.0.18
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [4176ecb]
+- Updated dependencies [20f23f9]
+  - ai@5.0.17
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - ai@5.0.16
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [ca4f68f]
+  - ai@5.0.15
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [7729e32]
+  - ai@5.0.14
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [a7b2e66]
+- Updated dependencies [9bed210]
+  - ai@5.0.13
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+  - ai@5.0.12
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+- Updated dependencies [38ac190]
+- Updated dependencies [e3a63cb]
+  - ai@5.0.11
+  - @ai-sdk/provider-utils@3.0.2
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [63a5dc5]
+  - ai@5.0.10
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [afd5c2a]
+  - ai@5.0.9
+
+## 1.0.8
+
+### Patch Changes
+
+- ai@5.0.8
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [8e72304]
+  - ai@5.0.7
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [d983eee]
+  - ai@5.0.6
+
+## 1.0.5
+
+### Patch Changes
+
+- ai@5.0.5
+
+## 1.0.4
+
+### Patch Changes
+
+- ai@5.0.4
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+  - ai@5.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [401d73e]
+- Updated dependencies [69fde99]
+  - ai@5.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [4d0c108]
+  - ai@5.0.1
+
 ## 1.0.0
 
 ### Major Changes

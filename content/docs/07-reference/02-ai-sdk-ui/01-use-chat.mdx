@@ -135,7 +135,7 @@ Allows you to easily create a conversational user interface for your chatbot app
                             },
                             {
                               name: 'trigger',
-                              type: "'submit-user-message' | 'submit-tool-result' | 'regenerate-assistant-message'",
+                              type: "'submit-message' | 'regenerate-message'",
                               description: 'The trigger for the request',
                             },
                             {
@@ -241,7 +241,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'onFinish',
-      type: '(options: {message: UIMessage}) => void',
+      type: '(options: {message: UIMessage, messages: UIMessage[]}) => void',
       isOptional: true,
       description:
         'Optional callback function that is called when the assistant message has finished streaming completely.',

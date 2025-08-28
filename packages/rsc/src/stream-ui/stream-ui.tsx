@@ -263,7 +263,7 @@ functionality that can be fully encapsulated in the provider.
     system,
     prompt,
     messages,
-  });
+  } as Prompt);
   const result = await retry(async () =>
     model.doStream({
       ...prepareCallSettings(settings),

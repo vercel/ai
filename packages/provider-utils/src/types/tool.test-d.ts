@@ -5,18 +5,10 @@ import {
   FlexibleSchema,
 } from '@ai-sdk/provider-utils';
 import { tool } from './tool';
+import { describe, it, expectTypeOf } from 'vitest';
 
 describe('tool helper', () => {
-  it('should work with no parameters and no output', () => {
-    const toolType = tool({});
-
-    expectTypeOf(toolType).toEqualTypeOf<Tool<never, never>>();
-    expectTypeOf(toolType.execute).toEqualTypeOf<undefined>();
-    expectTypeOf(toolType.execute).not.toEqualTypeOf<Function>();
-    expectTypeOf(toolType.inputSchema).toEqualTypeOf<undefined>();
-  });
-
-  it('should work with only parameters', () => {
+  it('should work with fixed inputSchema', () => {
     const toolType = tool({
       inputSchema: z.object({ number: z.number() }),
     });
@@ -29,20 +21,20 @@ describe('tool helper', () => {
     >();
   });
 
-  it('should work with only output', () => {
+  it('should work with flexible inputSchema', <T>() => {
+    const inputSchema: FlexibleSchema<T> = null as any;
+
     const toolType = tool({
-      execute: async () => 'test' as const,
+      inputSchema,
     });
 
-    expectTypeOf(toolType).toEqualTypeOf<Tool<never, 'test'>>();
-    expectTypeOf(toolType.execute).toMatchTypeOf<
-      ToolExecuteFunction<never, 'test'> | undefined
-    >();
-    expectTypeOf(toolType.execute).not.toEqualTypeOf<undefined>();
-    expectTypeOf(toolType.inputSchema).toEqualTypeOf<undefined>();
+    expectTypeOf(toolType).toEqualTypeOf<Tool<T, never>>();
+    expectTypeOf(toolType.execute).toEqualTypeOf<undefined>();
+    expectTypeOf(toolType.execute).not.toEqualTypeOf<Function>();
+    expectTypeOf(toolType.inputSchema).toEqualTypeOf<FlexibleSchema<T>>();
   });
 
-  it('should work with both inputSchema and output', () => {
+  it('should work with inputSchema and execute function', () => {
     const toolType = tool({
       inputSchema: z.object({ number: z.number() }),
       execute: async input => {

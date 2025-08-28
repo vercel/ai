@@ -104,13 +104,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
-    }
-
     if (
       responseFormat != null &&
       responseFormat.type !== 'text' &&
@@ -166,18 +159,19 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
 
     const inferenceConfig = {
-      ...(maxOutputTokens != null && { maxOutputTokens }),
+      ...(maxOutputTokens != null && { maxTokens: maxOutputTokens }),
       ...(temperature != null && { temperature }),
       ...(topP != null && { topP }),
+      ...(topK != null && { topK }),
       ...(stopSequences != null && { stopSequences }),
     };
 
-    // Adjust maxOutputTokens if thinking is enabled
+    // Adjust maxTokens if thinking is enabled
     if (isThinking && thinkingBudget != null) {
-      if (inferenceConfig.maxOutputTokens != null) {
-        inferenceConfig.maxOutputTokens += thinkingBudget;
+      if (inferenceConfig.maxTokens != null) {
+        inferenceConfig.maxTokens += thinkingBudget;
       } else {
-        inferenceConfig.maxOutputTokens = thinkingBudget + 4096; // Default + thinking budget maxOutputTokens = 4096, TODO update default in v5
+        inferenceConfig.maxTokens = thinkingBudget + 4096; // Default + thinking budget maxTokens = 4096, TODO update default in v5
       }
       // Add them to additional model request fields
       // Add thinking config to additionalModelRequestFields
@@ -207,6 +201,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         type: 'unsupported-setting',
         setting: 'topP',
         details: 'topP is not supported when thinking is enabled',
+      });
+    }
+
+    if (isThinking && inferenceConfig.topK != null) {
+      delete inferenceConfig.topK;
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'topK',
+        details: 'topK is not supported when thinking is enabled',
       });
     }
 

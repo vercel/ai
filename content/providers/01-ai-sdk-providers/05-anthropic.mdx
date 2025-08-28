@@ -11,7 +11,7 @@ The [Anthropic](https://www.anthropic.com/) provider contains language model sup
 
 The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/anthropic" dark />
   </Tab>
@@ -20,6 +20,10 @@ The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can i
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/anthropic" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/anthropic" dark />
   </Tab>
 </Tabs>
 
@@ -549,6 +553,74 @@ for await (const part of result.textStream) {
   if (part.type === 'error') {
     console.log('Search error:', part.error);
     // Handle search error appropriately
+  }
+}
+```
+
+## Code Execution
+
+Anthropic provides a provider-defined code execution tool that gives Claude direct access to a real Python environment allowing it to execute code to inform its responses.
+
+You can enable code execution using the provider-defined code execution tool:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+const codeExecutionTool = anthropic.tools.codeExecution_20250522();
+const result = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt:
+    'Calculate the mean and standard deviation of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]',
+  tools: {
+    code_execution: codeExecutionTool,
+  },
+});
+```
+
+#### Error Handling
+
+Code execution errors are handled differently depending on whether you're using streaming or non-streaming:
+
+**Non-streaming (`generateText`, `generateObject`):**
+Code execution errors are delivered as tool result parts in the response:
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'Execute some Python script',
+  tools: {
+    code_execution: codeExecutionTool,
+  },
+});
+
+const toolErrors = result.content?.filter(
+  content => content.type === 'tool-error',
+);
+
+toolErrors?.forEach(error => {
+  console.error('Tool execution error:', {
+    toolName: error.toolName,
+    toolCallId: error.toolCallId,
+    error: error.error,
+  });
+});
+```
+
+**Streaming (`streamText`, `streamObject`):**
+Code execution errors are delivered as error parts in the stream:
+
+```ts
+const result = await streamText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'Execute some Python script',
+  tools: {
+    code_execution: codeExecutionTool,
+  },
+});
+for await (const part of result.textStream) {
+  if (part.type === 'error') {
+    console.log('Code execution error:', part.error);
+    // Handle code execution error appropriately
   }
 }
 ```
