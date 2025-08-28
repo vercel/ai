@@ -17,6 +17,8 @@ declare global {
    * The warning logger to use for the AI SDK.
    *
    * If not set, the default logger is the console.warn function.
+   *
+   * If set to false, no warnings are logged.
    */
-  var AI_SDK_LOG_WARNINGS: LogWarningsFunction | undefined;
+  var AI_SDK_LOG_WARNINGS: LogWarningsFunction | undefined | false;
 }
