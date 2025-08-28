@@ -233,6 +233,7 @@ export async function convertToAnthropicMessagesPrompt({
                       type: 'container_upload',
                       file_id: part.file_id,
                     });
+                    break;
                   }
                 }
               }
