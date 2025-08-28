@@ -1,5 +1,11 @@
 import { createTransformer } from '../lib/create-transformer';
 
+/**
+ * Codemod to replace all instances of `delta.textDelta` with `delta.text`
+ * and to update destructuring patterns accordingly.
+ *
+ * @see https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#onchunk-callback-changes
+ */
 export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
 
