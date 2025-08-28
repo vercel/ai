@@ -6,4 +6,8 @@ describe('not-implemented', () => {
   it('transforms correctly', () => {
     testTransform(transformer, 'not-implemented');
   });
+
+  it('handles alias imports correctly', () => {
+    testTransform(transformer, 'not-implemented-alias');
+  });
 });
