@@ -13,9 +13,7 @@ for await (const part of result.fullStream) {
   switch (part.type) {
     case 'file':
       // Direct property access that should be restructured
-      console.log('Media type:', part.mediaType);
-      console.log('MIME type:', part.mimeType);
-      console.log('Data:', part.data);
+      console.log('Media type:', part.mimeType);
       console.log('Base64:', part.base64);
       console.log('Uint8Array:', part.uint8Array);
       
@@ -28,7 +26,7 @@ for await (const part of result.fullStream) {
 // Test with if statement
 for await (const delta of result.fullStream) {
   if (delta.type === 'file') {
-    console.log('File data:', delta.data);
+    console.log('Base64:', delta.base64);
     uploadFile(delta);
   }
 }

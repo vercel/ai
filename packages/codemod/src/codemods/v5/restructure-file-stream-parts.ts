@@ -211,9 +211,7 @@ export default createTransformer((fileInfo, api, options, context) => {
         path.node.object.type === 'Identifier' &&
         fileStreamPartIdentifiers.has(path.node.object.name) &&
         path.node.property.type === 'Identifier' &&
-        (path.node.property.name === 'mediaType' ||
-          path.node.property.name === 'mimeType' ||
-          path.node.property.name === 'data' ||
+        (path.node.property.name === 'mimeType' ||
           path.node.property.name === 'base64' ||
           path.node.property.name === 'uint8Array')
       );
