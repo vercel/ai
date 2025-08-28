@@ -34,7 +34,6 @@ for await (const delta of result.fullStream) {
 // Test object literal that should be restructured
 const fileStreamPart = {
   type: 'file',
-  mediaType: 'image/png',
   mimeType: 'image/png',
   data: new Uint8Array([1, 2, 3]),
   base64: 'AQID',

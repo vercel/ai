@@ -37,7 +37,6 @@ const fileStreamPart = {
 
   file: {
     mediaType: 'image/png',
-    mimeType: 'image/png',
     data: new Uint8Array([1, 2, 3]),
     base64: 'AQID',
     uint8Array: new Uint8Array([1, 2, 3])
