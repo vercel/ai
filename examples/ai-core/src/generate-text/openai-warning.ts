@@ -13,7 +13,6 @@ async function main() {
     model: openai('gpt-5-nano'),
     prompt: 'Invent a new holiday and describe its traditions.',
     seed: 123,
-    maxOutputTokens: 400,
   });
 
   console.log(result.text);
