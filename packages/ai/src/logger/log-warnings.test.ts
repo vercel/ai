@@ -1,5 +1,10 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import { logWarnings, type Warning } from './log-warnings';
+import {
+  logWarnings,
+  resetLogWarningsState,
+  FIRST_WARNING_INFO_MESSAGE,
+  type Warning,
+} from './log-warnings';
 import type {
   LanguageModelV2CallWarning,
   ImageModelV2CallWarning,
@@ -7,13 +12,16 @@ import type {
   TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
 
-// Mock console.warn
+// Mock console.warn and console.info
 const mockConsoleWarn = vi.fn();
-vi.stubGlobal('console', { warn: mockConsoleWarn });
+const mockConsoleInfo = vi.fn();
+vi.stubGlobal('console', { warn: mockConsoleWarn, info: mockConsoleInfo });
 
 describe('logWarnings', () => {
   beforeEach(() => {
     mockConsoleWarn.mockClear();
+    mockConsoleInfo.mockClear();
+    resetLogWarningsState();
   });
 
   afterEach(() => {
@@ -122,6 +130,7 @@ describe('logWarnings', () => {
 
       logWarnings(warnings);
 
+      expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
       expect(mockConsoleWarn).toHaveBeenCalledOnce();
       expect(mockConsoleWarn).toHaveBeenCalledWith(
         JSON.stringify(warning, null, 2),
@@ -142,6 +151,7 @@ describe('logWarnings', () => {
 
       logWarnings(warnings);
 
+      expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
       expect(mockConsoleWarn).toHaveBeenCalledTimes(2);
       expect(mockConsoleWarn).toHaveBeenNthCalledWith(
         1,
@@ -158,6 +168,7 @@ describe('logWarnings', () => {
 
       logWarnings(warnings);
 
+      expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
       expect(mockConsoleWarn).not.toHaveBeenCalled();
     });
 
@@ -172,6 +183,7 @@ describe('logWarnings', () => {
 
         logWarnings(warnings);
 
+        expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
         expect(mockConsoleWarn).toHaveBeenCalledOnce();
         expect(mockConsoleWarn).toHaveBeenCalledWith(
           JSON.stringify(warning, null, 2),
@@ -192,6 +204,7 @@ describe('logWarnings', () => {
 
         logWarnings(warnings);
 
+        expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
         expect(mockConsoleWarn).toHaveBeenCalledOnce();
         expect(mockConsoleWarn).toHaveBeenCalledWith(
           JSON.stringify(warning, null, 2),
@@ -208,6 +221,7 @@ describe('logWarnings', () => {
 
         logWarnings(warnings);
 
+        expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
         expect(mockConsoleWarn).toHaveBeenCalledOnce();
         expect(mockConsoleWarn).toHaveBeenCalledWith(
           JSON.stringify(warning, null, 2),
@@ -224,6 +238,7 @@ describe('logWarnings', () => {
 
         logWarnings(warnings);
 
+        expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
         expect(mockConsoleWarn).toHaveBeenCalledOnce();
         expect(mockConsoleWarn).toHaveBeenCalledWith(
           JSON.stringify(warning, null, 2),
@@ -240,6 +255,7 @@ describe('logWarnings', () => {
 
         logWarnings(warnings);
 
+        expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
         expect(mockConsoleWarn).toHaveBeenCalledOnce();
         expect(mockConsoleWarn).toHaveBeenCalledWith(
           JSON.stringify(warning, null, 2),
@@ -273,6 +289,7 @@ describe('logWarnings', () => {
 
         logWarnings(warnings);
 
+        expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
         expect(mockConsoleWarn).toHaveBeenCalledTimes(4);
         expect(mockConsoleWarn).toHaveBeenNthCalledWith(
           1,
@@ -308,10 +325,118 @@ describe('logWarnings', () => {
 
       logWarnings(warnings);
 
+      expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
       expect(mockConsoleWarn).toHaveBeenCalledOnce();
       expect(mockConsoleWarn).toHaveBeenCalledWith(
         JSON.stringify(warning, null, 2),
       );
+    });
+  });
+
+  describe('first-time information note', () => {
+    describe('when using default console behavior', () => {
+      it('should display information note on first call', () => {
+        const warning: LanguageModelV2CallWarning = {
+          type: 'other',
+          message: 'First warning',
+        };
+        const warnings: Warning[] = [warning];
+
+        logWarnings(warnings);
+
+        expect(mockConsoleInfo).toHaveBeenCalledOnce();
+        expect(mockConsoleInfo).toHaveBeenCalledWith(
+          FIRST_WARNING_INFO_MESSAGE,
+        );
+        expect(mockConsoleWarn).toHaveBeenCalledOnce();
+        expect(mockConsoleWarn).toHaveBeenCalledWith(
+          JSON.stringify(warning, null, 2),
+        );
+      });
+
+      it('should not display information note on subsequent calls', () => {
+        const warning1: LanguageModelV2CallWarning = {
+          type: 'other',
+          message: 'First warning',
+        };
+        const warning2: LanguageModelV2CallWarning = {
+          type: 'other',
+          message: 'Second warning',
+        };
+
+        // First call
+        logWarnings([warning1]);
+
+        // Second call
+        logWarnings([warning2]);
+
+        // Info should only be called once (on first call)
+        expect(mockConsoleInfo).toHaveBeenCalledOnce();
+        expect(mockConsoleInfo).toHaveBeenCalledWith(
+          FIRST_WARNING_INFO_MESSAGE,
+        );
+
+        // Warnings should be called twice
+        expect(mockConsoleWarn).toHaveBeenCalledTimes(2);
+        expect(mockConsoleWarn).toHaveBeenNthCalledWith(
+          1,
+          JSON.stringify(warning1, null, 2),
+        );
+        expect(mockConsoleWarn).toHaveBeenNthCalledWith(
+          2,
+          JSON.stringify(warning2, null, 2),
+        );
+      });
+
+      it('should display information note even with empty warnings array', () => {
+        const warnings: Warning[] = [];
+
+        logWarnings(warnings);
+
+        expect(mockConsoleInfo).toHaveBeenCalledOnce();
+        expect(mockConsoleInfo).toHaveBeenCalledWith(
+          FIRST_WARNING_INFO_MESSAGE,
+        );
+        expect(mockConsoleWarn).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when using custom logger function', () => {
+      it('should not display information note with custom logger', () => {
+        const customLogger = vi.fn();
+        globalThis.AI_SDK_LOG_WARNINGS = customLogger;
+
+        const warning: LanguageModelV2CallWarning = {
+          type: 'other',
+          message: 'Test warning',
+        };
+        const warnings: Warning[] = [warning];
+
+        logWarnings(warnings);
+
+        expect(mockConsoleInfo).not.toHaveBeenCalled();
+        expect(customLogger).toHaveBeenCalledOnce();
+        expect(customLogger).toHaveBeenCalledWith(warnings);
+      });
+    });
+
+    describe('when AI_SDK_LOG_WARNINGS is false', () => {
+      beforeEach(() => {
+        globalThis.AI_SDK_LOG_WARNINGS = false;
+      });
+
+      it('should not display information note when logging is disabled', () => {
+        const warning: LanguageModelV2CallWarning = {
+          type: 'other',
+          message: 'Test warning',
+        };
+        const warnings: Warning[] = [warning];
+
+        logWarnings(warnings);
+
+        expect(mockConsoleInfo).not.toHaveBeenCalled();
+        expect(mockConsoleWarn).not.toHaveBeenCalled();
+      });
     });
   });
 });
