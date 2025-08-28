@@ -106,7 +106,7 @@ describe('logWarnings', () => {
       expect(mockConsoleWarn).not.toHaveBeenCalled();
     });
 
-    it('should call the custom function with empty warnings array', () => {
+    it('should not call the custom function with empty warnings array', () => {
       const customLogger = vi.fn();
       globalThis.AI_SDK_LOG_WARNINGS = customLogger;
 
@@ -114,8 +114,7 @@ describe('logWarnings', () => {
 
       logWarnings(warnings);
 
-      expect(customLogger).toHaveBeenCalledOnce();
-      expect(customLogger).toHaveBeenCalledWith(warnings);
+      expect(customLogger).not.toHaveBeenCalled();
       expect(mockConsoleWarn).not.toHaveBeenCalled();
     });
   });
@@ -168,7 +167,7 @@ describe('logWarnings', () => {
 
       logWarnings(warnings);
 
-      expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
+      expect(mockConsoleInfo).not.toHaveBeenCalled(); // No information note with empty array
       expect(mockConsoleWarn).not.toHaveBeenCalled();
     });
 
@@ -388,16 +387,39 @@ describe('logWarnings', () => {
         );
       });
 
-      it('should display information note even with empty warnings array', () => {
+      it('should not display information note with empty warnings array', () => {
         const warnings: Warning[] = [];
 
+        logWarnings(warnings);
+
+        expect(mockConsoleInfo).not.toHaveBeenCalled();
+        expect(mockConsoleWarn).not.toHaveBeenCalled();
+      });
+
+      it('should not count empty arrays towards first call', () => {
+        // First call with empty array should not trigger info message
+        const emptyWarnings: Warning[] = [];
+        logWarnings(emptyWarnings);
+
+        expect(mockConsoleInfo).not.toHaveBeenCalled();
+        expect(mockConsoleWarn).not.toHaveBeenCalled();
+
+        // Second call with actual warning should trigger info message (as it's the "first" real call)
+        const warning: LanguageModelV2CallWarning = {
+          type: 'other',
+          message: 'Test warning',
+        };
+        const warnings: Warning[] = [warning];
         logWarnings(warnings);
 
         expect(mockConsoleInfo).toHaveBeenCalledOnce();
         expect(mockConsoleInfo).toHaveBeenCalledWith(
           FIRST_WARNING_INFO_MESSAGE,
         );
-        expect(mockConsoleWarn).not.toHaveBeenCalled();
+        expect(mockConsoleWarn).toHaveBeenCalledOnce();
+        expect(mockConsoleWarn).toHaveBeenCalledWith(
+          JSON.stringify(warning, null, 2),
+        );
       });
     });
 

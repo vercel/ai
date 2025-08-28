@@ -19,6 +19,11 @@ export const FIRST_WARNING_INFO_MESSAGE =
 let hasLoggedBefore = false;
 
 export const logWarnings: LogWarningsFunction = warnings => {
+  // if the warnings array is empty, do nothing
+  if (warnings.length === 0) {
+    return;
+  }
+
   const logger = globalThis.AI_SDK_LOG_WARNINGS;
 
   // if the logger is set to false, do nothing
