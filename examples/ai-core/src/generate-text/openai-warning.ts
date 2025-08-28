@@ -12,7 +12,7 @@ async function main() {
   const result = await generateText({
     model: openai('gpt-5-nano'),
     prompt: 'Invent a new holiday and describe its traditions.',
-    seed: 123,
+    seed: 123, // causes warning with gpt-5-nano
   });
 
   console.log(result.text);
