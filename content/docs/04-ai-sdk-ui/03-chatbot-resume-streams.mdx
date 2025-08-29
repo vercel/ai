@@ -87,7 +87,12 @@ The POST handler creates resumable streams using the `consumeSseStream` callback
 ```ts filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
 import { readChat, saveChat } from '@util/chat-store';
-import { convertToModelMessages, generateId, streamText, type UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  generateId,
+  streamText,
+  type UIMessage,
+} from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
 
