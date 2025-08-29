@@ -49,7 +49,6 @@ async function foo() {
 export function ChatComponent() {
   useChat({
     model: 'gpt-4',
-    // TODO: this needs to print warning
     maxSteps: 7,
   });
 }
