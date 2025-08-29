@@ -1,1 +1,4 @@
-export { type Warning, type LogWarningsFunction } from './log-warnings';
+export {
+  type Warning as Experimental_Warning,
+  type LogWarningsFunction as Experimental_LogWarningsFunction,
+} from './log-warnings';
