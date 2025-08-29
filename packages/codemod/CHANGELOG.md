@@ -1,5 +1,30 @@
 # @ai-sdk/codemod
 
+## 2.0.7
+
+### Patch Changes
+
+- 5dc1c62: fix(codemod): Language Model V2 Import
+
+  Migration: https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#language-model-v2-import
+
+  Codemod behavior before the fix
+
+  ```diff
+  - import { LanguageModelV2 } from 'ai';
+  + import { LanguageModelV2 } from '@ai-sdk/provider';
+  ```
+
+  After
+
+  ```diff
+  + import { LanguageModelV2 } from 'ai';
+  - import { LanguageModelV2 } from '@ai-sdk/provider';
+  ```
+
+- 7ae8e57: fix(codemod): avoid false positive in `v5/restructure-file-stream-parts`
+- 237a8cc: fix(codemod): Do not replace `delta.type` value from `'text-delta'` to `'text'`
+
 ## 2.0.6
 
 ### Patch Changes

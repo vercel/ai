@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { JSONSchema7 } from '@ai-sdk/provider';
 import { z } from 'zod/v3';
 import { parseArrayDef } from './array';

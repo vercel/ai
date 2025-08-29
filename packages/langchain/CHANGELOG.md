@@ -1,5 +1,12 @@
 # @ai-sdk/langchain
 
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [ca40fac]
+  - ai@5.0.27
+
 ## 1.0.26
 
 ### Patch Changes

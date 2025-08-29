@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createOpenAI } from '../openai-provider';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
+import { describe, it, expect } from 'vitest';
 
 const audioData = await readFile(
   path.join(__dirname, 'transcription-test.mp3'),

@@ -2213,7 +2213,7 @@ const result = streamText({
   prompt: 'Write a story',
   onChunk({ chunk }) {
     switch (chunk.type) {
-      case 'text': {
+      case 'text-delta': {
         // Text chunks now use single 'text' type
         console.log('Text chunk:', chunk.text);
         break;
@@ -3143,7 +3143,7 @@ The chunk types in `fullStream` have been renamed for consistency with UI stream
 ```tsx filename="AI SDK 5.0 (before beta.26)"
 for await (const chunk of result.fullStream) {
   switch (chunk.type) {
-    case 'text': {
+    case 'text-delta': {
       process.stdout.write(chunk.text);
       break;
     }
