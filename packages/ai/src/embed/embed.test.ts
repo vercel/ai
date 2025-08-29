@@ -1,6 +1,6 @@
+import { EmbeddingModelV2 } from '@ai-sdk/provider';
 import assert from 'node:assert';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { EmbeddingModelV2 } from '../../../provider/src/embedding-model';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { Embedding, EmbeddingModelUsage } from '../types';
@@ -202,7 +202,7 @@ describe('telemetry', () => {
   });
 });
 
-export function mockEmbed<VALUE>(
+function mockEmbed<VALUE>(
   expectedValues: Array<VALUE>,
   embeddings: Array<Embedding>,
   usage?: EmbeddingModelUsage,
