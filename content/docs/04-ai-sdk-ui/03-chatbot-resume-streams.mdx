@@ -78,55 +78,9 @@ export function Chat({
 
 When you enable `resume`, the `useChat` hook makes a `GET` request to `/api/chat/[id]/stream` on mount to check for and resume any active streams.
 
-### 2. Implement the GET handler
+Let's start by creating the POST handler to create the resumable stream.
 
-Create a GET handler at `/api/chat/[id]/stream` that:
-
-1. Reads the chat ID from the route params
-2. Loads the chat data to check for an active stream
-3. Returns 204 (No Content) if no stream is active
-4. Resumes the existing stream if one is found
-
-```ts filename="app/api/chat/[id]/stream/route.ts"
-import { readChat } from '@util/chat-store';
-import { UI_MESSAGE_STREAM_HEADERS } from 'ai';
-import { after } from 'next/server';
-import { createResumableStreamContext } from 'resumable-stream';
-
-export async function GET(
-  _: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { id } = await params;
-
-  const chat = await readChat(id);
-
-  if (chat.activeStreamId == null) {
-    // no content response when there is no active stream
-    return new Response(null, { status: 204 });
-  }
-
-  const streamContext = createResumableStreamContext({
-    waitUntil: after,
-  });
-
-  return new Response(
-    await streamContext.resumeExistingStream(chat.activeStreamId),
-    { headers: UI_MESSAGE_STREAM_HEADERS },
-  );
-}
-```
-
-<Note>
-  The `after` function from Next.js allows work to continue after the response
-  has been sent. This ensures that the resumable stream persists in Redis even
-  after the initial response is returned to the client, enabling reconnection
-  later.
-</Note>
-
-After implementing the `GET` handler, create your `POST` handler to create resumable streams.
-
-### 3. Create the POST handler
+### 2. Create the POST handler
 
 The POST handler creates resumable streams using the `consumeSseStream` callback:
 
@@ -179,6 +133,52 @@ export async function POST(req: Request) {
   });
 }
 ```
+
+### 3. Implement the GET handler
+
+Create a GET handler at `/api/chat/[id]/stream` that:
+
+1. Reads the chat ID from the route params
+2. Loads the chat data to check for an active stream
+3. Returns 204 (No Content) if no stream is active
+4. Resumes the existing stream if one is found
+
+```ts filename="app/api/chat/[id]/stream/route.ts"
+import { readChat } from '@util/chat-store';
+import { UI_MESSAGE_STREAM_HEADERS } from 'ai';
+import { after } from 'next/server';
+import { createResumableStreamContext } from 'resumable-stream';
+
+export async function GET(
+  _: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
+  const chat = await readChat(id);
+
+  if (chat.activeStreamId == null) {
+    // no content response when there is no active stream
+    return new Response(null, { status: 204 });
+  }
+
+  const streamContext = createResumableStreamContext({
+    waitUntil: after,
+  });
+
+  return new Response(
+    await streamContext.resumeExistingStream(chat.activeStreamId),
+    { headers: UI_MESSAGE_STREAM_HEADERS },
+  );
+}
+```
+
+<Note>
+  The `after` function from Next.js allows work to continue after the response
+  has been sent. This ensures that the resumable stream persists in Redis even
+  after the initial response is returned to the client, enabling reconnection
+  later.
+</Note>
 
 ## How it works
 
