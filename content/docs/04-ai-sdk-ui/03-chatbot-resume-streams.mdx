@@ -196,7 +196,7 @@ The diagram above shows the complete lifecycle of a resumable stream:
 
 ## Customize the resume endpoint
 
-By default, the `useChat` hook makes a GET request to `/api/chat/[id]/stream` when resuming. Customize this endpoint using the `prepareReconnectToStreamRequest` option in `DefaultChatTransport`:
+By default, the `useChat` hook makes a GET request to `/api/chat/[id]/stream` when resuming. Customize this endpoint, credentials, and headers, using the `prepareReconnectToStreamRequest` option in `DefaultChatTransport`:
 
 ```tsx filename="app/chat/[chatId]/chat.tsx"
 import { useChat } from '@ai-sdk/react';
@@ -215,6 +215,11 @@ export function Chat({ chatData, resume }) {
           // Or use a different pattern:
           // api: `/api/streams/${id}/resume`,
           // api: `/api/resume-chat?id=${id}`,
+          credentials: 'include', // Include cookies/auth
+          headers: {
+            Authorization: 'Bearer token',
+            'X-Custom-Header': 'value',
+          },
         };
       },
     }),
