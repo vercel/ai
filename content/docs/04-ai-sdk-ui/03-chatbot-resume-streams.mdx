@@ -208,8 +208,8 @@ export function Chat({ chatData, resume }) {
     messages: chatData.messages,
     resume,
     transport: new DefaultChatTransport({
+      // Customize reconnect settings (optional)
       prepareReconnectToStreamRequest: ({ id }) => {
-        // Customize the endpoint URL
         return {
           api: `/api/chat/${id}/stream`, // Default pattern
           // Or use a different pattern:
