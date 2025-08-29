@@ -74,6 +74,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onError,
   onToolCall,
   onData,
+  onFinish,
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageChunk>;
@@ -92,6 +93,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     }) => Promise<void>,
   ) => Promise<void>;
   onError: ErrorHandler;
+  onFinish?: () => void;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   return stream.pipeThrough(
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({

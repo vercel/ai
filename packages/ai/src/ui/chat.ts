@@ -137,10 +137,14 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   either synchronously or asynchronously.
      */
   onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
+
   /**
-   * Optional callback function that is called when the assistant message is finished streaming.
+   * Function that is called when the assistant response has finished streaming.
    *
-   * @param message The message that was streamed.
+   * It is not called if the request has been aborted or disconnected.
+   *
+   * @param message The assistant message that was streamed.
+   * @param messages The full chat history, including the assistant message.
    */
   onFinish?: ChatOnFinishCallback<UI_MESSAGE>;
 
