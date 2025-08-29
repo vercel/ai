@@ -73,7 +73,8 @@ export function Chat({
 ```
 
 <Note>
-  You must send the chat ID with each request (see `prepareSendMessagesRequest`).
+  You must send the chat ID with each request (see
+  `prepareSendMessagesRequest`).
 </Note>
 
 When you enable `resume`, the `useChat` hook makes a `GET` request to `/api/chat/[id]/stream` on mount to check for and resume any active streams.
