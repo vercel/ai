@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.23
+
+### Patch Changes
+
+- a9a61b7: Add serviceTier to provider metadata for OpenAI responses
+
 ## 2.0.22
 
 ### Patch Changes

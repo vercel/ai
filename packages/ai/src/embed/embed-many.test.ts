@@ -1,10 +1,9 @@
+import { EmbeddingModelV2 } from '@ai-sdk/provider';
 import assert from 'node:assert';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  MockEmbeddingModelV2,
-  mockEmbed,
-} from '../test/mock-embedding-model-v2';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
+import { Embedding, EmbeddingModelUsage } from '../types';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { embedMany } from './embed-many';
 
@@ -472,3 +471,20 @@ describe('result.providerMetadata', () => {
     expect(result.providerMetadata).toStrictEqual(providerMetadata);
   });
 });
+
+function mockEmbed<VALUE>(
+  expectedValues: Array<VALUE>,
+  embeddings: Array<Embedding>,
+  usage?: EmbeddingModelUsage,
+  response: Awaited<
+    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+  >['response'] = { headers: {}, body: {} },
+  providerMetadata?: Awaited<
+    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+  >['providerMetadata'],
+): EmbeddingModelV2<VALUE>['doEmbed'] {
+  return async ({ values }) => {
+    assert.deepStrictEqual(expectedValues, values);
+    return { embeddings, usage, response, providerMetadata };
+  };
+}

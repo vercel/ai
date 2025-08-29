@@ -24,6 +24,7 @@ export * from './generate-image';
 export * from './generate-object';
 export * from './generate-speech';
 export * from './generate-text';
+export * from './logger';
 export * from './middleware';
 export * from './prompt';
 export * from './registry';

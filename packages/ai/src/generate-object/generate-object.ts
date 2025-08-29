@@ -10,6 +10,7 @@ import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { extractReasoningContent } from '../generate-text/extract-reasoning-content';
 import { extractTextContent } from '../generate-text/extract-text-content';
+import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -428,6 +429,8 @@ Default and recommended: 'auto' (best mode for the model).
         request = generateResult.request ?? {};
         response = generateResult.responseData;
         reasoning = generateResult.reasoning;
+
+        logWarnings(warnings);
 
         const object = await parseAndValidateObjectResultWithRepair(
           result,

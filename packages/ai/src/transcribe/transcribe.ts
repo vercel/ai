@@ -1,17 +1,18 @@
 import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
+import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
+import { logWarnings } from '../logger/log-warnings';
+import { DataContent } from '../prompt';
+import { convertDataContentToUint8Array } from '../prompt/data-content';
+import { TranscriptionWarning } from '../types/transcription-model';
+import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
 } from '../util/detect-media-type';
 import { download } from '../util/download/download';
 import { prepareRetries } from '../util/prepare-retries';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
-import { DataContent } from '../prompt';
-import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { TranscriptionWarning } from '../types/transcription-model';
-import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import { TranscriptionResult } from './transcribe-result';
 
 /**
@@ -110,6 +111,8 @@ Only applicable for HTTP-based providers.
         }) ?? 'audio/wav',
     }),
   );
+
+  logWarnings(result.warnings);
 
   if (!result.text) {
     throw new NoTranscriptGeneratedError({ responses: [result.response] });
