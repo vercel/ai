@@ -1,15 +1,24 @@
-import { describe, it, expect, test, vitest } from 'vitest';
 import {
   ImageModelV2,
   ImageModelV2CallWarning,
   ImageModelV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import { MockImageModelV2 } from '../test/mock-image-model-v2';
-import { generateImage } from './generate-image';
 import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  test,
+  vitest,
+} from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
+import { MockImageModelV2 } from '../test/mock-image-model-v2';
+import { generateImage } from './generate-image';
 
 const prompt = 'sunny day at the beach';
 const testDate = new Date(2024, 0, 1);
@@ -43,6 +52,18 @@ const createMockResponse = (options: {
 });
 
 describe('generateImage', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   it('should send args to doGenerate', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
@@ -106,6 +127,91 @@ describe('generateImage', () => {
         message: 'Setting is not supported',
       },
     ]);
+  });
+
+  it('should call logWarnings with the correct warnings', async () => {
+    const expectedWarnings: ImageModelV2CallWarning[] = [
+      {
+        type: 'other',
+        message: 'Setting is not supported',
+      },
+      {
+        type: 'unsupported-setting',
+        setting: 'size',
+        details: 'Size parameter not supported',
+      },
+    ];
+
+    await generateImage({
+      model: new MockImageModelV2({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [pngBase64],
+            warnings: expectedWarnings,
+          }),
+      }),
+      prompt,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+  });
+
+  it('should call logWarnings with aggregated warnings from multiple calls', async () => {
+    const warning1: ImageModelV2CallWarning = {
+      type: 'other',
+      message: 'Warning from call 1',
+    };
+    const warning2: ImageModelV2CallWarning = {
+      type: 'other',
+      message: 'Warning from call 2',
+    };
+    const expectedAggregatedWarnings = [warning1, warning2];
+
+    let callCount = 0;
+
+    await generateImage({
+      model: new MockImageModelV2({
+        maxImagesPerCall: 1,
+        doGenerate: async () => {
+          switch (callCount++) {
+            case 0:
+              return createMockResponse({
+                images: [pngBase64],
+                warnings: [warning1],
+              });
+            case 1:
+              return createMockResponse({
+                images: [jpegBase64],
+                warnings: [warning2],
+              });
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      prompt,
+      n: 2,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith(expectedAggregatedWarnings);
+  });
+
+  it('should call logWarnings with empty array when no warnings are present', async () => {
+    await generateImage({
+      model: new MockImageModelV2({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [pngBase64],
+            warnings: [], // no warnings
+          }),
+      }),
+      prompt,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith([]);
   });
 
   describe('base64 image data', () => {
