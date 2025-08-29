@@ -9,7 +9,7 @@ description: Learn how to resume chatbot streams after client disconnects.
 
 ## How stream resumption works
 
-Stream resumption requires storing active streams outside your application. The AI SDK provides tools to connect to storage, but you need to set up the storage yourself.
+Stream resumption requires persistence for messages and active streams in your application. The AI SDK provides tools to connect to storage, but you need to set up the storage yourself.
 
 **The AI SDK provides:**
 
@@ -20,7 +20,7 @@ Stream resumption requires storing active streams outside your application. The 
 **You build:**
 
 - Storage to track which stream belongs to each chat
-- Redis to store the stream data
+- Redis to store the UIMessage stream
 - Two API endpoints: POST to create streams, GET to resume them
 - Integration with [`resumable-stream`](https://www.npmjs.com/package/resumable-stream) to manage Redis storage
 
