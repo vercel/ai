@@ -42,7 +42,7 @@ Use the `resume` option in the `useChat` hook to enable stream resumption. When 
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 
 export function Chat({
   chatData,
@@ -87,7 +87,7 @@ The POST handler creates resumable streams using the `consumeSseStream` callback
 ```ts filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
 import { readChat, saveChat } from '@util/chat-store';
-import { convertToModelMessages, generateId, streamText } from 'ai';
+import { convertToModelMessages, generateId, streamText, type UIMessage } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
 
