@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { generateText } from '@ai-sdk/provider';
+import { generateText } from '../../../../ai';
 
 export async function basicGenerateText() {
   const result = await generateText({

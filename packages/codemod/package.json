@@ -20,13 +20,13 @@
     "generate-readme": "tsx scripts/generate-readme.ts"
   },
   "devDependencies": {
-    "ai": "workspace:*",
     "@types/cli-progress": "^3.11.6",
     "@types/debug": "^4.1.12",
     "@types/jscodeshift": "^0.12.0",
     "@types/node": "20.17.24",
     "@types/semver": "^7.5.8",
     "@vercel/ai-tsconfig": "workspace:*",
+    "ai": "workspace:*",
     "msw": "2.6.4",
     "tsup": "^8",
     "tsx": "4.19.2",
@@ -57,6 +57,7 @@
     "cli-progress": "^3.12.0",
     "commander": "^12.1.0",
     "debug": "^4.3.7",
-    "jscodeshift": "^17.1.1"
+    "jscodeshift": "^17.1.1",
+    "ts-morph": "^26.0.0"
   }
 }
