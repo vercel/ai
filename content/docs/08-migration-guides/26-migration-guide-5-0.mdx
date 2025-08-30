@@ -407,15 +407,13 @@ export async function POST(req: Request) {
   const stream = createUIMessageStream({
     execute: ({ writer }) => {
       const statusId = generateId();
+
       // Write general data (transient - not added to message history)
       writer.write({
         type: 'data-status',
         id: statusId,
         data: { status: 'call started' },
       });
-
-      // Generate shared IDs for data parts
-      const completionId = generateId();
 
       const result = streamText({
         model: openai('gpt-4o'),

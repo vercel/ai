@@ -1,10 +1,9 @@
+import { EmbeddingModelV2 } from '@ai-sdk/provider';
 import assert from 'node:assert';
-import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  MockEmbeddingModelV2,
-  mockEmbed,
-} from '../test/mock-embedding-model-v2';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
+import { Embedding, EmbeddingModelUsage } from '../types';
 import { embed } from './embed';
 
 const dummyEmbedding = [0.1, 0.2, 0.3];
@@ -202,3 +201,20 @@ describe('telemetry', () => {
     expect(tracer.jsonSpans).toMatchSnapshot();
   });
 });
+
+function mockEmbed<VALUE>(
+  expectedValues: Array<VALUE>,
+  embeddings: Array<Embedding>,
+  usage?: EmbeddingModelUsage,
+  response: Awaited<
+    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+  >['response'] = { headers: {}, body: {} },
+  providerMetadata?: Awaited<
+    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+  >['providerMetadata'],
+): EmbeddingModelV2<VALUE>['doEmbed'] {
+  return async ({ values }) => {
+    assert.deepStrictEqual(expectedValues, values);
+    return { embeddings, usage, response, providerMetadata };
+  };
+}

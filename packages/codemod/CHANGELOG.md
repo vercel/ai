@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 2.0.8
+
+### Patch Changes
+
+- 8aadbc9: feat(codemod): add not implemented comment and warnings
+
 ## 2.0.7
 
 ### Patch Changes
