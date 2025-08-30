@@ -125,7 +125,7 @@ describe('GatewayEmbeddingModel', () => {
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
         input: testValues,
-        openai: { dimensions: 64 },
+        providerOptions: { openai: { dimensions: 64 } },
       });
     });
 

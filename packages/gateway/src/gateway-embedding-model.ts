@@ -54,7 +54,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
         ),
         body: {
           input: values.length === 1 ? values[0] : values,
-          ...(providerOptions ?? {}),
+          ...(providerOptions ? { providerOptions } : {}),
         },
         successfulResponseHandler: createJsonResponseHandler(
           gatewayEmbeddingResponseSchema,
