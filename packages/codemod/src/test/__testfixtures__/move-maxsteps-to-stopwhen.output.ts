@@ -6,7 +6,7 @@ async function foo() {
   const result = await generateText({
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(5)
   });
 
   const maxSteps = 5;
@@ -14,25 +14,25 @@ async function foo() {
   await generateText({
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(maxSteps),
+    stopWhen: stepCountIs(maxSteps)
   });
 
   await generateText({
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(5 + 5),
+    stopWhen: stepCountIs(5 + 5)
   });
 
   await generateText({
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(maxSteps + 5),
+    stopWhen: stepCountIs(maxSteps + 5)
   });
 
   const obj = {
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(maxSteps + 5),
+    stopWhen: stepCountIs(maxSteps + 5)
   }
 
   await generateText(obj);
