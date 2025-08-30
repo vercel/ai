@@ -61,7 +61,7 @@ import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const { messages, status, sendMessage } = useChat();
-  const [input, setInput] = useState();
+  const [input, setInput] = useState('');
   const handleSubmit = () => sendMessage({ text: input });
 
   return (
