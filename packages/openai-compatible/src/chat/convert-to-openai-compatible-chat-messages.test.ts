@@ -197,6 +197,53 @@ describe('tool calls', () => {
       },
     ]);
   });
+
+  it('should convert tool-result parts in assistant messages to tool messages', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Let me call a tool and process the result.' },
+          {
+            type: 'tool-call',
+            input: { operation: 'add', x: 5, y: 3 },
+            toolCallId: 'calc-123',
+            toolName: 'calculator',
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'calc-123',
+            toolName: 'calculator',
+            output: { type: 'json', value: { result: 8 } },
+          },
+          { type: 'text', text: 'The calculation is complete.' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content:
+          'Let me call a tool and process the result.The calculation is complete.',
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'calc-123',
+            function: {
+              name: 'calculator',
+              arguments: JSON.stringify({ operation: 'add', x: 5, y: 3 }),
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        tool_call_id: 'calc-123',
+        content: JSON.stringify({ result: 8 }),
+      },
+    ]);
+  });
 });
 
 describe('provider-specific metadata merging', () => {

@@ -1,9 +1,13 @@
 import {
   LanguageModelV2Prompt,
+  LanguageModelV2ToolResultOutput,
   SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
+import {
+  OpenAICompatibleChatPrompt,
+  OpenAICompatibleToolMessage,
+} from './openai-compatible-api-types';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
@@ -81,6 +85,8 @@ export function convertToOpenAICompatibleChatMessages(
           function: { name: string; arguments: string };
         }> = [];
 
+        const toolMessages: OpenAICompatibleToolMessage[] = [];
+
         for (const part of content) {
           const partMetadata = getOpenAIMetadata(part);
           switch (part.type) {
@@ -100,6 +106,19 @@ export function convertToOpenAICompatibleChatMessages(
               });
               break;
             }
+            case 'tool-result': {
+              const contentValue = toolResultOutputToOpenAICompatibleContent(
+                part.output,
+              );
+              const toolResponseMetadata = getOpenAIMetadata(part);
+
+              toolMessages.push({
+                role: 'tool',
+                tool_call_id: part.toolCallId,
+                content: contentValue,
+                ...toolResponseMetadata,
+              });
+            }
           }
         }
 
@@ -110,27 +129,20 @@ export function convertToOpenAICompatibleChatMessages(
           ...metadata,
         });
 
+        for (const toolMessage of toolMessages) {
+          messages.push(toolMessage);
+        }
+
         break;
       }
 
       case 'tool': {
         for (const toolResponse of content) {
-          const output = toolResponse.output;
-
-          let contentValue: string;
-          switch (output.type) {
-            case 'text':
-            case 'error-text':
-              contentValue = output.value;
-              break;
-            case 'content':
-            case 'json':
-            case 'error-json':
-              contentValue = JSON.stringify(output.value);
-              break;
-          }
-
+          const contentValue = toolResultOutputToOpenAICompatibleContent(
+            toolResponse.output,
+          );
           const toolResponseMetadata = getOpenAIMetadata(toolResponse);
+
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
@@ -149,4 +161,18 @@ export function convertToOpenAICompatibleChatMessages(
   }
 
   return messages;
+}
+
+function toolResultOutputToOpenAICompatibleContent(
+  output: LanguageModelV2ToolResultOutput,
+): string {
+  switch (output.type) {
+    case 'text':
+    case 'error-text':
+      return output.value;
+    case 'content':
+    case 'json':
+    case 'error-json':
+      return JSON.stringify(output.value);
+  }
 }
