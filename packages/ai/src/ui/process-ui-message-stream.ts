@@ -619,6 +619,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               if (chunk.messageMetadata != null) {
                 write();
               }
+
+              onFinish?.();
+
               break;
             }
 

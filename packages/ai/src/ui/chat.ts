@@ -97,9 +97,21 @@ export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
   dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
 ) => void;
 
+/**
+ * Function that is called when the assistant response has finished streaming.
+ *
+ * It is not called if the request has been aborted or disconnected.
+ *
+ * @param isAborted Indicates whether the request has been aborted.
+ * @param isDisconnected Indicates whether the request has been disconnected.
+ * @param message The assistant message that was streamed.
+ * @param messages The full chat history, including the assistant message.
+ */
 export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
   message: UI_MESSAGE;
   messages: UI_MESSAGE[];
+  isAborted: boolean;
+  isDisconnected: boolean;
 }) => void;
 
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
@@ -140,11 +152,6 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
 
   /**
    * Function that is called when the assistant response has finished streaming.
-   *
-   * It is not called if the request has been aborted or disconnected.
-   *
-   * @param message The assistant message that was streamed.
-   * @param messages The full chat history, including the assistant message.
    */
   onFinish?: ChatOnFinishCallback<UI_MESSAGE>;
 
