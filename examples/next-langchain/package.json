@@ -11,10 +11,10 @@
   "dependencies": {
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/langchain": "workspace:*",
-    "@langchain/openai": "0.0.28",
-    "@langchain/core": "0.1.63",
+    "@langchain/openai": "^0.5.10",
+    "@langchain/core": "^0.3.12",
     "ai": "workspace:*",
-    "langchain": "0.1.36",
+    "langchain": "^0.3.2",
     "next": "latest",
     "react": "^18",
     "react-dom": "^18"
