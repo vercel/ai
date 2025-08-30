@@ -100,18 +100,19 @@ export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
 /**
  * Function that is called when the assistant response has finished streaming.
  *
- * It is not called if the request has been aborted or disconnected.
- *
- * @param isAborted Indicates whether the request has been aborted.
- * @param isDisconnected Indicates whether the request has been disconnected.
  * @param message The assistant message that was streamed.
  * @param messages The full chat history, including the assistant message.
+ *
+ * @param isAbort Indicates whether the request has been aborted.
+ * @param isDisconnect Indicates whether the request has been ended by a network error.
+ * @param isError Indicates whether the request has been ended by an error.
  */
 export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
   message: UI_MESSAGE;
   messages: UI_MESSAGE[];
-  isAborted: boolean;
-  isDisconnected: boolean;
+  isAbort: boolean;
+  isDisconnect: boolean;
+  isError: boolean;
 }) => void;
 
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
@@ -488,6 +489,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
     const lastMessage = this.lastMessage;
 
+    let isAbort = false;
+    let isDisconnect = false;
+    let isError = false;
+
     try {
       const activeResponse = {
         state: createStreamingUIMessageState({
@@ -574,17 +579,24 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         },
       });
 
-      this.onFinish?.({
-        message: activeResponse.state.message,
-        messages: this.state.messages,
-      });
-
       this.setStatus({ status: 'ready' });
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
+        isAbort = true;
         this.setStatus({ status: 'ready' });
         return null;
+      }
+
+      isError = true;
+
+      // Network errors such as disconnected, timeout, etc.
+      if (
+        err instanceof TypeError &&
+        (err.message.toLowerCase().includes('fetch') ||
+          err.message.toLowerCase().includes('network'))
+      ) {
+        isDisconnect = true;
       }
 
       if (this.onError && err instanceof Error) {
@@ -593,6 +605,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       this.setStatus({ status: 'error', error: err as Error });
     } finally {
+      try {
+        this.onFinish?.({
+          message: this.activeResponse!.state.message,
+          messages: this.state.messages,
+          isAbort: false,
+          isDisconnect: false,
+          isError: false,
+        });
+      } catch (err) {
+        console.error(err);
+      }
+
       this.activeResponse = undefined;
     }
 
