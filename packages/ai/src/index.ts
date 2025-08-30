@@ -28,6 +28,7 @@ export * from './logger';
 export * from './middleware';
 export * from './prompt';
 export * from './registry';
+export * from './rerank';
 export * from './text-stream';
 export * from './tool';
 export * from './transcribe';
