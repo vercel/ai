@@ -69,6 +69,17 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
         ? { type: 'auto' }
         : typeof toolChoice === 'string'
           ? { type: toolChoice }
-          : { type: 'tool' as const, toolName: toolChoice.toolName as string },
+          : typeof toolChoice === 'object' &&
+              'type' in toolChoice &&
+              toolChoice.type === 'provider-defined' &&
+              'toolChoice' in toolChoice
+            ? {
+                type: 'provider-defined' as const,
+                toolChoice: toolChoice.toolChoice,
+              }
+            : {
+                type: 'tool' as const,
+                toolName: toolChoice.toolName as string,
+              },
   };
 }
