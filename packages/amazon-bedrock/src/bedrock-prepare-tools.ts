@@ -9,7 +9,13 @@ import {
   anthropicTools,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
-import { BedrockTool, BedrockToolConfiguration } from './bedrock-api-types';
+import {
+  BEDROCK_CACHE_POINT,
+  BedrockCachePoint,
+  BedrockTool,
+  BedrockToolConfiguration,
+} from './bedrock-api-types';
+import { getCachePoint } from './convert-to-bedrock-chat-messages';
 
 export function prepareTools({
   tools,
@@ -70,7 +76,7 @@ export function prepareTools({
   const functionTools = supportedTools.filter(t => t.type === 'function');
 
   let additionalTools: Record<string, unknown> | undefined = undefined;
-  const bedrockTools: BedrockTool[] = [];
+  const bedrockTools: (BedrockTool | BedrockCachePoint)[] = [];
 
   const usingAnthropicTools =
     isAnthropicModel && providerDefinedTools.length > 0;
@@ -146,6 +152,9 @@ export function prepareTools({
         },
       },
     });
+    if (getCachePoint(tool.providerOptions)) {
+      bedrockTools.push(BEDROCK_CACHE_POINT);
+    }
   }
 
   // Handle toolChoice for standard Bedrock tools, but NOT for Anthropic provider-defined tools
