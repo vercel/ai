@@ -49,7 +49,9 @@ export default function ChatComponent({
         }
       },
     }),
-    onFinish() {
+    onFinish(options) {
+      console.log('onFinish', options);
+
       // for new chats, the router cache needs to be invalidated so
       // navigation to the previous page triggers SSR correctly
       if (isNewChat) {
