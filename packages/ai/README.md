@@ -56,7 +56,7 @@ npm install @ai-sdk/react
 ```tsx
 'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
