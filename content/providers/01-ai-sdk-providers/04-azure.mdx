@@ -324,6 +324,69 @@ The following OpenAI-specific metadata is returned:
 - **reasoningTokens** _number_
   The number of reasoning tokens that the model generated.
 
+#### File Search
+
+The Azure OpenAI responses API supports file search through the `azure.tools.fileSearch` tool.
+
+You can force the use of the file search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'file_search' }`.
+
+```ts
+const result = await generateText({
+  model: azure.responses('gpt-5'),
+  prompt: 'What does the document say about user authentication?',
+  tools: {
+    file_search: azure.tools.fileSearch({
+      // optional configuration:
+      vectorStoreIds: ['vs_123', 'vs_456'],
+      maxNumResults: 10,
+      ranking: {
+        ranker: 'auto',
+      },
+    }),
+  },
+  // Force file search tool:
+  toolChoice: { type: 'tool', toolName: 'file_search' },
+});
+```
+
+<Note>
+  The tool must be named `file_search` when using Azure OpenAI's file search
+  functionality. This name is required by Azure OpenAI's API specification and
+  cannot be customized.
+</Note>
+
+#### Code Interpreter
+
+The Azure OpenAI responses API supports the code interpreter tool through the `azure.tools.codeInterpreter` tool. This allows models to write and execute Python code.
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: azure.responses('gpt-5'),
+  prompt: 'Write and run Python code to calculate the factorial of 10',
+  tools: {
+    code_interpreter: azure.tools.codeInterpreter({
+      // optional configuration:
+      container: {
+        fileIds: ['assistant-123', 'assistant-456'], // optional file IDs to make available
+      },
+    }),
+  },
+});
+```
+
+The code interpreter tool can be configured with:
+
+- **container**: Either a container ID string or an object with `fileIds` to specify uploaded files that should be available to the code interpreter
+
+<Note>
+  The tool must be named `code_interpreter` when using Azure OpenAI's code
+  interpreter functionality. This name is required by Azure OpenAI's API
+  specification and cannot be customized.
+</Note>
+
 #### PDF support
 
 The Azure OpenAI Responses API supports reading PDF files.
