@@ -65,6 +65,7 @@ export default function Page() {
   const handleSubmit = (e) => {
     e.preventDefault();
     sendMessage({ text: input });
+    setInput('');
   };
 
   return (
