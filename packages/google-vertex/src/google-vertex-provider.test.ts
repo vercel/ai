@@ -13,6 +13,11 @@ vi.mock('@ai-sdk/provider-utils', () => ({
 
 vi.mock('@ai-sdk/google/internal', () => ({
   GoogleGenerativeAILanguageModel: vi.fn(),
+  googleTools: {
+    googleSearch: vi.fn(),
+    urlContext: vi.fn(),
+    codeExecution: vi.fn(),
+  },
 }));
 
 vi.mock('./google-vertex-embedding-model', () => ({
@@ -208,6 +213,18 @@ describe('google-vertex-provider', () => {
         headers: expect.any(Object),
       }),
     );
+  });
+
+  it('should expose tools', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+
+    expect(provider.tools).toBeDefined();
+    expect(provider.tools.googleSearch).toBeDefined();
+    expect(provider.tools.urlContext).toBeDefined();
+    expect(provider.tools.codeExecution).toBeDefined();
   });
 
   it('should use region-prefixed URL for non-global regions', () => {
