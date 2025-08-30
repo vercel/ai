@@ -62,7 +62,7 @@ import { useChat } from '@ai-sdk/react';
 export default function Page() {
   const { messages, status, sendMessage } = useChat();
   const [input, setInput] = useState('');
-  const handleSubmit = (e) => {
+  const handleSubmit = e => {
     e.preventDefault();
     sendMessage({ text: input });
     setInput('');
@@ -88,7 +88,7 @@ export default function Page() {
         <input
           value={input}
           placeholder="Send a message..."
-          onChange={(e) => setInput(e.target.value)}
+          onChange={e => setInput(e.target.value)}
           disabled={status !== 'ready'}
         />
       </form>
