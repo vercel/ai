@@ -9,7 +9,7 @@ import { UIMessage } from './ui-messages';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 class TestChatState<UI_MESSAGE extends UIMessage>
   implements ChatState<UI_MESSAGE>
@@ -69,8 +69,11 @@ const server = createTestServer({
 });
 
 describe('Chat', () => {
-  describe('sendMessage', () => {
-    it('should send a simple message', async () => {
+  describe('send a simple message', () => {
+    let chat: TestChat;
+    let letOnFinishArgs: any[] = [];
+
+    beforeEach(async () => {
       server.urls['http://localhost:3000/api/chat'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -96,9 +99,9 @@ describe('Chat', () => {
       };
 
       const finishPromise = createResolvablePromise<void>();
+      letOnFinishArgs = [];
 
-      let letOnFinishArgs: any = [];
-      const chat = new TestChat({
+      chat = new TestChat({
         id: '123',
         generateId: mockId(),
         transport: new DefaultChatTransport({
@@ -115,9 +118,66 @@ describe('Chat', () => {
       });
 
       await finishPromise.promise;
+    });
 
-      expect(letOnFinishArgs[0].message).toBe(chat.lastMessage);
-      expect(letOnFinishArgs[0].messages).toBe(chat.messages);
+    it('should call onFinish with message and messages', async () => {
+      expect(letOnFinishArgs).toMatchInlineSnapshot(`
+        [
+          {
+            "isAbort": false,
+            "isDisconnect": false,
+            "isError": false,
+            "message": {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+            "messages": [
+              {
+                "id": "id-0",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "text": "Hello, world!",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "id": "id-1",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
+                  },
+                  {
+                    "providerMetadata": undefined,
+                    "state": "done",
+                    "text": "Hello, world.",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+          },
+        ]
+      `);
+    });
+
+    it('should send the messages to the API', async () => {
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(
         `
         {
@@ -138,39 +198,43 @@ describe('Chat', () => {
         }
       `,
       );
+    });
 
+    it('should return the correct final messages', async () => {
       expect(chat.messages).toMatchInlineSnapshot(`
-        [
-          {
-            "id": "id-0",
-            "metadata": undefined,
-            "parts": [
-              {
-                "text": "Hello, world!",
-                "type": "text",
-              },
-            ],
-            "role": "user",
-          },
-          {
-            "id": "id-1",
-            "metadata": undefined,
-            "parts": [
-              {
-                "type": "step-start",
-              },
-              {
-                "providerMetadata": undefined,
-                "state": "done",
-                "text": "Hello, world.",
-                "type": "text",
-              },
-            ],
-            "role": "assistant",
-          },
-        ]
-      `);
+      [
+        {
+          "id": "id-0",
+          "metadata": undefined,
+          "parts": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "id": "id-1",
+          "metadata": undefined,
+          "parts": [
+            {
+              "type": "step-start",
+            },
+            {
+              "providerMetadata": undefined,
+              "state": "done",
+              "text": "Hello, world.",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+    });
 
+    it('should update the messages during the streaming', async () => {
       expect(chat.history).toMatchInlineSnapshot(`
         [
           [],
@@ -364,68 +428,182 @@ describe('Chat', () => {
         ]
       `);
     });
+  });
 
-    it('should include the metadata of text message', async () => {
-      server.urls['http://localhost:3000/api/chat'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          formatChunk({ type: 'start' }),
-          formatChunk({ type: 'start-step' }),
-          formatChunk({ type: 'text-start', id: 'text-1' }),
-          formatChunk({
-            type: 'text-delta',
-            id: 'text-1',
-            delta: 'Hello, world.',
-          }),
-          formatChunk({ type: 'text-end', id: 'text-1' }),
-          formatChunk({ type: 'finish-step' }),
-          formatChunk({ type: 'finish' }),
-        ],
-      };
-
-      const finishPromise = createResolvablePromise<void>();
-
-      const chat = new TestChat({
-        id: '123',
-        generateId: mockId(),
-        transport: new DefaultChatTransport({
-          api: 'http://localhost:3000/api/chat',
+  it('should include the metadata of text message', async () => {
+    server.urls['http://localhost:3000/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'start' }),
+        formatChunk({ type: 'start-step' }),
+        formatChunk({ type: 'text-start', id: 'text-1' }),
+        formatChunk({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Hello, world.',
         }),
-        onFinish: () => finishPromise.resolve(),
-      });
+        formatChunk({ type: 'text-end', id: 'text-1' }),
+        formatChunk({ type: 'finish-step' }),
+        formatChunk({ type: 'finish' }),
+      ],
+    };
 
-      chat.sendMessage({
-        text: 'Hello, world!',
-        metadata: { someData: true },
-      });
+    const finishPromise = createResolvablePromise<void>();
 
-      await finishPromise.promise;
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: new DefaultChatTransport({
+        api: 'http://localhost:3000/api/chat',
+      }),
+      onFinish: () => finishPromise.resolve(),
+    });
 
-      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(
-        `
-        {
-          "id": "123",
-          "messages": [
-            {
-              "id": "id-0",
-              "metadata": {
-                "someData": true,
+    chat.sendMessage({
+      text: 'Hello, world!',
+      metadata: { someData: true },
+    });
+
+    await finishPromise.promise;
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(
+      `
+      {
+        "id": "123",
+        "messages": [
+          {
+            "id": "id-0",
+            "metadata": {
+              "someData": true,
+            },
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
               },
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
+            ],
+            "role": "user",
+          },
+        ],
+        "trigger": "submit-message",
+      }
+    `,
+    );
+
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "id-0",
+          "metadata": {
+            "someData": true,
+          },
+          "parts": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
             },
           ],
-          "trigger": "submit-message",
-        }
-      `,
-      );
+          "role": "user",
+        },
+        {
+          "id": "id-1",
+          "metadata": undefined,
+          "parts": [
+            {
+              "type": "step-start",
+            },
+            {
+              "providerMetadata": undefined,
+              "state": "done",
+              "text": "Hello, world.",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
 
-      expect(chat.messages).toMatchInlineSnapshot(`
+    expect(chat.history).toMatchInlineSnapshot(`
+      [
+        [],
+        [
+          {
+            "id": "id-0",
+            "metadata": {
+              "someData": true,
+            },
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        [
+          {
+            "id": "id-0",
+            "metadata": {
+              "someData": true,
+            },
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "streaming",
+                "text": "",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        [
+          {
+            "id": "id-0",
+            "metadata": {
+              "someData": true,
+            },
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "streaming",
+                "text": "Hello, world.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
         [
           {
             "id": "id-0",
@@ -456,204 +634,303 @@ describe('Chat', () => {
             ],
             "role": "assistant",
           },
-        ]
-      `);
+        ],
+      ]
+    `);
+  });
 
-      expect(chat.history).toMatchInlineSnapshot(`
-        [
-          [],
-          [
-            {
-              "id": "id-0",
-              "metadata": {
-                "someData": true,
-              },
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-          ],
-          [
-            {
-              "id": "id-0",
-              "metadata": {
-                "someData": true,
-              },
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-            {
-              "id": "id-1",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-          [
-            {
-              "id": "id-0",
-              "metadata": {
-                "someData": true,
-              },
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-            {
-              "id": "id-1",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "Hello, world.",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-          [
-            {
-              "id": "id-0",
-              "metadata": {
-                "someData": true,
-              },
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-            {
-              "id": "id-1",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "done",
-                  "text": "Hello, world.",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-        ]
-      `);
+  it('should replace an existing user message', async () => {
+    server.urls['http://localhost:3000/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'start' }),
+        formatChunk({ type: 'start-step' }),
+        formatChunk({ type: 'text-start', id: 'text-1' }),
+        formatChunk({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Hello',
+        }),
+        formatChunk({ type: 'text-delta', id: 'text-1', delta: ',' }),
+        formatChunk({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: ' world',
+        }),
+        formatChunk({ type: 'text-delta', id: 'text-1', delta: '.' }),
+        formatChunk({ type: 'text-end', id: 'text-1' }),
+        formatChunk({ type: 'finish-step' }),
+        formatChunk({ type: 'finish' }),
+      ],
+    };
+
+    const finishPromise = createResolvablePromise<void>();
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId({ prefix: 'newid' }),
+      transport: new DefaultChatTransport({
+        api: 'http://localhost:3000/api/chat',
+      }),
+      onFinish: () => finishPromise.resolve(),
+      messages: [
+        {
+          id: 'id-0',
+          role: 'user',
+          parts: [{ text: 'Hi!', type: 'text' }],
+        },
+        {
+          id: 'id-1',
+          role: 'assistant',
+          parts: [{ text: 'How can I help you?', type: 'text', state: 'done' }],
+        },
+      ],
     });
 
-    it('should replace an existing user message', async () => {
-      server.urls['http://localhost:3000/api/chat'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          formatChunk({ type: 'start' }),
-          formatChunk({ type: 'start-step' }),
-          formatChunk({ type: 'text-start', id: 'text-1' }),
-          formatChunk({
-            type: 'text-delta',
-            id: 'text-1',
-            delta: 'Hello',
-          }),
-          formatChunk({ type: 'text-delta', id: 'text-1', delta: ',' }),
-          formatChunk({
-            type: 'text-delta',
-            id: 'text-1',
-            delta: ' world',
-          }),
-          formatChunk({ type: 'text-delta', id: 'text-1', delta: '.' }),
-          formatChunk({ type: 'text-end', id: 'text-1' }),
-          formatChunk({ type: 'finish-step' }),
-          formatChunk({ type: 'finish' }),
-        ],
-      };
+    chat.sendMessage({
+      text: 'Hello, world!',
+      messageId: 'id-0',
+    });
 
-      const finishPromise = createResolvablePromise<void>();
+    await finishPromise.promise;
 
-      const chat = new TestChat({
-        id: '123',
-        generateId: mockId({ prefix: 'newid' }),
-        transport: new DefaultChatTransport({
-          api: 'http://localhost:3000/api/chat',
-        }),
-        onFinish: () => finishPromise.resolve(),
-        messages: [
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(
+      `
+      {
+        "id": "123",
+        "messageId": "id-0",
+        "messages": [
           {
-            id: 'id-0',
-            role: 'user',
-            parts: [{ text: 'Hi!', type: 'text' }],
-          },
-          {
-            id: 'id-1',
-            role: 'assistant',
-            parts: [
-              { text: 'How can I help you?', type: 'text', state: 'done' },
+            "id": "id-0",
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
             ],
+            "role": "user",
           },
         ],
-      });
+        "trigger": "submit-message",
+      }
+    `,
+    );
 
-      chat.sendMessage({
-        text: 'Hello, world!',
-        messageId: 'id-0',
-      });
-
-      await finishPromise.promise;
-
-      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(
-        `
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
         {
-          "id": "123",
-          "messageId": "id-0",
-          "messages": [
+          "id": "id-0",
+          "metadata": undefined,
+          "parts": [
             {
-              "id": "id-0",
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
+              "text": "Hello, world!",
+              "type": "text",
             },
           ],
-          "trigger": "submit-message",
-        }
-      `,
-      );
+          "role": "user",
+        },
+        {
+          "id": "newid-0",
+          "metadata": undefined,
+          "parts": [
+            {
+              "type": "step-start",
+            },
+            {
+              "providerMetadata": undefined,
+              "state": "done",
+              "text": "Hello, world.",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
 
-      expect(chat.messages).toMatchInlineSnapshot(`
+    expect(chat.history).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "id": "id-0",
+            "parts": [
+              {
+                "text": "Hi!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "parts": [
+              {
+                "state": "done",
+                "text": "How can I help you?",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "newid-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "streaming",
+                "text": "",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "newid-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "streaming",
+                "text": "Hello",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "newid-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "streaming",
+                "text": "Hello,",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "newid-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "streaming",
+                "text": "Hello, world",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "newid-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "streaming",
+                "text": "Hello, world.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
         [
           {
             "id": "id-0",
@@ -682,254 +959,39 @@ describe('Chat', () => {
             ],
             "role": "assistant",
           },
-        ]
-      `);
-
-      expect(chat.history).toMatchInlineSnapshot(`
-        [
-          [
-            {
-              "id": "id-0",
-              "parts": [
-                {
-                  "text": "Hi!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-            {
-              "id": "id-1",
-              "parts": [
-                {
-                  "state": "done",
-                  "text": "How can I help you?",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-          [
-            {
-              "id": "id-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-          ],
-          [
-            {
-              "id": "id-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-            {
-              "id": "newid-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-          [
-            {
-              "id": "id-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-            {
-              "id": "newid-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "Hello",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-          [
-            {
-              "id": "id-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-            {
-              "id": "newid-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "Hello,",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-          [
-            {
-              "id": "id-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-            {
-              "id": "newid-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "Hello, world",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-          [
-            {
-              "id": "id-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-            {
-              "id": "newid-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "Hello, world.",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-          [
-            {
-              "id": "id-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-            {
-              "id": "newid-0",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "done",
-                  "text": "Hello, world.",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-        ]
-      `);
-    });
-
-    it('should handle error parts', async () => {
-      server.urls['http://localhost:3000/api/chat'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          formatChunk({ type: 'start' }),
-          formatChunk({ type: 'error', errorText: 'test-error' }),
         ],
-      };
+      ]
+    `);
+  });
 
-      const errorPromise = createResolvablePromise<void>();
+  it('should handle error parts', async () => {
+    server.urls['http://localhost:3000/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'start' }),
+        formatChunk({ type: 'error', errorText: 'test-error' }),
+      ],
+    };
 
-      const chat = new TestChat({
-        id: '123',
-        generateId: mockId(),
-        transport: new DefaultChatTransport({
-          api: 'http://localhost:3000/api/chat',
-        }),
-        onError: () => errorPromise.resolve(),
-      });
+    const errorPromise = createResolvablePromise<void>();
 
-      chat.sendMessage({
-        text: 'Hello, world!',
-      });
-
-      await errorPromise.promise;
-
-      expect(chat.error).toMatchInlineSnapshot(`[Error: test-error]`);
-      expect(chat.status).toBe('error');
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: new DefaultChatTransport({
+        api: 'http://localhost:3000/api/chat',
+      }),
+      onError: () => errorPromise.resolve(),
     });
+
+    chat.sendMessage({
+      text: 'Hello, world!',
+    });
+
+    await errorPromise.promise;
+
+    expect(chat.error).toMatchInlineSnapshot(`[Error: test-error]`);
+    expect(chat.status).toBe('error');
   });
 
   describe('sendAutomaticallyWhen', () => {
