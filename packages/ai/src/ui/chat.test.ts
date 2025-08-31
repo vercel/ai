@@ -430,6 +430,123 @@ describe('Chat', () => {
     });
   });
 
+  describe('send handle a disconnected response stream', () => {
+    let chat: TestChat;
+    let letOnFinishArgs: any[] = [];
+
+    beforeEach(async () => {
+      const controller = new TestResponseController();
+
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      controller.write(formatChunk({ type: 'start' }));
+      controller.write(formatChunk({ type: 'start-step' }));
+      controller.write(formatChunk({ type: 'text-start', id: 'text-1' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: 'text-1', delta: 'Hello' }),
+      );
+
+      const networkError = Object.assign(new TypeError('fetch failed'), {
+        cause: new Error('Connection reset by peer'),
+      });
+      controller.error(networkError);
+
+      const finishPromise = createResolvablePromise<void>();
+      letOnFinishArgs = [];
+
+      chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        onFinish: (...args) => {
+          letOnFinishArgs = args;
+          return finishPromise.resolve();
+        },
+      });
+
+      chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      await finishPromise.promise;
+    });
+
+    it('should call onFinish with message and messages', async () => {
+      expect(letOnFinishArgs).toMatchInlineSnapshot(`
+        [
+          {
+            "isAbort": false,
+            "isDisconnect": true,
+            "isError": true,
+            "message": {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [],
+              "role": "assistant",
+            },
+            "messages": [
+              {
+                "id": "id-0",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "text": "Hello, world!",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+          },
+        ]
+      `);
+    });
+
+    it('should return the correct final messages', async () => {
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should update the messages during the streaming', async () => {
+      expect(chat.history).toMatchInlineSnapshot(`
+        [
+          [],
+          [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+        ]
+      `);
+    });
+  });
+
   it('should include the metadata of text message', async () => {
     server.urls['http://localhost:3000/api/chat'].response = {
       type: 'stream-chunks',
