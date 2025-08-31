@@ -10,6 +10,7 @@ import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 import { describe, it, expect, beforeEach } from 'vitest';
+import { delay } from '@ai-sdk/provider-utils';
 
 class TestChatState<UI_MESSAGE extends UIMessage>
   implements ChatState<UI_MESSAGE>
@@ -442,18 +443,6 @@ describe('Chat', () => {
         controller,
       };
 
-      controller.write(formatChunk({ type: 'start' }));
-      controller.write(formatChunk({ type: 'start-step' }));
-      controller.write(formatChunk({ type: 'text-start', id: 'text-1' }));
-      controller.write(
-        formatChunk({ type: 'text-delta', id: 'text-1', delta: 'Hello' }),
-      );
-
-      const networkError = Object.assign(new TypeError('fetch failed'), {
-        cause: new Error('Connection reset by peer'),
-      });
-      controller.error(networkError);
-
       const finishPromise = createResolvablePromise<void>();
       letOnFinishArgs = [];
 
@@ -473,6 +462,20 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
+      controller.write(formatChunk({ type: 'start' }));
+      controller.write(formatChunk({ type: 'start-step' }));
+      controller.write(formatChunk({ type: 'text-start', id: 'text-1' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: 'text-1', delta: 'Hello' }),
+      );
+
+      // wait until the stream is consumed before sending the error
+      while ((chat.messages[1]?.parts[1] as any)?.text !== 'Hello') {
+        await delay();
+      }
+
+      controller.error(new TypeError('fetch failed'));
+
       await finishPromise.promise;
     });
 
@@ -486,7 +489,17 @@ describe('Chat', () => {
             "message": {
               "id": "id-1",
               "metadata": undefined,
-              "parts": [],
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
               "role": "assistant",
             },
             "messages": [
@@ -500,6 +513,22 @@ describe('Chat', () => {
                   },
                 ],
                 "role": "user",
+              },
+              {
+                "id": "id-1",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
+                  },
+                  {
+                    "providerMetadata": undefined,
+                    "state": "streaming",
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
               },
             ],
           },
@@ -521,6 +550,22 @@ describe('Chat', () => {
             ],
             "role": "user",
           },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "streaming",
+                "text": "Hello",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
         ]
       `);
     });
@@ -540,6 +585,64 @@ describe('Chat', () => {
                 },
               ],
               "role": "user",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
             },
           ],
         ]
