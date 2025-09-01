@@ -16,7 +16,8 @@ export function writeToServerResponse({
   headers?: Record<string, string | number | string[]>;
   stream: ReadableStream<Uint8Array>;
 }): void {
-  response.writeHead(status ?? 200, statusText, headers);
+  if (statusText) response.writeHead(status ?? 200, statusText, headers);
+  else response.writeHead(status ?? 200, headers);
 
   const reader = stream.getReader();
   const read = async () => {
