@@ -115,10 +115,10 @@ Configure generation parameters:
 const { text } = await generateText({
   model: apple(),
   prompt: 'Generate creative content',
-  temperature: 0.8,        // Controls randomness (0-1)
-  maxTokens: 150,          // Maximum tokens to generate
-  topP: 0.9,               // Nucleus sampling threshold
-  topK: 40,                // Top-K sampling parameter
+  temperature: 0.8, // Controls randomness (0-1)
+  maxTokens: 150, // Maximum tokens to generate
+  topP: 0.9, // Nucleus sampling threshold
+  topK: 40, // Top-K sampling parameter
 });
 ```
 
@@ -133,8 +133,8 @@ import { z } from 'zod';
 
 const getWeather = tool({
   description: 'Get current weather information',
-  parameters: z.object({ 
-    city: z.string().describe('The city name') 
+  parameters: z.object({
+    city: z.string().describe('The city name'),
   }),
   execute: async ({ city }) => {
     return `Weather in ${city}: Sunny, 25°C`;
@@ -144,8 +144,8 @@ const getWeather = tool({
 // Create a provider with all available tools
 const apple = createAppleProvider({
   availableTools: {
-    getWeather
-  }
+    getWeather,
+  },
 });
 
 // Use the provider with selected tools
@@ -155,8 +155,11 @@ const result = await generateText({
   tools: { getWeather },
 });
 ```
+
 <Note>
-  Since tools are executed by Apple Intelligence rather than the AI SDK, multi-step features like `maxSteps`, `onStepStart`, and `onStepFinish` are not supported.
+  Since tools are executed by Apple Intelligence rather than the AI SDK,
+  multi-step features like `maxSteps`, `onStepStart`, and `onStepFinish` are not
+  supported.
 </Note>
 
 ## Text Embeddings
@@ -233,15 +236,16 @@ console.log(voices);
 
 Different Apple AI features have varying iOS version requirements:
 
-| Feature | Minimum iOS Version | Additional Requirements |
-|---------|-------------------|----------------------|
-| Text Generation | iOS 26+ | Apple Intelligence enabled device |
-| Text Embeddings | iOS 17+ | - |
-| Audio Transcription | iOS 26+ | Language assets downloaded |
-| Speech Synthesis | iOS 13+ | iOS 17+ for Personal Voice |
+| Feature             | Minimum iOS Version | Additional Requirements           |
+| ------------------- | ------------------- | --------------------------------- |
+| Text Generation     | iOS 26+             | Apple Intelligence enabled device |
+| Text Embeddings     | iOS 17+             | -                                 |
+| Audio Transcription | iOS 26+             | Language assets downloaded        |
+| Speech Synthesis    | iOS 13+             | iOS 17+ for Personal Voice        |
 
 <Note>
-  Apple Intelligence features are currently available on selected devices. Check Apple's documentation for the latest device compatibility information.
+  Apple Intelligence features are currently available on selected devices. Check
+  Apple's documentation for the latest device compatibility information.
 </Note>
 
 ## Additional Resources
