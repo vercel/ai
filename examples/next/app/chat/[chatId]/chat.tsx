@@ -19,7 +19,7 @@ export default function ChatComponent({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { status, sendMessage, messages, regenerate } = useChat({
+  const { status, sendMessage, messages, regenerate, stop } = useChat({
     id: chatData.id,
     messages: chatData.messages,
     resume,
@@ -83,6 +83,7 @@ export default function ChatComponent({
       ))}
       <ChatInput
         status={status}
+        stop={stop}
         onSubmit={text => {
           sendMessage({ text, metadata: { createdAt: Date.now() } });
 
