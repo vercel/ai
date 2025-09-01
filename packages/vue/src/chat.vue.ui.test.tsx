@@ -251,6 +251,9 @@ describe('data protocol stream', () => {
 
     expect(value).toStrictEqual([
       {
+        isAbort: false,
+        isDisconnect: false,
+        isError: false,
         message: {
           id: expect.any(String),
           role: 'assistant',
@@ -312,6 +315,9 @@ describe('text stream', () => {
 
     expect(value).toStrictEqual([
       {
+        isAbort: false,
+        isDisconnect: false,
+        isError: false,
         message: {
           id: expect.any(String),
           role: 'assistant',
