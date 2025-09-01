@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.29
+
+### Patch Changes
+
+- e0e9449: feat(ui): sent isAbort, isDisconnect, isError in useChat onFinish callback
+
 ## 5.0.28
 
 ### Patch Changes
