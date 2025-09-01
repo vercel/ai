@@ -57,7 +57,7 @@ jobs:
               "required": ["labels", "confidence"]
             }
           prompt: |
-            Analyze the following GitHub issue and determine which AI provider labels are most relevant.
+            Analyze the following GitHub issue and determine if it is related to any AI provider. If it is, determine which AI provider labels are most relevant.
             
             Available provider labels: ${{ steps.fetch-labels.outputs.labels }}
             
@@ -66,8 +66,9 @@ jobs:
             Issue Body: ${{ github.event.issue.body }}
             
             Rules:
+            - If the issue is not related to any AI provider, return an empty array of labels.
             - Look for mentions of specific AI providers like OpenAI, Anthropic, Google, Azure, etc.
-            - If no specific provider is mentioned, consider "provider/other" 
+            - If no specific provider is mentioned, consider "provider/other"
             - If the issue mentions community or third-party providers, use "provider/community"
             - If it's about OpenAI-compatible APIs, use "provider/openai-compatible"
             - Multiple labels can be assigned if the issue involves multiple providers
