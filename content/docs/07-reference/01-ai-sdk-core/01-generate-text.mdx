@@ -46,12 +46,12 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'prompt',
-      type: 'string | Array<messages>',
+      type: 'string | Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage>',
       description: 'The input prompt to generate the text from.',
     },
     {
       name: 'messages',
-      type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage> | Array<UIMessage>',
+      type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage>',
       description:
         'A list of messages that represent a conversation. Automatically converts UI messages from the useChat hook.',
       properties: [
