@@ -502,6 +502,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         abortController: new AbortController(),
       } as ActiveResponse<UI_MESSAGE>;
 
+      activeResponse.abortController.signal.addEventListener('abort', () => {
+        isAbort = true;
+      });
+
       this.activeResponse = activeResponse;
 
       let stream: ReadableStream<UIMessageChunk>;
@@ -582,7 +586,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       this.setStatus({ status: 'ready' });
     } catch (err) {
       // Ignore abort errors as they are expected.
-      if ((err as any).name === 'AbortError') {
+      if (isAbort || (err as any).name === 'AbortError') {
         isAbort = true;
         this.setStatus({ status: 'ready' });
         return null;

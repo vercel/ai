@@ -650,6 +650,241 @@ describe('Chat', () => {
     });
   });
 
+  describe('send handle a stop and an aborted response stream', () => {
+    let chat: TestChat;
+    let letOnFinishArgs: any[] = [];
+    let isAborted = false;
+
+    beforeEach(async () => {
+      let controller: ReadableStreamDefaultController<UIMessageChunk>;
+      const responseStream = new ReadableStream<UIMessageChunk>({
+        start: controllerArg => {
+          controller = controllerArg;
+
+          controller.enqueue({ type: 'start' });
+          controller.enqueue({ type: 'start-step' });
+          controller.enqueue({ type: 'text-start', id: 'text-1' });
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'Hello',
+          });
+        },
+      });
+
+      const finishPromise = createResolvablePromise<void>();
+      letOnFinishArgs = [];
+
+      chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: {
+          sendMessages: async options => {
+            options.abortSignal?.addEventListener('abort', () => {
+              isAborted = true;
+              controller.error(new DOMException('Aborted', 'AbortError'));
+            });
+            return responseStream;
+          },
+          reconnectToStream: () => {
+            throw new Error('not implemented');
+          },
+        },
+        onFinish: (...args) => {
+          letOnFinishArgs = args;
+          return finishPromise.resolve();
+        },
+      });
+
+      chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      // wait until the stream is consumed before sending the error
+      while ((chat.messages[1]?.parts[1] as any)?.text !== 'Hello') {
+        await delay();
+      }
+
+      await chat.stop();
+
+      await finishPromise.promise;
+    });
+
+    it('should have been aborted', async () => {
+      expect(isAborted).toBe(true);
+    });
+
+    it('should call onFinish with message and messages', async () => {
+      expect(letOnFinishArgs).toMatchInlineSnapshot(`
+        [
+          {
+            "isAbort": true,
+            "isDisconnect": false,
+            "isError": false,
+            "message": {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+            "messages": [
+              {
+                "id": "id-0",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "text": "Hello, world!",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "id": "id-1",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
+                  },
+                  {
+                    "providerMetadata": undefined,
+                    "state": "streaming",
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+          },
+        ]
+      `);
+    });
+
+    it('should return the correct final messages', async () => {
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "streaming",
+                "text": "Hello",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should update the messages during the streaming', async () => {
+      expect(chat.history).toMatchInlineSnapshot(`
+        [
+          [],
+          [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        ]
+      `);
+    });
+  });
+
   it('should include the metadata of text message', async () => {
     server.urls['http://localhost:3000/api/chat'].response = {
       type: 'stream-chunks',
