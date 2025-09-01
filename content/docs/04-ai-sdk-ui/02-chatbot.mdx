@@ -343,10 +343,8 @@ import { UIMessage } from 'ai';
 const {
   /* ... */
 } = useChat({
-  onFinish: (message, { usage, finishReason }) => {
-    console.log('Finished streaming message:', message);
-    console.log('Token usage:', usage);
-    console.log('Finish reason:', finishReason);
+  onFinish: ({ message, messages, isAbort, isDisconnect, isError }) => {
+    // use information to e.g. update other UI states
   },
   onError: error => {
     console.error('An error occurred:', error);
