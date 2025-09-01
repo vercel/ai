@@ -19,7 +19,7 @@ export default function ChatComponent({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { status, sendMessage, messages, regenerate } = useChat({
+  const { status, sendMessage, messages, regenerate, stop } = useChat({
     id: chatData.id,
     messages: chatData.messages,
     resume,
@@ -49,7 +49,9 @@ export default function ChatComponent({
         }
       },
     }),
-    onFinish() {
+    onFinish(options) {
+      console.log('onFinish', options);
+
       // for new chats, the router cache needs to be invalidated so
       // navigation to the previous page triggers SSR correctly
       if (isNewChat) {
@@ -81,6 +83,7 @@ export default function ChatComponent({
       ))}
       <ChatInput
         status={status}
+        stop={stop}
         onSubmit={text => {
           sendMessage({ text, metadata: { createdAt: Date.now() } });
 
