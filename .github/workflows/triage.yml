@@ -1,0 +1,100 @@
+name: Triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  triage:
+    name: Auto-triage Issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Create access token for GitHub App
+        uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
+          private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Fetch existing provider labels
+        id: fetch-labels
+        run: |
+          labels=$(gh api /repos/${{ github.repository }}/labels | jq -r '.[] | select(.name | startswith("provider/")) | .name' | jq -R -s -c 'split("\n")[:-1]')
+          echo "labels=$labels" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Determine appropriate provider labels
+        id: classify-issue
+        uses: vercel/ai-action@v2
+        with:
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "labels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ${{ steps.fetch-labels.outputs.labels }}
+                  },
+                  "description": "Array of provider labels that are most relevant to this issue. Choose one or more labels that best match the AI provider mentioned in the issue."
+                },
+                "confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "Confidence score for the label classification (0-1)"
+                }
+              },
+              "required": ["labels", "confidence"]
+            }
+          prompt: |
+            Analyze the following GitHub issue and determine which AI provider labels are most relevant.
+            
+            Available provider labels: ${{ steps.fetch-labels.outputs.labels }}
+            
+            Issue Title: ${{ github.event.issue.title }}
+            
+            Issue Body: ${{ github.event.issue.body }}
+            
+            Rules:
+            - Look for mentions of specific AI providers like OpenAI, Anthropic, Google, Azure, etc.
+            - If no specific provider is mentioned, consider "provider/other" 
+            - If the issue mentions community or third-party providers, use "provider/community"
+            - If it's about OpenAI-compatible APIs, use "provider/openai-compatible"
+            - Multiple labels can be assigned if the issue involves multiple providers
+            - Only assign labels if you're reasonably confident (>0.6) about the relevance
+
+      - name: Apply provider labels to issue
+        if: fromJSON(steps.classify-issue.outputs.result).confidence > 0.6
+        run: |
+          labels='${{ toJSON(fromJSON(steps.classify-issue.outputs.result).labels) }}'
+          if [ "$labels" != "[]" ]; then
+            gh api /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels \
+              --method POST \
+              --input - <<< "{\"labels\": $labels}"
+            echo "Applied labels: $labels"
+          else
+            echo "No labels to apply"
+          fi
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Add comment if no provider detected
+        if: fromJSON(steps.classify-issue.outputs.result).confidence <= 0.6
+        run: |
+          gh api /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
+            --method POST \
+            --input - <<< '{
+              "body": "👋 Thanks for opening this issue! I was unable to automatically detect which AI provider this issue relates to. A maintainer will review and apply the appropriate `provider/*` labels manually."
+            }'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
