@@ -164,24 +164,32 @@ import { experimental_createMCPClient, generateText } from 'ai';
 import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
 
-const client = await experimental_createMCPClient({
-  transport: new Experimental_StdioMCPTransport({
-    command: 'node server.js',
-  }),
-});
+let client;
 
-const tools = await client.tools();
+try {
+  client = await experimental_createMCPClient({
+    transport: new Experimental_StdioMCPTransport({
+      command: 'node server.js',
+    }),
+  });
 
-const response = await generateText({
-  model: openai('gpt-4o-mini'),
-  tools,
-  messages: [{ role: 'user', content: 'Query the data' }],
-});
+  const tools = await client.tools();
 
-console.log(response);
+  const response = await generateText({
+    model: openai('gpt-4o-mini'),
+    tools,
+    messages: [{ role: 'user', content: 'Query the data' }],
+  });
 
-// remember to close the client when done
-await client.close();
+  console.log(response);
+} catch (error) {
+  console.error('Error:', error);
+} finally {
+  // ensure the client is closed even if an error occurs
+  if (client) {
+    await client.close();
+  }
+}
 ```
 
 ## Error Handling
