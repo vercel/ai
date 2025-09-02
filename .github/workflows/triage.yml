@@ -77,9 +77,9 @@ jobs:
             - Only assign labels if you're reasonably confident (>0.6) about the relevance
 
       - name: Apply provider labels to issue
-        if: fromJSON(steps.classify-issue.outputs.result).confidence > 0.6
+        if: fromJSON(steps.classify-issue.outputs.json).confidence > 0.6
         run: |
-          labels='${{ toJSON(fromJSON(steps.classify-issue.outputs.result).labels) }}'
+          labels='${{ toJSON(fromJSON(steps.classify-issue.outputs.json).labels) }}'
           if [ "$labels" != "[]" ]; then
             gh api /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels \
               --method POST \
@@ -92,7 +92,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Add comment if no provider detected
-        if: fromJSON(steps.classify-issue.outputs.result).confidence <= 0.6
+        if: fromJSON(steps.classify-issue.outputs.json).confidence <= 0.6
         run: |
           gh api /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
             --method POST \
