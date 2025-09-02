@@ -128,7 +128,7 @@ export type OpenAIResponsesTool =
       server_url: string;
       server_description?: string;
       server_label?: string;
-      require_approval: any;
+      require_approval?: any;
       headers?: Record<string, string>;
       allowed_tools?: string[];
     };
