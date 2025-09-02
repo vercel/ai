@@ -4,6 +4,7 @@ import {
   createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { HuggingFaceResponsesLanguageModel } from './huggingface-responses-language-model';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
