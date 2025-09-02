@@ -1,7 +1,7 @@
 'use client';
 
 import { invalidateRouterCache } from '@/app/actions';
-import { MyUIMessage } from '@/util/chat-schema';
+import type { MyUIMessage } from '@/util/chat-schema';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useRef } from 'react';
