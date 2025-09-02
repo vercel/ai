@@ -2,14 +2,12 @@ import { google } from '@ai-sdk/google';
 import { generateText, stepCountIs, tool } from 'ai';
 import { z } from 'zod/v4';
 import 'dotenv/config';
-import { anthropic } from '@ai-sdk/anthropic';
+import * as fs from 'fs';
+import * as path from 'path';
 
-// Helper function to convert URL to base64
-async function urlToBase64(url: string): Promise<string> {
-  const response = await fetch(url);
-  const arrayBuffer = await response.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  return Buffer.from(bytes).toString('base64');
+async function fileToBase64(filePath: string): Promise<string> {
+  const fileBuffer = await fs.promises.readFile(filePath);
+  return fileBuffer.toString('base64');
 }
 
 const imageAnalysisTool = tool({
@@ -17,9 +15,8 @@ const imageAnalysisTool = tool({
   inputSchema: z.object({}),
   execute: async ({}) => {
     try {
-      const base64Image = await urlToBase64(
-        'https://images.unsplash.com/photo-1751225750479-43ad27b94fa0?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxmZWF0dXJlZC1waG90b3MtZmVlZHwyfHx8ZW58MHx8fHx8fHx8',
-      );
+      const imagePath = path.join(__dirname, '../../data/comic-cat.png');
+      const base64Image = await fileToBase64(imagePath);
 
       return {
         success: true,
@@ -40,7 +37,7 @@ const imageAnalysisTool = tool({
       value: [
         {
           type: 'media',
-          mediaType: 'image/jpeg',
+          mediaType: 'image/png',
           data: output.base64Image!,
         },
       ],
@@ -59,7 +56,7 @@ async function main() {
       analyzeImage: imageAnalysisTool,
     },
     stopWhen: stepCountIs(2),
-    prompt: `Whats in this image use the tool analyzeImage`,
+    prompt: `Whats in this image?`,
   });
 
   console.log('📋 Analysis Result: \n');
