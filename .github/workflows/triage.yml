@@ -35,7 +35,7 @@ jobs:
         id: classify-issue
         uses: vercel/ai-action@v2
         with:
-          model: "openai/gptgpt-4o"
+          model: "openai/gpt-4o"
           api-key: ${{ secrets.AI_GATEWAY_API_KEY }}
           schema: |
             {
