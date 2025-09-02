@@ -83,7 +83,8 @@ describe('HuggingFace Provider', () => {
   it('should handle system messages', async () => {
     const result = await generateText({
       model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
-      system: 'You are a helpful assistant that responds with exactly one word.',
+      system:
+        'You are a helpful assistant that responds with exactly one word.',
       prompt: 'Say hello',
     });
 

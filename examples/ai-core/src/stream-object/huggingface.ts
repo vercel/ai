@@ -15,7 +15,8 @@ async function main() {
         }),
       ),
     }),
-    prompt: 'Generate a list of 3 major cities with their populations. IN JSON FORMAT',
+    prompt:
+      'Generate a list of 3 major cities with their populations. IN JSON FORMAT',
   });
 
   // Stream partial objects
@@ -26,7 +27,7 @@ async function main() {
   // Get final result
   const finalObject = await result.object;
   const usage = await result.usage;
-  
+
   console.log('\nFinal object:', finalObject);
   console.log('\nToken usage:', usage);
   console.log('Finish reason:', await result.finishReason);

@@ -119,17 +119,18 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
       max_output_tokens: maxOutputTokens,
 
       // HuggingFace Responses API uses text.format for structured output
-      ...(responseFormat?.type === 'json' && responseFormat.schema && {
-        text: {
-          format: {
-            type: 'json_schema',
-            strict: huggingfaceOptions?.strictJsonSchema ?? false,
-            name: responseFormat.name ?? 'response',
-            description: responseFormat.description,
-            schema: responseFormat.schema,
+      ...(responseFormat?.type === 'json' &&
+        responseFormat.schema && {
+          text: {
+            format: {
+              type: 'json_schema',
+              strict: huggingfaceOptions?.strictJsonSchema ?? false,
+              name: responseFormat.name ?? 'response',
+              description: responseFormat.description,
+              schema: responseFormat.schema,
+            },
           },
-        },
-      }),
+        }),
 
       metadata: huggingfaceOptions?.metadata,
       instructions: huggingfaceOptions?.instructions,

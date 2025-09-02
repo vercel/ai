@@ -41,7 +41,9 @@ async function main() {
         execute: async ({ location }) => ({
           location,
           temperature: 72 + Math.floor(Math.random() * 21) - 10,
-          condition: ['sunny', 'cloudy', 'rainy', 'snowy'][Math.floor(Math.random() * 4)],
+          condition: ['sunny', 'cloudy', 'rainy', 'snowy'][
+            Math.floor(Math.random() * 4)
+          ],
           humidity: Math.floor(Math.random() * 100),
         }),
       }),

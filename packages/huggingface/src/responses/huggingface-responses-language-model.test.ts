@@ -911,7 +911,7 @@ describe('HuggingFaceResponsesLanguageModel', () => {
       });
 
       const chunks = await convertReadableStreamToArray(stream);
-      
+
       expect(chunks).toMatchInlineSnapshot(`
         [
           {
@@ -1085,7 +1085,9 @@ describe('HuggingFaceResponsesLanguageModel', () => {
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.text?.format?.name).toBe('person_profile');
-      expect(requestBody.text?.format?.description).toBe('A person profile with basic information');
+      expect(requestBody.text?.format?.description).toBe(
+        'A person profile with basic information',
+      );
     });
   });
 
@@ -1182,7 +1184,7 @@ describe('HuggingFaceResponsesLanguageModel', () => {
       });
 
       const chunks = await convertReadableStreamToArray(stream);
-      
+
       expect(chunks).toMatchInlineSnapshot(`
         [
           {

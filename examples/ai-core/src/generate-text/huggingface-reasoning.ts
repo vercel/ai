@@ -1,5 +1,9 @@
 import { huggingface } from '@ai-sdk/huggingface';
-import { extractReasoningMiddleware, generateText, wrapLanguageModel } from 'ai';
+import {
+  extractReasoningMiddleware,
+  generateText,
+  wrapLanguageModel,
+} from 'ai';
 import 'dotenv/config';
 
 async function main() {

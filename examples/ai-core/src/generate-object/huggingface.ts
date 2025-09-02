@@ -11,7 +11,8 @@ async function main() {
       age: z.number(),
       email: z.string(),
     }),
-    prompt: 'Generate a simple person profile with name, age, and email. Return only valid JSON.',
+    prompt:
+      'Generate a simple person profile with name, age, and email. Return only valid JSON.',
   });
 
   console.log('Generated object:', result.object);

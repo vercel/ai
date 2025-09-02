@@ -12,11 +12,13 @@ async function main() {
       },
       {
         role: 'assistant',
-        content: 'I would be happy to help you plan your trip to Japan! What time of year are you thinking of visiting, and what are you most interested in experiencing?',
+        content:
+          'I would be happy to help you plan your trip to Japan! What time of year are you thinking of visiting, and what are you most interested in experiencing?',
       },
       {
         role: 'user',
-        content: 'I want to visit in spring to see cherry blossoms. What cities should I visit?',
+        content:
+          'I want to visit in spring to see cherry blossoms. What cities should I visit?',
       },
     ],
   });

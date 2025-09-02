@@ -12,7 +12,8 @@ async function main() {
           { type: 'text', text: 'What do you see in this image?' },
           {
             type: 'image',
-            image: 'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+            image:
+              'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
           },
         ],
       },

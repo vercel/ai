@@ -12,11 +12,13 @@ async function main() {
       },
       {
         role: 'assistant',
-        content: 'I would be happy to help you with your coding problem! What programming language are you working with and what specific issue are you facing?',
+        content:
+          'I would be happy to help you with your coding problem! What programming language are you working with and what specific issue are you facing?',
       },
       {
         role: 'user',
-        content: 'I am working with TypeScript and need to create a function that validates email addresses.',
+        content:
+          'I am working with TypeScript and need to create a function that validates email addresses.',
       },
     ],
   });

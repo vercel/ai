@@ -9,10 +9,14 @@ async function main() {
       {
         role: 'user',
         content: [
-          { type: 'text', text: 'Analyze this image and describe what you see in detail.' },
+          {
+            type: 'text',
+            text: 'Analyze this image and describe what you see in detail.',
+          },
           {
             type: 'image',
-            image: 'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+            image:
+              'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
           },
         ],
       },
