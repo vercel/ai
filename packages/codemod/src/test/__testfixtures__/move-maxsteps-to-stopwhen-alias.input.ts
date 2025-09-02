@@ -1,41 +1,41 @@
 // @ts-nocheck
-import { generateText, stepCountIs } from 'ai';
-import { useChat } from '@ai-sdk/react';
+import { generateText as GT } from 'ai';
+import { useChat as UC } from '@ai-sdk/react';
 
 async function foo() {
-  const result = await generateText({
+  const result = await GT({
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(5),
+    maxSteps: 5,
   });
 
   const maxSteps = 5;
 
-  await generateText({
+  await GT({
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(maxSteps),
+    maxSteps,
   });
 
-  await generateText({
+  await GT({
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(5 + 5),
+    maxSteps: 5 + 5,
   });
 
-  await generateText({
+  await GT({
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(maxSteps + 5),
+    maxSteps: maxSteps + 5,
   });
 
   const obj = {
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(maxSteps + 5),
+    maxSteps: maxSteps + 5,
   }
 
-  await generateText(obj);
+  await GT(obj);
 
   const obj2 = {
     model: 'gpt-4',
@@ -47,9 +47,8 @@ async function foo() {
 }
 
 export function ChatComponent() {
-  useChat({
+  UC({
     model: 'gpt-4',
-    // TODO: this needs to print warning
     maxSteps: 7,
   });
 }

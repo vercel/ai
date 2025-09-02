@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.14
+
+### Patch Changes
+
+- ddb70ed: feat(xai) add grok-code-fast-1 model id
+
 ## 2.0.13
 
 ### Patch Changes

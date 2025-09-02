@@ -275,6 +275,7 @@ functionality that can be fully encapsulated in the provider.
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         supportedUrls: await model.supportedUrls,
+        download: undefined,
       }),
       providerOptions,
       abortSignal,

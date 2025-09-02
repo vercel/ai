@@ -3352,7 +3352,105 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
-    it('should should handle logprops', async () => {
+    it('Should handle service tier', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          'data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5","object":"response","created_at":1756400634,"status":"in_progress","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"max_tool_calls":null,"model":"gpt-5-nano-2025-08-07","output":[],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":"medium","summary":null},"safety_identifier":null,"service_tier":"flex","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n',
+          'data:{"type":"response.in_progress","sequence_number":1,"response":{"id":"resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5","object":"response","created_at":1756400634,"status":"in_progress","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"max_tool_calls":null,"model":"gpt-5-nano-2025-08-07","output":[],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":"medium","summary":null},"safety_identifier":null,"service_tier":"flex","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n',
+          'data:{"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5","type":"reasoning","summary":[]}}\n\n',
+          'data:{"type":"response.output_item.done","sequence_number":3,"output_index":0,"item":{"id":"rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5","type":"reasoning","summary":[]}}\n\n',
+          'data:{"type":"response.output_item.added","sequence_number":4,"output_index":1,"item":{"id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","type":"message","status":"in_progress","content":[],"role":"assistant"}}\n\n',
+          'data:{"type":"response.content_part.added","sequence_number":5,"item_id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","output_index":1,"content_index":0,"part":{"type":"output_text","annotations":[],"logprobs":[],"text":""}}\n\n',
+          'data:{"type":"response.output_text.delta","sequence_number":6,"item_id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","output_index":1,"content_index":0,"delta":"blue","logprobs":[],"obfuscation":"A3q16QVxivdK"}\n\n',
+          'data:{"type":"response.output_text.done","sequence_number":7,"item_id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","output_index":1,"content_index":0,"text":"blue","logprobs":[]}\n\n',
+          'data:{"type":"response.content_part.done","sequence_number":8,"item_id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","output_index":1,"content_index":0,"part":{"type":"output_text","annotations":[],"logprobs":[],"text":"blue"}}\n\n',
+          'data:{"type":"response.output_item.done","sequence_number":9,"output_index":1,"item":{"id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","type":"message","status":"completed","content":[{"type":"output_text","annotations":[],"logprobs":[],"text":"blue"}],"role":"assistant"}}\n\n',
+          'data:{"type":"response.completed","sequence_number":10,"response":{"id":"resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5","object":"response","created_at":1756400634,"status":"completed","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"max_tool_calls":null,"model":"gpt-5-nano-2025-08-07","output":[{"id":"rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5","type":"reasoning","summary":[]},{"id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","type":"message","status":"completed","content":[{"type":"output_text","annotations":[],"logprobs":[],"text":"blue"}],"role":"assistant"}],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":"medium","summary":null},"safety_identifier":null,"service_tier":"flex","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1,"truncation":"disabled","usage":{"input_tokens":15,"input_tokens_details":{"cached_tokens":0},"output_tokens":263,"output_tokens_details":{"reasoning_tokens":256},"total_tokens":278},"user":null,"metadata":{}}}\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5-nano').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            serviceTier: 'flex',
+          },
+        },
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5",
+            "modelId": "gpt-5-nano-2025-08-07",
+            "timestamp": 2025-08-28T17:03:54.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5:0",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5",
+                "reasoningEncryptedContent": null,
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "id": "rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5:0",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5",
+                "reasoningEncryptedContent": null,
+              },
+            },
+            "type": "reasoning-end",
+          },
+          {
+            "id": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "blue",
+            "id": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5",
+                "serviceTier": "flex",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 15,
+              "outputTokens": 263,
+              "reasoningTokens": 256,
+              "totalTokens": 278,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should handle logprobs', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -3442,6 +3540,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   ],
                 ],
                 "responseId": "resp_689cec4cf608819583c56813ccb0f5040f92af1765dd5aad",
+                "serviceTier": "default",
               },
             },
             "type": "finish",

@@ -1,14 +1,14 @@
-import { jsonSchema } from '@ai-sdk/provider-utils';
+import { jsonSchema, tool } from '@ai-sdk/provider-utils';
 import {
   convertAsyncIterableToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import { afterEach, beforeEach, describe, expect, it, vitest } from 'vitest';
 import { streamText } from '../generate-text';
+import * as logWarningsModule from '../logger/log-warnings';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
-import { tool } from '@ai-sdk/provider-utils';
 import { simulateStreamingMiddleware } from './simulate-streaming-middleware';
-import { describe, it, expect } from 'vitest';
 
 const DEFAULT_SETTINGs = {
   prompt: 'Test prompt',
@@ -28,6 +28,18 @@ const testUsage = {
 };
 
 describe('simulateStreamingMiddleware', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   it('should simulate streaming with text response', async () => {
     const mockModel = new MockLanguageModelV2({
       async doGenerate() {
