@@ -94,16 +94,11 @@ export function prepareResponsesTools({
             openaiTools.push({
               type: 'mcp',
               server_url: args.serverUrl,
-              server_label:
-                args.serverLabel === null ? undefined : args.serverLabel,
-              server_description:
-                args.serverDescription === null
-                  ? undefined
-                  : args.serverDescription,
+              server_label: args.serverLabel,
+              server_description: args.serverDescription,
               require_approval: args.requireApproval,
-              headers: args.headers === null ? undefined : args.headers,
-              allowed_tools:
-                args.allowedTools === null ? undefined : args.allowedTools,
+              headers: args.headers,
+              allowed_tools: args.allowedTools,
             });
             break;
           }
