@@ -22,6 +22,7 @@ import { huggingfaceFailedResponseHandler } from '../huggingface-error';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
 import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
 import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
+import { prepareResponsesTools } from './huggingface-responses-prepare-tools';
 
 export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -99,6 +100,17 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
       schema: huggingfaceResponsesProviderOptionsSchema,
     });
 
+    const {
+      tools: preparedTools,
+      toolChoice: preparedToolChoice,
+      toolWarnings,
+    } = prepareResponsesTools({
+      tools,
+      toolChoice,
+    });
+
+    warnings.push(...toolWarnings);
+
     const baseArgs = {
       model: this.modelId,
       input,
@@ -106,32 +118,25 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
       top_p: topP,
       max_output_tokens: maxOutputTokens,
 
-      ...(responseFormat?.type === 'json' && {
+      // HuggingFace Responses API uses text.format for structured output
+      ...(responseFormat?.type === 'json' && responseFormat.schema && {
         text: {
-          format:
-            responseFormat.schema != null
-              ? {
-                  type: 'json_schema',
-                  strict: huggingfaceOptions?.strictJsonSchema ?? false,
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                  schema: responseFormat.schema,
-                }
-              : { type: 'json_object' },
+          format: {
+            type: 'json_schema',
+            strict: huggingfaceOptions?.strictJsonSchema ?? false,
+            name: responseFormat.name ?? 'response',
+            description: responseFormat.description,
+            schema: responseFormat.schema,
+          },
         },
       }),
 
       metadata: huggingfaceOptions?.metadata,
       instructions: huggingfaceOptions?.instructions,
+
+      ...(preparedTools && { tools: preparedTools }),
+      ...(preparedToolChoice && { tool_choice: preparedToolChoice }),
     };
-
-    if (tools != null && tools.length > 0) {
-      warnings.push({ type: 'unsupported-setting', setting: 'tools' });
-    }
-
-    if (toolChoice != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'toolChoice' });
-    }
 
     return { args: baseArgs, warnings };
   }
@@ -181,6 +186,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
 
     const content: Array<LanguageModelV2Content> = [];
 
+    // Process output array
     for (const part of response.output) {
       switch (part.type) {
         case 'message': {
@@ -247,6 +253,25 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
               toolName: 'list_tools',
               result: { tools: part.tools },
               providerExecuted: true,
+            });
+          }
+          break;
+        }
+
+        case 'function_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: part.name,
+            input: part.arguments,
+          });
+
+          if (part.output) {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.call_id,
+              toolName: part.name,
+              result: part.output,
             });
           }
           break;
@@ -365,6 +390,12 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
                     },
                   },
                 });
+              } else if (value.item.type === 'function_call') {
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.call_id,
+                  toolName: value.item.name,
+                });
               }
               return;
             }
@@ -378,6 +409,27 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
                   type: 'text-end',
                   id: value.item.id,
                 });
+              } else if (value.item.type === 'function_call') {
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.call_id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.call_id,
+                  toolName: value.item.name,
+                  input: value.item.arguments,
+                });
+
+                if (value.item.output) {
+                  controller.enqueue({
+                    type: 'tool-result',
+                    toolCallId: value.item.call_id,
+                    toolName: value.item.name,
+                    result: value.item.output,
+                  });
+                }
               }
               return;
             }
@@ -503,6 +555,15 @@ const responseOutputItemAddedSchema = z.object({
       output: z.string().optional(),
       error: z.string().optional(),
     }),
+    z.object({
+      type: z.literal('function_call'),
+      id: z.string(),
+      call_id: z.string(),
+      name: z.string(),
+      arguments: z.string(),
+      output: z.string().optional(),
+      error: z.string().optional(),
+    }),
   ]),
   sequence_number: z.number(),
 });
@@ -529,6 +590,15 @@ const responseOutputItemDoneSchema = z.object({
       type: z.literal('mcp_call'),
       id: z.string(),
       server_label: z.string(),
+      name: z.string(),
+      arguments: z.string(),
+      output: z.string().optional(),
+      error: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('function_call'),
+      id: z.string(),
+      call_id: z.string(),
       name: z.string(),
       arguments: z.string(),
       output: z.string().optional(),

@@ -807,4 +807,620 @@ describe('HuggingFaceResponsesLanguageModel', () => {
       `);
     });
   });
+
+  describe('tool calls', () => {
+    it('should handle function_call tool responses', async () => {
+      server.urls['https://router.huggingface.co/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_tool_test',
+          model: 'deepseek-ai/DeepSeek-V3-0324',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          instructions: null,
+          max_output_tokens: null,
+          metadata: null,
+          tool_choice: 'auto',
+          tools: [],
+          temperature: 1.0,
+          top_p: 1.0,
+          incomplete_details: null,
+          usage: {
+            input_tokens: 50,
+            output_tokens: 30,
+            total_tokens: 80,
+          },
+          output: [
+            {
+              id: 'fc_test',
+              type: 'function_call',
+              call_id: 'call_123',
+              name: 'getWeather',
+              arguments: '{"location": "New York"}',
+              output: '{"temperature": "72°F", "condition": "sunny"}',
+            },
+            {
+              id: 'msg_after_tool',
+              type: 'message',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'The weather in New York is 72°F and sunny.',
+                },
+              ],
+            },
+          ],
+          output_text: null,
+        },
+      };
+
+      const result = await createModel(
+        'deepseek-ai/DeepSeek-V3-0324',
+      ).doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"location": "New York"}",
+            "toolCallId": "call_123",
+            "toolName": "getWeather",
+            "type": "tool-call",
+          },
+          {
+            "result": "{"temperature": "72°F", "condition": "sunny"}",
+            "toolCallId": "call_123",
+            "toolName": "getWeather",
+            "type": "tool-result",
+          },
+          {
+            "providerMetadata": {
+              "huggingface": {
+                "itemId": "msg_after_tool",
+              },
+            },
+            "text": "The weather in New York is 72°F and sunny.",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should stream tool calls', async () => {
+      server.urls['https://router.huggingface.co/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_tool_stream","object":"response","created_at":1741269019,"status":"in_progress","model":"deepseek-ai/DeepSeek-V3-0324"}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"fc_stream","type":"function_call","call_id":"call_456","name":"calculator","arguments":""},"sequence_number":1}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_stream","output_index":0,"delta":"{\\"operation\\"","sequence_number":2}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_stream","output_index":0,"delta":": \\"add\\", \\"a\\": 5, \\"b\\": 3}","sequence_number":3}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"fc_stream","type":"function_call","call_id":"call_456","name":"calculator","arguments":"{\\"operation\\": \\"add\\", \\"a\\": 5, \\"b\\": 3}","output":"8"},"sequence_number":4}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_tool_stream","status":"completed","usage":{"input_tokens":20,"output_tokens":15,"total_tokens":35}},"sequence_number":5}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel(
+        'deepseek-ai/DeepSeek-V3-0324',
+      ).doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      
+      expect(chunks).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_tool_stream",
+            "modelId": "deepseek-ai/DeepSeek-V3-0324",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "call_456",
+            "toolName": "calculator",
+            "type": "tool-input-start",
+          },
+          {
+            "id": "call_456",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "{"operation": "add", "a": 5, "b": 3}",
+            "toolCallId": "call_456",
+            "toolName": "calculator",
+            "type": "tool-call",
+          },
+          {
+            "result": "8",
+            "toolCallId": "call_456",
+            "toolName": "calculator",
+            "type": "tool-result",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "huggingface": {
+                "responseId": "resp_tool_stream",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 20,
+              "outputTokens": 15,
+              "totalTokens": 35,
+            },
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('structured output', () => {
+    it('should send text.format for structured output', async () => {
+      server.urls['https://router.huggingface.co/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_structured',
+          model: 'moonshotai/Kimi-K2-Instruct',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          instructions: null,
+          max_output_tokens: null,
+          metadata: null,
+          tool_choice: 'auto',
+          tools: [],
+          temperature: 1.0,
+          top_p: 1.0,
+          incomplete_details: null,
+          usage: null,
+          output: [
+            {
+              id: 'msg_structured',
+              type: 'message',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                {
+                  type: 'output_text',
+                  text: '{"name": "John Doe", "age": 30}',
+                },
+              ],
+            },
+          ],
+          output_text: null,
+        },
+      };
+
+      await createModel('moonshotai/Kimi-K2-Instruct').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              age: { type: 'number' },
+            },
+            required: ['name', 'age'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.text).toMatchInlineSnapshot(`
+        {
+          "format": {
+            "name": "response",
+            "schema": {
+              "properties": {
+                "age": {
+                  "type": "number",
+                },
+                "name": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "name",
+                "age",
+              ],
+              "type": "object",
+            },
+            "strict": false,
+            "type": "json_schema",
+          },
+        }
+      `);
+    });
+
+    it('should handle structured output with custom name and description', async () => {
+      server.urls['https://router.huggingface.co/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_structured',
+          model: 'moonshotai/Kimi-K2-Instruct',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          instructions: null,
+          max_output_tokens: null,
+          metadata: null,
+          tool_choice: 'auto',
+          tools: [],
+          temperature: 1.0,
+          top_p: 1.0,
+          incomplete_details: null,
+          usage: null,
+          output: [],
+          output_text: '{}',
+        },
+      };
+
+      await createModel('moonshotai/Kimi-K2-Instruct').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'person_profile',
+          description: 'A person profile with basic information',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.text?.format?.name).toBe('person_profile');
+      expect(requestBody.text?.format?.description).toBe('A person profile with basic information');
+    });
+  });
+
+  describe('reasoning', () => {
+    it('should handle reasoning content in responses', async () => {
+      server.urls['https://router.huggingface.co/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_reasoning',
+          model: 'deepseek-ai/DeepSeek-R1',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          instructions: null,
+          max_output_tokens: null,
+          metadata: null,
+          tool_choice: 'auto',
+          tools: [],
+          temperature: 1.0,
+          top_p: 1.0,
+          incomplete_details: null,
+          usage: {
+            input_tokens: 10,
+            output_tokens: 50,
+            total_tokens: 60,
+          },
+          output: [
+            {
+              id: 'reasoning_1',
+              type: 'reasoning',
+              content: [
+                {
+                  type: 'reasoning_text',
+                  text: 'Let me think about this problem step by step...',
+                },
+              ],
+            },
+            {
+              id: 'msg_after_reasoning',
+              type: 'message',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'The answer is 42.',
+                },
+              ],
+            },
+          ],
+          output_text: null,
+        },
+      };
+
+      const result = await createModel('deepseek-ai/DeepSeek-R1').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": {
+              "huggingface": {
+                "itemId": "msg_after_reasoning",
+              },
+            },
+            "text": "The answer is 42.",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should stream reasoning content', async () => {
+      server.urls['https://router.huggingface.co/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_reasoning_stream","object":"response","created_at":1741269019,"status":"in_progress","model":"deepseek-ai/DeepSeek-R1"}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"reasoning_stream","type":"reasoning"},"sequence_number":1}\n\n`,
+          `data:{"type":"response.reasoning_text.delta","item_id":"reasoning_stream","output_index":0,"content_index":0,"delta":"Thinking about","sequence_number":2}\n\n`,
+          `data:{"type":"response.reasoning_text.delta","item_id":"reasoning_stream","output_index":0,"content_index":0,"delta":" the problem...","sequence_number":3}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"reasoning_stream","type":"reasoning","content":[{"type":"reasoning_text","text":"Thinking about the problem..."}]},"sequence_number":4}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":1,"item":{"id":"msg_stream","type":"message","role":"assistant"},"sequence_number":5}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_stream","output_index":1,"content_index":0,"delta":"The solution is","sequence_number":6}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_stream","output_index":1,"content_index":0,"delta":" simple.","sequence_number":7}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":1,"item":{"id":"msg_stream","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"The solution is simple."}]},"sequence_number":8}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_reasoning_stream","status":"completed","usage":{"input_tokens":10,"output_tokens":20,"total_tokens":30}},"sequence_number":9}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('deepseek-ai/DeepSeek-R1').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      
+      expect(chunks).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_reasoning_stream",
+            "modelId": "deepseek-ai/DeepSeek-R1",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "msg_stream",
+            "providerMetadata": {
+              "huggingface": {
+                "itemId": "msg_stream",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "The solution is",
+            "id": "msg_stream",
+            "type": "text-delta",
+          },
+          {
+            "delta": " simple.",
+            "id": "msg_stream",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_stream",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "huggingface": {
+                "responseId": "resp_reasoning_stream",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 10,
+              "outputTokens": 20,
+              "totalTokens": 30,
+            },
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('provider options', () => {
+    it('should send provider-specific options', async () => {
+      server.urls['https://router.huggingface.co/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_provider_options',
+          model: 'deepseek-ai/DeepSeek-V3-0324',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          instructions: null,
+          max_output_tokens: null,
+          metadata: null,
+          tool_choice: 'auto',
+          tools: [],
+          temperature: 1.0,
+          top_p: 1.0,
+          incomplete_details: null,
+          usage: null,
+          output: [],
+          output_text: 'Test',
+        },
+      };
+
+      await createModel('deepseek-ai/DeepSeek-V3-0324').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          huggingface: {
+            metadata: { key: 'value' },
+            instructions: 'Be concise',
+            strictJsonSchema: true,
+          },
+        },
+        responseFormat: {
+          type: 'json',
+          schema: { type: 'object' },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.metadata).toMatchInlineSnapshot(`
+        {
+          "key": "value",
+        }
+      `);
+      expect(requestBody.instructions).toBe('Be concise');
+      expect(requestBody.text?.format?.strict).toBe(true);
+    });
+  });
+
+  describe('tool preparation', () => {
+    it('should prepare tools correctly', async () => {
+      server.urls['https://router.huggingface.co/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_tools',
+          model: 'deepseek-ai/DeepSeek-V3-0324',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          instructions: null,
+          max_output_tokens: null,
+          metadata: null,
+          tool_choice: 'auto',
+          tools: [],
+          temperature: 1.0,
+          top_p: 1.0,
+          incomplete_details: null,
+          usage: null,
+          output: [],
+          output_text: 'Test',
+        },
+      };
+
+      await createModel('deepseek-ai/DeepSeek-V3-0324').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            description: 'Get weather information',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                location: { type: 'string' },
+              },
+              required: ['location'],
+            },
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'getWeather',
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "description": "Get weather information",
+            "name": "getWeather",
+            "parameters": {
+              "properties": {
+                "location": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "location",
+              ],
+              "type": "object",
+            },
+            "type": "function",
+          },
+        ]
+      `);
+      expect(requestBody.tool_choice).toMatchInlineSnapshot(`
+        {
+          "function": {
+            "name": "getWeather",
+          },
+          "type": "function",
+        }
+      `);
+    });
+
+    it('should handle auto and required tool choices', async () => {
+      server.urls['https://router.huggingface.co/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_tools',
+          model: 'deepseek-ai/DeepSeek-V3-0324',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          instructions: null,
+          max_output_tokens: null,
+          metadata: null,
+          tool_choice: 'auto',
+          tools: [],
+          temperature: 1.0,
+          top_p: 1.0,
+          incomplete_details: null,
+          usage: null,
+          output: [],
+          output_text: 'Test',
+        },
+      };
+
+      // Test auto
+      await createModel('deepseek-ai/DeepSeek-V3-0324').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'test',
+            inputSchema: { type: 'object' },
+          },
+        ],
+        toolChoice: { type: 'auto' },
+      });
+
+      let requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tool_choice).toBe('auto');
+
+      // Test required
+      await createModel('deepseek-ai/DeepSeek-V3-0324').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'test',
+            inputSchema: { type: 'object' },
+          },
+        ],
+        toolChoice: { type: 'required' },
+      });
+
+      requestBody = await server.calls[1].requestBodyJson;
+      expect(requestBody.tool_choice).toBe('required');
+    });
+  });
 });
