@@ -434,7 +434,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }),
               z.object({
                 id: z.string(),
-                type: z.literal('mcp_tool_call'),
+                type: z.literal('mcp_call'),
                 approval_request_id: z.string().nullable(),
                 arguments: z.string().nullable(),
                 error: z.string().nullable(),
@@ -631,7 +631,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           break;
         }
 
-        case 'mcp_tool_call': {
+        case 'mcp_call': {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
