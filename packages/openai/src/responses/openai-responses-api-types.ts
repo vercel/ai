@@ -37,6 +37,7 @@ export type OpenAIResponsesAssistantMessage = {
     | OpenAIWebSearchCall
     | OpenAIComputerCall
     | OpenAIFileSearchCall
+    | OpenAIMCPCall
   >;
   id?: string;
 };
@@ -69,6 +70,12 @@ export type OpenAIComputerCall = {
 
 export type OpenAIFileSearchCall = {
   type: 'file_search_call';
+  id: string;
+  status?: string;
+};
+
+export type OpenAIMCPCall = {
+  type: 'mcp_call';
   id: string;
   status?: string;
 };
@@ -115,6 +122,15 @@ export type OpenAIResponsesTool =
             type: 'and' | 'or';
             filters: any[];
           };
+    }
+  | {
+      type: 'mcp';
+      server_url: string;
+      server_description?: string;
+      server_label?: string;
+      require_approval: any;
+      headers?: Record<string, string>;
+      allowed_tools?: string[];
     };
 
 export type OpenAIResponsesReasoning = {

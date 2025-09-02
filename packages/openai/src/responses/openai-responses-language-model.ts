@@ -415,6 +415,33 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   }),
                 ),
               }),
+              z.object({
+                type: z.literal('mcp_list_tools'),
+                id: z.string(),
+                server_label: z.string(),
+                tools: z.array(
+                  z.object({
+                    annotations: z.array(z.any()).nullish(),
+                    description: z.string(),
+                    name: z.string(),
+                    input_schema: z.object({
+                      type: z.literal('object'),
+                      properties: z.record(z.string(), z.any()),
+                      required: z.array(z.string()).nullish(),
+                    }),
+                  }),
+                ),
+              }),
+              z.object({
+                id: z.string(),
+                type: z.literal('mcp_tool_call'),
+                approval_request_id: z.string().nullable(),
+                arguments: z.string().nullable(),
+                error: z.string().nullable(),
+                name: z.string().nullable(),
+                output: z.string().nullable(),
+                server_label: z.string().nullable(),
+              }),
             ]),
           ),
           service_tier: z.string().nullish(),
@@ -583,6 +610,39 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               status: part.status || 'completed',
               ...(part.queries && { queries: part.queries }),
               ...(part.results && { results: part.results }),
+            },
+            providerExecuted: true,
+          });
+          break;
+        }
+
+        case 'mcp_list_tools': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'mcp',
+            result: {
+              type: 'mcp_list_tools_result',
+              ...(part.tools && { tools: part.tools }),
+            },
+            providerExecuted: true,
+          });
+
+          break;
+        }
+
+        case 'mcp_tool_call': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'mcp',
+            result: {
+              type: 'mcp_call_result',
+              ...(part.output && { output: part.output }),
+              ...(part.arguments && { arguments: part.arguments }),
+              name: part.name,
+              server_label: part.server_label,
+              error: part.error,
             },
             providerExecuted: true,
           });

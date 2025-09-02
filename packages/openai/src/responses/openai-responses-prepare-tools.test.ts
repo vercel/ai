@@ -203,4 +203,35 @@ describe('prepareResponsesTools', () => {
       expect(result.toolWarnings).toEqual([]);
     });
   });
+
+  describe('mcp', () => {
+    it('should prepare mcp tool with only server url', () => {
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverUrl: 'https://mcp.server.com',
+            },
+          },
+        ],
+        strictJsonSchema: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'mcp',
+          server_url: 'https://mcp.server.com',
+          server_label: undefined,
+          server_description: undefined,
+          require_approval: undefined,
+          headers: undefined,
+          allowed_tools: undefined,
+        },
+      ]);
+      expect(result.toolWarnings).toEqual([]);
+    });
+  });
 });

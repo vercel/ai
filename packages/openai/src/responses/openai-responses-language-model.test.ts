@@ -1203,6 +1203,100 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send mcp tool', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.mcp',
+              name: 'anmcp',
+              args: {
+                serverUrl: 'https://mcp.example.com/mcp',
+                serverLabel: 'randommcp',
+                requireApproval: 'never',
+                headers: {
+                  Authorization: 'Bearer token',
+                  Random: 'Value',
+                },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tools": [
+              {
+                "headers": {
+                  "Authorization": "Bearer token",
+                  "Random": "Value",
+                },
+                "require_approval": "never",
+                "server_label": "randommcp",
+                "server_url": "https://mcp.example.com/mcp",
+                "type": "mcp",
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send mcp tool with minimal args', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.mcp',
+              name: 'anmcp',
+              args: {
+                serverUrl: 'https://mcp.example.com/mcp',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tools": [
+              {
+                "server_url": "https://mcp.example.com/mcp",
+                "type": "mcp",
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should warn about unsupported settings', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
