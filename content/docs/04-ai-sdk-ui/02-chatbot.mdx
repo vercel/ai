@@ -766,7 +766,7 @@ Then, on the client, you can access the message-level metadata.
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { MyUIMessage } from './api/chat/route';
+import type { MyUIMessage } from './api/chat/route';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
@@ -804,7 +804,7 @@ You can also access your metadata from the `onFinish` callback of `useChat`:
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { MyUIMessage } from './api/chat/route';
+import type { MyUIMessage } from './api/chat/route';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
@@ -1253,7 +1253,7 @@ Pass the custom type to `useChat` or `createUIMessageStream`:
 ```tsx
 import { useChat } from '@ai-sdk/react';
 import { createUIMessageStream } from 'ai';
-import { MyUIMessage } from './types';
+import type { MyUIMessage } from './types';
 
 // With useChat
 const { messages } = useChat<MyUIMessage>();

@@ -1681,7 +1681,7 @@ Then, on the client, you can access the message-level metadata.
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { MyUIMessage } from './api/chat/route';
+import type { MyUIMessage } from './api/chat/route';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
@@ -1719,7 +1719,7 @@ You can also access your metadata from the `onFinish` callback of `useChat`:
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { MyUIMessage } from './api/chat/route';
+import type { MyUIMessage } from './api/chat/route';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {

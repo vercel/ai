@@ -1,4 +1,4 @@
-import { MyUIMessage } from '@/util/chat-schema';
+import type { MyUIMessage } from '@/util/chat-schema';
 import { openai } from '@ai-sdk/openai';
 import { readChat, saveChat } from '@util/chat-store';
 import { convertToModelMessages, generateId, streamText } from 'ai';
