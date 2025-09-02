@@ -14,6 +14,7 @@ import {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+import { InvalidArgumentError } from '../error';
 
 const textUIPartSchema = z.object({
   type: z.literal('text'),
@@ -194,6 +195,14 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
     >;
   };
 }): Promise<Array<UI_MESSAGE>> {
+  if (messages == null) {
+    throw new InvalidArgumentError({
+      parameter: 'messages',
+      value: messages,
+      message: 'messages parameter must be provided',
+    });
+  }
+
   const validatedMessages = await validateTypes({
     value: messages,
     schema: z.array(uiMessageSchema),
