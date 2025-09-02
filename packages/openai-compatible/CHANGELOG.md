@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.14
+
+### Patch Changes
+
+- 818f021: Prevent redundant reasoningEffort field in request body (in favor of reasoning_effort)
+
 ## 1.0.13
 
 ### Patch Changes
