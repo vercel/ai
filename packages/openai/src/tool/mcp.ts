@@ -21,6 +21,7 @@ export const mcp = createProviderDefinedToolFactory<
     server_description?: string;
     require_approval?: any;
     headers?: Record<string, string>;
+    allowed_tools?: string[];
   }
 >({
   id: 'openai.mcp',
