@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 2.0.10
+
+### Patch Changes
+
+- 4627f55: fix(codemod): remove generate text codemod
+
 ## 2.0.9
 
 ### Patch Changes

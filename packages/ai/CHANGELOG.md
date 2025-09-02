@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.30
+
+### Patch Changes
+
+- 7fcc6be: feat(ai): throw InvalidArgumentError when messages is not provided
+
 ## 5.0.29
 
 ### Patch Changes
