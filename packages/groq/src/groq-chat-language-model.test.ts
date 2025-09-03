@@ -5,6 +5,7 @@ import {
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { createGroq } from './groq-provider';
+import { describe, it, expect } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },

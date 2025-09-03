@@ -1,3 +1,9 @@
+import {
+  JSONParseError,
+  LanguageModelV2CallWarning,
+  LanguageModelV2StreamPart,
+  TypeValidationError,
+} from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -5,24 +11,17 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import assert, { fail } from 'node:assert';
+import { afterEach, beforeEach, describe, expect, it, vitest } from 'vitest';
 import { z } from 'zod/v4';
-import {
-  NoObjectGeneratedError,
-  verifyNoObjectGeneratedError,
-} from '../error/no-object-generated-error';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
+import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
+import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
+import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import { StreamObjectResult, ObjectStreamPart } from './stream-object-result';
-import {
-  JSONParseError,
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2StreamPart,
-  TypeValidationError,
-} from '@ai-sdk/provider';
 
 const testUsage = {
   inputTokens: 3,
@@ -78,6 +77,17 @@ function createTestModel({
 }
 
 describe('streamObject', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
   describe('output = "object"', () => {
     describe('result.objectStream', () => {
       it('should send object deltas', async () => {
@@ -1950,6 +1960,54 @@ describe('streamObject', () => {
       const warnings = await result.warnings;
 
       expect(warnings).toEqual(expectedWarnings);
+    });
+
+    it('should call logWarnings with the correct warnings', async () => {
+      const expectedWarnings: LanguageModelV2CallWarning[] = [
+        {
+          type: 'other',
+          message: 'Setting is not supported',
+        },
+        {
+          type: 'unsupported-setting',
+          setting: 'temperature',
+          details: 'Temperature parameter not supported',
+        },
+      ];
+
+      const mockModel = createTestModel({
+        warnings: expectedWarnings,
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+      });
+
+      // Consume the stream to completion
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    });
+
+    it('should call logWarnings with empty array when no warnings are present', async () => {
+      const mockModel = createTestModel({
+        warnings: [], // no warnings
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+      });
+
+      // Consume the stream to completion
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith([]);
     });
   });
 });

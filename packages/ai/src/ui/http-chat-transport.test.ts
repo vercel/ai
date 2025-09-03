@@ -5,6 +5,7 @@ import {
   HttpChatTransportInitOptions,
 } from './http-chat-transport';
 import { UIMessage } from './ui-messages';
+import { describe, it, expect } from 'vitest';
 
 class MockHttpChatTransport extends HttpChatTransport<UIMessage> {
   constructor(options: HttpChatTransportInitOptions<UIMessage> = {}) {

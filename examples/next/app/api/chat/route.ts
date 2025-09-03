@@ -1,4 +1,4 @@
-import { MyUIMessage } from '@/util/chat-schema';
+import type { MyUIMessage } from '@/util/chat-schema';
 import { openai } from '@ai-sdk/openai';
 import { readChat, saveChat } from '@util/chat-store';
 import { convertToModelMessages, generateId, streamText } from 'ai';
@@ -59,6 +59,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o-mini'),
     messages: convertToModelMessages(messages),
+    abortSignal: req.signal,
   });
 
   return result.toUIMessageStreamResponse({

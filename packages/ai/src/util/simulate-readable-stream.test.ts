@@ -1,5 +1,6 @@
 import { simulateReadableStream } from './simulate-readable-stream';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('simulateReadableStream', () => {
   let delayValues: (number | null)[] = [];
