@@ -133,6 +133,7 @@ export function createOpenAICompatible<
     new OpenAICompatibleCompletionLanguageModel(modelId, {
       ...getCommonModelConfig('completion'),
       includeUsage: options.includeUsage,
+      supportsStructuredOutputs: options.supportsStructuredOutputs,
     });
 
   const createEmbeddingModel = (modelId: EMBEDDING_MODEL_IDS) =>
