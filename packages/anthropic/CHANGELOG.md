@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.11
+
+### Patch Changes
+
+- c7fee29: feat(anthropic): handle `pause_turn` as value for `stop_reason`
+
 ## 2.0.10
 
 ### Patch Changes
