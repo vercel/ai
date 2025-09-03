@@ -82,6 +82,12 @@ export function prepareTools({
         },
         toolWarnings,
       };
+    case 'provider-defined':
+      return {
+        tools: openaiCompatTools,
+        toolChoice: toolChoice.toolChoice as any,
+        toolWarnings,
+      };
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({

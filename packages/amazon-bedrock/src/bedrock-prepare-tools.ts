@@ -166,6 +166,9 @@ export function prepareTools({
       case 'tool':
         bedrockToolChoice = { tool: { name: toolChoice.toolName } };
         break;
+      case 'provider-defined':
+        bedrockToolChoice = toolChoice.toolChoice as any;
+        break;
       default: {
         const _exhaustiveCheck: never = type;
         throw new UnsupportedFunctionalityError({
