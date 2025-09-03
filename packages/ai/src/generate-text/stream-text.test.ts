@@ -23,7 +23,17 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
 import { z } from 'zod/v4';
+import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
@@ -312,6 +322,18 @@ const modelWithReasoning = new MockLanguageModelV2({
 });
 
 describe('streamText', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   describe('result.textStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
@@ -1465,6 +1487,52 @@ describe('streamText', () => {
       expect(onError).toHaveBeenCalledWith({
         error: new Error('test error'),
       });
+    });
+
+    it('should call onFinish even when error chunk occurs mid-stream', async () => {
+      const onFinish = vi.fn();
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'error', error: new Error('chunk error') },
+            // Note: finish-step and finish are still added after error
+            {
+              type: 'finish',
+              finishReason: 'error',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError,
+        onFinish,
+      });
+
+      await result.consumeStream();
+
+      // Verify onError was called
+      expect(onError).toHaveBeenCalledWith({
+        error: new Error('chunk error'),
+      });
+
+      // Verify onFinish was still called after the error
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finishReason: 'error',
+          text: 'Hello',
+          usage: testUsage,
+        }),
+      );
     });
 
     it('should invoke onError callback when error is thrown in 2nd step', async () => {
@@ -2994,6 +3062,314 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    it('should call onFinish when reader.cancel() is called', async () => {
+      const onFinishCallback = vi.fn();
+
+      const model = new MockLanguageModelV2({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'msg-2',
+              modelId: 'test-model',
+              timestamp: new Date(),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Streaming' },
+            { type: 'text-delta', id: '1', delta: ' content' },
+            { type: 'text-delta', id: '1', delta: ' that' },
+            { type: 'text-delta', id: '1', delta: ' will' },
+            { type: 'text-delta', id: '1', delta: ' be' },
+            { type: 'text-delta', id: '1', delta: ' cancelled' },
+          ]),
+        }),
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'Generate content',
+      });
+
+      const uiStream = result.toUIMessageStream({
+        onFinish: onFinishCallback,
+      });
+
+      const reader = uiStream.getReader();
+      const chunks = [];
+      for (let i = 0; i < 4; i++) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+
+      await reader.cancel();
+      reader.releaseLock();
+
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.responseMessage).toBeDefined();
+      expect(callArgs.responseMessage.role).toBe('assistant');
+      const textPart = callArgs.responseMessage.parts.find(
+        (p: any) => p.type === 'text',
+      );
+      expect(textPart).toBeDefined();
+      expect(textPart.text).toContain('Streaming'); // Partial content
+      expect(textPart.state).toBe('streaming');
+      expect(callArgs.isAborted).toBe(false); // Stream was cancelled, not aborted
+    });
+
+    it('should call onFinish when async iteration stops mid-stream', async () => {
+      const onFinishCallback = vi.fn();
+
+      const model = new MockLanguageModelV2({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'msg-4',
+              modelId: 'test-model',
+              timestamp: new Date(),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'First' },
+            { type: 'text-delta', id: '1', delta: ' chunk' },
+            { type: 'text-delta', id: '1', delta: ' of' },
+            { type: 'text-delta', id: '1', delta: ' text' },
+            { type: 'text-delta', id: '1', delta: ' that' },
+            { type: 'text-delta', id: '1', delta: ' will' },
+            { type: 'text-delta', id: '1', delta: ' be' },
+            { type: 'text-delta', id: '1', delta: ' interrupted' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+            },
+          ]),
+        }),
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'Generate text',
+      });
+
+      const uiStream = result.toUIMessageStream({
+        onFinish: onFinishCallback,
+        generateMessageId: () => 'msg-async-iter',
+      });
+
+      let chunkCount = 0;
+      const collectedChunks: any[] = [];
+
+      for await (const chunk of uiStream) {
+        collectedChunks.push(chunk);
+        chunkCount++;
+
+        if (chunkCount >= 5) {
+          break;
+        }
+      }
+
+      expect(chunkCount).toBe(5);
+      expect(collectedChunks).toHaveLength(5);
+
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.responseMessage.id).toBe('msg-async-iter');
+      expect(callArgs.responseMessage.role).toBe('assistant');
+
+      const textPart = callArgs.responseMessage.parts.find(
+        (p: any) => p.type === 'text',
+      );
+      expect(textPart).toBeDefined();
+      expect(textPart.text).toContain('First chunk'); // Should have at least the first parts
+      expect(textPart.state).toBe('streaming');
+      expect(callArgs.isAborted).toBe(false); // No explicit abort, just stopped iteration
+    });
+
+    it('should call onFinish when stream is aborted via AbortController', async () => {
+      const onFinishCallback = vi.fn();
+      const abortController = new AbortController();
+
+      const model = new MockLanguageModelV2({
+        doStream: async ({ abortSignal }) => {
+          const stream = new ReadableStream({
+            async start(controller) {
+              const onAbort = () => {
+                controller.error(new DOMException('Aborted', 'AbortError'));
+              };
+              abortSignal?.addEventListener('abort', onAbort, { once: true });
+
+              controller.enqueue({
+                type: 'response-metadata',
+                id: 'msg-1',
+                modelId: 'test-model',
+                timestamp: new Date(),
+              });
+              controller.enqueue({ type: 'text-start', id: '1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: 'Hello',
+              });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: ' world',
+              });
+
+              await new Promise(resolve => setTimeout(resolve, 10));
+
+              if (!abortSignal?.aborted) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: '1',
+                  delta: ' from AI',
+                });
+                controller.enqueue({ type: 'text-end', id: '1' });
+                controller.enqueue({
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                });
+                controller.close();
+              }
+            },
+          });
+
+          return { stream };
+        },
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'Say hello',
+        abortSignal: abortController.signal,
+      });
+
+      const uiStream = result.toUIMessageStream({
+        onFinish: onFinishCallback,
+      });
+
+      const reader = uiStream.getReader();
+      const chunks = [];
+
+      for (let i = 0; i < 3; i++) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+
+      abortController.abort();
+      const { value: abortChunk } = await reader.read();
+      expect(abortChunk?.type).toBe('abort');
+
+      while (true) {
+        const { done } = await reader.read();
+        if (done) break;
+      }
+
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.responseMessage).toBeDefined();
+      expect(callArgs.responseMessage.role).toBe('assistant');
+      const textPart = callArgs.responseMessage.parts.find(
+        (p: any) => p.type === 'text',
+      );
+      expect(textPart).toBeDefined();
+      expect(textPart.text).toBe(''); // Text was not streamed yet when aborted
+      expect(callArgs.isAborted).toBe(true); // Stream was aborted
+
+      reader.releaseLock();
+    });
+
+    it('should NOT call onFinish when for-await loop breaks early', async () => {
+      const onFinish = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ' World' },
+            { type: 'text-delta', id: '1', delta: '!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onFinish,
+      });
+
+      // Get the UI message stream and break after third chunk
+      const stream = result.toUIMessageStream();
+      let chunkCount = 0;
+
+      for await (const chunk of stream) {
+        chunkCount++;
+        if (chunkCount === 3) {
+          break; // Break the iteration early, simulating cancellation
+        }
+      }
+
+      // Verify that onFinish was NOT called when stream was cancelled
+      expect(onFinish).not.toHaveBeenCalled();
+    });
+
+    it('should NOT call onFinish when reader.cancel() is called', async () => {
+      const onFinishCallback = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ' World' },
+            { type: 'text-delta', id: '1', delta: '!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onFinish: onFinishCallback,
+      });
+
+      const uiStream = result.toUIMessageStream();
+
+      const reader = uiStream.getReader();
+      const chunks = [];
+      for (let i = 0; i < 4; i++) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+
+      await reader.cancel();
+      reader.releaseLock();
+
+      // Verify that onFinish was NOT called when stream was cancelled
+      expect(onFinishCallback).not.toHaveBeenCalled();
     });
   });
 
@@ -12148,7 +12524,6 @@ describe('streamText', () => {
                   pullCalls = 0;
                 },
                 pull(controller) {
-                  console.log('pull', { streamCalls, pullCalls });
                   if (streamCalls === 1) {
                     switch (pullCalls++) {
                       case 0:
@@ -13200,6 +13575,142 @@ describe('streamText', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('logWarnings', () => {
+    it('should call logWarnings with warnings from a single step', async () => {
+      const expectedWarnings = [
+        {
+          type: 'other' as const,
+          message: 'Setting is not supported',
+        },
+        {
+          type: 'unsupported-setting' as const,
+          setting: 'temperature',
+          details: 'Temperature parameter not supported',
+        },
+      ];
+
+      const result = streamText({
+        model: createTestModel({
+          warnings: expectedWarnings,
+        }),
+        ...defaultSettings(),
+      });
+
+      // Consume the stream to trigger the warning logging
+      await result.finishReason;
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    });
+
+    it('should call logWarnings once for each step with warnings from that step', async () => {
+      const warning1 = {
+        type: 'other' as const,
+        message: 'Warning from step 1',
+      };
+      const warning2 = {
+        type: 'other' as const,
+        message: 'Warning from step 2',
+      };
+
+      let callCount = 0;
+      const model = new MockLanguageModelV2({
+        doStream: async _options => {
+          switch (callCount++) {
+            case 0:
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'stream-start',
+                    warnings: [warning1],
+                  },
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: `{ "value": "test" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: 'tool-calls',
+                    usage: testUsage,
+                  },
+                ]),
+                response: {},
+              };
+            case 1:
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'stream-start',
+                    warnings: [warning2],
+                  },
+                  {
+                    type: 'response-metadata',
+                    id: 'id-1',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(10000),
+                  },
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'Final response' },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: 'stop',
+                    usage: testUsage,
+                  },
+                ]),
+                response: {},
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      });
+
+      const result = streamText({
+        model,
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result',
+          },
+        },
+        stopWhen: stepCountIs(3),
+        ...defaultSettings(),
+      });
+
+      // Consume the stream to trigger the warning logging
+      await result.finishReason;
+
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, [warning1]);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, [warning2]);
+    });
+
+    it('should call logWarnings with empty array when no warnings are present', async () => {
+      const result = streamText({
+        model: createTestModel({
+          warnings: [], // no warnings
+        }),
+        ...defaultSettings(),
+      });
+
+      // Consume the stream to trigger the warning logging
+      await result.finishReason;
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith([]);
     });
   });
 });

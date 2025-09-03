@@ -46,12 +46,12 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'prompt',
-      type: 'string',
+      type: 'string | Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage>',
       description: 'The input prompt to generate the text from.',
     },
     {
       name: 'messages',
-      type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage> | Array<UIMessage>',
+      type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage>',
       description:
         'A list of messages that represent a conversation. Automatically converts UI messages from the useChat hook.',
       properties: [
@@ -604,6 +604,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'Context that is passed into tool execution. Experimental (can break in patch releases).',
     },
     {
+      name: 'experimental_download',
+      type: '(requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>) => Promise<Array<null | { data: Uint8Array; mediaType?: string }>>',
+      isOptional: true,
+      description:
+        'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
+    },
+    {
       name: 'experimental_repairToolCall',
       type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV2ToolCall | null>',
       isOptional: true,
@@ -641,7 +648,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'error',
-              type: 'NoSuchToolError | InvalidToolArgumentsError',
+              type: 'NoSuchToolError | InvalidToolInputError',
               description:
                 'The error that occurred while parsing the tool call.',
             },

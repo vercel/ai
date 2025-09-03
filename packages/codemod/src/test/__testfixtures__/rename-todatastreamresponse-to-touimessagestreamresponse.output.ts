@@ -17,4 +17,24 @@ const stream = streamText({ model, prompt });
 const response = stream.toUIMessageStreamResponse({ 
   status: 200,
   headers: { 'custom': 'header' }
-}); 
+});
+
+const result1 = result.toUIMessageStreamResponse({
+  onError: error => {
+    return {
+      errorCode: 'STREAM_ERROR',
+      message: 'An error occurred while processing your request',
+    };
+  },
+});
+
+// Variable object with getErrorMessage
+const opts = {
+  onError: error => {
+    return {
+      errorCode: 'STREAM_ERROR',
+      message: 'An error occurred while processing your request',
+    };
+  },
+};
+const result2 = result.toUIMessageStreamResponse(opts);

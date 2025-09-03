@@ -33,7 +33,7 @@ const webSearchCallItem = z.object({
     .discriminatedUnion('type', [
       z.object({
         type: z.literal('search'),
-        query: z.string(),
+        query: z.string().nullish(),
       }),
       z.object({
         type: z.literal('open_page'),
@@ -361,10 +361,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                         }),
                         z.object({
                           type: z.literal('file_citation'),
-                          start_index: z.number(),
-                          end_index: z.number(),
                           file_id: z.string(),
-                          quote: z.string(),
+                          filename: z.string().nullish(),
+                          index: z.number().nullish(),
+                          start_index: z.number().nullish(),
+                          end_index: z.number().nullish(),
+                          quote: z.string().nullish(),
                         }),
                       ]),
                     ),
@@ -415,6 +417,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }),
             ]),
           ),
+          service_tier: z.string().nullish(),
           incomplete_details: z.object({ reason: z.string() }).nullable(),
           usage: usageSchema,
         }),
@@ -496,8 +499,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   sourceType: 'document',
                   id: this.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title: annotation.quote,
-                  filename: annotation.file_id,
+                  title: annotation.quote ?? annotation.filename ?? 'Document',
+                  filename: annotation.filename ?? annotation.file_id,
                 });
               }
             }
@@ -596,6 +599,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       providerMetadata.openai.logprobs = logprobs;
     }
 
+    if (typeof response.service_tier === 'string') {
+      providerMetadata.openai.serviceTier = response.service_tier;
+    }
+
     return {
       content,
       finishReason: mapOpenAIResponseFinishReason({
@@ -670,6 +677,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         summaryParts: number[];
       }
     > = {};
+
+    let serviceTier: string | undefined;
 
     return {
       stream: response.pipeThrough(
@@ -918,7 +927,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 delta: value.delta,
               });
 
-              if (value.logprobs) {
+              if (options.providerOptions?.openai?.logprobs && value.logprobs) {
                 logprobs.push(value.logprobs);
               }
             } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
@@ -968,6 +977,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               usage.cachedInputTokens =
                 value.response.usage.input_tokens_details?.cached_tokens ??
                 undefined;
+              if (typeof value.response.service_tier === 'string') {
+                serviceTier = value.response.service_tier;
+              }
             } else if (isResponseAnnotationAddedChunk(value)) {
               if (value.annotation.type === 'url_citation') {
                 controller.enqueue({
@@ -983,8 +995,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   sourceType: 'document',
                   id: self.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title: value.annotation.quote,
-                  filename: value.annotation.file_id,
+                  title:
+                    value.annotation.quote ??
+                    value.annotation.filename ??
+                    'Document',
+                  filename:
+                    value.annotation.filename ?? value.annotation.file_id,
                 });
               }
             } else if (isErrorChunk(value)) {
@@ -1001,6 +1017,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
             if (logprobs.length > 0) {
               providerMetadata.openai.logprobs = logprobs;
+            }
+
+            if (serviceTier !== undefined) {
+              providerMetadata.openai.serviceTier = serviceTier;
             }
 
             controller.enqueue({
@@ -1049,6 +1069,7 @@ const responseFinishedChunkSchema = z.object({
   response: z.object({
     incomplete_details: z.object({ reason: z.string() }).nullish(),
     usage: usageSchema,
+    service_tier: z.string().nullish(),
   }),
 });
 
@@ -1058,6 +1079,7 @@ const responseCreatedChunkSchema = z.object({
     id: z.string(),
     created_at: z.number(),
     model: z.string(),
+    service_tier: z.string().nullish(),
   }),
 });
 
@@ -1184,7 +1206,11 @@ const responseAnnotationAddedSchema = z.object({
     z.object({
       type: z.literal('file_citation'),
       file_id: z.string(),
-      quote: z.string(),
+      filename: z.string().nullish(),
+      index: z.number().nullish(),
+      start_index: z.number().nullish(),
+      end_index: z.number().nullish(),
+      quote: z.string().nullish(),
     }),
   ]),
 });

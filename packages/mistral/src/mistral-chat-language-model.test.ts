@@ -5,6 +5,7 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { createMistral } from './mistral-provider';
+import { describe, it, expect } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -572,12 +573,6 @@ describe('doGenerate', () => {
           "max_tokens": undefined,
           "messages": [
             {
-              "content": "JSON schema:
-      {"type":"object","properties":{"name":{"type":"string"}}}
-      You MUST answer with a JSON object that matches the JSON schema above.",
-              "role": "system",
-            },
-            {
               "content": [
                 {
                   "text": "Hello",
@@ -590,7 +585,20 @@ describe('doGenerate', () => {
           "model": "mistral-small-latest",
           "random_seed": undefined,
           "response_format": {
-            "type": "json_object",
+            "json_schema": {
+              "description": undefined,
+              "name": "response",
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "json_schema",
           },
           "safe_prompt": undefined,
           "temperature": undefined,

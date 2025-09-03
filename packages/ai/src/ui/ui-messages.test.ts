@@ -1,4 +1,5 @@
 import { getToolName } from './ui-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('getToolName', () => {
   it('should return the tool name after the "tool-" prefix', () => {

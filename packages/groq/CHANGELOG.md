@@ -1,5 +1,31 @@
 # @ai-sdk/groq
 
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 2.0.14
+
+### Patch Changes
+
+- 1e8f9b7: fix (provider/groq): add missing provider.transcriptionModel
+
+## 2.0.13
+
+### Patch Changes
+
+- 72757a0: feat (provider/groq): add service tier provider option
+
 ## 2.0.12
 
 ### Patch Changes

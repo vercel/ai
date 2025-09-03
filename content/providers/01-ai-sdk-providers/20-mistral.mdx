@@ -80,9 +80,10 @@ const model = mistral('mistral-large-latest');
 ```
 
 Mistral chat models also support additional model settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
-You can pass them as an options argument:
+You can pass them as an options argument and utilize `MistralLanguageModelOptions` for typing:
 
 ```ts
+import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
 const model = mistral('mistral-large-latest');
 
 await generateText({
@@ -90,7 +91,7 @@ await generateText({
   providerOptions: {
     mistral: {
       safePrompt: true, // optional safety prompt injection
-    },
+    } satisfies MistralLanguageModelOptions,
   },
 });
 ```
@@ -110,6 +111,18 @@ The following optional provider options are available for Mistral models:
 - **documentPageLimit** _number_
 
   Maximum number of pages to process in a document.
+
+- **strictJsonSchema** _boolean_
+
+  Whether to use strict JSON schema validation for structured outputs. Only applies when a schema is provided and only sets the [`strict` flag](https://docs.mistral.ai/api/#tag/chat/operation/chat_completion_v1_chat_completions_post) in addition to using [Custom Structured Outputs](https://docs.mistral.ai/capabilities/structured-output/custom_structured_output/), which is used by default if a schema is provided.
+
+  Defaults to `false`.
+
+- **structuredOutputs** _boolean_
+
+  Whether to use [structured outputs](#structured-outputs). When enabled, tool calls and object generation will be strict and follow the provided schema.
+
+  Defaults to `true`.
 
 ### Document OCR
 
@@ -199,6 +212,60 @@ const { text } = await generateText({
 
 Mistral language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
 (see [AI SDK Core](/docs/ai-sdk-core)).
+
+#### Structured Outputs
+
+Mistral chat models support structured outputs using JSON Schema. You can use `generateObject` or `streamObject`
+with Zod, Valibot, or raw JSON Schema. The SDK sends your schema via Mistral's `response_format: { type: 'json_schema' }`.
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { generateObject } from 'ai';
+import { z } from 'zod/v3';
+
+const result = await generateObject({
+  model: mistral('mistral-large-latest'),
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+      instructions: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a simple pasta recipe.',
+});
+
+console.log(JSON.stringify(result.object, null, 2));
+```
+
+You can enable strict JSON Schema validation using a provider option:
+
+```ts highlight="7-11"
+import { mistral } from '@ai-sdk/mistral';
+import { generateObject } from 'ai';
+import { z } from 'zod/v3';
+
+const result = await generateObject({
+  model: mistral('mistral-large-latest'),
+  providerOptions: {
+    mistral: {
+      strictJsonSchema: true, // reject outputs that don't strictly match the schema
+    },
+  },
+  schema: z.object({
+    title: z.string(),
+    items: z.array(z.object({ id: z.string(), qty: z.number().int().min(1) })),
+  }),
+  prompt: 'Generate a small shopping list.',
+});
+```
+
+<Note>
+  When using structured outputs, the SDK no longer injects an extra "answer with
+  JSON" instruction. It relies on Mistral's native `json_schema`/`json_object`
+  response formats instead. You can customize the schema name/description via
+  the standard structured-output APIs.
+</Note>
 
 ### Model Capabilities
 

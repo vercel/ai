@@ -332,7 +332,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         ? {
             tools: [jsonResponseTool],
             toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
-            disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
+            disableParallelToolUse: true,
           }
         : {
             tools: tools ?? [],
