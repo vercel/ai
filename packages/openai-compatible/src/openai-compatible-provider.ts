@@ -68,6 +68,11 @@ or to provide a custom fetch implementation for e.g. testing.
 Include usage information in streaming responses.
    */
   includeUsage?: boolean;
+
+  /**
+Whether the provider supports structured outputs (JSON schema).
+   */
+  supportsStructuredOutputs?: boolean;
 }
 
 /**
@@ -121,6 +126,7 @@ export function createOpenAICompatible<
     new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
       includeUsage: options.includeUsage,
+      supportsStructuredOutputs: options.supportsStructuredOutputs,
     });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>
