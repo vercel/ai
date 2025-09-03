@@ -135,7 +135,7 @@ OpenAI chat models support also some model specific provider options that are no
 You can pass them in the `providerOptions` argument:
 
 ```ts
-import { openai, type OpenAILanguageModelOptions } from '@ai-sdk/openai';
+import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
 
 const model = openai.chat('gpt-5');
 
@@ -148,7 +148,7 @@ await generateText({
         '50256': -100,
       },
       user: 'test-user', // optional unique user identifier
-    } satisfies OpenAILanguageModelOptions,
+    } satisfies OpenAIChatLanguageModelOptions,
   },
 });
 ```
