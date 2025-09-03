@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 2.0.11
+
+### Patch Changes
+
+- c7fee29: feat(anthropic): handle `pause_turn` as value for `stop_reason`
+
+## 2.0.10
+
+### Patch Changes
+
+- c152ef7: feat(providers/anthropic): map 'refusal' stop reason to 'content-filter' finishReason
+
 ## 2.0.9
 
 ### Patch Changes
