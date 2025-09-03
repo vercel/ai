@@ -7,6 +7,7 @@ import {
   StreamingUIMessageState,
 } from './process-ui-message-stream';
 import { InferUIMessageData, UIMessage } from './ui-messages';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);

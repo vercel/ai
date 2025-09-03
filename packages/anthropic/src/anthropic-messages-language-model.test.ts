@@ -11,6 +11,7 @@ import {
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
 import { type DocumentCitation } from './anthropic-messages-language-model';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -208,6 +209,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
             "model": "claude-3-haiku-20240307",
             "tool_choice": {
+              "disable_parallel_tool_use": true,
               "name": "json",
               "type": "tool",
             },
@@ -1739,6 +1741,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "model": "claude-3-haiku-20240307",
             "stream": true,
             "tool_choice": {
+              "disable_parallel_tool_use": true,
               "name": "json",
               "type": "tool",
             },

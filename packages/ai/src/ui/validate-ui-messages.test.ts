@@ -1,8 +1,31 @@
 import { z } from 'zod/v4';
 import { InferUITool, UIMessage } from './ui-messages';
 import { validateUIMessages } from './validate-ui-messages';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 describe('validateUIMessages', () => {
+  describe('parameter validation', () => {
+    it('should throw InvalidArgumentError when messages parameter is null', async () => {
+      await expect(
+        validateUIMessages({
+          messages: null,
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_InvalidArgumentError: Invalid argument for parameter messages: messages parameter must be provided]
+      `);
+    });
+
+    it('should throw InvalidArgumentError when messages parameter is undefined', async () => {
+      await expect(
+        validateUIMessages({
+          messages: undefined,
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_InvalidArgumentError: Invalid argument for parameter messages: messages parameter must be provided]
+      `);
+    });
+  });
+
   describe('metadata', () => {
     it('should validate a user message with metadata when no metadata schema is provided', async () => {
       type TestMessage = UIMessage<{ foo: string }>;
