@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.10
+
+### Patch Changes
+
+- c152ef7: feat(providers/anthropic): map 'refusal' stop reason to 'content-filter' finishReason
+
 ## 2.0.9
 
 ### Patch Changes
