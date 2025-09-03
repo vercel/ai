@@ -20,6 +20,7 @@
     { "path": "packages/google" },
     { "path": "packages/google-vertex" },
     { "path": "packages/groq" },
+    { "path": "packages/huggingface" }
     { "path": "packages/hume" },
     { "path": "packages/langchain" },
     { "path": "packages/llamaindex" },
@@ -40,8 +41,7 @@
     { "path": "packages/valibot" },
     { "path": "packages/vercel" },
     { "path": "packages/vue" },
-    { "path": "packages/xai" },
-    { "path": "packages/huggingface" }
+    { "path": "packages/xai" }
   ],
   "include": []
 }
