@@ -5,7 +5,7 @@ description: Monitor your AI SDK applications with Laminar
 
 # Laminar observability
 
-[Laminar](https://www.lmnr.ai) is the open-source platform for tracing and evaluating AI applications.
+[Laminar](https://laminar.sh) is the open-source platform for tracing and evaluating AI applications.
 
 Laminar features:
 
@@ -44,7 +44,7 @@ To start with Laminar's tracing, first [install](https://docs.lmnr.ai/installati
 
 ### Get your project API key and set in the environment
 
-Then, either sign up on [Laminar](https://www.lmnr.ai) or self-host an instance ([github](https://github.com/lmnr-ai/lmnr)) and create a new project.
+Then, either sign up on [Laminar](https://laminar.sh) or self-host an instance ([github](https://github.com/lmnr-ai/lmnr)) and create a new project.
 
 In the project settings, create and copy the API key.
 
@@ -66,7 +66,7 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { Laminar } = await import('@lmnr-ai/lmnr');
     Laminar.initialize({
-      projectApiKey: process.env.LMNR_API_KEY,
+      projectApiKey: process.env.LMNR_PROJECT_API_KEY,
     });
   }
 }
