@@ -11,6 +11,8 @@ export function mapAnthropicStopReason({
     case 'end_turn':
     case 'stop_sequence':
       return 'stop';
+    case 'refusal':
+      return 'content-filter';
     case 'tool_use':
       return isJsonResponseFromTool ? 'stop' : 'tool-calls';
     case 'max_tokens':
