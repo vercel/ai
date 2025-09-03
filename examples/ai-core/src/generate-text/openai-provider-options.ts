@@ -7,7 +7,7 @@ async function main() {
     model: openai('gpt-3.5-turbo'),
     prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {
-      opentai: {
+      openai: {
         logitBias: {},
         logprobs: 1,
         parallelToolCalls: false,
