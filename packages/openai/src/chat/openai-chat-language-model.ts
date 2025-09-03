@@ -30,7 +30,7 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAIChatModelId,
-  openaiLanguageModelOptions,
+  openaiChatLanguageModelOptions,
 } from './openai-chat-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 
@@ -83,7 +83,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiLanguageModelOptions,
+        schema: openaiChatLanguageModelOptions,
       })) ?? {};
 
     const structuredOutputs = openaiOptions.structuredOutputs ?? true;

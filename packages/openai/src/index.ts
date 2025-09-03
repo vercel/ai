@@ -1,4 +1,4 @@
 export { createOpenAI, openai } from './openai-provider';
 export type { OpenAIProvider, OpenAIProviderSettings } from './openai-provider';
 export type { OpenAIResponsesProviderOptions } from './responses/openai-responses-language-model';
-export type { OpenAILanguageModelOptions } from './chat/openai-chat-options';
+export type { OpenAIChatLanguageModelOptions } from './chat/openai-chat-options';

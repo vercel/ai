@@ -1,4 +1,4 @@
-import { openai, type OpenAILanguageModelOptions } from '@ai-sdk/openai';
+import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
@@ -25,7 +25,7 @@ async function main() {
         safetyIdentifier: '<safety_identifier>',
         // @ts-expect-error
         invalidOption: null,
-      } satisfies OpenAILanguageModelOptions,
+      } satisfies OpenAIChatLanguageModelOptions,
     },
   });
 
