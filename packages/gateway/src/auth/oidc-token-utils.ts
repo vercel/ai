@@ -181,6 +181,11 @@ export async function saveToken(
     fs.writeFileSync(tokenPath, tokenJson);
     fs.chmodSync(tokenPath, 0o600);
   } catch (e) {
+    // preserve the original error if it's already a GatewayAuthenticationError
+    if (e instanceof GatewayAuthenticationError) {
+      throw e;
+    }
+    // only wrap non-GatewayAuthenticationError exceptions
     throw new GatewayAuthenticationError({
       message: 'failed to save token',
       statusCode: 500,
