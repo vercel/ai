@@ -157,17 +157,15 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
     const content: Array<LanguageModelV2Content> = [];
 
-    if (response.message.content) {
-      for (const item of response.message.content) {
-        if (item.type === 'text' && item.text.length > 0) {
-          content.push({ type: 'text', text: item.text });
-          continue;
-        }
+    for (const item of response.message.content ?? []) {
+      if (item.type === 'text' && item.text.length > 0) {
+        content.push({ type: 'text', text: item.text });
+        continue;
+      }
 
-        if (item.type === 'thinking' && item.thinking.length > 0) {
-          content.push({ type: 'reasoning', text: item.thinking });
-          continue;
-        }
+      if (item.type === 'thinking' && item.thinking.length > 0) {
+        content.push({ type: 'reasoning', text: item.thinking });
+        continue;
       }
     }
 
