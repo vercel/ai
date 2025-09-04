@@ -9,4 +9,11 @@ export type GatewayEmbeddingModelId =
   | 'openai/text-embedding-3-large'
   | 'openai/text-embedding-3-small'
   | 'openai/text-embedding-ada-002'
+  | 'voyage/voyage-3-large'
+  | 'voyage/voyage-3.5'
+  | 'voyage/voyage-3.5-lite'
+  | 'voyage/voyage-code-3'
+  | 'voyage/voyage-finance-2'
+  | 'voyage/voyage-law-2'
+  | 'voyage/voyage-code-2'
   | (string & {});

@@ -61,7 +61,7 @@ async function main() {
         ].join('\n'),
       });
 
-      return { ...toolCall, args: JSON.stringify(repairedArgs) };
+      return { ...toolCall, input: JSON.stringify(repairedArgs) };
     },
   });
 

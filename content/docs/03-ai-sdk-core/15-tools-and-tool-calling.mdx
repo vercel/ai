@@ -94,7 +94,7 @@ const { text, steps } = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5), // stop after 5 steps if tools were called
+  stopWhen: stepCountIs(5), // stop after a maximum of 5 steps if tools were called
   prompt: 'What is the weather in San Francisco?',
 });
 ```
@@ -608,6 +608,11 @@ return result.toUIMessageStreamResponse({
 
 Language models sometimes fail to generate valid tool calls,
 especially when the input schema is complex or the model is smaller.
+
+If you use multiple steps, those failed tool calls will be sent back to the LLM
+in the next step to give it an opportunity to fix it.
+However, you may want to control how invalid tool calls are repaired without requiring
+additional steps that pollute the message history.
 
 You can use the `experimental_repairToolCall` function to attempt to repair the tool call
 with a custom function.

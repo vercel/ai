@@ -1,5 +1,32 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 1.0.14
+
+### Patch Changes
+
+- 818f021: Prevent redundant reasoningEffort field in request body (in favor of reasoning_effort)
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
 ## 1.0.11
 
 ### Patch Changes

@@ -1,5 +1,61 @@
 # @ai-sdk/google-vertex
 
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/anthropic@2.0.12
+  - @ai-sdk/google@2.0.12
+
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [c7fee29]
+  - @ai-sdk/anthropic@2.0.11
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [c152ef7]
+  - @ai-sdk/anthropic@2.0.10
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [cdc6b7a]
+  - @ai-sdk/anthropic@2.0.9
+
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [a14fc2b]
+  - @ai-sdk/google@2.0.11
+
+## 3.0.14
+
+### Patch Changes
+
+- a8a73c5: Update Claude model IDs in Google Vertex Anthropic provider and documentation link
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/anthropic@2.0.8
+  - @ai-sdk/google@2.0.10
+
+## 3.0.13
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/anthropic@2.0.7
+  - @ai-sdk/google@2.0.9
+
 ## 3.0.12
 
 ### Patch Changes
