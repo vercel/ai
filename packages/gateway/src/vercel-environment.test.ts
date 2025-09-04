@@ -5,41 +5,52 @@ vi.mock('./auth/oidc-token-utils');
 
 const SYMBOL_FOR_REQ_CONTEXT = Symbol.for('@vercel/request-context');
 
+interface VercelRequestContext {
+  get: () => {
+    headers?: Record<string, string>;
+  };
+}
+
+function setRequestContext(context: VercelRequestContext | undefined) {
+  (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = context;
+}
+
+function getRequestContext(): VercelRequestContext | undefined {
+  return (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT];
+}
+
 describe('getVercelOidcToken', () => {
   const originalEnv = process.env;
-  const originalSymbolValue = (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT];
+  const originalSymbolValue = getRequestContext();
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = undefined;
+    setRequestContext(undefined);
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
     process.env = originalEnv;
-    if (originalSymbolValue) {
-      (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = originalSymbolValue;
-    } else {
-      (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = undefined;
-    }
+    setRequestContext(originalSymbolValue);
   });
 
   it('should get token from request headers', async () => {
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
+    setRequestContext({
       get: () => ({
         headers: {
           'x-vercel-oidc-token': 'header-token-value',
         },
       }),
-    };
+    });
 
     const token = await getVercelOidcToken();
     expect(token).toBe('header-token-value');
   });
 
   it('should get token from environment variable when header is not available', async () => {
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
+    setRequestContext({
       get: () => ({ headers: {} }),
-    };
+    });
     process.env.VERCEL_OIDC_TOKEN = 'env-token-value';
 
     const token = await getVercelOidcToken();
@@ -47,13 +58,13 @@ describe('getVercelOidcToken', () => {
   });
 
   it('should prioritize header token over environment variable', async () => {
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
+    setRequestContext({
       get: () => ({
         headers: {
           'x-vercel-oidc-token': 'header-token-value',
         },
       }),
-    };
+    });
     process.env.VERCEL_OIDC_TOKEN = 'env-token-value';
 
     const token = await getVercelOidcToken();
@@ -61,9 +72,9 @@ describe('getVercelOidcToken', () => {
   });
 
   it('should throw GatewayAuthenticationError when no token is available', async () => {
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
+    setRequestContext({
       get: () => ({ headers: {} }),
-    };
+    });
     process.env.VERCEL_OIDC_TOKEN = undefined;
 
     await expect(getVercelOidcToken()).rejects.toMatchObject({
@@ -75,19 +86,11 @@ describe('getVercelOidcToken', () => {
   });
 
   it('should refresh expired token when available', async () => {
-    const {
-      getTokenPayload,
-      isExpired,
-      findProjectInfo,
-      getVercelCliToken,
-      loadToken,
-      saveToken,
-      refreshOidcToken,
-    } = await import('./auth/oidc-token-utils');
+    const { getTokenPayload, isExpired, tryRefreshOidcToken } = await import('./auth/oidc-token-utils');
 
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
+    setRequestContext({
       get: () => ({ headers: {} }),
-    };
+    });
     process.env.VERCEL_OIDC_TOKEN = 'expired-token';
 
     vi.mocked(getTokenPayload).mockReturnValue({
@@ -96,55 +99,20 @@ describe('getVercelOidcToken', () => {
       exp: 1234567890,
     });
     vi.mocked(isExpired).mockReturnValue(true);
-    vi.mocked(findProjectInfo).mockResolvedValue({ projectId: 'test-project' });
-    vi.mocked(getVercelCliToken).mockResolvedValue('cli-token');
-    vi.mocked(loadToken).mockResolvedValue(null);
-    vi.mocked(refreshOidcToken).mockResolvedValue({ token: 'new-token' });
+    vi.mocked(tryRefreshOidcToken).mockResolvedValue('new-token');
 
     const token = await getVercelOidcToken();
 
     expect(token).toBe('new-token');
     expect(process.env.VERCEL_OIDC_TOKEN).toBe('new-token');
-    expect(saveToken).toHaveBeenCalledWith(
-      { token: 'new-token' },
-      'test-project',
-    );
-  });
-
-  it('should use cached token when available and not expired', async () => {
-    const { getTokenPayload, isExpired, findProjectInfo, loadToken } =
-      await import('./auth/oidc-token-utils');
-
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
-      get: () => ({ headers: {} }),
-    };
-    process.env.VERCEL_OIDC_TOKEN = 'expired-token';
-
-    vi.mocked(getTokenPayload).mockReturnValue({
-      sub: 'user',
-      name: 'test',
-      exp: 1234567890,
-    });
-    vi.mocked(isExpired)
-      .mockReturnValueOnce(true) // for initial token
-      .mockReturnValueOnce(false); // for cached token
-    vi.mocked(findProjectInfo).mockResolvedValue({ projectId: 'test-project' });
-    vi.mocked(loadToken).mockResolvedValue({ token: 'cached-token' });
-
-    const token = await getVercelOidcToken();
-
-    expect(token).toBe('cached-token');
-    expect(process.env.VERCEL_OIDC_TOKEN).toBe('cached-token');
   });
 
   it('should fallback to original token when refresh fails', async () => {
-    const { getTokenPayload, isExpired, findProjectInfo } = await import(
-      './auth/oidc-token-utils'
-    );
+    const { getTokenPayload, isExpired, tryRefreshOidcToken } = await import('./auth/oidc-token-utils');
 
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
+    setRequestContext({
       get: () => ({ headers: {} }),
-    };
+    });
     process.env.VERCEL_OIDC_TOKEN = 'original-token';
 
     vi.mocked(getTokenPayload).mockReturnValue({
@@ -153,7 +121,7 @@ describe('getVercelOidcToken', () => {
       exp: 1234567890,
     });
     vi.mocked(isExpired).mockReturnValue(true);
-    vi.mocked(findProjectInfo).mockResolvedValue(null); // no project info available
+    vi.mocked(tryRefreshOidcToken).mockResolvedValue(null); // refresh fails
 
     const token = await getVercelOidcToken();
 
@@ -161,7 +129,7 @@ describe('getVercelOidcToken', () => {
   });
 
   it('should handle missing request context gracefully', async () => {
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = undefined;
+    setRequestContext(undefined);
     process.env.VERCEL_OIDC_TOKEN = 'env-token-value';
 
     const token = await getVercelOidcToken();
@@ -169,69 +137,123 @@ describe('getVercelOidcToken', () => {
   });
 
   it('should handle missing get method in request context', async () => {
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {};
+    setRequestContext({} as VercelRequestContext); // Intentionally malformed
     process.env.VERCEL_OIDC_TOKEN = 'env-token-value';
 
     const token = await getVercelOidcToken();
     expect(token).toBe('env-token-value');
   });
+
+  it('should attempt refresh when token parsing fails', async () => {
+    const { getTokenPayload, tryRefreshOidcToken } = await import('./auth/oidc-token-utils');
+
+    setRequestContext({
+      get: () => ({ headers: {} }),
+    });
+    process.env.VERCEL_OIDC_TOKEN = 'malformed-token';
+
+    vi.mocked(getTokenPayload).mockImplementation(() => {
+      throw new Error('Invalid token');
+    });
+    vi.mocked(tryRefreshOidcToken).mockResolvedValue('new-token');
+
+    const token = await getVercelOidcToken();
+
+    expect(token).toBe('new-token');
+    expect(process.env.VERCEL_OIDC_TOKEN).toBe('new-token');
+  });
+
+  it('should return original token when parsing fails and refresh returns null', async () => {
+    const { getTokenPayload, tryRefreshOidcToken } = await import('./auth/oidc-token-utils');
+
+    setRequestContext({
+      get: () => ({ headers: {} }),
+    });
+    process.env.VERCEL_OIDC_TOKEN = 'malformed-token';
+
+    vi.mocked(getTokenPayload).mockImplementation(() => {
+      throw new Error('Invalid token');
+    });
+    vi.mocked(tryRefreshOidcToken).mockResolvedValue(null);
+
+    const token = await getVercelOidcToken();
+
+    expect(token).toBe('malformed-token');
+  });
+
+  it('should not call refresh when token is valid', async () => {
+    const { getTokenPayload, isExpired, tryRefreshOidcToken } = await import('./auth/oidc-token-utils');
+
+    setRequestContext({
+      get: () => ({ headers: {} }),
+    });
+    process.env.VERCEL_OIDC_TOKEN = 'valid-token';
+
+    vi.mocked(getTokenPayload).mockReturnValue({
+      sub: 'user',
+      name: 'test',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    vi.mocked(isExpired).mockReturnValue(false);
+
+    const token = await getVercelOidcToken();
+
+    expect(token).toBe('valid-token');
+    expect(tryRefreshOidcToken).not.toHaveBeenCalled();
+  });
 });
 
 describe('getVercelRequestId', () => {
-  const originalSymbolValue = (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT];
+  const originalSymbolValue = getRequestContext();
 
   beforeEach(() => {
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = undefined;
+    setRequestContext(undefined);
   });
 
   afterEach(() => {
-    if (originalSymbolValue) {
-      (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = originalSymbolValue;
-    } else {
-      (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = undefined;
-    }
+    setRequestContext(originalSymbolValue);
   });
 
   it('should get request ID from request headers when available', async () => {
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
+    setRequestContext({
       get: () => ({
         headers: {
           'x-vercel-id': 'req_1234567890abcdef',
         },
       }),
-    };
+    });
 
     const requestId = await getVercelRequestId();
     expect(requestId).toBe('req_1234567890abcdef');
   });
 
   it('should return undefined when request ID header is not available', async () => {
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
+    setRequestContext({
       get: () => ({ headers: {} }),
-    };
+    });
 
     const requestId = await getVercelRequestId();
     expect(requestId).toBeUndefined();
   });
 
   it('should return undefined when no headers are available', async () => {
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
+    setRequestContext({
       get: () => ({}),
-    };
+    });
 
     const requestId = await getVercelRequestId();
     expect(requestId).toBeUndefined();
   });
 
   it('should handle missing request context gracefully', async () => {
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = undefined;
+    setRequestContext(undefined);
 
     const requestId = await getVercelRequestId();
     expect(requestId).toBeUndefined();
   });
 
   it('should handle missing get method in request context', async () => {
-    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {};
+    setRequestContext({} as VercelRequestContext);
 
     const requestId = await getVercelRequestId();
     expect(requestId).toBeUndefined();

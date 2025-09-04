@@ -2,11 +2,7 @@ import { GatewayAuthenticationError } from './errors';
 import {
   getTokenPayload,
   isExpired,
-  findProjectInfo,
-  getVercelCliToken,
-  loadToken,
-  saveToken,
-  refreshOidcToken,
+  tryRefreshOidcToken,
 } from './auth/oidc-token-utils';
 
 export async function getVercelOidcToken(): Promise<string> {
@@ -25,7 +21,7 @@ export async function getVercelOidcToken(): Promise<string> {
   try {
     const payload = getTokenPayload(token);
     if (isExpired(payload)) {
-      const refreshedToken = await tryRefreshToken();
+      const refreshedToken = await tryRefreshOidcToken();
       if (refreshedToken) {
         process.env.VERCEL_OIDC_TOKEN = refreshedToken;
         return refreshedToken;
@@ -33,7 +29,7 @@ export async function getVercelOidcToken(): Promise<string> {
     }
   } catch {
     // if token parsing fails, try to refresh anyway
-    const refreshedToken = await tryRefreshToken();
+    const refreshedToken = await tryRefreshOidcToken();
     if (refreshedToken) {
       process.env.VERCEL_OIDC_TOKEN = refreshedToken;
       return refreshedToken;
@@ -41,32 +37,6 @@ export async function getVercelOidcToken(): Promise<string> {
   }
 
   return token;
-}
-
-async function tryRefreshToken(): Promise<string | null> {
-  try {
-    const projectInfo = await findProjectInfo();
-    if (!projectInfo) {
-      return null;
-    }
-
-    const { projectId, teamId } = projectInfo;
-    let maybeToken = await loadToken(projectId);
-
-    if (!maybeToken || isExpired(getTokenPayload(maybeToken.token))) {
-      const authToken = await getVercelCliToken();
-      if (!authToken) {
-        return null;
-      }
-
-      maybeToken = await refreshOidcToken(authToken, projectId, teamId);
-      await saveToken(maybeToken, projectId);
-    }
-
-    return maybeToken.token;
-  } catch {
-    return null;
-  }
 }
 
 export async function getVercelRequestId(): Promise<string | undefined> {

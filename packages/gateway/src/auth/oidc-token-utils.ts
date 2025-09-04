@@ -1,3 +1,4 @@
+import { loadOptionalSetting } from '@ai-sdk/provider-utils';
 import { GatewayAuthenticationError } from '../errors';
 
 export interface TokenPayload {
@@ -40,29 +41,36 @@ export function isExpired(token: TokenPayload): boolean {
   return token.exp * 1000 < Date.now() + timeout;
 }
 
-export async function getUserDataDir(): Promise<string | null> {
+async function getUserDataDir(): Promise<string | null> {
   if (typeof process === 'undefined' || !process.versions?.node) {
     return null;
+  }
+
+  const xdgDataHome = loadOptionalSetting({
+    settingValue: undefined,
+    environmentVariableName: 'XDG_DATA_HOME',
+  });
+  
+  if (xdgDataHome) {
+    return xdgDataHome;
   }
 
   try {
     const os = await import('os');
     const path = await import('path');
 
-    if (process.env.XDG_DATA_HOME) {
-      return process.env.XDG_DATA_HOME;
-    }
-
     switch (os.platform()) {
       case 'darwin':
         return path.join(os.homedir(), 'Library/Application Support');
       case 'linux':
         return path.join(os.homedir(), '.local/share');
-      case 'win32':
-        if (process.env.LOCALAPPDATA) {
-          return process.env.LOCALAPPDATA;
-        }
-        return null;
+      case 'win32': {
+        const localAppData = loadOptionalSetting({
+          settingValue: undefined,
+          environmentVariableName: 'LOCALAPPDATA',
+        });
+        return localAppData ?? null;
+      }
       default:
         return null;
     }
@@ -71,7 +79,7 @@ export async function getUserDataDir(): Promise<string | null> {
   }
 }
 
-export async function findRootDir(): Promise<string | null> {
+async function findRootDir(): Promise<string | null> {
   if (typeof process === 'undefined' || !process.versions?.node) {
     return null;
   }
@@ -94,7 +102,7 @@ export async function findRootDir(): Promise<string | null> {
   return null;
 }
 
-export async function findProjectInfo(): Promise<{
+async function findProjectInfo(): Promise<{
   projectId: string;
   teamId?: string;
 } | null> {
@@ -126,7 +134,7 @@ export async function findProjectInfo(): Promise<{
   }
 }
 
-export async function getVercelCliToken(): Promise<string | null> {
+async function getVercelCliToken(): Promise<string | null> {
   if (typeof process === 'undefined' || !process.versions?.node) {
     return null;
   }
@@ -153,7 +161,7 @@ export async function getVercelCliToken(): Promise<string | null> {
   }
 }
 
-export async function saveToken(
+async function saveToken(
   token: VercelTokenResponse,
   projectId: string,
 ): Promise<void> {
@@ -176,8 +184,11 @@ export async function saveToken(
     const tokenPath = path.join(dir, 'com.vercel.token', `${projectId}.json`);
     const tokenJson = JSON.stringify(token);
 
+    // create directory with restricted permissions (owner only)
     fs.mkdirSync(path.dirname(tokenPath), { mode: 0o700, recursive: true });
+    // write token file
     fs.writeFileSync(tokenPath, tokenJson);
+    // ensure file has restricted permissions (owner read/write only)
     fs.chmodSync(tokenPath, 0o600);
   } catch (e) {
     // preserve the original error if it's already a GatewayAuthenticationError
@@ -192,7 +203,7 @@ export async function saveToken(
   }
 }
 
-export async function loadToken(
+async function loadToken(
   projectId: string,
 ): Promise<VercelTokenResponse | null> {
   if (typeof process === 'undefined' || !process.versions?.node) {
@@ -224,7 +235,7 @@ export async function loadToken(
   return null;
 }
 
-export async function refreshOidcToken(
+async function refreshOidcToken(
   authToken: string,
   projectId: string,
   teamId?: string,
@@ -268,5 +279,46 @@ export async function refreshOidcToken(
       message: 'failed to refresh oidc token',
       statusCode: 500,
     });
+  }
+}
+
+export async function tryRefreshOidcToken(): Promise<string | null> {
+  if (typeof process === 'undefined' || !process.versions?.node) {
+    return null;
+  }
+
+  try {
+    const projectInfo = await findProjectInfo();
+    if (!projectInfo) {
+      return null;
+    }
+
+    const { projectId, teamId } = projectInfo;
+    let maybeToken = await loadToken(projectId);
+
+    let needsRefresh = !maybeToken;
+    
+    if (maybeToken) {
+      try {
+        const payload = getTokenPayload(maybeToken.token);
+        needsRefresh = isExpired(payload);
+      } catch {
+        needsRefresh = true;
+      }
+    }
+
+    if (needsRefresh) {
+      const authToken = await getVercelCliToken();
+      if (!authToken) {
+        return null;
+      }
+
+      maybeToken = await refreshOidcToken(authToken, projectId, teamId);
+      await saveToken(maybeToken, projectId);
+    }
+
+    return maybeToken?.token ?? null;
+  } catch {
+    return null;
   }
 }
