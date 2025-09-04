@@ -19,6 +19,14 @@ app.post('/', async c => {
   return result.toUIMessageStreamResponse();
 });
 
+app.post('/text', async c => {
+  const result = streamText({
+    model: openai('gpt-4o'),
+    prompt: 'Write a short poem about coding.',
+  });
+  return result.toTextStreamResponse();
+});
+
 app.post('/stream-data', async c => {
   // immediately start streaming the response
   const stream = createUIMessageStream({
