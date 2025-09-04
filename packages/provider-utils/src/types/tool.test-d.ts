@@ -7,7 +7,7 @@ import {
 import { tool } from './tool';
 import { describe, it, expectTypeOf } from 'vitest';
 
-describe('tool helper', () => {
+describe('tool type', () => {
   it('should work with fixed inputSchema', () => {
     const toolType = tool({
       inputSchema: z.object({ number: z.number() }),
@@ -51,5 +51,18 @@ describe('tool helper', () => {
     expectTypeOf(toolType.inputSchema).toEqualTypeOf<
       FlexibleSchema<{ number: number }>
     >();
+  });
+
+  it('should infer toModelOutput argument type', () => {
+    tool({
+      inputSchema: z.object({ number: z.number() }),
+      execute: async input => {
+        return 'test' as const;
+      },
+      toModelOutput: output => {
+        expectTypeOf(output).toEqualTypeOf<'test'>();
+        return { type: 'text', value: 'test' };
+      },
+    });
   });
 });
