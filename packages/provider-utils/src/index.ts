@@ -48,3 +48,8 @@ export {
   EventSourceParserStream,
   type EventSourceMessage,
 } from 'eventsource-parser/stream';
+
+// user-agent exports
+export * from './version';
+export { buildUserAgent, mergeUserAgentHeader, canSetUserAgent } from './user-agent';
+export type { UserAgentParts } from './user-agent';
