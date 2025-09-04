@@ -20,7 +20,7 @@ export const cohereChatModelOptions = z.object({
   /**
    * Configuration for reasoning features (optional)
    *
-   * Can be set to an object with the two properties `type` and `tokenBudget`. `type` can be set to `'enabled'` or `'disabled'` (defaults to `'disabled'`).
+   * Can be set to an object with the two properties `type` and `tokenBudget`. `type` can be set to `'enabled'` or `'disabled'` (defaults to `'enabled'`).
    * `tokenBudget` is the maximum number of tokens the model can use for thinking, which must be set to a positive integer. The model will stop thinking if it reaches the thinking token budget and will proceed with the response
    *
    * @see https://docs.cohere.com/reference/chat#request.body.thinking
