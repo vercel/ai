@@ -14,6 +14,7 @@ import { GroqChatModelId } from './groq-chat-options';
 import { GroqTranscriptionModelId } from './groq-transcription-options';
 import { GroqTranscriptionModel } from './groq-transcription-model';
 
+import { groqTools } from './groq-tools';
 export interface GroqProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
@@ -29,6 +30,11 @@ Creates an Groq chat model for text generation.
 Creates a model for transcription.
    */
   transcription(modelId: GroqTranscriptionModelId): TranscriptionModelV2;
+
+  /**
+   * Tools provided by Groq.
+   */
+  tools: typeof groqTools;
 }
 
 export interface GroqProviderSettings {
@@ -111,6 +117,9 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
   provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
+
+  provider.tools = groqTools;
 
   return provider;
 }

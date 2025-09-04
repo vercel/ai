@@ -1,5 +1,169 @@
 # ai
 
+## 5.0.30
+
+### Patch Changes
+
+- 7fcc6be: feat(ai): throw InvalidArgumentError when messages is not provided
+
+## 5.0.29
+
+### Patch Changes
+
+- e0e9449: feat(ui): sent isAbort, isDisconnect, isError in useChat onFinish callback
+
+## 5.0.28
+
+### Patch Changes
+
+- 4b81e7d: fix(ai): remove vitest dependency from test exports
+- d68a4f2: feat(ai): log warnings
+
+## 5.0.27
+
+### Patch Changes
+
+- ca40fac: feat(ai): support custom download functions (experimental)
+
+## 5.0.26
+
+### Patch Changes
+
+- 33cf848: feat(ai): pass messages to `useChat({ onFinish })`
+- Updated dependencies [980633d]
+- Updated dependencies [1c5b88d]
+  - @ai-sdk/gateway@1.0.15
+
+## 5.0.25
+
+### Patch Changes
+
+- ca65923: fix(ai): remove use of `expect()` from production code
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/gateway@1.0.14
+
+## 5.0.24
+
+### Patch Changes
+
+- f8f3682: fix: call onFinish when stream is cancelled in toUIMessageStream
+
+  Previously, onFinish was only called on normal stream completion. Now it's also called when the reader is cancelled (e.g., browser close, navigation), ensuring partial messages are persisted.
+
+- Updated dependencies [1b5a3d3]
+- Updated dependencies [c9994f9]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/gateway@1.0.13
+
+## 5.0.23
+
+### Patch Changes
+
+- 5099b3d: fix(ai): make `chat.addToolResult()` compatible with dynamic tool calls
+- 7a2bf8d: fix(ai): support loop breaking behavior in async iterable stream
+- Updated dependencies [50e2029]
+- Updated dependencies [b8478f0]
+  - @ai-sdk/gateway@1.0.12
+
+## 5.0.22
+
+### Patch Changes
+
+- Updated dependencies [926259f]
+- Updated dependencies [c000f96]
+  - @ai-sdk/gateway@1.0.11
+
+## 5.0.21
+
+### Patch Changes
+
+- 581abea: fix(ai): call abort callback when stream is aborted during tool execution
+- 3c178ec: feat(ai): improved type checking for prompt/messages input
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+  - @ai-sdk/gateway@1.0.10
+
+## 5.0.20
+
+### Patch Changes
+
+- 8a87693: fix(ai) Make sure warnings promise in streamObject is resolved and properly collects and passes warnings
+
+## 5.0.19
+
+### Patch Changes
+
+- 8da6e9c: fix(ai): use parsed tool input if possible when validation fails
+
+## 5.0.18
+
+### Patch Changes
+
+- Updated dependencies [8b96f99]
+  - @ai-sdk/gateway@1.0.9
+
+## 5.0.17
+
+### Patch Changes
+
+- 4176ecb: feat(ai): add reasoning text to generateObject result
+- 20f23f9: feat(ai): export LanguageModelMiddleware type
+
+## 5.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - @ai-sdk/gateway@1.0.8
+
+## 5.0.15
+
+### Patch Changes
+
+- ca4f68f: feat(ai): add validateUIMessages function
+- Updated dependencies [28a4006]
+  - @ai-sdk/gateway@1.0.7
+
+## 5.0.14
+
+### Patch Changes
+
+- 7729e32: fix(ai): expand mp3 detection to support all mpeg frame headers
+
+## 5.0.13
+
+### Patch Changes
+
+- a7b2e66: Added providerOptions to agent stream and generate calls
+- 9bed210: ### `extractReasoningMiddleware()`: delay sending `text-start` chunk to prevent rendering final text before reasoning
+
+  When wrapping a text stream in `extractReasoningMiddleware()`, delay queing the `text-start` chunk until either `reasoning-start` chunk was queued or the first `text-delta` chunk is about to be queued, whichever comes first.
+
+  https://github.com/vercel/ai/pull/8036
+
+## 5.0.12
+
+### Patch Changes
+
+- Updated dependencies [eefa730]
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/gateway@1.0.6
+  - @ai-sdk/provider-utils@3.0.3
+
+## 5.0.11
+
+### Patch Changes
+
+- 38ac190: feat(ai): preliminary tool results
+- e3a63cb: fix(ai): streamText promises reject when stream has errors
+- Updated dependencies [38ac190]
+- Updated dependencies [cf7b2ad]
+  - @ai-sdk/provider-utils@3.0.2
+  - @ai-sdk/gateway@1.0.5
+
 ## 5.0.10
 
 ### Patch Changes

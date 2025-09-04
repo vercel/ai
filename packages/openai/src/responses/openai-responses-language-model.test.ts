@@ -12,6 +12,7 @@ import {
   openaiResponsesModelIds,
   openaiResponsesReasoningModelIds,
 } from './openai-responses-settings';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -63,68 +64,72 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doGenerate', () => {
+    function prepareJsonResponse(body: any) {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body,
+      };
+    }
+
     describe('basic text response', () => {
       beforeEach(() => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: {
-            id: 'resp_67c97c0203188190a025beb4a75242bc',
-            object: 'response',
-            created_at: 1741257730,
-            status: 'completed',
-            error: null,
-            incomplete_details: null,
-            input: [],
-            instructions: null,
-            max_output_tokens: null,
-            model: 'gpt-4o-2024-07-18',
-            output: [
-              {
-                id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
-                type: 'message',
-                status: 'completed',
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'output_text',
-                    text: 'answer text',
-                    annotations: [],
-                  },
-                ],
-              },
-            ],
-            parallel_tool_calls: true,
-            previous_response_id: null,
-            reasoning: {
-              effort: null,
-              summary: null,
+        prepareJsonResponse({
+          id: 'resp_67c97c0203188190a025beb4a75242bc',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o-2024-07-18',
+          output: [
+            {
+              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'answer text',
+                  annotations: [],
+                },
+              ],
             },
-            store: true,
-            temperature: 1,
-            text: {
-              format: {
-                type: 'text',
-              },
-            },
-            tool_choice: 'auto',
-            tools: [],
-            top_p: 1,
-            truncation: 'disabled',
-            usage: {
-              input_tokens: 345,
-              input_tokens_details: {
-                cached_tokens: 234,
-              },
-              output_tokens: 538,
-              output_tokens_details: {
-                reasoning_tokens: 123,
-              },
-              total_tokens: 572,
-            },
-            user: null,
-            metadata: {},
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: {
+            effort: null,
+            summary: null,
           },
-        };
+          store: true,
+          temperature: 1,
+          text: {
+            format: {
+              type: 'text',
+            },
+          },
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 345,
+            input_tokens_details: {
+              cached_tokens: 234,
+            },
+            output_tokens: 538,
+            output_tokens_details: {
+              reasoning_tokens: 123,
+            },
+            total_tokens: 572,
+          },
+          user: null,
+          metadata: {},
+        });
       });
 
       it('should generate text', async () => {
@@ -777,6 +782,28 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send logprobs provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              logprobs: 5,
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          top_logprobs: 5,
+          include: ['message.output_text.logprobs'],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send responseFormat json format', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: { type: 'json' },
@@ -1193,6 +1220,132 @@ describe('OpenAIResponsesLanguageModel', () => {
           { type: 'unsupported-setting', setting: 'frequencyPenalty' },
           { type: 'unsupported-setting', setting: 'stopSequences' },
         ]);
+      });
+
+      it('should extract logprobs in providerMetadata', async () => {
+        prepareJsonResponse({
+          id: 'resp_67c97c0203188190a025beb4a75242bc',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o-2024-07-18',
+          output: [
+            {
+              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'answer text',
+                  annotations: [],
+                  logprobs: [
+                    {
+                      token: 'Hello',
+                      logprob: -0.0009994634,
+                      top_logprobs: [
+                        {
+                          token: 'Hello',
+                          logprob: -0.0009994634,
+                        },
+                        {
+                          token: 'Hi',
+                          logprob: -0.2,
+                        },
+                      ],
+                    },
+                    {
+                      token: '!',
+                      logprob: -0.13410144,
+                      top_logprobs: [
+                        {
+                          token: '!',
+                          logprob: -0.13410144,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: {
+            effort: null,
+            summary: null,
+          },
+          store: true,
+          temperature: 1,
+          text: {
+            format: {
+              type: 'text',
+            },
+          },
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 345,
+            input_tokens_details: {
+              cached_tokens: 234,
+            },
+            output_tokens: 538,
+            output_tokens_details: {
+              reasoning_tokens: 123,
+            },
+            total_tokens: 572,
+          },
+          user: null,
+          metadata: {},
+        });
+
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              logprobs: 2,
+            },
+          },
+        });
+
+        expect(result.providerMetadata?.openai.logprobs).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "logprob": -0.0009994634,
+                "token": "Hello",
+                "top_logprobs": [
+                  {
+                    "logprob": -0.0009994634,
+                    "token": "Hello",
+                  },
+                  {
+                    "logprob": -0.2,
+                    "token": "Hi",
+                  },
+                ],
+              },
+              {
+                "logprob": -0.13410144,
+                "token": "!",
+                "top_logprobs": [
+                  {
+                    "logprob": -0.13410144,
+                    "token": "!",
+                  },
+                ],
+              },
+            ],
+          ]
+        `);
       });
     });
 
@@ -2026,6 +2179,19 @@ describe('OpenAIResponsesLanguageModel', () => {
                 type: 'web_search_call',
                 id: 'ws_67cf2b3051e88190b006770db6fdb13d',
                 status: 'completed',
+                action: {
+                  type: 'search',
+                  query: 'Vercel AI SDK next version features',
+                },
+              },
+              {
+                type: 'web_search_call',
+                id: 'ws_67cf2b3051e88190b006234456fdb13d',
+                status: 'completed',
+                action: {
+                  type: 'search',
+                  // sometimes search calls do not have a query
+                },
               },
               {
                 type: 'message',
@@ -2135,7 +2301,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "",
+              "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
               "providerExecuted": true,
               "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
               "toolName": "web_search_preview",
@@ -2147,6 +2313,22 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "status": "completed",
               },
               "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "web_search_preview",
+              "type": "tool-result",
+            },
+            {
+              "input": "{"action":{"type":"search"}}",
+              "providerExecuted": true,
+              "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
+              "toolName": "web_search_preview",
+              "type": "tool-call",
+            },
+            {
+              "providerExecuted": true,
+              "result": {
+                "status": "completed",
+              },
+              "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
               "toolName": "web_search_preview",
               "type": "tool-result",
             },
@@ -2223,6 +2405,233 @@ describe('OpenAIResponsesLanguageModel', () => {
           ]
         `);
       });
+
+      it('should handle file_search tool calls in generate', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67cf3390786881908b27489d7e8cfb6b',
+            object: 'response',
+            created_at: 1741632400,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o-mini-2024-07-18',
+            output: [
+              {
+                type: 'file_search_call',
+                id: 'fs_67cf3390e9608190869b5d45698a7067',
+                status: 'completed',
+                queries: ['AI information'],
+                results: [
+                  {
+                    attributes: {
+                      file_id: 'file-123',
+                      filename: 'ai_guide.pdf',
+                      score: 0.95,
+                      text: 'AI is a field of computer science',
+                    },
+                  },
+                ],
+              },
+              {
+                id: 'msg_67cf33924ea88190b8c12bf68c1f6416',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Based on the search results, here is the information you requested.',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: {
+              effort: null,
+              summary: null,
+            },
+            store: true,
+            temperature: 0,
+            text: {
+              format: {
+                type: 'text',
+              },
+            },
+            tool_choice: 'auto',
+            tools: [
+              {
+                type: 'file_search',
+              },
+            ],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 327,
+              input_tokens_details: {
+                cached_tokens: 0,
+              },
+              output_tokens: 834,
+              output_tokens_details: {
+                reasoning_tokens: 0,
+              },
+              total_tokens: 1161,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+
+        const result = await createModel('gpt-4o-mini').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "",
+              "providerExecuted": true,
+              "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+              "toolName": "file_search",
+              "type": "tool-call",
+            },
+            {
+              "providerExecuted": true,
+              "result": {
+                "queries": [
+                  "AI information",
+                ],
+                "results": [
+                  {
+                    "attributes": {
+                      "file_id": "file-123",
+                      "filename": "ai_guide.pdf",
+                      "score": 0.95,
+                      "text": "AI is a field of computer science",
+                    },
+                  },
+                ],
+                "status": "completed",
+                "type": "file_search_tool_result",
+              },
+              "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+              "toolName": "file_search",
+              "type": "tool-result",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                },
+              },
+              "text": "Based on the search results, here is the information you requested.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should handle web search with action query field', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_test',
+            object: 'response',
+            created_at: 1741630255,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            instructions: null,
+            max_output_tokens: null,
+            model: 'o3-2025-04-16',
+            output: [
+              {
+                type: 'web_search_call',
+                id: 'ws_test',
+                status: 'completed',
+                action: {
+                  type: 'search',
+                  query: 'Vercel AI SDK next version features',
+                },
+              },
+              {
+                type: 'message',
+                id: 'msg_test',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Based on the search results, here are the upcoming features.',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: { effort: null, summary: null },
+            store: true,
+            temperature: 0,
+            text: { format: { type: 'text' } },
+            tool_choice: 'auto',
+            tools: [
+              { type: 'web_search_preview', search_context_size: 'medium' },
+            ],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 50,
+              input_tokens_details: { cached_tokens: 0 },
+              output_tokens: 25,
+              output_tokens_details: { reasoning_tokens: 0 },
+              total_tokens: 75,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+
+        const result = await createModel('o3-2025-04-16').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
+              "providerExecuted": true,
+              "toolCallId": "ws_test",
+              "toolName": "web_search_preview",
+              "type": "tool-call",
+            },
+            {
+              "providerExecuted": true,
+              "result": {
+                "status": "completed",
+              },
+              "toolCallId": "ws_test",
+              "toolName": "web_search_preview",
+              "type": "tool-result",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_test",
+                },
+              },
+              "text": "Based on the search results, here are the upcoming features.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
     });
 
     describe('errors', () => {
@@ -2284,6 +2693,282 @@ describe('OpenAIResponsesLanguageModel', () => {
         ).rejects.toThrow('Something went wrong');
       });
     });
+
+    it('should handle mixed url_citation and file_citation annotations', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        created_at: 1234567890,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        input: [],
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o',
+        output: [
+          {
+            id: 'msg_123',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Based on web search and file content.',
+                annotations: [
+                  {
+                    type: 'url_citation',
+                    start_index: 0,
+                    end_index: 10,
+                    url: 'https://example.com',
+                    title: 'Example URL',
+                  },
+                  {
+                    type: 'file_citation',
+                    start_index: 20,
+                    end_index: 30,
+                    file_id: 'file-abc123',
+                    quote: 'This is a quote from the file',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        reasoning: { effort: null, summary: null },
+        store: true,
+        temperature: 0,
+        text: { format: { type: 'text' } },
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        truncation: 'disabled',
+        usage: {
+          input_tokens: 100,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens: 50,
+          output_tokens_details: { reasoning_tokens: 0 },
+          total_tokens: 150,
+        },
+        user: null,
+        metadata: {},
+      });
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_123",
+              },
+            },
+            "text": "Based on web search and file content.",
+            "type": "text",
+          },
+          {
+            "id": "id-0",
+            "sourceType": "url",
+            "title": "Example URL",
+            "type": "source",
+            "url": "https://example.com",
+          },
+          {
+            "filename": "file-abc123",
+            "id": "id-1",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "This is a quote from the file",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should handle file_citation annotations only', async () => {
+      prepareJsonResponse({
+        id: 'resp_456',
+        object: 'response',
+        created_at: 1234567890,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        input: [],
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o',
+        output: [
+          {
+            id: 'msg_456',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Based on the file content.',
+                annotations: [
+                  {
+                    type: 'file_citation',
+                    start_index: 0,
+                    end_index: 20,
+                    file_id: 'file-xyz789',
+                    quote: 'Important information from document',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        reasoning: { effort: null, summary: null },
+        store: true,
+        temperature: 0,
+        text: { format: { type: 'text' } },
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        truncation: 'disabled',
+        usage: {
+          input_tokens: 50,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens: 25,
+          output_tokens_details: { reasoning_tokens: 0 },
+          total_tokens: 75,
+        },
+        user: null,
+        metadata: {},
+      });
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_456",
+              },
+            },
+            "text": "Based on the file content.",
+            "type": "text",
+          },
+          {
+            "filename": "file-xyz789",
+            "id": "id-0",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "Important information from document",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should handle file_citation annotations without optional fields', async () => {
+      prepareJsonResponse({
+        id: 'resp_789',
+        object: 'response',
+        created_at: 1234567890,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        input: [],
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-5',
+        output: [
+          {
+            id: 'msg_789',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Answer for the specified years....',
+                annotations: [
+                  {
+                    type: 'file_citation',
+                    file_id: 'file-YRcoCqn3Fo2K4JgraG',
+                    filename: 'resource1.json',
+                    index: 145,
+                  },
+                  {
+                    type: 'file_citation',
+                    file_id: 'file-YRcoCqn3Fo2K4JgraG',
+                    filename: 'resource1.json',
+                    index: 192,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        reasoning: { effort: null, summary: null },
+        store: true,
+        temperature: 0,
+        text: { format: { type: 'text' } },
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        truncation: 'disabled',
+        usage: {
+          input_tokens: 50,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens: 25,
+          output_tokens_details: { reasoning_tokens: 0 },
+          total_tokens: 75,
+        },
+        user: null,
+        metadata: {},
+      });
+
+      const result = await createModel('gpt-5').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_789",
+              },
+            },
+            "text": "Answer for the specified years....",
+            "type": "text",
+          },
+          {
+            "filename": "resource1.json",
+            "id": "id-0",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "resource1.json",
+            "type": "source",
+          },
+          {
+            "filename": "resource1.json",
+            "id": "id-1",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "resource1.json",
+            "type": "source",
+          },
+        ]
+      `);
+    });
   });
 
   describe('doStream', () => {
@@ -2294,12 +2979,12 @@ describe('OpenAIResponsesLanguageModel', () => {
           `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
           `data:{"type":"response.in_progress","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
           `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-          `data:{"type":"response.content_part.added","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":"Hello,"}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":" World!"}\n\n`,
+          `data:{"type":"response.content_part.added","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[],"logprobs": []}}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":"Hello,","logprobs": []}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":" World!","logprobs": []}\n\n`,
           `data:{"type":"response.output_text.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"text":"Hello, World!"}\n\n`,
-          `data:{"type":"response.content_part.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Hello, World!","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[]}]}}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Hello, World!","annotations":[],"logprobs": []}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[],"logprobs": []}]}}\n\n`,
           `data:{"type":"response.completed","response":{"id":"resp_67c9a878139c8190aa2e3105411b408b","object":"response","created_at":1741269112,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":543,"input_tokens_details":{"cached_tokens":234},"output_tokens":478,"output_tokens_details":{"reasoning_tokens":123},"total_tokens":512},"user":null,"metadata":{}}}\n\n`,
         ],
       };
@@ -2358,6 +3043,108 @@ describe('OpenAIResponsesLanguageModel', () => {
               "outputTokens": 478,
               "reasoningTokens": 123,
               "totalTokens": 1021,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should handle streaming web search with action query field', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"in_progress","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
+          `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_test"}\n\n`,
+          `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_test"}\n\n`,
+          `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_test"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_test","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+          `data:{"type":"response.content_part.added","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_test","output_index":1,"content_index":0,"delta":"Based on the search results, here are the upcoming features."}\n\n`,
+          `data:{"type":"response.output_text.done","item_id":"msg_test","output_index":1,"content_index":0,"text":"Based on the search results, here are the upcoming features."}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}},{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":50,"input_tokens_details":{"cached_tokens":0},"output_tokens":25,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":75},"user":null,"metadata":{}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('o3-2025-04-16').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_test",
+            "modelId": "o3-2025-04-16",
+            "timestamp": 2025-03-10T18:10:55.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "ws_test",
+            "toolName": "web_search_preview",
+            "type": "tool-input-start",
+          },
+          {
+            "id": "ws_test",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
+            "providerExecuted": true,
+            "toolCallId": "ws_test",
+            "toolName": "web_search_preview",
+            "type": "tool-call",
+          },
+          {
+            "providerExecuted": true,
+            "result": {
+              "status": "completed",
+            },
+            "toolCallId": "ws_test",
+            "toolName": "web_search_preview",
+            "type": "tool-result",
+          },
+          {
+            "id": "msg_test",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_test",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "Based on the search results, here are the upcoming features.",
+            "id": "msg_test",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_test",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_test",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 50,
+              "outputTokens": 25,
+              "reasoningTokens": 0,
+              "totalTokens": 75,
             },
           },
         ]
@@ -2565,6 +3352,210 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
+    it('Should handle service tier', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          'data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5","object":"response","created_at":1756400634,"status":"in_progress","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"max_tool_calls":null,"model":"gpt-5-nano-2025-08-07","output":[],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":"medium","summary":null},"safety_identifier":null,"service_tier":"flex","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n',
+          'data:{"type":"response.in_progress","sequence_number":1,"response":{"id":"resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5","object":"response","created_at":1756400634,"status":"in_progress","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"max_tool_calls":null,"model":"gpt-5-nano-2025-08-07","output":[],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":"medium","summary":null},"safety_identifier":null,"service_tier":"flex","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n',
+          'data:{"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5","type":"reasoning","summary":[]}}\n\n',
+          'data:{"type":"response.output_item.done","sequence_number":3,"output_index":0,"item":{"id":"rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5","type":"reasoning","summary":[]}}\n\n',
+          'data:{"type":"response.output_item.added","sequence_number":4,"output_index":1,"item":{"id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","type":"message","status":"in_progress","content":[],"role":"assistant"}}\n\n',
+          'data:{"type":"response.content_part.added","sequence_number":5,"item_id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","output_index":1,"content_index":0,"part":{"type":"output_text","annotations":[],"logprobs":[],"text":""}}\n\n',
+          'data:{"type":"response.output_text.delta","sequence_number":6,"item_id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","output_index":1,"content_index":0,"delta":"blue","logprobs":[],"obfuscation":"A3q16QVxivdK"}\n\n',
+          'data:{"type":"response.output_text.done","sequence_number":7,"item_id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","output_index":1,"content_index":0,"text":"blue","logprobs":[]}\n\n',
+          'data:{"type":"response.content_part.done","sequence_number":8,"item_id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","output_index":1,"content_index":0,"part":{"type":"output_text","annotations":[],"logprobs":[],"text":"blue"}}\n\n',
+          'data:{"type":"response.output_item.done","sequence_number":9,"output_index":1,"item":{"id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","type":"message","status":"completed","content":[{"type":"output_text","annotations":[],"logprobs":[],"text":"blue"}],"role":"assistant"}}\n\n',
+          'data:{"type":"response.completed","sequence_number":10,"response":{"id":"resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5","object":"response","created_at":1756400634,"status":"completed","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"max_tool_calls":null,"model":"gpt-5-nano-2025-08-07","output":[{"id":"rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5","type":"reasoning","summary":[]},{"id":"msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5","type":"message","status":"completed","content":[{"type":"output_text","annotations":[],"logprobs":[],"text":"blue"}],"role":"assistant"}],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":"medium","summary":null},"safety_identifier":null,"service_tier":"flex","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1,"truncation":"disabled","usage":{"input_tokens":15,"input_tokens_details":{"cached_tokens":0},"output_tokens":263,"output_tokens_details":{"reasoning_tokens":256},"total_tokens":278},"user":null,"metadata":{}}}\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5-nano').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            serviceTier: 'flex',
+          },
+        },
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5",
+            "modelId": "gpt-5-nano-2025-08-07",
+            "timestamp": 2025-08-28T17:03:54.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5:0",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5",
+                "reasoningEncryptedContent": null,
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "id": "rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5:0",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "rs_68b08bfb9f3c819682c5cff6edee6e4d0cd677a623b867d5",
+                "reasoningEncryptedContent": null,
+              },
+            },
+            "type": "reasoning-end",
+          },
+          {
+            "id": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "blue",
+            "id": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5",
+                "serviceTier": "flex",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 15,
+              "outputTokens": 263,
+              "reasoningTokens": 256,
+              "totalTokens": 278,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should handle logprobs', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          'data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_689cec4cf608819583c56813ccb0f5040f92af1765dd5aad","object":"response","created_at":1755114572,"status":"in_progress","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":1024,"max_tool_calls":null,"model":"gpt-4.1-nano-2025-04-14","output":[],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":null,"summary":null},"safety_identifier":null,"service_tier":"auto","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":5,"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n',
+          'data:{"type":"response.in_progress","sequence_number":1,"response":{"id":"resp_689cec4cf608819583c56813ccb0f5040f92af1765dd5aad","object":"response","created_at":1755114572,"status":"in_progress","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":1024,"max_tool_calls":null,"model":"gpt-4.1-nano-2025-04-14","output":[],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":null,"summary":null},"safety_identifier":null,"service_tier":"auto","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":5,"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n',
+          'data:{"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","type":"message","status":"in_progress","content":[],"role":"assistant"}}\n\n',
+          'data:{"type":"response.content_part.added","sequence_number":3,"item_id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","output_index":0,"content_index":0,"part":{"type":"output_text","annotations":[],"logprobs":[],"text":""}}\n\n',
+          'data:{"type":"response.output_text.delta","sequence_number":4,"item_id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","output_index":0,"content_index":0,"delta":"N","logprobs":[{"bytes":[78],"logprob":-2.9266366958618164,"token":"N","top_logprobs":[{"bytes":[80,108,101,97,115,101],"logprob":-0.5516367554664612,"token":"Please"},{"bytes":[89],"logprob":-1.0516366958618164,"token":"Y"},{"bytes":[78],"logprob":-2.9266366958618164,"token":"N"},{"bytes":[83,117,114,101],"logprob":-4.551636695861816,"token":"Sure"},{"bytes":[67,111,117,108,100],"logprob":-5.176636695861816,"token":"Could"}]}],"obfuscation":"t9egcKewVOXiQ6N"}\n\n',
+          'data:{"type":"response.output_text.done","sequence_number":5,"item_id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","output_index":0,"content_index":0,"text":"N","logprobs":[{"bytes":[78],"logprob":-2.9266366958618164,"token":"N","top_logprobs":[{"bytes":[80,108,101,97,115,101],"logprob":-0.5516367554664612,"token":"Please"},{"bytes":[89],"logprob":-1.0516366958618164,"token":"Y"},{"bytes":[78],"logprob":-2.9266366958618164,"token":"N"},{"bytes":[83,117,114,101],"logprob":-4.551636695861816,"token":"Sure"},{"bytes":[67,111,117,108,100],"logprob":-5.176636695861816,"token":"Could"}]}]}\n\n',
+          'data:{"type":"response.content_part.done","sequence_number":6,"item_id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","output_index":0,"content_index":0,"part":{"type":"output_text","annotations":[],"logprobs":[],"text":"N"}}\n\n',
+          'data:{"type":"response.output_item.done","sequence_number":7,"output_index":0,"item":{"id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","type":"message","status":"completed","content":[{"type":"output_text","annotations":[],"logprobs":[{"bytes":[78],"logprob":-2.926637,"token":"N","top_logprobs":[{"bytes":[80,108,101,97,115,101],"logprob":-0.551637,"token":"Please"},{"bytes":[89],"logprob":-1.051637,"token":"Y"},{"bytes":[78],"logprob":-2.926637,"token":"N"},{"bytes":[83,117,114,101],"logprob":-4.551637,"token":"Sure"},{"bytes":[67,111,117,108,100],"logprob":-5.176637,"token":"Could"}]}],"text":"N"}],"role":"assistant"}}\n\n',
+          'data:{"type":"response.completed","sequence_number":8,"response":{"id":"resp_689cec4cf608819583c56813ccb0f5040f92af1765dd5aad","object":"response","created_at":1755114572,"status":"completed","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":1024,"max_tool_calls":null,"model":"gpt-4.1-nano-2025-04-14","output":[{"id":"msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad","type":"message","status":"completed","content":[{"type":"output_text","annotations":[],"logprobs":[{"bytes":[78],"logprob":-2.926637,"token":"N","top_logprobs":[{"bytes":[80,108,101,97,115,101],"logprob":-0.551637,"token":"Please"},{"bytes":[89],"logprob":-1.051637,"token":"Y"},{"bytes":[78],"logprob":-2.926637,"token":"N"},{"bytes":[83,117,114,101],"logprob":-4.551637,"token":"Sure"},{"bytes":[67,111,117,108,100],"logprob":-5.176637,"token":"Could"}]}],"text":"N"}],"role":"assistant"}],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":null,"summary":null},"safety_identifier":null,"service_tier":"default","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":5,"top_p":1,"truncation":"disabled","usage":{"input_tokens":12,"input_tokens_details":{"cached_tokens":0},"output_tokens":2,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":14},"user":null,"metadata":{}}}\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            logprobs: 1,
+          },
+        },
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_689cec4cf608819583c56813ccb0f5040f92af1765dd5aad",
+            "modelId": "gpt-4.1-nano-2025-04-14",
+            "timestamp": 2025-08-13T19:49:32.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "N",
+            "id": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "logprobs": [
+                  [
+                    {
+                      "logprob": -2.9266366958618164,
+                      "token": "N",
+                      "top_logprobs": [
+                        {
+                          "logprob": -0.5516367554664612,
+                          "token": "Please",
+                        },
+                        {
+                          "logprob": -1.0516366958618164,
+                          "token": "Y",
+                        },
+                        {
+                          "logprob": -2.9266366958618164,
+                          "token": "N",
+                        },
+                        {
+                          "logprob": -4.551636695861816,
+                          "token": "Sure",
+                        },
+                        {
+                          "logprob": -5.176636695861816,
+                          "token": "Could",
+                        },
+                      ],
+                    },
+                  ],
+                ],
+                "responseId": "resp_689cec4cf608819583c56813ccb0f5040f92af1765dd5aad",
+                "serviceTier": "default",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 12,
+              "outputTokens": 2,
+              "reasoningTokens": 0,
+              "totalTokens": 14,
+            },
+          },
+        ]
+      `);
+    });
+
     it('should stream sources', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
@@ -2619,7 +3610,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "tool-input-end",
           },
           {
-            "input": "",
+            "input": "{}",
             "providerExecuted": true,
             "toolCallId": "ws_67cf3390e9608190869b5d45698a7067",
             "toolName": "web_search_preview",
@@ -2629,7 +3620,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerExecuted": true,
             "result": {
               "status": "completed",
-              "type": "web_search_tool_result",
             },
             "toolCallId": "ws_67cf3390e9608190869b5d45698a7067",
             "toolName": "web_search_preview",
@@ -2784,53 +3774,188 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-              "modelId": "gpt-4o-mini-2024-07-18",
-              "timestamp": 2025-03-10T18:46:40.000Z,
-              "type": "response-metadata",
-            },
-            {
-              "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_67cf3390786881908b27489d7e8cfb6b",
+                "modelId": "gpt-4o-mini-2024-07-18",
+                "timestamp": 2025-03-10T18:46:40.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "id": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "fs_67cf3390e9608190869b5d45698a7067",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "",
+                "providerExecuted": true,
+                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "status": "completed",
+                  "type": "file_search_tool_result",
+                },
+                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                  },
+                },
+                "type": "text-start",
+              },
+              {
+                "delta": "Based on the search results, here is the information you requested.",
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "type": "text-delta",
+              },
+              {
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "type": "text-end",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": 0,
+                  "inputTokens": 327,
+                  "outputTokens": 834,
+                  "reasoningTokens": 0,
+                  "totalTokens": 1161,
                 },
               },
-              "type": "text-start",
-            },
-            {
-              "delta": "Based on the search results, here is the information you requested.",
-              "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-              "type": "text-delta",
-            },
-            {
-              "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": {
-                "openai": {
-                  "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+            ]
+          `);
+      });
+
+      it('should handle file_search tool calls with results', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"in_progress"}}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed","queries":["AI information"],"results":[{"attributes":{"file_id":"file-123","filename":"ai_guide.pdf","score":0.95,"text":"AI is a field of computer science"}}]}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"Based on the search results, here is the information you requested."}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed","queries":["AI information"],"results":[{"attributes":{"file_id":"file-123","filename":"ai_guide.pdf","score":0.95,"text":"AI is a field of computer science"}}]},{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":327,"input_tokens_details":{"cached_tokens":0},"output_tokens":834,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":1161},"user":null,"metadata":{}}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        expect(await convertReadableStreamToArray(stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_67cf3390786881908b27489d7e8cfb6b",
+                "modelId": "gpt-4o-mini-2024-07-18",
+                "timestamp": 2025-03-10T18:46:40.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "id": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "fs_67cf3390e9608190869b5d45698a7067",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "",
+                "providerExecuted": true,
+                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "queries": [
+                    "AI information",
+                  ],
+                  "results": [
+                    {
+                      "attributes": {
+                        "file_id": "file-123",
+                        "filename": "ai_guide.pdf",
+                        "score": 0.95,
+                        "text": "AI is a field of computer science",
+                      },
+                    },
+                  ],
+                  "status": "completed",
+                  "type": "file_search_tool_result",
+                },
+                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
+                "toolName": "file_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                  },
+                },
+                "type": "text-start",
+              },
+              {
+                "delta": "Based on the search results, here is the information you requested.",
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "type": "text-delta",
+              },
+              {
+                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "type": "text-end",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": 0,
+                  "inputTokens": 327,
+                  "outputTokens": 834,
+                  "reasoningTokens": 0,
+                  "totalTokens": 1161,
                 },
               },
-              "type": "finish",
-              "usage": {
-                "cachedInputTokens": 0,
-                "inputTokens": 327,
-                "outputTokens": 834,
-                "reasoningTokens": 0,
-                "totalTokens": 1161,
-              },
-            },
-          ]
-        `);
+            ]
+          `);
       });
     });
 
@@ -3779,7 +4904,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "",
+              "input": "{}",
               "providerExecuted": true,
               "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
               "toolName": "web_search_preview",
@@ -4058,6 +5183,138 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
         },
       ]);
+    });
+  });
+
+  describe('mixed citation types', () => {
+    it('should handle both url_citation and file_citation annotations', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.content_part.added","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","url":"https://example.com","title":"Example URL"}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":1,"annotation":{"type":"file_citation","file_id":"file-abc123","quote":"This is a quote from the file"}}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_123","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_123","object":"response","created_at":1234567890,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o","output":[{"id":"msg_123","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":100,"input_tokens_details":{"cached_tokens":0},"output_tokens":50,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":150},"user":null,"metadata":{}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "id-0",
+            "sourceType": "url",
+            "title": "Example URL",
+            "type": "source",
+            "url": "https://example.com",
+          },
+          {
+            "filename": "file-abc123",
+            "id": "id-1",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "This is a quote from the file",
+            "type": "source",
+          },
+          {
+            "id": "msg_123",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 100,
+              "outputTokens": 50,
+              "reasoningTokens": 0,
+              "totalTokens": 150,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should handle file_citation annotations without optional fields in streaming', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.content_part.added","item_id":"msg_456","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_456","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":145}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_456","output_index":0,"content_index":0,"annotation_index":1,"annotation":{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":192}}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_456","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Answer for the specified years....","annotations":[{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":145},{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":192}]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_456","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Answer for the specified years....","annotations":[{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":145},{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":192}]}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_456","object":"response","created_at":1234567890,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-5","output":[{"id":"msg_456","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Answer for the specified years....","annotations":[{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":145},{"type":"file_citation","file_id":"file-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":192}]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":50,"input_tokens_details":{"cached_tokens":0},"output_tokens":25,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":75},"user":null,"metadata":{}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+      const { stream } = await createModel('gpt-5').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+      const result = await convertReadableStreamToArray(stream);
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "filename": "resource1.json",
+            "id": "id-0",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "resource1.json",
+            "type": "source",
+          },
+          {
+            "filename": "resource1.json",
+            "id": "id-1",
+            "mediaType": "text/plain",
+            "sourceType": "document",
+            "title": "resource1.json",
+            "type": "source",
+          },
+          {
+            "id": "msg_456",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 50,
+              "outputTokens": 25,
+              "reasoningTokens": 0,
+              "totalTokens": 75,
+            },
+          },
+        ]
+      `);
     });
   });
 });

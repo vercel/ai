@@ -1,5 +1,82 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [c7fee29]
+  - @ai-sdk/anthropic@2.0.11
+
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [c152ef7]
+  - @ai-sdk/anthropic@2.0.10
+
+## 3.0.13
+
+### Patch Changes
+
+- Updated dependencies [cdc6b7a]
+  - @ai-sdk/anthropic@2.0.9
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/anthropic@2.0.8
+
+## 3.0.11
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/anthropic@2.0.7
+
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+  - @ai-sdk/anthropic@2.0.6
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - @ai-sdk/anthropic@2.0.5
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [ae859ce]
+  - @ai-sdk/anthropic@2.0.4
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+  - @ai-sdk/anthropic@2.0.3
+
+## 3.0.6
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+  - @ai-sdk/anthropic@2.0.2
+
 ## 3.0.5
 
 ### Patch Changes

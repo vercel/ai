@@ -1,5 +1,67 @@
 # @ai-sdk/codemod
 
+## 2.0.10
+
+### Patch Changes
+
+- 4627f55: fix(codemod): remove generate text codemod
+
+## 2.0.9
+
+### Patch Changes
+
+- c82e85a: fix(codemod): handle import alias for maxStep-stopWhen
+
+## 2.0.8
+
+### Patch Changes
+
+- 8aadbc9: feat(codemod): add not implemented comment and warnings
+
+## 2.0.7
+
+### Patch Changes
+
+- 5dc1c62: fix(codemod): Language Model V2 Import
+
+  Migration: https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#language-model-v2-import
+
+  Codemod behavior before the fix
+
+  ```diff
+  - import { LanguageModelV2 } from 'ai';
+  + import { LanguageModelV2 } from '@ai-sdk/provider';
+  ```
+
+  After
+
+  ```diff
+  + import { LanguageModelV2 } from 'ai';
+  - import { LanguageModelV2 } from '@ai-sdk/provider';
+  ```
+
+- 7ae8e57: fix(codemod): avoid false positive in `v5/restructure-file-stream-parts`
+- 237a8cc: fix(codemod): Do not replace `delta.type` value from `'text-delta'` to `'text'`
+
+## 2.0.6
+
+### Patch Changes
+
+- 7faddf1: feat(codemod): add zod import v3 transformation
+- 5f85d6f: add codemod for getErrorMessage to onError in toUIMessageStreamResponse
+
+## 2.0.5
+
+### Patch Changes
+
+- bc330ec: feat(codemod): add DataStream to UIMessage method renaming codemod
+
+## 2.0.4
+
+### Patch Changes
+
+- 3841377: Added a codemod to change `maxSteps` to `stopWhen`
+
 ## 2.0.3
 
 ### Patch Changes

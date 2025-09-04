@@ -1,5 +1,72 @@
 # @ai-sdk/anthropic
 
+## 2.0.11
+
+### Patch Changes
+
+- c7fee29: feat(anthropic): handle `pause_turn` as value for `stop_reason`
+
+## 2.0.10
+
+### Patch Changes
+
+- c152ef7: feat(providers/anthropic): map 'refusal' stop reason to 'content-filter' finishReason
+
+## 2.0.9
+
+### Patch Changes
+
+- cdc6b7a: fix(provider/anthropic): disable parallel tool use when using json output tool for structured responses
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 2.0.4
+
+### Patch Changes
+
+- ae859ce: Added support for Anthropic provider's server-side code execution tool
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
 ## 2.0.1
 
 ### Patch Changes

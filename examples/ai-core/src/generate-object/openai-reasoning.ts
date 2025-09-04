@@ -1,11 +1,11 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod/v4';
 
 async function main() {
   const result = await generateObject({
-    model: openai('o1'),
+    model: openai('gpt-5'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),
@@ -19,10 +19,16 @@ async function main() {
       }),
     }),
     prompt: 'Generate a lasagna recipe.',
+    providerOptions: {
+      openai: {
+        strictJsonSchema: true,
+        reasoningSummary: 'detailed',
+      } satisfies OpenAIResponsesProviderOptions,
+    },
   });
 
+  console.log(result.reasoning);
   console.log(JSON.stringify(result.object.recipe, null, 2));
-  console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
 }

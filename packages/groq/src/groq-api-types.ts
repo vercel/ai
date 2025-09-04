@@ -31,6 +31,7 @@ export interface GroqContentPartText {
 export interface GroqAssistantMessage {
   role: 'assistant';
   content?: string | null;
+  reasoning?: string;
   tool_calls?: Array<GroqMessageToolCall>;
 }
 

@@ -93,10 +93,10 @@ export async function convertToOpenAIResponsesMessages({
                   };
                 } else if (part.mediaType === 'application/pdf') {
                   if (part.data instanceof URL) {
-                    // The AI SDK automatically downloads files for user file parts with URLs
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'PDF file parts with URLs',
-                    });
+                    return {
+                      type: 'input_file',
+                      file_url: part.data.toString(),
+                    };
                   }
                   return {
                     type: 'input_file',

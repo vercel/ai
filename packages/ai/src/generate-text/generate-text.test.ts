@@ -10,8 +10,20 @@ import {
   tool,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
+import {
+  afterEach,
+  assert,
+  assertType,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
 import { z } from 'zod/v4';
 import { Output } from '.';
+import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
@@ -103,6 +115,18 @@ const modelWithReasoning = new MockLanguageModelV2({
 });
 
 describe('generateText', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   describe('result.content', () => {
     it('should generate content', async () => {
       const result = await generateText({
@@ -2914,7 +2938,9 @@ describe('generateText', () => {
               "message": "Invalid input: expected string, received undefined"
             }
           ]],
-              "input": "{ "cities": "San Francisco" }",
+              "input": {
+                "cities": "San Francisco",
+              },
               "invalid": true,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
@@ -2933,7 +2959,9 @@ describe('generateText', () => {
               "message": "Invalid input: expected string, received undefined"
             }
           ]",
-              "input": "{ "cities": "San Francisco" }",
+              "input": {
+                "cities": "San Francisco",
+              },
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-error",
@@ -2948,7 +2976,9 @@ describe('generateText', () => {
             {
               "content": [
                 {
-                  "input": "{ "cities": "San Francisco" }",
+                  "input": {
+                    "cities": "San Francisco",
+                  },
                   "providerExecuted": undefined,
                   "providerOptions": undefined,
                   "toolCallId": "call-1",
@@ -2985,6 +3015,279 @@ describe('generateText', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('tools with preliminary results', () => {
+    describe('single tool with preliminary results', () => {
+      let result: GenerateTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = await generateText({
+          model: new MockLanguageModelV2({
+            doGenerate: async () => ({
+              warnings: [],
+              usage: {
+                inputTokens: 10,
+                outputTokens: 20,
+                totalTokens: 30,
+              },
+              finishReason: 'tool-calls',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'cityAttractions',
+                  input: `{ "city": "San Francisco" }`,
+                },
+              ],
+            }),
+          }),
+          prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-id',
+            currentDate: () => new Date(0),
+          },
+          tools: {
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+              async *execute({ city }) {
+                yield {
+                  status: 'loading',
+                  text: `Getting weather for ${city}`,
+                };
+
+                yield {
+                  status: 'success',
+                  text: `The weather in ${city} is 72°F`,
+                  temperature: 72,
+                };
+              },
+            }),
+          },
+        });
+      });
+
+      it('should only include final tool result in content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": false,
+              "input": {
+                "city": "San Francisco",
+              },
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+
+      it('should only include final tool result in step content', async () => {
+        expect(result.steps).toMatchInlineSnapshot(`
+          [
+            DefaultStepResult {
+              "content": [
+                {
+                  "input": {
+                    "city": "San Francisco",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-call",
+                },
+                {
+                  "dynamic": false,
+                  "input": {
+                    "city": "San Francisco",
+                  },
+                  "output": {
+                    "status": "success",
+                    "temperature": 72,
+                    "text": "The weather in San Francisco is 72°F",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-result",
+                },
+              ],
+              "finishReason": "tool-calls",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "body": undefined,
+                "headers": undefined,
+                "id": "test-id",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "input": {
+                          "city": "San Francisco",
+                        },
+                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
+                        "toolCallId": "call-1",
+                        "toolName": "cityAttractions",
+                        "type": "tool-call",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                  {
+                    "content": [
+                      {
+                        "output": {
+                          "type": "json",
+                          "value": {
+                            "status": "success",
+                            "temperature": 72,
+                            "text": "The weather in San Francisco is 72°F",
+                          },
+                        },
+                        "toolCallId": "call-1",
+                        "toolName": "cityAttractions",
+                        "type": "tool-result",
+                      },
+                    ],
+                    "role": "tool",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "usage": {
+                "inputTokens": 10,
+                "outputTokens": 20,
+                "totalTokens": 30,
+              },
+              "warnings": [],
+            },
+          ]
+        `);
+      });
+    });
+  });
+
+  describe('logWarnings', () => {
+    it('should call logWarnings with warnings from a single step', async () => {
+      const expectedWarnings = [
+        {
+          type: 'other' as const,
+          message: 'Setting is not supported',
+        },
+        {
+          type: 'unsupported-setting' as const,
+          setting: 'temperature',
+          details: 'Temperature parameter not supported',
+        },
+      ];
+
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            warnings: expectedWarnings,
+          },
+        }),
+        prompt: 'Hello',
+      });
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    });
+
+    it('should call logWarnings once for each step with warnings from that step', async () => {
+      const warning1 = {
+        type: 'other' as const,
+        message: 'Warning from step 1',
+      };
+      const warning2 = {
+        type: 'other' as const,
+        message: 'Warning from step 2',
+      };
+
+      let callCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => {
+            switch (callCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'testTool',
+                      input: `{ "value": "test" }`,
+                    },
+                  ],
+                  finishReason: 'tool-calls',
+                  warnings: [warning1],
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Final response' }],
+                  warnings: [warning2],
+                };
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt: 'Hello',
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result',
+          },
+        },
+        stopWhen: stepCountIs(3),
+      });
+
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, [warning1]);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, [warning2]);
+    });
+
+    it('should call logWarnings with empty array when no warnings are present', async () => {
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            warnings: [], // no warnings
+          },
+        }),
+        prompt: 'Hello',
+      });
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith([]);
     });
   });
 });

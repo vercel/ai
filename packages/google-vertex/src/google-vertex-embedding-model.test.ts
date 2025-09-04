@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
+import { describe, it, expect, vi } from 'vitest';
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3],
@@ -27,6 +28,7 @@ describe('GoogleVertexEmbeddingModel', () => {
   const mockProviderOptions = {
     outputDimensionality: 768,
     taskType: 'SEMANTIC_SIMILARITY',
+    autoTruncate: false,
   };
 
   const mockConfig = {
@@ -118,15 +120,18 @@ describe('GoogleVertexEmbeddingModel', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      instances: testValues.map(value => ({ content: value })),
+      instances: testValues.map(value => ({
+        content: value,
+        task_type: mockProviderOptions.taskType,
+      })),
       parameters: {
         outputDimensionality: mockProviderOptions.outputDimensionality,
-        taskType: mockProviderOptions.taskType,
+        autoTruncate: mockProviderOptions.autoTruncate,
       },
     });
   });
 
-  it('should pass the taskType setting', async () => {
+  it('should pass the taskType setting in instances', async () => {
     prepareJsonResponse();
 
     await model.doEmbed({
@@ -135,10 +140,11 @@ describe('GoogleVertexEmbeddingModel', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      instances: testValues.map(value => ({ content: value })),
-      parameters: {
-        taskType: mockProviderOptions.taskType,
-      },
+      instances: testValues.map(value => ({
+        content: value,
+        task_type: mockProviderOptions.taskType,
+      })),
+      parameters: {},
     });
   });
 

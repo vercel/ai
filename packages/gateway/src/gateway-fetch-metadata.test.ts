@@ -92,6 +92,41 @@ describe('GatewayFetchMetadata', () => {
       });
     });
 
+    it('should map cache pricing fields to SDK names when present', async () => {
+      const gatewayEntryWithCache = {
+        ...mockModelEntry,
+        pricing: {
+          input: '0.000003',
+          output: '0.000015',
+          input_cache_read: '0.0000003',
+          input_cache_write: '0.00000375',
+        },
+      };
+
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [gatewayEntryWithCache],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+
+      expect(result.models[0].pricing).toEqual({
+        input: '0.000003',
+        output: '0.000015',
+        cachedInputTokens: '0.0000003',
+        cacheCreationInputTokens: '0.00000375',
+      });
+      const pricing = result.models[0].pricing;
+      expect(pricing).toBeDefined();
+      if (pricing) {
+        expect('input_cache_read' in pricing).toBe(false);
+        expect('input_cache_write' in pricing).toBe(false);
+      }
+    });
+
     it('should handle models without pricing information', async () => {
       server.urls['https://api.example.com/*'].response = {
         type: 'json-value',
@@ -143,6 +178,47 @@ describe('GatewayFetchMetadata', () => {
       const result = await metadata.getAvailableModels();
 
       expect(result.models[0].description).toBe('A powerful language model');
+    });
+
+    it('should accept top-level modelType when present', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [
+            {
+              ...mockModelEntry,
+              modelType: 'language',
+            },
+          ],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+      expect(result.models[0].modelType).toBe('language');
+    });
+
+    it('should reject invalid top-level modelType values', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [
+            {
+              id: 'model-invalid-type',
+              name: 'Invalid Type Model',
+              specification: {
+                specificationVersion: 'v2' as const,
+                provider: 'test-provider',
+                modelId: 'model-invalid-type',
+              },
+              modelType: 'text',
+            },
+          ],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      await expect(metadata.getAvailableModels()).rejects.toThrow();
     });
 
     it('should pass headers correctly', async () => {

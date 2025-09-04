@@ -46,10 +46,21 @@ const gatewayLanguageModelSpecificationSchema = z.object({
   modelId: z.string(),
 });
 
-const gatewayLanguageModelPricingSchema = z.object({
-  input: z.string(),
-  output: z.string(),
-});
+const gatewayLanguageModelPricingSchema = z
+  .object({
+    input: z.string(),
+    output: z.string(),
+    input_cache_read: z.string().nullish(),
+    input_cache_write: z.string().nullish(),
+  })
+  .transform(({ input, output, input_cache_read, input_cache_write }) => ({
+    input,
+    output,
+    ...(input_cache_read ? { cachedInputTokens: input_cache_read } : {}),
+    ...(input_cache_write
+      ? { cacheCreationInputTokens: input_cache_write }
+      : {}),
+  }));
 
 const gatewayLanguageModelEntrySchema = z.object({
   id: z.string(),
@@ -57,6 +68,7 @@ const gatewayLanguageModelEntrySchema = z.object({
   description: z.string().nullish(),
   pricing: gatewayLanguageModelPricingSchema.nullish(),
   specification: gatewayLanguageModelSpecificationSchema,
+  modelType: z.enum(['language', 'embedding', 'image']).nullish(),
 });
 
 const gatewayFetchMetadataSchema = z.object({

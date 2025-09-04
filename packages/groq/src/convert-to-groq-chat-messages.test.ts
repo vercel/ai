@@ -1,4 +1,5 @@
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('user messages', () => {
   it('should convert messages with image parts', async () => {
@@ -16,18 +17,25 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(result).toEqual([
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Hello' },
-          {
-            type: 'image_url',
-            image_url: { url: 'data:image/png;base64,AAECAw==' },
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "text",
+            },
+            {
+              "image_url": {
+                "url": "data:image/png;base64,AAECAw==",
+              },
+              "type": "image_url",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
   });
 
   it('should convert messages with image parts from Uint8Array', async () => {
@@ -45,18 +53,25 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(result).toEqual([
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Hi' },
-          {
-            type: 'image_url',
-            image_url: { url: 'data:image/png;base64,AAECAw==' },
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Hi",
+              "type": "text",
+            },
+            {
+              "image_url": {
+                "url": "data:image/png;base64,AAECAw==",
+              },
+              "type": "image_url",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
   });
 
   it('should convert messages with only a text part to a string content', async () => {
@@ -67,7 +82,14 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(result).toEqual([{ role: 'user', content: 'Hello' }]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "Hello",
+          "role": "user",
+        },
+      ]
+    `);
   });
 });
 
@@ -98,26 +120,86 @@ describe('tool calls', () => {
       },
     ]);
 
-    expect(result).toEqual([
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{"foo":"bar123"}",
+                "name": "thwomp",
+              },
+              "id": "quux",
+              "type": "function",
+            },
+          ],
+        },
+        {
+          "content": "{"oof":"321rab"}",
+          "role": "tool",
+          "tool_call_id": "quux",
+        },
+      ]
+    `);
+  });
+
+  it('should send reasoning if present', () => {
+    const result = convertToGroqChatMessages([
       {
         role: 'assistant',
-        content: '',
-        tool_calls: [
+        content: [
           {
-            type: 'function',
-            id: 'quux',
-            function: {
-              name: 'thwomp',
-              arguments: JSON.stringify({ foo: 'bar123' }),
-            },
+            type: 'reasoning',
+            text: 'I think the tool will return the correct value.',
+          },
+          {
+            type: 'tool-call',
+            input: { foo: 'bar123' },
+            toolCallId: 'quux',
+            toolName: 'thwomp',
           },
         ],
       },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "reasoning": "I think the tool will return the correct value.",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{"foo":"bar123"}",
+                "name": "thwomp",
+              },
+              "id": "quux",
+              "type": "function",
+            },
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('should not include reasoning field when no reasoning content is present', () => {
+    const result = convertToGroqChatMessages([
       {
-        role: 'tool',
-        content: JSON.stringify({ oof: '321rab' }),
-        tool_call_id: 'quux',
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hello, how can I help you?' }],
       },
     ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "Hello, how can I help you?",
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 });

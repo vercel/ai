@@ -1,5 +1,147 @@
 # @ai-sdk/llamaindex
 
+## 1.0.30
+
+### Patch Changes
+
+- Updated dependencies [7fcc6be]
+  - ai@5.0.30
+
+## 1.0.29
+
+### Patch Changes
+
+- Updated dependencies [e0e9449]
+  - ai@5.0.29
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [4b81e7d]
+- Updated dependencies [d68a4f2]
+  - ai@5.0.28
+
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [ca40fac]
+  - ai@5.0.27
+
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [33cf848]
+  - ai@5.0.26
+
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [ca65923]
+  - ai@5.0.25
+
+## 1.0.24
+
+### Patch Changes
+
+- Updated dependencies [f8f3682]
+  - ai@5.0.24
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [5099b3d]
+- Updated dependencies [7a2bf8d]
+  - ai@5.0.23
+
+## 1.0.22
+
+### Patch Changes
+
+- ai@5.0.22
+
+## 1.0.21
+
+### Patch Changes
+
+- Updated dependencies [581abea]
+- Updated dependencies [3c178ec]
+  - ai@5.0.21
+
+## 1.0.20
+
+### Patch Changes
+
+- Updated dependencies [8a87693]
+  - ai@5.0.20
+
+## 1.0.19
+
+### Patch Changes
+
+- Updated dependencies [8da6e9c]
+  - ai@5.0.19
+
+## 1.0.18
+
+### Patch Changes
+
+- ai@5.0.18
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [4176ecb]
+- Updated dependencies [20f23f9]
+  - ai@5.0.17
+
+## 1.0.16
+
+### Patch Changes
+
+- ai@5.0.16
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [ca4f68f]
+  - ai@5.0.15
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [7729e32]
+  - ai@5.0.14
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [a7b2e66]
+- Updated dependencies [9bed210]
+  - ai@5.0.13
+
+## 1.0.12
+
+### Patch Changes
+
+- ai@5.0.12
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+- Updated dependencies [e3a63cb]
+  - ai@5.0.11
+
 ## 1.0.10
 
 ### Patch Changes

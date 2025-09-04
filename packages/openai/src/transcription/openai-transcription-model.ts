@@ -137,6 +137,14 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
         include: openAIOptions.include,
         language: openAIOptions.language,
         prompt: openAIOptions.prompt,
+        // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
+        // prefer verbose_json to get segments for models that support it
+        response_format: [
+          'gpt-4o-transcribe',
+          'gpt-4o-mini-transcribe',
+        ].includes(this.modelId)
+          ? 'json'
+          : 'verbose_json',
         temperature: openAIOptions.temperature,
         timestamp_granularities: openAIOptions.timestampGranularities,
       };
@@ -187,11 +195,17 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
     return {
       text: response.text,
       segments:
+        response.segments?.map(segment => ({
+          text: segment.text,
+          startSecond: segment.start,
+          endSecond: segment.end,
+        })) ??
         response.words?.map(word => ({
           text: word.word,
           startSecond: word.start,
           endSecond: word.end,
-        })) ?? [],
+        })) ??
+        [],
       language,
       durationInSeconds: response.duration ?? undefined,
       warnings,
@@ -215,6 +229,22 @@ const openaiTranscriptionResponseSchema = z.object({
         word: z.string(),
         start: z.number(),
         end: z.number(),
+      }),
+    )
+    .nullish(),
+  segments: z
+    .array(
+      z.object({
+        id: z.number(),
+        seek: z.number(),
+        start: z.number(),
+        end: z.number(),
+        text: z.string(),
+        tokens: z.array(z.number()),
+        temperature: z.number(),
+        avg_logprob: z.number(),
+        compression_ratio: z.number(),
+        no_speech_prob: z.number(),
       }),
     )
     .nullish(),

@@ -6,6 +6,7 @@ import { generateText, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
+import { describe, it, expect } from 'vitest';
 
 const testUsage = {
   inputTokens: 5,
@@ -42,8 +43,18 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(result.reasoningText).toStrictEqual('analyzing the request');
-      expect(result.text).toStrictEqual('Here is the response');
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "analyzing the request",
+            "type": "reasoning",
+          },
+          {
+            "text": "Here is the response",
+            "type": "text",
+          },
+        ]
+      `);
     });
 
     it('should extract reasoning from <think> tags when there is no text', async () => {
@@ -71,8 +82,19 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(result.reasoningText).toStrictEqual('analyzing the request\n');
-      expect(result.text).toStrictEqual('');
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "analyzing the request
+        ",
+            "type": "reasoning",
+          },
+          {
+            "text": "",
+            "type": "text",
+          },
+        ]
+      `);
     });
 
     it('should extract reasoning from multiple <think> tags', async () => {
@@ -100,10 +122,20 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(result.reasoningText).toStrictEqual(
-        'analyzing the request\nthinking about the response',
-      );
-      expect(result.text).toStrictEqual('Here is the response\nmore');
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "analyzing the request
+        thinking about the response",
+            "type": "reasoning",
+          },
+          {
+            "text": "Here is the response
+        more",
+            "type": "text",
+          },
+        ]
+      `);
     });
 
     it('should prepend <think> tag IFF startWithReasoning is true', async () => {
@@ -144,12 +176,27 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(resultTrue.reasoningText).toStrictEqual('analyzing the request');
-      expect(resultTrue.text).toStrictEqual('Here is the response');
-      expect(resultFalse.reasoningText).toBeUndefined();
-      expect(resultFalse.text).toStrictEqual(
-        'analyzing the request</think>Here is the response',
-      );
+      expect(resultTrue.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "analyzing the request",
+            "type": "reasoning",
+          },
+          {
+            "text": "Here is the response",
+            "type": "text",
+          },
+        ]
+      `);
+
+      expect(resultFalse.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "analyzing the request</think>Here is the response",
+            "type": "text",
+          },
+        ]
+      `);
     });
 
     it('should preserve reasoning property even when rest contains other properties', async () => {
@@ -178,8 +225,18 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(result.reasoningText).toStrictEqual('analyzing the request');
-      expect(result.text).toStrictEqual('Here is the response');
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "analyzing the request",
+            "type": "reasoning",
+          },
+          {
+            "text": "Here is the response",
+            "type": "text",
+          },
+        ]
+      `);
     });
   });
 
@@ -233,10 +290,6 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
               "id": "reasoning-0",
               "type": "reasoning-start",
             },
@@ -255,6 +308,10 @@ describe('extractReasoningMiddleware', () => {
             {
               "id": "reasoning-0",
               "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "1",
@@ -354,10 +411,6 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
               "id": "reasoning-0",
               "type": "reasoning-start",
             },
@@ -370,6 +423,10 @@ describe('extractReasoningMiddleware', () => {
             {
               "id": "reasoning-0",
               "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "1",
@@ -483,10 +540,6 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
               "id": "reasoning-0",
               "type": "reasoning-start",
             },
@@ -506,6 +559,10 @@ describe('extractReasoningMiddleware', () => {
             {
               "id": "reasoning-0",
               "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "1",
@@ -544,7 +601,7 @@ describe('extractReasoningMiddleware', () => {
         `);
     });
 
-    it('should prepend <think> tag IFF startWithReasoning is true', async () => {
+    it('should prepend <think> tag if startWithReasoning is true', async () => {
       const mockModel = new MockLanguageModelV2({
         async doStream() {
           return {
@@ -602,10 +659,6 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
               "id": "reasoning-0",
               "type": "reasoning-start",
             },
@@ -625,6 +678,10 @@ describe('extractReasoningMiddleware', () => {
             {
               "id": "reasoning-0",
               "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "1",

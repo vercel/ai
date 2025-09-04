@@ -11,7 +11,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
+import { NoOutputGeneratedError } from '../error';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -57,7 +59,7 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DelayedPromise } from '../util/delayed-promise';
-import { filterStreamErrors } from '../util/filter-stream-errors';
+import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { ContentPart } from './content-part';
@@ -244,6 +246,7 @@ export function streamText<
   activeTools = experimental_activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
+  experimental_download: download,
   includeRawChunks = false,
   onChunk,
   onError = ({ error }) => {
@@ -342,6 +345,13 @@ The stream transformations must maintain the stream structure for streamText to 
       | Array<StreamTextTransform<TOOLS>>;
 
     /**
+Custom download function to use for URLs.
+
+By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+    experimental_download?: DownloadFunction | undefined;
+
+    /**
 Whether to include raw chunks from the provider in the stream.
 When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
 This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
@@ -424,6 +434,7 @@ Internal. For test use only. May change without notice.
     currentDate,
     generateId,
     experimental_context,
+    download,
   });
 }
 
@@ -592,6 +603,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onAbort,
     onStepFinish,
     experimental_context,
+    download,
   }: {
     model: LanguageModelV2;
     telemetry: TelemetrySettings | undefined;
@@ -616,6 +628,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     currentDate: () => Date;
     generateId: () => string;
     experimental_context: unknown;
+    download: DownloadFunction | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -781,7 +794,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(part);
         }
 
-        if (part.type === 'tool-result') {
+        if (part.type === 'tool-result' && !part.preliminary) {
           recordedContent.push(part);
         }
 
@@ -816,6 +829,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           await onStepFinish?.(currentStepResult);
 
+          logWarnings(recordedWarnings);
+
           recordedSteps.push(currentStepResult);
 
           recordedContent = [];
@@ -838,6 +853,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       async flush(controller) {
         try {
           if (recordedSteps.length === 0) {
+            const error = new NoOutputGeneratedError({
+              message: 'No output generated. Check the stream for errors.',
+            });
+
+            self._finishReason.reject(error);
+            self._totalUsage.reject(error);
+            self._steps.reject(error);
+
             return; // no steps recorded (e.g. in error scenario)
           }
 
@@ -919,27 +942,49 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
 
-    let stream = stitchableStream.stream;
+    // resilient stream that handles abort signals and errors:
+    const reader = stitchableStream.stream.getReader();
+    let stream = new ReadableStream<TextStreamPart<TOOLS>>({
+      async start(controller) {
+        // send start event:
+        controller.enqueue({ type: 'start' });
+      },
 
-    // filter out abort errors:
-    stream = filterStreamErrors(stream, ({ error, controller }) => {
-      if (isAbortError(error) && abortSignal?.aborted) {
-        onAbort?.({ steps: recordedSteps });
-        controller.enqueue({ type: 'abort' });
-        controller.close();
-      } else {
-        controller.error(error);
-      }
+      async pull(controller) {
+        // abort handling:
+        function abort() {
+          onAbort?.({ steps: recordedSteps });
+          controller.enqueue({ type: 'abort' });
+          controller.close();
+        }
+
+        try {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            controller.close();
+            return;
+          }
+
+          if (abortSignal?.aborted) {
+            abort();
+            return;
+          }
+
+          controller.enqueue(value);
+        } catch (error) {
+          if (isAbortError(error) && abortSignal?.aborted) {
+            abort();
+          } else {
+            controller.error(error);
+          }
+        }
+      },
+
+      cancel(reason) {
+        return stitchableStream.stream.cancel(reason);
+      },
     });
-
-    // add a stream that emits a start event:
-    stream = stream.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
-        start(controller) {
-          controller.enqueue({ type: 'start' });
-        },
-      }),
-    );
 
     // transform the stream before output parsing
     // to enable replacement of stream segments:
@@ -1011,7 +1056,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             system,
             prompt,
             messages,
-          });
+          } as Prompt);
 
           const stepInputMessages = [
             ...initialPrompt.messages,
@@ -1031,6 +1076,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
             supportedUrls: await model.supportedUrls,
+            download,
           });
 
           const stepModel = resolveLanguageModel(
@@ -1229,7 +1275,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'tool-result': {
                       controller.enqueue(chunk);
-                      stepToolOutputs.push(chunk);
+
+                      if (!chunk.preliminary) {
+                        stepToolOutputs.push(chunk);
+                      }
+
                       break;
                     }
 
@@ -1491,6 +1541,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get steps() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
     return this._steps.promise;
   }
 
@@ -1567,10 +1621,18 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get totalUsage() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
     return this._totalUsage.promise;
   }
 
   get finishReason() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
     return this._finishReason.promise;
   }
 
@@ -1870,6 +1932,9 @@ However, the LLM results are expected to be small enough to not cause issues.
                 output: part.output,
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.preliminary != null
+                  ? { preliminary: part.preliminary }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
               });

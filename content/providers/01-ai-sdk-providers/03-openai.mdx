@@ -1159,10 +1159,10 @@ The following optional provider options are available for OpenAI completion mode
 | `o3`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `o4-mini`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `chatgpt-4o-latest`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-5`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-mini`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-nano`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-chat-latest`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5`                | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-mini`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-nano`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-chat-latest`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [OpenAI
@@ -1281,6 +1281,27 @@ const result = await transcribe({
   audio: new Uint8Array([1, 2, 3, 4]),
   providerOptions: { openai: { language: 'en' } },
 });
+```
+
+To get word-level timestamps, specify the granularity:
+
+```ts highlight="8-9"
+import { experimental_transcribe as transcribe } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await transcribe({
+  model: openai.transcription('whisper-1'),
+  audio: new Uint8Array([1, 2, 3, 4]),
+  providerOptions: {
+    openai: {
+      //timestampGranularities: ['word'],
+      timestampGranularities: ['segment'],
+    },
+  },
+});
+
+// Access word-level timestamps
+console.log(result.segments); // Array of segments with startSecond/endSecond
 ```
 
 The following provider options are available:

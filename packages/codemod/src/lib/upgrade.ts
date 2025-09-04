@@ -33,6 +33,7 @@ const bundle = [
   'v5/migrate-to-data-stream-protocol-v2',
   'v5/move-image-model-maxImagesPerCall',
   'v5/move-langchain-adapter',
+  'v5/move-maxsteps-to-stopwhen',
   'v5/move-provider-options',
   'v5/move-react-to-ai-sdk',
   'v5/move-ui-utils-to-ai',
@@ -42,6 +43,7 @@ const bundle = [
   'v5/remove-sendExtraMessageFields',
   'v5/rename-converttocoremessages-to-converttomodelmessages',
   'v5/rename-core-message-to-model-message',
+  'v5/rename-datastream-methods-to-uimessage',
   'v5/rename-datastream-transform-stream',
   'v5/rename-IDGenerator-to-IdGenerator',
   'v5/rename-languagemodelv1providermetadata',
@@ -57,7 +59,6 @@ const bundle = [
   'v5/replace-bedrock-snake-case',
   'v5/replace-content-with-parts',
   'v5/replace-experimental-provider-metadata',
-  'v5/replace-generatetext-text-property',
   'v5/replace-image-type-with-file-type',
   'v5/replace-llamaindex-adapter',
   'v5/replace-oncompletion-with-onfinal',
@@ -67,10 +68,12 @@ const bundle = [
   'v5/replace-simulate-streaming',
   'v5/replace-textdelta-with-text',
   'v5/replace-usage-token-properties',
+  'v5/replace-zod-import-with-v3',
   'v5/require-createIdGenerator-size-argument',
   'v5/restructure-file-stream-parts',
   'v5/restructure-source-stream-parts',
   'v5/rsc-package',
+  'v5/not-implemented/pattern',
 ];
 
 const log = debug('codemod:upgrade');
@@ -97,9 +100,15 @@ function runCodemods(
   );
   bar.start(modCount, 0, { codemod: 'Starting...' });
   const allErrors: TransformErrors = [];
+  let notImplementedAvailable = false;
   for (const [index, codemod] of codemods.entries()) {
-    const errors = transform(codemod, cwd, options, { logStatus: false });
+    const { errors, notImplementedErrors } = transform(codemod, cwd, options, {
+      logStatus: false,
+    });
     allErrors.push(...errors);
+    if (notImplementedErrors.length > 0) {
+      notImplementedAvailable = true;
+    }
     bar.increment(1, { codemod });
   }
   bar.stop();
@@ -111,6 +120,12 @@ function runCodemods(
     allErrors.forEach(({ transform, filename, summary }) => {
       error(`codemod=${transform}, path=${filename}, summary=${summary}`);
     });
+  }
+
+  if (notImplementedAvailable) {
+    log(
+      `Some ${versionLabel} codemods require manual changes. Please search your codebase for \`FIXME(@ai-sdk-upgrade-v5): \` comments and follow the instructions to complete the upgrade.`,
+    );
   }
 
   log(`${versionLabel} codemods complete.`);
@@ -137,9 +152,15 @@ export function upgrade(options: TransformOptions) {
   );
   bar.start(modCount, 0, { codemod: 'Starting...' });
   const allErrors: TransformErrors = [];
+  let notImplementedAvailable = false;
   for (const [index, codemod] of bundle.entries()) {
-    const errors = transform(codemod, cwd, options, { logStatus: false });
+    const { errors, notImplementedErrors } = transform(codemod, cwd, options, {
+      logStatus: false,
+    });
     allErrors.push(...errors);
+    if (notImplementedErrors.length > 0) {
+      notImplementedAvailable = true;
+    }
     bar.increment(1, { codemod });
   }
   bar.stop();
@@ -149,6 +170,12 @@ export function upgrade(options: TransformOptions) {
     allErrors.forEach(({ transform, filename, summary }) => {
       error(`codemod=${transform}, path=${filename}, summary=${summary}`);
     });
+  }
+
+  if (notImplementedAvailable) {
+    log(
+      'Some codemods require manual changes. Please search your codebase for `FIXME(@ai-sdk-upgrade-v5): ` comments and follow the instructions to complete the upgrade.',
+    );
   }
 
   log('Upgrade complete.');

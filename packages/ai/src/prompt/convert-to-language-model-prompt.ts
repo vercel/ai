@@ -16,7 +16,10 @@ import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
-import { download } from '../util/download';
+import {
+  createDefaultDownloadFunction,
+  DownloadFunction,
+} from '../util/download/download-function';
 import { convertToLanguageModelV2DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
@@ -24,15 +27,15 @@ import { StandardizedPrompt } from './standardize-prompt';
 export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
-  downloadImplementation = download,
+  download = createDefaultDownloadFunction(),
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
-  downloadImplementation?: typeof download;
+  download: DownloadFunction | undefined;
 }): Promise<LanguageModelV2Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
-    downloadImplementation,
+    download,
     supportedUrls,
   );
 
@@ -189,12 +192,12 @@ export function convertToLanguageModelMessage({
  */
 async function downloadAssets(
   messages: ModelMessage[],
-  downloadImplementation: typeof download,
+  download: DownloadFunction,
   supportedUrls: Record<string, RegExp[]>,
 ): Promise<
   Record<string, { mediaType: string | undefined; data: Uint8Array }>
 > {
-  const urls = messages
+  const plannedDownloads = messages
     .filter(message => message.role === 'user')
     .map(message => message.content)
     .filter((content): content is Array<TextPart | ImagePart | FilePart> =>
@@ -218,31 +221,39 @@ async function downloadAssets(
 
       return { mediaType, data };
     })
-    /**
-     * Filter out URLs that the model supports natively, so we don't download them.
-     */
+
     .filter(
-      (part): part is { mediaType: string; data: URL } =>
-        part.data instanceof URL &&
+      (part): part is { mediaType: string | undefined; data: URL } =>
+        part.data instanceof URL,
+    )
+    .map(part => ({
+      url: part.data,
+      isUrlSupportedByModel:
         part.mediaType != null &&
-        !isUrlSupported({
+        isUrlSupported({
           url: part.data.toString(),
           mediaType: part.mediaType,
           supportedUrls,
         }),
-    )
-    .map(part => part.data);
+    }));
 
   // download in parallel:
-  const downloadedImages = await Promise.all(
-    urls.map(async url => ({
-      url,
-      data: await downloadImplementation({ url }),
-    })),
-  );
+  const downloadedFiles = await download(plannedDownloads);
 
   return Object.fromEntries(
-    downloadedImages.map(({ url, data }) => [url.toString(), data]),
+    downloadedFiles
+      .filter(
+        (
+          downloadedFile,
+        ): downloadedFile is {
+          mediaType: string | undefined;
+          data: Uint8Array;
+        } => downloadedFile?.data != null,
+      )
+      .map(({ data, mediaType }, index) => [
+        plannedDownloads[index].url.toString(),
+        { data, mediaType },
+      ]),
   );
 }
 

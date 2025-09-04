@@ -1,5 +1,42 @@
 # @ai-sdk/provider-utils
 
+## 3.0.7
+
+### Patch Changes
+
+- 886e7cd: chore(provider-utils): upgrade event-source parser to 3.0.5
+
+## 3.0.6
+
+### Patch Changes
+
+- 1b5a3d3: chore(provider-util): integrate zod-to-json-schema
+
+## 3.0.5
+
+### Patch Changes
+
+- 0857788: fix(provider/groq): `experimental_transcribe` fails with valid Buffer
+
+## 3.0.4
+
+### Patch Changes
+
+- 68751f9: fix(provider-utils): add inject json utility function
+
+## 3.0.3
+
+### Patch Changes
+
+- 034e229: fix(provider/utils): fix FlexibleSchema type inference with zod/v3
+- f25040d: fix(provider-utils): fix tools type inference
+
+## 3.0.2
+
+### Patch Changes
+
+- 38ac190: feat(ai): preliminary tool results
+
 ## 3.0.1
 
 ### Patch Changes

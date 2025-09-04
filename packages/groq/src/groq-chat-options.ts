@@ -48,6 +48,16 @@ export const groqProviderOptions = z.object({
    * @default true
    */
   structuredOutputs: z.boolean().optional(),
+
+  /**
+   * Service tier for the request.
+   * - 'on_demand': Default tier with consistent performance and fairness
+   * - 'flex': Higher throughput tier optimized for workloads that can handle occasional request failures
+   * - 'auto': Uses on_demand rate limits, then falls back to flex tier if exceeded
+   *
+   * @default 'on_demand'
+   */
+  serviceTier: z.enum(['on_demand', 'flex', 'auto']).optional(),
 });
 
 export type GroqProviderOptions = z.infer<typeof groqProviderOptions>;

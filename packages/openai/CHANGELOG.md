@@ -1,5 +1,121 @@
 # @ai-sdk/openai
 
+## 2.0.23
+
+### Patch Changes
+
+- a9a61b7: Add serviceTier to provider metadata for OpenAI responses
+
+## 2.0.22
+
+### Patch Changes
+
+- 0e272ae: fix(provider/openai): make file_citation annotation fields optional for responses api compatibility
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.21
+
+### Patch Changes
+
+- d18856a: fix(provider/openai): support websearch tool results without query property
+- 15271d6: fix(provider/openai): do not set `response_format` to `verbose_json` if model is `gpt-4o-transcribe` or `gpt-4o-mini-transcribe`
+
+  These two models do not support it:
+  https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 2.0.20
+
+### Patch Changes
+
+- 974de40: fix(provider/ai): do not set `.providerMetadata.openai.logprobs` to an array of empty arrays when using `streamText()`
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 2.0.18
+
+### Patch Changes
+
+- 5e47d00: Support Responses API input_file file_url passthrough for PDFs.
+
+  This adds:
+
+  - file_url variant to OpenAIResponses user content
+  - PDF URL mapping to input_file with file_url in Responses converter
+  - PDF URL support in supportedUrls to avoid auto-download
+
+## 2.0.17
+
+### Patch Changes
+
+- 70bb696: fix(provider/openai): correct web search tool input
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 2.0.15
+
+### Patch Changes
+
+- a4bef93: feat(provider/openai): expose web search queries in responses api
+- 6ed34cb: refactor(openai): consolidate model config into `getResponsesModelConfig()`
+
+  https://github.com/vercel/ai/pull/8038
+
+## 2.0.14
+
+### Patch Changes
+
+- 7f47105: fix(provider/openai): support file_citation annotations in responses api
+
+## 2.0.13
+
+### Patch Changes
+
+- ddc9d99: Implements `logprobs` for OpenAI `providerOptions` and `providerMetaData` in `OpenAIResponsesLanguageModel`
+
+  You can now set `providerOptions.openai.logprobs` when using `generateText()` and retrieve logprobs from the response via `result.providerMetadata?.openai`
+
+## 2.0.12
+
+### Patch Changes
+
+- ec336a1: feat(provider/openai): add response_format to be supported by default
+- 2935ec7: fix(provider/openai): exclude gpt-5-chat from reasoning model
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
+## 2.0.11
+
+### Patch Changes
+
+- 097b452: feat(openai, azure): add configurable file ID prefixes for Responses API
+
+  - Added `fileIdPrefixes` option to OpenAI Responses API configuration
+  - Azure OpenAI now supports `assistant-` prefixed file IDs (replacing previous `file-` prefix support)
+  - OpenAI maintains backward compatibility with default `file-` prefix
+  - File ID detection is disabled when `fileIdPrefixes` is undefined, gracefully falling back to base64 processing
+
+- 87cf954: feat(provider/openai): add support for prompt_cache_key
+- a3d98a9: feat(provider/openai): add support for safety_identifier
+- 110d167: fix(openai): add missing file_search_call handlers in responses streaming
+- 8d3c747: chore(openai): remove deprecated GPT-4.5-preview models and improve autocomplete control
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
 ## 2.0.10
 
 ### Patch Changes

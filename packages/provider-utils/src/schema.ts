@@ -26,7 +26,12 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
   readonly jsonSchema: JSONSchema7;
 };
 
-export type FlexibleSchema<T> = z4.core.$ZodType<T> | z3.Schema<T> | Schema<T>;
+// Note: Zod types here exactly match the types in zod-schema.ts
+// to prevent type errors when using zod schemas with flexible schemas.
+export type FlexibleSchema<T> =
+  | z4.core.$ZodType<T, any>
+  | z3.Schema<T, z3.ZodTypeDef, any>
+  | Schema<T>;
 
 export type InferSchema<SCHEMA> = SCHEMA extends z3.Schema
   ? z3.infer<SCHEMA>

@@ -1,5 +1,75 @@
 # @ai-sdk/vercel
 
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [818f021]
+  - @ai-sdk/openai-compatible@1.0.14
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/openai-compatible@1.0.13
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/openai-compatible@1.0.12
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+  - @ai-sdk/openai-compatible@1.0.11
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [7ca3aee]
+  - @ai-sdk/openai-compatible@1.0.10
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - @ai-sdk/openai-compatible@1.0.9
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [515c891]
+  - @ai-sdk/openai-compatible@1.0.8
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+  - @ai-sdk/openai-compatible@1.0.7
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+  - @ai-sdk/openai-compatible@1.0.6
+
 ## 1.0.5
 
 ### Patch Changes
