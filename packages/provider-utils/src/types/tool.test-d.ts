@@ -53,16 +53,40 @@ describe('tool type', () => {
     >();
   });
 
-  it('should infer toModelOutput argument type', () => {
-    tool({
-      inputSchema: z.object({ number: z.number() }),
-      execute: async input => {
-        return 'test' as const;
-      },
-      toModelOutput: output => {
-        expectTypeOf(output).toEqualTypeOf<'test'>();
-        return { type: 'text', value: 'test' };
-      },
+  describe('toModelOutput', () => {
+    it('should infer toModelOutput argument when there is only an input schema', () => {
+      const aTool = tool({
+        inputSchema: z.object({ number: z.number() }),
+        toModelOutput: output => {
+          expectTypeOf(output).toEqualTypeOf<any>();
+          return { type: 'text', value: 'test' };
+        },
+      });
+    });
+
+    it('should infer toModelOutput argument when there is an execute function', () => {
+      const aTool = tool({
+        inputSchema: z.object({ number: z.number() }),
+        // outputSchema: z.literal('test'),
+        execute: async input => {
+          return 'test' as const;
+        },
+        toModelOutput: output => {
+          expectTypeOf(output).toEqualTypeOf<'test'>();
+          return { type: 'text', value: 'test' };
+        },
+      });
+    });
+
+    it('should infer toModelOutput argument when there is an output schema', () => {
+      const aTool = tool({
+        inputSchema: z.object({ number: z.number() }),
+        outputSchema: z.literal('test'),
+        toModelOutput: output => {
+          expectTypeOf(output).toEqualTypeOf<'test'>();
+          return { type: 'text', value: 'test' };
+        },
+      });
     });
   });
 });

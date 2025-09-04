@@ -47,32 +47,23 @@ type NeverOptional<N, T> = 0 extends 1 & N
 
 type ToolOutputProperties<INPUT, OUTPUT> = NeverOptional<
   OUTPUT,
-  {
-    /**
-Optional conversion function that maps the tool result to an output that can be used by the language model.
-
-If not provided, the tool result will be sent as a JSON object.
-    */
-    toModelOutput?: (output: OUTPUT) => LanguageModelV2ToolResultPart['output'];
-  } & (
-    | {
-        /**
+  | {
+      /**
 An async function that is called with the arguments from the tool call and produces a result.
 If not provided, the tool will not be executed automatically.
 
 @args is the input of the tool call.
 @options.abortSignal is a signal that can be used to abort the tool call.
     */
-        execute: ToolExecuteFunction<INPUT, OUTPUT>;
+      execute: ToolExecuteFunction<INPUT, OUTPUT>;
 
-        outputSchema?: FlexibleSchema<OUTPUT>;
-      }
-    | {
-        outputSchema: FlexibleSchema<OUTPUT>;
+      outputSchema?: FlexibleSchema<OUTPUT>;
+    }
+  | {
+      outputSchema: FlexibleSchema<OUTPUT>;
 
-        execute?: never;
-      }
-  )
+      execute?: never;
+    }
 >;
 
 /**
@@ -129,8 +120,20 @@ Use descriptions to make the input understandable for the language model.
       input: [INPUT] extends [never] ? undefined : INPUT;
     } & ToolCallOptions,
   ) => void | PromiseLike<void>;
-} & ToolOutputProperties<INPUT, OUTPUT> &
-  (
+} & ToolOutputProperties<INPUT, OUTPUT> & {
+    /**
+Optional conversion function that maps the tool result to an output that can be used by the language model.
+
+If not provided, the tool result will be sent as a JSON object.
+  */
+    toModelOutput?: (
+      output: 0 extends 1 & OUTPUT
+        ? any
+        : [OUTPUT] extends [never]
+          ? any
+          : NoInfer<OUTPUT>,
+    ) => LanguageModelV2ToolResultPart['output'];
+  } & (
     | {
         /**
 Tool with user-defined input and output schemas.
