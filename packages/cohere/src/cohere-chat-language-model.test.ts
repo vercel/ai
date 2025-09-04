@@ -36,7 +36,9 @@ describe('doGenerate', () => {
     generation_id = 'dad0c7cd-7982-42a7-acfb-706ccf598291',
     headers,
   }: {
-    content?: Array<{type:'text', text: string} | {type:'thinking', thinking: string}>;
+    content?: Array<
+      { type: 'text'; text: string } | { type: 'thinking'; thinking: string }
+    >;
     tool_calls?: any;
     finish_reason?: string;
     tokens?: {
@@ -46,7 +48,6 @@ describe('doGenerate', () => {
     generation_id?: string;
     headers?: Record<string, string>;
   } = {}) {
-
     server.urls['https://api.cohere.com/v2/chat'].response = {
       type: 'json-value',
       headers,
@@ -448,7 +449,9 @@ describe('doGenerate', () => {
 
   describe('citations', () => {
     it('should extract text documents and send to API', async () => {
-      prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
 
       await model.doGenerate({
         prompt: [
@@ -489,7 +492,9 @@ describe('doGenerate', () => {
     });
 
     it('should extract multiple text documents', async () => {
-      prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
 
       await model.doGenerate({
         prompt: [
@@ -542,7 +547,9 @@ describe('doGenerate', () => {
     });
 
     it('should support JSON files', async () => {
-      prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
 
       await model.doGenerate({
         prompt: [
@@ -583,7 +590,9 @@ describe('doGenerate', () => {
     });
 
     it('should throw error for unsupported file types', async () => {
-      prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
 
       await expect(
         model.doGenerate({
@@ -608,7 +617,9 @@ describe('doGenerate', () => {
     });
 
     it('should successfully process supported text media types', async () => {
-      prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
 
       await model.doGenerate({
         prompt: [
@@ -754,7 +765,9 @@ describe('doGenerate', () => {
     });
 
     it('should not include documents parameter when no files present', async () => {
-      prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -769,7 +782,7 @@ describe('doGenerate', () => {
     prepareJsonResponse({
       content: [
         { type: 'text', text: '42' },
-        { type: 'thinking', thinking: 'So I was thinking ...' }
+        { type: 'thinking', thinking: 'So I was thinking ...' },
       ],
     });
 
@@ -802,7 +815,10 @@ describe('doStream', () => {
     finish_reason = 'COMPLETE',
     headers,
   }: {
-    content?: Array<{type: 'text', deltas: string[]} | {type: 'thinking', deltas: string[]}>;
+    content?: Array<
+      | { type: 'text'; deltas: string[] }
+      | { type: 'thinking'; deltas: string[] }
+    >;
     usage?: {
       input_tokens: number;
       output_tokens: number;
@@ -913,7 +929,7 @@ describe('doStream', () => {
     prepareStreamResponse({
       content: [
         { type: 'thinking', deltas: ['So', 'I ', 'was ', 'thinking ', '...'] },
-        { type: 'text', deltas: ['Hello', ', ', 'World!'] }
+        { type: 'text', deltas: ['Hello', ', ', 'World!'] },
       ],
       finish_reason: 'COMPLETE',
       usage: {
