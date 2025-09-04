@@ -1,4 +1,3 @@
-import ms from 'ms';
 import { GatewayAuthenticationError } from '../errors';
 
 export interface TokenPayload {
@@ -37,7 +36,7 @@ export function getTokenPayload(token: string): TokenPayload {
 }
 
 export function isExpired(token: TokenPayload): boolean {
-  const timeout = ms('15m');
+  const timeout = 15 * 60 * 1000;
   return token.exp * 1000 < Date.now() + timeout;
 }
 

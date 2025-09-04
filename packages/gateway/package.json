@@ -34,11 +34,9 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*",
-    "ms": "2.1.3"
+    "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
-    "@types/ms": "2.1.0",
     "@types/node": "18.15.11",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
