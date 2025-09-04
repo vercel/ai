@@ -94,6 +94,7 @@ export function prepareResponsesTools({
             openaiTools.push({
               type: 'mcp',
               server_url: args.serverUrl,
+              connector_id: args.connectorId,
               server_label: args.serverLabel,
               server_description: args.serverDescription,
               require_approval: args.requireApproval,

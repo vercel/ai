@@ -1265,6 +1265,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               name: 'anmcp',
               args: {
                 serverUrl: 'https://mcp.example.com/mcp',
+                serverLabel: 'an_mcp_label',
               },
             },
           ],
@@ -1287,6 +1288,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "model": "gpt-4o",
             "tools": [
               {
+                "server_label": "an_mcp_label",
                 "server_url": "https://mcp.example.com/mcp",
                 "type": "mcp",
               },

@@ -11,7 +11,8 @@ export type OpenAIResponsesMessage =
   | OpenAIWebSearchCall
   | OpenAIComputerCall
   | OpenAIFileSearchCall
-  | OpenAIResponsesReasoning;
+  | OpenAIResponsesReasoning
+  | OpenAIMCPCall;
 
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
@@ -78,6 +79,7 @@ export type OpenAIMCPCall = {
   type: 'mcp_call';
   id: string;
   status?: string;
+  dynamic: true;
 };
 
 export type OpenAIResponsesTool =
@@ -125,7 +127,8 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'mcp';
-      server_url: string;
+      server_url?: string;
+      connector_id?: string;
       server_description?: string;
       server_label?: string;
       require_approval?: any;

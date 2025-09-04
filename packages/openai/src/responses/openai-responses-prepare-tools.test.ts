@@ -211,9 +211,10 @@ describe('prepareResponsesTools', () => {
           {
             type: 'provider-defined',
             id: 'openai.mcp',
-            name: 'mcp',
+            name: 'mcp123',
             args: {
               serverUrl: 'https://mcp.server.com',
+              serverLabel: 'a_label',
             },
           },
         ],
@@ -224,10 +225,11 @@ describe('prepareResponsesTools', () => {
         {
           type: 'mcp',
           server_url: 'https://mcp.server.com',
-          server_label: undefined,
+          server_label: 'a_label',
           server_description: undefined,
           require_approval: undefined,
           headers: undefined,
+          connector_id: undefined,
           allowed_tools: undefined,
         },
       ]);

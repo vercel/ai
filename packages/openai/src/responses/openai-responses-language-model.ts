@@ -419,6 +419,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 type: z.literal('mcp_list_tools'),
                 id: z.string(),
                 server_label: z.string(),
+                name: z.string(),
                 tools: z.array(
                   z.object({
                     annotations: z.array(z.any()).nullish(),
@@ -438,7 +439,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 approval_request_id: z.string().nullable(),
                 arguments: z.string().nullable(),
                 error: z.string().nullable(),
-                name: z.string().nullable(),
+                name: z.string(),
                 output: z.string().nullable(),
                 server_label: z.string().nullable(),
               }),
@@ -617,10 +618,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }
 
         case 'mcp_list_tools': {
+
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: part.name,
+            input: '',
+            providerExecuted: true,
+          });
+
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'mcp',
+            toolName: part.name,
             result: {
               type: 'mcp_list_tools_result',
               ...(part.tools && { tools: part.tools }),
@@ -632,6 +642,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }
 
         case 'mcp_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: part.name,
+            input: '',
+            providerExecuted: true,
+          });
+          
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
@@ -836,6 +854,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     },
                   },
                 });
+              } else if (value.item.type === 'mcp_call') {
+                console.log("!!!!! MCP CALL RESPONSE ITEM ADDED !!!!!")
+                console.log(value)
+                ongoingToolCalls[value.output_index] = {
+                  toolName: value.item.name,
+                  toolCallId: value.item.id,
+                };
+              } else if (value.item.type === 'mcp_list_tools') {
+                console.log("!!!!! MCP LIST TOOLS RESPONSE ITEM ADDED !!!!!")
+                console.log(value)
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'function_call') {
@@ -856,6 +884,59 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     openai: {
                       itemId: value.item.id,
                     },
+                  },
+                });
+              } else if (value.item.type === 'mcp_call') {
+                console.log("!!!!! MCP CALL FOUND !!!!")
+                console.log(value)
+                
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,     
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: value.item.name,
+                  input: JSON.stringify(value.item.arguments),
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: value.item.name,
+                  result: {
+                    type: 'mcp_tool_result',
+                    status: value.item.status || 'completed',
+                    ...(value.item.arguments && { arguments: value.item.arguments }),
+                    ...(value.item.output && { output: value.item.output }),
+                  },
+                });
+              } else if (value.item.type === 'mcp_list_tools') {
+                console.log("!!!!! MCP LIST TOOLS FOUND !!!!")
+                console.log(value)
+                
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,     
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'mcp_list_tools',
+                  input: "",
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'mcp_list_tools',
+                  result: {
+                    type: 'mcp_tool_result',
+                    status: value.item.status || 'completed',
+                    ...(value.item.tools && { tools: value.item.tools }),
                   },
                 });
               } else if (value.item.type === 'web_search_call') {
@@ -1197,6 +1278,23 @@ const responseOutputItemAddedSchema = z.object({
         )
         .optional(),
     }),
+    z.object({
+      type: z.literal('mcp_call'),
+      id: z.string(),
+      status: z.literal('completed'),
+      arguments: z.string(),
+      output: z.string(),
+      error: z.string().nullish(),
+      name: z.string(),
+      server_label: z.string(),
+    }),
+    z.object({
+      type: z.literal('mcp_list_tools'),
+      id: z.string(),
+      status: z.literal('completed'),
+      server_label: z.string(),
+      tools: z.array(z.any()),
+    }),
   ]),
 });
 
@@ -1244,6 +1342,23 @@ const responseOutputItemDoneSchema = z.object({
           }),
         )
         .nullish(),
+    }),
+    z.object({
+      type: z.literal('mcp_call'),
+      id: z.string(),
+      status: z.literal('completed'),
+      arguments: z.string(),
+      output: z.string(),
+      error: z.string().nullish(),
+      name: z.string(),
+      server_label: z.string().nullish(),
+    }),
+    z.object({
+      type: z.literal('mcp_list_tools'),
+      id: z.string(),
+      status: z.literal('completed'),
+      server_label: z.string().nullish(),
+      tools: z.array(z.any()),
     }),
   ]),
 });
