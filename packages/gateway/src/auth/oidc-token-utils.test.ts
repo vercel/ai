@@ -81,10 +81,10 @@ describe('oidc token utils', () => {
       const originalProcess = global.process;
       // @ts-ignore
       global.process = { versions: {} };
-      
+
       const result = await tryRefreshOidcToken();
       expect(result).toBe(null);
-      
+
       global.process = originalProcess;
     });
 
@@ -92,10 +92,10 @@ describe('oidc token utils', () => {
       const originalProcess = global.process;
       // @ts-ignore
       global.process = undefined;
-      
+
       const result = await tryRefreshOidcToken();
       expect(result).toBe(null);
-      
+
       global.process = originalProcess;
     });
 
@@ -104,10 +104,10 @@ describe('oidc token utils', () => {
       process.cwd = () => {
         throw new Error('Test error');
       };
-      
+
       const result = await tryRefreshOidcToken();
       expect(result).toBe(null);
-      
+
       process.cwd = originalCwd;
     });
   });

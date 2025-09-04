@@ -50,7 +50,7 @@ async function getUserDataDir(): Promise<string | null> {
     settingValue: undefined,
     environmentVariableName: 'XDG_DATA_HOME',
   });
-  
+
   if (xdgDataHome) {
     return xdgDataHome;
   }
@@ -297,7 +297,7 @@ export async function tryRefreshOidcToken(): Promise<string | null> {
     let maybeToken = await loadToken(projectId);
 
     let needsRefresh = !maybeToken;
-    
+
     if (maybeToken) {
       try {
         const payload = getTokenPayload(maybeToken.token);

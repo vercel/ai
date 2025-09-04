@@ -86,7 +86,9 @@ describe('getVercelOidcToken', () => {
   });
 
   it('should refresh expired token when available', async () => {
-    const { getTokenPayload, isExpired, tryRefreshOidcToken } = await import('./auth/oidc-token-utils');
+    const { getTokenPayload, isExpired, tryRefreshOidcToken } = await import(
+      './auth/oidc-token-utils'
+    );
 
     setRequestContext({
       get: () => ({ headers: {} }),
@@ -108,7 +110,9 @@ describe('getVercelOidcToken', () => {
   });
 
   it('should fallback to original token when refresh fails', async () => {
-    const { getTokenPayload, isExpired, tryRefreshOidcToken } = await import('./auth/oidc-token-utils');
+    const { getTokenPayload, isExpired, tryRefreshOidcToken } = await import(
+      './auth/oidc-token-utils'
+    );
 
     setRequestContext({
       get: () => ({ headers: {} }),
@@ -145,7 +149,9 @@ describe('getVercelOidcToken', () => {
   });
 
   it('should attempt refresh when token parsing fails', async () => {
-    const { getTokenPayload, tryRefreshOidcToken } = await import('./auth/oidc-token-utils');
+    const { getTokenPayload, tryRefreshOidcToken } = await import(
+      './auth/oidc-token-utils'
+    );
 
     setRequestContext({
       get: () => ({ headers: {} }),
@@ -164,7 +170,9 @@ describe('getVercelOidcToken', () => {
   });
 
   it('should return original token when parsing fails and refresh returns null', async () => {
-    const { getTokenPayload, tryRefreshOidcToken } = await import('./auth/oidc-token-utils');
+    const { getTokenPayload, tryRefreshOidcToken } = await import(
+      './auth/oidc-token-utils'
+    );
 
     setRequestContext({
       get: () => ({ headers: {} }),
@@ -182,7 +190,9 @@ describe('getVercelOidcToken', () => {
   });
 
   it('should not call refresh when token is valid', async () => {
-    const { getTokenPayload, isExpired, tryRefreshOidcToken } = await import('./auth/oidc-token-utils');
+    const { getTokenPayload, isExpired, tryRefreshOidcToken } = await import(
+      './auth/oidc-token-utils'
+    );
 
     setRequestContext({
       get: () => ({ headers: {} }),
