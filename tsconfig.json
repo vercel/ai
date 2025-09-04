@@ -26,6 +26,7 @@
     { "path": "packages/lmnt" },
     { "path": "packages/luma" },
     { "path": "packages/mistral" },
+    { "path": "packages/modelslab" },
     { "path": "packages/openai" },
     { "path": "packages/openai-compatible" },
     { "path": "packages/perplexity" },
