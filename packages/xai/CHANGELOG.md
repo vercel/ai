@@ -1,5 +1,34 @@
 # @ai-sdk/xai
 
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/openai-compatible@1.0.15
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [818f021]
+  - @ai-sdk/openai-compatible@1.0.14
+
+## 2.0.14
+
+### Patch Changes
+
+- ddb70ed: feat(xai) add grok-code-fast-1 model id
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/openai-compatible@1.0.13
+
 ## 2.0.12
 
 ### Patch Changes

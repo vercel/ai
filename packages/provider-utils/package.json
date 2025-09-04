@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "3.0.6",
+  "version": "3.0.8",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -41,7 +41,7 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.0.0",
-    "eventsource-parser": "^3.0.3"
+    "eventsource-parser": "^3.0.5"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

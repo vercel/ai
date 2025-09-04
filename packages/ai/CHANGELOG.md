@@ -1,5 +1,63 @@
 # ai
 
+## 5.0.32
+
+### Patch Changes
+
+- Updated dependencies [b6005cd]
+  - @ai-sdk/gateway@1.0.17
+
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/gateway@1.0.16
+
+## 5.0.30
+
+### Patch Changes
+
+- 7fcc6be: feat(ai): throw InvalidArgumentError when messages is not provided
+
+## 5.0.29
+
+### Patch Changes
+
+- e0e9449: feat(ui): sent isAbort, isDisconnect, isError in useChat onFinish callback
+
+## 5.0.28
+
+### Patch Changes
+
+- 4b81e7d: fix(ai): remove vitest dependency from test exports
+- d68a4f2: feat(ai): log warnings
+
+## 5.0.27
+
+### Patch Changes
+
+- ca40fac: feat(ai): support custom download functions (experimental)
+
+## 5.0.26
+
+### Patch Changes
+
+- 33cf848: feat(ai): pass messages to `useChat({ onFinish })`
+- Updated dependencies [980633d]
+- Updated dependencies [1c5b88d]
+  - @ai-sdk/gateway@1.0.15
+
+## 5.0.25
+
+### Patch Changes
+
+- ca65923: fix(ai): remove use of `expect()` from production code
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/gateway@1.0.14
+
 ## 5.0.24
 
 ### Patch Changes

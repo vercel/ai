@@ -1,5 +1,6 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { humeErrorDataSchema } from './hume-error';
+import { describe, it, expect } from 'vitest';
 
 describe('humeErrorDataSchema', () => {
   it('should parse Hume resource exhausted error', async () => {

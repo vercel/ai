@@ -1,5 +1,6 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { createStreamableUI } from './create-streamable-ui';
+import { describe, it, expect } from 'vitest';
 
 // This is a workaround to render the Flight response in a test environment.
 async function flightRender(node: React.ReactNode, byChunk?: boolean) {

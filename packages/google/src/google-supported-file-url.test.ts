@@ -1,4 +1,5 @@
 import { isSupportedFileUrl } from './google-supported-file-url';
+import { it, expect } from 'vitest';
 
 it('should return true for valid Google generative language file URLs', () => {
   const validUrl = new URL(

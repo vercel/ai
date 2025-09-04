@@ -1,9 +1,15 @@
-import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
+import {
+  JSONParseError,
+  LanguageModelV2CallWarning,
+  TypeValidationError,
+} from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import assert, { fail } from 'node:assert';
+import { afterEach, beforeEach, describe, expect, it, vitest } from 'vitest';
 import { z } from 'zod/v4';
-import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../error/no-object-generated-error';
+import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
+import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
@@ -22,6 +28,18 @@ const dummyResponseValues = {
 };
 
 describe('generateObject', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   describe('output = "object"', () => {
     describe('result.object', () => {
       it('should generate object', async () => {
@@ -119,6 +137,78 @@ describe('generateObject', () => {
 
         assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
       });
+    });
+
+    it('should return warnings', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+            warnings: [
+              {
+                type: 'other',
+                message: 'Setting is not supported',
+              },
+            ],
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+      });
+
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'other',
+          message: 'Setting is not supported',
+        },
+      ]);
+    });
+
+    it('should call logWarnings with the correct warnings', async () => {
+      const expectedWarnings: LanguageModelV2CallWarning[] = [
+        {
+          type: 'other',
+          message: 'Setting is not supported',
+        },
+        {
+          type: 'unsupported-setting',
+          setting: 'temperature',
+          details: 'Temperature parameter not supported',
+        },
+      ];
+
+      await generateObject({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+            warnings: expectedWarnings,
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+      });
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    });
+
+    it('should call logWarnings with empty array when no warnings are present', async () => {
+      await generateObject({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+            warnings: [], // no warnings
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+      });
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith([]);
     });
 
     describe('result.request', () => {

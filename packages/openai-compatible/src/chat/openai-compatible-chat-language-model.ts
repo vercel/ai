@@ -28,6 +28,7 @@ import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-
 import {
   OpenAICompatibleChatModelId,
   openaiCompatibleProviderOptions,
+  OpenAICompatibleProviderOptions,
 } from './openai-compatible-chat-options';
 import {
   defaultOpenAICompatibleErrorStructure,
@@ -184,7 +185,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
         stop: stopSequences,
         seed,
-        ...providerOptions?.[this.providerOptionsName],
+        ...Object.fromEntries(
+          Object.entries(
+            providerOptions?.[this.providerOptionsName] ?? {},
+          ).filter(
+            ([key]) =>
+              !Object.keys(openaiCompatibleProviderOptions.shape).includes(key),
+          ),
+        ),
 
         reasoning_effort: compatibleOptions.reasoningEffort,
 

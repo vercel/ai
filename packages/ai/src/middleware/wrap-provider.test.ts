@@ -1,6 +1,7 @@
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockProviderV2 } from '../test/mock-provider-v2';
 import { wrapProvider } from './wrap-provider';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('wrapProvider', () => {
   it('should wrap all language models in the provider', () => {

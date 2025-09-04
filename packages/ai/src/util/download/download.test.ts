@@ -1,6 +1,7 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { download } from './download';
 import { DownloadError } from './download-error';
+import { describe, it, expect } from 'vitest';
 
 const server = createTestServer({
   'http://example.com/file': {},
@@ -22,8 +23,9 @@ describe('download', () => {
       url: new URL('http://example.com/file'),
     });
 
-    expect(result.data).toEqual(expectedBytes);
-    expect(result.mediaType).toBe('application/octet-stream');
+    expect(result).not.toBeNull();
+    expect(result!.data).toEqual(expectedBytes);
+    expect(result!.mediaType).toBe('application/octet-stream');
   });
 
   it('should throw DownloadError when response is not ok', async () => {
