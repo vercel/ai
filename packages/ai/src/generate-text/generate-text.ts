@@ -55,6 +55,7 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
+import { withAISDKUserAgent } from '../util/user-agent';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -255,10 +256,12 @@ A function that attempts to repair a tool call that failed to parse.
 
   const callSettings = prepareCallSettings(settings);
 
+  const headersWithUA = withAISDKUserAgent(headers);
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers,
+    headers: headersWithUA,
     settings: { ...callSettings, maxRetries },
   });
 
@@ -387,7 +390,7 @@ A function that attempts to repair a tool call that failed to parse.
                   prompt: promptMessages,
                   providerOptions,
                   abortSignal,
-                  headers,
+                  headers: headersWithUA,
                 });
 
                 // Fill in default values:

@@ -87,6 +87,7 @@ import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
+import { withAISDKUserAgent } from '../util/user-agent';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1012,10 +1013,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     const callSettings = prepareCallSettings(settings);
 
+    const headersWithUA = withAISDKUserAgent(headers);
+
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model,
       telemetry,
-      headers,
+      headers: headersWithUA,
       settings: { ...callSettings, maxRetries },
     });
 
@@ -1151,7 +1154,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     prompt: promptMessages,
                     providerOptions,
                     abortSignal,
-                    headers,
+                    headers: headersWithUA,
                     includeRawChunks,
                   }),
                 };

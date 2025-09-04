@@ -15,6 +15,7 @@ import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
 import { logWarnings } from '../logger/log-warnings';
+import { withAISDKUserAgent } from '../util/user-agent';
 
 /**
 Generates images using an image model.
@@ -151,7 +152,7 @@ Only applicable for HTTP-based providers.
           prompt,
           n: callImageCount,
           abortSignal,
-          headers,
+          headers: withAISDKUserAgent(headers),
           size,
           aspectRatio,
           seed,

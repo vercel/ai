@@ -14,6 +14,7 @@ import {
 import { download } from '../util/download/download';
 import { prepareRetries } from '../util/prepare-retries';
 import { TranscriptionResult } from './transcribe-result';
+import { withAISDKUserAgent } from '../util/user-agent';
 
 /**
 Generates transcripts using a transcription model.
@@ -102,7 +103,7 @@ Only applicable for HTTP-based providers.
     model.doGenerate({
       audio: audioData,
       abortSignal,
-      headers,
+      headers: withAISDKUserAgent(headers),
       providerOptions,
       mediaType:
         detectMediaType({
