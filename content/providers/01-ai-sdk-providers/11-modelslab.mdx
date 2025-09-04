@@ -1,0 +1,278 @@
+---
+title: ModelsLab
+description: Learn how to use ModelsLab AI models with the AI SDK.
+---
+
+# ModelsLab Provider
+
+[ModelsLab](https://modelslab.com/) provides high-quality text-to-image generation APIs with fast inference speeds and comprehensive customization options. Their platform offers state-of-the-art diffusion models optimized for production use.
+
+## Setup
+
+The ModelsLab provider is available via the `@ai-sdk/modelslab` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/modelslab" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/modelslab" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/modelslab" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/modelslab" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `modelslab` from `@ai-sdk/modelslab`:
+
+```ts
+import { modelslab } from '@ai-sdk/modelslab';
+```
+
+If you need a customized setup, you can import `createModelslab` and create a provider instance with your settings:
+
+```ts
+import { createModelslab } from '@ai-sdk/modelslab';
+
+const modelslab = createModelslab({
+  apiKey: 'your-api-key', // optional, defaults to MODELSLAB_API_KEY environment variable
+  baseURL: 'custom-url', // optional
+  headers: {
+    /* custom headers */
+  }, // optional
+});
+```
+
+You can use the following optional settings to customize the ModelsLab provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://modelslab.com`.
+
+- **apiKey** _string_
+
+  API key that is being sent in the request body.
+  It defaults to the `MODELSLAB_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Image Models
+
+You can create ModelsLab image models using the `.image()` factory method.
+For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+### Basic Usage
+
+```ts
+import { modelslab } from '@ai-sdk/modelslab';
+import { experimental_generateImage as generateImage } from 'ai';
+import fs from 'fs';
+
+const { image, providerMetadata } = await generateImage({
+  model: modelslab.image('realtime-text2img'),
+  prompt: 'A serene mountain landscape at sunset',
+});
+
+const filename = `image-${Date.now()}.png`;
+fs.writeFileSync(filename, image.uint8Array);
+console.log(`Image saved to ${filename}`);
+```
+
+ModelsLab image models may return additional information for the images and the request through `providerMetadata.modelslab`.
+
+### Model Capabilities
+
+ModelsLab currently offers the `realtime-text2img` model optimized for fast, high-quality image generation.
+
+| Model                | Description                                                   |
+| -------------------- | ------------------------------------------------------------- |
+| `realtime-text2img`  | Real-time text-to-image generation with fast inference       |
+
+Key features of ModelsLab models include:
+
+- Fast inference speeds optimized for real-time applications
+- High-quality image generation with detailed control options
+- Comprehensive safety filtering and content moderation
+- Flexible output formats and resolutions
+- Advanced prompt engineering capabilities
+
+### Provider Options
+
+ModelsLab image models support flexible provider options through the `providerOptions.modelslab` object:
+
+```ts
+import { modelslab } from '@ai-sdk/modelslab';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: modelslab.image('realtime-text2img'),
+  prompt: 'A majestic dragon in a mystical forest',
+  size: '768x768', // Standard AI SDK size parameter
+  n: 2, // Generate 2 images
+  providerOptions: {
+    modelslab: {
+      negativePrompt: 'blurry, low quality, distorted',
+      safetyChecker: true,
+      seed: 42,
+      samples: 2,
+      instantResponse: false,
+    },
+  },
+});
+```
+
+#### Available Provider Options
+
+- **negativePrompt** _string_
+  
+  Negative prompts describe things you don't want in the image.
+  Examples include NSFW content, extra limbs, distorted faces, poor quality, etc.
+  Optional.
+
+- **width** _number_
+  
+  Width of the generated image.
+  Default: 512
+
+- **height** _number_
+  
+  Height of the generated image.
+  Default: 512
+
+- **samples** _number_
+  
+  Number of sample images to be returned in response.
+  Maximum value is 4.
+  Default: 1
+
+- **safetyChecker** _boolean_
+  
+  NSFW image checker ensures inappropriate content is replaced with blank image.
+  Default: true
+
+- **seed** _number | null_
+  
+  Seed used to reproduce results. Use null for random seed.
+  Default: null
+
+- **instantResponse** _boolean_
+  
+  Enable instant response before processing finishes.
+  Default: false
+
+- **trackId** _string_
+  
+  A unique identifier to track the generation request.
+  Optional.
+
+- **guidance** _number_
+  
+  Controls how much the model follows the text prompt.
+  Higher values make the model follow the prompt more closely.
+  Range: 1-20
+  Default: 7.5
+
+- **steps** _number_
+  
+  Number of inference steps. More steps generally produce higher quality images but take longer.
+  Range: 1-50
+  Default: 20
+
+- **scheduler** _string_
+  
+  The scheduler algorithm to use for the diffusion process.
+  Options: "DDIM", "DPMSolverMultistep", "HeunDiscrete", "KarrasDPM", "K_EULER_ANCESTRAL", "K_EULER", "PNDM"
+  Default: "DPMSolverMultistep"
+
+- **upscale** _boolean_
+  
+  Whether to upscale the generated image.
+  Default: false
+
+- **lora** _string_
+  
+  LoRA model to apply for style customization.
+  Optional.
+
+- **embedding** _string_
+  
+  Textual inversion embedding to use.
+  Optional.
+
+### Advanced Example
+
+Here's an example showcasing advanced ModelsLab features:
+
+```ts
+import { modelslab } from '@ai-sdk/modelslab';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: modelslab.image('realtime-text2img'),
+  prompt: 'A cyberpunk cityscape at night with neon lights reflecting on wet streets, highly detailed, photorealistic',
+  size: '1024x768',
+  n: 1,
+  providerOptions: {
+    modelslab: {
+      negativePrompt: 'blurry, low quality, distorted, ugly, bad anatomy, extra limbs',
+      width: 1024,
+      height: 768,
+      samples: 1,
+      safetyChecker: true,
+      seed: 12345,
+      guidance: 12,
+      steps: 30,
+      scheduler: "DPMSolverMultistep",
+      upscale: true,
+      trackId: "my-generation-request-001",
+    },
+  },
+});
+
+console.log(`Generated ${images.length} high-quality images`);
+```
+
+### Error Handling
+
+ModelsLab may return specific error codes for various scenarios:
+
+```ts
+try {
+  const result = await generateImage({
+    model: modelslab.image('realtime-text2img'),
+    prompt: 'A beautiful landscape',
+  });
+} catch (error) {
+  if (error.message.includes('API key')) {
+    console.error('Invalid or missing API key');
+  } else if (error.message.includes('quota')) {
+    console.error('API quota exceeded');
+  } else {
+    console.error('Generation failed:', error.message);
+  }
+}
+```
+
+### Best Practices
+
+1. **Prompt Engineering**: Use detailed, specific prompts for better results
+2. **Negative Prompts**: Include negative prompts to avoid unwanted elements
+3. **Safety**: Keep `safetyChecker` enabled for production applications
+4. **Performance**: Use appropriate image dimensions and step counts for your use case
+5. **Reproducibility**: Set a `seed` value when you need consistent results
+
+For more details about ModelsLab's capabilities and API documentation, visit the [ModelsLab documentation](https://modelslab.com/docs).

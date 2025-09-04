@@ -24,6 +24,7 @@
     "@ai-sdk/luma": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
     "@ai-sdk/mistral": "workspace:*",
+    "@ai-sdk/modelslab": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/perplexity": "workspace:*",
