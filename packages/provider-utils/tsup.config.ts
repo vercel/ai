@@ -9,6 +9,7 @@ export default defineConfig([
     // Keep library target conservative for wide compatibility
     target: 'es2018',
     platform: 'node',
+    define: { __PACKAGE_VERSION__: JSON.stringify((await import('./package.json', { assert: { type: 'json' } })).default.version) },
   },
   {
     entry: ['src/test/index.ts'],
@@ -31,5 +32,6 @@ export default defineConfig([
       'vitest/dist/node/*',
       'vitest/dist/node/chunks/*',
     ],
+    define: { __PACKAGE_VERSION__: JSON.stringify((await import('./package.json', { assert: { type: 'json' } })).default.version) },
   },
 ]);
