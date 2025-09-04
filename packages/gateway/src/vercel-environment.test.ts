@@ -1,5 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
+
+vi.mock('./auth/oidc-token-utils');
 
 const SYMBOL_FOR_REQ_CONTEXT = Symbol.for('@vercel/request-context');
 
@@ -70,6 +72,66 @@ describe('getVercelOidcToken', () => {
       statusCode: 401,
       message: expect.stringContaining('OIDC token not available'),
     });
+  });
+
+  it('should refresh expired token when available', async () => {
+    const { getTokenPayload, isExpired, findProjectInfo, getVercelCliToken, loadToken, saveToken, refreshOidcToken } = await import('./auth/oidc-token-utils');
+    
+    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
+      get: () => ({ headers: {} }),
+    };
+    process.env.VERCEL_OIDC_TOKEN = 'expired-token';
+
+    vi.mocked(getTokenPayload).mockReturnValue({ sub: 'user', name: 'test', exp: 1234567890 });
+    vi.mocked(isExpired).mockReturnValue(true);
+    vi.mocked(findProjectInfo).mockResolvedValue({ projectId: 'test-project' });
+    vi.mocked(getVercelCliToken).mockResolvedValue('cli-token');
+    vi.mocked(loadToken).mockResolvedValue(null);
+    vi.mocked(refreshOidcToken).mockResolvedValue({ token: 'new-token' });
+
+    const token = await getVercelOidcToken();
+    
+    expect(token).toBe('new-token');
+    expect(process.env.VERCEL_OIDC_TOKEN).toBe('new-token');
+    expect(saveToken).toHaveBeenCalledWith({ token: 'new-token' }, 'test-project');
+  });
+
+  it('should use cached token when available and not expired', async () => {
+    const { getTokenPayload, isExpired, findProjectInfo, loadToken } = await import('./auth/oidc-token-utils');
+    
+    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
+      get: () => ({ headers: {} }),
+    };
+    process.env.VERCEL_OIDC_TOKEN = 'expired-token';
+
+    vi.mocked(getTokenPayload).mockReturnValue({ sub: 'user', name: 'test', exp: 1234567890 });
+    vi.mocked(isExpired)
+      .mockReturnValueOnce(true)  // for initial token
+      .mockReturnValueOnce(false); // for cached token
+    vi.mocked(findProjectInfo).mockResolvedValue({ projectId: 'test-project' });
+    vi.mocked(loadToken).mockResolvedValue({ token: 'cached-token' });
+
+    const token = await getVercelOidcToken();
+    
+    expect(token).toBe('cached-token');
+    expect(process.env.VERCEL_OIDC_TOKEN).toBe('cached-token');
+  });
+
+  it('should fallback to original token when refresh fails', async () => {
+    const { getTokenPayload, isExpired, findProjectInfo } = await import('./auth/oidc-token-utils');
+    
+    (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
+      get: () => ({ headers: {} }),
+    };
+    process.env.VERCEL_OIDC_TOKEN = 'original-token';
+
+    vi.mocked(getTokenPayload).mockReturnValue({ sub: 'user', name: 'test', exp: 1234567890 });
+    vi.mocked(isExpired).mockReturnValue(true);
+    vi.mocked(findProjectInfo).mockResolvedValue(null); // no project info available
+
+    const token = await getVercelOidcToken();
+    
+    expect(token).toBe('original-token');
   });
 
   it('should handle missing request context gracefully', async () => {

@@ -6,6 +6,9 @@
       "dependsOn": ["^build"],
       "env": [
         "AI_GATEWAY_API_KEY",
+        "AI_GATEWAY_OIDC_REFRESH",
+        "AI_GATEWAY_OIDC_REFRESH_COMMAND", 
+        "AI_GATEWAY_OIDC_REFRESH_DIR",
         "ANTHROPIC_API_KEY",
         "ASSISTANT_ID",
         "AWS_REGION",
@@ -32,6 +35,7 @@
         "AI_DEFAULT_MODEL",
         "AI_SYSTEM",
         "AI_VERBOSE",
+        "LOCALAPPDATA",
         "LUMA_API_KEY",
         "MISTRAL_API_KEY",
         "NEXT_RUNTIME",
@@ -51,7 +55,8 @@
         "VERCEL_OIDC_TOKEN",
         "VERCEL_REGION",
         "VERCEL_URL",
-        "XAI_API_KEY"
+        "XAI_API_KEY",
+        "XDG_DATA_HOME"
       ],
       "outputs": [
         "dist/**",
