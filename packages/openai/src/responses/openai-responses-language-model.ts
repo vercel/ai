@@ -618,24 +618,35 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }
 
         case 'mcp_list_tools': {
-
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
             toolName: part.name,
             input: '',
             providerExecuted: true,
+            providerMetadata: {
+              openai: {
+                itemId: part.id,
+                serverLabel: part.server_label,
+              },
+            },
           });
 
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: part.name,
+            toolName: 'mcp_list_tools_result',
             result: {
               type: 'mcp_list_tools_result',
               ...(part.tools && { tools: part.tools }),
             },
             providerExecuted: true,
+            providerMetadata: {
+              openai: {
+                itemId: part.id,
+                serverLabel: part.server_label,
+              },
+            },
           });
 
           break;
@@ -646,10 +657,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: part.name,
-            input: '',
+            input: JSON.stringify(part.arguments),
             providerExecuted: true,
+            providerMetadata: {
+              openai: {
+                itemId: part.id,
+                serverLabel: part.server_label,
+              },
+            },
           });
-          
+
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
@@ -855,15 +872,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   },
                 });
               } else if (value.item.type === 'mcp_call') {
-                console.log("!!!!! MCP CALL RESPONSE ITEM ADDED !!!!!")
-                console.log(value)
                 ongoingToolCalls[value.output_index] = {
                   toolName: value.item.name,
                   toolCallId: value.item.id,
                 };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.id,
+                  toolName: value.item.name,
+                });
               } else if (value.item.type === 'mcp_list_tools') {
-                console.log("!!!!! MCP LIST TOOLS RESPONSE ITEM ADDED !!!!!")
-                console.log(value)
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.id,
+                  toolName: 'mcp_list_tools',
+                });
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'function_call') {
@@ -887,12 +911,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   },
                 });
               } else if (value.item.type === 'mcp_call') {
-                console.log("!!!!! MCP CALL FOUND !!!!")
-                console.log(value)
-                
+                ongoingToolCalls[value.output_index] = undefined;
+
                 controller.enqueue({
                   type: 'tool-input-end',
-                  id: value.item.id,     
+                  id: value.item.id,
                 });
 
                 controller.enqueue({
@@ -909,24 +932,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   result: {
                     type: 'mcp_tool_result',
                     status: value.item.status || 'completed',
-                    ...(value.item.arguments && { arguments: value.item.arguments }),
+                    ...(value.item.arguments && {
+                      arguments: value.item.arguments,
+                    }),
                     ...(value.item.output && { output: value.item.output }),
                   },
                 });
               } else if (value.item.type === 'mcp_list_tools') {
-                console.log("!!!!! MCP LIST TOOLS FOUND !!!!")
-                console.log(value)
-                
                 controller.enqueue({
                   type: 'tool-input-end',
-                  id: value.item.id,     
+                  id: value.item.id,
                 });
 
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
                   toolName: 'mcp_list_tools',
-                  input: "",
+                  input: '',
                 });
 
                 controller.enqueue({
@@ -1351,13 +1373,13 @@ const responseOutputItemDoneSchema = z.object({
       output: z.string(),
       error: z.string().nullish(),
       name: z.string(),
-      server_label: z.string().nullish(),
+      server_label: z.string(),
     }),
     z.object({
       type: z.literal('mcp_list_tools'),
       id: z.string(),
       status: z.literal('completed'),
-      server_label: z.string().nullish(),
+      server_label: z.string(),
       tools: z.array(z.any()),
     }),
   ]),

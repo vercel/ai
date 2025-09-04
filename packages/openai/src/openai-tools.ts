@@ -7,5 +7,5 @@ export const openaiTools = {
   codeInterpreter,
   fileSearch,
   webSearchPreview,
-  mcp
+  mcp,
 };

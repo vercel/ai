@@ -97,9 +97,30 @@ export function prepareResponsesTools({
               connector_id: args.connectorId,
               server_label: args.serverLabel,
               server_description: args.serverDescription,
-              require_approval: args.requireApproval,
+              require_approval:
+                typeof args.requireApproval === 'string'
+                  ? args.requireApproval
+                  : typeof args.requireApproval === 'object'
+                    ? {
+                        always: {
+                          read_only: args.requireApproval?.always?.readOnly,
+                          tool_names: args.requireApproval?.always?.toolNames,
+                        },
+                        never: {
+                          read_only: args.requireApproval?.never?.readOnly,
+                          tool_names: args.requireApproval?.never?.toolNames,
+                        },
+                      }
+                    : undefined,
               headers: args.headers,
-              allowed_tools: args.allowedTools,
+              allowed_tools: Array.isArray(args.allowedTools)
+                ? args.allowedTools
+                : typeof args.allowedTools === 'object'
+                  ? {
+                      read_only: args.allowedTools?.readOnly,
+                      tool_names: args.allowedTools?.toolNames,
+                    }
+                  : undefined,
             });
             break;
           }

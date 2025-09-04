@@ -133,7 +133,7 @@ export type OpenAIResponsesTool =
       server_label?: string;
       require_approval?: any;
       headers?: Record<string, string>;
-      allowed_tools?: string[];
+      allowed_tools?: any;
     };
 
 export type OpenAIResponsesReasoning = {

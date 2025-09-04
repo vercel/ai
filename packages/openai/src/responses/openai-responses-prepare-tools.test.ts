@@ -235,5 +235,133 @@ describe('prepareResponsesTools', () => {
       ]);
       expect(result.toolWarnings).toEqual([]);
     });
+
+    it('should prepare mcp tool with valid allowed tools array', () => {
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.mcp',
+            name: 'mcp123',
+            args: {
+              serverUrl: 'https://mcp.server.com',
+              serverLabel: 'a_label',
+              allowedTools: ['wrench'],
+            },
+          },
+        ],
+        strictJsonSchema: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'mcp',
+          server_url: 'https://mcp.server.com',
+          server_label: 'a_label',
+          server_description: undefined,
+          require_approval: undefined,
+          headers: undefined,
+          connector_id: undefined,
+          allowed_tools: ['wrench'],
+        },
+      ]);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it('should prepare mcp tool with valid allowed tools object', () => {
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.mcp',
+            name: 'mcp123',
+            args: {
+              serverUrl: 'https://mcp.server.com',
+              serverLabel: 'a_label',
+              allowedTools: {
+                readOnly: true,
+                toolNames: ['wrench'],
+              },
+            },
+          },
+        ],
+        strictJsonSchema: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'mcp',
+          server_url: 'https://mcp.server.com',
+          server_label: 'a_label',
+          server_description: undefined,
+          require_approval: undefined,
+          headers: undefined,
+          connector_id: undefined,
+          allowed_tools: {
+            read_only: true,
+            tool_names: ['wrench'],
+          },
+        },
+      ]);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it('should throw with error if server url and provider id missing', () => {
+      expect(() =>
+        prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.mcp',
+              name: 'mcp123',
+              args: {
+                serverLabel: 'a_label',
+              },
+            },
+          ],
+          strictJsonSchema: false,
+        }),
+      ).toThrowError('Either serverUrl or connectorId must be provided');
+    });
+
+    it('should throw with error if serverUrl and connectorId are both provided', () => {
+      expect(() =>
+        prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.mcp',
+              name: 'mcp123',
+              args: {
+                serverLabel: 'a_label',
+                serverUrl: 'https://www.mcp.com/mcp',
+                connectorId: 'connector_123',
+              },
+            },
+          ],
+          strictJsonSchema: false,
+        }),
+      ).toThrowError('Only one of serverUrl or connectorId must be provided');
+    });
+
+    it('should have warnings if allowed tools contains invalid schema', () => {
+      expect(() =>
+        prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.mcp',
+              name: 'mcp123',
+              args: {
+                serverUrl: 'https://www.mcp.com/mcp',
+                serverLabel: 'a_label',
+                allowedTools: [false],
+              },
+            },
+          ],
+          strictJsonSchema: false,
+        }),
+      ).toThrowError();
+    });
   });
 });

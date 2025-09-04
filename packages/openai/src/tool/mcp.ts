@@ -1,16 +1,52 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
+const mcpAllowedToolsSchema = z.union([
+  z.array(z.string()),
+  z.object({
+    readOnly: z.boolean().optional(),
+    toolNames: z.array(z.string()),
+  }),
+]);
+
+const mcpRequireApprovalSchema = z.union([
+  z.enum(['always', 'never']),
+  z.object({
+    always: z
+      .object({
+        readOnly: z.boolean().optional(),
+        toolNames: z.array(z.string()),
+      })
+      .optional(),
+    never: z
+      .object({
+        readOnly: z.boolean().optional(),
+        toolNames: z.array(z.string()),
+      })
+      .optional(),
+  }),
+]);
+
 // Args validation schema
-export const mcpArgsSchema = z.object({
-  serverUrl: z.string().optional(),
-  connectorId: z.string().optional(),
-  serverLabel: z.string(),
-  serverDescription: z.string().optional(),
-  requireApproval: z.any().optional(),
-  allowedTools: z.array(z.string()).optional(),
-  headers: z.record(z.string(), z.string()).optional(),
-});
+export const mcpArgsSchema = z
+  .object({
+    serverUrl: z.string().optional(),
+    connectorId: z.string().optional(),
+    serverLabel: z.string(),
+    serverDescription: z.string().optional(),
+    requireApproval: mcpRequireApprovalSchema.optional(),
+    allowedTools: mcpAllowedToolsSchema.optional(),
+    headers: z.record(z.string(), z.string()).optional(),
+    authorization: z.string().optional(),
+  })
+  .refine(val => !(!val.serverUrl && !val.connectorId), {
+    error: 'Either serverUrl or connectorId must be provided',
+    abort: true,
+  })
+  .refine(val => !(val.serverUrl && val.connectorId), {
+    error: 'Only one of serverUrl or connectorId must be provided',
+    abort: true,
+  });
 
 export const mcp = createProviderDefinedToolFactory<
   {
@@ -19,11 +55,11 @@ export const mcp = createProviderDefinedToolFactory<
   {
     server_url?: string;
     connector_id?: string;
-    server_label: string;
-    server_description?: string;
-    require_approval?: any;
+    serverLabel: string;
+    serverDescription?: string;
+    requireApproval?: any;
     headers?: Record<string, string>;
-    allowed_tools?: string[];
+    allowedTools?: any;
   }
 >({
   id: 'openai.mcp',
