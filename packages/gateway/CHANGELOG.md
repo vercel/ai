@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.17
+
+### Patch Changes
+
+- b6005cd: feat(provider/gateway): Add Voyage embedding models
+
 ## 1.0.16
 
 ### Patch Changes
