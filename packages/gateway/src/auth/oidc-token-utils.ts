@@ -23,9 +23,9 @@ export function getTokenPayload(token: string): TokenPayload {
   const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
   const padded = base64.padEnd(
     base64.length + ((4 - (base64.length % 4)) % 4),
-    '='
+    '=',
   );
-  
+
   try {
     return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
   } catch {
@@ -53,7 +53,7 @@ export async function getUserDataDir(): Promise<string | null> {
     if (process.env.XDG_DATA_HOME) {
       return process.env.XDG_DATA_HOME;
     }
-    
+
     switch (os.platform()) {
       case 'darwin':
         return path.join(os.homedir(), 'Library/Application Support');
@@ -80,7 +80,7 @@ export async function findRootDir(): Promise<string | null> {
   try {
     const path = await import('path');
     const fs = await import('fs');
-    
+
     let dir = process.cwd();
     while (dir !== path.dirname(dir)) {
       const vercelPath = path.join(dir, '.vercel');
@@ -95,29 +95,32 @@ export async function findRootDir(): Promise<string | null> {
   return null;
 }
 
-export async function findProjectInfo(): Promise<{ projectId: string; teamId?: string } | null> {
+export async function findProjectInfo(): Promise<{
+  projectId: string;
+  teamId?: string;
+} | null> {
   const dir = await findRootDir();
   if (!dir) {
     return null;
   }
-  
+
   try {
     const path = await import('path');
     const fs = await import('fs');
-    
+
     const prjPath = path.join(dir, '.vercel', 'project.json');
     if (!fs.existsSync(prjPath)) {
       return null;
     }
-    
+
     const prj = JSON.parse(fs.readFileSync(prjPath, 'utf8'));
     if (typeof prj.projectId !== 'string') {
       return null;
     }
-    
-    return { 
-      projectId: prj.projectId, 
-      teamId: typeof prj.orgId === 'string' ? prj.orgId : undefined 
+
+    return {
+      projectId: prj.projectId,
+      teamId: typeof prj.orgId === 'string' ? prj.orgId : undefined,
     };
   } catch {
     return null;
@@ -132,17 +135,17 @@ export async function getVercelCliToken(): Promise<string | null> {
   try {
     const path = await import('path');
     const fs = await import('fs');
-    
+
     const dataDir = await getUserDataDir();
     if (!dataDir) {
       return null;
     }
-    
+
     const tokenPath = path.join(dataDir, 'com.vercel.cli', 'auth.json');
     if (!fs.existsSync(tokenPath)) {
       return null;
     }
-    
+
     const token = fs.readFileSync(tokenPath, 'utf8');
     const parsed = JSON.parse(token);
     return typeof parsed.token === 'string' ? parsed.token : null;
@@ -151,7 +154,10 @@ export async function getVercelCliToken(): Promise<string | null> {
   }
 }
 
-export async function saveToken(token: VercelTokenResponse, projectId: string): Promise<void> {
+export async function saveToken(
+  token: VercelTokenResponse,
+  projectId: string,
+): Promise<void> {
   if (typeof process === 'undefined' || !process.versions?.node) {
     return;
   }
@@ -159,7 +165,7 @@ export async function saveToken(token: VercelTokenResponse, projectId: string): 
   try {
     const path = await import('path');
     const fs = await import('fs');
-    
+
     const dir = await getUserDataDir();
     if (!dir) {
       throw new GatewayAuthenticationError({
@@ -167,10 +173,10 @@ export async function saveToken(token: VercelTokenResponse, projectId: string): 
         statusCode: 500,
       });
     }
-    
+
     const tokenPath = path.join(dir, 'com.vercel.token', `${projectId}.json`);
     const tokenJson = JSON.stringify(token);
-    
+
     fs.mkdirSync(path.dirname(tokenPath), { mode: 0o700, recursive: true });
     fs.writeFileSync(tokenPath, tokenJson);
     fs.chmodSync(tokenPath, 0o600);
@@ -182,7 +188,9 @@ export async function saveToken(token: VercelTokenResponse, projectId: string): 
   }
 }
 
-export async function loadToken(projectId: string): Promise<VercelTokenResponse | null> {
+export async function loadToken(
+  projectId: string,
+): Promise<VercelTokenResponse | null> {
   if (typeof process === 'undefined' || !process.versions?.node) {
     return null;
   }
@@ -190,17 +198,17 @@ export async function loadToken(projectId: string): Promise<VercelTokenResponse 
   try {
     const path = await import('path');
     const fs = await import('fs');
-    
+
     const dir = await getUserDataDir();
     if (!dir) {
       return null;
     }
-    
+
     const tokenPath = path.join(dir, 'com.vercel.token', `${projectId}.json`);
     if (!fs.existsSync(tokenPath)) {
       return null;
     }
-    
+
     const token = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
     if (typeof token.token === 'string') {
       return token;
@@ -208,17 +216,17 @@ export async function loadToken(projectId: string): Promise<VercelTokenResponse 
   } catch {
     // ignore errors, return null
   }
-  
+
   return null;
 }
 
 export async function refreshOidcToken(
   authToken: string,
   projectId: string,
-  teamId?: string
+  teamId?: string,
 ): Promise<VercelTokenResponse> {
   const url = `https://api.vercel.com/v1/projects/${projectId}/token?source=vercel-oidc-refresh${teamId ? `&teamId=${teamId}` : ''}`;
-  
+
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -226,23 +234,27 @@ export async function refreshOidcToken(
         Authorization: `Bearer ${authToken}`,
       },
     });
-    
+
     if (!res.ok) {
       throw new GatewayAuthenticationError({
         message: `failed to refresh oidc token: ${res.statusText}`,
         statusCode: res.status,
       });
     }
-    
+
     const tokenRes = await res.json();
-    
-    if (!tokenRes || typeof tokenRes !== 'object' || typeof tokenRes.token !== 'string') {
+
+    if (
+      !tokenRes ||
+      typeof tokenRes !== 'object' ||
+      typeof tokenRes.token !== 'string'
+    ) {
       throw new GatewayAuthenticationError({
         message: 'invalid token response from vercel api',
         statusCode: 502,
       });
     }
-    
+
     return tokenRes;
   } catch (e) {
     if (e instanceof GatewayAuthenticationError) {

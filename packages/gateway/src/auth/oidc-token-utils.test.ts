@@ -29,7 +29,9 @@ describe('oidc token utils', () => {
   describe('getTokenPayload', () => {
     it('should decode valid jwt token', () => {
       const payload = { sub: 'user', name: 'test', exp: 1234567890 };
-      const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64');
+      const encodedPayload = Buffer.from(JSON.stringify(payload)).toString(
+        'base64',
+      );
       const token = `header.${encodedPayload}.signature`;
 
       const result = getTokenPayload(token);
@@ -50,8 +52,12 @@ describe('oidc token utils', () => {
     });
 
     it('should throw error for invalid token format', () => {
-      expect(() => getTokenPayload('invalid')).toThrow(GatewayAuthenticationError);
-      expect(() => getTokenPayload('invalid.token')).toThrow(GatewayAuthenticationError);
+      expect(() => getTokenPayload('invalid')).toThrow(
+        GatewayAuthenticationError,
+      );
+      expect(() => getTokenPayload('invalid.token')).toThrow(
+        GatewayAuthenticationError,
+      );
     });
 
     it('should throw error for invalid payload', () => {
@@ -62,17 +68,29 @@ describe('oidc token utils', () => {
 
   describe('isExpired', () => {
     it('should return true for expired token', () => {
-      const expiredToken = { sub: 'user', name: 'test', exp: Math.floor(Date.now() / 1000) - 1000 };
+      const expiredToken = {
+        sub: 'user',
+        name: 'test',
+        exp: Math.floor(Date.now() / 1000) - 1000,
+      };
       expect(isExpired(expiredToken)).toBe(true);
     });
 
     it('should return true for token expiring within 15 minutes', () => {
-      const soonToExpireToken = { sub: 'user', name: 'test', exp: Math.floor((Date.now() + 10 * 60 * 1000) / 1000) };
+      const soonToExpireToken = {
+        sub: 'user',
+        name: 'test',
+        exp: Math.floor((Date.now() + 10 * 60 * 1000) / 1000),
+      };
       expect(isExpired(soonToExpireToken)).toBe(true);
     });
 
     it('should return false for valid token', () => {
-      const validToken = { sub: 'user', name: 'test', exp: Math.floor((Date.now() + 30 * 60 * 1000) / 1000) };
+      const validToken = {
+        sub: 'user',
+        name: 'test',
+        exp: Math.floor((Date.now() + 30 * 60 * 1000) / 1000),
+      };
       expect(isExpired(validToken)).toBe(false);
     });
   });
@@ -87,7 +105,9 @@ describe('oidc token utils', () => {
     it('should return correct path for darwin', async () => {
       vi.mocked(os.platform).mockReturnValue('darwin');
       vi.mocked(os.homedir).mockReturnValue('/Users/test');
-      expect(await getUserDataDir()).toBe('/Users/test/Library/Application Support');
+      expect(await getUserDataDir()).toBe(
+        '/Users/test/Library/Application Support',
+      );
     });
 
     it('should return correct path for linux', async () => {
@@ -115,14 +135,14 @@ describe('oidc token utils', () => {
       vi.mocked(fs.existsSync)
         .mockReturnValueOnce(false)
         .mockReturnValueOnce(true);
-      
+
       expect(await findRootDir()).toBe('/project');
     });
 
     it('should return null when no .vercel folder found', async () => {
       vi.spyOn(process, 'cwd').mockReturnValue('/');
       vi.mocked(fs.existsSync).mockReturnValue(false);
-      
+
       expect(await findRootDir()).toBe(null);
     });
   });
@@ -133,10 +153,12 @@ describe('oidc token utils', () => {
       vi.mocked(fs.existsSync)
         .mockReturnValueOnce(true)
         .mockReturnValueOnce(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        projectId: 'test-project',
-        orgId: 'test-org'
-      }));
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          projectId: 'test-project',
+          orgId: 'test-org',
+        }),
+      );
 
       const result = await findProjectInfo();
       expect(result).toEqual({ projectId: 'test-project', teamId: 'test-org' });
@@ -145,7 +167,7 @@ describe('oidc token utils', () => {
     it('should return null when no root directory found', async () => {
       vi.spyOn(process, 'cwd').mockReturnValue('/');
       vi.mocked(fs.existsSync).mockReturnValue(false);
-      
+
       expect(await findProjectInfo()).toBe(null);
     });
 
@@ -154,7 +176,7 @@ describe('oidc token utils', () => {
       vi.mocked(fs.existsSync)
         .mockReturnValueOnce(true)
         .mockReturnValueOnce(false);
-      
+
       expect(await findProjectInfo()).toBe(null);
     });
   });
@@ -174,7 +196,7 @@ describe('oidc token utils', () => {
         {
           method: 'POST',
           headers: { Authorization: 'Bearer auth-token' },
-        }
+        },
       );
     });
 
@@ -188,7 +210,7 @@ describe('oidc token utils', () => {
       await refreshOidcToken('auth-token', 'project-id', 'team-id');
       expect(fetch).toHaveBeenCalledWith(
         'https://api.vercel.com/v1/projects/project-id/token?source=vercel-oidc-refresh&teamId=team-id',
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -199,15 +221,16 @@ describe('oidc token utils', () => {
         statusText: 'Unauthorized',
       });
 
-      await expect(refreshOidcToken('auth-token', 'project-id'))
-        .rejects.toThrow(GatewayAuthenticationError);
+      await expect(
+        refreshOidcToken('auth-token', 'project-id'),
+      ).rejects.toThrow(GatewayAuthenticationError);
     });
   });
 
   describe('token file operations', () => {
     it('should save and load token correctly', async () => {
       const mockToken = { token: 'test-token' };
-      
+
       vi.mocked(os.platform).mockReturnValue('linux');
       vi.mocked(os.homedir).mockReturnValue('/home/test');
       vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);

@@ -10,7 +10,9 @@ import {
 } from './auth/oidc-token-utils';
 
 export async function getVercelOidcToken(): Promise<string> {
-  let token = getContext().headers?.['x-vercel-oidc-token'] ?? process.env.VERCEL_OIDC_TOKEN;
+  let token =
+    getContext().headers?.['x-vercel-oidc-token'] ??
+    process.env.VERCEL_OIDC_TOKEN;
 
   if (!token) {
     throw new GatewayAuthenticationError({
