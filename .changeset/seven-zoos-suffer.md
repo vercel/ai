@@ -5,4 +5,4 @@
 'ai': patch
 ---
 
-feat(custom-user-agent): adding a custom user-agent as a best practice to help debug problems
+feat(ai): custom user agent header with version information
