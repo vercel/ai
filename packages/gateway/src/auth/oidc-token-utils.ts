@@ -238,7 +238,7 @@ async function refreshOidcToken(
   teamId?: string,
 ): Promise<VercelTokenResponse> {
   const cacheKey = `${authToken}:${projectId}:${teamId ?? ''}`;
-  
+
   const existingPromise = refreshCache.get(cacheKey);
   if (existingPromise) {
     return existingPromise;
@@ -290,7 +290,7 @@ async function refreshOidcToken(
   })();
 
   refreshCache.set(cacheKey, refreshPromise);
-  
+
   return refreshPromise;
 }
 

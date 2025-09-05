@@ -258,9 +258,9 @@ describe('getVercelOidcToken', () => {
       exp: 1234567890,
     });
     vi.mocked(isExpired).mockReturnValue(true);
-    
+
     let resolveRefresh: (value: string) => void;
-    const refreshPromise = new Promise<string>((resolve) => {
+    const refreshPromise = new Promise<string>(resolve => {
       resolveRefresh = resolve;
     });
     vi.mocked(tryRefreshOidcToken).mockReturnValue(refreshPromise);
