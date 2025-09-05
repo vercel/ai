@@ -5,6 +5,8 @@ import {
   tryRefreshOidcToken,
 } from './auth/oidc-token-utils';
 
+let refreshPromise: Promise<string | null> | null = null;
+
 export async function getVercelOidcToken(): Promise<string> {
   let token =
     getContext().headers?.['x-vercel-oidc-token'] ??
@@ -21,10 +23,22 @@ export async function getVercelOidcToken(): Promise<string> {
   try {
     const payload = getTokenPayload(token);
     if (isExpired(payload)) {
-      const refreshedToken = await tryRefreshOidcToken();
-      if (refreshedToken) {
-        process.env.VERCEL_OIDC_TOKEN = refreshedToken;
-        return refreshedToken;
+      if (refreshPromise) {
+        const refreshedToken = await refreshPromise;
+        if (refreshedToken) {
+          return refreshedToken;
+        }
+      } else {
+        refreshPromise = tryRefreshOidcToken();
+        try {
+          const refreshedToken = await refreshPromise;
+          if (refreshedToken) {
+            process.env.VERCEL_OIDC_TOKEN = refreshedToken;
+            return refreshedToken;
+          }
+        } finally {
+          refreshPromise = null;
+        }
       }
       // token is expired and refresh failed - throw error with context
       throw new GatewayAuthenticationError({
@@ -39,10 +53,22 @@ export async function getVercelOidcToken(): Promise<string> {
       throw e;
     }
     // if we can't parse the token, try to refresh
-    const refreshedToken = await tryRefreshOidcToken();
-    if (refreshedToken) {
-      process.env.VERCEL_OIDC_TOKEN = refreshedToken;
-      return refreshedToken;
+    if (refreshPromise) {
+      const refreshedToken = await refreshPromise;
+      if (refreshedToken) {
+        return refreshedToken;
+      }
+    } else {
+      refreshPromise = tryRefreshOidcToken();
+      try {
+        const refreshedToken = await refreshPromise;
+        if (refreshedToken) {
+          process.env.VERCEL_OIDC_TOKEN = refreshedToken;
+          return refreshedToken;
+        }
+      } finally {
+        refreshPromise = null;
+      }
     }
     // token is malformed and refresh failed - throw error with context
     throw new GatewayAuthenticationError({

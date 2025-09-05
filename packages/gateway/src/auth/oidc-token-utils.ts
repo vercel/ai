@@ -230,51 +230,68 @@ async function loadToken(
   return null;
 }
 
+const refreshCache = new Map<string, Promise<VercelTokenResponse>>();
+
 async function refreshOidcToken(
   authToken: string,
   projectId: string,
   teamId?: string,
 ): Promise<VercelTokenResponse> {
-  const url = `https://api.vercel.com/v1/projects/${projectId}/token?source=vercel-oidc-refresh${teamId ? `&teamId=${teamId}` : ''}`;
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
-
-    if (!res.ok) {
-      throw new GatewayAuthenticationError({
-        message: `failed to refresh oidc token: ${res.statusText}`,
-        statusCode: res.status,
-      });
-    }
-
-    const tokenRes = await res.json();
-
-    if (
-      !tokenRes ||
-      typeof tokenRes !== 'object' ||
-      typeof tokenRes.token !== 'string'
-    ) {
-      throw new GatewayAuthenticationError({
-        message: 'invalid token response from vercel api',
-        statusCode: 502,
-      });
-    }
-
-    return tokenRes;
-  } catch (e) {
-    if (e instanceof GatewayAuthenticationError) {
-      throw e;
-    }
-    throw new GatewayAuthenticationError({
-      message: 'failed to refresh oidc token',
-      statusCode: 500,
-    });
+  const cacheKey = `${authToken}:${projectId}:${teamId ?? ''}`;
+  
+  const existingPromise = refreshCache.get(cacheKey);
+  if (existingPromise) {
+    return existingPromise;
   }
+
+  const refreshPromise = (async () => {
+    const url = `https://api.vercel.com/v1/projects/${projectId}/token?source=vercel-oidc-refresh${teamId ? `&teamId=${teamId}` : ''}`;
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new GatewayAuthenticationError({
+          message: `failed to refresh oidc token: ${res.statusText}`,
+          statusCode: res.status,
+        });
+      }
+
+      const tokenRes = await res.json();
+
+      if (
+        !tokenRes ||
+        typeof tokenRes !== 'object' ||
+        typeof tokenRes.token !== 'string'
+      ) {
+        throw new GatewayAuthenticationError({
+          message: 'invalid token response from vercel api',
+          statusCode: 502,
+        });
+      }
+
+      return tokenRes;
+    } catch (e) {
+      if (e instanceof GatewayAuthenticationError) {
+        throw e;
+      }
+      throw new GatewayAuthenticationError({
+        message: 'failed to refresh oidc token',
+        statusCode: 500,
+      });
+    } finally {
+      refreshCache.delete(cacheKey);
+    }
+  })();
+
+  refreshCache.set(cacheKey, refreshPromise);
+  
+  return refreshPromise;
 }
 
 export async function tryRefreshOidcToken(): Promise<string | null> {

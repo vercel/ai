@@ -241,6 +241,44 @@ describe('getVercelOidcToken', () => {
     expect(token).toBe('valid-token');
     expect(tryRefreshOidcToken).not.toHaveBeenCalled();
   });
+
+  it('should deduplicate concurrent refresh attempts', async () => {
+    const { getTokenPayload, isExpired, tryRefreshOidcToken } = await import(
+      './auth/oidc-token-utils'
+    );
+
+    setRequestContext({
+      get: () => ({ headers: {} }),
+    });
+    process.env.VERCEL_OIDC_TOKEN = 'expired-token';
+
+    vi.mocked(getTokenPayload).mockReturnValue({
+      sub: 'user',
+      name: 'test',
+      exp: 1234567890,
+    });
+    vi.mocked(isExpired).mockReturnValue(true);
+    
+    let resolveRefresh: (value: string) => void;
+    const refreshPromise = new Promise<string>((resolve) => {
+      resolveRefresh = resolve;
+    });
+    vi.mocked(tryRefreshOidcToken).mockReturnValue(refreshPromise);
+
+    const call1 = getVercelOidcToken();
+    const call2 = getVercelOidcToken();
+    const call3 = getVercelOidcToken();
+
+    resolveRefresh!('new-token');
+
+    const [token1, token2, token3] = await Promise.all([call1, call2, call3]);
+
+    expect(token1).toBe('new-token');
+    expect(token2).toBe('new-token');
+    expect(token3).toBe('new-token');
+
+    expect(tryRefreshOidcToken).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('getVercelRequestId', () => {
