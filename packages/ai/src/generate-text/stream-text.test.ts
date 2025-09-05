@@ -44,6 +44,7 @@ import { stepCountIs } from './stop-condition';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
+import { sanitizeUserAgent } from '../test/sanitize-for-snapshot';
 
 const defaultSettings = () =>
   ({
@@ -6695,7 +6696,7 @@ describe('streamText', () => {
 
       it('should contain all doStream calls', async () => {
         await result.consumeStream();
-        expect(doStreamCalls).toMatchInlineSnapshot(`
+        expect(sanitizeUserAgent(doStreamCalls)).toMatchInlineSnapshot(`
           [
             {
               "abortSignal": undefined,
@@ -11444,7 +11445,7 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(callOptions).toMatchInlineSnapshot(`
+        expect(sanitizeUserAgent(callOptions)).toMatchInlineSnapshot(`
           {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,

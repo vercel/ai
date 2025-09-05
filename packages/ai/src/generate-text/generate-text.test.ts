@@ -30,6 +30,7 @@ import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
+import { sanitizeUserAgent } from '../test/sanitize-for-snapshot';
 
 const dummyResponseValues = {
   finishReason: 'stop' as const,
@@ -2472,7 +2473,7 @@ describe('generateText', () => {
           experimental_output: Output.text(),
         });
 
-        expect(callOptions!).toMatchInlineSnapshot(`
+        expect(sanitizeUserAgent(callOptions!)).toMatchInlineSnapshot(`
           {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
@@ -2546,7 +2547,7 @@ describe('generateText', () => {
           }),
         });
 
-        expect(callOptions!).toMatchInlineSnapshot(`
+        expect(sanitizeUserAgent(callOptions!)).toMatchInlineSnapshot(`
           {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
