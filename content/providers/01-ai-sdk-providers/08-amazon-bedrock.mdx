@@ -280,7 +280,7 @@ See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/be
   page](https://aws.amazon.com/bedrock/prompt-caching/).
 </Note>
 
-In messages, you can use the `providerOptions` property to set cache points. Set the `bedrock` property in the `providerOptions` object to `{ cachePoint: { type: 'default' } }` to create a cache point.
+In messages and tools, you can use the `providerOptions` property to set cache points. Set the `bedrock` property in the `providerOptions` object to `{ cachePoint: { type: 'default' } }` to create a cache point.
 
 Cache usage information is returned in the `providerMetadata` object`. See examples below.
 
@@ -367,6 +367,36 @@ console.log(
 //   cacheReadInputTokens: 1337,
 //   cacheWriteInputTokens: 42,
 // }
+```
+
+Likewise, tools can also have cache points set:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Test out some of your tools.',
+    },
+  ],
+  tools: {
+    echo: tool({
+      description: 'Echo back the input',
+      inputSchema: z.object({
+        input: z.string(),
+      }),
+      execute: ({ input }) => input,
+      providerOptions: {
+        bedrock: { cachePoint: { type: 'default' } },
+      },
+    }),
+  },
+});
 ```
 
 ## Reasoning
