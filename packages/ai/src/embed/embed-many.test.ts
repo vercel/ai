@@ -301,9 +301,10 @@ describe('options.headers', () => {
       model: new MockEmbeddingModelV2({
         maxEmbeddingsPerCall: 5,
         doEmbed: async ({ headers }) => {
-          assert.deepStrictEqual(headers, {
-            'custom-request-header': 'request-header-value',
-          });
+          expect(headers?.['custom-request-header']).toBe(
+            'request-header-value',
+          );
+          expect(typeof headers?.['User-Agent']).toBe('string');
 
           return { embeddings: dummyEmbeddings };
         },
@@ -334,14 +335,12 @@ describe('options.providerOptions', () => {
       },
     });
 
-    expect(model.doEmbed).toHaveBeenCalledWith({
-      abortSignal: undefined,
-      headers: undefined,
-      providerOptions: {
-        aProvider: { someKey: 'someValue' },
-      },
-      values: ['test-input'],
-    });
+    expect(model.doEmbed).toHaveBeenCalledTimes(1);
+    const firstCall = (model.doEmbed as any).mock.calls[0][0];
+    expect(firstCall.abortSignal).toBeUndefined();
+    expect(firstCall.providerOptions).toStrictEqual({ aProvider: { someKey: 'someValue' } });
+    expect(firstCall.values).toStrictEqual(['test-input']);
+    expect(typeof firstCall.headers?.['User-Agent']).toBe('string');
   });
 });
 

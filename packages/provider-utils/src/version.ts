@@ -1,3 +1,4 @@
 // Version string of this package injected at build time.
-declare const __PACKAGE_VERSION__: string;
-export const VERSION = __PACKAGE_VERSION__ as string;
+declare const __PACKAGE_VERSION__: string | undefined;
+export const VERSION: string =
+  typeof __PACKAGE_VERSION__ !== 'undefined' ? __PACKAGE_VERSION__ : '0.0.0-test';

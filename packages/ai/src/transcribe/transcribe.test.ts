@@ -90,13 +90,14 @@ describe('transcribe', () => {
       abortSignal,
     });
 
-    expect(capturedArgs).toStrictEqual({
-      audio: audioData,
-      mediaType: 'audio/wav',
-      headers: { 'custom-request-header': 'request-header-value' },
-      abortSignal,
-      providerOptions: {},
-    });
+    expect(capturedArgs.audio).toBe(audioData);
+    expect(capturedArgs.mediaType).toBe('audio/wav');
+    expect(capturedArgs.headers?.['custom-request-header']).toBe(
+      'request-header-value',
+    );
+    expect(typeof capturedArgs.headers?.['User-Agent']).toBe('string');
+    expect(capturedArgs.abortSignal).toBe(abortSignal);
+    expect(capturedArgs.providerOptions).toStrictEqual({});
   });
 
   it('should return warnings', async () => {

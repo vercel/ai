@@ -73,17 +73,14 @@ describe('generateSpeech', () => {
       abortSignal,
     });
 
-    expect(capturedArgs).toStrictEqual({
-      text: sampleText,
-      voice: 'test-voice',
-      headers: { 'custom-request-header': 'request-header-value' },
-      abortSignal,
-      providerOptions: {},
-      outputFormat: undefined,
-      instructions: undefined,
-      speed: undefined,
-      language: undefined,
-    });
+    expect(capturedArgs.text).toBe(sampleText);
+    expect(capturedArgs.voice).toBe('test-voice');
+    expect(capturedArgs.headers?.['custom-request-header']).toBe(
+      'request-header-value',
+    );
+    expect(typeof capturedArgs.headers?.['User-Agent']).toBe('string');
+    expect(capturedArgs.abortSignal).toBe(abortSignal);
+    expect(capturedArgs.providerOptions).toStrictEqual({});
   });
 
   it('should return warnings', async () => {

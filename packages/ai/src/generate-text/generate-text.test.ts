@@ -1677,9 +1677,10 @@ describe('generateText', () => {
       const result = await generateText({
         model: new MockLanguageModelV2({
           doGenerate: async ({ headers }) => {
-            assert.deepStrictEqual(headers, {
-              'custom-request-header': 'request-header-value',
-            });
+            expect(headers?.['custom-request-header']).toBe(
+              'request-header-value',
+            );
+            expect(typeof headers?.['User-Agent']).toBe('string');
 
             return {
               ...dummyResponseValues,
@@ -1930,6 +1931,7 @@ describe('generateText', () => {
               "ai.model.provider": "mock-provider",
               "ai.operationId": "ai.generateText",
               "ai.prompt": "{"prompt":"test-input"}",
+              "ai.request.headers.User-Agent": "ai/5.0.30 @ai-sdk/provider/2.0.0 @ai-sdk/provider-utils/3.0.7 node/22.19.0 os/darwin arch/arm64",
               "ai.response.finishReason": "stop",
               "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
               "ai.settings.maxRetries": 2,
@@ -1950,6 +1952,7 @@ describe('generateText', () => {
               "ai.prompt.tools": [
                 "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
               ],
+              "ai.request.headers.User-Agent": "ai/5.0.30 @ai-sdk/provider/2.0.0 @ai-sdk/provider-utils/3.0.7 node/22.19.0 os/darwin arch/arm64",
               "ai.response.finishReason": "stop",
               "ai.response.id": "test-id",
               "ai.response.model": "mock-model-id",
@@ -2470,37 +2473,39 @@ describe('generateText', () => {
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
-        {
-          "abortSignal": undefined,
-          "frequencyPenalty": undefined,
-          "headers": undefined,
-          "maxOutputTokens": undefined,
-          "presencePenalty": undefined,
-          "prompt": [
-            {
-              "content": [
-                {
-                  "text": "prompt",
-                  "type": "text",
-                },
-              ],
-              "providerOptions": undefined,
-              "role": "user",
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": {
+              "User-Agent": "ai/5.0.30 @ai-sdk/provider/2.0.0 @ai-sdk/provider-utils/3.0.7 node/22.19.0 os/darwin arch/arm64",
             },
-          ],
-          "providerOptions": undefined,
-          "responseFormat": {
-            "type": "text",
-          },
-          "seed": undefined,
-          "stopSequences": undefined,
-          "temperature": undefined,
-          "toolChoice": undefined,
-          "tools": undefined,
-          "topK": undefined,
-          "topP": undefined,
-        }
-      `);
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "text": "prompt",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": {
+              "type": "text",
+            },
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
       });
     });
 
@@ -2542,50 +2547,52 @@ describe('generateText', () => {
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
-        {
-          "abortSignal": undefined,
-          "frequencyPenalty": undefined,
-          "headers": undefined,
-          "maxOutputTokens": undefined,
-          "presencePenalty": undefined,
-          "prompt": [
-            {
-              "content": [
-                {
-                  "text": "prompt",
-                  "type": "text",
-                },
-              ],
-              "providerOptions": undefined,
-              "role": "user",
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": {
+              "User-Agent": "ai/5.0.30 @ai-sdk/provider/2.0.0 @ai-sdk/provider-utils/3.0.7 node/22.19.0 os/darwin arch/arm64",
             },
-          ],
-          "providerOptions": undefined,
-          "responseFormat": {
-            "schema": {
-              "$schema": "http://json-schema.org/draft-07/schema#",
-              "additionalProperties": false,
-              "properties": {
-                "value": {
-                  "type": "string",
-                },
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "text": "prompt",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
               },
-              "required": [
-                "value",
-              ],
-              "type": "object",
+            ],
+            "providerOptions": undefined,
+            "responseFormat": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "type": "json",
             },
-            "type": "json",
-          },
-          "seed": undefined,
-          "stopSequences": undefined,
-          "temperature": undefined,
-          "toolChoice": undefined,
-          "tools": undefined,
-          "topK": undefined,
-          "topP": undefined,
-        }
-      `);
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
       });
     });
   });

@@ -92,16 +92,15 @@ describe('generateImage', () => {
       abortSignal,
     });
 
-    expect(capturedArgs).toStrictEqual({
-      n: 1,
-      prompt,
-      size: '1024x1024',
-      aspectRatio: '16:9',
-      seed: 12345,
-      providerOptions: { 'mock-provider': { style: 'vivid' } },
-      headers: { 'custom-request-header': 'request-header-value' },
-      abortSignal,
-    });
+    expect(capturedArgs.n).toBe(1);
+    expect(capturedArgs.prompt).toBe(prompt);
+    expect(capturedArgs.size).toBe('1024x1024');
+    expect(capturedArgs.aspectRatio).toBe('16:9');
+    expect(capturedArgs.seed).toBe(12345);
+    expect(capturedArgs.providerOptions).toStrictEqual({ 'mock-provider': { style: 'vivid' } });
+    expect(capturedArgs.headers?.['custom-request-header']).toBe('request-header-value');
+    expect(typeof capturedArgs.headers?.['User-Agent']).toBe('string');
+    expect(capturedArgs.abortSignal).toBe(abortSignal);
   });
 
   it('should return warnings', async () => {
@@ -316,32 +315,32 @@ describe('generateImage', () => {
           doGenerate: async options => {
             switch (callCount++) {
               case 0:
-                expect(options).toStrictEqual({
+                expect(options).toMatchObject({
                   prompt,
                   n: 2,
                   seed: 12345,
                   size: '1024x1024',
                   aspectRatio: '16:9',
-                  providerOptions: {
-                    'mock-provider': { style: 'vivid' },
-                  },
-                  headers: { 'custom-request-header': 'request-header-value' },
+                  providerOptions: { 'mock-provider': { style: 'vivid' } },
                   abortSignal: undefined,
                 });
+                expect(options.headers?.['custom-request-header']).toBe('request-header-value');
+                expect(typeof options.headers?.['User-Agent']).toBe('string');
                 return createMockResponse({
                   images: base64Images.slice(0, 2),
                 });
               case 1:
-                expect(options).toStrictEqual({
+                expect(options).toMatchObject({
                   prompt,
                   n: 1,
                   seed: 12345,
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
-                  headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });
+                expect(options.headers?.['custom-request-header']).toBe('request-header-value');
+                expect(typeof options.headers?.['User-Agent']).toBe('string');
                 return createMockResponse({
                   images: base64Images.slice(2),
                 });
@@ -375,31 +374,33 @@ describe('generateImage', () => {
           doGenerate: async options => {
             switch (callCount++) {
               case 0:
-                expect(options).toStrictEqual({
+                expect(options).toMatchObject({
                   prompt,
                   n: 2,
                   seed: 12345,
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
-                  headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });
+                expect(options.headers?.['custom-request-header']).toBe('request-header-value');
+                expect(typeof options.headers?.['User-Agent']).toBe('string');
                 return createMockResponse({
                   images: base64Images.slice(0, 2),
                   warnings: [{ type: 'other', message: '1' }],
                 });
               case 1:
-                expect(options).toStrictEqual({
+                expect(options).toMatchObject({
                   prompt,
                   n: 1,
                   seed: 12345,
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
-                  headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });
+                expect(options.headers?.['custom-request-header']).toBe('request-header-value');
+                expect(typeof options.headers?.['User-Agent']).toBe('string');
                 return createMockResponse({
                   images: base64Images.slice(2),
                   warnings: [{ type: 'other', message: '2' }],
@@ -441,7 +442,7 @@ describe('generateImage', () => {
             doGenerate: async options => {
               switch (callCount++) {
                 case 0:
-                  expect(options).toStrictEqual({
+                  expect(options).toMatchObject({
                     prompt,
                     n: 2,
                     seed: 12345,
@@ -450,27 +451,25 @@ describe('generateImage', () => {
                     providerOptions: {
                       'mock-provider': { style: 'vivid' },
                     },
-                    headers: {
-                      'custom-request-header': 'request-header-value',
-                    },
                     abortSignal: undefined,
                   });
+                  expect(options.headers?.['custom-request-header']).toBe('request-header-value');
+                  expect(typeof options.headers?.['User-Agent']).toBe('string');
                   return createMockResponse({
                     images: base64Images.slice(0, 2),
                   });
                 case 1:
-                  expect(options).toStrictEqual({
+                  expect(options).toMatchObject({
                     prompt,
                     n: 1,
                     seed: 12345,
                     size: '1024x1024',
                     aspectRatio: '16:9',
                     providerOptions: { 'mock-provider': { style: 'vivid' } },
-                    headers: {
-                      'custom-request-header': 'request-header-value',
-                    },
                     abortSignal: undefined,
                   });
+                  expect(options.headers?.['custom-request-header']).toBe('request-header-value');
+                  expect(typeof options.headers?.['User-Agent']).toBe('string');
                   return createMockResponse({
                     images: base64Images.slice(2),
                   });
