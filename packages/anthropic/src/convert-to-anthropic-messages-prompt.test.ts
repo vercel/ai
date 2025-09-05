@@ -372,7 +372,7 @@ describe('tool messages', () => {
     });
   });
 
-  it('should combine user and tool messages', async () => {
+  it('should separate tool and user messages', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -410,6 +410,11 @@ describe('tool messages', () => {
                 is_error: undefined,
                 content: JSON.stringify({ test: 'This is a tool message' }),
               },
+            ],
+          },
+          {
+            role: 'user',
+            content: [
               { type: 'text', text: 'This is a user message' },
             ],
           },
@@ -418,6 +423,83 @@ describe('tool messages', () => {
       },
       betas: new Set(),
     });
+  });
+
+  it('should fix issue #8318 - tool result separation', async () => {
+    // This reproduces the exact scenario from GitHub issue #8318
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'generate 10 items' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tool-example-123',
+              toolName: 'json',
+              input: {
+                message: 'generate 10 items',
+              },
+            },
+            {
+              type: 'text',
+              text: 'I generated code for 10 items.',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'tool-example-123',
+              toolName: 'json',
+              output: {
+                type: 'json',
+                value: {
+                  code: 'export const code = () => [...]',
+                  packageJson: '{}',
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'generate 100 items' }],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    // The key fix: tool_result should be in its own message, 
+    // not combined with the subsequent user message
+    expect(result.prompt.messages).toHaveLength(4);
+    expect(result.prompt.messages[0].role).toBe('user');
+    expect(result.prompt.messages[1].role).toBe('assistant');
+    expect(result.prompt.messages[2].role).toBe('user'); // tool_result message
+    expect(result.prompt.messages[3].role).toBe('user'); // separate user message
+    
+    // Verify tool_result is separated from user content
+    expect(result.prompt.messages[2].content).toEqual([
+      {
+        type: 'tool_result',
+        tool_use_id: 'tool-example-123',
+        is_error: undefined,
+        content: JSON.stringify({
+          code: 'export const code = () => [...]',
+          packageJson: '{}',
+        }),
+      },
+    ]);
+    
+    expect(result.prompt.messages[3].content).toEqual([
+      { type: 'text', text: 'generate 100 items' },
+    ]);
   });
 
   it('should handle tool result with content parts', async () => {

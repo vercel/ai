@@ -554,6 +554,7 @@ function groupIntoBlocks(
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =
     undefined;
+  let lastWasToolMessage = false;
 
   for (const message of prompt) {
     const { role } = message;
@@ -563,8 +564,8 @@ function groupIntoBlocks(
           currentBlock = { type: 'system', messages: [] };
           blocks.push(currentBlock);
         }
-
         currentBlock.messages.push(message);
+        lastWasToolMessage = false;
         break;
       }
       case 'assistant': {
@@ -572,26 +573,29 @@ function groupIntoBlocks(
           currentBlock = { type: 'assistant', messages: [] };
           blocks.push(currentBlock);
         }
-
         currentBlock.messages.push(message);
+        lastWasToolMessage = false;
         break;
       }
       case 'user': {
-        if (currentBlock?.type !== 'user') {
+        // Force a new block if the last message was a tool message
+        // to ensure tool results are in separate messages from user content
+        if (currentBlock?.type !== 'user' || lastWasToolMessage) {
           currentBlock = { type: 'user', messages: [] };
           blocks.push(currentBlock);
         }
-
         currentBlock.messages.push(message);
+        lastWasToolMessage = false;
         break;
       }
       case 'tool': {
-        if (currentBlock?.type !== 'user') {
-          currentBlock = { type: 'user', messages: [] };
-          blocks.push(currentBlock);
-        }
-
+        // Tool messages should create their own user block to ensure
+        // tool_result messages are separated from subsequent user content
+        // This prevents Claude API errors about missing tool_result blocks
+        currentBlock = { type: 'user', messages: [] };
+        blocks.push(currentBlock);
         currentBlock.messages.push(message);
+        lastWasToolMessage = true;
         break;
       }
       default: {
