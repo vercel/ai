@@ -7,7 +7,10 @@ export function sanitizeUserAgent<T>(value: T): T {
   });
 }
 
-function replaceInObject<T>(input: T, replacer: (key: string, val: any) => any): T {
+function replaceInObject<T>(
+  input: T,
+  replacer: (key: string, val: any) => any,
+): T {
   if (Array.isArray(input)) {
     return input.map(item => replaceInObject(item as any, replacer)) as any;
   }
@@ -24,5 +27,3 @@ function replaceInObject<T>(input: T, replacer: (key: string, val: any) => any):
   }
   return input;
 }
-
-
