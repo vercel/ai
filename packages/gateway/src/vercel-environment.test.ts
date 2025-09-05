@@ -213,7 +213,9 @@ describe('getVercelOidcToken', () => {
       name: 'GatewayAuthenticationError',
       type: 'authentication_error',
       statusCode: 401,
-      message: expect.stringContaining('malformed and automatic refresh failed'),
+      message: expect.stringContaining(
+        'malformed and automatic refresh failed',
+      ),
     });
   });
 
