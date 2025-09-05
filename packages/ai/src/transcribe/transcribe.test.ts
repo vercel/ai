@@ -90,14 +90,38 @@ describe('transcribe', () => {
       abortSignal,
     });
 
-    expect(capturedArgs.audio).toBe(audioData);
-    expect(capturedArgs.mediaType).toBe('audio/wav');
-    expect(capturedArgs.headers?.['custom-request-header']).toBe(
-      'request-header-value',
-    );
-    expect(typeof capturedArgs.headers?.['User-Agent']).toBe('string');
-    expect(capturedArgs.abortSignal).toBe(abortSignal);
-    expect(capturedArgs.providerOptions).toStrictEqual({});
+    const {
+      audio: capturedAudio,
+      mediaType: capturedMediaType,
+      abortSignal: capturedAbortSignal,
+      providerOptions,
+      headers: rawHeaders,
+    } = capturedArgs;
+
+    const headers: Record<string, string | undefined> = rawHeaders ?? {};
+    const headersWithoutUA = Object.fromEntries(
+      Object.entries(headers).filter(([key, value]) =>
+        key !== 'User-Agent' && value !== undefined,
+      ),
+    ) as Record<string, string>;
+
+    expect({
+      audio: capturedAudio,
+      mediaType: capturedMediaType,
+      providerOptions,
+      abortSignal: capturedAbortSignal,
+    }).toStrictEqual({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {},
+      abortSignal,
+    });
+
+    expect(headersWithoutUA).toStrictEqual({
+      'custom-request-header': 'request-header-value',
+    });
+
+    expect(typeof headers['User-Agent']).toBe('string');
   });
 
   it('should return warnings', async () => {

@@ -92,19 +92,47 @@ describe('generateImage', () => {
       abortSignal,
     });
 
-    expect(capturedArgs.n).toBe(1);
-    expect(capturedArgs.prompt).toBe(prompt);
-    expect(capturedArgs.size).toBe('1024x1024');
-    expect(capturedArgs.aspectRatio).toBe('16:9');
-    expect(capturedArgs.seed).toBe(12345);
-    expect(capturedArgs.providerOptions).toStrictEqual({
-      'mock-provider': { style: 'vivid' },
+    const {
+      n,
+      prompt: capturedPrompt,
+      size,
+      aspectRatio,
+      seed,
+      providerOptions,
+      abortSignal: capturedAbortSignal,
+      headers: rawHeaders,
+    } = capturedArgs;
+
+    const headers: Record<string, string | undefined> = rawHeaders ?? {};
+    const headersWithoutUA = Object.fromEntries(
+      Object.entries(headers).filter(([key, value]) =>
+        key !== 'User-Agent' && value !== undefined,
+      ),
+    ) as Record<string, string>;
+
+    expect({
+      n,
+      prompt: capturedPrompt,
+      size,
+      aspectRatio,
+      seed,
+      providerOptions,
+      abortSignal: capturedAbortSignal,
+    }).toStrictEqual({
+      n: 1,
+      prompt,
+      size: '1024x1024',
+      aspectRatio: '16:9',
+      seed: 12345,
+      providerOptions: { 'mock-provider': { style: 'vivid' } },
+      abortSignal,
     });
-    expect(capturedArgs.headers?.['custom-request-header']).toBe(
-      'request-header-value',
-    );
-    expect(typeof capturedArgs.headers?.['User-Agent']).toBe('string');
-    expect(capturedArgs.abortSignal).toBe(abortSignal);
+
+    expect(headersWithoutUA).toStrictEqual({
+      'custom-request-header': 'request-header-value',
+    });
+
+    expect(typeof headers['User-Agent']).toBe('string');
   });
 
   it('should return warnings', async () => {
