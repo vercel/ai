@@ -28,5 +28,6 @@ jobs:
             ${{ github.event.client_payload.release.body }}
 
             ${{ github.event.client_payload.release.html_url }}
+          labels: '["maintenance"]'
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
