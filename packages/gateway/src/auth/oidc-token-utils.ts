@@ -56,8 +56,9 @@ async function getUserDataDir(): Promise<string | null> {
   }
 
   try {
-    const os = await import('os');
-    const path = await import('path');
+    // dynamic imports for browser compatibility - these modules don't exist in browser environments
+    const os = await import('node:os');
+    const path = await import('node:path');
 
     switch (os.platform()) {
       case 'darwin':
@@ -85,14 +86,18 @@ async function findRootDir(): Promise<string | null> {
   }
 
   try {
-    const path = await import('path');
-    const fs = await import('fs');
+    // dynamic imports for browser compatibility - these modules don't exist in browser environments
+    const path = await import('node:path');
+    const { promises: fs } = await import('node:fs');
 
     let dir = process.cwd();
     while (dir !== path.dirname(dir)) {
       const vercelPath = path.join(dir, '.vercel');
-      if (fs.existsSync(vercelPath)) {
+      try {
+        await fs.access(vercelPath);
         return dir;
+      } catch {
+        // directory doesn't exist, continue searching
       }
       dir = path.dirname(dir);
     }
@@ -112,15 +117,12 @@ async function findProjectInfo(): Promise<{
   }
 
   try {
-    const path = await import('path');
-    const fs = await import('fs');
+    // dynamic imports for browser compatibility - these modules don't exist in browser environments
+    const path = await import('node:path');
+    const { promises: fs } = await import('node:fs');
 
     const prjPath = path.join(dir, '.vercel', 'project.json');
-    if (!fs.existsSync(prjPath)) {
-      return null;
-    }
-
-    const prj = JSON.parse(fs.readFileSync(prjPath, 'utf8'));
+    const prj = JSON.parse(await fs.readFile(prjPath, 'utf8'));
     if (typeof prj.projectId !== 'string') {
       return null;
     }
@@ -140,8 +142,9 @@ async function getVercelCliToken(): Promise<string | null> {
   }
 
   try {
-    const path = await import('path');
-    const fs = await import('fs');
+    // dynamic imports for browser compatibility - these modules don't exist in browser environments
+    const path = await import('node:path');
+    const { promises: fs } = await import('node:fs');
 
     const dataDir = await getUserDataDir();
     if (!dataDir) {
@@ -149,11 +152,7 @@ async function getVercelCliToken(): Promise<string | null> {
     }
 
     const tokenPath = path.join(dataDir, 'com.vercel.cli', 'auth.json');
-    if (!fs.existsSync(tokenPath)) {
-      return null;
-    }
-
-    const token = fs.readFileSync(tokenPath, 'utf8');
+    const token = await fs.readFile(tokenPath, 'utf8');
     const parsed = JSON.parse(token);
     return typeof parsed.token === 'string' ? parsed.token : null;
   } catch {
@@ -170,8 +169,9 @@ async function saveToken(
   }
 
   try {
-    const path = await import('path');
-    const fs = await import('fs');
+    // dynamic imports for browser compatibility - these modules don't exist in browser environments
+    const path = await import('node:path');
+    const { promises: fs } = await import('node:fs');
 
     const dir = await getUserDataDir();
     if (!dir) {
@@ -185,11 +185,9 @@ async function saveToken(
     const tokenJson = JSON.stringify(token);
 
     // create directory with restricted permissions (owner only)
-    fs.mkdirSync(path.dirname(tokenPath), { mode: 0o700, recursive: true });
-    // write token file
-    fs.writeFileSync(tokenPath, tokenJson);
-    // ensure file has restricted permissions (owner read/write only)
-    fs.chmodSync(tokenPath, 0o600);
+    await fs.mkdir(path.dirname(tokenPath), { mode: 0o700, recursive: true });
+    // write token file with restricted permissions (owner read/write only)
+    await fs.writeFile(tokenPath, tokenJson, { mode: 0o600 });
   } catch (e) {
     // preserve the original error if it's already a GatewayAuthenticationError
     if (e instanceof GatewayAuthenticationError) {
@@ -211,8 +209,9 @@ async function loadToken(
   }
 
   try {
-    const path = await import('path');
-    const fs = await import('fs');
+    // dynamic imports for browser compatibility - these modules don't exist in browser environments
+    const path = await import('node:path');
+    const { promises: fs } = await import('node:fs');
 
     const dir = await getUserDataDir();
     if (!dir) {
@@ -220,11 +219,7 @@ async function loadToken(
     }
 
     const tokenPath = path.join(dir, 'com.vercel.token', `${projectId}.json`);
-    if (!fs.existsSync(tokenPath)) {
-      return null;
-    }
-
-    const token = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
+    const token = JSON.parse(await fs.readFile(tokenPath, 'utf8'));
     if (typeof token.token === 'string') {
       return token;
     }

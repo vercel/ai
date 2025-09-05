@@ -109,7 +109,7 @@ describe('getVercelOidcToken', () => {
     expect(process.env.VERCEL_OIDC_TOKEN).toBe('new-token');
   });
 
-  it('should fallback to original token when refresh fails', async () => {
+  it('should throw error when expired token refresh fails', async () => {
     const { getTokenPayload, isExpired, tryRefreshOidcToken } = await import(
       './auth/oidc-token-utils'
     );
@@ -117,7 +117,7 @@ describe('getVercelOidcToken', () => {
     setRequestContext({
       get: () => ({ headers: {} }),
     });
-    process.env.VERCEL_OIDC_TOKEN = 'original-token';
+    process.env.VERCEL_OIDC_TOKEN = 'expired-token';
 
     vi.mocked(getTokenPayload).mockReturnValue({
       sub: 'user',
@@ -127,22 +127,47 @@ describe('getVercelOidcToken', () => {
     vi.mocked(isExpired).mockReturnValue(true);
     vi.mocked(tryRefreshOidcToken).mockResolvedValue(null); // refresh fails
 
-    const token = await getVercelOidcToken();
-
-    expect(token).toBe('original-token');
+    await expect(getVercelOidcToken()).rejects.toMatchObject({
+      name: 'GatewayAuthenticationError',
+      type: 'authentication_error',
+      statusCode: 401,
+      message: expect.stringContaining('expired and automatic refresh failed'),
+    });
   });
 
   it('should handle missing request context gracefully', async () => {
+    const { getTokenPayload, isExpired } = await import(
+      './auth/oidc-token-utils'
+    );
+
     setRequestContext(undefined);
     process.env.VERCEL_OIDC_TOKEN = 'env-token-value';
+
+    vi.mocked(getTokenPayload).mockReturnValue({
+      sub: 'user',
+      name: 'test',
+      exp: Math.floor(Date.now() / 1000) + 3600, // valid token
+    });
+    vi.mocked(isExpired).mockReturnValue(false);
 
     const token = await getVercelOidcToken();
     expect(token).toBe('env-token-value');
   });
 
   it('should handle missing get method in request context', async () => {
-    setRequestContext({} as VercelRequestContext); // Intentionally malformed
+    const { getTokenPayload, isExpired } = await import(
+      './auth/oidc-token-utils'
+    );
+
+    setRequestContext({} as VercelRequestContext); // intentionally malformed
     process.env.VERCEL_OIDC_TOKEN = 'env-token-value';
+
+    vi.mocked(getTokenPayload).mockReturnValue({
+      sub: 'user',
+      name: 'test',
+      exp: Math.floor(Date.now() / 1000) + 3600, // valid token
+    });
+    vi.mocked(isExpired).mockReturnValue(false);
 
     const token = await getVercelOidcToken();
     expect(token).toBe('env-token-value');
@@ -169,7 +194,7 @@ describe('getVercelOidcToken', () => {
     expect(process.env.VERCEL_OIDC_TOKEN).toBe('new-token');
   });
 
-  it('should return original token when parsing fails and refresh returns null', async () => {
+  it('should throw error when malformed token refresh fails', async () => {
     const { getTokenPayload, tryRefreshOidcToken } = await import(
       './auth/oidc-token-utils'
     );
@@ -184,9 +209,12 @@ describe('getVercelOidcToken', () => {
     });
     vi.mocked(tryRefreshOidcToken).mockResolvedValue(null);
 
-    const token = await getVercelOidcToken();
-
-    expect(token).toBe('malformed-token');
+    await expect(getVercelOidcToken()).rejects.toMatchObject({
+      name: 'GatewayAuthenticationError',
+      type: 'authentication_error',
+      statusCode: 401,
+      message: expect.stringContaining('malformed and automatic refresh failed'),
+    });
   });
 
   it('should not call refresh when token is valid', async () => {

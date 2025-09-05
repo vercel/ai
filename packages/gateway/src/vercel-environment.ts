@@ -26,14 +26,30 @@ export async function getVercelOidcToken(): Promise<string> {
         process.env.VERCEL_OIDC_TOKEN = refreshedToken;
         return refreshedToken;
       }
+      // token is expired and refresh failed - throw error with context
+      throw new GatewayAuthenticationError({
+        message:
+          'OIDC token is expired and automatic refresh failed. Please regenerate your deployment or check your Vercel CLI authentication.',
+        statusCode: 401,
+      });
     }
-  } catch {
-    // if token parsing fails, try to refresh anyway
+  } catch (e) {
+    // if it's already a GatewayAuthenticationError from the expired check, re-throw
+    if (e instanceof GatewayAuthenticationError) {
+      throw e;
+    }
+    // if we can't parse the token, try to refresh
     const refreshedToken = await tryRefreshOidcToken();
     if (refreshedToken) {
       process.env.VERCEL_OIDC_TOKEN = refreshedToken;
       return refreshedToken;
     }
+    // token is malformed and refresh failed - throw error with context
+    throw new GatewayAuthenticationError({
+      message:
+        'OIDC token is malformed and automatic refresh failed. Please regenerate your deployment or check your Vercel CLI authentication.',
+      statusCode: 401,
+    });
   }
 
   return token;
