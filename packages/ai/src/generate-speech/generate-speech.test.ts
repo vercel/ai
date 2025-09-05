@@ -83,8 +83,8 @@ describe('generateSpeech', () => {
 
     const headers: Record<string, string | undefined> = rawHeaders ?? {};
     const headersWithoutUA = Object.fromEntries(
-      Object.entries(headers).filter(([key, value]) =>
-        key !== 'User-Agent' && value !== undefined,
+      Object.entries(headers).filter(
+        ([key, value]) => key !== 'User-Agent' && value !== undefined,
       ),
     ) as Record<string, string>;
 
