@@ -129,6 +129,16 @@ describe('GatewayEmbeddingModel', () => {
       });
     });
 
+    it('should not include providerOptions when not provided', async () => {
+      prepareJsonResponse();
+
+      await createTestModel().doEmbed({ values: testValues });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toStrictEqual({ input: testValues });
+      expect('providerOptions' in body).toBe(false);
+    });
+
     it('should convert gateway error responses', async () => {
       server.urls['https://api.test.com/embedding-model'].response = {
         type: 'error',
