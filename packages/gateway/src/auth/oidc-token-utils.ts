@@ -57,8 +57,8 @@ async function getUserDataDir(): Promise<string | null> {
 
   try {
     // dynamic imports for browser compatibility - these modules don't exist in browser environments
-    const os = await import('node:os');
-    const path = await import('node:path');
+    const os = await import('os');
+    const path = await import('path');
 
     switch (os.platform()) {
       case 'darwin':
@@ -87,8 +87,8 @@ async function findRootDir(): Promise<string | null> {
 
   try {
     // dynamic imports for browser compatibility - these modules don't exist in browser environments
-    const path = await import('node:path');
-    const { promises: fs } = await import('node:fs');
+    const path = await import('path');
+    const { promises: fs } = await import('fs');
 
     let dir = process.cwd();
     while (dir !== path.dirname(dir)) {
@@ -118,8 +118,8 @@ async function findProjectInfo(): Promise<{
 
   try {
     // dynamic imports for browser compatibility - these modules don't exist in browser environments
-    const path = await import('node:path');
-    const { promises: fs } = await import('node:fs');
+    const path = await import('path');
+    const { promises: fs } = await import('fs');
 
     const prjPath = path.join(dir, '.vercel', 'project.json');
     const prj = JSON.parse(await fs.readFile(prjPath, 'utf8'));
@@ -143,8 +143,8 @@ async function getVercelCliToken(): Promise<string | null> {
 
   try {
     // dynamic imports for browser compatibility - these modules don't exist in browser environments
-    const path = await import('node:path');
-    const { promises: fs } = await import('node:fs');
+    const path = await import('path');
+    const { promises: fs } = await import('fs');
 
     const dataDir = await getUserDataDir();
     if (!dataDir) {
@@ -170,8 +170,8 @@ async function saveToken(
 
   try {
     // dynamic imports for browser compatibility - these modules don't exist in browser environments
-    const path = await import('node:path');
-    const { promises: fs } = await import('node:fs');
+    const path = await import('path');
+    const { promises: fs } = await import('fs');
 
     const dir = await getUserDataDir();
     if (!dir) {
@@ -210,8 +210,8 @@ async function loadToken(
 
   try {
     // dynamic imports for browser compatibility - these modules don't exist in browser environments
-    const path = await import('node:path');
-    const { promises: fs } = await import('node:fs');
+    const path = await import('path');
+    const { promises: fs } = await import('fs');
 
     const dir = await getUserDataDir();
     if (!dir) {
