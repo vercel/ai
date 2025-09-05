@@ -93,7 +93,7 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
-  const headersWithUA = withAISDKUserAgent(headers);
+  const headersWithUserAgent = withAISDKUserAgent(headers);
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
