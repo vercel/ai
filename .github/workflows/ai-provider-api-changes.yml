@@ -22,6 +22,9 @@ jobs:
           owner: vercel
           repo: ai
           title: "🤖 Provider API update: ${{ github.event.client_payload.release.tag_name }}"
-          body: "${{ github.event.client_payload.release.body }}\n\n${{ github.event.client_payload.release.html_url }}"
+          body: |
+            ${{ github.event.client_payload.release.body }}
+
+            ${{ github.event.client_payload.release.html_url }}
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}        
