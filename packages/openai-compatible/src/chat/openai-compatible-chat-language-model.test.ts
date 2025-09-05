@@ -695,10 +695,10 @@ describe('doGenerate', () => {
       expect(warnings).toEqual([]);
     });
 
-    it('should respect the reasoningEffort provider option', async () => {
+    it('should pass reasoningEffort setting from providerOptions', async () => {
       prepareJsonResponse({ content: '{"value":"test"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
         provider: 'test-provider',
         url: () => 'https://my.api.com/v1/chat/completions',
         headers: () => ({}),
@@ -707,15 +707,41 @@ describe('doGenerate', () => {
       await model.doGenerate({
         prompt: TEST_PROMPT,
         providerOptions: {
-          'openai-compatible': {
-            reasoningEffort: 'low',
+          'test-provider': { reasoningEffort: 'high' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-5',
+        messages: [{ role: 'user', content: 'Hello' }],
+        reasoning_effort: 'high',
+      });
+    });
+
+    it('should not duplicate reasoningEffort in request body', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': {
+            reasoningEffort: 'high',
+            customOption: 'should-be-included',
           },
         },
       });
 
       const body = await server.calls[0].requestBodyJson;
 
-      expect(body.reasoning_effort).toBe('low');
+      expect(body.reasoning_effort).toBe('high');
+      expect(body.reasoningEffort).toBeUndefined();
+      expect(body.customOption).toBe('should-be-included');
     });
 
     it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
