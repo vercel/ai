@@ -51,5 +51,9 @@ export {
 
 // user-agent exports
 export * from './version';
-export { buildUserAgent, mergeUserAgentHeader, canSetUserAgent } from './user-agent';
+export {
+  buildUserAgent,
+  mergeUserAgentHeader,
+  canSetUserAgent,
+} from './user-agent';
 export type { UserAgentParts } from './user-agent';

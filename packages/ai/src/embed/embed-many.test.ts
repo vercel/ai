@@ -338,7 +338,9 @@ describe('options.providerOptions', () => {
     expect(model.doEmbed).toHaveBeenCalledTimes(1);
     const firstCall = (model.doEmbed as any).mock.calls[0][0];
     expect(firstCall.abortSignal).toBeUndefined();
-    expect(firstCall.providerOptions).toStrictEqual({ aProvider: { someKey: 'someValue' } });
+    expect(firstCall.providerOptions).toStrictEqual({
+      aProvider: { someKey: 'someValue' },
+    });
     expect(firstCall.values).toStrictEqual(['test-input']);
     expect(typeof firstCall.headers?.['User-Agent']).toBe('string');
   });

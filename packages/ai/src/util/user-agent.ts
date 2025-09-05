@@ -1,7 +1,11 @@
 /**
  * Builds a default User-Agent and merges it with user-provided headers (Node-only).
  */
-import { buildUserAgent, mergeUserAgentHeader, canSetUserAgent } from '@ai-sdk/provider-utils';
+import {
+  buildUserAgent,
+  mergeUserAgentHeader,
+  canSetUserAgent,
+} from '@ai-sdk/provider-utils';
 import { VERSION as AI_VERSION } from '../version';
 import { VERSION as PROVIDER_VERSION } from '@ai-sdk/provider';
 import { VERSION as PROVIDER_UTILS_VERSION } from '@ai-sdk/provider-utils';
@@ -18,8 +22,11 @@ export function withAISDKUserAgent(
 
   const runtime = 'node';
   const runtimeVersion =
-    typeof process !== 'undefined' ? process.version.replace(/^v/, '') : undefined;
-  const platform = typeof process !== 'undefined' ? process.platform : undefined;
+    typeof process !== 'undefined'
+      ? process.version.replace(/^v/, '')
+      : undefined;
+  const platform =
+    typeof process !== 'undefined' ? process.platform : undefined;
   const arch = typeof process !== 'undefined' ? process.arch : undefined;
 
   const baseUA = buildUserAgent({

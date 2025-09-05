@@ -97,8 +97,12 @@ describe('generateImage', () => {
     expect(capturedArgs.size).toBe('1024x1024');
     expect(capturedArgs.aspectRatio).toBe('16:9');
     expect(capturedArgs.seed).toBe(12345);
-    expect(capturedArgs.providerOptions).toStrictEqual({ 'mock-provider': { style: 'vivid' } });
-    expect(capturedArgs.headers?.['custom-request-header']).toBe('request-header-value');
+    expect(capturedArgs.providerOptions).toStrictEqual({
+      'mock-provider': { style: 'vivid' },
+    });
+    expect(capturedArgs.headers?.['custom-request-header']).toBe(
+      'request-header-value',
+    );
     expect(typeof capturedArgs.headers?.['User-Agent']).toBe('string');
     expect(capturedArgs.abortSignal).toBe(abortSignal);
   });
@@ -324,7 +328,9 @@ describe('generateImage', () => {
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
                   abortSignal: undefined,
                 });
-                expect(options.headers?.['custom-request-header']).toBe('request-header-value');
+                expect(options.headers?.['custom-request-header']).toBe(
+                  'request-header-value',
+                );
                 expect(typeof options.headers?.['User-Agent']).toBe('string');
                 return createMockResponse({
                   images: base64Images.slice(0, 2),
@@ -339,7 +345,9 @@ describe('generateImage', () => {
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
                   abortSignal: undefined,
                 });
-                expect(options.headers?.['custom-request-header']).toBe('request-header-value');
+                expect(options.headers?.['custom-request-header']).toBe(
+                  'request-header-value',
+                );
                 expect(typeof options.headers?.['User-Agent']).toBe('string');
                 return createMockResponse({
                   images: base64Images.slice(2),
@@ -383,7 +391,9 @@ describe('generateImage', () => {
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
                   abortSignal: undefined,
                 });
-                expect(options.headers?.['custom-request-header']).toBe('request-header-value');
+                expect(options.headers?.['custom-request-header']).toBe(
+                  'request-header-value',
+                );
                 expect(typeof options.headers?.['User-Agent']).toBe('string');
                 return createMockResponse({
                   images: base64Images.slice(0, 2),
@@ -399,7 +409,9 @@ describe('generateImage', () => {
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
                   abortSignal: undefined,
                 });
-                expect(options.headers?.['custom-request-header']).toBe('request-header-value');
+                expect(options.headers?.['custom-request-header']).toBe(
+                  'request-header-value',
+                );
                 expect(typeof options.headers?.['User-Agent']).toBe('string');
                 return createMockResponse({
                   images: base64Images.slice(2),
@@ -453,7 +465,9 @@ describe('generateImage', () => {
                     },
                     abortSignal: undefined,
                   });
-                  expect(options.headers?.['custom-request-header']).toBe('request-header-value');
+                  expect(options.headers?.['custom-request-header']).toBe(
+                    'request-header-value',
+                  );
                   expect(typeof options.headers?.['User-Agent']).toBe('string');
                   return createMockResponse({
                     images: base64Images.slice(0, 2),
@@ -468,7 +482,9 @@ describe('generateImage', () => {
                     providerOptions: { 'mock-provider': { style: 'vivid' } },
                     abortSignal: undefined,
                   });
-                  expect(options.headers?.['custom-request-header']).toBe('request-header-value');
+                  expect(options.headers?.['custom-request-header']).toBe(
+                    'request-header-value',
+                  );
                   expect(typeof options.headers?.['User-Agent']).toBe('string');
                   return createMockResponse({
                     images: base64Images.slice(2),

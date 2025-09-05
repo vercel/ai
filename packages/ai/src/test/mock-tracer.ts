@@ -16,8 +16,13 @@ export class MockTracer implements Tracer {
 
   get jsonSpans() {
     return this.spans.map(span => {
-      const sanitizedAttributes = { ...span.attributes } as Record<string, unknown>;
-      if (typeof sanitizedAttributes['ai.request.headers.User-Agent'] === 'string') {
+      const sanitizedAttributes = { ...span.attributes } as Record<
+        string,
+        unknown
+      >;
+      if (
+        typeof sanitizedAttributes['ai.request.headers.User-Agent'] === 'string'
+      ) {
         sanitizedAttributes['ai.request.headers.User-Agent'] = '<UA-REDACTED>';
       }
       return {
