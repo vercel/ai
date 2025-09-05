@@ -1,5 +1,24 @@
 # @ai-sdk/gateway
 
+## 1.0.18
+
+### Patch Changes
+
+- 5d59a8c: feat (provider/gateway): add moonshotai/kimi-k2-0905 model id
+
+## 1.0.17
+
+### Patch Changes
+
+- b6005cd: feat(provider/gateway): Add Voyage embedding models
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
 ## 1.0.15
 
 ### Patch Changes

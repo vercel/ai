@@ -94,7 +94,7 @@ const { text, steps } = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5), // stop after 5 steps if tools were called
+  stopWhen: stepCountIs(5), // stop after a maximum of 5 steps if tools were called
   prompt: 'What is the weather in San Francisco?',
 });
 ```
