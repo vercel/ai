@@ -7,11 +7,10 @@ import {
   canSetUserAgent,
 } from '@ai-sdk/provider-utils';
 import { VERSION as AI_VERSION } from '../version';
-import { VERSION as PROVIDER_VERSION } from '@ai-sdk/provider';
 import { VERSION as PROVIDER_UTILS_VERSION } from '@ai-sdk/provider-utils';
 
 /**
- * Returns headers with a normalized User-Agent that includes ai, provider, and provider-utils versions.
+ * Returns headers with a normalized User-Agent that includes ai and provider-utils versions.
  * - Appends a user-provided suffix from either `User-Agent` or `X-AI-SDK-User-Agent-Extra`.
  * - No-ops in non-Node runtimes (browser/edge).
  */
@@ -31,7 +30,6 @@ export function withAISDKUserAgent(
 
   const baseUA = buildUserAgent({
     aiVersion: AI_VERSION,
-    providerVersion: PROVIDER_VERSION,
     providerUtilsVersion: PROVIDER_UTILS_VERSION,
     runtime,
     runtimeVersion,
