@@ -21,10 +21,12 @@ jobs:
           route: POST /repos/{owner}/{repo}/issues
           owner: vercel
           repo: ai
-          title: "🤖 Provider API update: ${{ github.event.client_payload.release.tag_name }}"
+          title: |
+            🤖 Provider API update - ${{ github.event.client_payload.release.tag_name }}
           body: |
+            |
             ${{ github.event.client_payload.release.body }}
 
             ${{ github.event.client_payload.release.html_url }}
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}        
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
