@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.18
+
+### Patch Changes
+
+- 5d59a8c: feat (provider/gateway): add moonshotai/kimi-k2-0905 model id
+
 ## 1.0.17
 
 ### Patch Changes
