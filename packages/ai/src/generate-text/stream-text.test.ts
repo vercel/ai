@@ -6701,7 +6701,7 @@ describe('streamText', () => {
               "abortSignal": undefined,
               "frequencyPenalty": undefined,
               "headers": {
-                "User-Agent": "ai/5.0.30 @ai-sdk/provider/2.0.0 @ai-sdk/provider-utils/3.0.7 node/22.19.0 os/darwin arch/arm64",
+                "User-Agent": "<UA-REDACTED>",
               },
               "includeRawChunks": false,
               "maxOutputTokens": undefined,
@@ -6759,7 +6759,7 @@ describe('streamText', () => {
               "abortSignal": undefined,
               "frequencyPenalty": undefined,
               "headers": {
-                "User-Agent": "ai/5.0.30 @ai-sdk/provider/2.0.0 @ai-sdk/provider-utils/3.0.7 node/22.19.0 os/darwin arch/arm64",
+                "User-Agent": "<UA-REDACTED>",
               },
               "includeRawChunks": false,
               "maxOutputTokens": undefined,
@@ -11449,7 +11449,7 @@ describe('streamText', () => {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
             "headers": {
-              "User-Agent": "ai/5.0.30 @ai-sdk/provider/2.0.0 @ai-sdk/provider-utils/3.0.7 node/22.19.0 os/darwin arch/arm64",
+              "User-Agent": "<UA-REDACTED>",
             },
             "includeRawChunks": false,
             "maxOutputTokens": undefined,
