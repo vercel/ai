@@ -1931,7 +1931,7 @@ describe('generateText', () => {
               "ai.model.provider": "mock-provider",
               "ai.operationId": "ai.generateText",
               "ai.prompt": "{"prompt":"test-input"}",
-              "ai.request.headers.User-Agent": "ai/5.0.30 @ai-sdk/provider/2.0.0 @ai-sdk/provider-utils/3.0.7 node/22.19.0 os/darwin arch/arm64",
+              "ai.request.headers.User-Agent": "<UA-REDACTED>",
               "ai.response.finishReason": "stop",
               "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
               "ai.settings.maxRetries": 2,
@@ -1952,7 +1952,7 @@ describe('generateText', () => {
               "ai.prompt.tools": [
                 "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
               ],
-              "ai.request.headers.User-Agent": "ai/5.0.30 @ai-sdk/provider/2.0.0 @ai-sdk/provider-utils/3.0.7 node/22.19.0 os/darwin arch/arm64",
+              "ai.request.headers.User-Agent": "<UA-REDACTED>",
               "ai.response.finishReason": "stop",
               "ai.response.id": "test-id",
               "ai.response.model": "mock-model-id",

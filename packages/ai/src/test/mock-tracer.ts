@@ -15,12 +15,18 @@ export class MockTracer implements Tracer {
   spans: MockSpan[] = [];
 
   get jsonSpans() {
-    return this.spans.map(span => ({
-      name: span.name,
-      attributes: span.attributes,
-      events: span.events,
-      ...(span.status && { status: span.status }),
-    }));
+    return this.spans.map(span => {
+      const sanitizedAttributes = { ...span.attributes } as Record<string, unknown>;
+      if (typeof sanitizedAttributes['ai.request.headers.User-Agent'] === 'string') {
+        sanitizedAttributes['ai.request.headers.User-Agent'] = '<UA-REDACTED>';
+      }
+      return {
+        name: span.name,
+        attributes: sanitizedAttributes,
+        events: span.events,
+        ...(span.status && { status: span.status }),
+      };
+    });
   }
 
   startSpan(name: string, options?: SpanOptions, context?: Context): Span {
