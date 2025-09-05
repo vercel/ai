@@ -98,7 +98,7 @@ Only applicable for HTTP-based providers.
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers: headersWithUA,
+    headers: headersWithUserAgent,
     settings: { maxRetries },
   });
 
@@ -151,7 +151,7 @@ Only applicable for HTTP-based providers.
                 const modelResponse = await model.doEmbed({
                   values,
                   abortSignal,
-                  headers: headersWithUA,
+                  headers: headersWithUserAgent,
                   providerOptions,
                 });
 
@@ -252,7 +252,7 @@ Only applicable for HTTP-based providers.
                   const modelResponse = await model.doEmbed({
                     values: chunk,
                     abortSignal,
-                    headers: headersWithUA,
+                    headers: headersWithUserAgent,
                     providerOptions,
                   });
 

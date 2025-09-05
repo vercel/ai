@@ -445,12 +445,12 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
     const callSettings = prepareCallSettings(settings);
 
-    const headersWithUA = withAISDKUserAgent(headers);
+    const headersWithUserAgent = withAISDKUserAgent(headers);
 
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model,
       telemetry,
-      headers: headersWithUA,
+      headers: headersWithUserAgent,
       settings: { ...callSettings, maxRetries },
     });
 
@@ -522,7 +522,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           }),
           providerOptions,
           abortSignal,
-          headers: headersWithUA,
+          headers: headersWithUserAgent,
           includeRawChunks: false,
         };
 

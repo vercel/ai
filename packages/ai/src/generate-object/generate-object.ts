@@ -263,12 +263,12 @@ Default and recommended: 'auto' (best mode for the model).
 
   const callSettings = prepareCallSettings(settings);
 
-  const headersWithUA = withAISDKUserAgent(headers);
+  const headersWithUserAgent = withAISDKUserAgent(headers);
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers: headersWithUA,
+    headers: headersWithUserAgent,
     settings: { ...callSettings, maxRetries },
   });
 
@@ -361,7 +361,7 @@ Default and recommended: 'auto' (best mode for the model).
                 prompt: promptMessages,
                 providerOptions,
                 abortSignal,
-                headers: headersWithUA,
+                headers: headersWithUserAgent,
               });
 
               const responseData = {

@@ -79,12 +79,12 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
-  const headersWithUA = withAISDKUserAgent(headers);
+  const headersWithUserAgent = withAISDKUserAgent(headers);
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model: model,
     telemetry,
-    headers: headersWithUA,
+    headers: headersWithUserAgent,
     settings: { maxRetries },
   });
 
@@ -123,7 +123,7 @@ Only applicable for HTTP-based providers.
             const modelResponse = await model.doEmbed({
               values: [value],
               abortSignal,
-              headers: headersWithUA,
+              headers: headersWithUserAgent,
               providerOptions,
             });
 

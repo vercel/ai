@@ -1013,12 +1013,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     const callSettings = prepareCallSettings(settings);
 
-    const headersWithUA = withAISDKUserAgent(headers);
+    const headersWithUserAgent = withAISDKUserAgent(headers);
 
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model,
       telemetry,
-      headers: headersWithUA,
+      headers: headersWithUserAgent,
       settings: { ...callSettings, maxRetries },
     });
 
@@ -1154,7 +1154,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     prompt: promptMessages,
                     providerOptions,
                     abortSignal,
-                    headers: headersWithUA,
+                    headers: headersWithUserAgent,
                     includeRawChunks,
                   }),
                 };

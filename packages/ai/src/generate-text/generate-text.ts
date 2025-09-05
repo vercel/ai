@@ -256,12 +256,12 @@ A function that attempts to repair a tool call that failed to parse.
 
   const callSettings = prepareCallSettings(settings);
 
-  const headersWithUA = withAISDKUserAgent(headers);
+  const headersWithUserAgent = withAISDKUserAgent(headers);
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers: headersWithUA,
+    headers: headersWithUserAgent,
     settings: { ...callSettings, maxRetries },
   });
 
@@ -390,7 +390,7 @@ A function that attempts to repair a tool call that failed to parse.
                   prompt: promptMessages,
                   providerOptions,
                   abortSignal,
-                  headers: headersWithUA,
+                  headers: headersWithUserAgent,
                 });
 
                 // Fill in default values:
