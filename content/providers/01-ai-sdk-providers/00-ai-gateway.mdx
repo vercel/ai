@@ -45,7 +45,7 @@ For most use cases, you can use the AI Gateway directly with a model string:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-4o',
+  model: 'openai/gpt-5',
   prompt: 'Hello world',
 });
 ```
@@ -56,7 +56,7 @@ import { generateText } from 'ai';
 import { gateway } from '@ai-sdk/gateway';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-4o'),
+  model: gateway('openai/gpt-5'),
   prompt: 'Hello world',
 });
 ```
@@ -170,11 +170,10 @@ Read more about using OIDC tokens in the [Vercel AI Gateway docs](https://vercel
 You can create language models using a provider instance. The first argument is the model ID in the format `creator/model-name`:
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-4o'),
+  model: 'openai/gpt-5',
   prompt: 'Explain quantum computing in simple terms',
 });
 ```
@@ -231,11 +230,10 @@ const { text } = await generateText({
 ### Basic Text Generation
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('anthropic/claude-3.5-sonnet'),
+  model: 'anthropic/claude-sonnet-4',
   prompt: 'Write a haiku about programming',
 });
 
@@ -245,11 +243,10 @@ console.log(text);
 ### Streaming
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 
 const { textStream } = await streamText({
-  model: gateway('openai/gpt-4o'),
+  model: 'openai/gpt-5',
   prompt: 'Explain the benefits of serverless architecture',
 });
 
@@ -261,12 +258,11 @@ for await (const textPart of textStream) {
 ### Tool Usage
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const { text } = await generateText({
-  model: gateway('meta/llama-3.3-70b'),
+  model: 'xai/grok-4',
   prompt: 'What is the weather like in San Francisco?',
   tools: {
     getWeather: tool({
@@ -292,7 +288,7 @@ When using provider-specific options, use the actual provider name (e.g. `anthro
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-3-5-sonnet',
+  model: 'anthropic/claude-sonnet-4',
   prompt: 'Explain quantum computing',
   providerOptions: {
     anthropic: {
@@ -308,7 +304,7 @@ import { generateText } from 'ai';
 import { gateway } from '@ai-sdk/gateway';
 
 const { text } = await generateText({
-  model: gateway('anthropic/claude-3-5-sonnet'),
+  model: gateway('anthropic/claude-sonnet-4'),
   prompt: 'Explain quantum computing',
   providerOptions: {
     anthropic: {

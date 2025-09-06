@@ -23,7 +23,7 @@ curl -X POST http://localhost:8080
 
 **Full example**: [github.com/vercel/ai/examples/express](https://github.com/vercel/ai/tree/main/examples/express)
 
-### Data Stream
+### UI Message Stream
 
 You can use the `pipeUIMessageStreamToResponse` method to pipe the stream data to the server response.
 
@@ -52,7 +52,7 @@ app.listen(8080, () => {
 
 `pipeUIMessageStreamToResponse` can be used to send custom data to the client.
 
-```ts filename='index.ts' highlight="8-11,18"
+```ts filename='index.ts'
 import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStream,
@@ -97,7 +97,7 @@ app.listen(8080, () => {
 
 You can send a text stream to the client using `pipeTextStreamToResponse`.
 
-```ts filename='index.ts' highlight="13"
+```ts filename='index.ts'
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import express, { Request, Response } from 'express';

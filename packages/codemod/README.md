@@ -115,7 +115,6 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/replace-bedrock-snake-case`                                       | Transforms v5/replace bedrock snake case                                       |
 | `v5/replace-content-with-parts`                                       | Transforms v5/replace content with parts                                       |
 | `v5/replace-experimental-provider-metadata`                           | Transforms v5/replace experimental provider metadata                           |
-| `v5/replace-generatetext-text-property`                               | Transforms v5/replace generatetext text property                               |
 | `v5/replace-image-type-with-file-type`                                | Transforms v5/replace image type with file type                                |
 | `v5/replace-llamaindex-adapter`                                       | Transforms v5/replace llamaindex adapter                                       |
 | `v5/replace-oncompletion-with-onfinal`                                | Transforms v5/replace oncompletion with onfinal                                |

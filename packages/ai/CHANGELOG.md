@@ -1,5 +1,47 @@
 # ai
 
+## 5.0.34
+
+### Patch Changes
+
+- Updated dependencies [034287f]
+- Updated dependencies [dee1afe]
+  - @ai-sdk/gateway@1.0.19
+
+## 5.0.33
+
+### Patch Changes
+
+- Updated dependencies [5d59a8c]
+  - @ai-sdk/gateway@1.0.18
+
+## 5.0.32
+
+### Patch Changes
+
+- Updated dependencies [b6005cd]
+  - @ai-sdk/gateway@1.0.17
+
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/gateway@1.0.16
+
+## 5.0.30
+
+### Patch Changes
+
+- 7fcc6be: feat(ai): throw InvalidArgumentError when messages is not provided
+
+## 5.0.29
+
+### Patch Changes
+
+- e0e9449: feat(ui): sent isAbort, isDisconnect, isError in useChat onFinish callback
+
 ## 5.0.28
 
 ### Patch Changes

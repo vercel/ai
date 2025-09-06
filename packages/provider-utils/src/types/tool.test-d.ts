@@ -7,7 +7,7 @@ import {
 import { tool } from './tool';
 import { describe, it, expectTypeOf } from 'vitest';
 
-describe('tool helper', () => {
+describe('tool type', () => {
   it('should work with fixed inputSchema', () => {
     const toolType = tool({
       inputSchema: z.object({ number: z.number() }),
@@ -51,5 +51,42 @@ describe('tool helper', () => {
     expectTypeOf(toolType.inputSchema).toEqualTypeOf<
       FlexibleSchema<{ number: number }>
     >();
+  });
+
+  describe('toModelOutput', () => {
+    it('should infer toModelOutput argument when there is only an input schema', () => {
+      const aTool = tool({
+        inputSchema: z.object({ number: z.number() }),
+        toModelOutput: output => {
+          expectTypeOf(output).toEqualTypeOf<any>();
+          return { type: 'text', value: 'test' };
+        },
+      });
+    });
+
+    it('should infer toModelOutput argument when there is an execute function', () => {
+      const aTool = tool({
+        inputSchema: z.object({ number: z.number() }),
+        // outputSchema: z.literal('test'),
+        execute: async input => {
+          return 'test' as const;
+        },
+        toModelOutput: output => {
+          expectTypeOf(output).toEqualTypeOf<'test'>();
+          return { type: 'text', value: 'test' };
+        },
+      });
+    });
+
+    it('should infer toModelOutput argument when there is an output schema', () => {
+      const aTool = tool({
+        inputSchema: z.object({ number: z.number() }),
+        outputSchema: z.literal('test'),
+        toModelOutput: output => {
+          expectTypeOf(output).toEqualTypeOf<'test'>();
+          return { type: 'text', value: 'test' };
+        },
+      });
+    });
   });
 });
