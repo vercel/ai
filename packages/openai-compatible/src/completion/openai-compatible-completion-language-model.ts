@@ -38,6 +38,7 @@ type OpenAICompatibleCompletionConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
+  supportsStructuredOutputs?: boolean;
 
   /**
    * The supported URLs for the model.
