@@ -31,6 +31,7 @@
         "GROQ_API_KEY",
         "LUMA_API_KEY",
         "MISTRAL_API_KEY",
+        "MODELSLAB_API_KEY",
         "NEXT_RUNTIME",
         "NIM_API_KEY",
         "NODE_ENV",

@@ -89,6 +89,7 @@ async function main() {
     '@ai-sdk/llamaindex',
     '@ai-sdk/lmnt',
     '@ai-sdk/luma',
+    '@ai-sdk/modelslab',
     '@ai-sdk/revai',
     '@ai-sdk/valibot',
 

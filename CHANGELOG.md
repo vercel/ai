@@ -21,6 +21,7 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/groq](./packages/groq/CHANGELOG.md)
 - [@ai-sdk/luma](./packages/luma/CHANGELOG.md)
 - [@ai-sdk/mistral](./packages/mistral/CHANGELOG.md)
+- [@ai-sdk/modelslab](./packages/modelslab/CHANGELOG.md)
 - [@ai-sdk/openai](./packages/openai/CHANGELOG.md)
 - [@ai-sdk/openai-compatible](./packages/openai-compatible/CHANGELOG.md)
 - [@ai-sdk/perplexity](./packages/perplexity/CHANGELOG.md)

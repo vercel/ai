@@ -42,6 +42,7 @@ When adding new packages under `packages`, please ensure they are added to `/tsc
 | `revai`             | `@ai-sdk/revai`             | Rev.ai (Speech)             |
 | `luma`              | `@ai-sdk/luma`              | Luma (Video)                |
 | `fal`               | `@ai-sdk/fal`               | Fal.ai                      |
+| `modelslab`         | `@ai-sdk/modelslab`         | modelslab.com               |
 | `hume`              | `@ai-sdk/hume`              | Hume AI                     |
 | `lmnt`              | `@ai-sdk/lmnt`              | LMNT (Speech)               |
 | `langchain`         | `@ai-sdk/langchain`         | LangChain integration       |
