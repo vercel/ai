@@ -115,6 +115,15 @@ export type OpenAIResponsesTool =
             type: 'and' | 'or';
             filters: any[];
           };
+    }
+  | {
+      type: 'image_generation';
+      background?: 'auto' | 'opaque' | 'transparent';
+      size?: 'auto' | `${number}x${number}` | string;
+      quality?: 'auto' | 'low' | 'medium' | 'high';
+      moderation?: 'auto';
+      output_format?: 'png' | 'jpeg' | 'webp';
+      output_compression?: number; // 0-100
     };
 
 export type OpenAIResponsesReasoning = {
