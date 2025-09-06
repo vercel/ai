@@ -340,18 +340,47 @@ You can enable code execution by adding the `code_execution` tool to your reques
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
-import { googleTools } from '@ai-sdk/google/internal';
 import { generateText } from 'ai';
 
 const result = await generateText({
   model: vertex('gemini-2.5-pro'),
-  tools: { code_execution: googleTools.codeExecution({}) },
+  tools: { code_execution: vertex.tools.codeExecution({}) },
   prompt:
     'Use python to calculate 20th fibonacci number. Then find the nearest palindrome to it.',
 });
 ```
 
 The response will contain `tool-call` and `tool-result` parts for the executed code.
+
+#### URL Context
+
+URL Context allows Gemini models to retrieve and analyze content from URLs. Supported models: Gemini 2.5 Flash-Lite, 2.5 Pro, 2.5 Flash, 2.0 Flash.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  tools: { url_context: vertex.tools.urlContext({}) },
+  prompt: 'What are the key points from https://example.com/article?',
+});
+```
+
+#### Google Search
+
+Google Search enables Gemini models to access real-time web information. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  tools: { google_search: vertex.tools.googleSearch({}) },
+  prompt: 'What are the latest developments in AI?',
+});
+```
 
 #### Reasoning (Thinking Tokens)
 
