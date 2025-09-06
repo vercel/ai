@@ -73,17 +73,38 @@ describe('generateSpeech', () => {
       abortSignal,
     });
 
-    expect(capturedArgs).toStrictEqual({
+    const {
+      text: capturedText,
+      voice: capturedVoice,
+      abortSignal: capturedAbortSignal,
+      providerOptions,
+      headers: rawHeaders,
+    } = capturedArgs;
+
+    const headers: Record<string, string | undefined> = rawHeaders ?? {};
+    const headersWithoutUA = Object.fromEntries(
+      Object.entries(headers).filter(
+        ([key, value]) => key !== 'User-Agent' && value !== undefined,
+      ),
+    ) as Record<string, string>;
+
+    expect({
+      text: capturedText,
+      voice: capturedVoice,
+      providerOptions,
+      abortSignal: capturedAbortSignal,
+    }).toStrictEqual({
       text: sampleText,
       voice: 'test-voice',
-      headers: { 'custom-request-header': 'request-header-value' },
-      abortSignal,
       providerOptions: {},
-      outputFormat: undefined,
-      instructions: undefined,
-      speed: undefined,
-      language: undefined,
+      abortSignal,
     });
+
+    expect(headersWithoutUA).toStrictEqual({
+      'custom-request-header': 'request-header-value',
+    });
+
+    expect(typeof headers['User-Agent']).toBe('string');
   });
 
   it('should return warnings', async () => {
