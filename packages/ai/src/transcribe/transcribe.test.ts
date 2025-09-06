@@ -101,7 +101,8 @@ describe('transcribe', () => {
     const headers: Record<string, string | undefined> = rawHeaders ?? {};
     const headersWithoutUA = Object.fromEntries(
       Object.entries(headers).filter(
-        ([key, value]) => key.toLowerCase() !== 'user-agent' && value !== undefined,
+        ([key, value]) =>
+          key.toLowerCase() !== 'user-agent' && value !== undefined,
       ),
     ) as Record<string, string>;
 
