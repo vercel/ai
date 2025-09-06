@@ -1681,7 +1681,7 @@ describe('generateText', () => {
             expect(headers?.['custom-request-header']).toBe(
               'request-header-value',
             );
-            expect(typeof headers?.['User-Agent']).toBe('string');
+            expect(typeof headers?.['user-agent']).toBe('string');
 
             return {
               ...dummyResponseValues,
@@ -1932,7 +1932,7 @@ describe('generateText', () => {
               "ai.model.provider": "mock-provider",
               "ai.operationId": "ai.generateText",
               "ai.prompt": "{"prompt":"test-input"}",
-              "ai.request.headers.User-Agent": "<UA-REDACTED>",
+              "ai.request.headers.user-agent": "<UA-REDACTED>",
               "ai.response.finishReason": "stop",
               "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
               "ai.settings.maxRetries": 2,
@@ -1953,7 +1953,7 @@ describe('generateText', () => {
               "ai.prompt.tools": [
                 "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
               ],
-              "ai.request.headers.User-Agent": "<UA-REDACTED>",
+              "ai.request.headers.user-agent": "<UA-REDACTED>",
               "ai.response.finishReason": "stop",
               "ai.response.id": "test-id",
               "ai.response.model": "mock-model-id",
@@ -2478,7 +2478,7 @@ describe('generateText', () => {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
             "headers": {
-              "User-Agent": "<UA-REDACTED>",
+              "user-agent": "<UA-REDACTED>",
             },
             "maxOutputTokens": undefined,
             "presencePenalty": undefined,
@@ -2552,7 +2552,7 @@ describe('generateText', () => {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
             "headers": {
-              "User-Agent": "<UA-REDACTED>",
+              "user-agent": "<UA-REDACTED>",
             },
             "maxOutputTokens": undefined,
             "presencePenalty": undefined,

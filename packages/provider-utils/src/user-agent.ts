@@ -37,7 +37,7 @@ export function buildUserAgent(parts: UserAgentParts): string {
 /**
  * Merges a base User-Agent into request headers, appending any user-provided suffix.
  *
- * - Normalizes the header key to `User-Agent`.
+ * - Normalizes the header key to `user-agent`.
  * - If `extra` is provided, or if headers already include `User-Agent`/`user-agent`, it is appended to the base string.
  */
 export function mergeUserAgentHeader(
@@ -46,11 +46,11 @@ export function mergeUserAgentHeader(
   extra?: string,
 ): Record<string, string> {
   const h: Record<string, string> = { ...(headers ?? {}) };
-  const provided = h['User-Agent'] ?? (h as any)['user-agent'];
+  const provided = h['user-agent'] ?? (h as any)['User-Agent'];
   const suffix = extra ?? (typeof provided === 'string' ? provided : undefined);
   const finalUA = suffix ? `${baseUA} ${suffix}` : baseUA;
-  delete (h as any)['user-agent'];
-  h['User-Agent'] = finalUA;
+  delete (h as any)['User-Agent'];
+  h['user-agent'] = finalUA;
   return h;
 }
 

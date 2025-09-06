@@ -1,6 +1,10 @@
 export function sanitizeUserAgent<T>(value: T): T {
   return replaceInObject(value, (key, val) => {
-    if (key === 'User-Agent' && typeof val === 'string') {
+    const lowerKey = key.toLowerCase();
+    if (
+      (lowerKey === 'user-agent' || lowerKey.endsWith('.user-agent')) &&
+      typeof val === 'string'
+    ) {
       return '<UA-REDACTED>';
     }
     return val;

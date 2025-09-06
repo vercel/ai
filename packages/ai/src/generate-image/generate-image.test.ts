@@ -106,7 +106,7 @@ describe('generateImage', () => {
     const headers: Record<string, string | undefined> = rawHeaders ?? {};
     const headersWithoutUA = Object.fromEntries(
       Object.entries(headers).filter(
-        ([key, value]) => key !== 'User-Agent' && value !== undefined,
+        ([key, value]) => key.toLowerCase() !== 'user-agent' && value !== undefined,
       ),
     ) as Record<string, string>;
 
@@ -132,7 +132,7 @@ describe('generateImage', () => {
       'custom-request-header': 'request-header-value',
     });
 
-    expect(typeof headers['User-Agent']).toBe('string');
+    expect(typeof headers['user-agent']).toBe('string');
   });
 
   it('should return warnings', async () => {
@@ -359,7 +359,7 @@ describe('generateImage', () => {
                 expect(options.headers?.['custom-request-header']).toBe(
                   'request-header-value',
                 );
-                expect(typeof options.headers?.['User-Agent']).toBe('string');
+                expect(typeof options.headers?.['user-agent']).toBe('string');
                 return createMockResponse({
                   images: base64Images.slice(0, 2),
                 });
@@ -376,7 +376,7 @@ describe('generateImage', () => {
                 expect(options.headers?.['custom-request-header']).toBe(
                   'request-header-value',
                 );
-                expect(typeof options.headers?.['User-Agent']).toBe('string');
+                expect(typeof options.headers?.['user-agent']).toBe('string');
                 return createMockResponse({
                   images: base64Images.slice(2),
                 });
@@ -422,7 +422,7 @@ describe('generateImage', () => {
                 expect(options.headers?.['custom-request-header']).toBe(
                   'request-header-value',
                 );
-                expect(typeof options.headers?.['User-Agent']).toBe('string');
+                expect(typeof options.headers?.['user-agent']).toBe('string');
                 return createMockResponse({
                   images: base64Images.slice(0, 2),
                   warnings: [{ type: 'other', message: '1' }],
@@ -440,7 +440,7 @@ describe('generateImage', () => {
                 expect(options.headers?.['custom-request-header']).toBe(
                   'request-header-value',
                 );
-                expect(typeof options.headers?.['User-Agent']).toBe('string');
+                expect(typeof options.headers?.['user-agent']).toBe('string');
                 return createMockResponse({
                   images: base64Images.slice(2),
                   warnings: [{ type: 'other', message: '2' }],
@@ -496,7 +496,7 @@ describe('generateImage', () => {
                   expect(options.headers?.['custom-request-header']).toBe(
                     'request-header-value',
                   );
-                  expect(typeof options.headers?.['User-Agent']).toBe('string');
+                  expect(typeof options.headers?.['user-agent']).toBe('string');
                   return createMockResponse({
                     images: base64Images.slice(0, 2),
                   });
@@ -513,7 +513,7 @@ describe('generateImage', () => {
                   expect(options.headers?.['custom-request-header']).toBe(
                     'request-header-value',
                   );
-                  expect(typeof options.headers?.['User-Agent']).toBe('string');
+                  expect(typeof options.headers?.['user-agent']).toBe('string');
                   return createMockResponse({
                     images: base64Images.slice(2),
                   });

@@ -304,7 +304,7 @@ describe('options.headers', () => {
           expect(headers?.['custom-request-header']).toBe(
             'request-header-value',
           );
-          expect(typeof headers?.['User-Agent']).toBe('string');
+          expect(typeof headers?.['user-agent']).toBe('string');
 
           return { embeddings: dummyEmbeddings };
         },
@@ -342,7 +342,7 @@ describe('options.providerOptions', () => {
       aProvider: { someKey: 'someValue' },
     });
     expect(firstCall.values).toStrictEqual(['test-input']);
-    expect(typeof firstCall.headers?.['User-Agent']).toBe('string');
+    expect(typeof firstCall.headers?.['user-agent']).toBe('string');
   });
 });
 

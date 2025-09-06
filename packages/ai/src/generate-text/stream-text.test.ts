@@ -6702,7 +6702,7 @@ describe('streamText', () => {
               "abortSignal": undefined,
               "frequencyPenalty": undefined,
               "headers": {
-                "User-Agent": "<UA-REDACTED>",
+                "user-agent": "<UA-REDACTED>",
               },
               "includeRawChunks": false,
               "maxOutputTokens": undefined,
@@ -6760,7 +6760,7 @@ describe('streamText', () => {
               "abortSignal": undefined,
               "frequencyPenalty": undefined,
               "headers": {
-                "User-Agent": "<UA-REDACTED>",
+                "user-agent": "<UA-REDACTED>",
               },
               "includeRawChunks": false,
               "maxOutputTokens": undefined,
@@ -8108,7 +8108,7 @@ describe('streamText', () => {
                 "ai.model.provider": "mock-provider",
                 "ai.operationId": "ai.streamText",
                 "ai.prompt": "{"prompt":"test-input"}",
-                "ai.request.headers.User-Agent": "<UA-REDACTED>",
+                "ai.request.headers.user-agent": "<UA-REDACTED>",
                 "ai.response.finishReason": "stop",
                 "ai.response.text": "Hello, world!",
                 "ai.settings.maxRetries": 2,
@@ -8132,7 +8132,7 @@ describe('streamText', () => {
                 "ai.prompt.tools": [
                   "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
                 ],
-                "ai.request.headers.User-Agent": "<UA-REDACTED>",
+                "ai.request.headers.user-agent": "<UA-REDACTED>",
                 "ai.response.avgOutputTokensPerSecond": 20,
                 "ai.response.finishReason": "tool-calls",
                 "ai.response.id": "id-0",
@@ -8193,7 +8193,7 @@ describe('streamText', () => {
                 "ai.prompt.tools": [
                   "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
                 ],
-                "ai.request.headers.User-Agent": "<UA-REDACTED>",
+                "ai.request.headers.user-agent": "<UA-REDACTED>",
                 "ai.response.avgOutputTokensPerSecond": 25,
                 "ai.response.finishReason": "stop",
                 "ai.response.id": "id-1",
@@ -8593,7 +8593,7 @@ describe('streamText', () => {
             expect(headers?.['custom-request-header']).toBe(
               'request-header-value',
             );
-            expect(typeof headers?.['User-Agent']).toBe('string');
+            expect(typeof headers?.['user-agent']).toBe('string');
 
             return {
               stream: convertArrayToReadableStream([
@@ -11450,7 +11450,7 @@ describe('streamText', () => {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
             "headers": {
-              "User-Agent": "<UA-REDACTED>",
+              "user-agent": "<UA-REDACTED>",
             },
             "includeRawChunks": false,
             "maxOutputTokens": undefined,

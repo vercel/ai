@@ -20,10 +20,14 @@ export class MockTracer implements Tracer {
         string,
         unknown
       >;
-      if (
-        typeof sanitizedAttributes['ai.request.headers.User-Agent'] === 'string'
-      ) {
-        sanitizedAttributes['ai.request.headers.User-Agent'] = '<UA-REDACTED>';
+      for (const key of Object.keys(sanitizedAttributes)) {
+        const lowerKey = key.toLowerCase();
+        if (
+          (lowerKey === 'user-agent' || lowerKey.endsWith('.user-agent')) &&
+          typeof sanitizedAttributes[key] === 'string'
+        ) {
+          sanitizedAttributes[key] = '<UA-REDACTED>';
+        }
       }
       return {
         name: span.name,
