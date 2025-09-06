@@ -116,6 +116,7 @@ const toolUIPartSchemas = [
     input: z.unknown().optional(),
     output: z.never().optional(),
     errorText: z.never().optional(),
+    providerExecuted: z.boolean().optional(),
   }),
   z.object({
     type: z.string().startsWith('tool-'),
@@ -125,6 +126,7 @@ const toolUIPartSchemas = [
     output: z.never().optional(),
     errorText: z.never().optional(),
     callProviderMetadata: providerMetadataSchema.optional(),
+    providerExecuted: z.boolean().optional(),
   }),
   z.object({
     type: z.string().startsWith('tool-'),
@@ -135,15 +137,18 @@ const toolUIPartSchemas = [
     errorText: z.never().optional(),
     callProviderMetadata: providerMetadataSchema.optional(),
     preliminary: z.boolean().optional(),
+    providerExecuted: z.boolean().optional(),
   }),
   z.object({
     type: z.string().startsWith('tool-'),
     toolCallId: z.string(),
     state: z.literal('output-error'),
-    input: z.unknown(),
+    input: z.unknown().optional(),
+    rawInput: z.unknown().optional(),
     output: z.never().optional(),
     errorText: z.string(),
     callProviderMetadata: providerMetadataSchema.optional(),
+    providerExecuted: z.boolean().optional(),
   }),
 ];
 
@@ -261,13 +266,21 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
 
         if (
           toolPart.state === 'input-available' ||
-          toolPart.state === 'output-available' ||
-          toolPart.state === 'output-error'
+          toolPart.state === 'output-available'
         ) {
           await validateTypes({
             value: toolPart.input,
             schema: tool.inputSchema,
           });
+        }
+
+        if (toolPart.state === 'output-error') {
+          if (toolPart.input !== undefined) {
+            await validateTypes({
+              value: toolPart.input,
+              schema: tool.inputSchema,
+            });
+          }
         }
 
         if (toolPart.state === 'output-available' && tool.outputSchema) {
