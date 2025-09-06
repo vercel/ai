@@ -206,7 +206,7 @@ describe('doGenerate', () => {
         "model": "whisper-1",
         "response_format": "verbose_json",
         "temperature": "0",
-        "timestamp_granularities": "word",
+        "timestamp_granularities[]": "word",
       }
     `);
   });
@@ -235,7 +235,7 @@ describe('doGenerate', () => {
         "model": "gpt-4o-transcribe",
         "response_format": "json",
         "temperature": "0",
-        "timestamp_granularities": "word",
+        "timestamp_granularities[]": "word",
       }
     `);
   });
@@ -263,7 +263,7 @@ describe('doGenerate', () => {
         "model": "whisper-1",
         "response_format": "verbose_json",
         "temperature": "0",
-        "timestamp_granularities": "segment",
+        "timestamp_granularities[]": "segment",
       }
     `);
   });
