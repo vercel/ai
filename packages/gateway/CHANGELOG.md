@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 1.0.19
+
+### Patch Changes
+
+- 034287f: feat (provider/gateway): add qwen3-max model id
+- dee1afe: feat(provider/gateway): Fix embeddings `providerOptions`
+
 ## 1.0.18
 
 ### Patch Changes
