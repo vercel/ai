@@ -44,6 +44,11 @@ export const googleVertexEmbeddingProviderOptions = z.object({
     ])
     .optional(),
 
+  /**
+   * Optional. The title of the document being embedded.
+   * Only valid when task_type is set to 'RETRIEVAL_DOCUMENT'.
+   * Helps the model produce better embeddings by providing additional context.
+   */
   title: z.string().optional(),
 
   /**
