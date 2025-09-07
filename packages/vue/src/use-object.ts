@@ -1,13 +1,17 @@
 import { ref, type Ref } from 'vue';
 import swrv from 'swrv';
-import type { FetchFunction, InferSchema } from '@ai-sdk/provider-utils';
-import { isAbortError, safeValidateTypes } from '@ai-sdk/provider-utils';
+import {
+  isAbortError,
+  safeValidateTypes,
+  type FetchFunction,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import {
   asSchema,
-  DeepPartial,
+  type DeepPartial,
   isDeepEqualData,
   parsePartialJson,
-  Schema,
+  type Schema,
 } from 'ai';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
