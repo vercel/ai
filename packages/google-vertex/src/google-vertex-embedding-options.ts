@@ -44,6 +44,8 @@ export const googleVertexEmbeddingProviderOptions = z.object({
     ])
     .optional(),
 
+  title: z.string().optional(),
+
   /**
    * Optional. When set to true, input text will be truncated. When set to false,
    * an error is returned if the input text is longer than the maximum length supported by the model. Defaults to true.
