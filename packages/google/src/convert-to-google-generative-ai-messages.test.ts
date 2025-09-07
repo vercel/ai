@@ -392,18 +392,18 @@ describe('assistant messages', () => {
                 name: 'imageGenerator',
                 response: {
                   name: 'imageGenerator',
-                  content: 'Tool execution completed',
+                  content: 'Here is the generated image:',
                 },
               },
-            },
-            {
-              text: 'Here is the generated image:',
             },
             {
               inlineData: {
                 mimeType: 'image/jpeg',
                 data: 'base64encodedimagedata',
               },
+            },
+            {
+              text: 'Tool executed successfully and returned this image as a response',
             },
           ],
         },
