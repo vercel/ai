@@ -157,7 +157,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
 
       for (const [key, value] of Object.entries(transcriptionModelOptions)) {
         if (value != null) {
-          formData.append(key, String(value));
+          if (Array.isArray(value)) {
+            for (const item of value) {
+              formData.append(`${key}[]`, String(item));
+            }
+          } else {
+            formData.append(key, String(value));
+          }
         }
       }
     }
