@@ -311,7 +311,21 @@ export async function convertToAnthropicMessagesPrompt({
           }
         }
 
-        messages.push({ role: 'user', content: anthropicContent });
+        // Reorder content parts to ensure tool_result blocks appear first
+        // This satisfies Claude's "tool_result immediately after tool_use" validation
+        // while preserving the intentional message combining from #2067 (role alternation fix #2047)
+        const toolResultParts = anthropicContent.filter(
+          part => part.type === 'tool_result',
+        );
+        const otherParts = anthropicContent.filter(
+          part => part.type !== 'tool_result',
+        );
+        const reorderedContent =
+          toolResultParts.length > 0
+            ? [...toolResultParts, ...otherParts]
+            : anthropicContent;
+
+        messages.push({ role: 'user', content: reorderedContent });
 
         break;
       }
@@ -578,9 +592,7 @@ function groupIntoBlocks(
         break;
       }
       case 'user': {
-        // Force a new block if the last message was a tool message
-        // to ensure tool results are in separate messages from user content
-        if (currentBlock?.type !== 'user' || lastWasToolMessage) {
+        if (currentBlock?.type !== 'user') {
           currentBlock = { type: 'user', messages: [] };
           blocks.push(currentBlock);
         }
@@ -589,11 +601,10 @@ function groupIntoBlocks(
         break;
       }
       case 'tool': {
-        // Tool messages should create their own user block to ensure
-        // tool_result messages are separated from subsequent user content
-        // This prevents Claude API errors about missing tool_result blocks
-        currentBlock = { type: 'user', messages: [] };
-        blocks.push(currentBlock);
+        if (currentBlock?.type !== 'user') {
+          currentBlock = { type: 'user', messages: [] };
+          blocks.push(currentBlock);
+        }
         currentBlock.messages.push(message);
         lastWasToolMessage = true;
         break;
