@@ -198,6 +198,13 @@ export function prepareTools({
         toolWarnings,
         betas,
       };
+    case 'provider-defined':
+      return {
+        tools: anthropicTools,
+        toolChoice: toolChoice.toolChoice as AnthropicToolChoice,
+        toolWarnings,
+        betas,
+      };
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({

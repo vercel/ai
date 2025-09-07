@@ -82,6 +82,12 @@ export function prepareTools({
         toolChoice: 'REQUIRED',
         toolWarnings,
       };
+    case 'provider-defined':
+      return {
+        tools: cohereTools,
+        toolChoice: toolChoice.toolChoice as CohereToolChoice,
+        toolWarnings,
+      };
 
     default: {
       const _exhaustiveCheck: never = type;
