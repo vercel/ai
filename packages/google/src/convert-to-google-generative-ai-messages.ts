@@ -152,28 +152,31 @@ export function convertToGoogleGenerativeAIMessages(
           const output = part.output;
 
           if (output.type === 'content') {
-            parts.push({
-              functionResponse: {
-                name: part.toolName,
-                response: {
-                  name: part.toolName,
-                  content: 'Tool execution completed',
-                },
-              },
-            });
-
             for (const contentPart of output.value) {
               switch (contentPart.type) {
                 case 'text':
-                  parts.push({ text: contentPart.text });
-                  break;
-                case 'media':
                   parts.push({
-                    inlineData: {
-                      mimeType: contentPart.mediaType,
-                      data: contentPart.data,
+                    functionResponse: {
+                      name: part.toolName,
+                      response: {
+                        name: part.toolName,
+                        content: contentPart.text,
+                      },
                     },
                   });
+                  break;
+                case 'media':
+                  parts.push(
+                    {
+                      inlineData: {
+                        mimeType: contentPart.mediaType,
+                        data: contentPart.data,
+                      },
+                    },
+                    {
+                      text: 'Tool executed successfully and returned this image as a response',
+                    },
+                  );
                   break;
                 default:
                   parts.push({ text: JSON.stringify(contentPart) });
