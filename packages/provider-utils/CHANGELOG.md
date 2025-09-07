@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.8
+
+### Patch Changes
+
+- 99964ed: fix(provider-utils): fix type inference for toModelOutput
+
 ## 3.0.7
 
 ### Patch Changes

@@ -7,6 +7,15 @@ description: Learn how to resume chatbot streams after client disconnects.
 
 `useChat` supports resuming ongoing streams after page reloads. Use this feature to build applications with long-running generations.
 
+<Note type="warning">
+  Stream resumption is not compatible with abort functionality. Closing a tab or
+  refreshing the page triggers an abort signal that will break the resumption
+  mechanism. Do not use `resume: true` if you need abort functionality in your
+  application. See
+  [troubleshooting](/docs/troubleshooting/abort-breaks-resumable-streams) for
+  more details.
+</Note>
+
 ## How stream resumption works
 
 Stream resumption requires persistence for messages and active streams in your application. The AI SDK provides tools to connect to storage, but you need to set up the storage yourself.
@@ -243,6 +252,7 @@ This lets you:
 
 ## Important considerations
 
+- **Incompatibility with abort**: Stream resumption is not compatible with abort functionality. Closing a tab or refreshing the page triggers an abort signal that will break the resumption mechanism. Do not use `resume: true` if you need abort functionality in your application
 - **Stream expiration**: Streams in Redis expire after a set time (configurable in the `resumable-stream` package)
 - **Multiple clients**: Multiple clients can connect to the same stream simultaneously
 - **Error handling**: When no active stream exists, the GET handler returns a 204 (No Content) status code
