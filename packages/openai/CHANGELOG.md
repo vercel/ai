@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.25
+
+### Patch Changes
+
+- fb45ade: fix timestamp granularities support for openai transcription
+
 ## 2.0.24
 
 ### Patch Changes
