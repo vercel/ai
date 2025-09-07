@@ -65,7 +65,7 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   error: Ref<Error | undefined>;
 
   /** Loading flag for the in-flight request */
-  isLoading: Ref<boolean>;
+  isLoading: Ref<boolean | undefined>;
 
   /** Abort the current request. Keeps current partial object. */
   stop: () => void;
