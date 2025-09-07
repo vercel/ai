@@ -47,13 +47,18 @@
     "msw": "2.6.4",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "vitest": "2.1.4"
+    "vitest": "2.1.4",
+    "zod": "3.25.76"
   },
   "peerDependencies": {
-    "vue": "^3.3.4"
+    "vue": "^3.3.4",
+    "zod": "^3.25.76 || ^4"
   },
   "peerDependenciesMeta": {
     "vue": {
+      "optional": true
+    },
+    "zod": {
       "optional": true
     }
   },
