@@ -608,10 +608,13 @@ The following optional provider options are available for Google Vertex AI embed
   - `FACT_VERIFICATION`: Optimized for verifying factual information.
   - `CODE_RETRIEVAL_QUERY`: Optimized for retrieving code blocks based on natural language queries.
 
+- **title**: _string_
+
+  Optional. The title of the document being embedded. This helps the model produce better embeddings by providing additional context. Only valid when `taskType` is set to `'RETRIEVAL_DOCUMENT'`.
+
 - **autoTruncate**: _boolean_
 
-  Optional. When set to true, input text will be truncated. When set to false,
-  an error is returned if the input text is longer than the maximum length supported by the model. Defaults to true.
+  Optional. When set to `true`, input text will be truncated if it exceeds the maximum length. When set to `false`, an error is returned if the input text is too long. Defaults to `true`.
 
 #### Model Capabilities
 
