@@ -762,16 +762,14 @@ The following OpenAI-specific metadata is returned:
 
 #### Web Search
 
-The OpenAI responses API supports web search through the `openai.tools.webSearchPreview` tool.
-
-You can force the use of the web search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'web_search_preview' }`.
+The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
 
 ```ts
 const result = await generateText({
   model: openai.responses('gpt-5'),
   prompt: 'What happened in San Francisco last week?',
   tools: {
-    web_search_preview: openai.tools.webSearchPreview({
+    web_search: openai.tools.webSearch({
       // optional configuration:
       searchContextSize: 'high',
       userLocation: {
@@ -781,8 +779,8 @@ const result = await generateText({
       },
     }),
   },
-  // Force web search tool:
-  toolChoice: { type: 'tool', toolName: 'web_search_preview' },
+  // Force web search tool (optional):
+  toolChoice: { type: 'tool', toolName: 'web_search' },
 });
 
 // URL sources
