@@ -122,7 +122,7 @@ export const experimental_useObject = function useObject<
   const error = ref<Error | undefined>(undefined);
   let abortController: AbortController | null = null;
 
-  const stop = () => {
+  const stop = async () => {
     if (abortController) {
       try {
         abortController.abort();
@@ -132,20 +132,20 @@ export const experimental_useObject = function useObject<
         abortController = null;
       }
     }
-    mutateLoading(() => false);
+    await mutateLoading(() => false);
   };
 
   const clearObject = async () => {
     error.value = undefined;
     await mutateLoading(() => false);
-    mutateObject(undefined);
+    await mutateObject(undefined);
     // Need to explicitly set the value to undefined to trigger a re-render
     data.value = undefined;
   };
 
-  const clear = () => {
-    stop();
-    clearObject();
+  const clear = async () => {
+    await stop();
+    await clearObject();
   };
 
   const submit = async (input: INPUT) => {
