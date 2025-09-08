@@ -2544,6 +2544,9 @@ importers:
       vue:
         specifier: ^3.3.4
         version: 3.3.8(typescript@5.8.3)
+      zod:
+        specifier: ^3.25.76 || ^4
+        version: 3.25.76
     devDependencies:
       '@testing-library/jest-dom':
         specifier: ^6.6.3
@@ -2584,9 +2587,6 @@ importers:
       vitest:
         specifier: 2.1.4
         version: 2.1.4(@edge-runtime/vm@5.0.0)(@types/node@20.17.24)(jsdom@24.0.0)(less@4.2.2)(msw@2.6.4(@types/node@20.17.24)(typescript@5.8.3))(sass@1.85.0)(terser@5.39.0)
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
 
   packages/xai:
     dependencies:
