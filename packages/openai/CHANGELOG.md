@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 2.0.26
+
+### Patch Changes
+
+- 5819aec: fix (provider/openai): only send tool calls finish reason for tools that are not provider-executed
+- af8c6bb: feat (provider/openai): add web_search tool
+
 ## 2.0.25
 
 ### Patch Changes
