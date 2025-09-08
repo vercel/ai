@@ -17,7 +17,7 @@ async function main() {
   const { content } = await generateText({
     model: openai.responses('gpt-4o-mini'),
     tools: {
-      web_search_preview: openai.tools.webSearchPreview({}),
+      web_search: openai.tools.webSearch(),
       checkStatus: tool({
         description: 'Check implementation status',
         inputSchema: z.object({

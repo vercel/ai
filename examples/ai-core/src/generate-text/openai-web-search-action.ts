@@ -7,7 +7,7 @@ async function main() {
     model: openai.responses('o3-2025-04-16'),
     prompt: 'What happened in tech news today?',
     tools: {
-      web_search_preview: openai.tools.webSearchPreview({
+      web_search: openai.tools.webSearch({
         searchContextSize: 'medium',
       }),
     },

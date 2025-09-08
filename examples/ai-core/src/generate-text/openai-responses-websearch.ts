@@ -7,7 +7,7 @@ async function main() {
     model: openai('gpt-5'),
     prompt: 'What happened in San Francisco last week?',
     tools: {
-      web_search_preview: openai.tools.webSearchPreview({
+      web_search: openai.tools.webSearch({
         searchContextSize: 'high',
       }),
     },

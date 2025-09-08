@@ -7,11 +7,11 @@ async function main() {
     model: openai.responses('gpt-4o-mini'),
     stopWhen: stepCountIs(5),
     tools: {
-      web_search_preview: openai.tools.webSearchPreview({
+      web_search: openai.tools.webSearch({
         searchContextSize: 'high',
       }),
     },
-    toolChoice: { type: 'tool', toolName: 'web_search_preview' },
+    toolChoice: { type: 'tool', toolName: 'web_search' },
     prompt: 'Look up the company that owns Sonny Angel',
   });
 
