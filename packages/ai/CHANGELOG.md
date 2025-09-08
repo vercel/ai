@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.35
+
+### Patch Changes
+
+- 99c946a: export missing type
+
 ## 5.0.34
 
 ### Patch Changes
