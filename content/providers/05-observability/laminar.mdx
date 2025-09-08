@@ -251,6 +251,24 @@ The two libraries allow for additional advanced configuration, but the default s
 
 ## Additional configuration
 
+### Span name
+
+If you want to override the default span name, you can set the `functionId` inside the `telemetry` option.
+
+```javascript
+import { getTracer } from '@lmnr-ai/lmnr';
+
+const { text } = await generateText({
+  model: openai('gpt-4.1-nano'),
+  prompt: `Write a poem about Laminar flow.`,
+  experimental_telemetry: {
+    isEnabled: true,
+    tracer: getTracer(),
+    functionId: 'poem-writer',
+  },
+});
+```
+
 ### Nested spans
 
 If you want to trace not just the AI SDK calls, but also other functions in your application, you can use Laminar's `observe` wrapper.
@@ -307,4 +325,48 @@ const { text } = await generateText({
 });
 ```
 
-This is converted to Laminar's metadata and stored in the trace.
+This is converted to Laminar's [metadata](https://docs.lmnr.ai/tracing/structure/metadata) and stored in the trace.
+
+### Tags
+
+One of the reserved metadata keys is `tags`. It can be used to add [tags](https://docs.lmnr.ai/tracing/structure/tags) to the span.
+
+Tags can subsequently be used to filter traces in Laminar.
+
+```javascript
+import { getTracer } from '@lmnr-ai/lmnr';
+
+const { text } = await generateText({
+  model: openai('gpt-4.1-nano'),
+  prompt: `Write a poem about Laminar flow.`,
+  experimental_telemetry: {
+    isEnabled: true,
+    tracer: getTracer(),
+    metadata: {
+      tags: ['fallback-model', 'api-handler'],
+    },
+  },
+});
+```
+
+### Session ID and User ID
+
+Traces in Laminar can be grouped into [sessions](https://docs.lmnr.ai/tracing/structure/session) or by [user ID](https://docs.lmnr.ai/tracing/structure/user-id). These are also
+reserved metadata keys.
+
+```javascript
+import { getTracer } from '@lmnr-ai/lmnr';
+
+const { text } = await generateText({
+  model: openai('gpt-4.1-nano'),
+  prompt: `Write a poem about Laminar flow.`,
+  experimental_telemetry: {
+    isEnabled: true,
+    tracer: getTracer(),
+    metadata: {
+      sessionId: 'session-123',
+      userId: 'user-123',
+    },
+  },
+});
+```
