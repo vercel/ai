@@ -85,7 +85,7 @@ export function getUserAgent(): string {
 
   return buildUserAgent({
     providerUtilsVersion: PROVIDER_UTILS_VERSION,
-    runtime: 'node',
+    runtime: typeof process !== 'undefined' ? 'node' : undefined,
     runtimeVersion,
     platform,
     arch,

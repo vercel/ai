@@ -7,8 +7,6 @@ import {
   mergeUserAgentHeader,
   canSetUserAgent,
 } from '@ai-sdk/provider-utils';
-import { VERSION as AI_VERSION } from '../version';
-import { VERSION as PROVIDER_UTILS_VERSION } from '@ai-sdk/provider-utils';
 
 /**
  * Returns headers with a normalized User-Agent that includes ai and provider-utils versions.
