@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.37
+
+### Patch Changes
+
+- d6785d7: feat (ai): add tool and agent helpers
+
 ## 5.0.36
 
 ### Patch Changes
