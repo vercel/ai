@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.13
+
+### Patch Changes
+
+- 5a3ef3a: Fixed handling of image response in the tool call result.
+
 ## 2.0.12
 
 ### Patch Changes
