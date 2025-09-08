@@ -3101,7 +3101,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
             "providerExecuted": true,
             "toolCallId": "ws_test",
-            "toolName": "web_search_preview",
+            "toolName": "web_search",
             "type": "tool-call",
           },
           {
@@ -3110,7 +3110,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               "status": "completed",
             },
             "toolCallId": "ws_test",
-            "toolName": "web_search_preview",
+            "toolName": "web_search",
             "type": "tool-result",
           },
           {
@@ -3132,7 +3132,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": "stop",
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_test",
@@ -3613,7 +3613,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "input": "{}",
             "providerExecuted": true,
             "toolCallId": "ws_67cf3390e9608190869b5d45698a7067",
-            "toolName": "web_search_preview",
+            "toolName": "web_search",
             "type": "tool-call",
           },
           {
@@ -3622,7 +3622,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               "status": "completed",
             },
             "toolCallId": "ws_67cf3390e9608190869b5d45698a7067",
-            "toolName": "web_search_preview",
+            "toolName": "web_search",
             "type": "tool-result",
           },
           {
@@ -3678,7 +3678,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": "stop",
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
@@ -3830,7 +3830,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "tool-calls",
+                "finishReason": "stop",
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
@@ -3939,7 +3939,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "tool-calls",
+                "finishReason": "stop",
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",

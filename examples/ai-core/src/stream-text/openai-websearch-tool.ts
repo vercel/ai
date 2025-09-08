@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { stepCountIs, streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -11,12 +11,23 @@ async function main() {
       }),
     },
     prompt: 'Look up the company that owns Sonny Angel',
+    stopWhen: stepCountIs(5), // note: should stop after a single step
   });
 
   for await (const chunk of result.fullStream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);
+        break;
+      }
+
+      case 'tool-call': {
+        console.log('Tool call:', JSON.stringify(chunk, null, 2));
+        break;
+      }
+
+      case 'tool-result': {
+        console.log('Tool result:', JSON.stringify(chunk, null, 2));
         break;
       }
 
