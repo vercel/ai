@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 3.0.23
+
+### Patch Changes
+
+- 1887c53: feat(provider/google-vertex): add support for urlContext, googleSearch and codeExecution tools
+
 ## 3.0.22
 
 ### Patch Changes
