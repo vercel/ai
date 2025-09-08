@@ -1,4 +1,4 @@
-import { ToolUIContent, tool } from 'ai';
+import { UIToolInvocation, tool } from 'ai';
 import { z } from 'zod/v4';
 
 export const weatherTool = tool({
@@ -22,4 +22,4 @@ export const weatherTool = tool({
   },
 });
 
-export type WeatherToolUIContent = ToolUIContent<typeof weatherTool>;
+export type WeatherToolUIContent = UIToolInvocation<typeof weatherTool>;

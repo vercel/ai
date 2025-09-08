@@ -43,12 +43,12 @@ export {
   type SourceUrlUIPart,
   type StepStartUIPart,
   type TextUIPart,
-  type ToolUIContent,
   type ToolUIPart,
   type UIDataTypes,
   type UIMessage,
   type UIMessagePart,
   type UITool,
+  type UIToolInvocation,
   type UITools,
 } from './ui-messages';
 export {

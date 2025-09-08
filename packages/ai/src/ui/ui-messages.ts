@@ -202,7 +202,7 @@ type asUITool<TOOL extends UITool | Tool> = TOOL extends Tool
   ? InferUITool<TOOL>
   : TOOL;
 
-export type ToolUIContent<TOOL extends UITool | Tool> = {
+export type UIToolInvocation<TOOL extends UITool | Tool> = {
   toolCallId: string;
 } & (
   | {
@@ -243,7 +243,7 @@ export type ToolUIContent<TOOL extends UITool | Tool> = {
 export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
   [NAME in keyof TOOLS & string]: {
     type: `tool-${NAME}`;
-  } & ToolUIContent<TOOLS[NAME]>;
+  } & UIToolInvocation<TOOLS[NAME]>;
 }>;
 
 export type DynamicToolUIPart = {
