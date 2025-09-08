@@ -198,45 +198,52 @@ export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
   };
 }>;
 
+type asUITool<TOOL extends UITool | Tool> = TOOL extends Tool
+  ? InferUITool<TOOL>
+  : TOOL;
+
+export type ToolUIContent<TOOL extends UITool | Tool> = {
+  toolCallId: string;
+} & (
+  | {
+      state: 'input-streaming';
+      input: DeepPartial<asUITool<TOOL>['input']> | undefined;
+      providerExecuted?: boolean;
+      output?: never;
+      errorText?: never;
+    }
+  | {
+      state: 'input-available';
+      input: asUITool<TOOL>['input'];
+      providerExecuted?: boolean;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+    }
+  | {
+      state: 'output-available';
+      input: asUITool<TOOL>['input'];
+      output: asUITool<TOOL>['output'];
+      errorText?: never;
+      providerExecuted?: boolean;
+      callProviderMetadata?: ProviderMetadata;
+      preliminary?: boolean;
+    }
+  | {
+      state: 'output-error'; // TODO AI SDK 6: change to 'error' state
+      input: asUITool<TOOL>['input'] | undefined;
+      rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
+      output?: never;
+      errorText: string;
+      providerExecuted?: boolean;
+      callProviderMetadata?: ProviderMetadata;
+    }
+);
+
 export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
   [NAME in keyof TOOLS & string]: {
     type: `tool-${NAME}`;
-    toolCallId: string;
-  } & (
-    | {
-        state: 'input-streaming';
-        input: DeepPartial<TOOLS[NAME]['input']> | undefined;
-        providerExecuted?: boolean;
-        output?: never;
-        errorText?: never;
-      }
-    | {
-        state: 'input-available';
-        input: TOOLS[NAME]['input'];
-        providerExecuted?: boolean;
-        output?: never;
-        errorText?: never;
-        callProviderMetadata?: ProviderMetadata;
-      }
-    | {
-        state: 'output-available';
-        input: TOOLS[NAME]['input'];
-        output: TOOLS[NAME]['output'];
-        errorText?: never;
-        providerExecuted?: boolean;
-        callProviderMetadata?: ProviderMetadata;
-        preliminary?: boolean;
-      }
-    | {
-        state: 'output-error'; // TODO AI SDK 6: change to 'error' state
-        input: TOOLS[NAME]['input'] | undefined;
-        rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
-        output?: never;
-        errorText: string;
-        providerExecuted?: boolean;
-        callProviderMetadata?: ProviderMetadata;
-      }
-  );
+  } & ToolUIContent<TOOLS[NAME]>;
 }>;
 
 export type DynamicToolUIPart = {

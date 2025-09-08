@@ -16,6 +16,8 @@ import { Prompt } from '../prompt/prompt';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
+import { convertToModelMessages } from '../ui/convert-to-model-messages';
+import { InferUITools, UIMessage } from '../ui/ui-messages';
 
 export type AgentSettings<
   TOOLS extends ToolSet,
@@ -117,6 +119,10 @@ export class Agent<
     this.settings = settings;
   }
 
+  get tools(): TOOLS {
+    return this.settings.tools as TOOLS;
+  }
+
   async generate(
     options: Prompt & {
       /**
@@ -154,4 +160,23 @@ functionality that can be fully encapsulated in the provider.
   ): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
     return streamText({ ...this.settings, ...options });
   }
+
+  respond(options: {
+    messages: UIMessage<never, never, InferUITools<TOOLS>>[];
+  }): Response {
+    return this.stream({
+      prompt: convertToModelMessages(options.messages),
+    }).toUIMessageStreamResponse<
+      UIMessage<never, never, InferUITools<TOOLS>>
+    >();
+  }
 }
+
+type InferAgentTools<AGENT> =
+  AGENT extends Agent<infer TOOLS, any, any> ? TOOLS : never;
+
+export type InferAgentUIMessage<AGENT> = UIMessage<
+  never,
+  never,
+  InferUITools<InferAgentTools<AGENT>>
+>;

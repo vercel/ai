@@ -31,8 +31,8 @@ export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
   getToolName,
   getToolOrDynamicToolName,
-  isToolUIPart,
   isToolOrDynamicToolUIPart,
+  isToolUIPart,
   type DataUIPart,
   type DynamicToolUIPart,
   type FileUIPart,
@@ -43,6 +43,7 @@ export {
   type SourceUrlUIPart,
   type StepStartUIPart,
   type TextUIPart,
+  type ToolUIContent,
   type ToolUIPart,
   type UIDataTypes,
   type UIMessage,
