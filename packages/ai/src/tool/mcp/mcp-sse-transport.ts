@@ -1,4 +1,7 @@
-import { EventSourceParserStream, createUserAgentFetch } from '@ai-sdk/provider-utils';
+import {
+  EventSourceParserStream,
+  createUserAgentFetch,
+} from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../../error/mcp-client-error';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';

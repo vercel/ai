@@ -1,4 +1,8 @@
-import { parseJsonEventStream, ParseResult, createUserAgentFetch } from '@ai-sdk/provider-utils';
+import {
+  parseJsonEventStream,
+  ParseResult,
+  createUserAgentFetch,
+} from '@ai-sdk/provider-utils';
 import {
   UIMessageChunk,
   uiMessageChunkSchema,

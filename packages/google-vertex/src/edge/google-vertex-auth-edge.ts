@@ -1,4 +1,8 @@
-import { loadOptionalSetting, loadSetting, createUserAgentFetch } from '@ai-sdk/provider-utils';
+import {
+  loadOptionalSetting,
+  loadSetting,
+  createUserAgentFetch,
+} from '@ai-sdk/provider-utils';
 
 export interface GoogleCredentials {
   /**
