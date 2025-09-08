@@ -189,3 +189,38 @@ const main = async () => {
 
 main();
 ```
+
+### SearchMCP
+
+[SearchMCP](https://searchmcp.io) is a search API for AI. Let's look at how you could implement a search tool using SearchMCP:
+
+```ts
+import { generateText, tool, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import { SearchMCPClient } from '@searchmcp/client';
+
+const client = new SearchMCPClient({ apiKey: process.env.SEARCHMCP_API_KEY! });
+
+export const webSearchMcp = tool({
+  description: 'Search the web for up-to-date information',
+  inputSchema: z.object({
+    query: z.string().min(1).max(1024).describe('The search query'),
+    numberOfResults: z.number().int().min(1).max(20).default(10),
+  }),
+  execute: async ({ query, numberOfResults }) => {
+    const { organic } = await client.search({ query, numberOfResults });
+    return (organic ?? []).map(result => ({
+      title: result.title,
+      url: result.link,
+    }));
+  },
+});
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: { webSearchMcp },
+  stopWhen: stepCountIs(5),
+});
+```
