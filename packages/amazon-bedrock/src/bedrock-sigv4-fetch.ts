@@ -4,6 +4,7 @@ import {
   combineHeaders,
   removeUndefinedEntries,
 } from '@ai-sdk/provider-utils';
+import { createUserAgentFetch } from '@ai-sdk/provider-utils';
 import { AwsV4Signer } from 'aws4fetch';
 
 export interface BedrockCredentials {
@@ -22,7 +23,7 @@ Creates a fetch function that applies AWS Signature Version 4 signing.
  */
 export function createSigV4FetchFunction(
   getCredentials: () => BedrockCredentials | PromiseLike<BedrockCredentials>,
-  fetch: FetchFunction = globalThis.fetch,
+  fetch: FetchFunction = createUserAgentFetch(globalThis.fetch),
 ): FetchFunction {
   return async (
     input: RequestInfo | URL,
@@ -87,7 +88,7 @@ Creates a fetch function that applies Bearer token authentication.
  */
 export function createApiKeyFetchFunction(
   apiKey: string,
-  fetch: FetchFunction = globalThis.fetch,
+  fetch: FetchFunction = createUserAgentFetch(globalThis.fetch),
 ): FetchFunction {
   return async (
     input: RequestInfo | URL,

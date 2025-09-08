@@ -1,5 +1,5 @@
 import { extractHeaders } from './headers-utils';
-import { FetchFunction, removeUndefinedEntries } from '@ai-sdk/provider-utils';
+import { FetchFunction, removeUndefinedEntries, createUserAgentFetch } from '@ai-sdk/provider-utils';
 
 /**
  * Test helper to inject custom headers into a fetch request.
@@ -10,7 +10,7 @@ export function injectFetchHeaders(
   customHeaders: Record<string, string>,
 ): FetchFunction {
   return async (input, init = {}) =>
-    await globalThis.fetch(input, {
+    await createUserAgentFetch(globalThis.fetch)(input, {
       ...init,
       headers: removeUndefinedEntries({
         ...extractHeaders(init.headers),
