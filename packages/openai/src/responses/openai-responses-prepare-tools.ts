@@ -7,6 +7,7 @@ import { OpenAIResponsesTool } from './openai-responses-api-types';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
+import { mcpArgsSchema } from '../tool/mcp';
 
 export function prepareResponsesTools({
   tools,
@@ -25,7 +26,8 @@ export function prepareResponsesTools({
     | { type: 'file_search' }
     | { type: 'web_search_preview' }
     | { type: 'function'; name: string }
-    | { type: 'code_interpreter' };
+    | { type: 'code_interpreter' }
+    | { type: 'mcp'; name: string };
   toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -87,6 +89,41 @@ export function prepareResponsesTools({
             });
             break;
           }
+          case 'openai.mcp': {
+            const args = mcpArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'mcp',
+              server_url: args.serverUrl,
+              connector_id: args.connectorId,
+              server_label: args.serverLabel,
+              server_description: args.serverDescription,
+              require_approval:
+                typeof args.requireApproval === 'string'
+                  ? args.requireApproval
+                  : typeof args.requireApproval === 'object'
+                    ? {
+                        always: {
+                          read_only: args.requireApproval?.always?.readOnly,
+                          tool_names: args.requireApproval?.always?.toolNames,
+                        },
+                        never: {
+                          read_only: args.requireApproval?.never?.readOnly,
+                          tool_names: args.requireApproval?.never?.toolNames,
+                        },
+                      }
+                    : undefined,
+              headers: args.headers,
+              allowed_tools: Array.isArray(args.allowedTools)
+                ? args.allowedTools
+                : typeof args.allowedTools === 'object'
+                  ? {
+                      read_only: args.allowedTools?.readOnly,
+                      tool_names: args.allowedTools?.toolNames,
+                    }
+                  : undefined,
+            });
+            break;
+          }
           default: {
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
@@ -119,7 +156,9 @@ export function prepareResponsesTools({
           toolChoice.toolName === 'file_search' ||
           toolChoice.toolName === 'web_search_preview'
             ? { type: toolChoice.toolName }
-            : { type: 'function', name: toolChoice.toolName },
+            : toolChoice.toolName === 'mcp'
+              ? { type: 'mcp', name: toolChoice.toolName }
+              : { type: 'function', name: toolChoice.toolName },
         toolWarnings,
       };
     default: {
