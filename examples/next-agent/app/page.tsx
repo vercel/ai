@@ -26,7 +26,7 @@ export default function Chat() {
                 ) : null;
 
               case 'tool-weather': {
-                return <WeatherView part={part} />;
+                return <WeatherView invocation={part} />;
               }
             }
           })}
