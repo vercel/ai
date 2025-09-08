@@ -568,7 +568,6 @@ function groupIntoBlocks(
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =
     undefined;
-  let lastWasToolMessage = false;
 
   for (const message of prompt) {
     const { role } = message;
@@ -579,7 +578,6 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
         currentBlock.messages.push(message);
-        lastWasToolMessage = false;
         break;
       }
       case 'assistant': {
@@ -588,7 +586,6 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
         currentBlock.messages.push(message);
-        lastWasToolMessage = false;
         break;
       }
       case 'user': {
@@ -597,7 +594,6 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
         currentBlock.messages.push(message);
-        lastWasToolMessage = false;
         break;
       }
       case 'tool': {
@@ -606,7 +602,6 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
         currentBlock.messages.push(message);
-        lastWasToolMessage = true;
         break;
       }
       default: {
