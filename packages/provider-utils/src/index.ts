@@ -56,5 +56,6 @@ export {
   buildUserAgent,
   mergeUserAgentHeader,
   canSetUserAgent,
+  getUserAgent,
 } from './user-agent';
 export type { UserAgentParts } from './user-agent';

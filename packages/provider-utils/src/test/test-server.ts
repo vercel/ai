@@ -88,6 +88,8 @@ class TestServerCall {
     // convert headers to object for easier comparison
     const headersObject: Record<string, string> = {};
     requestHeaders.forEach((value, key) => {
+      // this is to ignore user-agent injected by centralized fetch to keep legacy tests stable
+      if (key.toLowerCase() === 'user-agent') return;
       headersObject[key] = value;
     });
 

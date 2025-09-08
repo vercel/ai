@@ -1,5 +1,4 @@
-import { VERSION as PROVIDER_UTILS_VERSION } from './version';
-import { buildUserAgent, canSetUserAgent } from './user-agent';
+import { canSetUserAgent, getUserAgent } from './user-agent';
 import type { FetchFunction } from './fetch-function';
 
 /**
@@ -23,23 +22,14 @@ export function createUserAgentFetch(baseFetch?: FetchFunction): FetchFunction {
           : new Headers();
 
       if (!requestHeaders.has('user-agent')) {
-        const nodeVersion = typeof process !== 'undefined' ? process.version : undefined;
-        const runtimeVersion = nodeVersion ? nodeVersion.replace(/^v/, '') : undefined;
-        const platform = typeof process !== 'undefined' ? (process.platform as string | undefined) : undefined;
-        const arch = typeof process !== 'undefined' ? (process.arch as string | undefined) : undefined;
-
-        const baseUA = buildUserAgent({
-          providerUtilsVersion: PROVIDER_UTILS_VERSION,
-          runtime: 'node',
-          runtimeVersion,
-          platform,
-          arch,
-        });
-
-        requestHeaders.set('user-agent', baseUA);
+        const userAgent = getUserAgent();
+        requestHeaders.set('user-agent', userAgent);
       }
 
-      const nextInit: RequestInit = { ...(init ?? {}), headers: requestHeaders };
+      const nextInit: RequestInit = {
+        ...(init ?? {}),
+        headers: Object.fromEntries(requestHeaders.entries()),
+      };
       return effectiveFetch(input as any, nextInit as any);
     } catch {
       // Fall back to the original fetch in case of any unexpected error during header normalization.
@@ -47,5 +37,3 @@ export function createUserAgentFetch(baseFetch?: FetchFunction): FetchFunction {
     }
   };
 }
-
-

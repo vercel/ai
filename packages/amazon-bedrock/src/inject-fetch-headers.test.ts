@@ -18,8 +18,9 @@ describe('injectFetchHeaders', () => {
     globalThis.fetch = mockFetch;
 
     const customHeaders = {
-      'X-Custom-Header': 'custom-value',
-      Authorization: 'Bearer token',
+      'x-custom-header': 'custom-value',
+      authorization: 'Bearer token',
+      'user-agent': expect.any(String),
     };
 
     const enhancedFetch = injectFetchHeaders(customHeaders);
@@ -38,7 +39,9 @@ describe('injectFetchHeaders', () => {
     globalThis.fetch = mockFetch;
 
     const customHeaders = {
-      'X-Custom-Header': 'custom-value',
+      'x-custom-header': 'custom-value',
+      authorization: 'Bearer token',
+      'user-agent': expect.any(String),
     };
 
     const existingHeaders = {
@@ -55,7 +58,9 @@ describe('injectFetchHeaders', () => {
       expect.objectContaining({
         headers: {
           'content-type': 'application/json',
-          'X-Custom-Header': 'custom-value',
+          'x-custom-header': 'custom-value',
+          authorization: 'Bearer token',
+          'user-agent': expect.any(String),
         },
       }),
     );
@@ -66,7 +71,9 @@ describe('injectFetchHeaders', () => {
     globalThis.fetch = mockFetch;
 
     const customHeaders = {
-      'X-Custom-Header': 'custom-value',
+      'x-custom-header': 'custom-value',
+      authorization: 'Bearer token',
+      'user-agent': expect.any(String),
     };
 
     const enhancedFetch = injectFetchHeaders(customHeaders);
@@ -87,7 +94,9 @@ describe('injectFetchHeaders', () => {
     globalThis.fetch = mockFetch;
 
     const customHeaders = {
-      'X-Custom-Header': 'custom-value',
+      'x-custom-header': 'custom-value',
+      authorization: 'Bearer token',
+      'user-agent': expect.any(String),
     };
 
     const existingHeaders = new Headers({
@@ -104,7 +113,9 @@ describe('injectFetchHeaders', () => {
       expect.objectContaining({
         headers: {
           'content-type': 'application/json',
-          'X-Custom-Header': 'custom-value',
+          'x-custom-header': 'custom-value',
+          authorization: 'Bearer token',
+          'user-agent': expect.any(String),
         },
       }),
     );

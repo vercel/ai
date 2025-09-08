@@ -1,5 +1,9 @@
 import { extractHeaders } from './headers-utils';
-import { FetchFunction, removeUndefinedEntries, createUserAgentFetch } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  removeUndefinedEntries,
+  createUserAgentFetch,
+} from '@ai-sdk/provider-utils';
 
 /**
  * Test helper to inject custom headers into a fetch request.

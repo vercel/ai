@@ -3,6 +3,7 @@
  */
 import {
   buildUserAgent,
+  getUserAgent,
   mergeUserAgentHeader,
   canSetUserAgent,
 } from '@ai-sdk/provider-utils';
@@ -19,24 +20,7 @@ export function withAISDKUserAgent(
 ): Record<string, string | undefined> {
   if (!canSetUserAgent()) return headers ?? {};
 
-  const runtime = 'node';
-  const runtimeVersion =
-    typeof process !== 'undefined'
-      ? process.version.replace(/^v/, '')
-      : undefined;
-  const platform =
-    typeof process !== 'undefined' ? process.platform : undefined;
-  const arch = typeof process !== 'undefined' ? process.arch : undefined;
-
-  const baseUA = buildUserAgent({
-    aiVersion: AI_VERSION,
-    providerUtilsVersion: PROVIDER_UTILS_VERSION,
-    runtime,
-    runtimeVersion,
-    platform,
-    arch,
-    // Gateway version is added within the gateway package when used.
-  });
+  const baseUA = getUserAgent();
 
   const normalizedInput: Record<string, string> | undefined = headers
     ? Object.fromEntries(

@@ -1,3 +1,4 @@
+import { VERSION as PROVIDER_UTILS_VERSION } from './version';
 /**
  * Parts used to construct a User-Agent string.
  */
@@ -60,4 +61,33 @@ export function mergeUserAgentHeader(
 export function canSetUserAgent(): boolean {
   const g: any = globalThis as any;
   return !!g?.process?.versions?.node;
+}
+
+/**
+ * Returns a normalized base User-Agent string for the current Node runtime, scoped to @ai-sdk/provider-utils.
+ * - Uses the package version from this package.
+ * - Gathers runtime information (node version without leading 'v', platform, arch).
+ */
+export function getUserAgent(): string {
+  const nodeVersion =
+    typeof process !== 'undefined' ? process.version : undefined;
+  const runtimeVersion = nodeVersion
+    ? nodeVersion.replace(/^v/, '')
+    : undefined;
+  const platform =
+    typeof process !== 'undefined'
+      ? (process.platform as string | undefined)
+      : undefined;
+  const arch =
+    typeof process !== 'undefined'
+      ? (process.arch as string | undefined)
+      : undefined;
+
+  return buildUserAgent({
+    providerUtilsVersion: PROVIDER_UTILS_VERSION,
+    runtime: 'node',
+    runtimeVersion,
+    platform,
+    arch,
+  });
 }

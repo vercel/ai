@@ -99,11 +99,13 @@ Only applicable for HTTP-based providers.
       ? (await download({ url: audio })).data
       : convertDataContentToUint8Array(audio);
 
+  const headersWithUserAgent = withAISDKUserAgent(headers);
+
   const result = await retry(() =>
     model.doGenerate({
       audio: audioData,
       abortSignal,
-      headers: withAISDKUserAgent(headers),
+      headers: headersWithUserAgent,
       providerOptions,
       mediaType:
         detectMediaType({

@@ -128,6 +128,8 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
+  const headersWithUserAgent = withAISDKUserAgent(headers);
+
   const result = await retry(() =>
     model.doGenerate({
       text,
@@ -137,7 +139,7 @@ Only applicable for HTTP-based providers.
       speed,
       language,
       abortSignal,
-      headers: withAISDKUserAgent(headers),
+      headers: headersWithUserAgent,
       providerOptions,
     }),
   );

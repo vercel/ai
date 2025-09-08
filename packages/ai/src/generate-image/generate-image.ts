@@ -129,6 +129,8 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
+  const headersWithUserAgent = withAISDKUserAgent(headers);
+
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
   const maxImagesPerCallWithDefault =
@@ -152,7 +154,7 @@ Only applicable for HTTP-based providers.
           prompt,
           n: callImageCount,
           abortSignal,
-          headers: withAISDKUserAgent(headers),
+          headers: headersWithUserAgent,
           size,
           aspectRatio,
           seed,
