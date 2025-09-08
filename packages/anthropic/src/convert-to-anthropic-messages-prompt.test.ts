@@ -425,8 +425,8 @@ describe('tool messages', () => {
     });
   });
 
-  it('should fix issue #8318 - tool result reordering', async () => {
-    // This reproduces the exact scenario from GitHub issue #8318
+  it('should place tool_result before user text in combined messages', async () => {
+    // Ensures tool_result parts appear first in combined user messages
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -574,10 +574,9 @@ describe('tool messages', () => {
     `);
   });
 
-  it('#8318 - should place tool_result before user text in combined message', async () => {
-    // This test verifies the fix for issue #8318:
-    // - We still combine tool_result and user text in a single message (preserving role alternation from #2047)
-    // - But tool_result parts now appear first, satisfying Claude's validation requirements
+  it('should place tool_result before user text in combined message', async () => {
+    // Combines tool_result and user text in a single message (preserving role alternation)
+    // but tool_result parts appear first, satisfying Claude's validation requirements
 
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [

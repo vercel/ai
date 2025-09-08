@@ -2,6 +2,6 @@
 '@ai-sdk/anthropic': patch
 ---
 
-fix(anthropic): separate tool_result from user content to fix Claude API error
+fix(anthropic): reorder tool_result parts to front of combined user messages
 
-Modified groupIntoBlocks to ensure tool messages create separate user blocks, preventing Claude API error: 'tool_use ids were found without tool_result blocks immediately after'. Fixes #8318.
+Reorders tool_result content to appear before user text within combined user messages, ensuring Claude API validation requirements are met while preserving the intentional message combining behavior that prevents role alternation errors. Fixes #8318.
