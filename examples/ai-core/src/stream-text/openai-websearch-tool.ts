@@ -5,20 +5,29 @@ import 'dotenv/config';
 async function main() {
   const result = streamText({
     model: openai.responses('gpt-4o-mini'),
-    stopWhen: stepCountIs(5),
     tools: {
-      web_search_preview: openai.tools.webSearchPreview({
+      web_search: openai.tools.webSearch({
         searchContextSize: 'high',
       }),
     },
-    toolChoice: { type: 'tool', toolName: 'web_search_preview' },
     prompt: 'Look up the company that owns Sonny Angel',
+    stopWhen: stepCountIs(5), // note: should stop after a single step
   });
 
   for await (const chunk of result.fullStream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);
+        break;
+      }
+
+      case 'tool-call': {
+        console.log('Tool call:', JSON.stringify(chunk, null, 2));
+        break;
+      }
+
+      case 'tool-result': {
+        console.log('Tool result:', JSON.stringify(chunk, null, 2));
         break;
       }
 

@@ -4,17 +4,17 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: openai.responses('o3-2025-04-16'),
+    model: openai.responses('gpt-5'),
     prompt: 'What happened in tech news today?',
     tools: {
-      web_search_preview: openai.tools.webSearchPreview({
+      web_search: openai.tools.webSearch({
         searchContextSize: 'medium',
       }),
     },
   });
 
   for (const toolCall of result.toolCalls) {
-    if (toolCall.toolName === 'web_search_preview') {
+    if (toolCall.toolName === 'web_search') {
       console.log('Search query:', toolCall.input);
     }
   }

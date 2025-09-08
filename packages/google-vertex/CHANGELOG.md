@@ -1,5 +1,26 @@
 # @ai-sdk/google-vertex
 
+## 3.0.23
+
+### Patch Changes
+
+- 1887c53: feat(provider/google-vertex): add support for urlContext, googleSearch and codeExecution tools
+
+## 3.0.22
+
+### Patch Changes
+
+- Updated dependencies [cd458a8]
+- Updated dependencies [5a3ef3a]
+  - @ai-sdk/anthropic@2.0.13
+  - @ai-sdk/google@2.0.13
+
+## 3.0.21
+
+### Patch Changes
+
+- e2b7558: added the title parameter for embeddings through the google vertex provider
+
 ## 3.0.20
 
 ### Patch Changes

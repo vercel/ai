@@ -1,4 +1,5 @@
 // re-exports:
+export { gateway } from '@ai-sdk/gateway';
 export {
   asSchema,
   createIdGenerator,
