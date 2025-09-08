@@ -1,6 +1,10 @@
 import { openai } from '@ai-sdk/openai';
 import { Controller, Post, Res } from '@nestjs/common';
-import { streamText } from 'ai';
+import {
+  createUIMessageStream,
+  streamText,
+  pipeUIMessageStreamToResponse,
+} from 'ai';
 import { Response } from 'express';
 
 @Controller()
@@ -16,18 +20,35 @@ export class AppController {
   }
 
   @Post('/stream-data')
-  async streamData(@Res() res: Response) {
-    const result = streamText({
-      model: openai('gpt-4o'),
-      prompt: 'Invent a new holiday and describe its traditions.',
-    });
+  async streamData(@Res() response: Response) {
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        // write some data
+        writer.write({ type: 'start' });
 
-    result.pipeUIMessageStreamToResponse(res, {
-      onError: (error) => {
-        // Error messages are masked by default for security reasons.
-        // If you want to expose the error message to the client, you can do so here:
-        return error instanceof Error ? error.message : String(error);
+        writer.write({
+          type: 'data-custom',
+          data: {
+            custom: 'Hello, world!',
+          },
+        });
+
+        const result = streamText({
+          model: openai('gpt-4o'),
+          prompt: 'Invent a new holiday and describe its traditions.',
+        });
+        writer.merge(
+          result.toUIMessageStream({
+            sendStart: false,
+            onError: (error) => {
+              // Error messages are masked by default for security reasons.
+              // If you want to expose the error message to the client, you can do so here:
+              return error instanceof Error ? error.message : String(error);
+            },
+          }),
+        );
       },
     });
+    pipeUIMessageStreamToResponse({ stream, response });
   }
 }

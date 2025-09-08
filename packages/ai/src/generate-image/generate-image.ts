@@ -14,6 +14,7 @@ import {
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
+import { logWarnings } from '../logger/log-warnings';
 
 /**
 Generates images using an image model.
@@ -194,6 +195,8 @@ Only applicable for HTTP-based providers.
 
     responses.push(result.response);
   }
+
+  logWarnings(warnings);
 
   if (!images.length) {
     throw new NoImageGeneratedError({ responses });

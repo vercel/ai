@@ -407,15 +407,13 @@ export async function POST(req: Request) {
   const stream = createUIMessageStream({
     execute: ({ writer }) => {
       const statusId = generateId();
+
       // Write general data (transient - not added to message history)
       writer.write({
         type: 'data-status',
         id: statusId,
         data: { status: 'call started' },
       });
-
-      // Generate shared IDs for data parts
-      const completionId = generateId();
 
       const result = streamText({
         model: openai('gpt-4o'),
@@ -1683,7 +1681,7 @@ Then, on the client, you can access the message-level metadata.
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { MyUIMessage } from './api/chat/route';
+import type { MyUIMessage } from './api/chat/route';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
@@ -1721,7 +1719,7 @@ You can also access your metadata from the `onFinish` callback of `useChat`:
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { MyUIMessage } from './api/chat/route';
+import type { MyUIMessage } from './api/chat/route';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {

@@ -12,6 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
@@ -547,6 +548,8 @@ A function that attempts to repair a tool call that failed to parse.
               messages: structuredClone(responseMessages),
             },
           });
+
+          logWarnings(currentModelResponse.warnings ?? []);
 
           steps.push(currentStepResult);
           await onStepFinish?.(currentStepResult);

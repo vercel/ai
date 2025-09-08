@@ -1,5 +1,34 @@
 # @ai-sdk/google-vertex
 
+## 3.0.20
+
+### Patch Changes
+
+- 921186b: chore (provider/vertex): update GoogleVertexModelId
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/anthropic@2.0.12
+  - @ai-sdk/google@2.0.12
+
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [c7fee29]
+  - @ai-sdk/anthropic@2.0.11
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [c152ef7]
+  - @ai-sdk/anthropic@2.0.10
+
 ## 3.0.16
 
 ### Patch Changes

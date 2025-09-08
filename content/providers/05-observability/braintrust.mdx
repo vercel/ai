@@ -13,7 +13,7 @@ Braintrust natively supports OpenTelemetry and works out of the box with the AI 
 
 ### Next.js
 
-If you are using Next.js, you can use the Braintrust exporter with `@vercel/otel` for the cleanest setup:
+If you are using Next.js, use the Braintrust exporter with `@vercel/otel`:
 
 ```typescript
 import { registerOTel } from '@vercel/otel';
@@ -31,14 +31,7 @@ export function register() {
 }
 ```
 
-Or set the following environment variables in your app's `.env` file, with your API key and project ID:
-
-```
-OTEL_EXPORTER_OTLP_ENDPOINT=https://api.braintrust.dev/otel
-OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your API Key>, x-bt-parent=project_id:<Your Project ID>"
-```
-
-Traced LLM calls will appear under the Braintrust project or experiment provided in the `x-bt-parent` header.
+Traced LLM calls will appear under the Braintrust project or experiment provided in the `parent` field.
 
 When you call the AI SDK, make sure to set `experimental_telemetry`:
 

@@ -23,8 +23,17 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
 import { z } from 'zod/v4';
+import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
@@ -313,6 +322,18 @@ const modelWithReasoning = new MockLanguageModelV2({
 });
 
 describe('streamText', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   describe('result.textStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
@@ -13554,6 +13575,142 @@ describe('streamText', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('logWarnings', () => {
+    it('should call logWarnings with warnings from a single step', async () => {
+      const expectedWarnings = [
+        {
+          type: 'other' as const,
+          message: 'Setting is not supported',
+        },
+        {
+          type: 'unsupported-setting' as const,
+          setting: 'temperature',
+          details: 'Temperature parameter not supported',
+        },
+      ];
+
+      const result = streamText({
+        model: createTestModel({
+          warnings: expectedWarnings,
+        }),
+        ...defaultSettings(),
+      });
+
+      // Consume the stream to trigger the warning logging
+      await result.finishReason;
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    });
+
+    it('should call logWarnings once for each step with warnings from that step', async () => {
+      const warning1 = {
+        type: 'other' as const,
+        message: 'Warning from step 1',
+      };
+      const warning2 = {
+        type: 'other' as const,
+        message: 'Warning from step 2',
+      };
+
+      let callCount = 0;
+      const model = new MockLanguageModelV2({
+        doStream: async _options => {
+          switch (callCount++) {
+            case 0:
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'stream-start',
+                    warnings: [warning1],
+                  },
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: `{ "value": "test" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: 'tool-calls',
+                    usage: testUsage,
+                  },
+                ]),
+                response: {},
+              };
+            case 1:
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'stream-start',
+                    warnings: [warning2],
+                  },
+                  {
+                    type: 'response-metadata',
+                    id: 'id-1',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(10000),
+                  },
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'Final response' },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: 'stop',
+                    usage: testUsage,
+                  },
+                ]),
+                response: {},
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      });
+
+      const result = streamText({
+        model,
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result',
+          },
+        },
+        stopWhen: stepCountIs(3),
+        ...defaultSettings(),
+      });
+
+      // Consume the stream to trigger the warning logging
+      await result.finishReason;
+
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, [warning1]);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, [warning2]);
+    });
+
+    it('should call logWarnings with empty array when no warnings are present', async () => {
+      const result = streamText({
+        model: createTestModel({
+          warnings: [], // no warnings
+        }),
+        ...defaultSettings(),
+      });
+
+      // Consume the stream to trigger the warning logging
+      await result.finishReason;
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith([]);
     });
   });
 });

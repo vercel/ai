@@ -15,6 +15,7 @@ import {
 import { ServerResponse } from 'http';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
+import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -725,6 +726,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                       usage,
                       response: fullResponse,
                     });
+
+                    // log warnings:
+                    logWarnings(warnings ?? []);
 
                     // resolve promises that can be resolved now:
                     self._usage.resolve(usage);

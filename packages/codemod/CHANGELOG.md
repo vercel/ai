@@ -1,5 +1,23 @@
 # @ai-sdk/codemod
 
+## 2.0.10
+
+### Patch Changes
+
+- 4627f55: fix(codemod): remove generate text codemod
+
+## 2.0.9
+
+### Patch Changes
+
+- c82e85a: fix(codemod): handle import alias for maxStep-stopWhen
+
+## 2.0.8
+
+### Patch Changes
+
+- 8aadbc9: feat(codemod): add not implemented comment and warnings
+
 ## 2.0.7
 
 ### Patch Changes

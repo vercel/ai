@@ -3,13 +3,14 @@ import {
   SpeechModelV2,
   SpeechModelV2CallWarning,
 } from '@ai-sdk/provider';
+import { afterEach, beforeEach, describe, expect, it, vitest } from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
 import { generateSpeech } from './generate-speech';
 import {
-  GeneratedAudioFile,
   DefaultGeneratedAudioFile,
+  GeneratedAudioFile,
 } from './generated-audio-file';
-import { describe, it, expect } from 'vitest';
 
 const audio = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
@@ -39,6 +40,18 @@ const createMockResponse = (options: {
 });
 
 describe('generateSpeech', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   it('should send args to doGenerate', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
@@ -101,6 +114,50 @@ describe('generateSpeech', () => {
         message: 'Setting is not supported',
       },
     ]);
+  });
+
+  it('should call logWarnings with the correct warnings', async () => {
+    const expectedWarnings: SpeechModelV2CallWarning[] = [
+      {
+        type: 'other',
+        message: 'Setting is not supported',
+      },
+      {
+        type: 'unsupported-setting',
+        setting: 'voice',
+        details: 'Voice parameter not supported',
+      },
+    ];
+
+    await generateSpeech({
+      model: new MockSpeechModelV2({
+        doGenerate: async () =>
+          createMockResponse({
+            audio: mockFile,
+            warnings: expectedWarnings,
+          }),
+      }),
+      text: sampleText,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+  });
+
+  it('should call logWarnings with empty array when no warnings are present', async () => {
+    await generateSpeech({
+      model: new MockSpeechModelV2({
+        doGenerate: async () =>
+          createMockResponse({
+            audio: mockFile,
+            warnings: [], // no warnings
+          }),
+      }),
+      text: sampleText,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith([]);
   });
 
   it('should return the audio data', async () => {
