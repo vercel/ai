@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsup --tsconfig tsconfig.build.json",
     "build:watch": "tsup --tsconfig tsconfig.build.json --watch",
-    "clean": "rm -rf dist && rm -rf internal/dist",
+    "clean": "del-cli dist && del-cli internal/dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",

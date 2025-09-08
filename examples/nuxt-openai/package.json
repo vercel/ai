@@ -7,7 +7,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "clean": "rm -rf .nuxt"
+    "clean": "del-cli .nuxt"
   },
   "dependencies": {
     "@ai-sdk/vue": "workspace:*",

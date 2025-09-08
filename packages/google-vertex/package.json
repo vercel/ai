@@ -16,7 +16,7 @@
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "del-cli dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
