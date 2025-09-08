@@ -1,6 +1,10 @@
-import type { WeatherToolUIContent } from '@/tool/weather-tool';
+import type { WeatherUIToolInvocation } from '@/tool/weather-tool';
 
-export default function WeatherView({ part }: { part: WeatherToolUIContent }) {
+export default function WeatherView({
+  part,
+}: {
+  part: WeatherUIToolInvocation;
+}) {
   switch (part.state) {
     // example of pre-rendering streaming tool calls:
     case 'input-streaming':

@@ -22,4 +22,4 @@ export const weatherTool = tool({
   },
 });
 
-export type WeatherToolUIContent = UIToolInvocation<typeof weatherTool>;
+export type WeatherUIToolInvocation = UIToolInvocation<typeof weatherTool>;
