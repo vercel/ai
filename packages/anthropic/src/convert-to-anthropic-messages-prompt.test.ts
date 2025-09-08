@@ -372,7 +372,7 @@ describe('tool messages', () => {
     });
   });
 
-  it('should combine user and tool messages', async () => {
+  it('should combine tool and user messages with tool_result first', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -409,8 +409,13 @@ describe('tool messages', () => {
                 tool_use_id: 'tool-call-1',
                 is_error: undefined,
                 content: JSON.stringify({ test: 'This is a tool message' }),
+                cache_control: undefined,
               },
-              { type: 'text', text: 'This is a user message' },
+              {
+                type: 'text',
+                text: 'This is a user message',
+                cache_control: undefined,
+              },
             ],
           },
         ],
@@ -418,6 +423,84 @@ describe('tool messages', () => {
       },
       betas: new Set(),
     });
+  });
+
+  it('should place tool_result before user text in combined messages', async () => {
+    // Ensures tool_result parts appear first in combined user messages
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'generate 10 items' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tool-example-123',
+              toolName: 'json',
+              input: {
+                message: 'generate 10 items',
+              },
+            },
+            {
+              type: 'text',
+              text: 'I generated code for 10 items.',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'tool-example-123',
+              toolName: 'json',
+              output: {
+                type: 'json',
+                value: {
+                  code: 'export const code = () => [...]',
+                  packageJson: '{}',
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'generate 100 items' }],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    // The key fix: tool_result and user content are combined in a single message
+    // but tool_result appears FIRST to satisfy Claude's validation requirements
+    expect(result.prompt.messages).toHaveLength(3);
+    expect(result.prompt.messages[0].role).toBe('user');
+    expect(result.prompt.messages[1].role).toBe('assistant');
+    expect(result.prompt.messages[2].role).toBe('user'); // combined tool_result + user message
+
+    // Verify tool_result comes before user text in the combined message
+    expect(result.prompt.messages[2].content).toEqual([
+      {
+        type: 'tool_result',
+        tool_use_id: 'tool-example-123',
+        is_error: undefined,
+        content: JSON.stringify({
+          code: 'export const code = () => [...]',
+          packageJson: '{}',
+        }),
+        cache_control: undefined,
+      },
+      {
+        type: 'text',
+        text: 'generate 100 items',
+        cache_control: undefined,
+      },
+    ]);
   });
 
   it('should handle tool result with content parts', async () => {
@@ -489,6 +572,170 @@ describe('tool messages', () => {
         },
       }
     `);
+  });
+
+  it('should place tool_result before user text in combined message', async () => {
+    // Combines tool_result and user text in a single message (preserving role alternation)
+    // but tool_result parts appear first, satisfying Claude's validation requirements
+
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'analyze-tool',
+              toolCallId: 'tool-call-123',
+              output: {
+                type: 'json',
+                value: { analysis: 'Tool execution completed' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Thanks! Now please provide more details.' },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    // Fixed behavior: still combines in single message, but tool_result comes first
+    // This satisfies Claude's "tool_result immediately after tool_use" requirement
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'tool-call-123',
+                is_error: undefined,
+                content: JSON.stringify({
+                  analysis: 'Tool execution completed',
+                }),
+              },
+              {
+                type: 'text',
+                text: 'Thanks! Now please provide more details.',
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
+  it('should place multiple tool_result parts before user text in correct order', async () => {
+    // Test multiple tool_use scenario: tool_result parts should appear first
+    // and maintain the same order as their corresponding tool_use ids
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'search-tool',
+              toolCallId: 'search-123',
+              output: { type: 'text', value: 'Search result' },
+            },
+            {
+              type: 'tool-result',
+              toolName: 'analyze-tool',
+              toolCallId: 'analyze-456',
+              output: { type: 'json', value: { status: 'complete' } },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Great! What do you think about these results?',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings: [],
+    });
+
+    expect(result.prompt.messages).toHaveLength(1);
+    expect(result.prompt.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          type: 'tool_result',
+          tool_use_id: 'search-123',
+          content: 'Search result',
+          is_error: undefined,
+        },
+        {
+          type: 'tool_result',
+          tool_use_id: 'analyze-456',
+          content: JSON.stringify({ status: 'complete' }),
+          is_error: undefined,
+        },
+        { type: 'text', text: 'Great! What do you think about these results?' },
+      ],
+    });
+  });
+
+  it('should place error tool_result parts before user text', async () => {
+    // Test error tool results: should also appear first even when is_error: true
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'failing-tool',
+              toolCallId: 'fail-789',
+              output: { type: 'error-text', value: 'Tool execution failed' },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'The tool failed. Can you try a different approach?',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings: [],
+    });
+
+    expect(result.prompt.messages).toHaveLength(1);
+    expect(result.prompt.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          type: 'tool_result',
+          tool_use_id: 'fail-789',
+          content: 'Tool execution failed',
+          is_error: true,
+        },
+        {
+          type: 'text',
+          text: 'The tool failed. Can you try a different approach?',
+        },
+      ],
+    });
   });
 });
 
