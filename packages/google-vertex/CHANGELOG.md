@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 3.0.21
+
+### Patch Changes
+
+- e2b7558: added the title parameter for embeddings through the google vertex provider
+
 ## 3.0.20
 
 ### Patch Changes
