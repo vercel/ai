@@ -46,6 +46,10 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
 */
   fetch?: FetchFunction;
+  /**
+Whether the model supports structured outputs.
+*/
+  supportsStructuredOutputs?: boolean;
 }
 
 export interface CerebrasProvider extends ProviderV2 {
@@ -87,7 +91,7 @@ export function createCerebras(
       headers: getHeaders,
       fetch: options.fetch,
       errorStructure: cerebrasErrorStructure,
-      supportsStructuredOutputs: true
+      supportsStructuredOutputs: options.supportsStructuredOutputs ?? false,
     });
   };
 
