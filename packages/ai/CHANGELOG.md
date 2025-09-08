@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.36
+
+### Patch Changes
+
+- ccc2ded: feat (ai): export gateway provider
+
 ## 5.0.35
 
 ### Patch Changes
