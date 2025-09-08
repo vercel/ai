@@ -9,15 +9,14 @@ import 'dotenv/config';
  * AZURE_API_KEY="<your_api_key>"
  */
 
-
 async function main() {
   // Basic text generation
   const basicResult = await generateText({
     model: azure.responses('gpt-5-mini'),
-    prompt: 'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results.',
+    prompt:
+      'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results.',
     tools: {
-      code_interpreter: azure.tools.codeInterpreter({
-      }),
+      code_interpreter: azure.tools.codeInterpreter({}),
     },
   });
 
