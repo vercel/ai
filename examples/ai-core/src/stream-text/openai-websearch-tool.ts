@@ -11,7 +11,6 @@ async function main() {
         searchContextSize: 'high',
       }),
     },
-    toolChoice: { type: 'tool', toolName: 'web_search' },
     prompt: 'Look up the company that owns Sonny Angel',
   });
 
