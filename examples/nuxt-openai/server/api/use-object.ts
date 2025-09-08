@@ -10,14 +10,13 @@ export default defineLazyEventHandler(async () => {
   return defineEventHandler(async (event: any) => {
     const context = await readBody(event);
 
-    // Ask OpenAI for a streaming chat completion given the prompt
+    // Stream generated notifications as objects
     const result = streamObject({
       model: openai('gpt-4.1'),
       prompt: `Generate 5 notifications for a messages app in this context: ${context}`,
       schema: notificationSchema,
     });
 
-    // Respond with the stream
     return result.toTextStreamResponse();
   });
 });
