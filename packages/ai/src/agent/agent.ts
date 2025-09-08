@@ -161,6 +161,9 @@ functionality that can be fully encapsulated in the provider.
     return streamText({ ...this.settings, ...options });
   }
 
+  /**
+   * Creates a response object that streams UI messages to the client.
+   */
   respond(options: {
     messages: UIMessage<never, never, InferUITools<TOOLS>>[];
   }): Response {
@@ -175,6 +178,9 @@ functionality that can be fully encapsulated in the provider.
 type InferAgentTools<AGENT> =
   AGENT extends Agent<infer TOOLS, any, any> ? TOOLS : never;
 
+/**
+ * Infer the UI message type of an agent.
+ */
 export type InferAgentUIMessage<AGENT> = UIMessage<
   never,
   never,

@@ -202,6 +202,11 @@ type asUITool<TOOL extends UITool | Tool> = TOOL extends Tool
   ? InferUITool<TOOL>
   : TOOL;
 
+/**
+ * A UI tool invocation contains all the information needed to render a tool invocation in the UI.
+ * It can be derived from a tool without knowing the tool name, and can be used to define
+ * UI components for the tool.
+ */
 export type UIToolInvocation<TOOL extends UITool | Tool> = {
   toolCallId: string;
 } & (
