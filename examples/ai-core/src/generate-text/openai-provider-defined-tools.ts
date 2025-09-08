@@ -7,7 +7,7 @@ async function main() {
     model: openai('gpt-4o-mini'),
     prompt: 'Search for information about TypeScript best practices',
     tools: {
-      webSearch: openai.tools.webSearchPreview({
+      web_search: openai.tools.webSearch({
         searchContextSize: 'medium',
         userLocation: {
           type: 'approximate',
@@ -17,7 +17,7 @@ async function main() {
         },
       }),
 
-      fileSearch: openai.tools.fileSearch({
+      file_search: openai.tools.fileSearch({
         maxNumResults: 5,
         ranking: {
           ranker: 'auto',

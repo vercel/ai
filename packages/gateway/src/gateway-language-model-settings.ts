@@ -4,6 +4,7 @@ export type GatewayModelId =
   | 'alibaba/qwen-3-30b'
   | 'alibaba/qwen-3-32b'
   | 'alibaba/qwen3-coder'
+  | 'alibaba/qwen3-max'
   | 'amazon/nova-lite'
   | 'amazon/nova-micro'
   | 'amazon/nova-pro'
