@@ -577,6 +577,46 @@ for await (const part of result.fullStream) {
 }
 ```
 
+### Tool Execution Error Handling
+
+The `ToolExecutionError` class has been removed. Tool execution errors now appear as `tool-error` content parts in the result steps, enabling automated LLM roundtrips in multi-step scenarios.
+
+```tsx filename="AI SDK 4.0"
+import { ToolExecutionError } from 'ai';
+
+try {
+  const result = await generateText({
+    // ...
+  });
+} catch (error) {
+  if (error instanceof ToolExecutionError) {
+    console.log('Tool execution failed:', error.message);
+    console.log('Tool name:', error.toolName);
+    console.log('Tool input:', error.toolInput);
+  }
+}
+```
+
+```tsx filename="AI SDK 5.0"
+// Tool execution errors now appear in result steps
+const { steps } = await generateText({
+  // ...
+});
+
+// check for tool errors in the steps
+const toolErrors = steps.flatMap(step =>
+  step.content.filter(part => part.type === 'tool-error'),
+);
+
+toolErrors.forEach(toolError => {
+  console.log('Tool error:', toolError.error);
+  console.log('Tool name:', toolError.toolName);
+  console.log('Tool input:', toolError.input);
+});
+```
+
+For streaming scenarios, tool execution errors appear as `tool-error` parts in the stream, while other errors appear as `error` parts.
+
 ### Tool Call Streaming Now Default (toolCallStreaming Removed)
 
 The `toolCallStreaming` option has been removed in AI SDK 5.0. Tool call streaming is now always enabled by default.
