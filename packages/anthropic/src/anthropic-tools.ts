@@ -94,7 +94,7 @@ export const anthropicTools = {
    *
    * Note: This version does not support the "undo_edit" command.
    *
-   * Tool name must be `str_replace_editor`.
+   * Tool name must be `str_replace_based_edit_tool`.
    */
   textEditor_20250429,
 
