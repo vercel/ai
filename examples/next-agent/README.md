@@ -1,1 +1,1 @@
-A minimal example to test persistence, SSR, and stream resume.
+A minimal example to show code modularization with agents, tools, and components.
