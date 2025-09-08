@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.14
+
+### Patch Changes
+
+- 2338c79: feat (provider/anthropic): update jsdoc of anthropic tools
+
 ## 2.0.13
 
 ### Patch Changes
