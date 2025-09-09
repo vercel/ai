@@ -44,13 +44,13 @@ async function main() {
 
   console.log(JSON.stringify(messages, null, 2));
 
-  // const result2 = await generateText({
-  //   model: openai('gpt-5-mini'),
-  //   tools: { weather: weatherTool },
-  //   messages,
-  // });
+  const result2 = await generateText({
+    model: openai('gpt-5-mini'),
+    tools: { weather: weatherTool },
+    messages,
+  });
 
-  // console.log(JSON.stringify(result2.content, null, 2));
+  console.log(JSON.stringify(result2.content, null, 2));
 }
 
 main().catch(console.error);
