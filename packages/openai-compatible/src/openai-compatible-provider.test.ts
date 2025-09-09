@@ -2,6 +2,7 @@ import { createOpenAICompatible } from './openai-compatible-provider';
 import { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
+import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 const OpenAICompatibleChatLanguageModelMock = vi.mocked(
@@ -14,8 +15,14 @@ const OpenAICompatibleEmbeddingModelMock = vi.mocked(
   OpenAICompatibleEmbeddingModel,
 );
 
+const OpenAICompatibleImageModelMock = vi.mocked(OpenAICompatibleImageModel);
+
 vi.mock('./chat/openai-compatible-chat-language-model', () => ({
   OpenAICompatibleChatLanguageModel: vi.fn(),
+}));
+
+vi.mock('./image/openai-compatible-image-model', () => ({
+  OpenAICompatibleImageModel: vi.fn(),
 }));
 
 vi.mock('./completion/openai-compatible-completion-language-model', () => ({
@@ -254,6 +261,56 @@ describe('OpenAICompatibleProvider', () => {
       expect(
         OpenAICompatibleChatLanguageModelMock.mock.calls[1][1].includeUsage,
       ).toBeUndefined();
+    });
+  });
+
+  describe('includeUsage setting', () => {
+    it('should pass supportsStructuredOutputs to to .chatModel() and .languageModel() only', () => {
+      const options = {
+        baseURL: 'https://api.example.com',
+        name: 'test-provider',
+        supportsStructuredOutputs: true,
+      };
+      const provider = createOpenAICompatible(options);
+
+      provider.chatModel('chat-model');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0][1]
+          .supportsStructuredOutputs,
+      ).toBe(true);
+
+      provider.languageModel('completion-model');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[1][1]
+          .supportsStructuredOutputs,
+      ).toBe(true);
+
+      provider('model-id');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[2][1]
+          .supportsStructuredOutputs,
+      ).toBe(true);
+
+      provider.completionModel('completion-model');
+      expect(
+        // @ts-expect-error - testing
+        OpenAICompatibleCompletionLanguageModelMock.mock.calls[0][1]
+          .supportsStructuredOutputs,
+      ).toBe(undefined);
+
+      provider.textEmbeddingModel('embedding-model');
+      expect(
+        // @ts-expect-error - testing
+        OpenAICompatibleEmbeddingModelMock.mock.calls[0][1]
+          .supportsStructuredOutputs,
+      ).toBe(undefined);
+
+      provider.imageModel('image-model');
+      expect(
+        // @ts-expect-error - testing
+        OpenAICompatibleImageModelMock.mock.calls[0][1]
+          .supportsStructuredOutputs,
+      ).toBe(undefined);
     });
   });
 });
