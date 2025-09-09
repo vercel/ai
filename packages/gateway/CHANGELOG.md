@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.20
+
+### Patch Changes
+
+- 350a328: feat(provider/gateway): Add stealth models to Gateway autocomplete
+
 ## 1.0.19
 
 ### Patch Changes
