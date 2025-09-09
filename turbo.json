@@ -6,9 +6,6 @@
       "dependsOn": ["^build"],
       "env": [
         "AI_GATEWAY_API_KEY",
-        "AI_GATEWAY_OIDC_REFRESH",
-        "AI_GATEWAY_OIDC_REFRESH_COMMAND", 
-        "AI_GATEWAY_OIDC_REFRESH_DIR",
         "ANTHROPIC_API_KEY",
         "ASSISTANT_ID",
         "AWS_REGION",

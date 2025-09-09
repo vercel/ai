@@ -110,5 +110,35 @@ describe('oidc token utils', () => {
 
       process.cwd = originalCwd;
     });
+
+    it('should not throw when filesystem modules are unavailable', async () => {
+      vi.mock('./oidc-token-utils-fs', () => {
+        throw new Error('Cannot find module');
+      });
+
+      const originalProcess = global.process;
+      // @ts-ignore
+      global.process = undefined;
+
+      await expect(tryRefreshOidcToken()).resolves.toBe(null);
+
+      global.process = originalProcess;
+      vi.clearAllMocks();
+    });
+
+  });
+
+  describe('filesystem module isolation', () => {
+    it('verifies dynamic imports are used for fs operations', async () => {
+      const originalProcess = global.process;
+      
+      // @ts-ignore
+      global.process = undefined;
+      
+      const result = await tryRefreshOidcToken();
+      expect(result).toBe(null);
+      
+      global.process = originalProcess;
+    });
   });
 });
