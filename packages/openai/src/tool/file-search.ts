@@ -28,15 +28,14 @@ export const fileSearchArgsSchema = z.object({
 });
 
 const fileSearchToolCallSchema = z.object({
-  queries:z.array(z.string())
+  queries: z.array(z.string()),
 });
 
 export const fileSearch = createProviderDefinedToolFactory<
   /**
-   * The search query to execute.
+   * The search queries to execute.
    */
-  z.infer<typeof fileSearchToolCallSchema>
-  ,
+  z.infer<typeof fileSearchToolCallSchema>,
   {
     /**
      * List of vector store IDs to search through. If not provided, searches all available vector stores.
