@@ -468,6 +468,7 @@ A function that attempts to repair a tool call that failed to parse.
             }
 
             const tool = tools![toolCall.toolName];
+
             if (tool?.onInputAvailable != null) {
               await tool.onInputAvailable({
                 input: toolCall.input,
@@ -477,6 +478,9 @@ A function that attempts to repair a tool call that failed to parse.
                 experimental_context,
               });
             }
+
+            // set flag on tool call to indicate need for approval
+            toolCall.needsApproval = tool?.needsApproval;
           }
 
           // insert error tool outputs for invalid tool calls:
@@ -507,7 +511,7 @@ A function that attempts to repair a tool call that failed to parse.
             clientToolOutputs.push(
               ...(await executeTools({
                 toolCalls: clientToolCalls.filter(
-                  toolCall => !toolCall.invalid,
+                  toolCall => !toolCall.invalid && !toolCall.needsApproval,
                 ),
                 tools,
                 tracer,
