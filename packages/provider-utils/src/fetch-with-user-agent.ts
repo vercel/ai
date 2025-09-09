@@ -1,39 +1,77 @@
-import { canSetUserAgent, getUserAgent } from './user-agent';
 import type { FetchFunction } from './fetch-function';
+import { VERSION as PROVIDER_UTILS_VERSION } from './version';
+
+function getRuntimeEnvironmentUserAgent(): string {
+  // Browsers
+  if (globalThis.navigator?.userAgent) {
+    return navigator.userAgent;
+  }
+
+  // Deno
+  // @ts-expect-error
+  if (globalThis.Deno?.version?.deno) {
+    // @ts-expect-error
+    return `Deno/${Deno.version.deno} (${Deno.build.os}; ${Deno.build.arch})`;
+  }
+
+  // Bun
+  // @ts-expect-error
+  if (globalThis.Bun?.version) {
+    // @ts-expect-error
+    return `Bun/${globalThis.Bun.version} (${globalThis.Bun.platform.name}; ${globalThis.Bun.platform.arch})`;
+  }
+
+  // Nodes.js
+  if (globalThis.process?.versions?.node) {
+    return `Node.js/${process.version.substring(1)} (${process.platform}; ${process.arch})`;
+  }
+
+  return '<unknown runtime>';
+}
 
 /**
  * Creates a fetch function that ensures a normalized `user-agent` header is set (Node-only).
  * - If a `user-agent` is already provided, it is left unchanged.
  * - No-ops in browser/edge runtimes where setting `user-agent` is disallowed.
  */
-export function createUserAgentFetch(baseFetch?: FetchFunction): FetchFunction {
+export function createUserAgentFetch(baseFetch?: FetchFunction, userAgent?: string): FetchFunction {
   const effectiveFetch: FetchFunction = baseFetch ?? (globalThis.fetch as any);
 
-  return async (input: any, init?: RequestInit) => {
-    if (!canSetUserAgent()) {
-      return effectiveFetch(input as any, init as any);
-    }
-
-    try {
-      const requestHeaders = init?.headers
-        ? new Headers(init.headers)
-        : input instanceof Request
-          ? new Headers(input.headers)
-          : new Headers();
-
-      if (!requestHeaders.has('user-agent')) {
-        const userAgent = getUserAgent();
-        requestHeaders.set('user-agent', userAgent);
-      }
-
-      const nextInit: RequestInit = {
-        ...(init ?? {}),
-        headers: Object.fromEntries(requestHeaders.entries()),
+  return async (input: string | URL | Request, init?: RequestInit) => {
+    // normalize arguments
+    if (input instanceof Request) {
+      init = {
+        ...init,
+        headers: input.headers,
       };
-      return effectiveFetch(input as any, nextInit as any);
-    } catch {
-      // Fall back to the original fetch in case of any unexpected error during header normalization.
+      input = input.url;
+    }
+
+    // if no headers are provided, no need to do anything special
+    if (!init?.headers) {
       return effectiveFetch(input as any, init as any);
     }
+
+    const url = String(input);
+    const headers = new Headers(init?.headers);
+
+    const currentUserAgentHeader = headers.get('user-agent') || '';
+
+    headers.set(
+      'user-agent',
+      [
+        currentUserAgentHeader,
+        userAgent,
+        `ai-sdk/provider-utils/${PROVIDER_UTILS_VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ]
+        .filter(Boolean)
+        .join(' '),
+    );
+
+    return effectiveFetch(url, {
+      ...init,
+      headers
+    });
   };
 }
