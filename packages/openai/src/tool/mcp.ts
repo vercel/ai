@@ -53,7 +53,7 @@ export const mcp = createProviderDefinedToolFactory<
     // MCP doesn't take input parameters it should be controlled by the prompt
   },
   {
-    server_url?: string;
+    serverUrl?: string;
     connector_id?: string;
     serverLabel: string;
     serverDescription?: string;

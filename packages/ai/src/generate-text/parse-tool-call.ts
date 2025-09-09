@@ -96,7 +96,12 @@ async function doParseToolCall<TOOLS extends ToolSet>({
   toolCall: LanguageModelV2ToolCall;
   tools: TOOLS;
 }): Promise<TypedToolCall<TOOLS>> {
-  const toolName = toolCall.toolName as keyof TOOLS & string;
+  let toolName = toolCall.toolName as keyof TOOLS & string;
+
+  // This indicates that we have an MCP tool for the OpenAI provider
+  if (toolCall.providerMetadata?.openai?.isMcp) {
+    toolName = toolCall.providerMetadata.openai.serverLabel as string;
+  }
 
   const tool = tools[toolName];
 

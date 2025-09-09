@@ -38,7 +38,6 @@ export type OpenAIResponsesAssistantMessage = {
     | OpenAIWebSearchCall
     | OpenAIComputerCall
     | OpenAIFileSearchCall
-    | OpenAIMCPCall
   >;
   id?: string;
 };
@@ -79,7 +78,7 @@ export type OpenAIMCPCall = {
   type: 'mcp_call';
   id: string;
   status?: string;
-  dynamic: true;
+  name: string;
 };
 
 export type OpenAIResponsesTool =

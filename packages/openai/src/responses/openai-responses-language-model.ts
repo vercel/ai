@@ -441,7 +441,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 error: z.string().nullable(),
                 name: z.string(),
                 output: z.string().nullable(),
-                server_label: z.string().nullable(),
+                server_label: z.string(),
               }),
             ]),
           ),
@@ -628,6 +628,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               openai: {
                 itemId: part.id,
                 serverLabel: part.server_label,
+                isMcp: true,
               },
             },
           });
@@ -645,6 +646,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               openai: {
                 itemId: part.id,
                 serverLabel: part.server_label,
+                isMcp: true,
               },
             },
           });
@@ -663,6 +665,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               openai: {
                 itemId: part.id,
                 serverLabel: part.server_label,
+                isMcp: true,
               },
             },
           });
@@ -670,16 +673,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'mcp',
-            result: {
-              type: 'mcp_call_result',
-              ...(part.output && { output: part.output }),
-              ...(part.arguments && { arguments: part.arguments }),
-              name: part.name,
-              server_label: part.server_label,
-              error: part.error,
-            },
+            toolName: part.name,
             providerExecuted: true,
+            result: part.output,
+            providerMetadata: {
+              openai: {
+                itemId: part.id,
+                serverLabel: part.server_label,
+                isMcp: true,
+              },
+            },
           });
           break;
         }
@@ -872,21 +875,30 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   },
                 });
               } else if (value.item.type === 'mcp_call') {
-                ongoingToolCalls[value.output_index] = {
-                  toolName: value.item.name,
-                  toolCallId: value.item.id,
-                };
-
                 controller.enqueue({
                   type: 'tool-input-start',
                   id: value.item.id,
                   toolName: value.item.name,
+                  providerExecuted: true,
+                  providerMetadata: {
+                    openai: {
+                      serverLabel: value.item.server_label,
+                      isMcp: true,
+                    },
+                  },  
                 });
               } else if (value.item.type === 'mcp_list_tools') {
                 controller.enqueue({
                   type: 'tool-input-start',
                   id: value.item.id,
                   toolName: 'mcp_list_tools',
+                  providerExecuted: true,
+                  providerMetadata: {
+                    openai: {
+                      serverLabel: value.item.server_label,
+                      isMcp: true,
+                    },
+                  },
                 });
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
@@ -916,6 +928,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'tool-input-end',
                   id: value.item.id,
+                  providerMetadata: {
+                    openai: {
+                      serverLabel: value.item.server_label,
+                      isMcp: true,
+                    },
+                  },
                 });
 
                 controller.enqueue({
@@ -923,25 +941,38 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolCallId: value.item.id,
                   toolName: value.item.name,
                   input: JSON.stringify(value.item.arguments),
+                  providerExecuted: true,
+                  providerMetadata: {
+                    openai: {
+                      serverLabel: value.item.server_label,
+                      isMcp: true,
+                    },
+                  },
                 });
 
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: value.item.name,
-                  result: {
-                    type: 'mcp_tool_result',
-                    status: value.item.status || 'completed',
-                    ...(value.item.arguments && {
-                      arguments: value.item.arguments,
-                    }),
-                    ...(value.item.output && { output: value.item.output }),
+                  result: value.item.output,
+                  providerExecuted: true,
+                  providerMetadata: {
+                    openai: {
+                      serverLabel: value.item.server_label,
+                      isMcp: true,
+                    },
                   },
                 });
               } else if (value.item.type === 'mcp_list_tools') {
                 controller.enqueue({
                   type: 'tool-input-end',
                   id: value.item.id,
+                  providerMetadata: {
+                    openai: {
+                      serverLabel: value.item.server_label,
+                      isMcp: true,
+                    },
+                  },
                 });
 
                 controller.enqueue({
@@ -949,6 +980,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolCallId: value.item.id,
                   toolName: 'mcp_list_tools',
                   input: '',
+                  providerExecuted: true,
+                  providerMetadata: {
+                    openai: {
+                      serverLabel: value.item.server_label,
+                      isMcp: true,
+                    },
+                  },
                 });
 
                 controller.enqueue({
@@ -959,6 +997,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     type: 'mcp_tool_result',
                     status: value.item.status || 'completed',
                     ...(value.item.tools && { tools: value.item.tools }),
+                  },
+                  providerExecuted: true,
+                  providerMetadata: {
+                    openai: {
+                      serverLabel: value.item.server_label,
+                      isMcp: true,
+                    },
                   },
                 });
               } else if (value.item.type === 'web_search_call') {

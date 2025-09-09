@@ -218,7 +218,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
-        strictJsonSchema: false,
+        strictJsonSchema: true,
       });
 
       expect(result.tools).toEqual([
@@ -250,7 +250,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
-        strictJsonSchema: false,
+        strictJsonSchema: true,
       });
 
       expect(result.tools).toEqual([
@@ -285,7 +285,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
-        strictJsonSchema: false,
+        strictJsonSchema: true,
       });
 
       expect(result.tools).toEqual([
@@ -319,7 +319,7 @@ describe('prepareResponsesTools', () => {
               },
             },
           ],
-          strictJsonSchema: false,
+          strictJsonSchema: true,
         }),
       ).toThrowError('Either serverUrl or connectorId must be provided');
     });
@@ -339,7 +339,7 @@ describe('prepareResponsesTools', () => {
               },
             },
           ],
-          strictJsonSchema: false,
+          strictJsonSchema: true,
         }),
       ).toThrowError('Only one of serverUrl or connectorId must be provided');
     });
@@ -359,7 +359,7 @@ describe('prepareResponsesTools', () => {
               },
             },
           ],
-          strictJsonSchema: false,
+          strictJsonSchema: true,
         }),
       ).toThrowError();
     });
