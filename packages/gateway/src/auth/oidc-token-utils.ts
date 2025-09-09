@@ -6,7 +6,6 @@ export interface TokenPayload {
   exp: number;
 }
 
-
 export function getTokenPayload(token: string): TokenPayload {
   const tokenParts = token.split('.');
   if (tokenParts.length !== 3) {
@@ -51,7 +50,7 @@ let fsOps: {
 
 async function getFsOps() {
   if (fsOps) return fsOps;
-  
+
   // only load filesystem operations in node environments
   if (typeof process === 'undefined' || !process.versions?.node) {
     // return no-op implementations for browser
@@ -71,7 +70,7 @@ async function getFsOps() {
       saveToken: fsModule.saveToken,
     };
   }
-  
+
   return fsOps;
 }
 

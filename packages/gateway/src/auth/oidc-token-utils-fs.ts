@@ -18,7 +18,7 @@ export async function getUserDataDir(): Promise<string | null> {
   try {
     const os = await import('os');
     const path = await import('path');
-    
+
     switch (os.platform()) {
       case 'darwin':
         return path.join(os.homedir(), 'Library/Application Support');
@@ -43,7 +43,7 @@ export async function findRootDir(): Promise<string | null> {
   try {
     const path = await import('path');
     const { promises: fs } = await import('fs');
-    
+
     let dir = process.cwd();
     while (dir !== path.dirname(dir)) {
       const vercelPath = path.join(dir, '.vercel');
@@ -73,7 +73,7 @@ export async function findProjectInfo(): Promise<{
   try {
     const path = await import('path');
     const { promises: fs } = await import('fs');
-    
+
     const prjPath = path.join(dir, '.vercel', 'project.json');
     const prj = JSON.parse(await fs.readFile(prjPath, 'utf8'));
     if (typeof prj.projectId !== 'string') {
@@ -93,7 +93,7 @@ export async function getVercelCliToken(): Promise<string | null> {
   try {
     const path = await import('path');
     const { promises: fs } = await import('fs');
-    
+
     const dataDir = await getUserDataDir();
     if (!dataDir) {
       return null;
@@ -115,7 +115,7 @@ export async function saveToken(
   try {
     const path = await import('path');
     const { promises: fs } = await import('fs');
-    
+
     const dir = await getUserDataDir();
     if (!dir) {
       throw new GatewayAuthenticationError({
@@ -150,7 +150,7 @@ export async function loadToken(
   try {
     const path = await import('path');
     const { promises: fs } = await import('fs');
-    
+
     const dir = await getUserDataDir();
     if (!dir) {
       return null;

@@ -125,19 +125,18 @@ describe('oidc token utils', () => {
       global.process = originalProcess;
       vi.clearAllMocks();
     });
-
   });
 
   describe('filesystem module isolation', () => {
     it('verifies dynamic imports are used for fs operations', async () => {
       const originalProcess = global.process;
-      
+
       // @ts-ignore
       global.process = undefined;
-      
+
       const result = await tryRefreshOidcToken();
       expect(result).toBe(null);
-      
+
       global.process = originalProcess;
     });
   });
