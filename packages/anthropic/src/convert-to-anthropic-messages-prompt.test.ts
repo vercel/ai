@@ -2,6 +2,74 @@ import { describe, it, expect } from 'vitest';
 import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 
+describe('assistant message content ordering', () => {
+  it('should reorder mixed assistant content with text before tool calls', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'generate 10 items' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tool-example-123',
+              toolName: 'json',
+              input: {
+                message: 'generate 10 items',
+              },
+            },
+            {
+              type: 'text',
+              text: 'I generated code for 10 items.',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'tool-example-123',
+              toolName: 'json',
+              output: {
+                type: 'json',
+                value: {
+                  code: 'export const code = () => [...]',
+                  packageJson: '{}',
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'generate 100 items' }],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    // Verify assistant message has reordered content: text before tool_use
+    const assistantMsg = result.prompt.messages.find(m => m.role === 'assistant');
+    expect(assistantMsg).toBeDefined();
+    
+    const hasToolUse = assistantMsg!.content.some(c => c.type === 'tool_use');
+    const hasText = assistantMsg!.content.some(c => c.type === 'text');
+    
+    if (hasToolUse && hasText) {
+      const contentTypes = assistantMsg!.content.map(c => c.type);
+      expect(contentTypes).toEqual(['text', 'tool_use']); // Text should appear before tool_use
+    }
+    
+    expect(result.prompt.messages).toBeDefined();
+    expect(assistantMsg!.content).toHaveLength(2);
+  });
+});
+
 describe('system messages', () => {
   it('should convert a single system message into an anthropic system message', async () => {
     const result = await convertToAnthropicMessagesPrompt({
@@ -274,6 +342,110 @@ describe('user messages', () => {
 });
 
 describe('tool messages', () => {
+  it('should handle tool calls followed by tool results and user messages', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'generate 10 items' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tool-example-123',
+              toolName: 'json',
+              input: {
+                message: 'generate 10 items',
+              },
+            },
+            {
+              type: 'text',
+              text: 'I generated code for 10 items.',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'tool-example-123',
+              toolName: 'json',
+              output: {
+                type: 'json',
+                value: {
+                  code: 'export const code = () => [...]',
+                  packageJson: '{}',
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'generate 100 items' }],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'generate 10 items', cache_control: undefined }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I generated code for 10 items.',
+                cache_control: undefined,
+              },
+              {
+                type: 'tool_use',
+                id: 'tool-example-123',
+                name: 'json',
+                input: {
+                  message: 'generate 10 items',
+                },
+                cache_control: undefined,
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [
+              // Tool result must appear FIRST to satisfy Anthropic's validation
+              {
+                type: 'tool_result',
+                tool_use_id: 'tool-example-123',
+                is_error: undefined,
+                content: JSON.stringify({
+                  code: 'export const code = () => [...]',
+                  packageJson: '{}',
+                }),
+                cache_control: undefined,
+              },
+              {
+                type: 'text',
+                text: 'generate 100 items',
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
   it('should convert a single tool result into an anthropic user message', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
@@ -1858,5 +2030,322 @@ describe('citations', () => {
         },
       }
     `);
+  });
+});
+
+describe('role: "tool" message handling edge cases', () => {
+  describe('message block boundary cases', () => {
+    it('should handle tool message immediately after system message', async () => {
+      const warnings: LanguageModelV2CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Use this tool' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'test-123',
+                toolName: 'json',
+                input: { query: 'test' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'test-123',
+                toolName: 'json',
+                output: { type: 'json', value: { result: 'system boundary test' } },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What happened?' }],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "text": "Use this tool",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "test-123",
+                    "input": {
+                      "query": "test",
+                    },
+                    "name": "json",
+                    "type": "tool_use",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "content": "{"result":"system boundary test"}",
+                    "is_error": undefined,
+                    "tool_use_id": "test-123",
+                    "type": "tool_result",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "text": "What happened?",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "system": [
+              {
+                "cache_control": undefined,
+                "text": "You are a helpful assistant.",
+                "type": "text",
+              },
+            ],
+          },
+        }
+      `);
+    });
+  });
+
+  describe('tool message ordering and combinations', () => {
+    it('should handle consecutive role: "tool" messages', async () => {
+      const warnings: LanguageModelV2CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Run multiple tools' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tool-1',
+                toolName: 'json',
+                input: { query: 'first' },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'tool-2',
+                toolName: 'json',
+                input: { query: 'second' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'tool-1',
+                toolName: 'json',
+                output: { type: 'json', value: { result: 'first' } },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'tool-2',
+                toolName: 'json',
+                output: { type: 'json', value: { result: 'second' } },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What are the results?' }],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "text": "Run multiple tools",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "tool-1",
+                    "input": {
+                      "query": "first",
+                    },
+                    "name": "json",
+                    "type": "tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "id": "tool-2",
+                    "input": {
+                      "query": "second",
+                    },
+                    "name": "json",
+                    "type": "tool_use",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "content": "{"result":"first"}",
+                    "is_error": undefined,
+                    "tool_use_id": "tool-1",
+                    "type": "tool_result",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": "{"result":"second"}",
+                    "is_error": undefined,
+                    "tool_use_id": "tool-2",
+                    "type": "tool_result",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "text": "What are the results?",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
+    });
+
+    it('should handle orphaned tool message at conversation end', async () => {
+      const warnings: LanguageModelV2CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Generate something' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'orphan-tool',
+                toolName: 'json',
+                input: { query: 'test' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'orphan-tool',
+                toolName: 'json',
+                output: { type: 'json', value: { data: 'orphaned' } },
+              },
+            ],
+          },
+          // No user message after tool - this is the "orphaned" case
+        ],
+        sendReasoning: false,
+        warnings,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "text": "Generate something",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "orphan-tool",
+                    "input": {
+                      "query": "test",
+                    },
+                    "name": "json",
+                    "type": "tool_use",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "content": "{"data":"orphaned"}",
+                    "is_error": undefined,
+                    "tool_use_id": "orphan-tool",
+                    "type": "tool_result",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
+    });
   });
 });

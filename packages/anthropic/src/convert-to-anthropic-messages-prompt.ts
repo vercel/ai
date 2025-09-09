@@ -281,25 +281,26 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   case 'text':
                   case 'error-text':
-                    contentValue = output.value;
+                    contentValue = output.value as string;
                     break;
                   case 'json':
                   case 'error-json':
                   default:
-                    contentValue = JSON.stringify(output.value);
+                    contentValue = typeof output.value === 'string' 
+                      ? output.value 
+                      : JSON.stringify(output.value);
                     break;
                 }
 
-                anthropicContent.push({
+                const toolResult: AnthropicToolResultContent = {
                   type: 'tool_result',
                   tool_use_id: part.toolCallId,
                   content: contentValue,
-                  is_error:
-                    output.type === 'error-text' || output.type === 'error-json'
-                      ? true
-                      : undefined,
+                  is_error: (output.type === 'error-text' || output.type === 'error-json') ? true : undefined,
                   cache_control: cacheControl,
-                });
+                };
+
+                anthropicContent.push(toolResult);
               }
 
               break;
@@ -531,7 +532,25 @@ export async function convertToAnthropicMessagesPrompt({
           }
         }
 
-        messages.push({ role: 'assistant', content: anthropicContent });
+        // Reorder assistant content to ensure text content appears before tool_use parts  
+        // This satisfies Anthropic's requirement that tool_use be the final element before tool_result
+        // while preserving the single assistant message structure (prevents role alternation issues)
+        const toolUseParts = anthropicContent.filter(
+          part => part.type === 'tool_use' || part.type === 'server_tool_use',
+        );
+        const textParts = anthropicContent.filter(
+          part => part.type === 'text',
+        );
+        const otherParts = anthropicContent.filter(
+          part => part.type !== 'tool_use' && part.type !== 'server_tool_use' && part.type !== 'text',
+        );
+        
+        const reorderedContent = 
+          toolUseParts.length > 0 && textParts.length > 0
+            ? [...textParts, ...otherParts, ...toolUseParts]
+            : anthropicContent;
+
+        messages.push({ role: 'assistant', content: reorderedContent });
 
         break;
       }
