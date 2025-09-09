@@ -2416,7 +2416,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             status: 'completed',
             error: null,
             incomplete_details: null,
-            input: [],
+            input: { queries: ['AI information'] },
             instructions: null,
             max_output_tokens: null,
             model: 'gpt-4o-mini-2024-07-18',
@@ -2495,7 +2495,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "",
+              "input": "{"queries":["AI information"]}",
               "providerExecuted": true,
               "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
               "toolName": "file_search",
@@ -3795,7 +3795,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "tool-input-end",
               },
               {
-                "input": "",
+                "input": "{"queries":[]}",
                 "providerExecuted": true,
                 "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
                 "toolName": "file_search",
@@ -3891,7 +3891,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "tool-input-end",
               },
               {
-                "input": "",
+                "input": "{"queries":["AI information"]}",
                 "providerExecuted": true,
                 "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
                 "toolName": "file_search",
