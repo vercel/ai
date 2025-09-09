@@ -293,22 +293,22 @@ describe('OpenAICompatibleProvider', () => {
 
       provider.completionModel('completion-model');
       expect(
+        // @ts-expect-error - testing
         OpenAICompatibleCompletionLanguageModelMock.mock.calls[0][1]
-          // @ts-expect-error - testing
           .supportsStructuredOutputs,
       ).toBe(undefined);
 
       provider.textEmbeddingModel('embedding-model');
       expect(
+        // @ts-expect-error - testing
         OpenAICompatibleEmbeddingModelMock.mock.calls[0][1]
-          // @ts-expect-error - testing
           .supportsStructuredOutputs,
       ).toBe(undefined);
 
       provider.imageModel('image-model');
       expect(
+        // @ts-expect-error - testing
         OpenAICompatibleImageModelMock.mock.calls[0][1]
-          // @ts-expect-error - testing
           .supportsStructuredOutputs,
       ).toBe(undefined);
     });
