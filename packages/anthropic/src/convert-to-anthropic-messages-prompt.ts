@@ -311,21 +311,7 @@ export async function convertToAnthropicMessagesPrompt({
           }
         }
 
-        // Reorder content parts to ensure tool_result blocks appear first
-        // This satisfies Claude's "tool_result immediately after tool_use" validation
-        // while preserving the intentional message combining from #2067 (role alternation fix #2047)
-        const toolResultParts = anthropicContent.filter(
-          part => part.type === 'tool_result',
-        );
-        const otherParts = anthropicContent.filter(
-          part => part.type !== 'tool_result',
-        );
-        const reorderedContent =
-          toolResultParts.length > 0
-            ? [...toolResultParts, ...otherParts]
-            : anthropicContent;
-
-        messages.push({ role: 'user', content: reorderedContent });
+        messages.push({ role: 'user', content: anthropicContent });
 
         break;
       }
@@ -577,6 +563,7 @@ function groupIntoBlocks(
           currentBlock = { type: 'system', messages: [] };
           blocks.push(currentBlock);
         }
+
         currentBlock.messages.push(message);
         break;
       }
@@ -585,6 +572,7 @@ function groupIntoBlocks(
           currentBlock = { type: 'assistant', messages: [] };
           blocks.push(currentBlock);
         }
+
         currentBlock.messages.push(message);
         break;
       }
@@ -593,6 +581,7 @@ function groupIntoBlocks(
           currentBlock = { type: 'user', messages: [] };
           blocks.push(currentBlock);
         }
+
         currentBlock.messages.push(message);
         break;
       }
@@ -601,6 +590,7 @@ function groupIntoBlocks(
           currentBlock = { type: 'user', messages: [] };
           blocks.push(currentBlock);
         }
+
         currentBlock.messages.push(message);
         break;
       }
