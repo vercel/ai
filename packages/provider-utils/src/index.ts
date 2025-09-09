@@ -3,7 +3,7 @@ export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-t
 export * from './delay';
 export * from './extract-response-headers';
 export * from './fetch-function';
-export { createUserAgentFetch } from './fetch-with-user-agent';
+export { createUserAgentFetch, withUserAgentSuffix } from './fetch-with-user-agent';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
@@ -52,10 +52,3 @@ export {
 
 // user-agent exports
 export * from './version';
-export {
-  buildUserAgent,
-  mergeUserAgentHeader,
-  canSetUserAgent,
-  getUserAgent,
-} from './user-agent';
-export type { UserAgentParts } from './user-agent';

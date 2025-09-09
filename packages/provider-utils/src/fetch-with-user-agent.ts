@@ -29,12 +29,32 @@ function getRuntimeEnvironmentUserAgent(): string {
   return '<unknown runtime>';
 }
 
+export function withUserAgentSuffix(
+  headers: HeadersInit | undefined,
+  ...userAgentSuffixParts: string[]
+): Record<string, string> {
+  const normalizedHeaders = new Headers(headers);
+  const currentUserAgentHeader = normalizedHeaders.get('user-agent') || '';
+
+  normalizedHeaders.set(
+    'user-agent',
+    [
+      currentUserAgentHeader,
+      ...userAgentSuffixParts
+    ]
+      .filter(Boolean)
+      .join(' '),
+  );
+
+  return Object.fromEntries(normalizedHeaders);
+}
+
 /**
  * Creates a fetch function that ensures a normalized `user-agent` header is set (Node-only).
  * - If a `user-agent` is already provided, it is left unchanged.
  * - No-ops in browser/edge runtimes where setting `user-agent` is disallowed.
  */
-export function createUserAgentFetch(baseFetch?: FetchFunction, userAgent?: string): FetchFunction {
+export function createUserAgentFetch(baseFetch?: FetchFunction): FetchFunction {
   const effectiveFetch: FetchFunction = baseFetch ?? (globalThis.fetch as any);
 
   return async (input: string | URL | Request, init?: RequestInit) => {
@@ -53,25 +73,11 @@ export function createUserAgentFetch(baseFetch?: FetchFunction, userAgent?: stri
     }
 
     const url = String(input);
-    const headers = new Headers(init?.headers);
-
-    const currentUserAgentHeader = headers.get('user-agent') || '';
-
-    headers.set(
-      'user-agent',
-      [
-        currentUserAgentHeader,
-        userAgent,
-        `ai-sdk/provider-utils/${PROVIDER_UTILS_VERSION}`,
-        getRuntimeEnvironmentUserAgent(),
-      ]
-        .filter(Boolean)
-        .join(' '),
-    );
+    const headers = withUserAgentSuffix(init.headers, `ai-sdk/provider-utils/${PROVIDER_UTILS_VERSION}`, getRuntimeEnvironmentUserAgent());
 
     return effectiveFetch(url, {
       ...init,
-      headers
+      headers,
     });
   };
 }
