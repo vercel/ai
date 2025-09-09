@@ -15,6 +15,15 @@ export function getRuntimeEnvironmentUserAgent(): string {
   return '<unknown runtime>';
 }
 
+/**
+ * Appends suffix parts to the `user-agent` header.
+ * If a `user-agent` header already exists, the suffix parts are appended to it.
+ * If no `user-agent` header exists, a new one is created with the suffix parts.
+ *
+ * @param headers - The original headers.
+ * @param userAgentSuffixParts - The parts to append to the `user-agent` header.
+ * @returns The new headers with the `user-agent` header set or updated.
+ */
 export function withUserAgentSuffix(
   headers: HeadersInit | undefined,
   ...userAgentSuffixParts: string[]
@@ -31,9 +40,7 @@ export function withUserAgentSuffix(
 }
 
 /**
- * Creates a fetch function that ensures a normalized `user-agent` header is set (Node-only).
- * - If a `user-agent` is already provided, it is left unchanged.
- * - No-ops in browser/edge runtimes where setting `user-agent` is disallowed.
+ * Creates a fetch function that adds a `user-agent` header to each request.
  */
 export function createUserAgentFetch(baseFetch?: FetchFunction): FetchFunction {
   const effectiveFetch: FetchFunction = baseFetch ?? (globalThis.fetch as any);
@@ -41,10 +48,7 @@ export function createUserAgentFetch(baseFetch?: FetchFunction): FetchFunction {
   return async (input: string | URL | Request, init?: RequestInit) => {
     // normalize arguments
     if (input instanceof Request) {
-      init = {
-        ...init,
-        headers: input.headers,
-      };
+      init = input;
       input = input.url;
     }
 

@@ -1683,7 +1683,10 @@ describe('generateText', () => {
       const result = await generateText({
         model: new MockLanguageModelV2({
           doGenerate: async ({ headers }) => {
-            assert.equal(headers?.['custom-request-header'], 'request-header-value');
+            assert.equal(
+              headers?.['custom-request-header'],
+              'request-header-value',
+            );
 
             return {
               ...dummyResponseValues,

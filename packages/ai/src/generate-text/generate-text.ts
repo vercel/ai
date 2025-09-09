@@ -258,7 +258,10 @@ A function that attempts to repair a tool call that failed to parse.
 
   const callSettings = prepareCallSettings(settings);
 
-  const headersWithUserAgent = withUserAgentSuffix(removeUndefinedEntries(headers ?? {}), `ai/${VERSION}`);
+  const headersWithUserAgent = withUserAgentSuffix(
+    removeUndefinedEntries(headers ?? {}),
+    `ai/${VERSION}`,
+  );
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
