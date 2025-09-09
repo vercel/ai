@@ -91,10 +91,7 @@ describe('tool type', () => {
     it('should infer toModelOutput argument when there is an execute function', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
-        // outputSchema: z.literal('test'),
-        execute: async input => {
-          return 'test' as const;
-        },
+        execute: async () => 'test' as const,
         toModelOutput: output => {
           expectTypeOf(output).toEqualTypeOf<'test'>();
           return { type: 'text', value: 'test' };
