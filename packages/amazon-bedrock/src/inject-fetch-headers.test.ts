@@ -18,9 +18,8 @@ describe('injectFetchHeaders', () => {
     globalThis.fetch = mockFetch;
 
     const customHeaders = {
-      'x-custom-header': 'custom-value',
-      authorization: 'Bearer token',
-      'user-agent': expect.any(String),
+      'X-Custom-Header': 'custom-value',
+      Authorization: 'Bearer token',
     };
 
     const enhancedFetch = injectFetchHeaders(customHeaders);
@@ -39,9 +38,7 @@ describe('injectFetchHeaders', () => {
     globalThis.fetch = mockFetch;
 
     const customHeaders = {
-      'x-custom-header': 'custom-value',
-      authorization: 'Bearer token',
-      'user-agent': expect.any(String),
+      'X-Custom-Header': 'custom-value',
     };
 
     const existingHeaders = {
@@ -58,9 +55,7 @@ describe('injectFetchHeaders', () => {
       expect.objectContaining({
         headers: {
           'content-type': 'application/json',
-          'x-custom-header': 'custom-value',
-          authorization: 'Bearer token',
-          'user-agent': expect.any(String),
+          'X-Custom-Header': 'custom-value',
         },
       }),
     );
@@ -71,9 +66,7 @@ describe('injectFetchHeaders', () => {
     globalThis.fetch = mockFetch;
 
     const customHeaders = {
-      'x-custom-header': 'custom-value',
-      authorization: 'Bearer token',
-      'user-agent': expect.any(String),
+      'X-Custom-Header': 'custom-value',
     };
 
     const enhancedFetch = injectFetchHeaders(customHeaders);
@@ -94,9 +87,7 @@ describe('injectFetchHeaders', () => {
     globalThis.fetch = mockFetch;
 
     const customHeaders = {
-      'x-custom-header': 'custom-value',
-      authorization: 'Bearer token',
-      'user-agent': expect.any(String),
+      'X-Custom-Header': 'custom-value',
     };
 
     const existingHeaders = new Headers({
@@ -113,9 +104,7 @@ describe('injectFetchHeaders', () => {
       expect.objectContaining({
         headers: {
           'content-type': 'application/json',
-          'x-custom-header': 'custom-value',
-          authorization: 'Bearer token',
-          'user-agent': expect.any(String),
+          'X-Custom-Header': 'custom-value',
         },
       }),
     );

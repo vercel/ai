@@ -514,8 +514,7 @@ describe('createApiKeyFetchFunction', () => {
         method: 'POST',
         body: '{"test": "data"}',
         headers: {
-          authorization: 'Bearer test-api-key-default',
-          'user-agent': expect.any(String),
+          Authorization: 'Bearer test-api-key-default',
         },
       });
     } finally {
