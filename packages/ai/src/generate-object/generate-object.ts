@@ -4,6 +4,8 @@ import {
   InferSchema,
   ProviderOptions,
   Schema,
+  removeUndefinedEntries,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
@@ -42,6 +44,7 @@ import { getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 import { RepairTextFunction } from './repair-text';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { VERSION } from '../version';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -262,10 +265,15 @@ Default and recommended: 'auto' (best mode for the model).
 
   const callSettings = prepareCallSettings(settings);
 
+  const headersWithUserAgent = withUserAgentSuffix(
+    removeUndefinedEntries(headers ?? {}),
+    `ai/${VERSION}`,
+  );
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers,
+    headers: headersWithUserAgent,
     settings: { ...callSettings, maxRetries },
   });
 
@@ -358,7 +366,7 @@ Default and recommended: 'auto' (best mode for the model).
                 prompt: promptMessages,
                 providerOptions,
                 abortSignal,
-                headers,
+                headers: headersWithUserAgent,
               });
 
               const responseData = {
