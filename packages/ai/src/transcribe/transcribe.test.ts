@@ -90,39 +90,13 @@ describe('transcribe', () => {
       abortSignal,
     });
 
-    const {
-      audio: capturedAudio,
-      mediaType: capturedMediaType,
-      abortSignal: capturedAbortSignal,
-      providerOptions,
-      headers: rawHeaders,
-    } = capturedArgs;
-
-    const headers: Record<string, string | undefined> = rawHeaders ?? {};
-    const headersWithoutUA = Object.fromEntries(
-      Object.entries(headers).filter(
-        ([key, value]) =>
-          key.toLowerCase() !== 'user-agent' && value !== undefined,
-      ),
-    ) as Record<string, string>;
-
-    expect({
-      audio: capturedAudio,
-      mediaType: capturedMediaType,
-      providerOptions,
-      abortSignal: capturedAbortSignal,
-    }).toStrictEqual({
+    expect(capturedArgs).toStrictEqual({
       audio: audioData,
       mediaType: 'audio/wav',
-      providerOptions: {},
+      headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
+      providerOptions: {},
     });
-
-    expect(headersWithoutUA).toStrictEqual({
-      'custom-request-header': 'request-header-value',
-    });
-
-    expect(typeof headers['user-agent']).toBe('string');
   });
 
   it('should return warnings', async () => {

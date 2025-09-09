@@ -1,7 +1,4 @@
-import {
-  EventSourceParserStream,
-  createUserAgentFetch,
-} from '@ai-sdk/provider-utils';
+import { EventSourceParserStream } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../../error/mcp-client-error';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
@@ -43,7 +40,6 @@ export class SseMCPTransport implements MCPTransport {
         try {
           const headers = new Headers(this.headers);
           headers.set('Accept', 'text/event-stream');
-          const fetch = createUserAgentFetch(globalThis.fetch);
           const response = await fetch(this.url.href, {
             headers,
             signal: this.abortController?.signal,
@@ -162,7 +158,6 @@ export class SseMCPTransport implements MCPTransport {
         signal: this.abortController?.signal,
       };
 
-      const fetch = createUserAgentFetch(globalThis.fetch);
       const response = await fetch(this.endpoint, init);
 
       if (!response.ok) {

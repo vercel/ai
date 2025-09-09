@@ -11,7 +11,6 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { EmbedManyResult } from './embed-many-result';
-import { withAISDKUserAgent } from '../util/user-agent';
 
 /**
 Embed several values using an embedding model. The type of the value is defined
@@ -93,12 +92,10 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
-  const headersWithUserAgent = withAISDKUserAgent(headers);
-
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers: headersWithUserAgent,
+    headers,
     settings: { maxRetries },
   });
 
@@ -151,7 +148,7 @@ Only applicable for HTTP-based providers.
                 const modelResponse = await model.doEmbed({
                   values,
                   abortSignal,
-                  headers: headersWithUserAgent,
+                  headers,
                   providerOptions,
                 });
 
@@ -252,7 +249,7 @@ Only applicable for HTTP-based providers.
                   const modelResponse = await model.doEmbed({
                     values: chunk,
                     abortSignal,
-                    headers: headersWithUserAgent,
+                    headers,
                     providerOptions,
                   });
 

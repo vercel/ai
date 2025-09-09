@@ -42,7 +42,6 @@ import { getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 import { RepairTextFunction } from './repair-text';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { withAISDKUserAgent } from '../util/user-agent';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -263,12 +262,10 @@ Default and recommended: 'auto' (best mode for the model).
 
   const callSettings = prepareCallSettings(settings);
 
-  const headersWithUserAgent = withAISDKUserAgent(headers);
-
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers: headersWithUserAgent,
+    headers,
     settings: { ...callSettings, maxRetries },
   });
 
@@ -361,7 +358,7 @@ Default and recommended: 'auto' (best mode for the model).
                 prompt: promptMessages,
                 providerOptions,
                 abortSignal,
-                headers: headersWithUserAgent,
+                headers,
               });
 
               const responseData = {

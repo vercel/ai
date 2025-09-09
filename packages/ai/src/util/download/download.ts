@@ -1,5 +1,4 @@
 import { DownloadError } from './download-error';
-import { createUserAgentFetch } from '@ai-sdk/provider-utils';
 
 /**
  * Download a file from a URL.
@@ -12,7 +11,7 @@ import { createUserAgentFetch } from '@ai-sdk/provider-utils';
 export const download = async ({ url }: { url: URL }) => {
   const urlText = url.toString();
   try {
-    const response = await createUserAgentFetch(globalThis.fetch)(urlText);
+    const response = await fetch(urlText);
 
     if (!response.ok) {
       throw new DownloadError({

@@ -15,7 +15,6 @@ import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
 import { logWarnings } from '../logger/log-warnings';
-import { withAISDKUserAgent } from '../util/user-agent';
 
 /**
 Generates images using an image model.
@@ -129,8 +128,6 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
-  const headersWithUserAgent = withAISDKUserAgent(headers);
-
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
   const maxImagesPerCallWithDefault =
@@ -154,7 +151,7 @@ Only applicable for HTTP-based providers.
           prompt,
           n: callImageCount,
           abortSignal,
-          headers: headersWithUserAgent,
+          headers,
           size,
           aspectRatio,
           seed,

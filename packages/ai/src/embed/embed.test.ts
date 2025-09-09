@@ -108,10 +108,9 @@ describe('options.headers', () => {
     const result = await embed({
       model: new MockEmbeddingModelV2({
         doEmbed: async ({ headers }) => {
-          expect(headers?.['custom-request-header']).toBe(
-            'request-header-value',
-          );
-          expect(typeof headers?.['user-agent']).toBe('string');
+          assert.deepStrictEqual(headers, {
+            'custom-request-header': 'request-header-value',
+          });
 
           return { embeddings: [dummyEmbedding] };
         },

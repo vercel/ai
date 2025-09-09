@@ -44,7 +44,6 @@ import { stepCountIs } from './stop-condition';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
-import { sanitizeUserAgent } from '../test/sanitize-for-snapshot';
 
 const defaultSettings = () =>
   ({
@@ -6696,14 +6695,12 @@ describe('streamText', () => {
 
       it('should contain all doStream calls', async () => {
         await result.consumeStream();
-        expect(sanitizeUserAgent(doStreamCalls)).toMatchInlineSnapshot(`
+        expect(doStreamCalls).toMatchInlineSnapshot(`
           [
             {
               "abortSignal": undefined,
               "frequencyPenalty": undefined,
-              "headers": {
-                "user-agent": "<UA-REDACTED>",
-              },
+              "headers": undefined,
               "includeRawChunks": false,
               "maxOutputTokens": undefined,
               "presencePenalty": undefined,
@@ -6759,9 +6756,7 @@ describe('streamText', () => {
             {
               "abortSignal": undefined,
               "frequencyPenalty": undefined,
-              "headers": {
-                "user-agent": "<UA-REDACTED>",
-              },
+              "headers": undefined,
               "includeRawChunks": false,
               "maxOutputTokens": undefined,
               "presencePenalty": undefined,
@@ -8108,7 +8103,6 @@ describe('streamText', () => {
                 "ai.model.provider": "mock-provider",
                 "ai.operationId": "ai.streamText",
                 "ai.prompt": "{"prompt":"test-input"}",
-                "ai.request.headers.user-agent": "<UA-REDACTED>",
                 "ai.response.finishReason": "stop",
                 "ai.response.text": "Hello, world!",
                 "ai.settings.maxRetries": 2,
@@ -8132,7 +8126,6 @@ describe('streamText', () => {
                 "ai.prompt.tools": [
                   "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
                 ],
-                "ai.request.headers.user-agent": "<UA-REDACTED>",
                 "ai.response.avgOutputTokensPerSecond": 20,
                 "ai.response.finishReason": "tool-calls",
                 "ai.response.id": "id-0",
@@ -8193,7 +8186,6 @@ describe('streamText', () => {
                 "ai.prompt.tools": [
                   "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
                 ],
-                "ai.request.headers.user-agent": "<UA-REDACTED>",
                 "ai.response.avgOutputTokensPerSecond": 25,
                 "ai.response.finishReason": "stop",
                 "ai.response.id": "id-1",
@@ -8590,10 +8582,9 @@ describe('streamText', () => {
       const result = streamText({
         model: new MockLanguageModelV2({
           doStream: async ({ headers }) => {
-            expect(headers?.['custom-request-header']).toBe(
-              'request-header-value',
-            );
-            expect(typeof headers?.['user-agent']).toBe('string');
+            expect(headers).toStrictEqual({
+              'custom-request-header': 'request-header-value',
+            });
 
             return {
               stream: convertArrayToReadableStream([
@@ -11445,13 +11436,11 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(sanitizeUserAgent(callOptions)).toMatchInlineSnapshot(`
+        expect(callOptions).toMatchInlineSnapshot(`
           {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
-            "headers": {
-              "user-agent": "<UA-REDACTED>",
-            },
+            "headers": undefined,
             "includeRawChunks": false,
             "maxOutputTokens": undefined,
             "presencePenalty": undefined,

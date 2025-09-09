@@ -56,7 +56,6 @@ import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-obj
 import { RepairTextFunction } from './repair-text';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { withAISDKUserAgent } from '../util/user-agent';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -445,12 +444,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
     const callSettings = prepareCallSettings(settings);
 
-    const headersWithUserAgent = withAISDKUserAgent(headers);
-
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model,
       telemetry,
-      headers: headersWithUserAgent,
+      headers,
       settings: { ...callSettings, maxRetries },
     });
 
@@ -522,7 +519,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           }),
           providerOptions,
           abortSignal,
-          headers: headersWithUserAgent,
+          headers,
           includeRawChunks: false,
         };
 

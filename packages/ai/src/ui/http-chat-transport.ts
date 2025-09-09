@@ -1,9 +1,4 @@
-import {
-  FetchFunction,
-  Resolvable,
-  resolve,
-  createUserAgentFetch,
-} from '@ai-sdk/provider-utils';
+import { FetchFunction, Resolvable, resolve } from '@ai-sdk/provider-utils';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { ChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
@@ -189,7 +184,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const credentials = preparedRequest?.credentials ?? resolvedCredentials;
 
     // avoid caching globalThis.fetch in case it is patched by other libraries
-    const fetch = createUserAgentFetch(this.fetch ?? globalThis.fetch);
+    const fetch = this.fetch ?? globalThis.fetch;
 
     const response = await fetch(api, {
       method: 'POST',
@@ -239,7 +234,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const credentials = preparedRequest?.credentials ?? resolvedCredentials;
 
     // avoid caching globalThis.fetch in case it is patched by other libraries
-    const fetch = createUserAgentFetch(this.fetch ?? globalThis.fetch);
+    const fetch = this.fetch ?? globalThis.fetch;
 
     const response = await fetch(api, {
       method: 'GET',

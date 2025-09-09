@@ -15,27 +15,12 @@ export class MockTracer implements Tracer {
   spans: MockSpan[] = [];
 
   get jsonSpans() {
-    return this.spans.map(span => {
-      const sanitizedAttributes = { ...span.attributes } as Record<
-        string,
-        unknown
-      >;
-      for (const key of Object.keys(sanitizedAttributes)) {
-        const lowerKey = key.toLowerCase();
-        if (
-          (lowerKey === 'user-agent' || lowerKey.endsWith('.user-agent')) &&
-          typeof sanitizedAttributes[key] === 'string'
-        ) {
-          sanitizedAttributes[key] = '<UA-REDACTED>';
-        }
-      }
-      return {
-        name: span.name,
-        attributes: sanitizedAttributes,
-        events: span.events,
-        ...(span.status && { status: span.status }),
-      };
-    });
+    return this.spans.map(span => ({
+      name: span.name,
+      attributes: span.attributes,
+      events: span.events,
+      ...(span.status && { status: span.status }),
+    }));
   }
 
   startSpan(name: string, options?: SpanOptions, context?: Context): Span {

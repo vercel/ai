@@ -8,7 +8,6 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel } from '../types';
 import { prepareRetries } from '../util/prepare-retries';
-import { withAISDKUserAgent } from '../util/user-agent';
 import { EmbedResult } from './embed-result';
 
 /**
@@ -79,12 +78,10 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
-  const headersWithUserAgent = withAISDKUserAgent(headers);
-
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model: model,
     telemetry,
-    headers: headersWithUserAgent,
+    headers,
     settings: { maxRetries },
   });
 
@@ -123,7 +120,7 @@ Only applicable for HTTP-based providers.
             const modelResponse = await model.doEmbed({
               values: [value],
               abortSignal,
-              headers: headersWithUserAgent,
+              headers,
               providerOptions,
             });
 

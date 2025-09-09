@@ -1,8 +1,4 @@
-import {
-  parseJsonEventStream,
-  ParseResult,
-  createUserAgentFetch,
-} from '@ai-sdk/provider-utils';
+import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
 import {
   UIMessageChunk,
   uiMessageChunkSchema,
@@ -52,8 +48,7 @@ export async function callCompletionApi({
     // Empty the completion immediately.
     setCompletion('');
 
-    const userAgentFetch = createUserAgentFetch(fetch);
-    const response = await userAgentFetch(api, {
+    const response = await fetch(api, {
       method: 'POST',
       body: JSON.stringify({
         prompt,

@@ -30,7 +30,6 @@ import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
-import { sanitizeUserAgent } from '../test/sanitize-for-snapshot';
 
 const dummyResponseValues = {
   finishReason: 'stop' as const,
@@ -1678,10 +1677,9 @@ describe('generateText', () => {
       const result = await generateText({
         model: new MockLanguageModelV2({
           doGenerate: async ({ headers }) => {
-            expect(headers?.['custom-request-header']).toBe(
-              'request-header-value',
-            );
-            expect(typeof headers?.['user-agent']).toBe('string');
+            assert.deepStrictEqual(headers, {
+              'custom-request-header': 'request-header-value',
+            });
 
             return {
               ...dummyResponseValues,
@@ -1932,7 +1930,6 @@ describe('generateText', () => {
               "ai.model.provider": "mock-provider",
               "ai.operationId": "ai.generateText",
               "ai.prompt": "{"prompt":"test-input"}",
-              "ai.request.headers.user-agent": "<UA-REDACTED>",
               "ai.response.finishReason": "stop",
               "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
               "ai.settings.maxRetries": 2,
@@ -1953,7 +1950,6 @@ describe('generateText', () => {
               "ai.prompt.tools": [
                 "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
               ],
-              "ai.request.headers.user-agent": "<UA-REDACTED>",
               "ai.response.finishReason": "stop",
               "ai.response.id": "test-id",
               "ai.response.model": "mock-model-id",
@@ -2473,40 +2469,38 @@ describe('generateText', () => {
           experimental_output: Output.text(),
         });
 
-        expect(sanitizeUserAgent(callOptions!)).toMatchInlineSnapshot(`
-          {
-            "abortSignal": undefined,
-            "frequencyPenalty": undefined,
-            "headers": {
-              "user-agent": "<UA-REDACTED>",
+        expect(callOptions!).toMatchInlineSnapshot(`
+        {
+          "abortSignal": undefined,
+          "frequencyPenalty": undefined,
+          "headers": undefined,
+          "maxOutputTokens": undefined,
+          "presencePenalty": undefined,
+          "prompt": [
+            {
+              "content": [
+                {
+                  "text": "prompt",
+                  "type": "text",
+                },
+              ],
+              "providerOptions": undefined,
+              "role": "user",
             },
-            "maxOutputTokens": undefined,
-            "presencePenalty": undefined,
-            "prompt": [
-              {
-                "content": [
-                  {
-                    "text": "prompt",
-                    "type": "text",
-                  },
-                ],
-                "providerOptions": undefined,
-                "role": "user",
-              },
-            ],
-            "providerOptions": undefined,
-            "responseFormat": {
-              "type": "text",
-            },
-            "seed": undefined,
-            "stopSequences": undefined,
-            "temperature": undefined,
-            "toolChoice": undefined,
-            "tools": undefined,
-            "topK": undefined,
-            "topP": undefined,
-          }
-        `);
+          ],
+          "providerOptions": undefined,
+          "responseFormat": {
+            "type": "text",
+          },
+          "seed": undefined,
+          "stopSequences": undefined,
+          "temperature": undefined,
+          "toolChoice": undefined,
+          "tools": undefined,
+          "topK": undefined,
+          "topP": undefined,
+        }
+      `);
       });
     });
 
@@ -2547,53 +2541,51 @@ describe('generateText', () => {
           }),
         });
 
-        expect(sanitizeUserAgent(callOptions!)).toMatchInlineSnapshot(`
-          {
-            "abortSignal": undefined,
-            "frequencyPenalty": undefined,
-            "headers": {
-              "user-agent": "<UA-REDACTED>",
-            },
-            "maxOutputTokens": undefined,
-            "presencePenalty": undefined,
-            "prompt": [
-              {
-                "content": [
-                  {
-                    "text": "prompt",
-                    "type": "text",
-                  },
-                ],
-                "providerOptions": undefined,
-                "role": "user",
-              },
-            ],
-            "providerOptions": undefined,
-            "responseFormat": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "value": {
-                    "type": "string",
-                  },
+        expect(callOptions!).toMatchInlineSnapshot(`
+        {
+          "abortSignal": undefined,
+          "frequencyPenalty": undefined,
+          "headers": undefined,
+          "maxOutputTokens": undefined,
+          "presencePenalty": undefined,
+          "prompt": [
+            {
+              "content": [
+                {
+                  "text": "prompt",
+                  "type": "text",
                 },
-                "required": [
-                  "value",
-                ],
-                "type": "object",
-              },
-              "type": "json",
+              ],
+              "providerOptions": undefined,
+              "role": "user",
             },
-            "seed": undefined,
-            "stopSequences": undefined,
-            "temperature": undefined,
-            "toolChoice": undefined,
-            "tools": undefined,
-            "topK": undefined,
-            "topP": undefined,
-          }
-        `);
+          ],
+          "providerOptions": undefined,
+          "responseFormat": {
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "value",
+              ],
+              "type": "object",
+            },
+            "type": "json",
+          },
+          "seed": undefined,
+          "stopSequences": undefined,
+          "temperature": undefined,
+          "toolChoice": undefined,
+          "tools": undefined,
+          "topK": undefined,
+          "topP": undefined,
+        }
+      `);
       });
     });
   });

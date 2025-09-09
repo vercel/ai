@@ -521,10 +521,9 @@ describe('generateObject', () => {
         const result = await generateObject({
           model: new MockLanguageModelV2({
             doGenerate: async ({ headers }) => {
-              expect(headers?.['custom-request-header']).toBe(
-                'request-header-value',
-              );
-              expect(typeof headers?.['user-agent']).toBe('string');
+              expect(headers).toStrictEqual({
+                'custom-request-header': 'request-header-value',
+              });
 
               return {
                 ...dummyResponseValues,

@@ -708,10 +708,9 @@ describe('streamObject', () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
             doStream: async ({ headers }) => {
-              expect(headers?.['custom-request-header']).toBe(
-                'request-header-value',
-              );
-              expect(typeof headers?.['user-agent']).toBe('string');
+              expect(headers).toStrictEqual({
+                'custom-request-header': 'request-header-value',
+              });
 
               return {
                 stream: convertArrayToReadableStream([

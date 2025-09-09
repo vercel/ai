@@ -36,7 +36,6 @@ export * from './types';
 export * from './ui';
 export * from './ui-message-stream';
 export * from './util';
-export * from './version';
 
 // telemetry types:
 export type { TelemetrySettings } from './telemetry/telemetry-settings';

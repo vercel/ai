@@ -15,7 +15,6 @@ import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
-import { withAISDKUserAgent } from '../util/user-agent';
 
 /**
 Generates speech audio using a speech model.
@@ -128,8 +127,6 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
-  const headersWithUserAgent = withAISDKUserAgent(headers);
-
   const result = await retry(() =>
     model.doGenerate({
       text,
@@ -139,7 +136,7 @@ Only applicable for HTTP-based providers.
       speed,
       language,
       abortSignal,
-      headers: headersWithUserAgent,
+      headers,
       providerOptions,
     }),
   );
