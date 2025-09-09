@@ -1,8 +1,4 @@
-import {
-  loadOptionalSetting,
-  loadSetting,
-  createUserAgentFetch,
-} from '@ai-sdk/provider-utils';
+import { loadOptionalSetting, loadSetting } from '@ai-sdk/provider-utils';
 
 export interface GoogleCredentials {
   /**
@@ -134,7 +130,6 @@ export async function generateAuthToken(credentials?: GoogleCredentials) {
     const creds = credentials || (await loadCredentials());
     const jwt = await buildJwt(creds);
 
-    const fetch = createUserAgentFetch(globalThis.fetch);
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
