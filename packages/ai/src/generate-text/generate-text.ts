@@ -10,6 +10,7 @@ import {
   IdGenerator,
   ProviderOptions,
   ToolApprovalRequest,
+  ToolCallPart,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
@@ -50,7 +51,7 @@ import {
   StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
-import { TypedToolCall } from './tool-call';
+import { StaticToolCall, TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
@@ -293,17 +294,100 @@ A function that attempts to repair a tool call that failed to parse.
       }),
       tracer,
       fn: async span => {
-        // figure out if the last message has approved tool calls
-        // that have not been executed
+        // create tool outputs (either execute or reject)
+        // for tool approval responses
         const lastMessage = initialPrompt.messages.at(-1);
         if (
-          lastMessage?.role === 'assistant' &&
-          !(typeof lastMessage.content === 'string') &&
+          lastMessage?.role === 'tool' &&
           lastMessage.content.find(
-            part =>
-              part.type === 'tool-call' && part.approvalState === 'approved',
+            part => part.type === 'tool-approval-response',
           ) != null
         ) {
+          const toolApprovalResponses = lastMessage.content.filter(
+            part => part.type === 'tool-approval-response',
+          );
+
+          for (const toolApprovalResponse of toolApprovalResponses) {
+            // assume true for now
+            // get approval request by approval id
+            let approvalRequest: ToolApprovalRequest | undefined = undefined;
+
+            for (const message of initialPrompt.messages) {
+              if (
+                message.role === 'assistant' &&
+                !(typeof message.content === 'string')
+              ) {
+                const content = message.content;
+
+                for (const part of content) {
+                  if (
+                    part.type === 'tool-approval-request' &&
+                    part.approvalId === toolApprovalResponse.approvalId
+                  ) {
+                    approvalRequest = part;
+                    break;
+                  }
+                }
+              }
+            }
+
+            const toolCallId = approvalRequest!.toolCallId;
+            let toolCall: ToolCallPart | undefined = undefined;
+            for (const message of initialPrompt.messages) {
+              if (
+                message.role === 'assistant' &&
+                !(typeof message.content === 'string')
+              ) {
+                const content = message.content;
+
+                for (const part of content) {
+                  if (
+                    part.type === 'tool-call' &&
+                    part.toolCallId === toolCallId
+                  ) {
+                    toolCall = part;
+                    break;
+                  }
+                }
+              }
+            }
+
+            const x = await executeTools({
+              toolCalls: [
+                {
+                  type: 'tool-call',
+                  toolCallId: toolCall!.toolCallId,
+                  toolName: toolCall!.toolName as keyof TOOLS & string,
+                  input: toolCall!.input as any,
+                  dynamic: false,
+                } as StaticToolCall<TOOLS>,
+              ],
+              tools: tools!,
+              tracer,
+              telemetry,
+              messages: initialPrompt.messages,
+              abortSignal,
+              experimental_context,
+            });
+
+            lastMessage.content.push(
+              ...x.map(
+                output =>
+                  ({
+                    type: 'tool-result',
+                    toolCallId: output.toolCallId,
+                    toolName: output.toolName,
+                    input: output.input,
+                    output: {
+                      type: 'json',
+                      value: (output as any).output,
+                    },
+                  }) as any,
+              ),
+            );
+
+            console.log(JSON.stringify(lastMessage, null, 2));
+          }
         }
 
         const callSettings = prepareCallSettings(settings);

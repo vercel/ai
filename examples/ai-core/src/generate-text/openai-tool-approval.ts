@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, ModelMessage, tool } from 'ai';
+import { APICallError, generateText, ModelMessage, tool } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod/v4';
 
@@ -53,4 +53,9 @@ async function main() {
   console.log(JSON.stringify(result2.content, null, 2));
 }
 
-main().catch(console.error);
+main().catch(error => {
+  if (APICallError.isInstance(error)) {
+    console.error(JSON.stringify(error.requestBodyValues, null, 2));
+  }
+  console.error(error);
+});
