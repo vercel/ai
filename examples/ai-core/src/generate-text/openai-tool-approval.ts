@@ -26,14 +26,23 @@ async function main() {
     messages,
   });
 
-  console.log(JSON.stringify(result.content, null, 2));
-  console.log(JSON.stringify(result.response.messages, null, 2));
-
   messages.push(...result.response.messages);
 
-  // (messages[1].content[1] as any).approvalState = 'approved';
+  const approvalId = (messages[1].content[2] as any).approvalId;
 
-  // console.log(JSON.stringify(messages, null, 2));
+  messages.push({
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-approval-response',
+        approvalId,
+        approved: true,
+        reason: 'lfg',
+      },
+    ],
+  });
+
+  console.log(JSON.stringify(messages, null, 2));
 
   // const result2 = await generateText({
   //   model: openai('gpt-5-mini'),

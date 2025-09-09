@@ -182,13 +182,15 @@ export function convertToLanguageModelMessage({
     case 'tool': {
       return {
         role: 'tool',
-        content: message.content.map(part => ({
-          type: 'tool-result' as const,
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          output: part.output,
-          providerOptions: part.providerOptions,
-        })),
+        content: message.content
+          .filter(part => part.type !== 'tool-approval-response')
+          .map(part => ({
+            type: 'tool-result' as const,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output: part.output,
+            providerOptions: part.providerOptions,
+          })),
         providerOptions: message.providerOptions,
       };
     }
