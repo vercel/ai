@@ -264,7 +264,7 @@ describe('OpenAICompatibleProvider', () => {
     });
   });
 
-  describe('includeUsage setting', () => {
+  describe('supportsStructuredOutputs setting', () => {
     it('should pass supportsStructuredOutputs to to .chatModel() and .languageModel() only', () => {
       const options = {
         baseURL: 'https://api.example.com',
@@ -273,19 +273,19 @@ describe('OpenAICompatibleProvider', () => {
       };
       const provider = createOpenAICompatible(options);
 
-      provider.chatModel('chat-model');
+      provider('model-id');
       expect(
         OpenAICompatibleChatLanguageModelMock.mock.calls[0][1]
           .supportsStructuredOutputs,
       ).toBe(true);
 
-      provider.languageModel('completion-model');
+      provider.chatModel('chat-model');
       expect(
         OpenAICompatibleChatLanguageModelMock.mock.calls[1][1]
           .supportsStructuredOutputs,
       ).toBe(true);
 
-      provider('model-id');
+      provider.languageModel('completion-model');
       expect(
         OpenAICompatibleChatLanguageModelMock.mock.calls[2][1]
           .supportsStructuredOutputs,
