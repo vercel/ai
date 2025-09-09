@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.39
+
+### Patch Changes
+
+- a0a725f: feat (ai): export createGateway
+
 ## 5.0.38
 
 ### Patch Changes
