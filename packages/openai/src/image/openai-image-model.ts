@@ -63,7 +63,11 @@ export class OpenAIImageModel implements ImageModelV2 {
     }
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { value: response, responseHeaders } = await postJsonToApi({
+    const {
+      value: response,
+      responseHeaders,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: this.config.url({
         path: '/images/generations',
         modelId: this.modelId,
@@ -94,6 +98,7 @@ export class OpenAIImageModel implements ImageModelV2 {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
+        body: rawResponse,
       },
       providerMetadata: {
         openai: {
