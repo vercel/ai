@@ -18,23 +18,7 @@ The [AI Gateway](https://vercel.com/docs/ai-gateway) provider connects you to mo
 
 ## Setup
 
-The AI Gateway provider is available in the `@ai-sdk/gateway` module. You can install it with
-
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/gateway" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/gateway" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/gateway" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/gateway" dark />
-  </Tab>
-</Tabs>
+The Vercel AI Gateway provider is part of the AI SDK.
 
 ## Basic Usage
 
@@ -52,8 +36,7 @@ const { text } = await generateText({
 
 ```ts
 // use provider instance
-import { generateText } from 'ai';
-import { gateway } from '@ai-sdk/gateway';
+import { generateText, gateway } from 'ai';
 
 const { text } = await generateText({
   model: gateway('openai/gpt-5'),
@@ -65,10 +48,10 @@ The AI SDK automatically uses the AI Gateway when you pass a model string in the
 
 ## Provider Instance
 
-You can also import the default provider instance `gateway` from `@ai-sdk/gateway`:
+You can also import the default provider instance `gateway` from `ai`:
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
+import { gateway } from 'ai';
 ```
 
 You may want to create a custom provider instance when you need to:
@@ -78,10 +61,10 @@ You may want to create a custom provider instance when you need to:
 - Wrap the provider with [middleware](/docs/ai-sdk-core/middleware)
 - Use different settings for different parts of your application
 
-To create a custom provider instance, import `createGateway` from `@ai-sdk/gateway`:
+To create a custom provider instance, import `createGateway` from `ai`:
 
 ```ts
-import { createGateway } from '@ai-sdk/gateway';
+import { createGateway } from 'ai';
 
 const gateway = createGateway({
   apiKey: process.env.AI_GATEWAY_API_KEY ?? '',
@@ -129,7 +112,7 @@ AI_GATEWAY_API_KEY=your_api_key_here
 Or pass it directly to the provider:
 
 ```ts
-import { createGateway } from '@ai-sdk/gateway';
+import { createGateway } from 'ai';
 
 const gateway = createGateway({
   apiKey: 'your_api_key_here',
@@ -191,8 +174,7 @@ For the complete list of available models, see the [AI Gateway documentation](ht
 You can discover available models programmatically:
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
-import { generateText } from 'ai';
+import { gateway, generateText } from 'ai';
 
 const availableModels = await gateway.getAvailableModels();
 
@@ -300,8 +282,7 @@ const { text } = await generateText({
 
 ```ts
 // with provider instance
-import { generateText } from 'ai';
-import { gateway } from '@ai-sdk/gateway';
+import { gateway, generateText } from 'ai';
 
 const { text } = await generateText({
   model: gateway('anthropic/claude-sonnet-4'),
