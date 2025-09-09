@@ -32,8 +32,8 @@ async function main() {
 
   console.log('\n=== Basic Text Generation ===');
   console.log(basicResult.text);
-  console.log(basicResult.toolCalls);
-  console.log(basicResult.toolResults);
+  console.dir(basicResult.toolCalls, { depth: null });
+  console.dir(basicResult.toolResults, { depth: null });
 }
 
 main().catch(console.error);
