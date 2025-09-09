@@ -15,7 +15,6 @@ export type GroqChatModelId =
   | 'meta-llama/llama-4-scout-17b-16e-instruct'
   | 'meta-llama/llama-prompt-guard-2-22m'
   | 'meta-llama/llama-prompt-guard-2-86m'
-  | 'mistral-saba-24b'
   | 'moonshotai/kimi-k2-instruct'
   | 'qwen/qwen3-32b'
   | 'llama-guard-3-8b'
