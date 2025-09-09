@@ -30,6 +30,8 @@ export function toResponseMessages<TOOLS extends ToolSet>({
     .filter(part => part.type !== 'text' || part.text.length > 0)
     .map(part => {
       switch (part.type) {
+        case 'tool-approval-request':
+          return part;
         case 'text':
           return {
             type: 'text',
@@ -57,7 +59,6 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             input: part.input,
             providerExecuted: part.providerExecuted,
             providerOptions: part.providerMetadata,
-            approvalState: part.approvalState,
           };
         case 'tool-result':
           return {

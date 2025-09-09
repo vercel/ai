@@ -1,3 +1,4 @@
+import { ToolApprovalRequest } from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { GeneratedFile } from './generated-file';
@@ -19,4 +20,5 @@ export type ContentPart<TOOLS extends ToolSet> =
       })
   | ({ type: 'tool-error' } & TypedToolError<TOOLS> & {
         providerMetadata?: ProviderMetadata;
-      });
+      })
+  | ToolApprovalRequest;

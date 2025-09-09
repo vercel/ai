@@ -9,6 +9,7 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
+  ToolApprovalRequest,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
@@ -473,6 +474,7 @@ A function that attempts to repair a tool call that failed to parse.
                 }),
               ),
           );
+          const toolApprovalRequests: Record<string, ToolApprovalRequest> = {};
 
           // notify the tools that the tool calls are available:
           for (const toolCall of stepToolCalls) {
@@ -492,10 +494,13 @@ A function that attempts to repair a tool call that failed to parse.
               });
             }
 
-            // set flag on tool call to indicate need for approval
-            toolCall.approvalState = tool?.needsApproval
-              ? 'required'
-              : undefined;
+            if (tool?.needsApproval) {
+              toolApprovalRequests[toolCall.toolCallId] = {
+                type: 'tool-approval-request',
+                approvalId: generateId(),
+                toolCallId: toolCall.toolCallId,
+              };
+            }
           }
 
           // insert error tool outputs for invalid tool calls:
@@ -528,10 +533,7 @@ A function that attempts to repair a tool call that failed to parse.
                 toolCalls: clientToolCalls.filter(
                   toolCall =>
                     !toolCall.invalid &&
-                    !(
-                      toolCall.approvalState === 'rejected' ||
-                      toolCall.approvalState === 'required'
-                    ),
+                    toolApprovalRequests[toolCall.toolCallId] == null,
                 ),
                 tools,
                 tracer,
@@ -548,6 +550,7 @@ A function that attempts to repair a tool call that failed to parse.
             content: currentModelResponse.content,
             toolCalls: stepToolCalls,
             toolOutputs: clientToolOutputs,
+            toolApprovalRequests: Object.values(toolApprovalRequests),
           });
 
           // append to messages for potential next step:
@@ -878,10 +881,12 @@ function asContent<TOOLS extends ToolSet>({
   content,
   toolCalls,
   toolOutputs,
+  toolApprovalRequests,
 }: {
   content: Array<LanguageModelV2Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
+  toolApprovalRequests: Array<ToolApprovalRequest>;
 }): Array<ContentPart<TOOLS>> {
   return [
     ...content.map(part => {
@@ -938,5 +943,6 @@ function asContent<TOOLS extends ToolSet>({
       }
     }),
     ...toolOutputs,
+    ...toolApprovalRequests,
   ];
 }

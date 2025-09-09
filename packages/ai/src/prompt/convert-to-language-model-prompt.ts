@@ -10,7 +10,10 @@ import {
   ImagePart,
   isUrlSupported,
   ModelMessage,
+  ReasoningPart,
   TextPart,
+  ToolCallPart,
+  ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import {
   detectMediaType,
@@ -110,6 +113,16 @@ export function convertToLanguageModelMessage({
           .filter(
             // remove empty text parts:
             part => part.type !== 'text' || part.text !== '',
+          )
+          .filter(
+            (
+              part,
+            ): part is
+              | TextPart
+              | FilePart
+              | ReasoningPart
+              | ToolCallPart
+              | ToolResultPart => part.type !== 'tool-approval-request',
           )
           .map(part => {
             const providerOptions = part.providerOptions;
