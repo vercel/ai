@@ -2,28 +2,14 @@ import type { FetchFunction } from './fetch-function';
 import { VERSION as PROVIDER_UTILS_VERSION } from './version';
 
 export function getRuntimeEnvironmentUserAgent(): string {
-  // Deno
-  // @ts-expect-error
-  if (globalThis.Deno?.version?.deno) {
-    // @ts-expect-error
-    return `Deno/${Deno.version.deno} (${Deno.build.os}; ${Deno.build.arch})`;
-  }
-
-  // Bun
-  // @ts-expect-error
-  if (globalThis.Bun?.version) {
-    // @ts-expect-error
-    return `Bun/${globalThis.Bun.version} (${globalThis.Bun.platform.name}; ${globalThis.Bun.platform.arch})`;
-  }
-
-  // Nodes.js
-  if (globalThis.process?.versions?.node) {
-    return `Node.js/${process.version.substring(1)} (${process.platform}; ${process.arch})`;
-  }
-
-  // Browsers
+  // Browsers / Deno / Bun / Node.js >= 21.1
   if (globalThis.navigator?.userAgent) {
     return navigator.userAgent;
+  }
+
+  // Nodes.js < 21.1
+  if (globalThis.process?.versions?.node) {
+    return `Node.js/${process.version.substring(1)}`;
   }
 
   return '<unknown runtime>';
