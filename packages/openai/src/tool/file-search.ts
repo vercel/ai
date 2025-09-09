@@ -27,13 +27,16 @@ export const fileSearchArgsSchema = z.object({
   filters: filtersSchema.optional(),
 });
 
+const fileSearchToolCallSchema = z.object({
+  queries:z.array(z.string())
+});
+
 export const fileSearch = createProviderDefinedToolFactory<
-  {
-    /**
-     * The search query to execute.
-     */
-    query: string;
-  },
+  /**
+   * The search query to execute.
+   */
+  z.infer<typeof fileSearchToolCallSchema>
+  ,
   {
     /**
      * List of vector store IDs to search through. If not provided, searches all available vector stores.
@@ -69,7 +72,5 @@ export const fileSearch = createProviderDefinedToolFactory<
 >({
   id: 'openai.file_search',
   name: 'file_search',
-  inputSchema: z.object({
-    query: z.string(),
-  }),
+  inputSchema: fileSearchToolCallSchema,
 });
