@@ -135,6 +135,8 @@ functionality that can be fully encapsulated in the provider.
 Whether the tool call was executed by the provider.
  */
   providerExecuted?: boolean;
+
+  approvalState?: 'approved' | 'rejected' | 'required' | undefined;
 }
 
 /**

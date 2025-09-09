@@ -292,6 +292,19 @@ A function that attempts to repair a tool call that failed to parse.
       }),
       tracer,
       fn: async span => {
+        // figure out if the last message has approved tool calls
+        // that have not been executed
+        const lastMessage = initialPrompt.messages.at(-1);
+        if (
+          lastMessage?.role === 'assistant' &&
+          !(typeof lastMessage.content === 'string') &&
+          lastMessage.content.find(
+            part =>
+              part.type === 'tool-call' && part.approvalState === 'approved',
+          ) != null
+        ) {
+        }
+
         const callSettings = prepareCallSettings(settings);
 
         let currentModelResponse: Awaited<
@@ -480,7 +493,9 @@ A function that attempts to repair a tool call that failed to parse.
             }
 
             // set flag on tool call to indicate need for approval
-            toolCall.needsApproval = tool?.needsApproval;
+            toolCall.approvalState = tool?.needsApproval
+              ? 'required'
+              : undefined;
           }
 
           // insert error tool outputs for invalid tool calls:
@@ -511,7 +526,12 @@ A function that attempts to repair a tool call that failed to parse.
             clientToolOutputs.push(
               ...(await executeTools({
                 toolCalls: clientToolCalls.filter(
-                  toolCall => !toolCall.invalid && !toolCall.needsApproval,
+                  toolCall =>
+                    !toolCall.invalid &&
+                    !(
+                      toolCall.approvalState === 'rejected' ||
+                      toolCall.approvalState === 'required'
+                    ),
                 ),
                 tools,
                 tracer,

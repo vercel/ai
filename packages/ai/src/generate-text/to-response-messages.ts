@@ -57,6 +57,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             input: part.input,
             providerExecuted: part.providerExecuted,
             providerOptions: part.providerMetadata,
+            approvalState: part.approvalState,
           };
         case 'tool-result':
           return {

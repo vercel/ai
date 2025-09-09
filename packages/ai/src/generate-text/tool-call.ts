@@ -7,8 +7,8 @@ type BaseToolCall = {
   type: 'tool-call';
   toolCallId: string;
   providerExecuted?: boolean;
-  needsApproval?: boolean | undefined;
   providerMetadata?: ProviderMetadata;
+  approvalState?: 'approved' | 'rejected' | 'required' | undefined;
 };
 
 export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
