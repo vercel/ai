@@ -292,24 +292,27 @@ describe('OpenAICompatibleProvider', () => {
       ).toBe(true);
 
       provider.completionModel('completion-model');
+      const completionModelConfigArg =
+        OpenAICompatibleCompletionLanguageModelMock.mock.calls[0][1];
       expect(
         // @ts-expect-error - testing
-        OpenAICompatibleCompletionLanguageModelMock.mock.calls[0][1]
-          .supportsStructuredOutputs,
+        completionModelConfigArg.supportsStructuredOutputs,
       ).toBe(undefined);
 
       provider.textEmbeddingModel('embedding-model');
+      const embeddingModelConfigArg =
+        OpenAICompatibleEmbeddingModelMock.mock.calls[0][1];
       expect(
         // @ts-expect-error - testing
-        OpenAICompatibleEmbeddingModelMock.mock.calls[0][1]
-          .supportsStructuredOutputs,
+        embeddingModelConfigArg.supportsStructuredOutputs,
       ).toBe(undefined);
 
       provider.imageModel('image-model');
+      const imageModelConfigArg =
+        OpenAICompatibleImageModelMock.mock.calls[0][1];
       expect(
         // @ts-expect-error - testing
-        OpenAICompatibleImageModelMock.mock.calls[0][1]
-          .supportsStructuredOutputs,
+        imageModelConfigArg.supportsStructuredOutputs,
       ).toBe(undefined);
     });
   });
