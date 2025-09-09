@@ -10,7 +10,6 @@ import {
   IdGenerator,
   ProviderOptions,
   removeUndefinedEntries,
-  VERSION,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
@@ -58,6 +57,7 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
+import { VERSION } from '../version';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -258,7 +258,7 @@ A function that attempts to repair a tool call that failed to parse.
 
   const callSettings = prepareCallSettings(settings);
 
-  const headersWithUserAgent = withUserAgentSuffix(removeUndefinedEntries(headers ?? {}), `ai-sdk/ai/${VERSION}`);
+  const headersWithUserAgent = withUserAgentSuffix(removeUndefinedEntries(headers ?? {}), `ai/${VERSION}`);
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
