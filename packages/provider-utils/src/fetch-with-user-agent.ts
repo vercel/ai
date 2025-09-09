@@ -1,12 +1,7 @@
 import type { FetchFunction } from './fetch-function';
 import { VERSION as PROVIDER_UTILS_VERSION } from './version';
 
-function getRuntimeEnvironmentUserAgent(): string {
-  // Browsers
-  if (globalThis.navigator?.userAgent) {
-    return navigator.userAgent;
-  }
-
+export function getRuntimeEnvironmentUserAgent(): string {
   // Deno
   // @ts-expect-error
   if (globalThis.Deno?.version?.deno) {
@@ -26,6 +21,11 @@ function getRuntimeEnvironmentUserAgent(): string {
     return `Node.js/${process.version.substring(1)} (${process.platform}; ${process.arch})`;
   }
 
+  // Browsers
+  if (globalThis.navigator?.userAgent) {
+    return navigator.userAgent;
+  }
+
   return '<unknown runtime>';
 }
 
@@ -38,12 +38,7 @@ export function withUserAgentSuffix(
 
   normalizedHeaders.set(
     'user-agent',
-    [
-      currentUserAgentHeader,
-      ...userAgentSuffixParts
-    ]
-      .filter(Boolean)
-      .join(' '),
+    [currentUserAgentHeader, ...userAgentSuffixParts].filter(Boolean).join(' '),
   );
 
   return Object.fromEntries(normalizedHeaders);
@@ -67,13 +62,12 @@ export function createUserAgentFetch(baseFetch?: FetchFunction): FetchFunction {
       input = input.url;
     }
 
-    // if no headers are provided, no need to do anything special
-    if (!init?.headers) {
-      return effectiveFetch(input as any, init as any);
-    }
-
     const url = String(input);
-    const headers = withUserAgentSuffix(init.headers, `ai-sdk/provider-utils/${PROVIDER_UTILS_VERSION}`, getRuntimeEnvironmentUserAgent());
+    const headers = withUserAgentSuffix(
+      init?.headers,
+      `ai-sdk/provider-utils/${PROVIDER_UTILS_VERSION}`,
+      getRuntimeEnvironmentUserAgent(),
+    );
 
     return effectiveFetch(url, {
       ...init,
