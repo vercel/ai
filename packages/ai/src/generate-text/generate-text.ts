@@ -385,8 +385,6 @@ A function that attempts to repair a tool call that failed to parse.
                   }) as any,
               ),
             );
-
-            console.log(JSON.stringify(lastMessage, null, 2));
           }
         }
 
