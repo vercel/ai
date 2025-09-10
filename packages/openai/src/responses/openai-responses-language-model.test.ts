@@ -7,12 +7,12 @@ import {
   createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import {
   openaiResponsesModelIds,
   openaiResponsesReasoningModelIds,
 } from './openai-responses-settings';
-import { beforeEach, describe, expect, it } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -934,8 +934,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           tools: [
             {
               type: 'provider-defined',
-              id: 'openai.web_search_preview',
-              name: 'web_search_preview',
+              id: 'openai.web_search',
+              name: 'web_search',
               args: {
                 searchContextSize: 'high',
                 userLocation: {
@@ -948,19 +948,35 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          tools: [
-            {
-              type: 'web_search_preview',
-              search_context_size: 'high',
-              user_location: { type: 'approximate', city: 'San Francisco' },
-            },
-          ],
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "web_search_call.action.sources",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tools": [
+              {
+                "search_context_size": "high",
+                "type": "web_search",
+                "user_location": {
+                  "city": "San Francisco",
+                  "type": "approximate",
+                },
+              },
+            ],
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -969,13 +985,13 @@ describe('OpenAIResponsesLanguageModel', () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           toolChoice: {
             type: 'tool',
-            toolName: 'web_search_preview',
+            toolName: 'web_search',
           },
           tools: [
             {
               type: 'provider-defined',
-              id: 'openai.web_search_preview',
-              name: 'web_search_preview',
+              id: 'openai.web_search',
+              name: 'web_search',
               args: {
                 searchContextSize: 'high',
                 userLocation: {
@@ -988,20 +1004,38 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          tool_choice: { type: 'web_search_preview' },
-          tools: [
-            {
-              type: 'web_search_preview',
-              search_context_size: 'high',
-              user_location: { type: 'approximate', city: 'San Francisco' },
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "web_search_call.action.sources",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tool_choice": {
+              "type": "web_search",
             },
-          ],
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+            "tools": [
+              {
+                "search_context_size": "high",
+                "type": "web_search",
+                "user_location": {
+                  "city": "San Francisco",
+                  "type": "approximate",
+                },
+              },
+            ],
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -2514,7 +2548,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
               "providerExecuted": true,
               "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "web_search_preview",
+              "toolName": "web_search",
               "type": "tool-call",
             },
             {
@@ -2523,14 +2557,14 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "status": "completed",
               },
               "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "web_search_preview",
+              "toolName": "web_search",
               "type": "tool-result",
             },
             {
               "input": "{"action":{"type":"search"}}",
               "providerExecuted": true,
               "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-              "toolName": "web_search_preview",
+              "toolName": "web_search",
               "type": "tool-call",
             },
             {
@@ -2539,7 +2573,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "status": "completed",
               },
               "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-              "toolName": "web_search_preview",
+              "toolName": "web_search",
               "type": "tool-result",
             },
             {
@@ -2818,7 +2852,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
               "providerExecuted": true,
               "toolCallId": "ws_test",
-              "toolName": "web_search_preview",
+              "toolName": "web_search",
               "type": "tool-call",
             },
             {
@@ -2827,7 +2861,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "status": "completed",
               },
               "toolCallId": "ws_test",
-              "toolName": "web_search_preview",
+              "toolName": "web_search",
               "type": "tool-result",
             },
             {
@@ -3300,7 +3334,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "ws_test",
-            "toolName": "web_search_preview",
+            "toolName": "web_search",
             "type": "tool-input-start",
           },
           {
@@ -3812,7 +3846,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "ws_67cf3390e9608190869b5d45698a7067",
-            "toolName": "web_search_preview",
+            "toolName": "web_search",
             "type": "tool-input-start",
           },
           {
