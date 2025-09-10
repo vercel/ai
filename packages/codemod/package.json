@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "pnpm generate-readme && prettier --write \"README.md\" && pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "del-cli dist *.tsbuildinfo",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",

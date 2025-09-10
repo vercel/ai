@@ -28,9 +28,9 @@
     ]
   },
   "devDependencies": {
-    "update-ts-references": "^3.6.0",
     "@changesets/cli": "2.27.10",
     "@playwright/test": "^1.44.1",
+    "del-cli": "^5.1.0",
     "eslint": "8.57.1",
     "eslint-config-vercel-ai": "workspace:*",
     "husky": "^8.0.0",
@@ -44,6 +44,7 @@
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
     "turbo": "2.4.4",
     "typescript": "5.8.3",
+    "update-ts-references": "^3.6.0",
     "vitest": "2.1.4"
   },
   "engines": {
