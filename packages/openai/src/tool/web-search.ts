@@ -21,7 +21,7 @@ export const webSearchArgsSchema = z.object({
     .optional(),
 });
 
-export const factory = createProviderDefinedToolFactory<
+export const webSearchToolFactory = createProviderDefinedToolFactory<
   {
     // Web search doesn't take input parameters - it's controlled by the prompt
   },
@@ -97,7 +97,7 @@ export const factory = createProviderDefinedToolFactory<
 });
 
 export const webSearch = (
-  args: Parameters<typeof factory>[0] = {}, // default
+  args: Parameters<typeof webSearchToolFactory>[0] = {}, // default
 ) => {
-  return factory(args);
+  return webSearchToolFactory(args);
 };
