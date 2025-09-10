@@ -2293,7 +2293,78 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(result.content).toMatchInlineSnapshot();
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "rs_68c12b868cd081a09ec2d83759a43b9e00553426a98f13ca",
+                  "reasoningEncryptedContent": null,
+                },
+              },
+              "text": "",
+              "type": "reasoning",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "rs_68c12b8cf96081a08764e212603bb16600553426a98f13ca",
+                  "reasoningEncryptedContent": null,
+                },
+              },
+              "text": "",
+              "type": "reasoning",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "rs_68c12b90775c81a0bdcb8c306da10e7700553426a98f13ca",
+                  "reasoningEncryptedContent": null,
+                },
+              },
+              "text": "",
+              "type": "reasoning",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_68c12b93d98481a0b8696d68b6c5968100553426a98f13ca",
+                },
+              },
+              "text": "I ran a simulation of rolling two fair dice 10,000 times and computed the sums for each trial.
+
+          Key results
+          - Total sum of all 10,000 trial sums: 69953
+          - Average sum per trial: 6.9953
+          - Distribution of sums (counts for sums 2 through 12):
+            - 2: 285
+            - 3: 552
+            - 4: 818
+            - 5: 1134
+            - 6: 1359
+            - 7: 1721
+            - 8: 1378
+            - 9: 1108
+            - 10: 797
+            - 11: 558
+            - 12: 290
+
+          Sample of the first 20 trial sums
+          [8, 4, 9, 7, 7, 7, 7, 5, 6, 8, 11, 5, 7, 7, 7, 6, 7, 8, 8, 9]
+
+          Files created
+          - dice_sums_10000.csv: each row contains the sum of a trial (one column: "sum")
+          - dice_sums_summary.json: a summary with n_trials, total_sum, mean_sum_per_trial, and the distribution
+
+          Download links
+          - [Download the sums (CSV)](sandbox:/mnt/data/dice_sums_10000.csv)
+          - [Download the summary (JSON)](sandbox:/mnt/data/dice_sums_summary.json)
+
+          If you want me to run again with a different seed, or to provide a fuller distribution table or a plotted histogram, tell me how you’d like the results formatted.",
+              "type": "text",
+            },
+          ]
+        `);
       });
     });
 

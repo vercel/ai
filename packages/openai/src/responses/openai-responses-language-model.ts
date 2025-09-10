@@ -368,10 +368,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                           end_index: z.number().nullish(),
                           quote: z.string().nullish(),
                         }),
+                        z.object({
+                          type: z.literal('container_file_citation'),
+                        }),
                       ]),
                     ),
                   }),
                 ),
+              }),
+              z.object({
+                type: z.literal('code_interpreter_call'),
               }),
               z.object({
                 type: z.literal('function_call'),
