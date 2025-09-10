@@ -1,17 +1,16 @@
 import { openai } from '@ai-sdk/openai';
-import { stepCountIs, streamText } from 'ai';
-import 'dotenv/config';
+import { streamText } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-4o-mini'),
+    model: openai.responses('gpt-5-mini'),
+    prompt: 'What happened in tech news today?',
     tools: {
       web_search: openai.tools.webSearch({
-        searchContextSize: 'high',
+        searchContextSize: 'medium',
       }),
     },
-    prompt: 'Look up the company that owns Sonny Angel',
-    stopWhen: stepCountIs(5), // note: should stop after a single step
   });
 
   for await (const chunk of result.fullStream) {
@@ -40,16 +39,6 @@ async function main() {
         break;
       }
 
-      case 'finish-step': {
-        console.log();
-        console.log();
-        console.log('STEP FINISH');
-        console.log('Finish reason:', chunk.finishReason);
-        console.log('Usage:', chunk.usage);
-        console.log();
-        break;
-      }
-
       case 'finish': {
         console.log('FINISH');
         console.log('Finish reason:', chunk.finishReason);
@@ -62,6 +51,4 @@ async function main() {
         break;
     }
   }
-}
-
-main().catch(console.error);
+});
