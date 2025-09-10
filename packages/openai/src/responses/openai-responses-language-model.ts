@@ -24,6 +24,7 @@ import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
+import { OpenAIResponsesIncludeOptions } from './openai-responses-api-types';
 
 const webSearchCallItem = z.object({
   type: z.literal('web_search_call'),
@@ -152,17 +153,34 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
 
+    let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
+
+    // when logprobs are requested, automatically include them:
     const topLogprobs =
       typeof openaiOptions?.logprobs === 'number'
         ? openaiOptions?.logprobs
         : openaiOptions?.logprobs === true
           ? TOP_LOGPROBS_MAX
           : undefined;
-    const openaiOptionsInclude = topLogprobs
-      ? Array.isArray(openaiOptions?.include)
-        ? [...openaiOptions?.include, 'message.output_text.logprobs']
+
+    include = topLogprobs
+      ? Array.isArray(include)
+        ? [...include, 'message.output_text.logprobs']
         : ['message.output_text.logprobs']
-      : openaiOptions?.include;
+      : include;
+
+    // when a web search tool is present, automatically include the sources:
+    const isWebSearchToolPresent =
+      tools?.some(
+        tool =>
+          tool.type === 'provider-defined' && tool.id === 'openai.web_search',
+      ) ?? false;
+
+    include = isWebSearchToolPresent
+      ? Array.isArray(include)
+        ? [...include, 'web_search_call.action.sources']
+        : ['web_search_call.action.sources']
+      : include;
 
     const baseArgs = {
       model: this.modelId,
@@ -199,7 +217,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
-      include: openaiOptionsInclude,
+      include,
       prompt_cache_key: openaiOptions?.promptCacheKey,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
