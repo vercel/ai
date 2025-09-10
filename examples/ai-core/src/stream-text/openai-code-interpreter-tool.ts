@@ -1,11 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { stepCountIs, streamText } from 'ai';
+import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = streamText({
     model: openai.responses('gpt-5-nano'),
-    stopWhen: stepCountIs(5),
     tools: {
       code_interpreter: openai.tools.codeInterpreter(),
     },
