@@ -4,18 +4,42 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: openai.responses('gpt-5'),
+    model: openai.responses('gpt-5-nano'),
     stopWhen: stepCountIs(5),
     tools: {
-      code_interpreter: openai.tools.codeInterpreter({}),
+      code_interpreter: openai.tools.codeInterpreter(),
     },
     prompt:
-      'Write and run Python code to simulate rolling two dice 10000 times and show a table of the results.' +
-      'The table should have three columns: "Sum", "Count", and "Percentage".',
+      'Simulate rolling two dice 10000 times and and return the sum all the results.',
+    // includeRawChunks: true,
   });
 
-  for await (const chunk of result.textStream) {
-    process.stdout.write(chunk);
+  for await (const chunk of result.fullStream) {
+    switch (chunk.type) {
+      case 'raw': {
+        console.log('Raw chunk:', JSON.stringify(chunk.rawValue));
+        break;
+      }
+
+      case 'text-delta': {
+        process.stdout.write(chunk.text);
+        break;
+      }
+
+      case 'tool-call': {
+        console.log('Tool call:', JSON.stringify(chunk, null, 2));
+        break;
+      }
+
+      case 'tool-result': {
+        console.log('Tool result:', JSON.stringify(chunk, null, 2));
+        break;
+      }
+
+      case 'error':
+        console.error('Error:', chunk.error);
+        break;
+    }
   }
 }
 
