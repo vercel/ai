@@ -929,117 +929,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send web_search tool', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.web_search',
-              name: 'web_search',
-              args: {
-                searchContextSize: 'high',
-                userLocation: {
-                  type: 'approximate',
-                  city: 'San Francisco',
-                },
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "include": [
-              "web_search_call.action.sources",
-            ],
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tools": [
-              {
-                "search_context_size": "high",
-                "type": "web_search",
-                "user_location": {
-                  "city": "San Francisco",
-                  "type": "approximate",
-                },
-              },
-            ],
-          }
-        `);
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send web_search tool as tool_choice', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          toolChoice: {
-            type: 'tool',
-            toolName: 'web_search',
-          },
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.web_search',
-              name: 'web_search',
-              args: {
-                searchContextSize: 'high',
-                userLocation: {
-                  type: 'approximate',
-                  city: 'San Francisco',
-                },
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "include": [
-              "web_search_call.action.sources",
-            ],
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tool_choice": {
-              "type": "web_search",
-            },
-            "tools": [
-              {
-                "search_context_size": "high",
-                "type": "web_search",
-                "user_location": {
-                  "city": "San Francisco",
-                  "type": "approximate",
-                },
-              },
-            ],
-          }
-        `);
-
-        expect(warnings).toStrictEqual([]);
-      });
-
       it('should send file_search tool', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           tools: [
@@ -2403,8 +2292,6 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('web search', () => {
-      const outputText = `Last week in San Francisco, several notable events and developments took place:\n\n**Bruce Lee Statue in Chinatown**\n\nThe Chinese Historical Society of America Museum announced plans to install a Bruce Lee statue in Chinatown. This initiative, supported by the Rose Pak Community Fund, the Bruce Lee Foundation, and Stand With Asians, aims to honor Lee's contributions to film and martial arts. Artist Arnie Kim has been commissioned for the project, with a fundraising goal of $150,000. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com))\n\n**Office Leasing Revival**\n\nThe Bay Area experienced a resurgence in office leasing, securing 11 of the largest U.S. office leases in 2024. This trend, driven by the tech industry's growth and advancements in generative AI, suggests a potential boost to downtown recovery through increased foot traffic. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com))\n\n**Spring Blooms in the Bay Area**\n\nWith the arrival of spring, several locations in the Bay Area are showcasing vibrant blooms. Notable spots include the Conservatory of Flowers, Japanese Tea Garden, Queen Wilhelmina Tulip Garden, and the San Francisco Botanical Garden, each offering unique floral displays. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com))\n\n**Oceanfront Great Highway Park**\n\nSan Francisco's long-awaited Oceanfront Great Highway park is set to open on April 12. This 43-acre, car-free park will span a two-mile stretch of the Great Highway from Lincoln Way to Sloat Boulevard, marking the largest pedestrianization project in California's history. The park follows voter approval of Proposition K, which permanently bans cars on part of the highway. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com))\n\n**Warmer Spring Seasons**\n\nAn analysis by Climate Central revealed that San Francisco, along with most U.S. cities, is experiencing increasingly warmer spring seasons. Over a 55-year period from 1970 to 2024, the national average temperature during March through May rose by 2.4°F. This warming trend poses various risks, including early snowmelt and increased wildfire threats. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com))\n\n\n# Key San Francisco Developments Last Week:\n- [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)\n- [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)\n- [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)`;
-
       beforeEach(() => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
@@ -2445,7 +2332,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 content: [
                   {
                     type: 'output_text',
-                    text: outputText,
+                    text: `Last week in San Francisco, several notable events and developments took place:\n\n**Bruce Lee Statue in Chinatown**\n\nThe Chinese Historical Society of America Museum announced plans to install a Bruce Lee statue in Chinatown. This initiative, supported by the Rose Pak Community Fund, the Bruce Lee Foundation, and Stand With Asians, aims to honor Lee's contributions to film and martial arts. Artist Arnie Kim has been commissioned for the project, with a fundraising goal of $150,000. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com))\n\n**Office Leasing Revival**\n\nThe Bay Area experienced a resurgence in office leasing, securing 11 of the largest U.S. office leases in 2024. This trend, driven by the tech industry's growth and advancements in generative AI, suggests a potential boost to downtown recovery through increased foot traffic. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com))\n\n**Spring Blooms in the Bay Area**\n\nWith the arrival of spring, several locations in the Bay Area are showcasing vibrant blooms. Notable spots include the Conservatory of Flowers, Japanese Tea Garden, Queen Wilhelmina Tulip Garden, and the San Francisco Botanical Garden, each offering unique floral displays. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com))\n\n**Oceanfront Great Highway Park**\n\nSan Francisco's long-awaited Oceanfront Great Highway park is set to open on April 12. This 43-acre, car-free park will span a two-mile stretch of the Great Highway from Lincoln Way to Sloat Boulevard, marking the largest pedestrianization project in California's history. The park follows voter approval of Proposition K, which permanently bans cars on part of the highway. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com))\n\n**Warmer Spring Seasons**\n\nAn analysis by Climate Central revealed that San Francisco, along with most U.S. cities, is experiencing increasingly warmer spring seasons. Over a 55-year period from 1970 to 2024, the national average temperature during March through May rose by 2.4°F. This warming trend poses various risks, including early snowmelt and increased wildfire threats. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com))\n\n\n# Key San Francisco Developments Last Week:\n- [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)\n- [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)\n- [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)`,
                     annotations: [
                       {
                         type: 'url_citation',
@@ -2537,7 +2424,118 @@ describe('OpenAIResponsesLanguageModel', () => {
         };
       });
 
-      it('should generate text and sources', async () => {
+      it('should send web_search tool', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search',
+              name: 'web_search',
+              args: {
+                searchContextSize: 'high',
+                userLocation: {
+                  type: 'approximate',
+                  city: 'San Francisco',
+                },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "web_search_call.action.sources",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tools": [
+              {
+                "search_context_size": "high",
+                "type": "web_search",
+                "user_location": {
+                  "city": "San Francisco",
+                  "type": "approximate",
+                },
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send web_search tool as tool_choice', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          toolChoice: {
+            type: 'tool',
+            toolName: 'web_search',
+          },
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search',
+              name: 'web_search',
+              args: {
+                searchContextSize: 'high',
+                userLocation: {
+                  type: 'approximate',
+                  city: 'San Francisco',
+                },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "web_search_call.action.sources",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tool_choice": {
+              "type": "web_search",
+            },
+            "tools": [
+              {
+                "search_context_size": "high",
+                "type": "web_search",
+                "user_location": {
+                  "city": "San Francisco",
+                  "type": "approximate",
+                },
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should generate content', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
         });
