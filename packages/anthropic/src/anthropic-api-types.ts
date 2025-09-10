@@ -133,6 +133,22 @@ export interface AnthropicCodeExecutionToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+export interface AnthropicWebFetchToolResultContent {
+  type: 'web_fetch_tool_result';
+  tool_use_id: string;
+  content: {
+    url: string;
+    content: string;
+    title?: string;
+    description?: string;
+    citations?: Array<{
+      text: string;
+      source: string;
+    }>;
+  };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
 export type AnthropicTool =
   | {
       name: string;
@@ -175,6 +191,17 @@ export type AnthropicTool =
   | {
       type: 'code_execution_20250522';
       name: string;
+    }
+  | {
+      type: 'web_fetch_20250910';
+      name: string;
+      max_uses?: number;
+      allowed_domains?: string[];
+      blocked_domains?: string[];
+      citations?: {
+        enabled: boolean;
+      };
+      max_content_tokens?: number;
     };
 
 export type AnthropicToolChoice =
