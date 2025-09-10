@@ -207,4 +207,27 @@ describe('prepareTools', () => {
       ]
     `);
   });
+
+  it('should handle direct web_fetch tool object', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'web_fetch_20250910',
+          name: 'web_fetch',
+          max_uses: 3,
+          allowed_domains: ['example.com'],
+        } as any,
+      ],
+    });
+
+    expect(result.tools).toEqual([
+      {
+        type: 'web_fetch_20250910',
+        name: 'web_fetch',
+        max_uses: 3,
+        allowed_domains: ['example.com'],
+      },
+    ]);
+    expect(result.betas.size).toBe(0); // No beta added for direct tool objects
+  });
 });
