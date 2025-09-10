@@ -85,7 +85,6 @@ describe('generateSpeech', () => {
       voice: 'test-voice',
       headers: {
         'custom-request-header': 'request-header-value',
-        'user-agent': '',
       },
       abortSignal,
     });

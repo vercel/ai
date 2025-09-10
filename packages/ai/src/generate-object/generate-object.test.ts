@@ -1048,7 +1048,6 @@ describe('generateObject', () => {
         headers: {
           header1: 'value1',
           header2: 'value2',
-          'user-agent': '',
         },
         experimental_telemetry: {
           isEnabled: true,
@@ -1079,9 +1078,6 @@ describe('generateObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
-        headers: {
-          'user-agent': '',
-        },
         experimental_telemetry: {
           isEnabled: true,
           recordInputs: false,

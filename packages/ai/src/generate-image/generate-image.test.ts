@@ -97,7 +97,6 @@ describe('generateImage', () => {
       },
       headers: {
         'custom-request-header': 'request-header-value',
-        'user-agent': '',
       },
       abortSignal,
     });
@@ -377,7 +376,6 @@ describe('generateImage', () => {
         providerOptions: { 'mock-provider': { style: 'vivid' } },
         headers: {
           'custom-request-header': 'request-header-value',
-          'user-agent': '',
         },
       });
 
@@ -445,7 +443,6 @@ describe('generateImage', () => {
         providerOptions: { 'mock-provider': { style: 'vivid' } },
         headers: {
           'custom-request-header': 'request-header-value',
-          'user-agent': '',
         },
       });
 
@@ -520,7 +517,6 @@ describe('generateImage', () => {
           providerOptions: { 'mock-provider': { style: 'vivid' } },
           headers: {
             'custom-request-header': 'request-header-value',
-            'user-agent': '',
           },
         });
 

@@ -125,7 +125,6 @@ describe('options.headers', () => {
       value: testValue,
       headers: {
         'custom-request-header': 'request-header-value',
-        'user-agent': '',
       },
     });
 
