@@ -7,6 +7,12 @@ import { Embedding, EmbeddingModelUsage } from '../types';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { embedMany } from './embed-many';
 
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
+
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3],
   [0.4, 0.5, 0.6],
@@ -303,13 +309,14 @@ describe('options.headers', () => {
         doEmbed: async ({ headers }) => {
           assert.deepStrictEqual(headers, {
             'custom-request-header': 'request-header-value',
+            'user-agent': 'ai/0.0.0-test',
           });
 
           return { embeddings: dummyEmbeddings };
         },
       }),
       values: testValues,
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' },
     });
 
     assert.deepStrictEqual(result.embeddings, dummyEmbeddings);
@@ -336,7 +343,9 @@ describe('options.providerOptions', () => {
 
     expect(model.doEmbed).toHaveBeenCalledWith({
       abortSignal: undefined,
-      headers: undefined,
+      headers: {
+        'user-agent': 'ai/0.0.0-test',
+      },
       providerOptions: {
         aProvider: { someKey: 'someValue' },
       },
