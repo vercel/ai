@@ -7,6 +7,7 @@ import { textEditor_20250124 } from './tool/text-editor_20250124';
 import { textEditor_20250429 } from './tool/text-editor_20250429';
 import { webSearch_20250305 } from './tool/web-search_20250305';
 import { codeExecution_20250522 } from './tool/code-execution_20250522';
+import { webFetch_20250910 } from './tool/web-fetch_20250910';
 
 export const anthropicTools = {
   /**
@@ -109,4 +110,17 @@ export const anthropicTools = {
    * @param userLocation - Optional user location information to provide geographically relevant search results.
    */
   webSearch_20250305,
+
+  /**
+   * Creates a web fetch tool that allows Claude to retrieve full content from web pages and PDF documents.
+   *
+   * Tool name must be `web_fetch`.
+   *
+   * @param maxUses - Maximum number of web fetches Claude can perform during the conversation.
+   * @param allowedDomains - Optional list of domains that Claude is allowed to fetch from.
+   * @param blockedDomains - Optional list of domains that Claude should avoid when fetching.
+   * @param citations - Enable or disable citation metadata for fetched content.
+   * @param maxContentTokens - Maximum content tokens to retrieve from fetched pages.
+   */
+  webFetch_20250910,
 };
