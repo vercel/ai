@@ -6,6 +6,7 @@ import {
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
 import { getCacheControl } from './get-cache-control';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
+import { webFetch_20250910ArgsSchema } from './tool/web-fetch_20250910';
 
 function isWebSearchTool(
   tool: unknown,
@@ -15,6 +16,17 @@ function isWebSearchTool(
     tool !== null &&
     'type' in tool &&
     tool.type === 'web_search_20250305'
+  );
+}
+
+function isWebFetchTool(
+  tool: unknown,
+): tool is Extract<AnthropicTool, { type: 'web_fetch_20250910' }> {
+  return (
+    typeof tool === 'object' &&
+    tool !== null &&
+    'type' in tool &&
+    tool.type === 'web_fetch_20250910'
   );
 }
 
@@ -47,6 +59,12 @@ export function prepareTools({
   for (const tool of tools) {
     // handle direct web search tool objects passed from provider options
     if (isWebSearchTool(tool)) {
+      anthropicTools.push(tool);
+      continue;
+    }
+
+    // handle direct web fetch tool objects passed from provider options
+    if (isWebFetchTool(tool)) {
       anthropicTools.push(tool);
       continue;
     }
@@ -136,6 +154,20 @@ export function prepareTools({
             anthropicTools.push({
               type: 'code_execution_20250522',
               name: 'code_execution',
+            });
+            break;
+          }
+          case 'anthropic.web_fetch_20250910': {
+            betas.add('web-fetch-2025-09-10');
+            const args = webFetch_20250910ArgsSchema.parse(tool.args);
+            anthropicTools.push({
+              type: 'web_fetch_20250910',
+              name: 'web_fetch',
+              max_uses: args.maxUses,
+              allowed_domains: args.allowedDomains,
+              blocked_domains: args.blockedDomains,
+              citations: args.citations,
+              max_content_tokens: args.maxContentTokens,
             });
             break;
           }
