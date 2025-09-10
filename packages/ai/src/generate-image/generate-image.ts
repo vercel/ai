@@ -1,5 +1,5 @@
 import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { ProviderOptions, withUserAgentSuffix, removeUndefinedEntries} from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   detectMediaType,
@@ -15,6 +15,7 @@ import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
 import { logWarnings } from '../logger/log-warnings';
+import { VERSION } from '../version';
 
 /**
 Generates images using an image model.
@@ -123,6 +124,11 @@ Only applicable for HTTP-based providers.
     });
   }
 
+  const headersWithUserAgent = withUserAgentSuffix(
+    removeUndefinedEntries(headers ?? {}),
+    `ai/${VERSION}`,
+  );
+
   const { retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
@@ -151,7 +157,7 @@ Only applicable for HTTP-based providers.
           prompt,
           n: callImageCount,
           abortSignal,
-          headers,
+          headers: headersWithUserAgent,
           size,
           aspectRatio,
           seed,

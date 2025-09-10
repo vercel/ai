@@ -14,6 +14,7 @@ import {
   expect,
   it,
   test,
+  vi,
   vitest,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
@@ -28,6 +29,12 @@ const pngBase64 =
 const jpegBase64 =
   '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k='; // 1x1 black JPEG
 const gifBase64 = 'R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='; // 1x1 transparent GIF
+
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
 
 const createMockResponse = (options: {
   images: string[] | Uint8Array[];
@@ -88,7 +95,7 @@ describe('generateImage', () => {
           style: 'vivid',
         },
       },
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' },
       abortSignal,
     });
 
@@ -99,7 +106,7 @@ describe('generateImage', () => {
       aspectRatio: '16:9',
       seed: 12345,
       providerOptions: { 'mock-provider': { style: 'vivid' } },
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: { 'custom-request-header': 'request-header-value', 'user-agent': 'ai/0.0.0-test' },
       abortSignal,
     });
   });
@@ -325,7 +332,7 @@ describe('generateImage', () => {
                   providerOptions: {
                     'mock-provider': { style: 'vivid' },
                   },
-                  headers: { 'custom-request-header': 'request-header-value' },
+                  headers: { 'custom-request-header': 'request-header-value', 'user-agent': 'ai/0.0.0-test' },
                   abortSignal: undefined,
                 });
                 return createMockResponse({
@@ -339,7 +346,7 @@ describe('generateImage', () => {
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
-                  headers: { 'custom-request-header': 'request-header-value' },
+                  headers: { 'custom-request-header': 'request-header-value', 'user-agent': 'ai/0.0.0-test' },
                   abortSignal: undefined,
                 });
                 return createMockResponse({
@@ -356,7 +363,7 @@ describe('generateImage', () => {
         aspectRatio: '16:9',
         seed: 12345,
         providerOptions: { 'mock-provider': { style: 'vivid' } },
-        headers: { 'custom-request-header': 'request-header-value' },
+        headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' },
       });
 
       expect(result.images.map(image => image.base64)).toStrictEqual(
@@ -382,7 +389,7 @@ describe('generateImage', () => {
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
-                  headers: { 'custom-request-header': 'request-header-value' },
+                  headers: { 'custom-request-header': 'request-header-value', 'user-agent': 'ai/0.0.0-test' },
                   abortSignal: undefined,
                 });
                 return createMockResponse({
@@ -397,7 +404,7 @@ describe('generateImage', () => {
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
-                  headers: { 'custom-request-header': 'request-header-value' },
+                  headers: { 'custom-request-header': 'request-header-value', 'user-agent': 'ai/0.0.0-test' },
                   abortSignal: undefined,
                 });
                 return createMockResponse({
@@ -415,7 +422,7 @@ describe('generateImage', () => {
         aspectRatio: '16:9',
         seed: 12345,
         providerOptions: { 'mock-provider': { style: 'vivid' } },
-        headers: { 'custom-request-header': 'request-header-value' },
+        headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' },
       });
 
       expect(result.warnings).toStrictEqual([
@@ -452,6 +459,7 @@ describe('generateImage', () => {
                     },
                     headers: {
                       'custom-request-header': 'request-header-value',
+                      'user-agent': 'ai/0.0.0-test',
                     },
                     abortSignal: undefined,
                   });
@@ -468,6 +476,7 @@ describe('generateImage', () => {
                     providerOptions: { 'mock-provider': { style: 'vivid' } },
                     headers: {
                       'custom-request-header': 'request-header-value',
+                      'user-agent': 'ai/0.0.0-test',
                     },
                     abortSignal: undefined,
                   });
@@ -485,7 +494,7 @@ describe('generateImage', () => {
           aspectRatio: '16:9',
           seed: 12345,
           providerOptions: { 'mock-provider': { style: 'vivid' } },
-          headers: { 'custom-request-header': 'request-header-value' },
+          headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' },
         });
 
         expect(result.images.map(image => image.base64)).toStrictEqual(
@@ -534,6 +543,7 @@ describe('generateImage', () => {
                 timestamp: testDate,
                 headers: {
                   'custom-response-header': 'response-header-value',
+                  'user-agent': 'ai/0.0.0-test',
                 },
               }),
           }),
@@ -548,6 +558,7 @@ describe('generateImage', () => {
             modelId: expect.any(String),
             headers: {
               'custom-response-header': 'response-header-value',
+              'user-agent': 'ai/0.0.0-test',
             },
           },
         ],
