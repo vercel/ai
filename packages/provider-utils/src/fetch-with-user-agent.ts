@@ -4,15 +4,15 @@ import { VERSION as PROVIDER_UTILS_VERSION } from './version';
 export function getRuntimeEnvironmentUserAgent(): string {
   // Browsers / Deno / Bun / Node.js >= 21.1
   if (globalThis.navigator?.userAgent) {
-    return navigator.userAgent;
+    return `runtime/${navigator.userAgent}`;
   }
 
   // Nodes.js < 21.1
   if (globalThis.process?.versions?.node) {
-    return `Node.js/${process.version.substring(1)}`;
+    return `runtime/Node.js/${process.version.substring(1)}`;
   }
 
-  return '<unknown runtime>';
+  return 'runtime/unknown';
 }
 
 /**
