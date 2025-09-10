@@ -1,5 +1,30 @@
 # ai
 
+## 5.0.39
+
+### Patch Changes
+
+- a0a725f: feat (ai): export createGateway
+
+## 5.0.38
+
+### Patch Changes
+
+- Updated dependencies [350a328]
+  - @ai-sdk/gateway@1.0.20
+
+## 5.0.37
+
+### Patch Changes
+
+- d6785d7: feat (ai): add tool and agent helpers
+
+## 5.0.36
+
+### Patch Changes
+
+- ccc2ded: feat (ai): export gateway provider
+
 ## 5.0.35
 
 ### Patch Changes

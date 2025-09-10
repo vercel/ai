@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.27
+
+### Patch Changes
+
+- 2338c79: feat (provider/openai): add jsdoc for openai tools
+
 ## 2.0.26
 
 ### Patch Changes
