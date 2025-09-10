@@ -13,15 +13,9 @@ run(async () => {
     },
   });
 
-  for (const toolCall of result.toolCalls) {
-    if (toolCall.toolName === 'web_search') {
-      console.log('Search query:', toolCall.input);
-    }
-  }
-
-  console.dir(result.response.body);
-  console.dir(result.toolCalls);
-  console.dir(result.toolResults);
-  console.dir(result.sources);
+  console.dir(result.response.body, { depth: Infinity });
+  console.dir(result.toolCalls, { depth: Infinity });
+  console.dir(result.toolResults, { depth: Infinity });
+  console.dir(result.sources, { depth: Infinity });
   console.log(result.text);
 });
