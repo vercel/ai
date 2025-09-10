@@ -30,6 +30,36 @@ const { text } = await generateText({
 });
 ```
 
+## Provider-Defined Tools
+
+The Anthropic provider supports several provider-defined tools that enable Claude to perform specialized tasks:
+
+- **Web Search** (`webSearch_20250305`): Search the web for real-time information
+- **Web Fetch** (`webFetch_20250910`): Fetch and analyze content from web pages and PDFs
+- **Code Execution** (`codeExecution_20250522`): Execute Python code in a sandboxed environment
+- **Computer Use** (`computer_20241022`, `computer_20250124`): Control computer interfaces
+- **Text Editor** (`textEditor_20241022`, `textEditor_20250124`, `textEditor_20250429`): Edit text files
+- **Bash** (`bash_20241022`, `bash_20250124`): Execute shell commands
+
+### Example with Web Fetch Tool
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-3-5-sonnet-20241022'),
+  tools: {
+    web_fetch: anthropic.tools.webFetch_20250910({
+      maxUses: 3,
+      allowedDomains: ['example.com'],
+      citations: { enabled: true },
+    }),
+  },
+  prompt: 'Fetch and summarize the content from https://example.com',
+});
+```
+
 ## Documentation
 
 Please check out the **[Anthropic provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic)** for more information.
