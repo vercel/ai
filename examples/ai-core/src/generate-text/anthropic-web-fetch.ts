@@ -31,7 +31,9 @@ async function main() {
         if (fetchResult.citations && fetchResult.citations.length > 0) {
           console.log('Citations:');
           fetchResult.citations.forEach((citation: any, index: number) => {
-            console.log(`  ${index + 1}. ${citation.text} (${citation.source})`);
+            console.log(
+              `  ${index + 1}. ${citation.text} (${citation.source})`,
+            );
           });
         }
       }

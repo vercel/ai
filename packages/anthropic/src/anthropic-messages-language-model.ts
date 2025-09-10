@@ -1241,12 +1241,14 @@ const anthropicMessagesResponseSchema = z.object({
             content: z.string(),
             title: z.string().optional(),
             description: z.string().optional(),
-            citations: z.array(
-              z.object({
-                text: z.string(),
-                source: z.string(),
-              }),
-            ).optional(),
+            citations: z
+              .array(
+                z.object({
+                  text: z.string(),
+                  source: z.string(),
+                }),
+              )
+              .optional(),
           }),
           z.object({
             error_code: z.string(),
@@ -1351,12 +1353,14 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
             content: z.string(),
             title: z.string().optional(),
             description: z.string().optional(),
-            citations: z.array(
-              z.object({
-                text: z.string(),
-                source: z.string(),
-              }),
-            ).optional(),
+            citations: z
+              .array(
+                z.object({
+                  text: z.string(),
+                  source: z.string(),
+                }),
+              )
+              .optional(),
           }),
           z.object({
             error_code: z.string(),

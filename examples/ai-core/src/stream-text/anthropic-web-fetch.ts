@@ -34,7 +34,9 @@ async function main() {
         if (output && output.url) {
           console.log(`✓ Successfully fetched: ${output.url}`);
           console.log(`  Title: ${output.title || 'N/A'}`);
-          console.log(`  Content length: ${output.content?.length || 0} characters`);
+          console.log(
+            `  Content length: ${output.content?.length || 0} characters`,
+          );
         } else if (output && output.errorCode) {
           console.log(`✗ Failed to fetch: Error code ${output.errorCode}`);
         }
