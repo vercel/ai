@@ -419,7 +419,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'addToolResult',
-      type: '(options: { tool: string; toolCallId: string; output: unknown }) => void',
+      type: '(options: { tool: string; toolCallId: string; output: unknown } | { tool: string; toolCallId: string; state: "output-error", errorText: string }) => void',
       description:
         'Function to add a tool result to the chat. This will update the chat messages with the tool result. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
     },

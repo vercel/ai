@@ -296,6 +296,195 @@ export default function Chat() {
 }
 ```
 
+### Error handling
+
+Sometimes an error may occur during tool use. Use the `addToolResult` method with a `state` of `output-error` and `errorText` value instead of `output` record the error.
+
+```tsx filename='app/page.tsx' highlight="2,6,10,14-20"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+import { useState } from 'react';
+
+export default function Chat() {
+  const { messages, sendMessage, addToolResult } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+    // run client-side tools that are automatically executed:
+    async onToolCall({ toolCall }) {
+      // Check if it's a dynamic tool first for proper type narrowing
+      if (toolCall.dynamic) {
+        return;
+      }
+
+      if (toolCall.toolName === 'getWeatherInformation') {
+        try {
+          const weather = await getWeatherInformation(toolCall.input);
+
+          // No await - avoids potential deadlocks
+          addToolResult({
+            tool: 'getWeatherInformation',
+            toolCallId: toolCall.toolCallId,
+            output: weather,
+          });
+        } catch (err) {
+          addToolResult({
+            tool: 'getWeatherInformation',
+            toolCallId: toolCall.toolCallId,
+            state: 'output-error',
+            errorText: 'Unable to get the weather information',
+          });
+        }
+      }
+    },
+  });
+  const [input, setInput] = useState('');
+
+  return (
+    <>
+      {messages?.map(message => (
+        <div key={message.id}>
+          <strong>{`${message.role}: `}</strong>
+          {message.parts.map(part => {
+            switch (part.type) {
+              // render text parts as simple text:
+              case 'text':
+                return part.text;
+
+              // for tool parts, use the typed tool part names:
+              case 'tool-askForConfirmation': {
+                const callId = part.toolCallId;
+
+                switch (part.state) {
+                  case 'input-streaming':
+                    return (
+                      <div key={callId}>Loading confirmation request...</div>
+                    );
+                  case 'input-available':
+                    return (
+                      <div key={callId}>
+                        {part.input.message}
+                        <div>
+                          <button
+                            onClick={() =>
+                              addToolResult({
+                                tool: 'askForConfirmation',
+                                toolCallId: callId,
+                                output: 'Yes, confirmed.',
+                              })
+                            }
+                          >
+                            Yes
+                          </button>
+                          <button
+                            onClick={() =>
+                              addToolResult({
+                                tool: 'askForConfirmation',
+                                toolCallId: callId,
+                                output: 'No, denied',
+                              })
+                            }
+                          >
+                            No
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  case 'output-available':
+                    return (
+                      <div key={callId}>
+                        Location access allowed: {part.output}
+                      </div>
+                    );
+                  case 'output-error':
+                    return <div key={callId}>Error: {part.errorText}</div>;
+                }
+                break;
+              }
+
+              case 'tool-getLocation': {
+                const callId = part.toolCallId;
+
+                switch (part.state) {
+                  case 'input-streaming':
+                    return (
+                      <div key={callId}>Preparing location request...</div>
+                    );
+                  case 'input-available':
+                    return <div key={callId}>Getting location...</div>;
+                  case 'output-available':
+                    return <div key={callId}>Location: {part.output}</div>;
+                  case 'output-error':
+                    return (
+                      <div key={callId}>
+                        Error getting location: {part.errorText}
+                      </div>
+                    );
+                }
+                break;
+              }
+
+              case 'tool-getWeatherInformation': {
+                const callId = part.toolCallId;
+
+                switch (part.state) {
+                  // example of pre-rendering streaming tool inputs:
+                  case 'input-streaming':
+                    return (
+                      <pre key={callId}>{JSON.stringify(part, null, 2)}</pre>
+                    );
+                  case 'input-available':
+                    return (
+                      <div key={callId}>
+                        Getting weather information for {part.input.city}...
+                      </div>
+                    );
+                  case 'output-available':
+                    return (
+                      <div key={callId}>
+                        Weather in {part.input.city}: {part.output}
+                      </div>
+                    );
+                  case 'output-error':
+                    return (
+                      <div key={callId}>
+                        Error getting weather for {part.input.city}:{' '}
+                        {part.errorText}
+                      </div>
+                    );
+                }
+                break;
+              }
+            }
+          })}
+          <br />
+        </div>
+      ))}
+
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          if (input.trim()) {
+            sendMessage({ text: input });
+            setInput('');
+          }
+        }}
+      >
+        <input value={input} onChange={e => setInput(e.target.value)} />
+      </form>
+    </>
+  );
+}
+```
+
 ## Dynamic Tools
 
 When using dynamic tools (tools with unknown types at compile time), the UI parts use a generic `dynamic-tool` type instead of specific tool types:
