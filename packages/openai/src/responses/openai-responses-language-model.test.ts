@@ -2394,7 +2394,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             tool_choice: 'auto',
             tools: [
               {
-                type: 'web_search_preview',
+                type: 'web_search',
                 search_context_size: 'medium',
                 user_location: {
                   type: 'approximate',
@@ -3694,34 +3694,35 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
-    it('should handle streaming web search with action query field', async () => {
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data:{"type":"response.created","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"in_progress","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
-          `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_test"}\n\n`,
-          `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_test"}\n\n`,
-          `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_test"}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_test","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-          `data:{"type":"response.content_part.added","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_test","output_index":1,"content_index":0,"delta":"Based on the search results, here are the upcoming features."}\n\n`,
-          `data:{"type":"response.output_text.done","item_id":"msg_test","output_index":1,"content_index":0,"text":"Based on the search results, here are the upcoming features."}\n\n`,
-          `data:{"type":"response.content_part.done","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}}\n\n`,
-          `data:{"type":"response.completed","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}},{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":50,"input_tokens_details":{"cached_tokens":0},"output_tokens":25,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":75},"user":null,"metadata":{}}}\n\n`,
-          'data: [DONE]\n\n',
-        ],
-      };
+    describe('web search tool', () => {
+      it('should handle streaming web search with action query field', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"in_progress","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
+            `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_test"}\n\n`,
+            `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_test"}\n\n`,
+            `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_test"}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_test","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+            `data:{"type":"response.content_part.added","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_test","output_index":1,"content_index":0,"delta":"Based on the search results, here are the upcoming features."}\n\n`,
+            `data:{"type":"response.output_text.done","item_id":"msg_test","output_index":1,"content_index":0,"text":"Based on the search results, here are the upcoming features."}\n\n`,
+            `data:{"type":"response.content_part.done","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}},{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":50,"input_tokens_details":{"cached_tokens":0},"output_tokens":25,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":75},"user":null,"metadata":{}}}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
 
-      const { stream } = await createModel('o3-2025-04-16').doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
+        const { stream } = await createModel('o3-2025-04-16').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
 
-      const result = await convertReadableStreamToArray(stream);
-      expect(result).toMatchInlineSnapshot(`
+        const result = await convertReadableStreamToArray(stream);
+        expect(result).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
@@ -3794,41 +3795,42 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
-    });
-
-    it('should stream sources', async () => {
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.in_progress","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_67cf3390e9608190869b5d45698a7067","status":"in_progress"}}\n\n`,
-          `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_67cf3390e9608190869b5d45698a7067"}\n\n`,
-          `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_67cf3390e9608190869b5d45698a7067"}\n\n`,
-          `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_67cf3390e9608190869b5d45698a7067"}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_67cf3390e9608190869b5d45698a7067","status":"completed"}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-          `data:{"type":"response.content_part.added","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"Last week"}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":" in San Francisco"}\n\n`,
-          `data:{"type":"response.output_text.annotation.added","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"}}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":" a themed party"}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))"}\n\n`,
-          `data:{"type":"response.output_text.annotation.added","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"annotation_index":1,"annotation":{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"."}\n\n`,
-          `data:{"type":"response.output_text.done","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"text":"Last week in San Francisco a themed..."}\n\n`,
-          `data:{"type":"response.content_part.done","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Last week in San Francisco a themed party...","annotations":[{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"},{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}]}}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Last week in San Francisco a themed party...","annotations":[{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"},{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}]}]}}\n\n`,
-          `data:{"type":"response.completed","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"web_search_call","id":"ws_67cf3390e9608190869b5d45698a7067","status":"completed"},{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Last week in San Francisco a themed party...","annotations":[{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"},{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":327,"input_tokens_details":{"cached_tokens":0},"output_tokens":834,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":1161},"user":null,"metadata":{}}}\n\n`,
-        ],
-      };
-
-      const { stream } = await createModel('gpt-4o-mini').doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      it('should stream sources', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.in_progress","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_67cf3390e9608190869b5d45698a7067","status":"in_progress"}}\n\n`,
+            `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_67cf3390e9608190869b5d45698a7067"}\n\n`,
+            `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_67cf3390e9608190869b5d45698a7067"}\n\n`,
+            `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_67cf3390e9608190869b5d45698a7067"}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_67cf3390e9608190869b5d45698a7067","status":"completed"}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+            `data:{"type":"response.content_part.added","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"Last week"}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":" in San Francisco"}\n\n`,
+            `data:{"type":"response.output_text.annotation.added","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"}}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":" a themed party"}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))"}\n\n`,
+            `data:{"type":"response.output_text.annotation.added","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"annotation_index":1,"annotation":{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"."}\n\n`,
+            `data:{"type":"response.output_text.done","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"text":"Last week in San Francisco a themed..."}\n\n`,
+            `data:{"type":"response.content_part.done","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Last week in San Francisco a themed party...","annotations":[{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"},{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}]}}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Last week in San Francisco a themed party...","annotations":[{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"},{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}]}]}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"web_search_call","id":"ws_67cf3390e9608190869b5d45698a7067","status":"completed"},{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Last week in San Francisco a themed party...","annotations":[{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"},{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":327,"input_tokens_details":{"cached_tokens":0},"output_tokens":834,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":1161},"user":null,"metadata":{}}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        expect(await convertReadableStreamToArray(stream))
+          .toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
@@ -3935,6 +3937,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+      });
     });
 
     describe('errors', () => {
@@ -3942,7 +3945,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
           chunks: [
-            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
             `data:{"type":"error","code":"ERR_SOMETHING","message":"Something went wrong","param":null,"sequence_number":1}\n\n`,
           ],
         };
