@@ -21,26 +21,30 @@ run(async () => {
       }
 
       case 'tool-call': {
-        console.log('Tool call:', JSON.stringify(chunk, null, 2));
+        console.log(
+          `\x1b[32m\x1b[1mTool call:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
+        );
         break;
       }
 
       case 'tool-result': {
-        console.log('Tool result:', JSON.stringify(chunk, null, 2));
+        console.log(
+          `\x1b[32m\x1b[1mTool result:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
+        );
         break;
       }
 
       case 'source': {
         if (chunk.sourceType === 'url') {
-          process.stdout.write(`\n\n Source: ${chunk.title} (${chunk.url})`);
-        } else {
-          process.stdout.write(`\n\n Document: ${chunk.title}`);
+          process.stdout.write(
+            `\n\n\x1b[36mSource: ${chunk.title} (${chunk.url})\x1b[0m\n\n`,
+          );
         }
         break;
       }
 
       case 'finish': {
-        console.log('FINISH');
+        console.log('\n\nFINISH');
         console.log('Finish reason:', chunk.finishReason);
         console.log('Total Usage:', chunk.totalUsage);
         break;

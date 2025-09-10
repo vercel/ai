@@ -1,4 +1,4 @@
-import { StreamTextResult, ToolSet } from 'ai';
+import { StreamTextResult } from 'ai';
 import fs from 'fs';
 
 export async function saveRawChunks({

@@ -7,6 +7,7 @@ import {
   createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import {
@@ -40,6 +41,15 @@ const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
     },
   },
 ];
+
+function loadOpenAIChunks(filename: string) {
+  const lines = fs
+    .readFileSync(filename, 'utf8')
+    .split('\n')
+    .map(line => `data: ${line}\n\n`);
+  lines.push('data: [DONE]\n\n');
+  return lines;
+}
 
 const nonReasoningModelIds = openaiResponsesModelIds.filter(
   modelId =>
@@ -3718,7 +3728,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         const { stream } = await createModel('o3-2025-04-16').doStream({
           prompt: TEST_PROMPT,
-          includeRawChunks: false,
         });
 
         const result = await convertReadableStreamToArray(stream);
@@ -3797,146 +3806,387 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
       });
 
-      it('should stream sources', async () => {
+      it('should stream web search results (sources, tool calls, tool results)', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
-          chunks: [
-            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-            `data:{"type":"response.in_progress","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_67cf3390e9608190869b5d45698a7067","status":"in_progress"}}\n\n`,
-            `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_67cf3390e9608190869b5d45698a7067"}\n\n`,
-            `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_67cf3390e9608190869b5d45698a7067"}\n\n`,
-            `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_67cf3390e9608190869b5d45698a7067"}\n\n`,
-            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_67cf3390e9608190869b5d45698a7067","status":"completed"}}\n\n`,
-            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-            `data:{"type":"response.content_part.added","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
-            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"Last week"}\n\n`,
-            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":" in San Francisco"}\n\n`,
-            `data:{"type":"response.output_text.annotation.added","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"}}\n\n`,
-            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":" a themed party"}\n\n`,
-            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))"}\n\n`,
-            `data:{"type":"response.output_text.annotation.added","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"annotation_index":1,"annotation":{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}}\n\n`,
-            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"."}\n\n`,
-            `data:{"type":"response.output_text.done","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"text":"Last week in San Francisco a themed..."}\n\n`,
-            `data:{"type":"response.content_part.done","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Last week in San Francisco a themed party...","annotations":[{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"},{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}]}}\n\n`,
-            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Last week in San Francisco a themed party...","annotations":[{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"},{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}]}]}}\n\n`,
-            `data:{"type":"response.completed","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"web_search_call","id":"ws_67cf3390e9608190869b5d45698a7067","status":"completed"},{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Last week in San Francisco a themed party...","annotations":[{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"},{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":327,"input_tokens_details":{"cached_tokens":0},"output_tokens":834,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":1161},"user":null,"metadata":{}}}\n\n`,
-          ],
+          chunks: loadOpenAIChunks(
+            'src/responses/test-fixtures/openai-web-search-tool.chunks.txt',
+          ),
         };
 
-        const { stream } = await createModel('gpt-4o-mini').doStream({
+        const { stream } = await createModel('gpt-5-nano').doStream({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
           prompt: TEST_PROMPT,
-          includeRawChunks: false,
         });
 
         expect(await convertReadableStreamToArray(stream))
           .toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-            "modelId": "gpt-4o-mini-2024-07-18",
-            "timestamp": 2025-03-10T18:46:40.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "ws_67cf3390e9608190869b5d45698a7067",
-            "toolName": "web_search",
-            "type": "tool-input-start",
-          },
-          {
-            "id": "ws_67cf3390e9608190869b5d45698a7067",
-            "type": "tool-input-end",
-          },
-          {
-            "input": "{}",
-            "providerExecuted": true,
-            "toolCallId": "ws_67cf3390e9608190869b5d45698a7067",
-            "toolName": "web_search",
-            "type": "tool-call",
-          },
-          {
-            "providerExecuted": true,
-            "result": {
-              "status": "completed",
-            },
-            "toolCallId": "ws_67cf3390e9608190869b5d45698a7067",
-            "toolName": "web_search",
-            "type": "tool-result",
-          },
-          {
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-            "providerMetadata": {
-              "openai": {
-                "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
               },
-            },
-            "type": "text-start",
-          },
-          {
-            "delta": "Last week",
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-            "type": "text-delta",
-          },
-          {
-            "delta": " in San Francisco",
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-            "type": "text-delta",
-          },
-          {
-            "id": "id-0",
-            "sourceType": "url",
-            "title": "San Francisco Events in March 2025: Festivals, Theater & Easter",
-            "type": "source",
-            "url": "https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com",
-          },
-          {
-            "delta": " a themed party",
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-            "type": "text-delta",
-          },
-          {
-            "delta": "([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))",
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-            "type": "text-delta",
-          },
-          {
-            "id": "id-1",
-            "sourceType": "url",
-            "title": "SF weekend events: Giants FanFest, crab crawl and more",
-            "type": "source",
-            "url": "https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com",
-          },
-          {
-            "delta": ".",
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-            "type": "text-delta",
-          },
-          {
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-            "type": "text-end",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": {
-              "openai": {
-                "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+              {
+                "id": "resp_68c187cc09508192aa225af9734e2ed905ca09a4773fcd25",
+                "modelId": "gpt-5-nano-2025-08-07",
+                "timestamp": 2025-09-10T14:14:36.000Z,
+                "type": "response-metadata",
               },
-            },
-            "type": "finish",
-            "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 327,
-              "outputTokens": 834,
-              "reasoningTokens": 0,
-              "totalTokens": 1161,
-            },
-          },
-        ]
-      `);
+              {
+                "id": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "id": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"action":{"type":"search","query":"Berlin news today"}}",
+                "providerExecuted": true,
+                "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "status": "completed",
+                },
+                "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "id": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"action":{"type":"search"}}",
+                "providerExecuted": true,
+                "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "status": "completed",
+                },
+                "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "id": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"action":{"type":"search"}}",
+                "providerExecuted": true,
+                "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "status": "completed",
+                },
+                "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "id": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"action":{"type":"search"}}",
+                "providerExecuted": true,
+                "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "status": "completed",
+                },
+                "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "id": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                  },
+                },
+                "type": "text-start",
+              },
+              {
+                "delta": "Here’s what’s notable in Berlin today (September 10, 2025), based on three quick web searches:
+
+            - Berlin Art Week 2025 kicks off today and runs through September 14. The city’s autumn art season opens with more than 100 venues, featuring exhibitions from Patti Smith, Mark Leckey, Katharina Grosse, Carrie Mae Weems, and more. ([wallpaper.com](https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025))
+
+            - The city is highlighting its 200-year Museum Island anniversary this year, with ongoing events and exhibitions around Berlin’s historic center. This is part of Berlin’s big year of cultural highlights. ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
+
+            - 49h ICC: Open House is scheduled for September 11–14, offering guided tours and design talks at the former ICC Berlin. It’s one of the major architecture/design events associated with Berlin 2025. ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
+
+            - Open Monument Day is coming up on September 13–14, when many",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "id": "id-0",
+                "sourceType": "url",
+                "title": "What to see at Berlin Art Week 2025 | Wallpaper*",
+                "type": "source",
+                "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
+              },
+              {
+                "id": "id-1",
+                "sourceType": "url",
+                "title": "Berlin 2025 – the main events | visitBerlin.de",
+                "type": "source",
+                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+              },
+              {
+                "id": "id-2",
+                "sourceType": "url",
+                "title": "Berlin 2025 – the main events | visitBerlin.de",
+                "type": "source",
+                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+              },
+              {
+                "delta": " historic sites around Berlin open to the public with special programs. If you’re in town this weekend, it’s a good chance to explore landmarks that aren’t usually accessible.",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": " ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
+
+            - If you’re a sports fan, Berlin will host NFL games",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "id": "id-3",
+                "sourceType": "url",
+                "title": "Berlin 2025 – the main events | visitBerlin.de",
+                "type": "source",
+                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+              },
+              {
+                "delta": " in November 2025 (three regular-season games in the Olympic Stadium, with the Indianapolis Colts among",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": " the teams). It’s part of Berlin’s ongoing slate of major events this year",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": ". ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
+
+            - For some broader",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "id": "id-4",
+                "sourceType": "url",
+                "title": "Berlin 2025 – the main events | visitBerlin.de",
+                "type": "source",
+                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+              },
+              {
+                "delta": " context, Berlin has been discussing its role in postwar security arrangements for Ukraine, with",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": " German officials signaling readiness to increase support but delaying a formal deployment decision until broader conditions are",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": " clearer. This",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": " was reported for early September 2025. ([reuters.com](https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/))",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "id": "id-5",
+                "sourceType": "url",
+                "title": "Berlin holds off decision on participation in postwar Ukraine force | Reuters",
+                "type": "source",
+                "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",
+              },
+              {
+                "delta": "
+
+            Would you like me to pull live updates or focus on a specific topic (arts,",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": " politics, sports) from today?",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-end",
+              },
+              {
+                "finishReason": "stop",
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_68c187cc09508192aa225af9734e2ed905ca09a4773fcd25",
+                    "serviceTier": "default",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": 34560,
+                  "inputTokens": 60093,
+                  "outputTokens": 4080,
+                  "reasoningTokens": 3648,
+                  "totalTokens": 64173,
+                },
+              },
+            ]
+          `);
       });
     });
 
