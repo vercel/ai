@@ -1,4 +1,7 @@
-import { createUserAgentFetch, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  createUserAgentFetch,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import 'dotenv/config';
 
 async function main() {
@@ -8,7 +11,7 @@ async function main() {
     const headersFromUser = {
       'Content-Type': 'application/json',
       'User-Agent': 'MyApp/1.0.0',
-    }
+    };
     const response = await userAgentFetch(
       'https://echo.free.beeceptor.com/sample-request?test=1',
       {
