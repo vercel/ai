@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
+    "@ai-sdk/provider-utils": "workspace:*",
     "@ai-sdk/amazon-bedrock": "workspace:*",
     "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/assemblyai": "workspace:*",

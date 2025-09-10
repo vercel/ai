@@ -17,17 +17,23 @@ async function main() {
   try {
     const userAgentFetch = createUserAgentFetch();
 
-    const response = await userAgentFetch('https://echo.free.beeceptor.com/sample-request?test=1', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'value' }),
-    });
+    const response = await userAgentFetch(
+      'https://echo.free.beeceptor.com/sample-request?test=1',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'value' }),
+      },
+    );
 
     const raw = await response.json();
     const parsed = EchoResponseSchema.parse(raw);
 
     const normalizedHeaders = Object.fromEntries(
-      Object.entries(parsed.headers || {}).map(([key, value]) => [key.toLowerCase(), value])
+      Object.entries(parsed.headers || {}).map(([key, value]) => [
+        key.toLowerCase(),
+        value,
+      ]),
     );
     const echoedUserAgent = normalizedHeaders['user-agent'] || null;
 
