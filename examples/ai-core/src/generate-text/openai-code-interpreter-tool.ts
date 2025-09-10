@@ -1,8 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: openai.responses('gpt-5-nano'),
     tools: {
@@ -13,6 +14,4 @@ async function main() {
   });
 
   console.log(result.text);
-}
-
-main().catch(console.error);
+});
