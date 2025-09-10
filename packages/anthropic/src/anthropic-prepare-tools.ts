@@ -65,6 +65,7 @@ export function prepareTools({
 
     // handle direct web fetch tool objects passed from provider options
     if (isWebFetchTool(tool)) {
+      betas.add('web-fetch-2025-09-10');
       anthropicTools.push(tool);
       continue;
     }

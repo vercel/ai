@@ -228,6 +228,7 @@ describe('prepareTools', () => {
         allowed_domains: ['example.com'],
       },
     ]);
-    expect(result.betas.size).toBe(0); // No beta added for direct tool objects
+    expect(result.betas.size).toBe(1);
+    expect(result.betas.has('web-fetch-2025-09-10')).toBe(true);
   });
 });
