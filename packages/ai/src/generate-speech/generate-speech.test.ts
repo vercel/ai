@@ -3,7 +3,15 @@ import {
   SpeechModelV2,
   SpeechModelV2CallWarning,
 } from '@ai-sdk/provider';
-import { afterEach, beforeEach, describe, expect, it, vitest, vi} from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vitest,
+  vi,
+} from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
 import { generateSpeech } from './generate-speech';
@@ -75,14 +83,20 @@ describe('generateSpeech', () => {
       }),
       text: sampleText,
       voice: 'test-voice',
-      headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': '',
+      },
       abortSignal,
     });
 
     expect(capturedArgs).toStrictEqual({
       text: sampleText,
       voice: 'test-voice',
-      headers: { 'custom-request-header': 'request-header-value', 'user-agent': 'ai/0.0.0-test' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': 'ai/0.0.0-test',
+      },
       abortSignal,
       providerOptions: {},
       outputFormat: undefined,

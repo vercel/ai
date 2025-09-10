@@ -1,5 +1,9 @@
 import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
-import { ProviderOptions, withUserAgentSuffix, removeUndefinedEntries} from '@ai-sdk/provider-utils';
+import {
+  ProviderOptions,
+  withUserAgentSuffix,
+  removeUndefinedEntries,
+} from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   detectMediaType,

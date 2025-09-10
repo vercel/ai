@@ -316,7 +316,10 @@ describe('options.headers', () => {
         },
       }),
       values: testValues,
-      headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': '',
+      },
     });
 
     assert.deepStrictEqual(result.embeddings, dummyEmbeddings);

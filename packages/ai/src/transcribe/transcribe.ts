@@ -1,5 +1,9 @@
 import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions, withUserAgentSuffix, removeUndefinedEntries} from '@ai-sdk/provider-utils';
+import {
+  ProviderOptions,
+  withUserAgentSuffix,
+  removeUndefinedEntries,
+} from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';

@@ -1,6 +1,6 @@
 import { EmbeddingModelV2 } from '@ai-sdk/provider';
 import assert from 'node:assert';
-import { beforeEach, describe, expect, it, vi} from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { Embedding, EmbeddingModelUsage } from '../types';
@@ -123,7 +123,10 @@ describe('options.headers', () => {
         },
       }),
       value: testValue,
-      headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' }, 
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': '',
+      },
     });
 
     assert.deepStrictEqual(result.embedding, dummyEmbedding);

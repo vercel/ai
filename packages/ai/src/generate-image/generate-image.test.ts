@@ -95,7 +95,10 @@ describe('generateImage', () => {
           style: 'vivid',
         },
       },
-      headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': '',
+      },
       abortSignal,
     });
 
@@ -106,7 +109,10 @@ describe('generateImage', () => {
       aspectRatio: '16:9',
       seed: 12345,
       providerOptions: { 'mock-provider': { style: 'vivid' } },
-      headers: { 'custom-request-header': 'request-header-value', 'user-agent': 'ai/0.0.0-test' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': 'ai/0.0.0-test',
+      },
       abortSignal,
     });
   });
@@ -332,7 +338,10 @@ describe('generateImage', () => {
                   providerOptions: {
                     'mock-provider': { style: 'vivid' },
                   },
-                  headers: { 'custom-request-header': 'request-header-value', 'user-agent': 'ai/0.0.0-test' },
+                  headers: {
+                    'custom-request-header': 'request-header-value',
+                    'user-agent': 'ai/0.0.0-test',
+                  },
                   abortSignal: undefined,
                 });
                 return createMockResponse({
@@ -346,7 +355,10 @@ describe('generateImage', () => {
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
-                  headers: { 'custom-request-header': 'request-header-value', 'user-agent': 'ai/0.0.0-test' },
+                  headers: {
+                    'custom-request-header': 'request-header-value',
+                    'user-agent': 'ai/0.0.0-test',
+                  },
                   abortSignal: undefined,
                 });
                 return createMockResponse({
@@ -363,7 +375,10 @@ describe('generateImage', () => {
         aspectRatio: '16:9',
         seed: 12345,
         providerOptions: { 'mock-provider': { style: 'vivid' } },
-        headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' },
+        headers: {
+          'custom-request-header': 'request-header-value',
+          'user-agent': '',
+        },
       });
 
       expect(result.images.map(image => image.base64)).toStrictEqual(
@@ -389,7 +404,10 @@ describe('generateImage', () => {
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
-                  headers: { 'custom-request-header': 'request-header-value', 'user-agent': 'ai/0.0.0-test' },
+                  headers: {
+                    'custom-request-header': 'request-header-value',
+                    'user-agent': 'ai/0.0.0-test',
+                  },
                   abortSignal: undefined,
                 });
                 return createMockResponse({
@@ -404,7 +422,10 @@ describe('generateImage', () => {
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
-                  headers: { 'custom-request-header': 'request-header-value', 'user-agent': 'ai/0.0.0-test' },
+                  headers: {
+                    'custom-request-header': 'request-header-value',
+                    'user-agent': 'ai/0.0.0-test',
+                  },
                   abortSignal: undefined,
                 });
                 return createMockResponse({
@@ -422,7 +443,10 @@ describe('generateImage', () => {
         aspectRatio: '16:9',
         seed: 12345,
         providerOptions: { 'mock-provider': { style: 'vivid' } },
-        headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' },
+        headers: {
+          'custom-request-header': 'request-header-value',
+          'user-agent': '',
+        },
       });
 
       expect(result.warnings).toStrictEqual([
@@ -494,7 +518,10 @@ describe('generateImage', () => {
           aspectRatio: '16:9',
           seed: 12345,
           providerOptions: { 'mock-provider': { style: 'vivid' } },
-          headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' },
+          headers: {
+            'custom-request-header': 'request-header-value',
+            'user-agent': '',
+          },
         });
 
         expect(result.images.map(image => image.base64)).toStrictEqual(
