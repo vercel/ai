@@ -1,6 +1,5 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import 'dotenv/config';
 import { run } from '../lib/run';
 
 run(async () => {
