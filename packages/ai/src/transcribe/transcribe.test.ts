@@ -3,7 +3,15 @@ import {
   TranscriptionModelV2,
   TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
-import { afterEach, beforeEach, describe, expect, it, vitest, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vitest,
+  vi,
+} from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { transcribe } from './transcribe';
@@ -92,14 +100,20 @@ describe('transcribe', () => {
         },
       }),
       audio: audioData,
-      headers: { 'custom-request-header': 'request-header-value', 'user-agent': '' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': '',
+      },
       abortSignal,
     });
 
     expect(capturedArgs).toStrictEqual({
       audio: audioData,
       mediaType: 'audio/wav',
-      headers: { 'custom-request-header': 'request-header-value', 'user-agent': 'ai/0.0.0-test' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': 'ai/0.0.0-test',
+      },
       abortSignal,
       providerOptions: {},
     });
@@ -248,7 +262,7 @@ describe('transcribe', () => {
                   'user-agent': 'ai/0.0.0-test',
                 },
               }),
-          }), 
+          }),
           audio: audioData,
         }),
       ).rejects.toMatchObject({
