@@ -600,6 +600,37 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           }
           break;
         }
+        case 'web_fetch_tool_result': {
+          if ('url' in part.content) {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_fetch',
+              result: {
+                type: 'web_fetch_result',
+                url: part.content.url,
+                content: part.content.content,
+                title: part.content.title,
+                description: part.content.description,
+                citations: part.content.citations,
+              },
+              providerExecuted: true,
+            });
+          } else if ('error_code' in part.content) {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_fetch',
+              isError: true,
+              result: {
+                type: 'web_fetch_tool_result_error',
+                errorCode: part.content.error_code,
+              },
+              providerExecuted: true,
+            });
+          }
+          break;
+        }
       }
     }
 
@@ -685,6 +716,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | 'server_tool_use'
       | 'web_search_tool_result'
       | 'code_execution_tool_result'
+      | 'web_fetch_tool_result'
       | undefined = undefined;
 
     const generateId = this.generateId;
@@ -879,6 +911,40 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       });
                     }
 
+                    return;
+                  }
+
+                  case 'web_fetch_tool_result': {
+                    const part = value.content_block;
+
+                    if ('url' in part.content) {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName: 'web_fetch',
+                        result: {
+                          type: 'web_fetch_result',
+                          url: part.content.url,
+                          content: part.content.content,
+                          title: part.content.title,
+                          description: part.content.description,
+                          citations: part.content.citations,
+                        },
+                        providerExecuted: true,
+                      });
+                    } else if ('error_code' in part.content) {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName: 'web_fetch',
+                        isError: true,
+                        result: {
+                          type: 'web_fetch_tool_result_error',
+                          errorCode: part.content.error_code,
+                        },
+                        providerExecuted: true,
+                      });
+                    }
                     return;
                   }
 
@@ -1166,6 +1232,27 @@ const anthropicMessagesResponseSchema = z.object({
           }),
         ]),
       }),
+      z.object({
+        type: z.literal('web_fetch_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.object({
+            url: z.string(),
+            content: z.string(),
+            title: z.string().optional(),
+            description: z.string().optional(),
+            citations: z.array(
+              z.object({
+                text: z.string(),
+                source: z.string(),
+              }),
+            ).optional(),
+          }),
+          z.object({
+            error_code: z.string(),
+          }),
+        ]),
+      }),
     ]),
   ),
   stop_reason: z.string().nullish(),
@@ -1251,6 +1338,27 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
           }),
           z.object({
             type: z.literal('code_execution_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
+      z.object({
+        type: z.literal('web_fetch_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.object({
+            url: z.string(),
+            content: z.string(),
+            title: z.string().optional(),
+            description: z.string().optional(),
+            citations: z.array(
+              z.object({
+                text: z.string(),
+                source: z.string(),
+              }),
+            ).optional(),
+          }),
+          z.object({
             error_code: z.string(),
           }),
         ]),
