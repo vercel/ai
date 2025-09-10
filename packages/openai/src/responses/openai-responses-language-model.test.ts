@@ -2782,6 +2782,100 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
+    it('should handle computer use tool calls', async () => {
+      function prepareJsonResponse(body: any) {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body,
+        };
+      }
+      prepareJsonResponse({
+        id: 'resp_computer_test',
+        object: 'response',
+        created_at: 1741630255,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o-mini',
+        output: [
+          {
+            type: 'computer_call',
+            id: 'computer_67cf2b3051e88190b006770db6fdb13d',
+            status: 'completed',
+          },
+          {
+            type: 'message',
+            id: 'msg_computer_test',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: "I've completed the computer task.",
+                annotations: [],
+              },
+            ],
+          },
+        ],
+        usage: { input_tokens: 100, output_tokens: 50 },
+      });
+
+      const result = await createModel('gpt-4o-mini').doGenerate({
+        prompt: [
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Use the computer to complete a task.',
+              },
+            ],
+          },
+        ],
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.computer_use',
+            name: 'computer_use',
+            args: {},
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "",
+              "providerExecuted": true,
+              "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "computer_use",
+              "type": "tool-call",
+            },
+            {
+              "providerExecuted": true,
+              "result": {
+                "status": "completed",
+                "type": "computer_use_tool_result",
+              },
+              "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "computer_use",
+              "type": "tool-result",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_computer_test",
+                },
+              },
+              "text": "I've completed the computer task.",
+              "type": "text",
+            },
+          ]
+        `);
+    });
+
     describe('errors', () => {
       it('should throw an API call error when the response contains an error part', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
@@ -3197,108 +3291,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
-    it('should handle streaming web search with action query field', async () => {
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data:{"type":"response.created","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"in_progress","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
-          `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_test"}\n\n`,
-          `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_test"}\n\n`,
-          `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_test"}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_test","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-          `data:{"type":"response.content_part.added","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_test","output_index":1,"content_index":0,"delta":"Based on the search results, here are the upcoming features."}\n\n`,
-          `data:{"type":"response.output_text.done","item_id":"msg_test","output_index":1,"content_index":0,"text":"Based on the search results, here are the upcoming features."}\n\n`,
-          `data:{"type":"response.content_part.done","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}}\n\n`,
-          `data:{"type":"response.completed","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}},{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":50,"input_tokens_details":{"cached_tokens":0},"output_tokens":25,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":75},"user":null,"metadata":{}}}\n\n`,
-          'data: [DONE]\n\n',
-        ],
-      };
-
-      const { stream } = await createModel('o3-2025-04-16').doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
-
-      const result = await convertReadableStreamToArray(stream);
-      expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "resp_test",
-            "modelId": "o3-2025-04-16",
-            "timestamp": 2025-03-10T18:10:55.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "ws_test",
-            "toolName": "web_search",
-            "type": "tool-input-start",
-          },
-          {
-            "id": "ws_test",
-            "type": "tool-input-end",
-          },
-          {
-            "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
-            "providerExecuted": true,
-            "toolCallId": "ws_test",
-            "toolName": "web_search",
-            "type": "tool-call",
-          },
-          {
-            "providerExecuted": true,
-            "result": {
-              "status": "completed",
-            },
-            "toolCallId": "ws_test",
-            "toolName": "web_search",
-            "type": "tool-result",
-          },
-          {
-            "id": "msg_test",
-            "providerMetadata": {
-              "openai": {
-                "itemId": "msg_test",
-              },
-            },
-            "type": "text-start",
-          },
-          {
-            "delta": "Based on the search results, here are the upcoming features.",
-            "id": "msg_test",
-            "type": "text-delta",
-          },
-          {
-            "id": "msg_test",
-            "type": "text-end",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": {
-              "openai": {
-                "responseId": "resp_test",
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 50,
-              "outputTokens": 25,
-              "reasoningTokens": 0,
-              "totalTokens": 75,
-            },
-          },
-        ]
-      `);
-    });
-
     it('should send finish reason for incomplete response', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
@@ -3698,6 +3690,108 @@ describe('OpenAIResponsesLanguageModel', () => {
               "outputTokens": 2,
               "reasoningTokens": 0,
               "totalTokens": 14,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should handle streaming web search with action query field', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"in_progress","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
+          `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_test"}\n\n`,
+          `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_test"}\n\n`,
+          `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_test"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_test","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+          `data:{"type":"response.content_part.added","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_test","output_index":1,"content_index":0,"delta":"Based on the search results, here are the upcoming features."}\n\n`,
+          `data:{"type":"response.output_text.done","item_id":"msg_test","output_index":1,"content_index":0,"text":"Based on the search results, here are the upcoming features."}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}},{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":50,"input_tokens_details":{"cached_tokens":0},"output_tokens":25,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":75},"user":null,"metadata":{}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('o3-2025-04-16').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_test",
+            "modelId": "o3-2025-04-16",
+            "timestamp": 2025-03-10T18:10:55.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "ws_test",
+            "toolName": "web_search",
+            "type": "tool-input-start",
+          },
+          {
+            "id": "ws_test",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
+            "providerExecuted": true,
+            "toolCallId": "ws_test",
+            "toolName": "web_search",
+            "type": "tool-call",
+          },
+          {
+            "providerExecuted": true,
+            "result": {
+              "status": "completed",
+            },
+            "toolCallId": "ws_test",
+            "toolName": "web_search",
+            "type": "tool-result",
+          },
+          {
+            "id": "msg_test",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_test",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "Based on the search results, here are the upcoming features.",
+            "id": "msg_test",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_test",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_test",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 50,
+              "outputTokens": 25,
+              "reasoningTokens": 0,
+              "totalTokens": 75,
             },
           },
         ]
@@ -4956,230 +5050,6 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           stream: true,
         });
-      });
-    });
-
-    describe('server-side tools', () => {
-      const TEST_PROMPT = [
-        {
-          role: 'user' as const,
-          content: [
-            {
-              type: 'text' as const,
-              text: 'Search for recent news about San Francisco tech events, then check the status of our server-side tool implementation.',
-            },
-          ],
-        },
-      ];
-
-      function prepareJsonResponse(body: any) {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body,
-        };
-      }
-
-      it('should enable server-side web search when using openai.tools.webSearchPreview', async () => {
-        prepareJsonResponse({
-          id: 'resp_67cf2b2f6bd081909be2c8054ddef0eb',
-          object: 'response',
-          created_at: 1741630255,
-          status: 'completed',
-          error: null,
-          incomplete_details: null,
-          instructions: null,
-          max_output_tokens: null,
-          model: 'gpt-4o-mini',
-          output: [
-            {
-              type: 'web_search_call',
-              id: 'ws_67cf2b3051e88190b006770db6fdb13d',
-              status: 'completed',
-            },
-            {
-              type: 'message',
-              id: 'msg_67cf2b35467481908f24412e4fd40d66',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: "As of June 23, 2025, here are some recent developments in San Francisco's tech scene:",
-                  annotations: [
-                    {
-                      type: 'url_citation',
-                      start_index: 0,
-                      end_index: 50,
-                      url: 'https://www.eventbrite.sg/d/ca--san-francisco/tech-events/?utm_source=openai',
-                      title:
-                        'Discover Tech Events & Activities in San Francisco, CA | Eventbrite',
-                    },
-                    {
-                      type: 'url_citation',
-                      start_index: 51,
-                      end_index: 100,
-                      url: 'https://www.axios.com/2024/12/10/ai-sf-summit-2024-roundup?utm_source=openai',
-                      title: 'AI+ SF Summit: AI agents are the next big thing',
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-          usage: { input_tokens: 1359, output_tokens: 624 },
-        });
-
-        const result = await createModel('gpt-4o-mini').doGenerate({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.web_search_preview',
-              name: 'web_search_preview',
-              args: {
-                searchContextSize: 'high',
-                userLocation: {
-                  type: 'approximate',
-                  city: 'San Francisco',
-                  region: 'California',
-                  country: 'US',
-                },
-              },
-            },
-          ],
-        });
-
-        expect(result.content).toMatchInlineSnapshot(`
-          [
-            {
-              "input": "{}",
-              "providerExecuted": true,
-              "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "web_search_preview",
-              "type": "tool-call",
-            },
-            {
-              "providerExecuted": true,
-              "result": {
-                "status": "completed",
-              },
-              "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "web_search_preview",
-              "type": "tool-result",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "msg_67cf2b35467481908f24412e4fd40d66",
-                },
-              },
-              "text": "As of June 23, 2025, here are some recent developments in San Francisco's tech scene:",
-              "type": "text",
-            },
-            {
-              "id": "id-0",
-              "sourceType": "url",
-              "title": "Discover Tech Events & Activities in San Francisco, CA | Eventbrite",
-              "type": "source",
-              "url": "https://www.eventbrite.sg/d/ca--san-francisco/tech-events/?utm_source=openai",
-            },
-            {
-              "id": "id-1",
-              "sourceType": "url",
-              "title": "AI+ SF Summit: AI agents are the next big thing",
-              "type": "source",
-              "url": "https://www.axios.com/2024/12/10/ai-sf-summit-2024-roundup?utm_source=openai",
-            },
-          ]
-        `);
-      });
-
-      it('should handle computer use tool calls', async () => {
-        prepareJsonResponse({
-          id: 'resp_computer_test',
-          object: 'response',
-          created_at: 1741630255,
-          status: 'completed',
-          error: null,
-          incomplete_details: null,
-          instructions: null,
-          max_output_tokens: null,
-          model: 'gpt-4o-mini',
-          output: [
-            {
-              type: 'computer_call',
-              id: 'computer_67cf2b3051e88190b006770db6fdb13d',
-              status: 'completed',
-            },
-            {
-              type: 'message',
-              id: 'msg_computer_test',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: "I've completed the computer task.",
-                  annotations: [],
-                },
-              ],
-            },
-          ],
-          usage: { input_tokens: 100, output_tokens: 50 },
-        });
-
-        const result = await createModel('gpt-4o-mini').doGenerate({
-          prompt: [
-            {
-              role: 'user' as const,
-              content: [
-                {
-                  type: 'text' as const,
-                  text: 'Use the computer to complete a task.',
-                },
-              ],
-            },
-          ],
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.computer_use',
-              name: 'computer_use',
-              args: {},
-            },
-          ],
-        });
-
-        expect(result.content).toMatchInlineSnapshot(`
-          [
-            {
-              "input": "",
-              "providerExecuted": true,
-              "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "computer_use",
-              "type": "tool-call",
-            },
-            {
-              "providerExecuted": true,
-              "result": {
-                "status": "completed",
-                "type": "computer_use_tool_result",
-              },
-              "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "computer_use",
-              "type": "tool-result",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "msg_computer_test",
-                },
-              },
-              "text": "I've completed the computer task.",
-              "type": "text",
-            },
-          ]
-        `);
       });
     });
   });
