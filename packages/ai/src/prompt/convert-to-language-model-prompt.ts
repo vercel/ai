@@ -10,7 +10,10 @@ import {
   ImagePart,
   isUrlSupported,
   ModelMessage,
+  ReasoningPart,
   TextPart,
+  ToolCallPart,
+  ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import {
   detectMediaType,
@@ -111,6 +114,16 @@ export function convertToLanguageModelMessage({
             // remove empty text parts:
             part => part.type !== 'text' || part.text !== '',
           )
+          .filter(
+            (
+              part,
+            ): part is
+              | TextPart
+              | FilePart
+              | ReasoningPart
+              | ToolCallPart
+              | ToolResultPart => part.type !== 'tool-approval-request',
+          )
           .map(part => {
             const providerOptions = part.providerOptions;
 
@@ -169,13 +182,15 @@ export function convertToLanguageModelMessage({
     case 'tool': {
       return {
         role: 'tool',
-        content: message.content.map(part => ({
-          type: 'tool-result' as const,
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          output: part.output,
-          providerOptions: part.providerOptions,
-        })),
+        content: message.content
+          .filter(part => part.type !== 'tool-approval-response')
+          .map(part => ({
+            type: 'tool-result' as const,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output: part.output,
+            providerOptions: part.providerOptions,
+          })),
         providerOptions: message.providerOptions,
       };
     }

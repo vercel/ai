@@ -9,6 +9,8 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
+  ToolApprovalRequest,
+  ToolCallPart,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
@@ -49,12 +51,13 @@ import {
   StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
-import { TypedToolCall } from './tool-call';
+import { StaticToolCall, TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -292,6 +295,100 @@ A function that attempts to repair a tool call that failed to parse.
       }),
       tracer,
       fn: async span => {
+        // create tool outputs (either execute or reject)
+        // for tool approval responses
+        const lastMessage = initialPrompt.messages.at(-1);
+        if (
+          lastMessage?.role === 'tool' &&
+          lastMessage.content.find(
+            part => part.type === 'tool-approval-response',
+          ) != null
+        ) {
+          const toolApprovalResponses = lastMessage.content.filter(
+            part => part.type === 'tool-approval-response',
+          );
+
+          for (const toolApprovalResponse of toolApprovalResponses) {
+            // assume true for now
+            // get approval request by approval id
+            let approvalRequest: ToolApprovalRequest | undefined = undefined;
+
+            for (const message of initialPrompt.messages) {
+              if (
+                message.role === 'assistant' &&
+                !(typeof message.content === 'string')
+              ) {
+                const content = message.content;
+
+                for (const part of content) {
+                  if (
+                    part.type === 'tool-approval-request' &&
+                    part.approvalId === toolApprovalResponse.approvalId
+                  ) {
+                    approvalRequest = part;
+                    break;
+                  }
+                }
+              }
+            }
+
+            const toolCallId = approvalRequest!.toolCallId;
+            let toolCall: ToolCallPart | undefined = undefined;
+            for (const message of initialPrompt.messages) {
+              if (
+                message.role === 'assistant' &&
+                !(typeof message.content === 'string')
+              ) {
+                const content = message.content;
+
+                for (const part of content) {
+                  if (
+                    part.type === 'tool-call' &&
+                    part.toolCallId === toolCallId
+                  ) {
+                    toolCall = part;
+                    break;
+                  }
+                }
+              }
+            }
+
+            const x = await executeTools({
+              toolCalls: [
+                {
+                  type: 'tool-call',
+                  toolCallId: toolCall!.toolCallId,
+                  toolName: toolCall!.toolName as keyof TOOLS & string,
+                  input: toolCall!.input as any,
+                  dynamic: false,
+                } as StaticToolCall<TOOLS>,
+              ],
+              tools: tools!,
+              tracer,
+              telemetry,
+              messages: initialPrompt.messages,
+              abortSignal,
+              experimental_context,
+            });
+
+            lastMessage.content.push(
+              ...x.map(
+                output =>
+                  ({
+                    type: 'tool-result',
+                    toolCallId: output.toolCallId,
+                    toolName: output.toolName,
+                    input: output.input,
+                    output: {
+                      type: 'json',
+                      value: (output as any).output,
+                    },
+                  }) as any,
+              ),
+            );
+          }
+        }
+
         const callSettings = prepareCallSettings(settings);
 
         let currentModelResponse: Awaited<
@@ -460,6 +557,10 @@ A function that attempts to repair a tool call that failed to parse.
                 }),
               ),
           );
+          const toolApprovalRequests: Record<
+            string,
+            ToolApprovalRequestOutput<TOOLS>
+          > = {};
 
           // notify the tools that the tool calls are available:
           for (const toolCall of stepToolCalls) {
@@ -468,6 +569,7 @@ A function that attempts to repair a tool call that failed to parse.
             }
 
             const tool = tools![toolCall.toolName];
+
             if (tool?.onInputAvailable != null) {
               await tool.onInputAvailable({
                 input: toolCall.input,
@@ -476,6 +578,14 @@ A function that attempts to repair a tool call that failed to parse.
                 abortSignal,
                 experimental_context,
               });
+            }
+
+            if (tool?.needsApproval) {
+              toolApprovalRequests[toolCall.toolCallId] = {
+                type: 'tool-approval-request',
+                approvalId: generateId(),
+                toolCall,
+              };
             }
           }
 
@@ -507,7 +617,9 @@ A function that attempts to repair a tool call that failed to parse.
             clientToolOutputs.push(
               ...(await executeTools({
                 toolCalls: clientToolCalls.filter(
-                  toolCall => !toolCall.invalid,
+                  toolCall =>
+                    !toolCall.invalid &&
+                    toolApprovalRequests[toolCall.toolCallId] == null,
                 ),
                 tools,
                 tracer,
@@ -524,6 +636,7 @@ A function that attempts to repair a tool call that failed to parse.
             content: currentModelResponse.content,
             toolCalls: stepToolCalls,
             toolOutputs: clientToolOutputs,
+            toolApprovalRequests: Object.values(toolApprovalRequests),
           });
 
           // append to messages for potential next step:
@@ -850,14 +963,17 @@ function asToolCalls(content: Array<LanguageModelV2Content>) {
   }));
 }
 
+// TODO AI SDK 5.1 / AI SDK 6: rename to asOutput
 function asContent<TOOLS extends ToolSet>({
   content,
   toolCalls,
   toolOutputs,
+  toolApprovalRequests,
 }: {
   content: Array<LanguageModelV2Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
+  toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
 }): Array<ContentPart<TOOLS>> {
   return [
     ...content.map(part => {
@@ -914,5 +1030,6 @@ function asContent<TOOLS extends ToolSet>({
       }
     }),
     ...toolOutputs,
+    ...toolApprovalRequests,
   ];
 }

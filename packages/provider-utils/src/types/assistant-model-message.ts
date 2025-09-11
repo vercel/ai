@@ -6,6 +6,7 @@ import {
   ToolResultPart,
 } from './content-part';
 import { ProviderOptions } from './provider-options';
+import { ToolApprovalRequest } from './tool-approval-request';
 
 /**
 An assistant message. It can contain text, tool calls, or a combination of text and tool calls.
@@ -28,4 +29,11 @@ It can be a string or an array of text, image, reasoning, redacted reasoning, an
  */
 export type AssistantContent =
   | string
-  | Array<TextPart | FilePart | ReasoningPart | ToolCallPart | ToolResultPart>;
+  | Array<
+      | TextPart
+      | FilePart
+      | ReasoningPart
+      | ToolCallPart
+      | ToolResultPart
+      | ToolApprovalRequest
+    >;

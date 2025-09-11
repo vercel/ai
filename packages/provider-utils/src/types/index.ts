@@ -24,6 +24,8 @@ export {
   type ToolCallOptions,
   type ToolExecuteFunction,
 } from './tool';
+export type { ToolApprovalRequest } from './tool-approval-request';
+export type { ToolApprovalResponse } from './tool-approval-response';
 export type { ToolCall } from './tool-call';
 export type { ToolContent, ToolModelMessage } from './tool-model-message';
 export type { ToolResult } from './tool-result';
