@@ -9,7 +9,8 @@ async function main() {
     prompt,
   });
 
-  console.log(result.usage);
+  // TODO: Usage tracking is not yet implemented for image generation
+  // console.log(result.usage);
 
 }
 
