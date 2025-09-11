@@ -1,5 +1,18 @@
 # @ai-sdk/openai
 
+## 2.0.28
+
+### Patch Changes
+
+- 4c2bb77: fix (provider/openai): send sources action as include
+- 561e8b0: fix (provider/openai): fix code interpreter tool in doGenerate
+
+## 2.0.27
+
+### Patch Changes
+
+- 2338c79: feat (provider/openai): add jsdoc for openai tools
+
 ## 2.0.26
 
 ### Patch Changes

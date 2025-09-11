@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 2.0.15
+
+### Patch Changes
+
+- c8aab0a: fix (provider/anthropic): revert cd458a8c1667df86e6987a1f2e06159823453864
+
+## 2.0.14
+
+### Patch Changes
+
+- 2338c79: feat (provider/anthropic): update jsdoc of anthropic tools
+
 ## 2.0.13
 
 ### Patch Changes
