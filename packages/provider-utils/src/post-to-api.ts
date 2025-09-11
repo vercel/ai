@@ -5,7 +5,10 @@ import { handleFetchError } from './handle-fetch-error';
 import { isAbortError } from './is-abort-error';
 import { removeUndefinedEntries } from './remove-undefined-entries';
 import { ResponseHandler } from './response-handler';
-import { createUserAgentFetch } from './fetch-with-user-agent';
+import {
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
+} from './fetch-with-user-agent';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => globalThis.fetch;
@@ -80,7 +83,7 @@ export const postToApi = async <T>({
   successfulResponseHandler,
   failedResponseHandler,
   abortSignal,
-  fetch = createUserAgentFetch(getOriginalFetch()),
+  fetch = getOriginalFetch(),
 }: {
   url: string;
   headers?: Record<string, string | undefined>;
@@ -96,7 +99,10 @@ export const postToApi = async <T>({
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: removeUndefinedEntries(headers),
+      headers: withUserAgentSuffix(
+        removeUndefinedEntries(headers),
+        getRuntimeEnvironmentUserAgent(),
+      ),
       body: body.content,
       signal: abortSignal,
     });

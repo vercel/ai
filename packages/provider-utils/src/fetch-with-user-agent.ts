@@ -1,15 +1,26 @@
 import type { FetchFunction } from './fetch-function';
 import { VERSION as PROVIDER_UTILS_VERSION } from './version';
 
-export function getRuntimeEnvironmentUserAgent(): string {
-  // Browsers / Deno / Bun / Node.js >= 21.1
-  if (globalThis.navigator?.userAgent) {
-    return `runtime/${navigator.userAgent}`;
+export function getRuntimeEnvironmentUserAgent(
+  globalThisAny: any = globalThis as any,
+): string {
+  // Browsers
+  if (globalThisAny.window) {
+    return `runtime/browser`;
+  }
+
+  // Cloudflare Workers / Deno / Bun / Node.js >= 21.1
+  if (globalThisAny.navigator?.userAgent) {
+    return `runtime/${globalThisAny.navigator.userAgent.toLowerCase()}.`;
   }
 
   // Nodes.js < 21.1
-  if (globalThis.process?.versions?.node) {
-    return `runtime/Node.js/${process.version.substring(1)}`;
+  if (globalThisAny.process?.versions?.node) {
+    return `runtime/node.js/${globalThisAny.process.version.substring(0)}`;
+  }
+
+  if (globalThisAny.EdgeRuntime) {
+    return `runtime/vercel-edge`;
   }
 
   return 'runtime/unknown';
@@ -37,31 +48,4 @@ export function withUserAgentSuffix(
   );
 
   return Object.fromEntries(normalizedHeaders);
-}
-
-/**
- * Creates a fetch function that adds a `user-agent` header to each request.
- */
-export function createUserAgentFetch(baseFetch?: FetchFunction): FetchFunction {
-  const effectiveFetch: FetchFunction = baseFetch ?? (globalThis.fetch as any);
-
-  return async (input: string | URL | Request, init?: RequestInit) => {
-    // normalize arguments
-    if (input instanceof Request) {
-      init = input;
-      input = input.url;
-    }
-
-    const url = String(input);
-    const headers = withUserAgentSuffix(
-      init?.headers,
-      `ai-sdk/provider-utils/${PROVIDER_UTILS_VERSION}`,
-      getRuntimeEnvironmentUserAgent(),
-    );
-
-    return effectiveFetch(url, {
-      ...init,
-      headers,
-    });
-  };
 }

@@ -3,10 +3,7 @@ export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-t
 export * from './delay';
 export * from './extract-response-headers';
 export * from './fetch-function';
-export {
-  createUserAgentFetch,
-  withUserAgentSuffix,
-} from './fetch-with-user-agent';
+export * from './fetch-with-user-agent';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
