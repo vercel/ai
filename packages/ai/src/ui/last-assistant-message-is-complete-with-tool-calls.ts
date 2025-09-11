@@ -30,8 +30,9 @@ export function lastAssistantMessageIsCompleteWithToolCalls({
 
   return (
     lastStepToolInvocations.length > 0 &&
-    lastStepToolInvocations.every(part =>
-      part.state === 'output-available' || part.state === 'output-error'
+    lastStepToolInvocations.every(
+      part =>
+        part.state === 'output-available' || part.state === 'output-error',
     )
   );
 }
