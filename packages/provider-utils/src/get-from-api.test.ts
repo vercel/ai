@@ -6,13 +6,11 @@ import {
   createStatusCodeErrorResponseHandler,
 } from './response-handler';
 import { z } from 'zod/v4';
-import {
-  getRuntimeEnvironmentUserAgent,
-  withUserAgentSuffix,
-} from './fetch-with-user-agent';
+import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
+import { withUserAgentSuffix } from './with-user-agent-suffix';
 
-vi.mock('./fetch-with-user-agent', async () => {
-  const actual = await vi.importActual('./fetch-with-user-agent');
+vi.mock('./get-runtime-environment-user-agent', async () => {
+  const actual = await vi.importActual('./get-runtime-environment-user-agent');
   return {
     ...actual,
     getRuntimeEnvironmentUserAgent: () => 'runtime/test-env',
@@ -62,7 +60,7 @@ describe('getFromApi', () => {
         method: 'GET',
         headers: {
           authorization: 'Bearer test',
-          'user-agent': 'runtime/test-env',
+          'user-agent': 'ai-sdk/provider-utils/0.0.0-test runtime/test-env',
         },
       }),
     );
@@ -150,7 +148,7 @@ describe('getFromApi', () => {
       expect.objectContaining({
         headers: {
           authorization: 'Bearer test',
-          'user-agent': 'runtime/test-env',
+          'user-agent': 'ai-sdk/provider-utils/0.0.0-test runtime/test-env',
         },
       }),
     );

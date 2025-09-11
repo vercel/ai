@@ -5,7 +5,7 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-import { getRuntimeEnvironmentUserAgent } from './fetch-with-user-agent';
+import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 
 describe('getRuntimeEnvironmentUserAgent', () => {
   it('should return the correct user agent for browsers', () => {

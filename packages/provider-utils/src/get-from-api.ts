@@ -5,10 +5,9 @@ import { handleFetchError } from './handle-fetch-error';
 import { isAbortError } from './is-abort-error';
 import { removeUndefinedEntries } from './remove-undefined-entries';
 import { ResponseHandler } from './response-handler';
-import {
-  getRuntimeEnvironmentUserAgent,
-  withUserAgentSuffix,
-} from './fetch-with-user-agent';
+import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
+import { withUserAgentSuffix } from './with-user-agent-suffix';
+import { VERSION } from './version';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => globalThis.fetch;
@@ -33,6 +32,7 @@ export const getFromApi = async <T>({
       method: 'GET',
       headers: withUserAgentSuffix(
         removeUndefinedEntries(headers),
+        `ai-sdk/provider-utils/${VERSION}`,
         getRuntimeEnvironmentUserAgent(),
       ),
       signal: abortSignal,
