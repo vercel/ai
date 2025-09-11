@@ -23,7 +23,7 @@ describe('getRuntimeEnvironmentUserAgent', () => {
           userAgent: 'test',
         },
       }),
-    ).toBe('runtime/test.');
+    ).toBe('runtime/test');
   });
 
   it('should return the correct user agent for Edge Runtime', () => {
