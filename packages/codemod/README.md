@@ -97,6 +97,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/remove-get-ui-text`                                               | Transforms v5/remove get ui text                                               |
 | `v5/remove-openai-compatibility`                                      | Transforms v5/remove openai compatibility                                      |
 | `v5/remove-sendExtraMessageFields`                                    | Transforms v5/remove sendExtraMessageFields                                    |
+| `v5/remove-todatastreamresponse-two-step`                             | Transforms v5/remove todatastreamresponse two step                             |
 | `v5/rename-IDGenerator-to-IdGenerator`                                | Transforms v5/rename IDGenerator to IdGenerator                                |
 | `v5/rename-converttocoremessages-to-converttomodelmessages`           | Transforms v5/rename converttocoremessages to converttomodelmessages           |
 | `v5/rename-core-message-to-model-message`                             | Transforms v5/rename core message to model message                             |

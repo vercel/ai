@@ -55,6 +55,7 @@ const bundle = [
   'v5/rename-reasoning-to-reasoningText',
   'v5/rename-request-options',
   'v5/rename-todatastreamresponse-to-touimessagestreamresponse',
+  'v5/remove-todatastreamresponse-two-step',
   'v5/rename-tool-parameters-to-inputschema',
   'v5/replace-bedrock-snake-case',
   'v5/replace-content-with-parts',
