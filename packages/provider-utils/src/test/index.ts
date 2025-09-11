@@ -5,4 +5,3 @@ export * from './convert-readable-stream-to-array';
 export * from './convert-response-stream-to-array';
 export * from './is-node-version';
 export * from './mock-id';
-export { TestResponseController, type UrlResponse, type UrlHandler, type UrlHandlers } from './test-server';
