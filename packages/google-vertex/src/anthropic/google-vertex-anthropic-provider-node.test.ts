@@ -2,6 +2,7 @@ import { resolve } from '@ai-sdk/provider-utils';
 import { createVertexAnthropic as createVertexAnthropicOriginal } from './google-vertex-anthropic-provider';
 import { createVertexAnthropic as createVertexAnthropicNode } from './google-vertex-anthropic-provider-node';
 import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
+import { describe, beforeEach, expect, it, vi } from 'vitest';
 
 // Mock the imported modules
 vi.mock('../google-vertex-auth-google-auth-library', () => ({

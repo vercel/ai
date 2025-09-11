@@ -12,6 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
@@ -31,9 +32,10 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
+import { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
 import { ContentPart } from './content-part';
-import { extractContentText } from './extract-content-text';
+import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { Output } from './output';
@@ -137,6 +139,7 @@ export async function generateText<
   experimental_prepareStep,
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
+  experimental_download: download,
   experimental_context,
   _internal: {
     generateId = originalGenerateId,
@@ -200,6 +203,13 @@ Optional specification for parsing structured outputs from the LLM response.
     experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
 
     /**
+Custom download function to use for URLs.
+
+By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+    experimental_download?: DownloadFunction | undefined;
+
+    /**
      * @deprecated Use `prepareStep` instead.
      */
     experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
@@ -256,7 +266,7 @@ A function that attempts to repair a tool call that failed to parse.
     system,
     prompt,
     messages,
-  });
+  } as Prompt);
 
   const tracer = getTracer(telemetry);
 
@@ -311,6 +321,7 @@ A function that attempts to repair a tool call that failed to parse.
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
             supportedUrls: await model.supportedUrls,
+            download,
           });
 
           const stepModel = resolveLanguageModel(
@@ -395,7 +406,7 @@ A function that attempts to repair a tool call that failed to parse.
                     attributes: {
                       'ai.response.finishReason': result.finishReason,
                       'ai.response.text': {
-                        output: () => extractContentText(result.content),
+                        output: () => extractTextContent(result.content),
                       },
                       'ai.response.toolCalls': {
                         output: () => {
@@ -538,6 +549,8 @@ A function that attempts to repair a tool call that failed to parse.
             },
           });
 
+          logWarnings(currentModelResponse.warnings ?? []);
+
           steps.push(currentStepResult);
           await onStepFinish?.(currentStepResult);
         } while (
@@ -556,7 +569,7 @@ A function that attempts to repair a tool call that failed to parse.
             attributes: {
               'ai.response.finishReason': currentModelResponse.finishReason,
               'ai.response.text': {
-                output: () => extractContentText(currentModelResponse.content),
+                output: () => extractTextContent(currentModelResponse.content),
               },
               'ai.response.toolCalls': {
                 output: () => {

@@ -75,12 +75,29 @@ function parseErrors(transform: string, output: string): TransformErrors {
   return errors;
 }
 
+function parseNotImplementedErrors(
+  transform: string,
+  output: string,
+): TransformErrors {
+  const notImplementedErrors: TransformErrors = [];
+  const notImplementedRegex = /Not Implemented (.+): (.+)/g;
+
+  let match;
+  while ((match = notImplementedRegex.exec(output)) !== null) {
+    const filename = match[1];
+    const summary = match[2];
+    notImplementedErrors.push({ transform, filename, summary });
+  }
+
+  return notImplementedErrors;
+}
+
 export function transform(
   codemod: string,
   source: string,
   transformOptions: TransformOptions,
   options: { logStatus: boolean } = { logStatus: true },
-): TransformErrors {
+): { errors: TransformErrors; notImplementedErrors: TransformErrors } {
   if (options.logStatus) {
     log(`Applying codemod '${codemod}': ${source}`);
   }
@@ -95,12 +112,27 @@ export function transform(
   );
   const stdout = execSync(command, { encoding: 'utf8', stdio: 'pipe' });
   const errors = parseErrors(codemod, stdout);
-  if (options.logStatus && errors.length > 0) {
-    errors.forEach(({ transform, filename, summary }) => {
-      error(
-        `Error applying codemod [codemod=${transform}, path=${filename}, summary=${summary}]`,
+  const notImplementedErrors = parseNotImplementedErrors(codemod, stdout);
+  if (options.logStatus) {
+    if (errors.length > 0) {
+      errors.forEach(({ transform, filename, summary }) => {
+        error(
+          `Error applying codemod [codemod=${transform}, path=${filename}, summary=${summary}]`,
+        );
+      });
+    }
+
+    if (notImplementedErrors.length > 0) {
+      log(
+        `Some files require manual changes. Please search your codebase for \`FIXME(@ai-sdk-upgrade-v5): \` comments and follow the instructions to complete the upgrade.`,
       );
-    });
+      notImplementedErrors.forEach(({ transform, filename, summary }) => {
+        log(
+          `Not Implemented [codemod=${transform}, path=${filename}, summary=${summary}]`,
+        );
+      });
+    }
   }
-  return errors;
+
+  return { errors, notImplementedErrors };
 }

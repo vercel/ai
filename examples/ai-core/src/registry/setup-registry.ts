@@ -1,4 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { fal } from '@ai-sdk/fal';
 import { groq } from '@ai-sdk/groq';
 import { luma } from '@ai-sdk/luma';
@@ -63,6 +64,7 @@ export const registry = createProviderRegistry({
   openai: myOpenAI,
   xai,
   groq,
+  elevenlabs,
 });
 
 registry.languageModel('anthropic:haiku');
@@ -74,6 +76,7 @@ const registryWithCustomSeparator = createProviderRegistry(
     openai: myOpenAI,
     xai,
     groq,
+    elevenlabs,
   },
   { separator: ' > ' },
 );

@@ -2,6 +2,7 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { smoothStream } from './smooth-stream';
 import { TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('smoothStream', () => {
   let events: any[] = [];

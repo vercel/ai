@@ -34,6 +34,13 @@ An example upgrade command would be:
 npm install ai @ai-sdk/react @ai-sdk/openai zod@3.25.0
 ```
 
+<Note>
+  If you encounter TypeScript performance issues after upgrading, update your
+  `tsconfig.json` to use `moduleResolution: "nodenext"`. See the [TypeScript
+  performance troubleshooting
+  guide](/docs/troubleshooting/typescript-performance-zod) for more details.
+</Note>
+
 ## Codemods
 
 The AI SDK provides Codemod transformations to help upgrade your codebase when a
@@ -407,15 +414,13 @@ export async function POST(req: Request) {
   const stream = createUIMessageStream({
     execute: ({ writer }) => {
       const statusId = generateId();
+
       // Write general data (transient - not added to message history)
       writer.write({
         type: 'data-status',
         id: statusId,
         data: { status: 'call started' },
       });
-
-      // Generate shared IDs for data parts
-      const completionId = generateId();
 
       const result = streamText({
         model: openai('gpt-4o'),
@@ -578,6 +583,46 @@ for await (const part of result.fullStream) {
   }
 }
 ```
+
+### Tool Execution Error Handling
+
+The `ToolExecutionError` class has been removed. Tool execution errors now appear as `tool-error` content parts in the result steps, enabling automated LLM roundtrips in multi-step scenarios.
+
+```tsx filename="AI SDK 4.0"
+import { ToolExecutionError } from 'ai';
+
+try {
+  const result = await generateText({
+    // ...
+  });
+} catch (error) {
+  if (error instanceof ToolExecutionError) {
+    console.log('Tool execution failed:', error.message);
+    console.log('Tool name:', error.toolName);
+    console.log('Tool input:', error.toolInput);
+  }
+}
+```
+
+```tsx filename="AI SDK 5.0"
+// Tool execution errors now appear in result steps
+const { steps } = await generateText({
+  // ...
+});
+
+// check for tool errors in the steps
+const toolErrors = steps.flatMap(step =>
+  step.content.filter(part => part.type === 'tool-error'),
+);
+
+toolErrors.forEach(toolError => {
+  console.log('Tool error:', toolError.error);
+  console.log('Tool name:', toolError.toolName);
+  console.log('Tool input:', toolError.input);
+});
+```
+
+For streaming scenarios, tool execution errors appear as `tool-error` parts in the stream, while other errors appear as `error` parts.
 
 ### Tool Call Streaming Now Default (toolCallStreaming Removed)
 
@@ -1683,7 +1728,7 @@ Then, on the client, you can access the message-level metadata.
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { MyUIMessage } from './api/chat/route';
+import type { MyUIMessage } from './api/chat/route';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
@@ -1721,7 +1766,7 @@ You can also access your metadata from the `onFinish` callback of `useChat`:
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { MyUIMessage } from './api/chat/route';
+import type { MyUIMessage } from './api/chat/route';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
@@ -2213,7 +2258,7 @@ const result = streamText({
   prompt: 'Write a story',
   onChunk({ chunk }) {
     switch (chunk.type) {
-      case 'text': {
+      case 'text-delta': {
         // Text chunks now use single 'text' type
         console.log('Text chunk:', chunk.text);
         break;
@@ -3056,17 +3101,18 @@ import {
 
 ### TypeScript Performance Issues with Zod
 
-If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0, you need to use the Zod v3 import path:
+If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0, update your `tsconfig.json` to use `moduleResolution: "nodenext"`:
 
-```typescript
-// ❌ Avoid: Standard import causes TypeScript issues
-import { z } from 'zod';
-
-// ✅ Use: v3-specific import for AI SDK 5.0 compatibility
-import { z } from 'zod/v3';
+```json
+{
+  "compilerOptions": {
+    "moduleResolution": "nodenext"
+    // ... other options
+  }
+}
 ```
 
-This is particularly important when using `generateObject`, `tool`, or other AI SDK functions with Zod schemas. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
+This resolves the TypeScript performance issues while allowing you to continue using the standard Zod import. If this doesn't resolve the issue, you can try using a version-specific import path as an alternative solution. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
 
 ## Codemod Table
 
@@ -3143,7 +3189,7 @@ The chunk types in `fullStream` have been renamed for consistency with UI stream
 ```tsx filename="AI SDK 5.0 (before beta.26)"
 for await (const chunk of result.fullStream) {
   switch (chunk.type) {
-    case 'text': {
+    case 'text-delta': {
       process.stdout.write(chunk.text);
       break;
     }

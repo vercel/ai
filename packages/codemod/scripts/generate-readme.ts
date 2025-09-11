@@ -16,7 +16,7 @@ function scanCodemodsRecursively(dir: string, prefix: string = ''): string[] {
     const itemPath = path.join(dir, item);
     const stat = fs.statSync(itemPath);
 
-    if (stat.isDirectory() && item !== 'lib') {
+    if (stat.isDirectory() && item !== 'not-implemented' && item !== 'lib') {
       files.push(...scanCodemodsRecursively(itemPath, prefix + item + '/'));
     } else if (
       stat.isFile() &&

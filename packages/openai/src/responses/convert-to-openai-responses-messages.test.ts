@@ -1,4 +1,5 @@
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('convertToOpenAIResponsesMessages', () => {
   describe('system messages', () => {
@@ -358,24 +359,34 @@ describe('convertToOpenAIResponsesMessages', () => {
       ).rejects.toThrow('file part media type text/plain');
     });
 
-    it('should throw error for file URLs', async () => {
-      await expect(
-        convertToOpenAIResponsesMessages({
-          prompt: [
+    it('should convert PDF file parts with URL to input_file with file_url', async () => {
+      const result = await convertToOpenAIResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: new URL('https://example.com/document.pdf'),
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
             {
-              role: 'user',
-              content: [
-                {
-                  type: 'file',
-                  mediaType: 'application/pdf',
-                  data: new URL('https://example.com/document.pdf'),
-                },
-              ],
+              type: 'input_file',
+              file_url: 'https://example.com/document.pdf',
             },
           ],
-          systemMessageMode: 'system',
-        }),
-      ).rejects.toThrow('PDF file parts with URLs');
+        },
+      ]);
     });
 
     describe('Azure OpenAI file ID support', () => {

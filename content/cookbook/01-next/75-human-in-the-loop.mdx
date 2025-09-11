@@ -85,6 +85,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const stream = createUIMessageStream({
+    originalMessages: messages,
     execute: async ({ writer }) => {
       const result = streamText({
         model: openai('gpt-4o'),
@@ -109,7 +110,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return createUIMessageStreamResponse(stream);
+  return createUIMessageStreamResponse({ stream });
 }
 ```
 
@@ -135,7 +136,7 @@ At a high level, you will:
 
 To implement HITL functionality, you start by omitting the `execute` function from the tool definition. This allows the frontend to intercept the tool call and handle the responsibility of adding the final tool result to the tool call.
 
-```ts filename="api/chat/route.ts" highlight="18"
+```ts filename="api/chat/route.ts" highlight="19"
 import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStreamResponse,
@@ -151,6 +152,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const stream = createUIMessageStream({
+    originalMessages: messages,
     execute: async ({ writer }) => {
       const result = streamText({
         model: openai('gpt-4o'),
@@ -170,7 +172,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return createUIMessageStreamResponse(stream);
+  return createUIMessageStreamResponse({ stream });
 }
 ```
 
@@ -189,12 +191,7 @@ You can check if the tool requiring confirmation has been called and, if so, pre
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import {
-  DefaultChatTransport,
-  isToolUIPart,
-  getToolName,
-  lastAssistantMessageIsCompleteWithToolCalls,
-} from 'ai';
+import { DefaultChatTransport, isToolUIPart, getToolName } from 'ai';
 import { useState } from 'react';
 
 export default function Chat() {
@@ -202,7 +199,6 @@ export default function Chat() {
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
   });
   const [input, setInput] = useState('');
 
@@ -286,10 +282,7 @@ export default function Chat() {
 
 <Note>
   The `sendMessage()` function after `addToolResult` will trigger a call to your
-  route handler. In this example, `sendMessage()` is called automatically when
-  tool calls are complete because we set `sendAutomaticallyWhen:
-  lastAssistantMessageIsCompleteWithToolCalls`. Without this option, you would
-  need to manually call `sendMessage()` after `await addToolResult()`.
+  route handler.
 </Note>
 
 ### Handle Confirmation Response
@@ -315,6 +308,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const stream = createUIMessageStream({
+    originalMessages: messages,
     execute: async ({ writer }) => {
       // pull out last message
       const lastMessage = messages[messages.length - 1];
@@ -385,7 +379,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return createUIMessageStreamResponse(stream);
+  return createUIMessageStreamResponse({ stream });
 }
 
 async function executeWeatherTool({ city }: { city: string }) {
@@ -505,11 +499,11 @@ export async function processToolCalls<
   }: {
     tools: Tools; // used for type inference
     writer: UIMessageStreamWriter;
-    messages: HumanInTheLoopUIMessage[];
+    messages: HumanInTheLoopUIMessage[]; // IMPORTANT: replace with your message type
   },
   executeFunctions: {
     [K in keyof Tools & keyof ExecutableTools]?: (
-      args: any,
+      args: ExecutableTools[K] extends Tool<infer P> ? P : never,
       context: ToolCallOptions,
     ) => Promise<any>;
   },
@@ -619,6 +613,7 @@ export async function POST(req: Request) {
     await req.json();
 
   const stream = createUIMessageStream({
+    originalMessages: messages,
     execute: async ({ writer }) => {
       // Utility function to handle tools that require human confirmation
       // Checks for confirmation in last message and then runs associated tool
@@ -664,12 +659,7 @@ Finally, update the frontend to use the new `getToolsRequiringConfirmation` func
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import {
-  DefaultChatTransport,
-  getToolName,
-  isToolUIPart,
-  lastAssistantMessageIsCompleteWithToolCalls,
-} from 'ai';
+import { DefaultChatTransport, getToolName, isToolUIPart } from 'ai';
 import { tools } from '../api/chat/tools';
 import { APPROVAL, getToolsRequiringConfirmation } from '../api/chat/utils';
 import { useState } from 'react';
@@ -681,7 +671,6 @@ export default function Chat() {
       transport: new DefaultChatTransport({
         api: '/api/chat',
       }),
-      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     });
   const [input, setInput] = useState('');
 

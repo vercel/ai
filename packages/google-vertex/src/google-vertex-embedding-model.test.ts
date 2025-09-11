@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
+import { describe, it, expect, vi } from 'vitest';
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3],
@@ -27,6 +28,7 @@ describe('GoogleVertexEmbeddingModel', () => {
   const mockProviderOptions = {
     outputDimensionality: 768,
     taskType: 'SEMANTIC_SIMILARITY',
+    title: 'test title',
     autoTruncate: false,
   };
 
@@ -121,7 +123,8 @@ describe('GoogleVertexEmbeddingModel', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       instances: testValues.map(value => ({
         content: value,
-        taskType: mockProviderOptions.taskType,
+        task_type: mockProviderOptions.taskType,
+        title: mockProviderOptions.title,
       })),
       parameters: {
         outputDimensionality: mockProviderOptions.outputDimensionality,
@@ -141,7 +144,24 @@ describe('GoogleVertexEmbeddingModel', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       instances: testValues.map(value => ({
         content: value,
-        taskType: mockProviderOptions.taskType,
+        task_type: mockProviderOptions.taskType,
+      })),
+      parameters: {},
+    });
+  });
+
+  it('should pass the title setting in instances', async () => {
+    prepareJsonResponse();
+
+    await model.doEmbed({
+      values: testValues,
+      providerOptions: { google: { title: mockProviderOptions.title } },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      instances: testValues.map(value => ({
+        content: value,
+        title: mockProviderOptions.title,
       })),
       parameters: {},
     });
