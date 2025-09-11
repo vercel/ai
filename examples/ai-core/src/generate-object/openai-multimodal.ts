@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import 'dotenv/config';
 import fs from 'node:fs';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const { object } = await generateObject({

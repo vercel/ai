@@ -1,7 +1,7 @@
 import { google } from '@ai-sdk/google';
 import { generateText, Output } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const { experimental_output } = await generateText({

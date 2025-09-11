@@ -1,6 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { convertToModelMessages, stepCountIs, streamText } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 export default defineLazyEventHandler(async () => {
   const openai = createOpenAI({

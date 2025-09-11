@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.21
+
+### Patch Changes
+
+- 4ee3719: feat(provider/gateway): Add Meituan LongCat Flash Chat to autocomplete
+
 ## 1.0.20
 
 ### Patch Changes

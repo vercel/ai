@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs, tool } from 'ai';
 import { MockLanguageModelV2 } from 'ai/test';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const result = await generateText({

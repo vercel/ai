@@ -13,6 +13,19 @@ export type OpenAIResponsesMessage =
   | OpenAIFileSearchCall
   | OpenAIResponsesReasoning;
 
+export type OpenAIResponsesIncludeOptions =
+  | Array<
+      | 'web_search_call.action.sources'
+      | 'code_interpreter_call.outputs'
+      | 'computer_call_output.output.image_url'
+      | 'file_search_call.results'
+      | 'message.input_image.image_url'
+      | 'message.output_text.logprobs'
+      | 'reasoning.encrypted_content'
+    >
+  | undefined
+  | null;
+
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
   content: string;

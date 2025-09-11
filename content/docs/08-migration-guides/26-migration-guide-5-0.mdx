@@ -34,6 +34,13 @@ An example upgrade command would be:
 npm install ai @ai-sdk/react @ai-sdk/openai zod@3.25.0
 ```
 
+<Note>
+  If you encounter TypeScript performance issues after upgrading, update your
+  `tsconfig.json` to use `moduleResolution: "nodenext"`. See the [TypeScript
+  performance troubleshooting
+  guide](/docs/troubleshooting/typescript-performance-zod) for more details.
+</Note>
+
 ## Codemods
 
 The AI SDK provides Codemod transformations to help upgrade your codebase when a
@@ -3094,17 +3101,18 @@ import {
 
 ### TypeScript Performance Issues with Zod
 
-If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0, you need to use the Zod v3 import path:
+If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0, update your `tsconfig.json` to use `moduleResolution: "nodenext"`:
 
-```typescript
-// ❌ Avoid: Standard import causes TypeScript issues
-import { z } from 'zod';
-
-// ✅ Use: v3-specific import for AI SDK 5.0 compatibility
-import { z } from 'zod/v3';
+```json
+{
+  "compilerOptions": {
+    "moduleResolution": "nodenext"
+    // ... other options
+  }
+}
 ```
 
-This is particularly important when using `generateObject`, `tool`, or other AI SDK functions with Zod schemas. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
+This resolves the TypeScript performance issues while allowing you to continue using the standard Zod import. If this doesn't resolve the issue, you can try using a version-specific import path as an alternative solution. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
 
 ## Codemod Table
 

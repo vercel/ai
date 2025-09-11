@@ -2,7 +2,7 @@ import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const anthropic = createAnthropic({
   // example fetch wrapper that logs the input to the API call:

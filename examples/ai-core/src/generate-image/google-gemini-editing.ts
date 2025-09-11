@@ -7,9 +7,6 @@ async function main() {
   console.log('Generating base cat image...');
   const baseResult = await generateText({
     model: google('gemini-2.5-flash-image-preview'),
-    providerOptions: {
-      google: { responseModalities: ['TEXT', 'IMAGE'] },
-    },
     prompt:
       'A photorealistic picture of a fluffy ginger cat sitting on a wooden table',
   });
@@ -38,9 +35,6 @@ async function main() {
   console.log('Adding wizard hat...');
   const editResult = await generateText({
     model: google('gemini-2.5-flash-image-preview'),
-    providerOptions: {
-      google: { responseModalities: ['TEXT', 'IMAGE'] },
-    },
     prompt: [
       {
         role: 'user',

@@ -17,9 +17,6 @@ async function main() {
 
     const result = streamText({
       model: vertex('gemini-2.5-flash-image-preview'),
-      providerOptions: {
-        google: { responseModalities: ['TEXT', 'IMAGE'] },
-      },
       messages,
     });
 

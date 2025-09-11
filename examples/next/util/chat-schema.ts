@@ -1,5 +1,5 @@
 import { UIDataTypes, UIMessage } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 export const myMessageMetadataSchema = z.object({
   createdAt: z.number(),

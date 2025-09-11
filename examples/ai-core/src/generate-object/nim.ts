@@ -1,6 +1,6 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateObject } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import 'dotenv/config';
 
 async function main() {

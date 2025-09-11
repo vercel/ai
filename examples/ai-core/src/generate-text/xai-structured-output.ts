@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { generateText, Output } from 'ai';
 import { xai } from '@ai-sdk/xai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const { experimental_output } = await generateText({

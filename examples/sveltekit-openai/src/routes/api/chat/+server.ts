@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { createOpenAI } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, stepCountIs } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const openai = createOpenAI({
   apiKey: env?.OPENAI_API_KEY,

@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 import { stepCountIs, streamText, dynamicTool, ToolSet } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 function dynamicTools(): ToolSet {
   return {

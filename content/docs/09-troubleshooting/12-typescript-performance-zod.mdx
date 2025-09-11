@@ -20,18 +20,33 @@ The AI SDK 5 has specific compatibility requirements with Zod versions. When imp
 
 ## Solution
 
-### Use the Zod Version-Specific Import Path
+### Update TypeScript Configuration
 
-The recommended solution is to import Zod using a version-specific import path:
+The recommended solution is to update your `tsconfig.json` to use `moduleResolution: "nodenext"`:
 
-```typescript
-// ❌ Avoid: Standard import causes TypeScript issues
-import { z } from 'zod';
-
-// ✅ Use: version-specific import for AI SDK 5 compatibility
-import { z } from 'zod/v3';
-// or
-import { z } from 'zod/v4';
+```json
+{
+  "compilerOptions": {
+    "moduleResolution": "nodenext"
+    // ... other options
+  }
+}
 ```
 
-After making this change, restart your TypeScript server (in VS Code: `Cmd/Ctrl + Shift + P` → "TypeScript: Restart TS Server").
+This resolves the TypeScript performance issues while allowing you to continue using the standard Zod import:
+
+```typescript
+import { z } from 'zod'; // Works correctly with nodenext module resolution
+```
+
+### Alternative: Use the Zod Version-Specific Import Path
+
+If the above solution doesn't resolve the issue, you can try importing Zod using a version-specific import path:
+
+```typescript
+// ❌ Potentially problematic: Standard import may cause TypeScript issues
+import { z } from 'zod';
+
+// ✅ Alternative: version-specific import that may help with compatibility
+import { z } from 'zod/v4';
+```

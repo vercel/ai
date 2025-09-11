@@ -12,7 +12,7 @@ export const codeInterpreterArgsSchema = z.object({
     .optional(),
 });
 
-export const codeInterpreter = createProviderDefinedToolFactory<
+export const codeInterpreterToolFactory = createProviderDefinedToolFactory<
   {},
   {
     /**
@@ -27,3 +27,9 @@ export const codeInterpreter = createProviderDefinedToolFactory<
   name: 'code_interpreter',
   inputSchema: z.object({}),
 });
+
+export const codeInterpreter = (
+  args: Parameters<typeof codeInterpreterToolFactory>[0] = {}, // default
+) => {
+  return codeInterpreterToolFactory(args);
+};

@@ -7,7 +7,7 @@ import {
   stepCountIs,
   streamText,
 } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();

@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.18
+
+### Patch Changes
+
+- c37bc3b: feat (provider/groq): remove obsolete saba model id
+
 ## 2.0.17
 
 ### Patch Changes

@@ -2,7 +2,7 @@ import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const bedrock = createAmazonBedrock({
   // example fetch wrapper that logs the input to the API call:

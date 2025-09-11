@@ -214,7 +214,7 @@ You can access the reasoning used by the language model to generate the object v
 ```ts
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const result = await generateObject({
   model: openai('gpt-5'),

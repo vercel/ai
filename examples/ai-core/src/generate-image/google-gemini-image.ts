@@ -6,9 +6,6 @@ import 'dotenv/config';
 async function main() {
   const result = await generateText({
     model: google('gemini-2.5-flash-image-preview'),
-    providerOptions: {
-      google: { responseModalities: ['TEXT', 'IMAGE'] },
-    },
     prompt:
       'Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme',
   });
