@@ -1,10 +1,10 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5'),
+    model: openai.responses('gpt-5-mini'),
     prompt: 'What happened in tech news today?',
     tools: {
       web_search: openai.tools.webSearch({
@@ -13,13 +13,9 @@ async function main() {
     },
   });
 
-  for (const toolCall of result.toolCalls) {
-    if (toolCall.toolName === 'web_search') {
-      console.log('Search query:', toolCall.input);
-    }
-  }
-
+  console.dir(result.response.body, { depth: Infinity });
+  console.dir(result.toolCalls, { depth: Infinity });
+  console.dir(result.toolResults, { depth: Infinity });
+  console.dir(result.sources, { depth: Infinity });
   console.log(result.text);
-}
-
-main().catch(console.error);
+});
