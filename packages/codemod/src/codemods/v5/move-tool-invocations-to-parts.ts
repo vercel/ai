@@ -18,7 +18,7 @@ export default createTransformer((fileInfo, api, options, context) => {
   function processMatch(path: ASTPath<any>, message: string) {
     // add message to context for logging
     context.messages.push(
-      `Tool invocations migration needed in ${fileInfo.path}: ${message}`
+      `Tool invocations migration needed in ${fileInfo.path}: ${message}`,
     );
 
     // find the parent statement
@@ -41,7 +41,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     const hasChanges = insertCommentOnce(
       targetNode,
       j,
-      `${AI_SDK_CODEMOD_ERROR_PREFIX}${message}`
+      `${AI_SDK_CODEMOD_ERROR_PREFIX}${message}`,
     );
 
     if (hasChanges) {
@@ -77,12 +77,12 @@ export default createTransformer((fileInfo, api, options, context) => {
               prop.key.type === 'Identifier' &&
               prop.key.name === 'role' &&
               prop.value.type === 'StringLiteral' &&
-              prop.value.value === 'tool'
+              prop.value.value === 'tool',
           )
         ) {
           processMatch(
             path,
-            'Tool invocations should now be handled as parts in the message stream, not pushed as separate messages. Review the streaming documentation for the new pattern.'
+            'Tool invocations should now be handled as parts in the message stream, not pushed as separate messages. Review the streaming documentation for the new pattern.',
           );
         }
       }
@@ -105,43 +105,41 @@ export default createTransformer((fileInfo, api, options, context) => {
             prop.key.type === 'Identifier' &&
             prop.key.name === 'role' &&
             prop.value.type === 'StringLiteral' &&
-            prop.value.value === 'tool'
+            prop.value.value === 'tool',
         );
 
         if (hasRole) {
           processMatch(
             path,
-            'Tool role messages are now handled as parts. Update to use the new streaming pattern.'
+            'Tool role messages are now handled as parts. Update to use the new streaming pattern.',
           );
         }
       }
     });
 
   // look for assistant messages with toolInvocations
-  root
-    .find(j.ObjectExpression)
-    .forEach(path => {
-      const hasAssistantRole = path.node.properties.some(
-        prop =>
-          prop.type === 'ObjectProperty' &&
-          prop.key.type === 'Identifier' &&
-          prop.key.name === 'role' &&
-          prop.value.type === 'StringLiteral' &&
-          prop.value.value === 'assistant'
-      );
+  root.find(j.ObjectExpression).forEach(path => {
+    const hasAssistantRole = path.node.properties.some(
+      prop =>
+        prop.type === 'ObjectProperty' &&
+        prop.key.type === 'Identifier' &&
+        prop.key.name === 'role' &&
+        prop.value.type === 'StringLiteral' &&
+        prop.value.value === 'assistant',
+    );
 
-      const hasToolInvocations = path.node.properties.some(
-        prop =>
-          prop.type === 'ObjectProperty' &&
-          prop.key.type === 'Identifier' &&
-          prop.key.name === 'toolInvocations'
-      );
+    const hasToolInvocations = path.node.properties.some(
+      prop =>
+        prop.type === 'ObjectProperty' &&
+        prop.key.type === 'Identifier' &&
+        prop.key.name === 'toolInvocations',
+    );
 
-      if (hasAssistantRole && hasToolInvocations) {
-        processMatch(
-          path,
-          'toolInvocations in assistant messages are now streamed as parts. Update to handle tool-call parts in the stream.'
-        );
-      }
-    });
+    if (hasAssistantRole && hasToolInvocations) {
+      processMatch(
+        path,
+        'toolInvocations in assistant messages are now streamed as parts. Update to handle tool-call parts in the stream.',
+      );
+    }
+  });
 });
