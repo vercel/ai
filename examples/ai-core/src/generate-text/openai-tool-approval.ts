@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
-import { APICallError, generateText, ModelMessage, tool } from 'ai';
-import 'dotenv/config';
+import { generateText, ModelMessage, tool } from 'ai';
 import { z } from 'zod/v4';
+import { run } from '../lib/run';
 
 const weatherTool = tool({
   description: 'Get the weather in a location',
@@ -15,7 +15,7 @@ const weatherTool = tool({
   needsApproval: true,
 });
 
-async function main() {
+run(async () => {
   const messages: ModelMessage[] = [
     { role: 'user', content: 'What is the weather in San Francisco?' },
   ];
@@ -51,11 +51,4 @@ async function main() {
   });
 
   console.log(JSON.stringify(result2.content, null, 2));
-}
-
-main().catch(error => {
-  if (APICallError.isInstance(error)) {
-    console.error(JSON.stringify(error.requestBodyValues, null, 2));
-  }
-  console.error(error);
 });
