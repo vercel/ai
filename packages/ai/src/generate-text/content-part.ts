@@ -1,12 +1,13 @@
-import { ToolApprovalRequest } from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { GeneratedFile } from './generated-file';
+import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
+// TODO AI SDK 5.1 / AI SDK 6: revisit naming, e.g. rename to Output
 export type ContentPart<TOOLS extends ToolSet> =
   | { type: 'text'; text: string; providerMetadata?: ProviderMetadata }
   | { type: 'reasoning'; text: string; providerMetadata?: ProviderMetadata }
@@ -21,4 +22,4 @@ export type ContentPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-error' } & TypedToolError<TOOLS> & {
         providerMetadata?: ProviderMetadata;
       })
-  | ToolApprovalRequest;
+  | ToolApprovalRequestOutput<TOOLS>;

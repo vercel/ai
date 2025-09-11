@@ -23,6 +23,7 @@ export type {
   TextStreamPart,
   UIMessageStreamOptions,
 } from './stream-text-result';
+export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 export type {
   DynamicToolCall,
   StaticToolCall,

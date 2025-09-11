@@ -57,6 +57,7 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -556,7 +557,10 @@ A function that attempts to repair a tool call that failed to parse.
                 }),
               ),
           );
-          const toolApprovalRequests: Record<string, ToolApprovalRequest> = {};
+          const toolApprovalRequests: Record<
+            string,
+            ToolApprovalRequestOutput<TOOLS>
+          > = {};
 
           // notify the tools that the tool calls are available:
           for (const toolCall of stepToolCalls) {
@@ -580,7 +584,7 @@ A function that attempts to repair a tool call that failed to parse.
               toolApprovalRequests[toolCall.toolCallId] = {
                 type: 'tool-approval-request',
                 approvalId: generateId(),
-                toolCallId: toolCall.toolCallId,
+                toolCall,
               };
             }
           }
@@ -959,6 +963,7 @@ function asToolCalls(content: Array<LanguageModelV2Content>) {
   }));
 }
 
+// TODO AI SDK 5.1 / AI SDK 6: rename to asOutput
 function asContent<TOOLS extends ToolSet>({
   content,
   toolCalls,
@@ -968,7 +973,7 @@ function asContent<TOOLS extends ToolSet>({
   content: Array<LanguageModelV2Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
-  toolApprovalRequests: Array<ToolApprovalRequest>;
+  toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
 }): Array<ContentPart<TOOLS>> {
   return [
     ...content.map(part => {
