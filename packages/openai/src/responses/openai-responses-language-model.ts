@@ -190,6 +190,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         : ['web_search_call.action.sources']
       : include;
 
+    // when a code interpreter tool is present, automatically include the outputs:
+    const codeInterpreterToolName = (
+      tools?.find(
+        tool =>
+          tool.type === 'provider-defined' &&
+          tool.id === 'openai.code_interpreter',
+      ) as LanguageModelV2ProviderDefinedTool | undefined
+    )?.name;
+
+    include = codeInterpreterToolName
+      ? Array.isArray(include)
+        ? [...include, 'code_interpreter_call.outputs']
+        : ['code_interpreter_call.outputs']
+      : include;
+
     const baseArgs = {
       model: this.modelId,
       input: messages,
