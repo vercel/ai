@@ -1,31 +1,45 @@
 // @ts-nocheck
-import { streamText } from 'ai';
+import { useChat } from 'ai/react';
 
-async function example() {
-  const messages = [];
+function ProcessMessages() {
+  const { messages } = useChat();
   
-  // example 1: pushing tool message
-  messages.push({ role: 'tool', content: toolResponses });
-  
-  // example 2: tool message variable
-  const toolMessage = { role: 'tool', content: 'Tool response' };
-  
-  // example 3: assistant message with toolInvocations
-  const assistantMessage = {
-    role: 'assistant',
-    content: 'I will help you',
-    toolInvocations: [
-      { toolName: 'weather', args: { location: 'NYC' } }
-    ]
-  };
-  
-  // example 4: logging tool invocations
-  console.log('Tool invocations:', assistantMessage.toolInvocations);
-  
-  // example 5: complex case
-  messages.push({
-    role: 'assistant',
-    content: result.text,
-    toolInvocations: result.toolCalls
+  // Check for tool-invocation type
+  messages.forEach(message => {
+    message.parts.map(part => {
+      if (part.type === 'tool-invocation') {
+        return part.toolInvocation.toolName;
+      }
+    });
+  });
+
+  // Check for tool-invocation with == operator
+  const results = message.parts.filter(part => {
+    if (part.type == 'tool-invocation') {
+      return true;
+    }
+  });
+
+  // Check toolInvocation.state
+  message.parts.map(part => {
+    if (part.type === 'tool-invocation') {
+      switch (part.toolInvocation.state) {
+        case 'partial-call':
+          return 'Loading...';
+        case 'call':
+          return `Tool called with ${JSON.stringify(part.toolInvocation.args)}`;
+        case 'result':
+          return `Result: ${part.toolInvocation.result}`;
+      }
+    }
+  });
+
+  // Access toolInvocation.toolName directly
+  const toolNames = message.parts.map(part => {
+    if (part.type === 'tool-invocation') {
+      const name = part.toolInvocation.toolName;
+      console.log(`Tool: ${part.toolInvocation.toolName}`);
+      return name;
+    }
   });
 }
