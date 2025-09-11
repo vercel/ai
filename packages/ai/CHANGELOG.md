@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.41
+
+### Patch Changes
+
+- cd91e4b: fix(ai): use correct type for reasoning outputs
+
 ## 5.0.40
 
 ### Patch Changes
