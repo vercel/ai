@@ -42,15 +42,6 @@ const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
   },
 ];
 
-function loadOpenAIResponseChunks(filename: string) {
-  const lines = fs
-    .readFileSync(filename, 'utf8')
-    .split('\n')
-    .map(line => `data: ${line}\n\n`);
-  lines.push('data: [DONE]\n\n');
-  return lines;
-}
-
 const nonReasoningModelIds = openaiResponsesModelIds.filter(
   modelId =>
     !openaiResponsesReasoningModelIds.includes(
@@ -81,6 +72,22 @@ describe('OpenAIResponsesLanguageModel', () => {
       ),
     };
     return;
+  }
+
+  function prepareChunksFixtureResponse(filename: string) {
+    const chunks = fs
+      .readFileSync(
+        `src/responses/test-fixtures/${filename}.chunks.txt`,
+        'utf8',
+      )
+      .split('\n')
+      .map(line => `data: ${line}\n\n`);
+    chunks.push('data: [DONE]\n\n');
+
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'stream-chunks',
+      chunks,
+    };
   }
 
   describe('doGenerate', () => {
@@ -3790,12 +3797,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should stream web search results (sources, tool calls, tool results)', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'stream-chunks',
-          chunks: loadOpenAIResponseChunks(
-            'src/responses/test-fixtures/openai-web-search-tool.chunks.txt',
-          ),
-        };
+        prepareChunksFixtureResponse('openai-web-search-tool');
 
         const { stream } = await createModel('gpt-5-nano').doStream({
           tools: [
