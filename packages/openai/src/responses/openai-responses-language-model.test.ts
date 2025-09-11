@@ -2166,7 +2166,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "itemId": "rs_68c12b868cd081a09ec2d83759a43b9e00553426a98f13ca",
+                  "itemId": "rs_68c2e2cbc0a08190bc754d734af0940f0b24aae9c6c01e4f",
                   "reasoningEncryptedContent": null,
                 },
               },
@@ -2174,25 +2174,33 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "reasoning",
             },
             {
-              "input": "{"code":"import random\\nrandom.seed(0)\\nn = 10000\\nsums = []\\nfor _ in range(n):\\n    a = random.randint(1,6)\\n    b = random.randint(1,6)\\n    sums.append(a+b)\\ntotal = sum(sums)\\nmean = total / n\\nfrom collections import Counter\\ncounts = Counter(sums)\\ndist = {s: counts.get(s,0) for s in range(2,13)}\\ntotal, mean, dist, sums[:20]"}",
+              "input": "{"code":"import random\\nrandom.seed()  # system time\\nn=10000\\nsums=[(random.randint(1,6)+random.randint(1,6)) for _ in range(n)]\\ntotal=sum(sums)\\nmean=total/n\\nfrom collections import Counter\\ncounts=Counter(sums)\\ncounts_sorted=[(sum_val, counts[sum_val]) for sum_val in range(2,13)]\\ntotal, mean, counts_sorted[:5], counts_sorted[-5:]"}",
               "providerExecuted": true,
-              "toolCallId": "ci_68c12b8a4e6481a0bd969d4488e6809700553426a98f13ca",
+              "toolCallId": "ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
               "toolName": "code_interpreter",
               "type": "tool-call",
             },
             {
               "providerExecuted": true,
               "result": {
-                "outputs": null,
+                "outputs": [
+                  {
+                    "logs": "(70141,
+           7.0141,
+           [(2, 269), (3, 511), (4, 865), (5, 1130), (6, 1353)],
+           [(8, 1387), (9, 1110), (10, 828), (11, 538), (12, 299)])",
+                    "type": "logs",
+                  },
+                ],
               },
-              "toolCallId": "ci_68c12b8a4e6481a0bd969d4488e6809700553426a98f13ca",
+              "toolCallId": "ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
               "toolName": "code_interpreter",
               "type": "tool-result",
             },
             {
               "providerMetadata": {
                 "openai": {
-                  "itemId": "rs_68c12b8cf96081a08764e212603bb16600553426a98f13ca",
+                  "itemId": "rs_68c2e2d67f60819097167827b0e29b4f0b24aae9c6c01e4f",
                   "reasoningEncryptedContent": null,
                 },
               },
@@ -2200,25 +2208,40 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "reasoning",
             },
             {
-              "input": "{"code":"# Write sums to CSV\\nimport csv\\nwith open('/mnt/data/dice_sums_10000.csv','w', newline='') as f:\\n    writer = csv.writer(f)\\n    writer.writerow(['sum'])\\n    for s in sums:\\n        writer.writerow([s])\\n# Write summary\\nsummary = {\\n    'n_trials': n,\\n    'total_sum': total,\\n    'mean_sum_per_trial': mean,\\n    'distribution': {str(k): v for k,v in dist.items()}\\n}\\nimport json\\nwith open('/mnt/data/dice_sums_summary.json','w') as f:\\n    json.dump(summary, f, indent=2)\\n('/mnt/data/dice_sums_10000.csv', '/mnt/data/dice_sums_summary.json')"}",
+              "input": "{"code":"counts_sorted_full = [(s,c) for s,c in sorted(counts.items())]\\ncounts_sorted_full"}",
               "providerExecuted": true,
-              "toolCallId": "ci_68c12b8dfa3881a084c474e6fbd0220500553426a98f13ca",
+              "toolCallId": "ci_68c2e2d75fe08190b27c6e44213143010b24aae9c6c01e4f",
               "toolName": "code_interpreter",
               "type": "tool-call",
             },
             {
               "providerExecuted": true,
               "result": {
-                "outputs": null,
+                "outputs": [
+                  {
+                    "logs": "[(2, 269),
+           (3, 511),
+           (4, 865),
+           (5, 1130),
+           (6, 1353),
+           (7, 1710),
+           (8, 1387),
+           (9, 1110),
+           (10, 828),
+           (11, 538),
+           (12, 299)]",
+                    "type": "logs",
+                  },
+                ],
               },
-              "toolCallId": "ci_68c12b8dfa3881a084c474e6fbd0220500553426a98f13ca",
+              "toolCallId": "ci_68c2e2d75fe08190b27c6e44213143010b24aae9c6c01e4f",
               "toolName": "code_interpreter",
               "type": "tool-result",
             },
             {
               "providerMetadata": {
                 "openai": {
-                  "itemId": "rs_68c12b90775c81a0bdcb8c306da10e7700553426a98f13ca",
+                  "itemId": "rs_68c2e2dab6508190987f0d3db143b0580b24aae9c6c01e4f",
                   "reasoningEncryptedContent": null,
                 },
               },
@@ -2228,39 +2251,30 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
-                  "itemId": "msg_68c12b93d98481a0b8696d68b6c5968100553426a98f13ca",
+                  "itemId": "msg_68c2e2e513c88190a72cefb37140d19a0b24aae9c6c01e4f",
                 },
               },
-              "text": "I ran a simulation of rolling two fair dice 10,000 times and computed the sums for each trial.
+              "text": "Here’s a quick result from simulating 10,000 rolls of two fair six-sided dice (sum per trial, then total across all trials):
 
-          Key results
-          - Total sum of all 10,000 trial sums: 69953
-          - Average sum per trial: 6.9953
-          - Distribution of sums (counts for sums 2 through 12):
-            - 2: 285
-            - 3: 552
-            - 4: 818
-            - 5: 1134
-            - 6: 1359
-            - 7: 1721
-            - 8: 1378
-            - 9: 1108
-            - 10: 797
-            - 11: 558
-            - 12: 290
+          - Total sum of all 10,000 trial sums: 70141
+          - Average sum per trial: 7.0141
 
-          Sample of the first 20 trial sums
-          [8, 4, 9, 7, 7, 7, 7, 5, 6, 8, 11, 5, 7, 7, 7, 6, 7, 8, 8, 9]
+          Distribution of the per-trial sums (2–12):
+          - 2: 269 (2.69%)
+          - 3: 511 (5.11%)
+          - 4: 865 (8.65%)
+          - 5: 1130 (11.30%)
+          - 6: 1353 (13.53%)
+          - 7: 1710 (17.10%)
+          - 8: 1387 (13.87%)
+          - 9: 1110 (11.10%)
+          - 10: 828 (8.28%)
+          - 11: 538 (5.38%)
+          - 12: 299 (2.99%)
 
-          Files created
-          - dice_sums_10000.csv: each row contains the sum of a trial (one column: "sum")
-          - dice_sums_summary.json: a summary with n_trials, total_sum, mean_sum_per_trial, and the distribution
-
-          Download links
-          - [Download the sums (CSV)](sandbox:/mnt/data/dice_sums_10000.csv)
-          - [Download the summary (JSON)](sandbox:/mnt/data/dice_sums_summary.json)
-
-          If you want me to run again with a different seed, or to provide a fuller distribution table or a plotted histogram, tell me how you’d like the results formatted.",
+          Notes:
+          - The total is around 7,0000 since the expected sum per trial is 7, so 10,000 trials ≈ 70000. Your exact total will vary with each run unless you fix a random seed.
+          - If you’d like, I can provide the per-trial sums as a CSV file or share a reproducible run with a fixed seed.",
               "type": "text",
             },
           ]
