@@ -14,6 +14,8 @@ export const codeInterpreterOutputSchema = z.object({
       ]),
     )
     .nullish(),
+
+  containerId: z.string(),
 });
 
 export const codeInterpreterArgsSchema = z.object({
@@ -58,6 +60,11 @@ export const codeInterpreterToolFactory =
             url: string;
           }
       > | null;
+
+      /**
+       * The ID of the container used to run the code.
+       */
+      containerId: string;
     },
     {
       /**

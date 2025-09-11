@@ -2183,6 +2183,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerExecuted": true,
               "result": {
+                "containerId": "cntr_68c2e2caf50c8193b4069276f4c75ef301e63bd5fd6a4d4d",
                 "outputs": [
                   {
                     "logs": "(70141,
@@ -2217,6 +2218,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerExecuted": true,
               "result": {
+                "containerId": "cntr_68c2e2caf50c8193b4069276f4c75ef301e63bd5fd6a4d4d",
                 "outputs": [
                   {
                     "logs": "[(2, 269),

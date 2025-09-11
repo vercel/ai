@@ -434,6 +434,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     ]),
                   )
                   .nullable(),
+                container_id: z.string(),
               }),
               z.object({
                 type: z.literal('function_call'),
@@ -673,6 +674,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolName: 'code_interpreter',
             result: {
               outputs: part.outputs,
+              containerId: part.container_id,
             } satisfies z.infer<typeof codeInterpreterOutputSchema>,
             providerExecuted: true,
           });
