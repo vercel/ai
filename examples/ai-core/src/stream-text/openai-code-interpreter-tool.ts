@@ -1,7 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
-import { saveRawChunks } from '../lib/save-raw-chunks';
 
 run(async () => {
   const result = streamText({
@@ -11,11 +10,28 @@ run(async () => {
     },
     prompt:
       'Simulate rolling two dice 10000 times and and return the sum all the results.',
-    includeRawChunks: true,
   });
 
-  await saveRawChunks({
-    result,
-    filename: 'openai-code-interpreter-tool',
-  });
+  for await (const chunk of result.fullStream) {
+    switch (chunk.type) {
+      case 'text-delta': {
+        process.stdout.write(chunk.text);
+        break;
+      }
+
+      case 'tool-call': {
+        console.log('Tool call:', JSON.stringify(chunk, null, 2));
+        break;
+      }
+
+      case 'tool-result': {
+        console.log('Tool result:', JSON.stringify(chunk, null, 2));
+        break;
+      }
+
+      case 'error':
+        console.error('Error:', chunk.error);
+        break;
+    }
+  }
 });
