@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/provider-utils/internal';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import { createAssemblyAI } from './assemblyai-provider';
 import { readFile } from 'node:fs/promises';

@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/provider-utils/internal';
 import { describe, expect, it, vi } from 'vitest';
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
 import type { FetchFunction } from '@ai-sdk/provider-utils';

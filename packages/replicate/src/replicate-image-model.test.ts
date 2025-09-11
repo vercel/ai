@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/provider-utils/internal';
 import { createReplicate } from './replicate-provider';
 import { ReplicateImageModel } from './replicate-image-model';
 import { describe, it, expect } from 'vitest';

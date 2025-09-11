@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/provider-utils/internal';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
 import { createDeepgram } from './deepgram-provider';
 import { readFile } from 'node:fs/promises';

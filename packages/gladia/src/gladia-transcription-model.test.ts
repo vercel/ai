@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/provider-utils/internal';
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
 import { createGladia } from './gladia-provider';
 import { readFile } from 'node:fs/promises';

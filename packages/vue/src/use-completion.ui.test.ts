@@ -1,7 +1,7 @@
 import {
   createTestServer,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/provider-utils/internal';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { findByText, screen } from '@testing-library/vue';

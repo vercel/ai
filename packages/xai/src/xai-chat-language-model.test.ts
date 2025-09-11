@@ -1,10 +1,8 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 
-import {
-  convertReadableStreamToArray,
-  createTestServer,
-} from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [

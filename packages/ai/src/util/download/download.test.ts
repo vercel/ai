@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/provider-utils/internal';
 import { download } from './download';
 import { DownloadError } from './download-error';
 import { describe, it, expect } from 'vitest';

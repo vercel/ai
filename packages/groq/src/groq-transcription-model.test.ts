@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/provider-utils/internal';
 import { GroqTranscriptionModel } from './groq-transcription-model';
 import { createGroq } from './groq-provider';
 import { readFile } from 'node:fs/promises';

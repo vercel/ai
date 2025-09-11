@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/provider-utils/internal';
 import { describe, expect, it } from 'vitest';
 import { DeepInfraImageModel } from './deepinfra-image-model';
 import { FetchFunction } from '@ai-sdk/provider-utils';

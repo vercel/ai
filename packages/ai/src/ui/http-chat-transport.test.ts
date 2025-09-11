@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/provider-utils/internal';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,

@@ -1,8 +1,8 @@
 import {
   createTestServer,
-  mockId,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/provider-utils/internal';
+import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   DefaultChatTransport,
   isToolUIPart,
