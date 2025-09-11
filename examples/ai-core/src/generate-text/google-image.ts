@@ -15,11 +15,6 @@ async function main() {
         ],
       },
     ],
-    providerOptions: {
-      google: {
-        responseModalities: ['TEXT', 'IMAGE'],
-      } satisfies GoogleGenerativeAIProviderOptions,
-    },
   });
 
   console.log(result.content);

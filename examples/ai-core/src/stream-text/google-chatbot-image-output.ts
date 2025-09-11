@@ -17,9 +17,6 @@ async function main() {
 
     const result = streamText({
       model: google('gemini-2.0-flash-exp'),
-      providerOptions: {
-        google: { responseModalities: ['TEXT', 'IMAGE'] },
-      },
       messages,
     });
 
