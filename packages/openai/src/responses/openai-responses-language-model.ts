@@ -54,6 +54,21 @@ const webSearchCallItem = z.object({
     .nullish(),
 });
 
+const codeInterpreterCallItem = z.object({
+  type: z.literal('code_interpreter_call'),
+  id: z.string(),
+  code: z.string().nullable(),
+  container_id: z.string(),
+  outputs: z
+    .array(
+      z.discriminatedUnion('type', [
+        z.object({ type: z.literal('logs'), logs: z.string() }),
+        z.object({ type: z.literal('image'), url: z.string() }),
+      ]),
+    )
+    .nullable(),
+});
+
 /**
  * `top_logprobs` request body argument can be set to an integer between
  * 0 and 20 specifying the number of most likely tokens to return at each
@@ -422,20 +437,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   }),
                 ),
               }),
-              z.object({
-                type: z.literal('code_interpreter_call'),
-                id: z.string(),
-                code: z.string().nullable(),
-                outputs: z
-                  .array(
-                    z.discriminatedUnion('type', [
-                      z.object({ type: z.literal('logs'), logs: z.string() }),
-                      z.object({ type: z.literal('image'), url: z.string() }),
-                    ]),
-                  )
-                  .nullable(),
-                container_id: z.string(),
-              }),
+              codeInterpreterCallItem,
               z.object({
                 type: z.literal('function_call'),
                 call_id: z.string(),
@@ -662,9 +664,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: 'code_interpreter',
-            input: JSON.stringify({ code: part.code } satisfies z.infer<
-              typeof codeInterpreterInputSchema
-            >),
+            input: JSON.stringify({
+              code: part.code,
+              containerId: part.container_id,
+            } satisfies z.infer<typeof codeInterpreterInputSchema>),
             providerExecuted: true,
           });
 
@@ -674,7 +677,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolName: 'code_interpreter',
             result: {
               outputs: part.outputs,
-              containerId: part.container_id,
             } satisfies z.infer<typeof codeInterpreterOutputSchema>,
             providerExecuted: true,
           });
@@ -1256,6 +1258,7 @@ const responseOutputItemDoneSchema = z.object({
       arguments: z.string(),
       status: z.literal('completed'),
     }),
+    codeInterpreterCallItem,
     webSearchCallItem,
     z.object({
       type: z.literal('computer_call'),

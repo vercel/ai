@@ -2181,7 +2181,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "reasoning",
             },
             {
-              "input": "{"code":"import random\\nrandom.seed()  # system time\\nn=10000\\nsums=[(random.randint(1,6)+random.randint(1,6)) for _ in range(n)]\\ntotal=sum(sums)\\nmean=total/n\\nfrom collections import Counter\\ncounts=Counter(sums)\\ncounts_sorted=[(sum_val, counts[sum_val]) for sum_val in range(2,13)]\\ntotal, mean, counts_sorted[:5], counts_sorted[-5:]"}",
+              "input": "{"code":"import random\\nrandom.seed()  # system time\\nn=10000\\nsums=[(random.randint(1,6)+random.randint(1,6)) for _ in range(n)]\\ntotal=sum(sums)\\nmean=total/n\\nfrom collections import Counter\\ncounts=Counter(sums)\\ncounts_sorted=[(sum_val, counts[sum_val]) for sum_val in range(2,13)]\\ntotal, mean, counts_sorted[:5], counts_sorted[-5:]","containerId":"cntr_68c2e2caf50c8193b4069276f4c75ef301e63bd5fd6a4d4d"}",
               "providerExecuted": true,
               "toolCallId": "ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
               "toolName": "code_interpreter",
@@ -2190,7 +2190,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerExecuted": true,
               "result": {
-                "containerId": "cntr_68c2e2caf50c8193b4069276f4c75ef301e63bd5fd6a4d4d",
                 "outputs": [
                   {
                     "logs": "(70141,
@@ -2216,7 +2215,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "reasoning",
             },
             {
-              "input": "{"code":"counts_sorted_full = [(s,c) for s,c in sorted(counts.items())]\\ncounts_sorted_full"}",
+              "input": "{"code":"counts_sorted_full = [(s,c) for s,c in sorted(counts.items())]\\ncounts_sorted_full","containerId":"cntr_68c2e2caf50c8193b4069276f4c75ef301e63bd5fd6a4d4d"}",
               "providerExecuted": true,
               "toolCallId": "ci_68c2e2d75fe08190b27c6e44213143010b24aae9c6c01e4f",
               "toolName": "code_interpreter",
@@ -2225,7 +2224,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerExecuted": true,
               "result": {
-                "containerId": "cntr_68c2e2caf50c8193b4069276f4c75ef301e63bd5fd6a4d4d",
                 "outputs": [
                   {
                     "logs": "[(2, 269),

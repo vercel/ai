@@ -3,6 +3,7 @@ import { z } from 'zod/v4';
 
 export const codeInterpreterInputSchema = z.object({
   code: z.string().nullish(),
+  containerId: z.string(),
 });
 
 export const codeInterpreterOutputSchema = z.object({
@@ -14,8 +15,6 @@ export const codeInterpreterOutputSchema = z.object({
       ]),
     )
     .nullish(),
-
-  containerId: z.string(),
 });
 
 export const codeInterpreterArgsSchema = z.object({
@@ -36,6 +35,11 @@ export const codeInterpreterToolFactory =
        * The code to run, or null if not available.
        */
       code?: string | null;
+
+      /**
+       * The ID of the container used to run the code.
+       */
+      containerId: string;
     },
     {
       /**
@@ -60,11 +64,6 @@ export const codeInterpreterToolFactory =
             url: string;
           }
       > | null;
-
-      /**
-       * The ID of the container used to run the code.
-       */
-      containerId: string;
     },
     {
       /**
