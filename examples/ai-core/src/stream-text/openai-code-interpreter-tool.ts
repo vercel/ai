@@ -10,16 +10,10 @@ run(async () => {
     },
     prompt:
       'Simulate rolling two dice 10000 times and and return the sum all the results.',
-    // includeRawChunks: true,
   });
 
   for await (const chunk of result.fullStream) {
     switch (chunk.type) {
-      case 'raw': {
-        console.log('Raw chunk:', JSON.stringify(chunk.rawValue));
-        break;
-      }
-
       case 'text-delta': {
         process.stdout.write(chunk.text);
         break;
