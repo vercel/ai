@@ -1,7 +1,7 @@
 import {
   createTestServer,
   TestResponseController,
-} from '@ai-sdk/provider-utils/internal';
+} from '@ai-sdk/provider-utils/test-server';
 import { render } from '@testing-library/svelte';
 import { z } from 'zod/v4';
 import { StructuredObject } from './structured-object.svelte.js';

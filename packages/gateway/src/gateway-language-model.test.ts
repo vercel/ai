@@ -2,7 +2,7 @@ import type {
   LanguageModelV2Prompt,
   LanguageModelV2FilePart,
 } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayConfig } from './gateway-config';

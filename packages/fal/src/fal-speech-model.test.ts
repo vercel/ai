@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { createFal } from './fal-provider';
 import { FalSpeechModel } from './fal-speech-model';
 import { describe, it, expect } from 'vitest';

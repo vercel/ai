@@ -1,5 +1,5 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { beforeEach, describe, expect, vi, it } from 'vitest';

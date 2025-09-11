@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import {
   convertReadableStreamToArray,
   isNodeVersion,

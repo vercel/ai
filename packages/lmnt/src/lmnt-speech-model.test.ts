@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { LMNTSpeechModel } from './lmnt-speech-model';
 import { createLMNT } from './lmnt-provider';
 import { describe, it, expect } from 'vitest';

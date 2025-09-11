@@ -11,8 +11,8 @@ export default defineConfig([
     platform: 'node',
   },
   {
-    entry: ['src/internal/index.ts'],
-    outDir: 'dist/internal',
+    entry: ['src/test-server/index.ts'],
+    outDir: 'dist/test-server',
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,

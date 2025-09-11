@@ -1,5 +1,5 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { describe, expect, it, vi } from 'vitest';
 import { FireworksImageModel } from './fireworks-image-model';
 

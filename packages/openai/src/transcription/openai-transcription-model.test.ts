@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createOpenAI } from '../openai-provider';

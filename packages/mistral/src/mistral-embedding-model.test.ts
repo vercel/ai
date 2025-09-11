@@ -1,5 +1,5 @@
 import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { createMistral } from './mistral-provider';
 import { describe, it, expect } from 'vitest';
 

@@ -1,7 +1,7 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 

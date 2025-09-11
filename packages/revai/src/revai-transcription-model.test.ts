@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { RevaiTranscriptionModel } from './revai-transcription-model';
 import { createRevai } from './revai-provider';
 import { readFile } from 'node:fs/promises';

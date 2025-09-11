@@ -1,7 +1,7 @@
 import {
   createTestServer,
   TestResponseController,
-} from '@ai-sdk/provider-utils/internal';
+} from '@ai-sdk/provider-utils/test-server';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   DefaultChatTransport,

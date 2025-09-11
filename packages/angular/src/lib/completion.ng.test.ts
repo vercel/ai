@@ -1,7 +1,7 @@
 import {
   createTestServer,
   TestResponseController,
-} from '@ai-sdk/provider-utils/internal';
+} from '@ai-sdk/provider-utils/test-server';
 import { Completion } from './completion.ng';
 import { beforeAll } from 'vitest';
 import { describe, it, expect, vi } from 'vitest';

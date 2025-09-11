@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { describe, expect, it } from 'vitest';
 import { createElevenLabs } from './elevenlabs-provider';
 

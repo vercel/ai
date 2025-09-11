@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { describe, it, expect } from 'vitest';
 

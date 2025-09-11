@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { createOpenAI } from '../openai-provider';
 import { OpenAISpeechModel } from './openai-speech-model';
 import { describe, it, expect } from 'vitest';

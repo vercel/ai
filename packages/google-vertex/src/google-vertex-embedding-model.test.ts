@@ -2,7 +2,7 @@ import {
   EmbeddingModelV2Embedding,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/internal';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { describe, it, expect, vi } from 'vitest';
 
