@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v3';
+import { z } from 'zod';
 
 async function main() {
   const result = streamObject({
