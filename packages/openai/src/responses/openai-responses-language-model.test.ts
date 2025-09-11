@@ -51,10 +51,6 @@ function loadOpenAIResponseChunks(filename: string) {
   return lines;
 }
 
-function loadOpenAIResponseJson(filename: string) {
-  return JSON.parse(fs.readFileSync(filename, 'utf8'));
-}
-
 const nonReasoningModelIds = openaiResponsesModelIds.filter(
   modelId =>
     !openaiResponsesReasoningModelIds.includes(
@@ -76,6 +72,16 @@ describe('OpenAIResponsesLanguageModel', () => {
   const server = createTestServer({
     'https://api.openai.com/v1/responses': {},
   });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/responses/test-fixtures/${filename}.json`, 'utf8'),
+      ),
+    };
+    return;
+  }
 
   describe('doGenerate', () => {
     function prepareJsonResponse(body: any) {
@@ -2096,18 +2102,63 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('code interpreter', () => {
-      beforeEach(() => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: loadOpenAIResponseJson(
-            'src/responses/test-fixtures/openai-code-interpreter-tool.1.json',
-          ),
-        };
+      it('should send correct request body', async () => {
+        prepareJsonFixtureResponse('openai-code-interpreter-tool.1');
+
+        await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.code_interpreter',
+              name: 'code_interpreter',
+              args: {},
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "code_interpreter_call.outputs",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-nano",
+            "tools": [
+              {
+                "container": {
+                  "type": "auto",
+                },
+                "type": "code_interpreter",
+              },
+            ],
+          }
+        `);
       });
 
       it('should generate text response', async () => {
+        prepareJsonFixtureResponse('openai-code-interpreter-tool.1');
+
         const result = await createModel('gpt-5-nano').doGenerate({
           prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.code_interpreter',
+              name: 'code_interpreter',
+              args: {},
+            },
+          ],
         });
 
         expect(result.content).toMatchInlineSnapshot(`
