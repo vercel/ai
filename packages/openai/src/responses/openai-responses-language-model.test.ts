@@ -2239,6 +2239,22 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "reasoning",
             },
             {
+              "input": "{"code":"import random\\nrandom.seed(0)\\nn = 10000\\nsums = []\\nfor _ in range(n):\\n    a = random.randint(1,6)\\n    b = random.randint(1,6)\\n    sums.append(a+b)\\ntotal = sum(sums)\\nmean = total / n\\nfrom collections import Counter\\ncounts = Counter(sums)\\ndist = {s: counts.get(s,0) for s in range(2,13)}\\ntotal, mean, dist, sums[:20]"}",
+              "providerExecuted": true,
+              "toolCallId": "ci_68c12b8a4e6481a0bd969d4488e6809700553426a98f13ca",
+              "toolName": "code_interpreter",
+              "type": "tool-call",
+            },
+            {
+              "providerExecuted": true,
+              "result": {
+                "outputs": null,
+              },
+              "toolCallId": "ci_68c12b8a4e6481a0bd969d4488e6809700553426a98f13ca",
+              "toolName": "code_interpreter",
+              "type": "tool-result",
+            },
+            {
               "providerMetadata": {
                 "openai": {
                   "itemId": "rs_68c12b8cf96081a08764e212603bb16600553426a98f13ca",
@@ -2247,6 +2263,22 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               "text": "",
               "type": "reasoning",
+            },
+            {
+              "input": "{"code":"# Write sums to CSV\\nimport csv\\nwith open('/mnt/data/dice_sums_10000.csv','w', newline='') as f:\\n    writer = csv.writer(f)\\n    writer.writerow(['sum'])\\n    for s in sums:\\n        writer.writerow([s])\\n# Write summary\\nsummary = {\\n    'n_trials': n,\\n    'total_sum': total,\\n    'mean_sum_per_trial': mean,\\n    'distribution': {str(k): v for k,v in dist.items()}\\n}\\nimport json\\nwith open('/mnt/data/dice_sums_summary.json','w') as f:\\n    json.dump(summary, f, indent=2)\\n('/mnt/data/dice_sums_10000.csv', '/mnt/data/dice_sums_summary.json')"}",
+              "providerExecuted": true,
+              "toolCallId": "ci_68c12b8dfa3881a084c474e6fbd0220500553426a98f13ca",
+              "toolName": "code_interpreter",
+              "type": "tool-call",
+            },
+            {
+              "providerExecuted": true,
+              "result": {
+                "outputs": null,
+              },
+              "toolCallId": "ci_68c12b8dfa3881a084c474e6fbd0220500553426a98f13ca",
+              "toolName": "code_interpreter",
+              "type": "tool-result",
             },
             {
               "providerMetadata": {

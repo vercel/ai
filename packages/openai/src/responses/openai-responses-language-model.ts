@@ -21,11 +21,15 @@ import {
 import { z } from 'zod/v4';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import {
+  codeInterpreterInputSchema,
+  codeInterpreterOutputSchema,
+} from '../tool/code-interpreter';
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
+import { OpenAIResponsesIncludeOptions } from './openai-responses-api-types';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
-import { OpenAIResponsesIncludeOptions } from './openai-responses-api-types';
 
 const webSearchCallItem = z.object({
   type: z.literal('web_search_call'),
@@ -405,6 +409,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }),
               z.object({
                 type: z.literal('code_interpreter_call'),
+                id: z.string(),
+                code: z.string().nullable(),
+                outputs: z
+                  .array(
+                    z.discriminatedUnion('type', [
+                      z.object({ type: z.literal('logs'), logs: z.string() }),
+                      z.object({ type: z.literal('image'), url: z.string() }),
+                    ]),
+                  )
+                  .nullable(),
               }),
               z.object({
                 type: z.literal('function_call'),
@@ -622,6 +636,29 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               ...(part.queries && { queries: part.queries }),
               ...(part.results && { results: part.results }),
             },
+            providerExecuted: true,
+          });
+          break;
+        }
+
+        case 'code_interpreter_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'code_interpreter',
+            input: JSON.stringify({ code: part.code } satisfies z.infer<
+              typeof codeInterpreterInputSchema
+            >),
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'code_interpreter',
+            result: {
+              outputs: part.outputs,
+            } satisfies z.infer<typeof codeInterpreterOutputSchema>,
             providerExecuted: true,
           });
           break;
