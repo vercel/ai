@@ -27,7 +27,7 @@ export default createTransformer((fileInfo, api, options, context) => {
 
   function processMatch(path: ASTPath<any>, message: string) {
     context.messages.push(
-      `toDataStreamResponse/toUIMessageStreamResponse removal needed in ${fileInfo.path}: ${message}`
+      `toDataStreamResponse/toUIMessageStreamResponse removal needed in ${fileInfo.path}: ${message}`,
     );
     let statementPath = path;
     while (statementPath && statementPath.parent) {
@@ -44,7 +44,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     const hasChanges = insertCommentOnce(
       targetNode,
       j,
-      `${AI_SDK_CODEMOD_ERROR_PREFIX}${message}`
+      `${AI_SDK_CODEMOD_ERROR_PREFIX}${message}`,
     );
     if (hasChanges) {
       context.hasChanges = true;
@@ -67,7 +67,7 @@ export default createTransformer((fileInfo, api, options, context) => {
         `toDataStreamResponse has been removed. Use a two-step process instead:
 Step 1: const stream = result.toUIMessageStream()
 Step 2: return createUIMessageStreamResponse({ stream, ...options })
-You'll need to import createUIMessageStreamResponse from 'ai'.`
+You'll need to import createUIMessageStreamResponse from 'ai'.`,
       );
     });
 
@@ -87,7 +87,7 @@ You'll need to import createUIMessageStreamResponse from 'ai'.`
         `toUIMessageStreamResponse has been removed. Use a two-step process instead:
 Step 1: const stream = result.toUIMessageStream()
 Step 2: return createUIMessageStreamResponse({ stream, ...options })
-You'll need to import createUIMessageStreamResponse from 'ai'.`
+You'll need to import createUIMessageStreamResponse from 'ai'.`,
       );
     });
 });
