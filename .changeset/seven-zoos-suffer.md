@@ -3,4 +3,4 @@
 'ai': patch
 ---
 
-feat(ai): custom user agent header with version information
+feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
