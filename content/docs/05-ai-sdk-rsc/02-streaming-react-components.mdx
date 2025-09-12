@@ -53,7 +53,7 @@ Using tools with `streamUI` is similar to how you use tools with `generateText` 
 A tool is an object that has:
 
 - `description`: a string telling the model what the tool does and when to use it
-- `parameters`: a Zod schema describing what the tool needs in order to run
+- `inputSchema`: a Zod schema describing what the tool needs in order to run
 - `generate`: an asynchronous function that will be run if the model calls the tool. This must return a React component
 
 Let's expand the previous example to add a tool.
@@ -66,7 +66,7 @@ const result = await streamUI({
   tools: {
     getWeather: {
       description: 'Get the weather for a location',
-      parameters: z.object({ location: z.string() }),
+      inputSchema: z.object({ location: z.string() }),
       generate: async function* ({ location }) {
         yield <LoadingComponent />;
         const weather = await getWeather(location);
@@ -144,7 +144,7 @@ export async function streamComponent() {
     tools: {
       getWeather: {
         description: 'Get the weather for a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string(),
         }),
         generate: async function* ({ location }) {

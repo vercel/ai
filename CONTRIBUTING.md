@@ -79,22 +79,20 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
    - **Please do not use minor or major changesets**, we'll let you know when you need to use a different changeset type than patch.
    - You don't need to select any of the `examples/*` packages, as they are not released.
 
-3. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them. We don't require a specific commit message format, but please be descriptive.
-4. **Fix prettier issues**: Run `pnpm prettier-fix` to fix any formatting issues in your code.
-5. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
-6. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves. We use the following PR title format:
+3. **Add a codemod**: If the change introduces a deprecation or a breaking change, add a codemod if possible. See [how to contribute codemods](contributing/codemods.md)
+4. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them. We don't require a specific commit message format, but please be descriptive.
+5. **Fix prettier issues**: Run `pnpm prettier-fix` to fix any formatting issues in your code.
+6. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
+7. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves. We use the following PR title format:
 
    - `fix(package-name): description` or
    - `feat(package-name): description` or
    - `chore(package-name): description` etc.
 
-7. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
-
-### Fixing Prettier Issues
-
-> [!TIP]
-> Run `pnpm prettier-fix` before opening a pull request.
-
-If you encounter any prettier issues, you can fix them by running `pnpm prettier-fix`. This command will automatically fix any formatting issues in your code.
+8. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
 
 Thank you for contributing to the AI SDK! Your efforts help us improve the project for everyone.
+
+## Learn More
+
+We have additional contributor documentation in the `contributing/` folder.

@@ -59,6 +59,31 @@ export const audioMediaTypeSignatures = [
     base64Prefix: '//s=',
   },
   {
+    mediaType: 'audio/mpeg' as const,
+    bytesPrefix: [0xff, 0xfa],
+    base64Prefix: '//o=',
+  },
+  {
+    mediaType: 'audio/mpeg' as const,
+    bytesPrefix: [0xff, 0xf3],
+    base64Prefix: '//M=',
+  },
+  {
+    mediaType: 'audio/mpeg' as const,
+    bytesPrefix: [0xff, 0xf2],
+    base64Prefix: '//I=',
+  },
+  {
+    mediaType: 'audio/mpeg' as const,
+    bytesPrefix: [0xff, 0xe3],
+    base64Prefix: '/+M=',
+  },
+  {
+    mediaType: 'audio/mpeg' as const,
+    bytesPrefix: [0xff, 0xe2],
+    base64Prefix: '/+I=',
+  },
+  {
     mediaType: 'audio/wav' as const,
     bytesPrefix: [0x52, 0x49, 0x46, 0x46],
     base64Prefix: 'UklGR',
@@ -82,6 +107,11 @@ export const audioMediaTypeSignatures = [
     mediaType: 'audio/mp4' as const,
     bytesPrefix: [0x66, 0x74, 0x79, 0x70],
     base64Prefix: 'ZnR5cA',
+  },
+  {
+    mediaType: 'audio/webm',
+    bytesPrefix: [0x1a, 0x45, 0xdf, 0xa3],
+    base64Prefix: 'GkXf',
   },
 ] as const;
 

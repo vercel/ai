@@ -58,9 +58,9 @@ e.g. to access some provider-specific headers or body content.
 You can access the raw response headers and body using the `response` property:
 
 ```ts
-import { generateText } from 'ai';
+import { generateObject } from 'ai';
 
-const result = await generateText({
+const result = await generateObject({
   // ...
 });
 
@@ -205,6 +205,41 @@ const { object } = await generateObject({
   }),
   prompt: 'Generate a lasagna recipe.',
 });
+```
+
+## Accessing Reasoning
+
+You can access the reasoning used by the language model to generate the object via the `reasoning` property on the result. This property contains a string with the model's thought process, if available.
+
+```ts
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const result = await generateObject({
+  model: openai('gpt-5'),
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(
+        z.object({
+          name: z.string(),
+          amount: z.string(),
+        }),
+      ),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+  providerOptions: {
+    openai: {
+      strictJsonSchema: true,
+      reasoningSummary: 'detailed',
+    } satisfies OpenAIResponsesProviderOptions,
+  },
+});
+
+console.log(result.reasoning);
 ```
 
 ## Error Handling

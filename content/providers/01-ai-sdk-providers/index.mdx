@@ -19,6 +19,7 @@ Not all providers support all AI SDK features. Here's a quick comparison of the 
 
 | Provider                                                                 | Model                                               | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ------------------------------------------------------------------------ | --------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-4`                                            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-3`                                            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-3-fast`                                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-3-mini`                                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -28,28 +29,21 @@ Not all providers support all AI SDK features. Here's a quick comparison of the 
 | [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-beta`                                         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-vision-beta`                                  | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | [Vercel](/providers/ai-sdk-providers/vercel)                             | `v0-1.0-md`                                         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4.1`                                           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4.1-mini`                                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4.1-nano`                                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4o`                                            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4o-mini`                                       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4.1`                                           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4`                                             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [OpenAI](/providers/ai-sdk-providers/openai)                             | `o1`                                                | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [OpenAI](/providers/ai-sdk-providers/openai)                             | `o1-mini`                                           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [OpenAI](/providers/ai-sdk-providers/openai)                             | `o1-preview`                                        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-7-sonnet-20250219`                        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-5-sonnet-20241022`                        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-5-sonnet-20240620`                        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-5-haiku-20241022`                         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5`                                             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5-mini`                                        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5-nano`                                        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5-chat-latest`                                 | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3.7-sonnet-latest`                          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3.5-sonnet-latest`                          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3.5-haiku-latest`                           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Groq](/providers/ai-sdk-providers/groq)                                 | `meta-llama/llama-4-scout-17b-16e-instruct`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Groq](/providers/ai-sdk-providers/groq)                                 | `deepseek-r1-distill-llama-70b`                     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Groq](/providers/ai-sdk-providers/groq)                                 | `llama-3.3-70b-versatile`                           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Groq](/providers/ai-sdk-providers/groq)                                 | `llama-3.1-8b-instant`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [Groq](/providers/ai-sdk-providers/groq)                                 | `mistral-saba-24b`                                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Groq](/providers/ai-sdk-providers/groq)                                 | `qwen-qwq-32b`                                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Groq](/providers/ai-sdk-providers/groq)                                 | `mixtral-8x7b-32768`                                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Groq](/providers/ai-sdk-providers/groq)                                 | `gemma2-9b-it`                                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Groq](/providers/ai-sdk-providers/groq)                                 | `moonshotai/kimi-k2-instruct`                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | [DeepInfra](/providers/ai-sdk-providers/deepinfra)                       | `meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | [DeepInfra](/providers/ai-sdk-providers/deepinfra)                       | `meta-llama/Llama-4-Scout-17B-16E-Instruct`         | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | [DeepInfra](/providers/ai-sdk-providers/deepinfra)                       | `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
@@ -60,6 +54,8 @@ Not all providers support all AI SDK features. Here's a quick comparison of the 
 | [DeepInfra](/providers/ai-sdk-providers/deepinfra)                       | `deepseek-ai/DeepSeek-R1-Turbo`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | [Mistral](/providers/ai-sdk-providers/mistral)                           | `pixtral-large-latest`                              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Mistral](/providers/ai-sdk-providers/mistral)                           | `mistral-large-latest`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Mistral](/providers/ai-sdk-providers/mistral)                           | `mistral-medium-latest`                             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Mistral](/providers/ai-sdk-providers/mistral)                           | `mistral-medium-2505`                               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Mistral](/providers/ai-sdk-providers/mistral)                           | `mistral-small-latest`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Mistral](/providers/ai-sdk-providers/mistral)                           | `pixtral-12b-2409`                                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Google Generative AI](/providers/ai-sdk-providers/google-generative-ai) | `gemini-2.0-flash-exp`                              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -72,6 +68,7 @@ Not all providers support all AI SDK features. Here's a quick comparison of the 
 | [DeepSeek](/providers/ai-sdk-providers/deepseek)                         | `deepseek-reasoner`                                 | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | [Cerebras](/providers/ai-sdk-providers/cerebras)                         | `llama3.1-8b`                                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Cerebras](/providers/ai-sdk-providers/cerebras)                         | `llama3.3-70b`                                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Fireworks](/providers/ai-sdk-providers/fireworks)                       | `kimi-k2-instruct`                                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 
 <Note>
   This table is not exhaustive. Additional models can be found in the provider

@@ -1,0 +1,209 @@
+---
+title: Claude Code
+description: Learn how to use the Claude Code community provider to access Claude through your Pro/Max subscription.
+---
+
+# Claude Code Provider
+
+The [ai-sdk-provider-claude-code](https://github.com/ben-vargas/ai-sdk-provider-claude-code) community provider allows you to access Claude models through the official Claude Code SDK/CLI. While it works with both Claude Pro/Max subscriptions and API key authentication, it's particularly useful for developers who want to use their existing Claude subscription without managing API keys.
+
+## Version Compatibility
+
+The Claude Code provider supports both AI SDK v4 and v5-beta:
+
+| Provider Version | AI SDK Version | Status | Branch                                                                                  |
+| ---------------- | -------------- | ------ | --------------------------------------------------------------------------------------- |
+| 0.x              | v4             | Stable | [`ai-sdk-v4`](https://github.com/ben-vargas/ai-sdk-provider-claude-code/tree/ai-sdk-v4) |
+| 1.x-beta         | v5-beta        | Beta   | [`main`](https://github.com/ben-vargas/ai-sdk-provider-claude-code/tree/main)           |
+
+## Setup
+
+The Claude Code provider is available in the `ai-sdk-provider-claude-code` module. Install the version that matches your AI SDK version:
+
+### For AI SDK v5-beta (latest)
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-provider-claude-code ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-provider-claude-code ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-provider-claude-code ai" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add ai-sdk-provider-claude-code ai" dark />
+  </Tab>
+</Tabs>
+
+### For AI SDK v4 (stable)
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-provider-claude-code@^0 ai@^4" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-provider-claude-code@^0 ai@^4" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-provider-claude-code@^0 ai@^4" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add ai-sdk-provider-claude-code@^0 ai@^4" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `claudeCode` from `ai-sdk-provider-claude-code`:
+
+```ts
+import { claudeCode } from 'ai-sdk-provider-claude-code';
+```
+
+If you need a customized setup, you can import `createClaudeCode` from `ai-sdk-provider-claude-code` and create a provider instance with your settings:
+
+```ts
+import { createClaudeCode } from 'ai-sdk-provider-claude-code';
+
+const claudeCode = createClaudeCode({
+  allowedTools: ['Read', 'Write', 'Edit'],
+  disallowedTools: ['Bash'],
+  // other options
+});
+```
+
+You can use the following optional settings to customize the Claude Code provider instance:
+
+- **anthropicDir** _string_
+
+  Optional. Directory for Claude Code CLI data. Defaults to `~/.claude/claude_code`.
+
+- **allowedTools** _string[]_
+
+  Optional. List of allowed tools. When specified, only these tools will be available.
+
+- **disallowedTools** _string[]_
+
+  Optional. List of disallowed tools. These tools will be blocked even if enabled in settings.
+
+- **mcpServers** _string[]_
+
+  Optional. List of MCP server names to use for this session.
+
+## Language Models
+
+You can create models that call Claude through the Claude Code CLI using the provider instance.
+The first argument is the model ID:
+
+```ts
+const model = claudeCode('opus');
+```
+
+Claude Code supports the following models:
+
+- **opus**: Claude 4 Opus (most capable)
+- **sonnet**: Claude 4 Sonnet (balanced performance)
+
+### Example: Generate Text
+
+You can use Claude Code language models to generate text with the `generateText` function:
+
+```ts
+import { claudeCode } from 'ai-sdk-provider-claude-code';
+import { generateText } from 'ai';
+
+// AI SDK v4
+const { text } = await generateText({
+  model: claudeCode('opus'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+// AI SDK v5-beta
+const result = await generateText({
+  model: claudeCode('opus'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+const text = await result.text;
+```
+
+Claude Code language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+(see [AI SDK Core](/docs/ai-sdk-core) for more information).
+
+<Note>
+  The response format differs between AI SDK v4 and v5-beta. In v4, text is
+  accessed directly via `result.text`. In v5-beta, it's accessed as a promise
+  via `await result.text`. Make sure to use the appropriate format for your AI
+  SDK version.
+</Note>
+
+### Model Capabilities
+
+| Model    | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| -------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `opus`   | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `sonnet` | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+<Note>
+  The ❌ for "Tool Usage" and "Tool Streaming" refers specifically to the AI
+  SDK's standardized tool interface, which allows defining custom functions with
+  schemas that models can call. The Claude Code provider uses a different
+  architecture where Claude's built-in tools (Bash, Edit, Read, Write, etc.) and
+  MCP servers are managed directly by the Claude Code CLI. While you cannot
+  define custom tools using the AI SDK's conventions, Claude can still
+  effectively use its comprehensive set of built-in tools to perform tasks like
+  file manipulation, web fetching, and command execution.
+</Note>
+
+## Authentication
+
+The Claude Code provider uses your existing Claude Pro or Max subscription through the Claude Code CLI. You need to authenticate once using:
+
+```bash
+claude login
+```
+
+This will open a browser window for authentication. Once authenticated, the provider will use your subscription automatically.
+
+## Built-in Tools
+
+One of the unique features of the Claude Code provider is access to Claude's built-in tools:
+
+- **Bash**: Execute shell commands
+- **Edit**: Edit files with precise replacements
+- **Read**: Read file contents
+- **Write**: Write new files
+- **LS**: List directory contents
+- **Grep**: Search file contents
+- **WebFetch**: Fetch and analyze web content
+- And more...
+
+You can control which tools are available per session using the `allowedTools` and `disallowedTools` options.
+
+## Extended Thinking
+
+The Claude Code provider supports Claude Opus 4's extended thinking capabilities with proper timeout management. When using extended thinking, make sure to provide an appropriate AbortSignal with a timeout of up to 10 minutes:
+
+```ts
+const controller = new AbortController();
+const timeout = setTimeout(() => controller.abort(), 10 * 60 * 1000); // 10 minutes
+
+try {
+  const { text } = await generateText({
+    model: claudeCode('opus'),
+    prompt: 'Solve this complex problem...',
+    abortSignal: controller.signal,
+  });
+} finally {
+  clearTimeout(timeout);
+}
+```
+
+## Requirements
+
+- Node.js 18 or higher
+- Claude Code CLI installed (`npm install -g @anthropic-ai/claude-code`)
+- Claude Code authenticated with Pro or Max subscription, or API key.

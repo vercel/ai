@@ -1,22 +1,30 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-// Args validation schema
+const comparisonFilterSchema = z.object({
+  key: z.string(),
+  type: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte']),
+  value: z.union([z.string(), z.number(), z.boolean()]),
+});
+
+const compoundFilterSchema: z.ZodType<any> = z.object({
+  type: z.enum(['and', 'or']),
+  filters: z.array(
+    z.union([comparisonFilterSchema, z.lazy(() => compoundFilterSchema)]),
+  ),
+});
+
+const filtersSchema = z.union([comparisonFilterSchema, compoundFilterSchema]);
+
 export const fileSearchArgsSchema = z.object({
-  /**
-   * List of vector store IDs to search through. If not provided, searches all available vector stores.
-   */
   vectorStoreIds: z.array(z.string()).optional(),
-
-  /**
-   * Maximum number of search results to return. Defaults to 10.
-   */
-  maxResults: z.number().optional(),
-
-  /**
-   * Type of search to perform. Defaults to 'auto'.
-   */
-  searchType: z.enum(['auto', 'keyword', 'semantic']).optional(),
+  maxNumResults: z.number().optional(),
+  ranking: z
+    .object({
+      ranker: z.enum(['auto', 'default-2024-08-21']).optional(),
+    })
+    .optional(),
+  filters: filtersSchema.optional(),
 });
 
 export const fileSearch = createProviderDefinedToolFactory<
@@ -35,12 +43,28 @@ export const fileSearch = createProviderDefinedToolFactory<
     /**
      * Maximum number of search results to return. Defaults to 10.
      */
-    maxResults?: number;
+    maxNumResults?: number;
 
     /**
-     * Type of search to perform. Defaults to 'auto'.
+     * Ranking options for the search.
      */
-    searchType?: 'auto' | 'keyword' | 'semantic';
+    ranking?: {
+      ranker?: 'auto' | 'default-2024-08-21';
+    };
+
+    /**
+     * A filter to apply based on file attributes.
+     */
+    filters?:
+      | {
+          key: string;
+          type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
+          value: string | number | boolean;
+        }
+      | {
+          type: 'and' | 'or';
+          filters: any[];
+        };
   }
 >({
   id: 'openai.file_search',

@@ -5,22 +5,26 @@ description: Monitor and evaluate your AI SDK application with LangSmith
 
 # LangSmith Observability
 
-[LangSmith](https://docs.smith.langchain.com) is a platform for building production-grade LLM applications.
+[LangSmith](https://docs.langchain.com/langsmith/) is a platform for building production-grade LLM applications.
 It allows you to closely monitor and evaluate your application, so you can ship quickly and with confidence.
 
-Use of LangChain's open-source frameworks is not necessary, and LangSmith integrates with the [AI SDK](/docs/introduction) via the `AISDKExporter` OpenTelemetry trace exporter.
+Use of LangChain's open-source frameworks is not necessary.
 
 <Note>
   A version of this guide is also available in the [LangSmith
-  documentation](https://docs.smith.langchain.com/observability/how_to_guides/tracing/trace_with_vercel_ai_sdk).
+  documentation](https://docs.langchain.com/langsmith/trace-with-vercel-ai-sdk).
+  If you are using AI SDK v4 an older version of the `langsmith` client, see the
+  legacy guide linked from that page.
 </Note>
 
 ## Setup
 
+<Note>The steps in this guide assume you are using `langsmith>=0.3.63.`.</Note>
+
 Install an [AI SDK model provider](/providers/ai-sdk-providers) and the [LangSmith client SDK](https://npmjs.com/package/langsmith).
 The code snippets below will use the [AI SDK's OpenAI provider](/providers/ai-sdk-providers/openai), but you can use any [other supported provider](/providers/ai-sdk-providers/) as well.
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/openai langsmith" dark />
   </Tab>
@@ -30,83 +34,56 @@ The code snippets below will use the [AI SDK's OpenAI provider](/providers/ai-sd
   <Tab>
     <Snippet text="yarn add @ai-sdk/openai langsmith" dark />
   </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai langsmith" dark />
+  </Tab>
 </Tabs>
-
-<Note>
-  The `AISDKExporter` class is only available in `langsmith` SDK version
-  `>=0.2.1`.
-</Note>
 
 Next, set required environment variables.
 
 ```bash
-export LANGCHAIN_TRACING_V2=true
+export LANGCHAIN_TRACING=true
 export LANGCHAIN_API_KEY=<your-api-key>
 
 export OPENAI_API_KEY=<your-openai-api-key> # The examples use OpenAI (replace with your selected provider)
 ```
 
-You can also [see this guide](https://docs.smith.langchain.com/observability/how_to_guides/tracing/trace_without_env_vars) for other ways to configure LangSmith,
-or [the section below](#custom-langsmith-client) for how to pass in a custom LangSmith client instance.
-
 ## Trace Logging
 
-### Next.js
+To start tracing, you will need to import and call the `wrapAISDK` method at the start of your code:
 
-First, create an `instrumentation.js` file in your project root.
-
-```ts
-import { registerOTel } from '@vercel/otel';
-import { AISDKExporter } from 'langsmith/vercel';
-
-export function register() {
-  registerOTel({
-    serviceName: 'langsmith-vercel-ai-sdk-example',
-    traceExporter: new AISDKExporter(),
-  });
-}
-```
-
-You can learn more how to [setup OpenTelemetry instrumentation within your Next.js app here](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation).
-
-If you are using Next.js version 14, you need to add the following configuration to your `next.config.js`:
-
-```js
-module.exports = {
-  experimental: {
-    instrumentationHook: true,
-  },
-};
-```
-
-For more information, see the [Next.js documentation on instrumentationHook](https://nextjs.org/docs/14/pages/api-reference/next-config-js/instrumentationHook).
-
-Afterwards, add the `experimental_telemetry` argument to your AI SDK calls that you want to trace. For convenience, we've included the `AISDKExporter.getSettings()` method which appends additional metadata for LangSmith.
-
-```ts highlight="8"
-import { AISDKExporter } from 'langsmith/vercel';
-import { streamText } from 'ai';
+```ts highlight="6-7"
 import { openai } from '@ai-sdk/openai';
+import * as ai from 'ai';
 
-await streamText({
-  model: openai('gpt-4o-mini'),
+import { wrapAISDK } from 'langsmith/experimental/vercel';
+
+const { generateText, streamText, generateObject, streamObject } =
+  wrapAISDK(ai);
+
+await generateText({
+  model: openai('gpt-5-nano'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-  experimental_telemetry: AISDKExporter.getSettings(),
 });
 ```
 
-You should see a trace in your LangSmith dashboard [like this one](https://smith.langchain.com/public/a9d9521a-4f97-4843-b1e2-b87c3a125503/r).
+You should see a trace in your LangSmith dashboard [like this one](https://smith.langchain.com/public/4f0e689e-c801-44d3-8857-93b47ab100cc/r).
 
-You can also trace tool calls:
+You can also trace runs with tool calls:
 
 ```ts
-import { AISDKExporter } from 'langsmith/vercel';
-import { generateText, tool } from 'ai';
+import * as ai from 'ai';
+import { tool, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
+import { wrapAISDK } from 'langsmith/experimental/vercel';
+
+const { generateText, streamText, generateObject, streamObject } =
+  wrapAISDK(ai);
+
 await generateText({
-  model: openai('gpt-4o-mini'),
+  model: openai('gpt-5-nano'),
   messages: [
     {
       role: 'user',
@@ -116,233 +93,92 @@ await generateText({
   tools: {
     listOrders: tool({
       description: 'list all orders',
-      parameters: z.object({ userId: z.string() }),
+      inputSchema: z.object({ userId: z.string() }),
       execute: async ({ userId }) =>
         `User ${userId} has the following orders: 1`,
     }),
     viewTrackingInformation: tool({
       description: 'view tracking information for a specific order',
-      parameters: z.object({ orderId: z.string() }),
+      inputSchema: z.object({ orderId: z.string() }),
       execute: async ({ orderId }) =>
         `Here is the tracking information for ${orderId}`,
     }),
   },
-  experimental_telemetry: AISDKExporter.getSettings(),
-  maxSteps: 10,
+  stopWhen: stepCountIs(5),
 });
 ```
 
-Which results in a trace like [this one](https://smith.langchain.com/public/4d3add36-756d-4c8c-845d-4ad701a315bb/r).
+Which results in a trace like [this one](https://smith.langchain.com/public/6075fa2c-d255-4885-a66a-4fc798afaa9f/r).
 
-### Node.js
+You can use other AI SDK methods exactly as you usually would.
 
-Add the `AISDKExporter` to the trace exporter to your OpenTelemetry setup.
+### With `traceable`
 
-```ts
-import { AISDKExporter } from 'langsmith/vercel';
-
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-
-const sdk = new NodeSDK({
-  traceExporter: new AISDKExporter(),
-  instrumentations: [getNodeAutoInstrumentations()],
-});
-
-sdk.start();
-```
-
-Afterwards, add the `experimental_telemetry` argument to your AI SDK calls that you want to trace.
-
-<Note>
-  Do not forget to call `await sdk.shutdown()` before your application shuts
-  down in order to flush any remaining traces to LangSmith.
-</Note>
+You can wrap `traceable` calls around AI SDK calls or within AI SDK tool calls. This is useful if you
+want to group runs together in LangSmith:
 
 ```ts
-import { generateText } from 'ai';
+import * as ai from 'ai';
+import { tool, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { AISDKExporter } from 'langsmith/vercel';
-
-const result = await generateText({
-  model: openai('gpt-4o-mini'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-  experimental_telemetry: AISDKExporter.getSettings(),
-});
-
-await sdk.shutdown();
-```
-
-You should see a trace in your LangSmith dashboard [like this one](https://smith.langchain.com/public/a9d9521a-4f97-4843-b1e2-b87c3a125503/r).
-
-### Sentry
-
-If you're using Sentry, you can attach the LangSmith trace exporter to Sentry's default OpenTelemetry instrumentation as follows:
-
-```ts
-import * as Sentry from '@sentry/node';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { AISDKExporter } from 'langsmith/vercel';
-
-const client = Sentry.init({
-  dsn: '[Sentry DSN]',
-  tracesSampleRate: 1.0,
-});
-
-client?.traceProvider?.addSpanProcessor(
-  new BatchSpanProcessor(new AISDKExporter()),
-);
-```
-
-## Configuration
-
-### Customize run name
-
-You can customize the run name by passing the `runName` argument to the `AISDKExporter.getSettings()` method.
-
-```ts
-import { AISDKExporter } from 'langsmith/vercel';
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-
-await generateText({
-  model: openai('gpt-4o-mini'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-  experimental_telemetry: AISDKExporter.getSettings({
-    runName: 'my-custom-run-name',
-  }),
-});
-```
-
-### Customize run ID
-
-You can customize the run ID by passing the `runId` argument to the `AISDKExporter.getSettings()` method. This is especially useful if you want to know the run ID before the run has been completed.
-
-<Note>The run ID has to be a valid UUID.</Note>
-
-```ts
-import { AISDKExporter } from 'langsmith/vercel';
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-import { v4 as uuidv4 } from 'uuid';
-
-await generateText({
-  model: openai('gpt-4o-mini'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-  experimental_telemetry: AISDKExporter.getSettings({
-    runId: uuidv4(),
-  }),
-});
-```
-
-### Nesting runs
-
-You can also nest runs within other traced functions to create a hierarchy of associated runs.
-Here's an example using the [`traceable`](https://docs.smith.langchain.com/observability/how_to_guides/tracing/annotate_code#use-traceable--traceable) method:
-
-```ts
-import { AISDKExporter } from 'langsmith/vercel';
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import { z } from 'zod';
 
 import { traceable } from 'langsmith/traceable';
+import { wrapAISDK } from 'langsmith/experimental/vercel';
 
-const wrappedGenerateText = traceable(
-  async (content: string) => {
+const { generateText, streamText, generateObject, streamObject } =
+  wrapAISDK(ai);
+
+const wrapper = traceable(
+  async (input: string) => {
     const { text } = await generateText({
-      model: openai('gpt-4o-mini'),
-      messages: [{ role: 'user', content }],
-      experimental_telemetry: AISDKExporter.getSettings(),
+      model: openai('gpt-5-nano'),
+      messages: [
+        {
+          role: 'user',
+          content: input,
+        },
+      ],
+      tools: {
+        listOrders: tool({
+          description: 'list all orders',
+          inputSchema: z.object({ userId: z.string() }),
+          execute: async ({ userId }) =>
+            `User ${userId} has the following orders: 1`,
+        }),
+        viewTrackingInformation: tool({
+          description: 'view tracking information for a specific order',
+          inputSchema: z.object({ orderId: z.string() }),
+          execute: async ({ orderId }) =>
+            `Here is the tracking information for ${orderId}`,
+        }),
+      },
+      stopWhen: stepCountIs(5),
     });
-
-    const reverseText = traceable(
-      async (text: string) => {
-        return text.split('').reverse().join('');
-      },
-      {
-        name: 'reverseText',
-      },
-    );
-
-    const reversedText = await reverseText(text);
-    return { text, reversedText };
+    return text;
   },
-  { name: 'parentTraceable' },
+  {
+    name: 'wrapper',
+  },
 );
 
-const result = await wrappedGenerateText(
-  'What color is the sky? Respond with one word.',
-);
+await wrapper('What are my orders and where are they? My user ID is 123.');
 ```
 
-The resulting trace will look like [this one](https://smith.langchain.com/public/c0466ed5-3932-4140-83b1-cf11e998fa6a/r).
+The resulting trace will look [like this](https://smith.langchain.com/public/ff25bc26-9389-4798-8b91-2bdcc95d4a8e/r).
 
-### Custom LangSmith client
+## Tracing in serverless environments
 
-You can also pass a LangSmith client instance into the `AISDKExporter` constructor:
-
-```ts
-import { AISDKExporter } from 'langsmith/vercel';
-import { Client } from 'langsmith';
-
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-
-const langsmithClient = new Client({});
-
-const sdk = new NodeSDK({
-  traceExporter: new AISDKExporter({ client: langsmithClient }),
-  instrumentations: [getNodeAutoInstrumentations()],
-});
-
-sdk.start();
-
-await generateText({
-  model: openai('gpt-4o-mini'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-  experimental_telemetry: AISDKExporter.getSettings(),
-});
-```
-
-### Debugging Exporter
-
-You can enable debug logs for the `AISDKExporter` by passing the `debug` argument to the constructor.
-
-```ts
-const traceExporter = new AISDKExporter({ debug: true });
-```
-
-Alternatively, you can set the `OTEL_LOG_LEVEL=DEBUG` environment variable to enable debug logs for the exporter as well as the rest of the OpenTelemetry stack.
-
-### Adding metadata
-
-You can add metadata to your traces to help organize and filter them in the LangSmith UI:
-
-```ts
-import { AISDKExporter } from 'langsmith/vercel';
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-
-await generateText({
-  model: openai('gpt-4o-mini'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-  experimental_telemetry: AISDKExporter.getSettings({
-    metadata: { userId: '123', language: 'english' },
-  }),
-});
-```
-
-Metadata will be visible in your LangSmith dashboard and can be used to filter and search for specific traces.
+When tracing in serverless environments, you must wait for all runs to flush before your environment
+shuts down. See [this section](https://docs.langchain.com/langsmith/trace-with-vercel-ai-sdk#tracing-in-serverless-environments) of the LangSmith docs for examples.
 
 ## Further reading
 
-- [LangSmith docs](https://docs.smith.langchain.com)
-- [LangSmith guide on tracing with the AI SDK](https://docs.smith.langchain.com/observability/how_to_guides/tracing/trace_with_vercel_ai_sdk)
-- [LangSmith guide on tracing without environment variables](https://docs.smith.langchain.com/observability/how_to_guides/tracing/trace_without_env_vars)
+For more examples and instructions for setting up tracing in specific environments, see the links below:
 
-Once you've set up LangSmith tracing for your project, try gathering a dataset and evaluating it:
+- [LangSmith docs](https://docs.langchain.com/langsmith/)
+- [LangSmith guide on tracing with the AI SDK](https://docs.langchain.com/langsmith/trace-with-vercel-ai-sdk)
 
-- [LangSmith evaluation](https://docs.smith.langchain.com/evaluation)
+And once you've set up LangSmith tracing for your project, try gathering a dataset and evaluating it:
+
+- [LangSmith evaluation](https://docs.langchain.com/langsmith/evaluation)

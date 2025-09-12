@@ -2,6 +2,10 @@ export { callCompletionApi } from './call-completion-api';
 export {
   AbstractChat,
   type ChatInit,
+  type ChatOnDataCallback,
+  type ChatOnErrorCallback,
+  type ChatOnFinishCallback,
+  type ChatOnToolCallCallback,
   type ChatRequestOptions,
   type ChatState,
   type ChatStatus,
@@ -22,14 +26,20 @@ export {
   type PrepareReconnectToStreamRequest,
   type PrepareSendMessagesRequest,
 } from './http-chat-transport';
+export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
   getToolName,
+  getToolOrDynamicToolName,
+  isToolOrDynamicToolUIPart,
   isToolUIPart,
   type DataUIPart,
+  type DynamicToolUIPart,
   type FileUIPart,
   type InferUITool,
+  type InferUITools,
   type ReasoningUIPart,
+  type SourceDocumentUIPart,
   type SourceUrlUIPart,
   type StepStartUIPart,
   type TextUIPart,
@@ -38,9 +48,11 @@ export {
   type UIMessage,
   type UIMessagePart,
   type UITool,
+  type UIToolInvocation,
   type UITools,
 } from './ui-messages';
 export {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from './use-completion';
+export { validateUIMessages } from './validate-ui-messages';

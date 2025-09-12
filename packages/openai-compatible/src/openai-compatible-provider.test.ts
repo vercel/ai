@@ -1,7 +1,13 @@
 import { createOpenAICompatible } from './openai-compatible-provider';
-import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
-import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
-import { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
+import { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
+import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
+import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
+import { vi, describe, beforeEach, it, expect } from 'vitest';
+
+// Mock version
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const OpenAICompatibleChatLanguageModelMock = vi.mocked(
   OpenAICompatibleChatLanguageModel,
@@ -13,15 +19,15 @@ const OpenAICompatibleEmbeddingModelMock = vi.mocked(
   OpenAICompatibleEmbeddingModel,
 );
 
-vi.mock('./openai-compatible-chat-language-model', () => ({
+vi.mock('./chat/openai-compatible-chat-language-model', () => ({
   OpenAICompatibleChatLanguageModel: vi.fn(),
 }));
 
-vi.mock('./openai-compatible-completion-language-model', () => ({
+vi.mock('./completion/openai-compatible-completion-language-model', () => ({
   OpenAICompatibleCompletionLanguageModel: vi.fn(),
 }));
 
-vi.mock('./openai-compatible-embedding-model', () => ({
+vi.mock('./embedding/openai-compatible-embedding-model', () => ({
   OpenAICompatibleEmbeddingModel: vi.fn(),
 }));
 
@@ -36,7 +42,7 @@ describe('OpenAICompatibleProvider', () => {
         baseURL: 'https://api.example.com',
         name: 'test-provider',
         apiKey: 'test-api-key',
-        headers: { 'Custom-Header': 'value' },
+        headers: { 'custom-header': 'value' },
         queryParams: { 'Custom-Param': 'value' },
       };
 
@@ -49,8 +55,9 @@ describe('OpenAICompatibleProvider', () => {
       const headers = config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-api-key',
-        'Custom-Header': 'value',
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test',
       });
       expect(config.provider).toBe('test-provider.chat');
       expect(config.url({ modelId: 'model-id', path: '/v1/chat' })).toBe(
@@ -58,11 +65,11 @@ describe('OpenAICompatibleProvider', () => {
       );
     });
 
-    it('should create headers without Authorization when no apiKey provided', () => {
+    it('should create headers without authorization when no apiKey provided', () => {
       const options = {
         baseURL: 'https://api.example.com',
         name: 'test-provider',
-        headers: { 'Custom-Header': 'value' },
+        headers: { 'custom-header': 'value' },
       };
 
       const provider = createOpenAICompatible(options);
@@ -74,7 +81,8 @@ describe('OpenAICompatibleProvider', () => {
       const headers = config.headers();
 
       expect(headers).toEqual({
-        'Custom-Header': 'value',
+        'custom-header': 'value',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test',
       });
     });
   });
@@ -84,7 +92,7 @@ describe('OpenAICompatibleProvider', () => {
       baseURL: 'https://api.example.com',
       name: 'test-provider',
       apiKey: 'test-api-key',
-      headers: { 'Custom-Header': 'value' },
+      headers: { 'custom-header': 'value' },
       queryParams: { 'Custom-Param': 'value' },
     };
 
@@ -99,8 +107,9 @@ describe('OpenAICompatibleProvider', () => {
       const headers = config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-api-key',
-        'Custom-Header': 'value',
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test',
       });
       expect(config.provider).toBe('test-provider.chat');
       expect(config.url({ modelId: 'model-id', path: '/v1/chat' })).toBe(
@@ -119,8 +128,9 @@ describe('OpenAICompatibleProvider', () => {
       const headers = config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-api-key',
-        'Custom-Header': 'value',
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test',
       });
       expect(config.provider).toBe('test-provider.completion');
       expect(
@@ -138,8 +148,9 @@ describe('OpenAICompatibleProvider', () => {
       const headers = config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-api-key',
-        'Custom-Header': 'value',
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test',
       });
       expect(config.provider).toBe('test-provider.embedding');
       expect(
@@ -177,6 +188,82 @@ describe('OpenAICompatibleProvider', () => {
       expect(config.url({ modelId: 'model-id', path: '/v1/chat' })).toBe(
         'https://api.example.com/v1/chat',
       );
+    });
+  });
+
+  describe('includeUsage setting', () => {
+    it('should pass includeUsage: true to all model types when specified in provider settings', () => {
+      const options = {
+        baseURL: 'https://api.example.com',
+        name: 'test-provider',
+        includeUsage: true,
+      };
+      const provider = createOpenAICompatible(options);
+
+      provider.chatModel('chat-model');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0][1].includeUsage,
+      ).toBe(true);
+
+      provider.completionModel('completion-model');
+      expect(
+        OpenAICompatibleCompletionLanguageModelMock.mock.calls[0][1]
+          .includeUsage,
+      ).toBe(true);
+
+      provider('model-id');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[1][1].includeUsage,
+      ).toBe(true);
+    });
+
+    it('should pass includeUsage: false to all model types when specified in provider settings', () => {
+      const options = {
+        baseURL: 'https://api.example.com',
+        name: 'test-provider',
+        includeUsage: false,
+      };
+      const provider = createOpenAICompatible(options);
+
+      provider.chatModel('chat-model');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0][1].includeUsage,
+      ).toBe(false);
+
+      provider.completionModel('completion-model');
+      expect(
+        OpenAICompatibleCompletionLanguageModelMock.mock.calls[0][1]
+          .includeUsage,
+      ).toBe(false);
+
+      provider('model-id');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[1][1].includeUsage,
+      ).toBe(false);
+    });
+
+    it('should pass includeUsage: undefined to all model types when not specified in provider settings', () => {
+      const options = {
+        baseURL: 'https://api.example.com',
+        name: 'test-provider',
+      };
+      const provider = createOpenAICompatible(options);
+
+      provider.chatModel('chat-model');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0][1].includeUsage,
+      ).toBeUndefined();
+
+      provider.completionModel('completion-model');
+      expect(
+        OpenAICompatibleCompletionLanguageModelMock.mock.calls[0][1]
+          .includeUsage,
+      ).toBeUndefined();
+
+      provider('model-id');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[1][1].includeUsage,
+      ).toBeUndefined();
     });
   });
 });

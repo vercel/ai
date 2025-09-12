@@ -1,23 +1,23 @@
 // @ts-nocheck
-import { experimental_generateText, experimental_streamText, experimental_generateObject, experimental_streamObject } from 'ai';
+import { generateText, streamText, generateObject, streamObject } from 'ai';
 
 async function main() {
-  const result = await experimental_generateText({
+  const result = await generateText({
     model: provider('model-name'),
     prompt: 'Hello',
   });
 
-  const stream = await experimental_streamText({
+  const stream = await streamText({
     model: provider('model-name'),
     prompt: 'Hello',
   });
 
-  const obj = await experimental_generateObject({
+  const obj = await generateObject({
     model: provider('model-name'),
     prompt: 'Hello',
   });
 
-  const objStream = await experimental_streamObject({
+  const objStream = await streamObject({
     model: provider('model-name'),
     prompt: 'Hello',
   });

@@ -1,27 +1,32 @@
 import { vercel } from '@ai-sdk/vercel';
 import { generateObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: vercel('v0-1.0-md'),
+    model: vercel('v0-1.5-md'),
     schema: z.object({
-      recipe: z.object({
-        name: z.string(),
-        ingredients: z.array(
-          z.object({
-            name: z.string(),
-            amount: z.string(),
-          }),
-        ),
-        steps: z.array(z.string()),
+      button: z.object({
+        element: z.string(),
+        baseStyles: z.object({
+          padding: z.string(),
+          borderRadius: z.string(),
+          border: z.string(),
+          backgroundColor: z.string(),
+          color: z.string(),
+          cursor: z.string(),
+        }),
+        hoverStyles: z.object({
+          backgroundColor: z.string(),
+          transform: z.string().optional(),
+        }),
       }),
     }),
-    prompt: 'Generate a lasagna recipe.',
+    prompt: 'Generate CSS styles for a modern primary button component.',
   });
 
-  console.log(JSON.stringify(result.object.recipe, null, 2));
+  console.log(JSON.stringify(result.object.button, null, 2));
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);

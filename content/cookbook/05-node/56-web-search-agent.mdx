@@ -31,7 +31,7 @@ const { text, sources } = await generateText({
   model: openai.responses('gpt-4o-mini'),
   prompt: 'What happened in San Francisco last week?',
   tools: {
-    web_search_preview: openai.tools.webSearchPreview(),
+    web_search_preview: openai.tools.webSearchPreview({}),
   },
 });
 
@@ -65,9 +65,10 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-1.5-pro', {
-    useSearchGrounding: true,
-  }),
+  model: google('gemini-2.5-flash'),
+  tools: {
+    google_search: google.tools.googleSearch({}),
+  },
   prompt:
     'List the top 5 San Francisco news from the past week.' +
     'You must include the date of each article.',
@@ -86,10 +87,10 @@ const safetyRatings = metadata?.safetyRatings;
 
 Let's look at how you can build tools that search the web and return results. These tools can be used with any model that supports tool calling, giving you maximum flexibility and control over your search experience. We'll examine several search API options that can be integrated as tools in your agent.
 
-Unlike the native web search examples where searching is built into the model, using web search tools requires multiple steps. The language model will make two generations - the first to call the relevant web search tool (extracting search queries from the context), and the second to process the results and generate a response. This multi-step process is handled automatically when you set `maxSteps` to a value greater than 1.
+Unlike the native web search examples where searching is built into the model, using web search tools requires multiple steps. The language model will make two generations - the first to call the relevant web search tool (extracting search queries from the context), and the second to process the results and generate a response. This multi-step process is handled automatically when you set `stopWhen: stepCountIs()` to a value greater than 1.
 
 <Note>
-  By using `maxSteps`, you can automatically send tool results back to the
+  By using `stopWhen`, you can automatically send tool results back to the
   language model alongside the original question, enabling the model to respond
   with information relevant to the user's query based on the search results.
   This creates a seamless experience where the agent can search the web and
@@ -101,7 +102,7 @@ Unlike the native web search examples where searching is built into the model, u
 [Exa](https://exa.ai/) is a search API designed for AI. Let's look at how you could implement a search tool using Exa:
 
 ```ts
-import { generateText, tool } from 'ai';
+import { generateText, tool, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import Exa from 'exa-js';
@@ -110,7 +111,7 @@ export const exa = new Exa(process.env.EXA_API_KEY);
 
 export const webSearch = tool({
   description: 'Search the web for up-to-date information',
-  parameters: z.object({
+  inputSchema: z.object({
     query: z.string().min(1).max(100).describe('The search query'),
   }),
   execute: async ({ query }) => {
@@ -133,7 +134,7 @@ const { text } = await generateText({
   tools: {
     webSearch,
   },
-  maxSteps: 2,
+  stopWhen: stepCountIs(5),
 });
 ```
 
@@ -142,7 +143,7 @@ const { text } = await generateText({
 [Firecrawl](https://firecrawl.dev) provides an API for web scraping and crawling. Let's look at how you could implement a scraping tool using Firecrawl:
 
 ```ts
-import { generateText, tool } from 'ai';
+import { generateText, tool, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import FirecrawlApp from '@mendable/firecrawl-js';
@@ -152,7 +153,7 @@ const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
 
 export const webSearch = tool({
   description: 'Search the web for up-to-date information',
-  parameters: z.object({
+  inputSchema: z.object({
     urlToCrawl: z
       .string()
       .url()
@@ -181,7 +182,7 @@ const main = async () => {
     tools: {
       webSearch,
     },
-    maxSteps: 2,
+    stopWhen: stepCountIs(5),
   });
   console.log(text);
 };

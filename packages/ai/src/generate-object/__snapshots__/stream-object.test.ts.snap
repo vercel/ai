@@ -1,0 +1,267 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`streamObject > output = "object" > options.onFinish > should be called when a valid object is generated 1`] = `
+{
+  "error": undefined,
+  "object": {
+    "content": "Hello, world!",
+  },
+  "providerMetadata": {
+    "testProvider": {
+      "testKey": "testValue",
+    },
+  },
+  "response": {
+    "headers": undefined,
+    "id": "id-0",
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+  },
+  "usage": {
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
+    "totalTokens": 13,
+  },
+  "warnings": undefined,
+}
+`;
+
+exports[`streamObject > output = "object" > options.onFinish > should be called when object doesn't match the schema 1`] = `
+{
+  "error": [AI_NoObjectGeneratedError: No object generated: response did not match schema.],
+  "object": undefined,
+  "providerMetadata": undefined,
+  "response": {
+    "headers": undefined,
+    "id": "id-0",
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+  },
+  "usage": {
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
+    "totalTokens": 13,
+  },
+  "warnings": undefined,
+}
+`;
+
+exports[`streamObject > output = "object" > result.fullStream > should send full stream data 1`] = `
+[
+  {
+    "object": {},
+    "type": "object",
+  },
+  {
+    "textDelta": "{ ",
+    "type": "text-delta",
+  },
+  {
+    "object": {
+      "content": "Hello, ",
+    },
+    "type": "object",
+  },
+  {
+    "textDelta": ""content": "Hello, ",
+    "type": "text-delta",
+  },
+  {
+    "object": {
+      "content": "Hello, world",
+    },
+    "type": "object",
+  },
+  {
+    "textDelta": "world",
+    "type": "text-delta",
+  },
+  {
+    "object": {
+      "content": "Hello, world!",
+    },
+    "type": "object",
+  },
+  {
+    "textDelta": "!"",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": " }",
+    "type": "text-delta",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "testProvider": {
+        "testKey": "testValue",
+      },
+    },
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
+      "totalTokens": 13,
+    },
+  },
+]
+`;
+
+exports[`streamObject > telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
+
+exports[`streamObject > telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
+[
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamObject",
+      "ai.settings.maxRetries": 2,
+      "ai.settings.output": "object",
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
+      "operation.name": "ai.streamObject",
+    },
+    "events": [],
+    "name": "ai.streamObject",
+  },
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamObject.doStream",
+      "ai.response.finishReason": "stop",
+      "ai.response.id": "id-0",
+      "ai.response.model": "mock-model-id",
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+      "ai.settings.maxRetries": 2,
+      "ai.stream.msToFirstChunk": 0,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 10,
+      "operation.name": "ai.streamObject.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.stream.msToFirstChunk": 0,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+    ],
+    "name": "ai.streamObject.doStream",
+  },
+]
+`;
+
+exports[`streamObject > telemetry > should record telemetry data when enabled 1`] = `
+[
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamObject",
+      "ai.prompt": "{"prompt":"prompt"}",
+      "ai.request.headers.header1": "value1",
+      "ai.request.headers.header2": "value2",
+      "ai.response.object": "{"content":"Hello, world!"}",
+      "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
+      "ai.schema": "{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}",
+      "ai.schema.description": "test description",
+      "ai.schema.name": "test-name",
+      "ai.settings.frequencyPenalty": 0.3,
+      "ai.settings.maxRetries": 2,
+      "ai.settings.output": "object",
+      "ai.settings.presencePenalty": 0.4,
+      "ai.settings.temperature": 0.5,
+      "ai.settings.topK": 0.1,
+      "ai.settings.topP": 0.2,
+      "ai.telemetry.functionId": "test-function-id",
+      "ai.telemetry.metadata.test1": "value1",
+      "ai.telemetry.metadata.test2": false,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
+      "operation.name": "ai.streamObject test-function-id",
+      "resource.name": "test-function-id",
+    },
+    "events": [],
+    "name": "ai.streamObject",
+  },
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamObject.doStream",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"prompt"}]}]",
+      "ai.request.headers.header1": "value1",
+      "ai.request.headers.header2": "value2",
+      "ai.response.finishReason": "stop",
+      "ai.response.id": "id-0",
+      "ai.response.model": "mock-model-id",
+      "ai.response.object": "{"content":"Hello, world!"}",
+      "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+      "ai.settings.frequencyPenalty": 0.3,
+      "ai.settings.maxRetries": 2,
+      "ai.settings.presencePenalty": 0.4,
+      "ai.settings.temperature": 0.5,
+      "ai.settings.topK": 0.1,
+      "ai.settings.topP": 0.2,
+      "ai.stream.msToFirstChunk": 0,
+      "ai.telemetry.functionId": "test-function-id",
+      "ai.telemetry.metadata.test1": "value1",
+      "ai.telemetry.metadata.test2": false,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
+      "gen_ai.request.frequency_penalty": 0.3,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.request.presence_penalty": 0.4,
+      "gen_ai.request.temperature": 0.5,
+      "gen_ai.request.top_k": 0.1,
+      "gen_ai.request.top_p": 0.2,
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 10,
+      "operation.name": "ai.streamObject.doStream test-function-id",
+      "resource.name": "test-function-id",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.stream.msToFirstChunk": 0,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+    ],
+    "name": "ai.streamObject.doStream",
+  },
+]
+`;

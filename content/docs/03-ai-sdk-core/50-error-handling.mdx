@@ -54,7 +54,7 @@ You can handle those parts similar to other parts.
 It is recommended to also add a try-catch block for errors that
 happen outside of the streaming.
 
-```ts highlight="13-17"
+```ts highlight="13-21"
 import { generateText } from 'ai';
 
 try {
@@ -72,9 +72,73 @@ try {
         // handle error
         break;
       }
+
+      case 'abort': {
+        // handle stream abort
+        break;
+      }
+
+      case 'tool-error': {
+        const error = part.error;
+        // handle error
+        break;
+      }
     }
   }
 } catch (error) {
   // handle error
+}
+```
+
+## Handling stream aborts
+
+When streams are aborted (e.g., via chat stop button), you may want to perform cleanup operations like updating stored messages in your UI. Use the `onAbort` callback to handle these cases.
+
+The `onAbort` callback is called when a stream is aborted via `AbortSignal`, but `onFinish` is not called. This ensures you can still update your UI state appropriately.
+
+```ts highlight="5-9"
+import { streamText } from 'ai';
+
+const { textStream } = streamText({
+  model: 'openai/gpt-4.1',
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  onAbort: ({ steps }) => {
+    // Update stored messages or perform cleanup
+    console.log('Stream aborted after', steps.length, 'steps');
+  },
+  onFinish: ({ steps, totalUsage }) => {
+    // This is called on normal completion
+    console.log('Stream completed normally');
+  },
+});
+
+for await (const textPart of textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+The `onAbort` callback receives:
+
+- `steps`: An array of all completed steps before the abort
+
+You can also handle abort events directly in the stream:
+
+```ts highlight="10-13"
+import { streamText } from 'ai';
+
+const { fullStream } = streamText({
+  model: 'openai/gpt-4.1',
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+for await (const chunk of fullStream) {
+  switch (chunk.type) {
+    case 'abort': {
+      // Handle abort directly in stream
+      console.log('Stream was aborted');
+      break;
+    }
+    // ... handle other part types
+  }
 }
 ```

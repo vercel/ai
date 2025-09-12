@@ -13,7 +13,7 @@ API keys can be obtained from the [Cerebras Platform](https://cloud.cerebras.ai)
 
 The Cerebras provider is available via the `@ai-sdk/cerebras` module. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/cerebras" dark />
   </Tab>
@@ -22,6 +22,10 @@ The Cerebras provider is available via the `@ai-sdk/cerebras` module. You can in
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/cerebras" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/cerebras" dark />
   </Tab>
 </Tabs>
 
@@ -80,17 +84,31 @@ const { text } = await generateText({
 Cerebras language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+You can create Cerebras language models using a provider instance. The first argument is the model ID, e.g. `llama-3.3-70b`:
+
+```ts
+const model = cerebras('llama-3.3-70b');
+```
+
+You can also use the `.languageModel()` and `.chat()` methods:
+
+```ts
+const model = cerebras.languageModel('llama-3.3-70b');
+const model = cerebras.chat('llama-3.3-70b');
+```
+
 ## Model Capabilities
 
-| Model          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| -------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `llama3.1-8b`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `llama3.1-70b` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `llama3.3-70b` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| --------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `llama3.1-8b`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama3.1-70b`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama-3.3-70b` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   Please see the [Cerebras
   docs](https://inference-docs.cerebras.ai/introduction) for more details about
   the available models. Note that context windows are temporarily limited to
-  8192 tokens in the Free Tier.
+  8192 tokens in the Free Tier. You can also pass any available provider model
+  ID as a string if needed.
 </Note>

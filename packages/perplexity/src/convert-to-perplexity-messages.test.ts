@@ -1,5 +1,6 @@
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
 import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
+import { describe, it, expect } from 'vitest';
 
 describe('convertToPerplexityMessages', () => {
   describe('system messages', () => {
@@ -24,6 +25,24 @@ describe('convertToPerplexityMessages', () => {
             content: [
               { type: 'text', text: 'Hello ' },
               { type: 'text', text: 'World' },
+            ],
+          },
+        ]),
+      ).toMatchSnapshot();
+    });
+
+    it('should convert a user message with image parts', () => {
+      expect(
+        convertToPerplexityMessages([
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Hello ' },
+              {
+                type: 'file',
+                data: new Uint8Array([0, 1, 2, 3]),
+                mediaType: 'image/png',
+              },
             ],
           },
         ]),

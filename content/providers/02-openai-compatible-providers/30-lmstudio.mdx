@@ -15,7 +15,7 @@ You can start the local server under the [Local Server tab](https://lmstudio.ai/
 The LM Studio provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
 You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
   </Tab>
@@ -24,6 +24,10 @@ You can install it with
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
   </Tab>
 </Tabs>
 
@@ -81,10 +85,12 @@ LM Studio language models can also be used with `streamText`.
 ## Embedding Models
 
 You can create models that call the [LM Studio embeddings API](https://lmstudio.ai/docs/basics/server#endpoints-overview)
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = lmstudio.embedding('text-embedding-nomic-embed-text-v1.5');
+const model = lmstudio.textEmbeddingModel(
+  'text-embedding-nomic-embed-text-v1.5',
+);
 ```
 
 ### Example - Embedding a Single Value
@@ -115,7 +121,7 @@ Similar to `embed`, you can use it with embeddings models,
 e.g. `lmstudio.textEmbeddingModel('text-embedding-nomic-embed-text-v1.5')` or `lmstudio.textEmbeddingModel('text-embedding-bge-small-en-v1.5')`.
 
 ```tsx
-import { createOpenAICompatible } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { embedMany } from 'ai';
 
 const lmstudio = createOpenAICompatible({

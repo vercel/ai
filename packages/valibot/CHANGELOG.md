@@ -1,5 +1,171 @@
 # @ai-sdk/valibot
 
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- d7cb6b4: chore (valibot): update to valibot 1.1
+- 0ff02bb: chore(provider-utils): move over jsonSchema
+- Updated dependencies [a571d6e]
+- Updated dependencies [e7fcc86]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [060370c]
+- Updated dependencies [5d142ab]
+- Updated dependencies [d5f588f]
+- Updated dependencies [e025824]
+- Updated dependencies [0571b98]
+- Updated dependencies [4fef487]
+- Updated dependencies [0c0c0b3]
+- Updated dependencies [40acf9b]
+- Updated dependencies [8ba77a7]
+- Updated dependencies [a166433]
+- Updated dependencies [9f95b35]
+- Updated dependencies [66962ed]
+- Updated dependencies [05d2819]
+- Updated dependencies [957b739]
+- Updated dependencies [ac34802]
+- Updated dependencies [63d791d]
+- Updated dependencies [87b828f]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [0ff02bb]
+- Updated dependencies [39a4fab]
+- Updated dependencies [57edfcb]
+- Updated dependencies [faf8446]
+- Updated dependencies [d1a034f]
+- Updated dependencies [ea7a7c9]
+- Updated dependencies [88a8ee5]
+- Updated dependencies [41fa418]
+- Updated dependencies [205077b]
+- Updated dependencies [71f938d]
+- Updated dependencies [28a5ed5]
+- Updated dependencies [dd5fd43]
+- Updated dependencies [383cbfa]
+  - @ai-sdk/provider-utils@3.0.0
+
+## 1.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [88a8ee5]
+  - @ai-sdk/provider-utils@3.0.0-beta.10
+
+## 1.0.0-beta.9
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-beta.9
+
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [dd5fd43]
+  - @ai-sdk/provider-utils@3.0.0-beta.8
+
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [ac34802]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [57edfcb]
+- Updated dependencies [383cbfa]
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+
 ## 1.0.0-beta.2
 
 ### Patch Changes

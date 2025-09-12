@@ -7,7 +7,7 @@ async function main() {
   console.log('=== Demonstrating Refactored Provider-Defined Tools ===\n');
 
   console.log('1. OpenAI Provider-Defined Tools (Successfully Refactored):');
-  const openaiWebSearch = openai.tools.webSearchPreview({
+  const openaiWebSearch = openai.tools.webSearch({
     searchContextSize: 'medium',
     userLocation: {
       type: 'approximate',
@@ -18,8 +18,10 @@ async function main() {
   });
 
   const openaiFileSearch = openai.tools.fileSearch({
-    maxResults: 5,
-    searchType: 'semantic',
+    maxNumResults: 5,
+    ranking: {
+      ranker: 'auto',
+    },
   });
 
   console.log('OpenAI Web Search Tool created successfully');

@@ -28,10 +28,25 @@ describe('GatewayFetchMetadata', () => {
   const mockModelEntry = {
     id: 'model-1',
     name: 'Model One',
+    description: 'A test model',
+    pricing: {
+      input: '0.000001',
+      output: '0.000002',
+    },
     specification: {
-      specificationVersion: 'v2',
+      specificationVersion: 'v2' as const,
       provider: 'test-provider',
       modelId: 'model-1',
+    },
+  };
+
+  const mockModelEntryWithoutPricing = {
+    id: 'model-2',
+    name: 'Model Two',
+    specification: {
+      specificationVersion: 'v2' as const,
+      provider: 'test-provider',
+      modelId: 'model-2',
     },
   };
 
@@ -57,6 +72,153 @@ describe('GatewayFetchMetadata', () => {
       expect(result).toEqual({
         models: [mockModelEntry],
       });
+    });
+
+    it('should handle models with pricing information', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [mockModelEntry],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+
+      expect(result.models[0]).toEqual(mockModelEntry);
+      expect(result.models[0].pricing).toEqual({
+        input: '0.000001',
+        output: '0.000002',
+      });
+    });
+
+    it('should map cache pricing fields to SDK names when present', async () => {
+      const gatewayEntryWithCache = {
+        ...mockModelEntry,
+        pricing: {
+          input: '0.000003',
+          output: '0.000015',
+          input_cache_read: '0.0000003',
+          input_cache_write: '0.00000375',
+        },
+      };
+
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [gatewayEntryWithCache],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+
+      expect(result.models[0].pricing).toEqual({
+        input: '0.000003',
+        output: '0.000015',
+        cachedInputTokens: '0.0000003',
+        cacheCreationInputTokens: '0.00000375',
+      });
+      const pricing = result.models[0].pricing;
+      expect(pricing).toBeDefined();
+      if (pricing) {
+        expect('input_cache_read' in pricing).toBe(false);
+        expect('input_cache_write' in pricing).toBe(false);
+      }
+    });
+
+    it('should handle models without pricing information', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [mockModelEntryWithoutPricing],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+
+      expect(result.models[0]).toEqual(mockModelEntryWithoutPricing);
+      expect(result.models[0].pricing).toBeUndefined();
+    });
+
+    it('should handle mixed models with and without pricing', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [mockModelEntry, mockModelEntryWithoutPricing],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+
+      expect(result.models).toHaveLength(2);
+      expect(result.models[0].pricing).toEqual({
+        input: '0.000001',
+        output: '0.000002',
+      });
+      expect(result.models[1].pricing).toBeUndefined();
+    });
+
+    it('should handle models with description', async () => {
+      const modelWithDescription = {
+        ...mockModelEntry,
+        description: 'A powerful language model',
+      };
+
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [modelWithDescription],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+
+      expect(result.models[0].description).toBe('A powerful language model');
+    });
+
+    it('should accept top-level modelType when present', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [
+            {
+              ...mockModelEntry,
+              modelType: 'language',
+            },
+          ],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+      expect(result.models[0].modelType).toBe('language');
+    });
+
+    it('should reject invalid top-level modelType values', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [
+            {
+              id: 'model-invalid-type',
+              name: 'Invalid Type Model',
+              specification: {
+                specificationVersion: 'v2' as const,
+                provider: 'test-provider',
+                modelId: 'model-invalid-type',
+              },
+              modelType: 'text',
+            },
+          ],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      await expect(metadata.getAvailableModels()).rejects.toThrow();
     });
 
     it('should pass headers correctly', async () => {
@@ -159,6 +321,34 @@ describe('GatewayFetchMetadata', () => {
 
       await expect(metadata.getAvailableModels()).rejects.toThrow();
     });
+
+    it('should reject models with invalid pricing format', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [
+            {
+              id: 'model-1',
+              name: 'Model One',
+              pricing: {
+                input: 123, // Should be string, not number
+                output: '0.000002',
+              },
+              specification: {
+                specificationVersion: 'v2',
+                provider: 'test-provider',
+                modelId: 'model-1',
+              },
+            },
+          ],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+
+      await expect(metadata.getAvailableModels()).rejects.toThrow();
+    });
+
     it('should not double-wrap existing Gateway errors', async () => {
       // Create a Gateway error and verify it doesn't get wrapped
       const existingError = new GatewayAuthenticationError({
@@ -260,8 +450,13 @@ describe('GatewayFetchMetadata', () => {
       const customModelEntry = {
         id: 'custom-model-1',
         name: 'Custom Model One',
+        description: 'Custom model description',
+        pricing: {
+          input: '0.000005',
+          output: '0.000010',
+        },
         specification: {
-          specificationVersion: 'v2',
+          specificationVersion: 'v2' as const,
           provider: 'custom-provider',
           modelId: 'custom-model-1',
         },

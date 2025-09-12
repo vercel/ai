@@ -11,7 +11,7 @@ description: Learn how to use Fal AI models with the AI SDK.
 
 The Fal provider is available via the `@ai-sdk/fal` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/fal" dark />
   </Tab>
@@ -20,6 +20,10 @@ The Fal provider is available via the `@ai-sdk/fal` module. You can install it w
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/fal" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/fal" dark />
   </Tab>
 </Tabs>
 
@@ -80,7 +84,7 @@ import { experimental_generateImage as generateImage } from 'ai';
 import fs from 'fs';
 
 const { image, providerMetadata } = await generateImage({
-  model: fal.image('fal-ai/fast-sdxl'),
+  model: fal.image('fal-ai/flux/dev'),
   prompt: 'A serene mountain landscape at sunset',
 });
 
@@ -102,19 +106,20 @@ providerMetadata.fal.images[0].content_type; // string, mime type of the image
 
 ### Model Capabilities
 
-Fal offers many models optimized for different use cases. Here are a few popular examples. For a full list of models, see the [Fal AI documentation](https://fal.ai/models).
+Fal offers many models optimized for different use cases. Here are a few popular examples. For a full list of models, see the [Fal AI Search Page](https://fal.ai/explore/search).
 
-| Model                               | Description                                                                                                                                                   |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `fal-ai/fast-sdxl`                  | High-speed SDXL model optimized for quick inference with up to 4x faster speeds                                                                               |
-| `fal-ai/flux-pro/kontext`           | FLUX.1 Kontext [pro] handles both text and reference images as inputs, seamlessly enabling targeted, local edits and complex transformations of entire scenes |
-| `fal-ai/flux-pro/kontext/max`       | FLUX.1 Kontext [max] with greatly improved prompt adherence and typography generation, meeting premium consistency for editing without compromise on speed    |
-| `fal-ai/flux-lora`                  | Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations.        |
-| `fal-ai/flux-pro/v1.1-ultra`        | Professional-grade image generation with up to 2K resolution and enhanced photorealism                                                                        |
-| `fal-ai/ideogram/v2`                | Specialized for high-quality posters and logos with exceptional typography handling                                                                           |
-| `fal-ai/recraft-v3`                 | SOTA in image generation with vector art and brand style capabilities                                                                                         |
-| `fal-ai/stable-diffusion-3.5-large` | Advanced MMDiT model with improved typography and complex prompt understanding                                                                                |
-| `fal-ai/hyper-sdxl`                 | Performance-optimized SDXL variant with enhanced creative capabilities                                                                                        |
+| Model                                          | Description                                                                                                                       |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `fal-ai/flux/dev`                              | FLUX.1 [dev] model for high-quality image generation                                                                              |
+| `fal-ai/flux-pro/kontext`                      | FLUX.1 Kontext [pro] handles both text and reference images as inputs, enabling targeted edits and complex transformations        |
+| `fal-ai/flux-pro/kontext/max`                  | FLUX.1 Kontext [max] with improved prompt adherence and typography generation                                                     |
+| `fal-ai/flux-lora`                             | Super fast endpoint for FLUX.1 with LoRA support                                                                                  |
+| `fal-ai/ideogram/character`                    | Generate consistent character appearances across multiple images. Maintain facial features, proportions, and distinctive traits   |
+| `fal-ai/qwen-image`                            | Qwen-Image foundation model with significant advances in complex text rendering and precise image editing                         |
+| `fal-ai/omnigen-v2`                            | Unified image generation model for Image Editing, Personalized Image Generation, Virtual Try-On, Multi Person Generation and more |
+| `fal-ai/bytedance/dreamina/v3.1/text-to-image` | Dreamina showcases superior picture effects with improvements in aesthetics, precise and diverse styles, and rich details         |
+| `fal-ai/recraft/v3/text-to-image`              | SOTA in image generation with vector art and brand style capabilities                                                             |
+| `fal-ai/wan/v2.2-a14b/text-to-image`           | High-resolution, photorealistic images with fine-grained detail                                                                   |
 
 Fal models support the following aspect ratios:
 
@@ -153,6 +158,18 @@ await generateImage({
   },
 });
 ```
+
+### Provider Options
+
+Fal image models support flexible provider options through the `providerOptions.fal` object. You can pass any parameters supported by the specific Fal model's API. Common options include:
+
+- **image_url** - Reference image URL for image-to-image generation
+- **strength** - Controls how much the output differs from the input image
+- **guidance_scale** - Controls adherence to the prompt
+- **num_inference_steps** - Number of denoising steps
+- **safety_checker** - Enable/disable safety filtering
+
+Refer to the [Fal AI model documentation](https://fal.ai/models) for model-specific parameters.
 
 ### Advanced Features
 
@@ -204,7 +221,7 @@ The following provider options are available:
 
 - **chunkLevel** _string_
   Level of the chunks to return. Either 'segment' or 'word'.
-  Default value: "word"
+  Default value: "segment"
   Optional.
 
 - **version** _string_
@@ -227,3 +244,55 @@ The following provider options are available:
 | --------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `whisper` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `wizper`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+## Speech Models
+
+You can create models that call Fal text-to-speech endpoints using the `.speech()` factory method.
+
+### Basic Usage
+
+```ts
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { fal } from '@ai-sdk/fal';
+
+const result = await generateSpeech({
+  model: fal.speech('fal-ai/minimax/speech-02-hd'),
+  text: 'Hello from the AI SDK!',
+});
+```
+
+### Model Capabilities
+
+| Model                                     | Description                                                                                                                                                           |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fal-ai/minimax/voice-clone`              | Clone a voice from a sample audio and generate speech from text prompts                                                                                               |
+| `fal-ai/minimax/voice-design`             | Design a personalized voice from a text description and generate speech from text prompts                                                                             |
+| `fal-ai/dia-tts/voice-clone`              | Clone dialog voices from a sample audio and generate dialogs from text prompts                                                                                        |
+| `fal-ai/minimax/speech-02-hd`             | Generate speech from text prompts and different voices                                                                                                                |
+| `fal-ai/minimax/speech-02-turbo`          | Generate fast speech from text prompts and different voices                                                                                                           |
+| `fal-ai/dia-tts`                          | Directly generates realistic dialogue from transcripts with audio conditioning for emotion control. Produces natural nonverbals like laughter and throat clearing     |
+| `resemble-ai/chatterboxhd/text-to-speech` | Generate expressive, natural speech with Resemble AI's Chatterbox. Features unique emotion control, instant voice cloning from short audio, and built-in watermarking |
+
+### Provider Options
+
+Pass provider-specific options via `providerOptions.fal` depending on the model:
+
+- **voice_setting** _object_
+
+  - `voice_id` (string): predefined voice ID
+  - `speed` (number): 0.5–2.0
+  - `vol` (number): 0–10
+  - `pitch` (number): -12–12
+  - `emotion` (enum): happy | sad | angry | fearful | disgusted | surprised | neutral
+  - `english_normalization` (boolean)
+
+- **audio_setting** _object_
+  Audio configuration settings specific to the model.
+
+- **language_boost** _enum_
+  Chinese | Chinese,Yue | English | Arabic | Russian | Spanish | French | Portuguese | German | Turkish | Dutch | Ukrainian | Vietnamese | Indonesian | Japanese | Italian | Korean | Thai | Polish | Romanian | Greek | Czech | Finnish | Hindi | auto
+
+- **pronunciation_dict** _object_
+  Custom pronunciation dictionary for specific words.
+
+Model-specific parameters (e.g., `audio_url`, `prompt`, `preview_text`, `ref_audio_url`, `ref_text`) can be passed directly under `providerOptions.fal` and will be forwarded to the Fal API.

@@ -2,8 +2,8 @@ import { z } from 'zod/v4';
 
 // https://docs.anthropic.com/claude/docs/models-overview
 export type AnthropicMessagesModelId =
-  | 'claude-4-opus-20250514'
-  | 'claude-4-sonnet-20250514'
+  | 'claude-opus-4-20250514'
+  | 'claude-sonnet-4-20250514'
   | 'claude-3-7-sonnet-20250219'
   | 'claude-3-5-sonnet-latest'
   | 'claude-3-5-sonnet-20241022'
@@ -61,6 +61,12 @@ export const anthropicProviderOptions = z.object({
       budgetTokens: z.number().optional(),
     })
     .optional(),
+
+  /**
+   * Whether to disable parallel function calling during tool use. Default is false.
+   * When set to true, Claude will use at most one tool per response.
+   */
+  disableParallelToolUse: z.boolean().optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;

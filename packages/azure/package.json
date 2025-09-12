@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/azure",
-  "version": "2.0.0-beta.3",
+  "version": "2.0.30",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -41,10 +41,10 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "zod": "3.25.49"
+    "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.25.49"
+    "zod": "^3.25.76 || ^4"
   },
   "engines": {
     "node": ">=18"

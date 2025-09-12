@@ -1,7 +1,7 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { FinishReason } from '../../core/types/language-model';
-import { LanguageModelResponseMetadata } from '../../core/types/language-model-response-metadata';
-import { LanguageModelUsage } from '../../core/types/usage';
+import { FinishReason } from '../types/language-model';
+import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import { LanguageModelUsage } from '../types/usage';
 
 const name = 'AI_NoObjectGeneratedError';
 const marker = `vercel.ai.error.${name}`;
@@ -67,23 +67,4 @@ export class NoObjectGeneratedError extends AISDKError {
   static isInstance(error: unknown): error is NoObjectGeneratedError {
     return AISDKError.hasMarker(error, marker);
   }
-}
-
-export function verifyNoObjectGeneratedError(
-  error: unknown,
-  expected: {
-    message: string;
-    response: LanguageModelResponseMetadata & {
-      body?: string;
-    };
-    usage: LanguageModelUsage;
-    finishReason: FinishReason;
-  },
-) {
-  expect(NoObjectGeneratedError.isInstance(error)).toBeTruthy();
-  const noObjectGeneratedError = error as NoObjectGeneratedError;
-  expect(noObjectGeneratedError.message).toEqual(expected.message);
-  expect(noObjectGeneratedError.response).toEqual(expected.response);
-  expect(noObjectGeneratedError.usage).toEqual(expected.usage);
-  expect(noObjectGeneratedError.finishReason).toEqual(expected.finishReason);
 }

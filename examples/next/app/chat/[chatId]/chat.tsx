@@ -1,7 +1,7 @@
 'use client';
 
 import { invalidateRouterCache } from '@/app/actions';
-import { MyUIMessage } from '@/util/chat-schema';
+import type { MyUIMessage } from '@/util/chat-schema';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useRef } from 'react';
@@ -19,40 +19,39 @@ export default function ChatComponent({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { status, sendMessage, messages, regenerate } = useChat({
+  const { status, sendMessage, messages, regenerate, stop } = useChat({
     id: chatData.id,
     messages: chatData.messages,
     resume,
     transport: new DefaultChatTransport({
       prepareSendMessagesRequest: ({ id, messages, trigger, messageId }) => {
         switch (trigger) {
-          case 'regenerate-assistant-message':
+          case 'regenerate-message':
             // omit messages data transfer, only send the messageId:
             return {
               body: {
-                trigger: 'regenerate-assistant-message',
+                trigger: 'regenerate-message',
                 id,
                 messageId,
               },
             };
 
-          case 'submit-user-message':
+          case 'submit-message':
             // only send the last message to the server to limit the request size:
             return {
               body: {
-                trigger: 'submit-user-message',
+                trigger: 'submit-message',
                 id,
                 message: messages[messages.length - 1],
                 messageId,
               },
             };
-
-          case 'submit-tool-result':
-            throw new Error(`submit-tool-result is not supported`);
         }
       },
     }),
-    onFinish() {
+    onFinish(options) {
+      console.log('onFinish', options);
+
       // for new chats, the router cache needs to be invalidated so
       // navigation to the previous page triggers SSR correctly
       if (isNewChat) {
@@ -72,7 +71,7 @@ export default function ChatComponent({
   }, []);
 
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+    <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       {messages.map(message => (
         <Message
           key={message.id}
@@ -84,6 +83,7 @@ export default function ChatComponent({
       ))}
       <ChatInput
         status={status}
+        stop={stop}
         onSubmit={text => {
           sendMessage({ text, metadata: { createdAt: Date.now() } });
 

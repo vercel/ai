@@ -6,7 +6,6 @@ export default function Page() {
   const [input, setInput] = useState('');
   const { messages, sendMessage } = useChat({
     transport: new DefaultChatTransport({ api: '/api/call-tool' }),
-    maxSteps: 2,
   });
 
   return (
@@ -33,13 +32,13 @@ export default function Page() {
           sendMessage({ text: input });
           setInput('');
         }}
-        className="fixed bottom-0 w-full p-2"
+        className="fixed bottom-0 p-2 w-full"
       >
         <input
           value={input}
           placeholder="Send message..."
           onChange={e => setInput(e.target.value)}
-          className="w-full p-2 bg-zinc-100"
+          className="p-2 w-full bg-zinc-100"
         />
       </form>
     </div>

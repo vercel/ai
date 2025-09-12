@@ -49,7 +49,7 @@ and [Zod](https://zod.dev/) schemas (either directly or using the [`zodSchema` f
 [Zod](https://zod.dev/) is a popular TypeScript schema validation library.
 You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add zod" dark />
   </Tab>
@@ -58,6 +58,10 @@ You can install it with:
   </Tab>
   <Tab>
     <Snippet text="yarn add zod" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add zod" dark />
   </Tab>
 </Tabs>
 
@@ -91,18 +95,17 @@ const recipeSchema = z.object({
 When you work with tools, you typically need a mix of application specific tools and general purpose tools.
 There are several providers that offer pre-built tools as **toolkits** that you can use out of the box:
 
-- **[agentic](https://github.com/transitive-bullshit/agentic)** - A collection of 20+ tools. Most tools connect to access external APIs such as [Exa](https://exa.ai/) or [E2B](https://e2b.dev/).
-- **[browserbase](https://docs.browserbase.com/integrations/vercel-ai/introduction)** - Browser tool that runs a headless browser
+- **[agentic](https://docs.agentic.so/marketplace/ts-sdks/ai-sdk)** - A collection of 20+ tools. Most tools connect to access external APIs such as [Exa](https://exa.ai/) or [E2B](https://e2b.dev/).
+- **[browserbase](https://docs.browserbase.com/integrations/vercel/introduction#vercel-ai-integration)** - Browser tool that runs a headless browser
 - **[browserless](https://docs.browserless.io/ai-integrations/vercel-ai-sdk)** - Browser automation service with AI integration - self hosted or cloud based
-- **[Smithery](https://smithery.ai/docs/use/connect)** - Smithery provides an open marketplace of 6K+ MCPs, including [Browserbase](https://browserbase.com/) and [Exa](https://exa.ai/).
-- **[Stripe agent tools](https://docs.stripe.com/agents)** - Tools for interacting with Stripe.
-- **[StackOne ToolSet](https://docs.stackone.com/agents)** - Agentic integrations for hundreds of [enterprise SaaS](https://www.stackone.com/integrations)
-- **[Toolhouse](https://docs.toolhouse.ai/toolhouse/using-vercel-ai)** - AI function-calling in 3 lines of code for over 25 different actions.
+- **[Stripe agent tools](https://docs.stripe.com/agents?framework=vercel)** - Tools for interacting with Stripe.
+- **[StackOne ToolSet](https://docs.stackone.com/agents/typescript/frameworks/vercel-ai-sdk)** - Agentic integrations for hundreds of [enterprise SaaS](https://www.stackone.com/integrations)
+- **[Toolhouse](https://docs.toolhouse.ai/toolhouse/toolhouse-sdk/using-vercel-ai)** - AI function-calling in 3 lines of code for over 25 different actions.
 - **[Agent Tools](https://ai-sdk-agents.vercel.app/?item=introduction)** - A collection of tools for agents.
 - **[AI Tool Maker](https://github.com/nihaocami/ai-tool-maker)** - A CLI utility to generate AI SDK tools from OpenAPI specs.
-- **[Composio](https://docs.composio.dev/javascript/vercel)** - Composio provides 250+ tools like GitHub, Gmail, Salesforce and [more](https://composio.dev/tools).
+- **[Composio](https://docs.composio.dev/providers/vercel)** - Composio provides 250+ tools like GitHub, Gmail, Salesforce and [more](https://composio.dev/tools).
 - **[Interlify](https://www.interlify.com/docs/integrate-with-vercel-ai)** - Convert APIs into tools so that AI can connect to your backend in minutes.
-- **[Freestyle](https://docs.freestyle.sh/integrations/vercel)** — Tool for your AI to execute JavaScript or TypeScript with arbitrary node modules.
+- **[JigsawStack](http://www.jigsawstack.com/docs/integration/vercel)** - JigsawStack provides over 30+ small custom fine tuned models available for specific uses.
 
 <Note>
   Do you have open source tools or tool libraries that are compatible with the

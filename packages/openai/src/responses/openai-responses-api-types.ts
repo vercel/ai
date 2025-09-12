@@ -1,15 +1,31 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 
-export type OpenAIResponsesPrompt = Array<OpenAIResponsesMessage>;
+export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
-export type OpenAIResponsesMessage =
+export type OpenAIResponsesInputItem =
   | OpenAIResponsesSystemMessage
   | OpenAIResponsesUserMessage
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
-  | OpenAIWebSearchCall
-  | OpenAIComputerCall;
+  | OpenAIResponsesWebSearchCall
+  | OpenAIResponsesComputerCall
+  | OpenAIResponsesFileSearchCall
+  | OpenAIResponsesReasoning
+  | OpenAIResponsesCodeInterpreterCall;
+
+export type OpenAIResponsesIncludeOptions =
+  | Array<
+      | 'web_search_call.action.sources'
+      | 'code_interpreter_call.outputs'
+      | 'computer_call_output.output.image_url'
+      | 'file_search_call.results'
+      | 'message.input_image.image_url'
+      | 'message.output_text.logprobs'
+      | 'reasoning.encrypted_content'
+    >
+  | undefined
+  | null;
 
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
@@ -21,17 +37,17 @@ export type OpenAIResponsesUserMessage = {
   content: Array<
     | { type: 'input_text'; text: string }
     | { type: 'input_image'; image_url: string }
+    | { type: 'input_image'; file_id: string }
+    | { type: 'input_file'; file_url: string }
     | { type: 'input_file'; filename: string; file_data: string }
+    | { type: 'input_file'; file_id: string }
   >;
 };
 
 export type OpenAIResponsesAssistantMessage = {
   role: 'assistant';
-  content: Array<
-    | { type: 'output_text'; text: string }
-    | OpenAIWebSearchCall
-    | OpenAIComputerCall
-  >;
+  content: Array<{ type: 'output_text'; text: string }>;
+  id?: string;
 };
 
 export type OpenAIResponsesFunctionCall = {
@@ -39,6 +55,7 @@ export type OpenAIResponsesFunctionCall = {
   call_id: string;
   name: string;
   arguments: string;
+  id?: string;
 };
 
 export type OpenAIResponsesFunctionCallOutput = {
@@ -47,14 +64,30 @@ export type OpenAIResponsesFunctionCallOutput = {
   output: string;
 };
 
-export type OpenAIWebSearchCall = {
+export type OpenAIResponsesWebSearchCall = {
   type: 'web_search_call';
   id: string;
   status?: string;
 };
 
-export type OpenAIComputerCall = {
+export type OpenAIResponsesComputerCall = {
   type: 'computer_call';
+  id: string;
+  status?: string;
+};
+
+export type OpenAIResponsesCodeInterpreterCall = {
+  type: 'code_interpreter_call';
+  container_id: string;
+  id: string;
+  code: string | null;
+  outputs: Array<
+    { type: 'logs'; logs: string } | { type: 'image'; url: string }
+  > | null;
+};
+
+export type OpenAIResponsesFileSearchCall = {
+  type: 'file_search_call';
   id: string;
   status?: string;
 };
@@ -68,11 +101,63 @@ export type OpenAIResponsesTool =
       strict?: boolean;
     }
   | {
-      type: 'web_search_preview';
-      search_context_size: 'low' | 'medium' | 'high';
-      user_location: {
-        type: 'approximate';
-        city: string;
-        region: string;
+      type: 'web_search';
+      filters?: {
+        allowed_domains?: string[];
       };
+      search_context_size: 'low' | 'medium' | 'high' | undefined;
+      user_location:
+        | {
+            type: 'approximate';
+            city?: string;
+            country?: string;
+            region?: string;
+            timezone?: string;
+          }
+        | undefined;
+    }
+  | {
+      type: 'web_search_preview';
+      search_context_size: 'low' | 'medium' | 'high' | undefined;
+      user_location:
+        | {
+            type: 'approximate';
+            city?: string;
+            country?: string;
+            region?: string;
+            timezone?: string;
+          }
+        | undefined;
+    }
+  | {
+      type: 'code_interpreter';
+      container: string | { type: 'auto'; file_ids: string[] | undefined };
+    }
+  | {
+      type: 'file_search';
+      vector_store_ids?: string[];
+      max_num_results?: number;
+      ranking_options?: {
+        ranker?: 'auto' | 'default-2024-08-21';
+      };
+      filters?:
+        | {
+            key: string;
+            type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
+            value: string | number | boolean;
+          }
+        | {
+            type: 'and' | 'or';
+            filters: any[];
+          };
     };
+
+export type OpenAIResponsesReasoning = {
+  type: 'reasoning';
+  id: string;
+  encrypted_content?: string | null;
+  summary: Array<{
+    type: 'summary_text';
+    text: string;
+  }>;
+};

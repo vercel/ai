@@ -1,8 +1,8 @@
 import {
   EmbeddingModelV2,
   LanguageModelV2,
-  NoSuchModelError,
   ProviderV2,
+  ImageModelV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -14,6 +14,13 @@ import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embeddi
 import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import { googleTools } from './google-tools';
+
+import {
+  GoogleGenerativeAIImageSettings,
+  GoogleGenerativeAIImageModelId,
+} from './google-generative-ai-image-settings';
+import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 
 export interface GoogleGenerativeAIProvider extends ProviderV2 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV2;
@@ -23,20 +30,25 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
   chat(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
   /**
+Creates a model for image generation.
+ */
+  image(
+    modelId: GoogleGenerativeAIImageModelId,
+    settings?: GoogleGenerativeAIImageSettings,
+  ): ImageModelV2;
+
+  /**
    * @deprecated Use `chat()` instead.
    */
   generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
   /**
-@deprecated Use `textEmbeddingModel()` instead.
+@deprecated Use `textEmbedding()` instead.
    */
   embedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
   ): EmbeddingModelV2<string>;
 
-  /**
-@deprecated Use `textEmbeddingModel()` instead.
- */
   textEmbedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
   ): EmbeddingModelV2<string>;
@@ -44,6 +56,8 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
   ): EmbeddingModelV2<string>;
+
+  tools: typeof googleTools;
 }
 
 export interface GoogleGenerativeAIProviderSettings {
@@ -103,9 +117,14 @@ export function createGoogleGenerativeAI(
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         '*': [
-          // Only allow requests to the Google Generative Language "files" endpoint
+          // Google Generative Language "files" endpoint
           // e.g. https://generativelanguage.googleapis.com/v1beta/files/...
           new RegExp(`^${baseURL}/files/.*$`),
+          // YouTube URLs (public or unlisted videos)
+          new RegExp(
+            `^https://(?:www\\.)?youtube\\.com/watch\\?v=[\\w-]+(?:&[\\w=&.-]*)?$`,
+          ),
+          new RegExp(`^https://youtu\\.be/[\\w-]+(?:\\?[\\w=&.-]*)?$`),
         ],
       }),
       fetch: options.fetch,
@@ -113,6 +132,17 @@ export function createGoogleGenerativeAI(
 
   const createEmbeddingModel = (modelId: GoogleGenerativeAIEmbeddingModelId) =>
     new GoogleGenerativeAIEmbeddingModel(modelId, {
+      provider: 'google.generative-ai',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const createImageModel = (
+    modelId: GoogleGenerativeAIImageModelId,
+    settings: GoogleGenerativeAIImageSettings = {},
+  ) =>
+    new GoogleGenerativeAIImageModel(modelId, settings, {
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
@@ -135,12 +165,10 @@ export function createGoogleGenerativeAI(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
-
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
-
-  return provider;
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
+  provider.tools = googleTools;
+  return provider as GoogleGenerativeAIProvider;
 }
 
 /**

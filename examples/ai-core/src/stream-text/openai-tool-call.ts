@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 import { stepCountIs, streamText, tool } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const result = streamText({
@@ -21,12 +21,12 @@ async function main() {
       }),
       weather: weatherTool,
     },
-    prompt: 'What is the weather in my current location and in Rome?',
+    prompt: 'What is the weather in my current location?',
   });
 
   for await (const chunk of result.fullStream) {
     switch (chunk.type) {
-      case 'text': {
+      case 'text-delta': {
         process.stdout.write(chunk.text);
         break;
       }

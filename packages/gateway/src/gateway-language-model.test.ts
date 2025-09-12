@@ -16,6 +16,7 @@ import {
   GatewayModelNotFoundError,
   GatewayResponseError,
 } from './errors';
+import { describe, it, expect, vi } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -31,7 +32,7 @@ const createTestModel = (
     baseURL: 'https://api.test.com',
     headers: () => ({
       Authorization: 'Bearer test-token',
-      'x-ai-gateway-auth-method': 'api-key',
+      'ai-gateway-auth-method': 'api-key',
     }),
     fetch: globalThis.fetch,
     o11yHeaders: config.o11yHeaders || {},
@@ -1309,6 +1310,160 @@ describe('GatewayLanguageModel', () => {
         finishReason: 'stop',
         usage: { prompt_tokens: 10, completion_tokens: 5 },
         timestamp: timestampString, // Should remain a string
+      });
+    });
+  });
+
+  describe('Provider Options', () => {
+    function prepareJsonResponse({
+      content = { type: 'text', text: '' },
+      usage = {
+        prompt_tokens: 4,
+        completion_tokens: 30,
+      },
+      finish_reason = 'stop',
+      id = 'test-id',
+      created = 1711115037,
+      model = 'test-model',
+    } = {}) {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: {
+          id,
+          created,
+          model,
+          content,
+          finish_reason,
+          usage,
+        },
+      };
+    }
+
+    function prepareStreamResponse({
+      content,
+      finish_reason = 'stop',
+    }: {
+      content: string[];
+      finish_reason?: string;
+    }) {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...content.map(
+            text =>
+              `data: ${JSON.stringify({
+                type: 'text-delta',
+                textDelta: text,
+              })}\n\n`,
+          ),
+          `data: ${JSON.stringify({
+            type: 'finish',
+            finishReason: finish_reason,
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 20,
+            },
+          })}\n\n`,
+        ],
+      };
+    }
+
+    it('should pass provider routing order for doGenerate', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            order: ['bedrock', 'anthropic'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { order: ['bedrock', 'anthropic'] },
+      });
+    });
+
+    it('should pass single provider in order array', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            order: ['openai'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { order: ['openai'] },
+      });
+    });
+
+    it('should work without provider options', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toBeUndefined();
+      expect(result.content).toEqual({
+        type: 'text',
+        text: 'Test response',
+      });
+    });
+
+    it('should pass provider routing order for doStream', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' world'],
+      });
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            order: ['groq', 'openai'],
+          },
+        },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { order: ['groq', 'openai'] },
+      });
+    });
+
+    it('should validate provider options against schema', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            order: ['anthropic', 'bedrock', 'openai'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { order: ['anthropic', 'bedrock', 'openai'] },
       });
     });
   });

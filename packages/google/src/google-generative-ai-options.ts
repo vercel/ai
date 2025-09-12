@@ -23,6 +23,8 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.0-flash-exp'
   | 'gemini-2.5-pro'
   | 'gemini-2.5-flash'
+  | 'gemini-2.5-flash-lite'
+  | 'gemini-2.5-flash-image-preview'
   // Experimental models
   // https://ai.google.dev/gemini-api/docs/models/experimental-models
   | 'gemini-2.5-pro-exp-03-25'
@@ -31,21 +33,6 @@ export type GoogleGenerativeAIModelId =
   | 'gemma-3-12b-it'
   | 'gemma-3-27b-it'
   | (string & {});
-
-const dynamicRetrievalConfig = z.object({
-  /**
-   * The mode of the predictor to be used in dynamic retrieval.
-   */
-  mode: z.enum(['MODE_UNSPECIFIED', 'MODE_DYNAMIC']).optional(),
-
-  /**
-   * The threshold to be used in dynamic retrieval. If not set, a system default
-   * value is used.
-   */
-  dynamicThreshold: z.number().optional(),
-});
-
-export type DynamicRetrievalConfig = z.infer<typeof dynamicRetrievalConfig>;
 
 export const googleGenerativeAIProviderOptions = z.object({
   responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).optional(),
@@ -119,20 +106,11 @@ Optional. A list of unique safety settings for blocking unsafe content.
   audioTimestamp: z.boolean().optional(),
 
   /**
-Optional. When enabled, the model will use Google search to ground the response.
-
-@see https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview
- */
-  useSearchGrounding: z.boolean().optional(),
-
-  /**
-Optional. Specifies the dynamic retrieval configuration.
-
-@note Dynamic retrieval is only compatible with Gemini 1.5 Flash.
-
-@see https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-with-google-search#dynamic-retrieval
- */
-  dynamicRetrievalConfig: dynamicRetrievalConfig.optional(),
+   * Optional. Defines labels used in billing reports. Available on Vertex AI only.
+   *
+   * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls
+   */
+  labels: z.record(z.string(), z.string()).optional(),
 });
 
 export type GoogleGenerativeAIProviderOptions = z.infer<

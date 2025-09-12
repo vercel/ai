@@ -1,4 +1,6 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { describe, it, expect } from 'vitest';
+
 import {
   convertReadableStreamToArray,
   createTestServer,
@@ -1270,6 +1272,96 @@ describe('XaiChatLanguageModel', () => {
           },
           {
             "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "inputTokens": 15,
+              "outputTokens": 20,
+              "reasoningTokens": 10,
+              "totalTokens": 35,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should deduplicate repetitive reasoning deltas', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          // Multiple identical "Thinking..." deltas (simulating Grok 4 issue)
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{"reasoning_content":"Thinking... "},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{"reasoning_content":"Thinking... "},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{"reasoning_content":"Thinking... "},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          // Different reasoning content should still come through
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{"reasoning_content":"Actually calculating now..."},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{"content":"The answer is 42."},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+            `"usage":{"prompt_tokens":15,"total_tokens":35,"completion_tokens":20,"completion_tokens_details":{"reasoning_tokens":10}},"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: [DONE]\n\n`,
+        ],
+      };
+
+      const { stream } = await reasoningModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        providerOptions: {
+          xai: { reasoningEffort: 'low' },
+        },
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "grok-4-test",
+            "modelId": "grok-4-0709",
+            "timestamp": 2025-06-21T20:35:20.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "reasoning-grok-4-test",
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "Thinking... ",
+            "id": "reasoning-grok-4-test",
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": "Actually calculating now...",
+            "id": "reasoning-grok-4-test",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "text-grok-4-test",
+            "type": "text-start",
+          },
+          {
+            "delta": "The answer is 42.",
+            "id": "text-grok-4-test",
+            "type": "text-delta",
+          },
+          {
+            "id": "reasoning-grok-4-test",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "text-grok-4-test",
             "type": "text-end",
           },
           {

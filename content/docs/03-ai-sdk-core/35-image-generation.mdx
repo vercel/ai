@@ -163,7 +163,7 @@ import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: openai.image('dall-e-3'),
-  value: 'sunny day at the beach',
+  prompt: 'Santa Claus driving a Cadillac',
   headers: { 'X-Custom-Header': 'custom-value' },
 });
 ```
@@ -186,12 +186,12 @@ Some providers expose additional meta data for the result overall or per image.
 ```tsx
 const prompt = 'Santa Claus driving a Cadillac';
 
-const { image, providerMetaData } = await generateImage({
+const { image, providerMetadata } = await generateImage({
   model: openai.image('dall-e-3'),
   prompt,
 });
 
-const revisedPrompt = providerMetaData.openai.images[0]?.revisedPrompt;
+const revisedPrompt = providerMetadata.openai.images[0]?.revisedPrompt;
 
 console.log({
   prompt,
@@ -199,7 +199,7 @@ console.log({
 });
 ```
 
-The outer key of the returned `providerMetaData` is the provider name. The inner values are the metadata. An `images` key is always present in the metadata and is an array with the same length as the top level `images` key.
+The outer key of the returned `providerMetadata` is the provider name. The inner values are the metadata. An `images` key is always present in the metadata and is an array with the same length as the top level `images` key.
 
 ### Error Handling
 
@@ -231,7 +231,7 @@ try {
 
 ## Generating Images with Language Models
 
-Some language models such as Google `gemini-2.0-flash-exp` support multi-modal outputs including images.
+Some language models such as Google `gemini-2.5-flash-image-preview` support multi-modal outputs including images.
 With such models, you can access the generated images using the `files` property of the response.
 
 ```ts
@@ -239,10 +239,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-2.0-flash-exp'),
-  providerOptions: {
-    google: { responseModalities: ['TEXT', 'IMAGE'] },
-  },
+  model: google('gemini-2.5-flash-image-preview'),
   prompt: 'Generate an image of a comic cat',
 });
 
@@ -283,6 +280,7 @@ for (const file of result.files) {
 | [DeepInfra](/providers/ai-sdk-providers/deepinfra#image-models)           | `stabilityai/sdxl-turbo`                                     | 1:1, 16:9, 1:9, 3:2, 2:3, 4:5, 5:4, 9:16, 9:21                                                                                                                      |
 | [Replicate](/providers/ai-sdk-providers/replicate)                        | `black-forest-labs/flux-schnell`                             | 1:1, 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9                                                                                                                     |
 | [Replicate](/providers/ai-sdk-providers/replicate)                        | `recraft-ai/recraft-v3`                                      | 1024x1024, 1365x1024, 1024x1365, 1536x1024, 1024x1536, 1820x1024, 1024x1820, 1024x2048, 2048x1024, 1434x1024, 1024x1434, 1024x1280, 1280x1024, 1024x1707, 1707x1024 |
+| [Google](/providers/ai-sdk-providers/google#image-models)                 | `imagen-3.0-generate-002`                                    | 1:1, 3:4, 4:3, 9:16, 16:9                                                                                                                                           |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models)   | `imagen-3.0-generate-002`                                    | 1:1, 3:4, 4:3, 9:16, 16:9                                                                                                                                           |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models)   | `imagen-3.0-fast-generate-001`                               | 1:1, 3:4, 4:3, 9:16, 16:9                                                                                                                                           |
 | [Fireworks](/providers/ai-sdk-providers/fireworks#image-models)           | `accounts/fireworks/models/flux-1-dev-fp8`                   | 1:1, 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9                                                                                                                     |

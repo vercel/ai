@@ -88,7 +88,7 @@ const result = await generateText({
   - `ai.response.text`: the text that was generated
   - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.response.finishReason`: the reason why the generation finished
-  - `ai.settings.maxSteps`: the maximum number of steps that were set
+  - `ai.settings.maxOutputTokens`: the maximum number of output tokens that were set
 
 - `ai.generateText.doGenerate` (span): a provider doGenerate call. It can contain `ai.toolCall` spans.
   It contains the [call LLM span information](#call-llm-span-information) and the following attributes:
@@ -97,8 +97,8 @@ const result = await generateText({
   - `ai.operationId`: `"ai.generateText.doGenerate"`
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.prompt.tools`: array of stringified tool definitions. The tools can be of type `function` or `provider-defined-client`.
-    Function tools have a `name`, `description` (optional), and `parameters` (JSON schema).
-    Provider-defined-client tools have a `name`, `id`, and `args` (Record).
+    Function tools have a `name`, `description` (optional), and `inputSchema` (JSON schema).
+    Provider-defined-client tools have a `name`, `id`, and `input` (Record).
   - `ai.prompt.toolChoice`: the stringified tool choice setting (JSON). It has a `type` property
     (`auto`, `none`, `required`, `tool`), and if the type is `tool`, a `toolName` property with the specific tool.
   - `ai.response.text`: the text that was generated
@@ -120,7 +120,7 @@ const result = await generateText({
   - `ai.response.text`: the text that was generated
   - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.response.finishReason`: the reason why the generation finished
-  - `ai.settings.maxSteps`: the maximum number of steps that were set
+  - `ai.settings.maxOutputTokens`: the maximum number of output tokens that were set
 
 - `ai.streamText.doStream` (span): a provider doStream call.
   This span contains an `ai.stream.firstChunk` event and `ai.toolCall` spans.
@@ -130,8 +130,8 @@ const result = await generateText({
   - `ai.operationId`: `"ai.streamText.doStream"`
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.prompt.tools`: array of stringified tool definitions. The tools can be of type `function` or `provider-defined-client`.
-    Function tools have a `name`, `description` (optional), and `parameters` (JSON schema).
-    Provider-defined-client tools have a `name`, `id`, and `args` (Record).
+    Function tools have a `name`, `description` (optional), and `inputSchema` (JSON schema).
+    Provider-defined-client tools have a `name`, `id`, and `input` (Record).
   - `ai.prompt.toolChoice`: the stringified tool choice setting (JSON). It has a `type` property
     (`auto`, `none`, `required`, `tool`), and if the type is `tool`, a `toolName` property with the specific tool.
   - `ai.response.text`: the text that was generated
@@ -257,6 +257,7 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.model.id`: the id of the model
 - `ai.model.provider`: the provider of the model
 - `ai.request.headers.*`: the request headers that were passed in through `headers`
+- `ai.response.providerMetadata`: provider specific metadata returned with the generation response
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
 - `ai.telemetry.metadata.*`: the metadata that was passed in through `telemetry.metadata`
@@ -308,5 +309,5 @@ Tool call spans (`ai.toolCall`) contain the following attributes:
 - `ai.operationId`: `"ai.toolCall"`
 - `ai.toolCall.name`: the name of the tool
 - `ai.toolCall.id`: the id of the tool call
-- `ai.toolCall.args`: the parameters of the tool call
-- `ai.toolCall.result`: the result of the tool call. Only available if the tool call is successful and the result is serializable.
+- `ai.toolCall.args`: the input parameters of the tool call
+- `ai.toolCall.result`: the output result of the tool call. Only available if the tool call is successful and the result is serializable.

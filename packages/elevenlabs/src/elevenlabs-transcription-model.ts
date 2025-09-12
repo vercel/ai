@@ -7,6 +7,7 @@ import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
@@ -26,7 +27,7 @@ const elevenLabsProviderOptionsSchema = z.object({
     .nullish()
     .default('word'),
   diarize: z.boolean().nullish().default(false),
-  file_format: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
+  fileFormat: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
 });
 
 export type ElevenLabsTranscriptionCallOptions = z.infer<
@@ -73,7 +74,12 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV2 {
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model_id', this.modelId);
-    formData.append('file', new File([blob], 'audio', { type: mediaType }));
+    const fileExtension = mediaTypeToExtension(mediaType);
+    formData.append(
+      'file',
+      new File([blob], 'audio', { type: mediaType }),
+      `audio.${fileExtension}`,
+    );
     formData.append('diarize', 'true');
 
     // Add provider-specific options
@@ -84,7 +90,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV2 {
         num_speakers: elevenlabsOptions.numSpeakers ?? undefined,
         timestamps_granularity:
           elevenlabsOptions.timestampsGranularity ?? undefined,
-        file_format: elevenlabsOptions.file_format ?? undefined,
+        file_format: elevenlabsOptions.fileFormat ?? undefined,
       };
 
       if (typeof elevenlabsOptions.diarize === 'boolean') {

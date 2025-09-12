@@ -13,7 +13,6 @@ function to generate speech from text using a speech model.
 ```ts
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { readFile } from 'fs/promises';
 
 const audio = await generateSpeech({
   model: openai.speech('tts-1'),
@@ -49,10 +48,9 @@ const audio = audio.audioData; // audio data e.g. Uint8Array
 
 You can set model-specific settings with the `providerOptions` parameter.
 
-```ts highlight="8-12"
+```ts highlight="7-11"
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { readFile } from 'fs/promises';
 
 const audio = await generateSpeech({
   model: openai.speech('tts-1'),
@@ -71,10 +69,9 @@ const audio = await generateSpeech({
 type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
 that you can use to abort the speech generation process or set a timeout.
 
-```ts highlight="8"
+```ts highlight="7"
 import { openai } from '@ai-sdk/openai';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { readFile } from 'fs/promises';
 
 const audio = await generateSpeech({
   model: openai.speech('tts-1'),
@@ -88,10 +85,9 @@ const audio = await generateSpeech({
 `generateSpeech` accepts an optional `headers` parameter of type `Record<string, string>`
 that you can use to add custom headers to the speech generation request.
 
-```ts highlight="8"
+```ts highlight="7"
 import { openai } from '@ai-sdk/openai';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { readFile } from 'fs/promises';
 
 const audio = await generateSpeech({
   model: openai.speech('tts-1'),
@@ -107,7 +103,6 @@ Warnings (e.g. unsupported parameters) are available on the `warnings` property.
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { readFile } from 'fs/promises';
 
 const audio = await generateSpeech({
   model: openai.speech('tts-1'),
@@ -137,7 +132,6 @@ import {
   AI_NoAudioGeneratedError,
 } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { readFile } from 'fs/promises';
 
 try {
   await generateSpeech({
@@ -155,13 +149,19 @@ try {
 
 ## Speech Models
 
-| Provider                                                   | Model             |
-| ---------------------------------------------------------- | ----------------- |
-| [OpenAI](/providers/ai-sdk-providers/openai#speech-models) | `tts-1`           |
-| [OpenAI](/providers/ai-sdk-providers/openai#speech-models) | `tts-1-hd`        |
-| [OpenAI](/providers/ai-sdk-providers/openai#speech-models) | `gpt-4o-mini-tts` |
-| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)     | `aurora`          |
-| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)     | `blizzard`        |
-| [Hume](/providers/ai-sdk-providers/hume#speech-models)     | `default`         |
+| Provider                                                           | Model                    |
+| ------------------------------------------------------------------ | ------------------------ |
+| [OpenAI](/providers/ai-sdk-providers/openai#speech-models)         | `tts-1`                  |
+| [OpenAI](/providers/ai-sdk-providers/openai#speech-models)         | `tts-1-hd`               |
+| [OpenAI](/providers/ai-sdk-providers/openai#speech-models)         | `gpt-4o-mini-tts`        |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_v3`              |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_multilingual_v2` |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_flash_v2_5`      |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_flash_v2`        |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_turbo_v2_5`      |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_turbo_v2`        |
+| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)             | `aurora`                 |
+| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)             | `blizzard`               |
+| [Hume](/providers/ai-sdk-providers/hume#speech-models)             | `default`                |
 
 Above are a small subset of the speech models supported by the AI SDK providers. For more, see the respective provider documentation.

@@ -11,7 +11,7 @@ The [Cohere](https://cohere.com/) provider contains language and embedding model
 
 The Cohere provider is available in the `@ai-sdk/cohere` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/cohere" dark />
   </Tab>
@@ -20,6 +20,10 @@ The Cohere provider is available in the `@ai-sdk/cohere` module. You can install
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/cohere" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/cohere" dark />
   </Tab>
 </Tabs>
 
@@ -94,14 +98,20 @@ Cohere language models can also be used in the `streamText`, `generateObject`, a
 
 ### Model Capabilities
 
-| Model               | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `command-a-03-2025` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `command-r-plus`    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `command-r`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `command-a-03-2025` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `command`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `command-light`     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `command-a-03-2025`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-a-reasoning-08-2025` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-r7b-12-2024`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-r-plus-04-2024`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-r-plus`              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-r-08-2024`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-r-03-2024`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-r`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `command-nightly`             | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `command-light`               | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `command-light-nightly`       | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Cohere
@@ -110,22 +120,55 @@ Cohere language models can also be used in the `streamText`, `generateObject`, a
   string if needed.
 </Note>
 
+#### Reasoning
+
+Cohere has introduced reasoning with the `command-a-reasoning-08-2025` model. You can learn more at https://docs.cohere.com/docs/reasoning.
+
+```ts
+import { cohere } from '@ai-sdk/cohere';
+import { generateText } from 'ai';
+
+async function main() {
+  const { text, reasoning } = await generateText({
+    model: cohere('command-a-reasoning-08-2025'),
+    prompt:
+      "Alice has 3 brothers and she also has 2 sisters. How many sisters does Alice's brother have?",
+    // optional: reasoning options
+    providerOptions: {
+      cohere: {
+        thinking: {
+          type: 'enabled',
+          tokenBudget: 100,
+        },
+      },
+    },
+  });
+
+  console.log(reasoning);
+  console.log(text);
+}
+
+main().catch(console.error);
+```
+
 ## Embedding Models
 
 You can create models that call the [Cohere embed API](https://docs.cohere.com/v2/reference/embed)
-using the `.embedding()` factory method.
+using the `.textEmbedding()` factory method.
 
 ```ts
-const model = cohere.embedding('embed-english-v3.0');
+const model = cohere.textEmbedding('embed-english-v3.0');
 ```
 
-Cohere embedding models support provider options. You can pass them as an options argument:
+You can use Cohere embedding models to generate embeddings with the `embed` function:
 
 ```ts
-const model = cohere.embedding('embed-english-v3.0');
+import { cohere } from '@ai-sdk/cohere';
+import { embed } from 'ai';
 
-await embed({
-  model,
+const { embedding } = await embed({
+  model: cohere.textEmbedding('embed-english-v3.0'),
+  value: 'sunny day at the beach',
   providerOptions: {
     cohere: {
       inputType: 'search_document',
@@ -134,7 +177,25 @@ await embed({
 });
 ```
 
-The following optional provider options are available for Cohere embedding models:
+Cohere embedding models support additional provider options that can be passed via `providerOptions.cohere`:
+
+```ts
+import { cohere } from '@ai-sdk/cohere';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: cohere.textEmbedding('embed-english-v3.0'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    cohere: {
+      inputType: 'search_document',
+      truncate: 'END',
+    },
+  },
+});
+```
+
+The following provider options are available:
 
 - **inputType** _'search_document' | 'search_query' | 'classification' | 'clustering'_
 

@@ -3,6 +3,10 @@ import {
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
+import { fileSearchArgsSchema } from '../tool/file-search';
+import { webSearchArgsSchema } from '../tool/web-search';
+import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { OpenAIResponsesTool } from './openai-responses-api-types';
 
 export function prepareResponsesTools({
@@ -19,8 +23,11 @@ export function prepareResponsesTools({
     | 'auto'
     | 'none'
     | 'required'
+    | { type: 'file_search' }
     | { type: 'web_search_preview' }
-    | { type: 'function'; name: string };
+    | { type: 'web_search' }
+    | { type: 'function'; name: string }
+    | { type: 'code_interpreter' };
   toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -45,27 +52,63 @@ export function prepareResponsesTools({
           strict: strictJsonSchema,
         });
         break;
-      case 'provider-defined':
+      case 'provider-defined': {
         switch (tool.id) {
-          case 'openai.web_search_preview':
+          case 'openai.file_search': {
+            const args = fileSearchArgsSchema.parse(tool.args);
             openaiTools.push({
-              type: 'web_search_preview',
-              search_context_size: tool.args.searchContextSize as
-                | 'low'
-                | 'medium'
-                | 'high',
-              user_location: tool.args.userLocation as {
-                type: 'approximate';
-                city: string;
-                region: string;
-              },
+              type: 'file_search',
+              vector_store_ids: args.vectorStoreIds,
+              max_num_results: args.maxNumResults,
+              ranking_options: args.ranking
+                ? { ranker: args.ranking.ranker }
+                : undefined,
+              filters: args.filters,
             });
             break;
-          default:
+          }
+          case 'openai.web_search_preview': {
+            const args = webSearchPreviewArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'web_search_preview',
+              search_context_size: args.searchContextSize,
+              user_location: args.userLocation,
+            });
+            break;
+          }
+          case 'openai.web_search': {
+            const args = webSearchArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'web_search',
+              filters:
+                args.filters != null
+                  ? { allowed_domains: args.filters.allowedDomains }
+                  : undefined,
+              search_context_size: args.searchContextSize,
+              user_location: args.userLocation,
+            });
+            break;
+          }
+          case 'openai.code_interpreter': {
+            const args = codeInterpreterArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'code_interpreter',
+              container:
+                args.container == null
+                  ? { type: 'auto', file_ids: undefined }
+                  : typeof args.container === 'string'
+                    ? args.container
+                    : { type: 'auto', file_ids: args.container.fileIds },
+            });
+            break;
+          }
+          default: {
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
+          }
         }
         break;
+      }
       default:
         toolWarnings.push({ type: 'unsupported-tool', tool });
         break;
@@ -87,8 +130,11 @@ export function prepareResponsesTools({
       return {
         tools: openaiTools,
         toolChoice:
-          toolChoice.toolName === 'web_search_preview'
-            ? { type: 'web_search_preview' }
+          toolChoice.toolName === 'code_interpreter' ||
+          toolChoice.toolName === 'file_search' ||
+          toolChoice.toolName === 'web_search_preview' ||
+          toolChoice.toolName === 'web_search'
+            ? { type: toolChoice.toolName }
             : { type: 'function', name: toolChoice.toolName },
         toolWarnings,
       };

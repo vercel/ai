@@ -14,7 +14,7 @@ import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: openai.embedding('text-embedding-3-small'),
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
   value: 'sunny day at the beach',
 });
 ```
@@ -33,7 +33,7 @@ const { embedding } = await embed({
       name: 'model',
       type: 'EmbeddingModel',
       description:
-        "The embedding model to use. Example: openai.embedding('text-embedding-3-small')",
+        "The embedding model to use. Example: openai.textEmbeddingModel('text-embedding-3-small')",
     },
     {
       name: 'value',
@@ -173,6 +173,13 @@ const { embedding } = await embed({
           ],
         },
       ],
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ProviderMetadata | undefined',
+      isOptional: true,
+      description:
+        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
   ]}
 />

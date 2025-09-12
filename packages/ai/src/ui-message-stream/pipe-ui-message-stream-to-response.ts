@@ -3,7 +3,7 @@ import { prepareHeaders } from '../util/prepare-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 import { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
-import { UIMessageStreamPart } from './ui-message-stream-parts';
+import { UIMessageChunk } from './ui-message-chunks';
 import { UIMessageStreamResponseInit } from './ui-message-stream-response-init';
 
 export function pipeUIMessageStreamToResponse({
@@ -15,7 +15,7 @@ export function pipeUIMessageStreamToResponse({
   consumeSseStream,
 }: {
   response: ServerResponse;
-  stream: ReadableStream<UIMessageStreamPart>;
+  stream: ReadableStream<UIMessageChunk>;
 } & UIMessageStreamResponseInit): void {
   let sseStream = stream.pipeThrough(new JsonToSseTransformStream());
 

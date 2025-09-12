@@ -5,7 +5,10 @@ description: Learn how to use the useObject hook.
 
 # Object Generation
 
-<Note>`useObject` is an experimental feature and only available in React.</Note>
+<Note>
+  `useObject` is an experimental feature and only available in React, Svelte,
+  and Vue.
+</Note>
 
 The [`useObject`](/docs/reference/ai-sdk-ui/use-object) hook allows you to create interfaces that represent a structured JSON object that is being streamed.
 
@@ -89,6 +92,64 @@ export async function POST(req: Request) {
     schema: notificationSchema,
     prompt:
       `Generate 3 notifications for a messages app in this context:` + context,
+  });
+
+  return result.toTextStreamResponse();
+}
+```
+
+## Enum Output Mode
+
+When you need to classify or categorize input into predefined options, you can use the `enum` output mode with `useObject`. This requires a specific schema structure where the object has `enum` as a key with `z.enum` containing your possible values.
+
+### Example: Text Classification
+
+This example shows how to build a simple text classifier that categorizes statements as true or false.
+
+#### Client
+
+When using `useObject` with enum output mode, your schema must be an object with `enum` as the key:
+
+```tsx filename='app/classify/page.tsx'
+'use client';
+
+import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { z } from 'zod';
+
+export default function ClassifyPage() {
+  const { object, submit, isLoading } = useObject({
+    api: '/api/classify',
+    schema: z.object({ enum: z.enum(['true', 'false']) }),
+  });
+
+  return (
+    <>
+      <button onClick={() => submit('The earth is flat')} disabled={isLoading}>
+        Classify statement
+      </button>
+
+      {object && <div>Classification: {object.enum}</div>}
+    </>
+  );
+}
+```
+
+#### Server
+
+On the server, use `streamObject` with `output: 'enum'` to stream the classification result:
+
+```typescript filename='app/api/classify/route.ts'
+import { openai } from '@ai-sdk/openai';
+import { streamObject } from 'ai';
+
+export async function POST(req: Request) {
+  const context = await req.json();
+
+  const result = streamObject({
+    model: openai('gpt-4.1'),
+    output: 'enum',
+    enum: ['true', 'false'],
+    prompt: `Classify this statement as true or false: ${context}`,
   });
 
   return result.toTextStreamResponse();

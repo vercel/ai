@@ -65,6 +65,7 @@ async function main() {
     'langchain',
     '@aws-sdk/client-bedrock-runtime',
     '@google/generative-ai',
+    '@google/genai',
     '@google-cloud/vertexai',
     '@xenova/transformers',
     '@mistralai/mistralai',

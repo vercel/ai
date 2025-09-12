@@ -1,0 +1,206 @@
+---
+title: experimental_createMCPClient
+description: Create a client for connecting to MCP servers
+---
+
+# `experimental_createMCPClient()`
+
+Creates a lightweight Model Context Protocol (MCP) client that connects to an MCP server. The client's primary purpose is tool conversion between MCP tools and AI SDK tools.
+
+It currently does not support accepting notifications from an MCP server, and custom configuration of the client.
+
+This feature is experimental and may change or be removed in the future.
+
+## Import
+
+<Snippet
+  text={`import { experimental_createMCPClient } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'config',
+      type: 'MCPClientConfig',
+      description: 'Configuration for the MCP client.',
+      properties: [
+        {
+          type: 'MCPClientConfig',
+          parameters: [
+            {
+              name: 'transport',
+              type: 'TransportConfig = MCPTransport | McpSSEServerConfig',
+              description: 'Configuration for the message transport layer.',
+              properties: [
+                {
+                  type: 'MCPTransport',
+                  description:
+                    'A client transport instance, used explicitly for stdio or custom transports',
+                  parameters: [
+                    {
+                      name: 'start',
+                      type: '() => Promise<void>',
+                      description: 'A method that starts the transport',
+                    },
+                    {
+                      name: 'send',
+                      type: '(message: JSONRPCMessage) => Promise<void>',
+                      description:
+                        'A method that sends a message through the transport',
+                    },
+                    {
+                      name: 'close',
+                      type: '() => Promise<void>',
+                      description: 'A method that closes the transport',
+                    },
+                    {
+                      name: 'onclose',
+                      type: '() => void',
+                      description:
+                        'A method that is called when the transport is closed',
+                    },
+                    {
+                      name: 'onerror',
+                      type: '(error: Error) => void',
+                      description:
+                        'A method that is called when the transport encounters an error',
+                    },
+                    {
+                      name: 'onmessage',
+                      type: '(message: JSONRPCMessage) => void',
+                      description:
+                        'A method that is called when the transport receives a message',
+                    },
+                  ],
+                },
+                {
+                  type: 'McpSSEServerConfig',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'sse'",
+                      description: 'Use Server-Sent Events for communication',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description: 'URL of the MCP server',
+                    },
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string>',
+                      isOptional: true,
+                      description:
+                        'Additional HTTP headers to be sent with requests.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'name',
+              type: 'string',
+              isOptional: true,
+              description: 'Client name. Defaults to "ai-sdk-mcp-client"',
+            },
+            {
+              name: 'onUncaughtError',
+              type: '(error: unknown) => void',
+              isOptional: true,
+              description: 'Handler for uncaught errors',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
+
+### Returns
+
+Returns a Promise that resolves to an `MCPClient` with the following methods:
+
+<PropertiesTable
+  content={[
+    {
+      name: 'tools',
+      type: `async (options?: {
+        schemas?: TOOL_SCHEMAS
+      }) => Promise<McpToolSet<TOOL_SCHEMAS>>`,
+      description: 'Gets the tools available from the MCP server.',
+      properties: [
+        {
+          type: 'options',
+          parameters: [
+            {
+              name: 'schemas',
+              type: 'TOOL_SCHEMAS',
+              isOptional: true,
+              description:
+                'Schema definitions for compile-time type checking. When not provided, schemas are inferred from the server.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'close',
+      type: 'async () => void',
+      description:
+        'Closes the connection to the MCP server and cleans up resources.',
+    },
+  ]}
+/>
+
+## Example
+
+```typescript
+import { experimental_createMCPClient, generateText } from 'ai';
+import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+import { openai } from '@ai-sdk/openai';
+
+let client;
+
+try {
+  client = await experimental_createMCPClient({
+    transport: new Experimental_StdioMCPTransport({
+      command: 'node server.js',
+    }),
+  });
+
+  const tools = await client.tools();
+
+  const response = await generateText({
+    model: openai('gpt-4o-mini'),
+    tools,
+    messages: [{ role: 'user', content: 'Query the data' }],
+  });
+
+  console.log(response);
+} catch (error) {
+  console.error('Error:', error);
+} finally {
+  // ensure the client is closed even if an error occurs
+  if (client) {
+    await client.close();
+  }
+}
+```
+
+## Error Handling
+
+The client throws `MCPClientError` for:
+
+- Client initialization failures
+- Protocol version mismatches
+- Missing server capabilities
+- Connection failures
+
+For tool execution, errors are propagated as `CallToolError` errors.
+
+For unknown errors, the client exposes an `onUncaughtError` callback that can be used to manually log or handle errors that are not covered by known error types.

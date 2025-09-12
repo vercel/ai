@@ -42,7 +42,6 @@ Creates an Xai chat model for text generation.
 
   /**
 Creates an Xai image model for image generation.
-@deprecated Use `imageModel` instead.
    */
   image(modelId: XaiImageModelId): ImageModelV2;
 

@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText, tool } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
@@ -30,6 +30,10 @@ async function main() {
 
   // typed tool calls:
   for (const toolCall of result.toolCalls) {
+    if (toolCall.dynamic) {
+      continue;
+    }
+
     switch (toolCall.toolName) {
       case 'cityAttractions': {
         toolCall.input.city; // string
@@ -45,6 +49,10 @@ async function main() {
 
   // typed tool results for tools with execute method:
   for (const toolResult of result.toolResults) {
+    if (toolResult.dynamic) {
+      continue;
+    }
+
     switch (toolResult.toolName) {
       // NOT AVAILABLE (NO EXECUTE METHOD)
       // case 'cityAttractions': {

@@ -13,6 +13,7 @@ import { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options'
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import { GoogleVertexModelId } from './google-vertex-options';
+import { googleVertexTools } from './google-vertex-tools';
 
 export interface GoogleVertexProvider extends ProviderV2 {
   /**
@@ -31,6 +32,8 @@ Creates a model for text generation.
 Creates a model for image generation.
    */
   imageModel(modelId: GoogleVertexImageModelId): ImageModelV2;
+
+  tools: typeof googleVertexTools;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -93,9 +96,14 @@ export function createVertex(
   const loadBaseURL = () => {
     const region = loadVertexLocation();
     const project = loadVertexProject();
+
+    // For global region, use aiplatform.googleapis.com directly
+    // For other regions, use region-aiplatform.googleapis.com
+    const baseHost = `${region === 'global' ? '' : region + '-'}aiplatform.googleapis.com`;
+
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${region}-aiplatform.googleapis.com/v1/projects/${project}/locations/${region}/publishers/google`
+      `https://${baseHost}/v1/projects/${project}/locations/${region}/publishers/google`
     );
   };
 
@@ -143,6 +151,7 @@ export function createVertex(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.tools = googleVertexTools;
 
   return provider;
 }

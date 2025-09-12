@@ -74,6 +74,38 @@ export class GoogleGenerativeAIEmbeddingModel
       headers,
     );
 
+    // For single embeddings, use the single endpoint (ratelimits, etc.)
+    if (values.length === 1) {
+      const {
+        responseHeaders,
+        value: response,
+        rawValue,
+      } = await postJsonToApi({
+        url: `${this.config.baseURL}/models/${this.modelId}:embedContent`,
+        headers: mergedHeaders,
+        body: {
+          model: `models/${this.modelId}`,
+          content: {
+            parts: [{ text: values[0] }],
+          },
+          outputDimensionality: googleOptions?.outputDimensionality,
+          taskType: googleOptions?.taskType,
+        },
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          googleGenerativeAISingleEmbeddingResponseSchema,
+        ),
+        abortSignal,
+        fetch: this.config.fetch,
+      });
+
+      return {
+        embeddings: [response.embedding.values],
+        usage: undefined,
+        response: { headers: responseHeaders, body: rawValue },
+      };
+    }
+
     const {
       responseHeaders,
       value: response,
@@ -109,4 +141,9 @@ export class GoogleGenerativeAIEmbeddingModel
 // this approach limits breakages when the API changes and increases efficiency
 const googleGenerativeAITextEmbeddingResponseSchema = z.object({
   embeddings: z.array(z.object({ values: z.array(z.number()) })),
+});
+
+// Schema for single embedding response
+const googleGenerativeAISingleEmbeddingResponseSchema = z.object({
+  embedding: z.object({ values: z.array(z.number()) }),
 });

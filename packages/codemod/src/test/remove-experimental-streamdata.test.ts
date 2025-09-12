@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import transformer from '../codemods/remove-experimental-streamdata';
+import transformer from '../codemods/v4/remove-experimental-streamdata';
 import { testTransform } from './test-utils';
 
 describe('remove-experimental-streamdata', () => {

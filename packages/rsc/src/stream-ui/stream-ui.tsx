@@ -39,7 +39,9 @@ type Renderer<T extends Array<any>> = (
   | Generator<Streamable, Streamable, void>
   | AsyncGenerator<Streamable, Streamable, void>;
 
-type RenderTool<INPUT_SCHEMA extends z4.ZodType | z3.Schema | Schema = any> = {
+type RenderTool<
+  INPUT_SCHEMA extends z4.core.$ZodType | z3.Schema | Schema = any,
+> = {
   description?: string;
   inputSchema: INPUT_SCHEMA;
   generate?: Renderer<
@@ -86,7 +88,7 @@ const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
  * `streamUI` is a helper function to create a streamable UI from LLMs.
  */
 export async function streamUI<
-  TOOLS extends { [name: string]: z4.ZodType | z3.Schema | Schema } = {},
+  TOOLS extends { [name: string]: z4.core.$ZodType | z3.Schema | Schema } = {},
 >({
   model,
   tools,
@@ -255,13 +257,13 @@ functionality that can be fully encapsulated in the provider.
     renderFinished.resolve(undefined);
   }
 
-  const { retry } = prepareRetries({ maxRetries });
+  const { retry } = prepareRetries({ maxRetries, abortSignal });
 
   const validatedPrompt = await standardizePrompt({
     system,
     prompt,
     messages,
-  });
+  } as Prompt);
   const result = await retry(async () =>
     model.doStream({
       ...prepareCallSettings(settings),
@@ -273,6 +275,7 @@ functionality that can be fully encapsulated in the provider.
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         supportedUrls: await model.supportedUrls,
+        download: undefined,
       }),
       providerOptions,
       abortSignal,

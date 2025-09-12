@@ -1,14 +1,15 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  InferUITool,
+  InferUITools,
   stepCountIs,
   streamText,
   tool,
   UIDataTypes,
   UIMessage,
+  validateUIMessages,
 } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -16,21 +17,30 @@ export const maxDuration = 30;
 const getWeatherInformationTool = tool({
   description: 'show the weather in a given city to the user',
   inputSchema: z.object({ city: z.string() }),
-  execute: async ({ city }: { city: string }, { messages }) => {
+  async *execute({ city }: { city: string }, { messages }) {
+    yield { state: 'loading' as const };
+
     // count the number of assistant messages. throw error if 2 or less
     const assistantMessageCount = messages.filter(
       message => message.role === 'assistant',
     ).length;
 
-    if (assistantMessageCount <= 2) {
-      throw new Error('could not get weather information');
-    }
+    // if (assistantMessageCount <= 2) {
+    //   throw new Error('could not get weather information');
+    // }
 
     // Add artificial delay of 5 seconds
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
-    return weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
+    const weather =
+      weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
+
+    yield {
+      state: 'ready' as const,
+      temperature: 72,
+      weather,
+    };
   },
 
   onInputStart: () => {
@@ -59,32 +69,40 @@ const getLocationTool = tool({
   outputSchema: z.string(),
 });
 
+const tools = {
+  // server-side tool with execute function:
+  getWeatherInformation: getWeatherInformationTool,
+  // client-side tool that starts user interaction:
+  askForConfirmation: askForConfirmationTool,
+  // client-side tool that is automatically executed on the client:
+  getLocation: getLocationTool,
+} as const;
+
 export type UseChatToolsMessage = UIMessage<
   never,
   UIDataTypes,
-  {
-    getWeatherInformation: InferUITool<typeof getWeatherInformationTool>;
-    askForConfirmation: InferUITool<typeof askForConfirmationTool>;
-    getLocation: InferUITool<typeof getLocationTool>;
-  }
+  InferUITools<typeof tools>
 >;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const body = await req.json();
+
+  const messages = await validateUIMessages<UseChatToolsMessage>({
+    messages: body.messages,
+    tools,
+  });
 
   const result = streamText({
     model: openai('gpt-4o'),
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5), // multi-steps for server-side tools
-    tools: {
-      // server-side tool with execute function:
-      getWeatherInformation: getWeatherInformationTool,
-      // client-side tool that starts user interaction:
-      askForConfirmation: askForConfirmationTool,
-      // client-side tool that is automatically executed on the client:
-      getLocation: getLocationTool,
-    },
+    tools,
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    //  originalMessages: messages, //add if you want to have correct ids
+    onFinish: options => {
+      console.log('onFinish', options);
+    },
+  });
 }

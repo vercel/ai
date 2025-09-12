@@ -3,11 +3,12 @@ import {
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
 import { render } from '@testing-library/svelte';
-import type { UIMessageStreamPart } from 'ai';
+import type { UIMessageChunk } from 'ai';
 import { Completion } from './completion.svelte.js';
 import CompletionSynchronization from './tests/completion-synchronization.svelte';
+import { describe, it, expect, vi } from 'vitest';
 
-function formatStreamPart(part: UIMessageStreamPart) {
+function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
@@ -20,12 +21,12 @@ describe('Completion', () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text-start', id: '0' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
-        formatStreamPart({ type: 'text-end', id: '0' }),
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -49,12 +50,12 @@ describe('Completion', () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text-start', id: '0' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
-        formatStreamPart({ type: 'text-end', id: '0' }),
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -103,12 +104,12 @@ describe('Completion', () => {
       {
         type: 'stream-chunks',
         chunks: [
-          formatStreamPart({ type: 'text-start', id: '0' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
-          formatStreamPart({ type: 'text-end', id: '0' }),
+          formatChunk({ type: 'text-start', id: '0' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+          formatChunk({ type: 'text-end', id: '0' }),
         ],
       },
     ];
@@ -128,12 +129,12 @@ describe('synchronization', () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text-start', id: '0' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
-        formatStreamPart({ type: 'text-end', id: '0' }),
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -165,11 +166,11 @@ describe('synchronization', () => {
       expect(completion2.loading).toBe(true);
     });
 
-    controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
     controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
     );
-    controller.write(formatStreamPart({ type: 'text-end', id: '0' }));
+    controller.write(formatChunk({ type: 'text-end', id: '0' }));
     await vi.waitFor(() => {
       expect(completion1.completion).toBe('Hello');
       expect(completion2.completion).toBe('Hello');

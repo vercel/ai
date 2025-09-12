@@ -4,11 +4,17 @@ import {
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
-import { FetchFunction, withoutTrailingSlash } from '@ai-sdk/provider-utils';
-import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
-import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
-import { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
-import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
+import {
+  FetchFunction,
+  withoutTrailingSlash,
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
+} from '@ai-sdk/provider-utils';
+import { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
+import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
+import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
+import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
+import { VERSION } from './version';
 
 export interface OpenAICompatibleProvider<
   CHAT_MODEL_IDS extends string = string,
@@ -63,6 +69,11 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+Include usage information in streaming responses.
+   */
+  includeUsage?: boolean;
 }
 
 /**
@@ -91,10 +102,13 @@ export function createOpenAICompatible<
     fetch?: FetchFunction;
   }
 
-  const getHeaders = () => ({
+  const headers = {
     ...(options.apiKey && { Authorization: `Bearer ${options.apiKey}` }),
     ...options.headers,
-  });
+  };
+
+  const getHeaders = () =>
+    withUserAgentSuffix(headers, `ai-sdk/openai-compatible/${VERSION}`);
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `${providerName}.${modelType}`,
@@ -113,16 +127,16 @@ export function createOpenAICompatible<
     createChatModel(modelId);
 
   const createChatModel = (modelId: CHAT_MODEL_IDS) =>
-    new OpenAICompatibleChatLanguageModel(
-      modelId,
-      getCommonModelConfig('chat'),
-    );
+    new OpenAICompatibleChatLanguageModel(modelId, {
+      ...getCommonModelConfig('chat'),
+      includeUsage: options.includeUsage,
+    });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>
-    new OpenAICompatibleCompletionLanguageModel(
-      modelId,
-      getCommonModelConfig('completion'),
-    );
+    new OpenAICompatibleCompletionLanguageModel(modelId, {
+      ...getCommonModelConfig('completion'),
+      includeUsage: options.includeUsage,
+    });
 
   const createEmbeddingModel = (modelId: EMBEDDING_MODEL_IDS) =>
     new OpenAICompatibleEmbeddingModel(modelId, {

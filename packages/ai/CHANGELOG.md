@@ -1,5 +1,1048 @@
 # ai
 
+## 5.0.43
+
+### Patch Changes
+
+- 0294b58: feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/gateway@1.0.22
+
+## 5.0.42
+
+### Patch Changes
+
+- de5c066: fix(ai): forwarded providerExecuted flag in validateUIMessages
+
+## 5.0.41
+
+### Patch Changes
+
+- cd91e4b: fix(ai): use correct type for reasoning outputs
+
+## 5.0.40
+
+### Patch Changes
+
+- Updated dependencies [4ee3719]
+  - @ai-sdk/gateway@1.0.21
+
+## 5.0.39
+
+### Patch Changes
+
+- a0a725f: feat (ai): export createGateway
+
+## 5.0.38
+
+### Patch Changes
+
+- Updated dependencies [350a328]
+  - @ai-sdk/gateway@1.0.20
+
+## 5.0.37
+
+### Patch Changes
+
+- d6785d7: feat (ai): add tool and agent helpers
+
+## 5.0.36
+
+### Patch Changes
+
+- ccc2ded: feat (ai): export gateway provider
+
+## 5.0.35
+
+### Patch Changes
+
+- 99c946a: export missing type
+
+## 5.0.34
+
+### Patch Changes
+
+- Updated dependencies [034287f]
+- Updated dependencies [dee1afe]
+  - @ai-sdk/gateway@1.0.19
+
+## 5.0.33
+
+### Patch Changes
+
+- Updated dependencies [5d59a8c]
+  - @ai-sdk/gateway@1.0.18
+
+## 5.0.32
+
+### Patch Changes
+
+- Updated dependencies [b6005cd]
+  - @ai-sdk/gateway@1.0.17
+
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/gateway@1.0.16
+
+## 5.0.30
+
+### Patch Changes
+
+- 7fcc6be: feat(ai): throw InvalidArgumentError when messages is not provided
+
+## 5.0.29
+
+### Patch Changes
+
+- e0e9449: feat(ui): sent isAbort, isDisconnect, isError in useChat onFinish callback
+
+## 5.0.28
+
+### Patch Changes
+
+- 4b81e7d: fix(ai): remove vitest dependency from test exports
+- d68a4f2: feat(ai): log warnings
+
+## 5.0.27
+
+### Patch Changes
+
+- ca40fac: feat(ai): support custom download functions (experimental)
+
+## 5.0.26
+
+### Patch Changes
+
+- 33cf848: feat(ai): pass messages to `useChat({ onFinish })`
+- Updated dependencies [980633d]
+- Updated dependencies [1c5b88d]
+  - @ai-sdk/gateway@1.0.15
+
+## 5.0.25
+
+### Patch Changes
+
+- ca65923: fix(ai): remove use of `expect()` from production code
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/gateway@1.0.14
+
+## 5.0.24
+
+### Patch Changes
+
+- f8f3682: fix: call onFinish when stream is cancelled in toUIMessageStream
+
+  Previously, onFinish was only called on normal stream completion. Now it's also called when the reader is cancelled (e.g., browser close, navigation), ensuring partial messages are persisted.
+
+- Updated dependencies [1b5a3d3]
+- Updated dependencies [c9994f9]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/gateway@1.0.13
+
+## 5.0.23
+
+### Patch Changes
+
+- 5099b3d: fix(ai): make `chat.addToolResult()` compatible with dynamic tool calls
+- 7a2bf8d: fix(ai): support loop breaking behavior in async iterable stream
+- Updated dependencies [50e2029]
+- Updated dependencies [b8478f0]
+  - @ai-sdk/gateway@1.0.12
+
+## 5.0.22
+
+### Patch Changes
+
+- Updated dependencies [926259f]
+- Updated dependencies [c000f96]
+  - @ai-sdk/gateway@1.0.11
+
+## 5.0.21
+
+### Patch Changes
+
+- 581abea: fix(ai): call abort callback when stream is aborted during tool execution
+- 3c178ec: feat(ai): improved type checking for prompt/messages input
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+  - @ai-sdk/gateway@1.0.10
+
+## 5.0.20
+
+### Patch Changes
+
+- 8a87693: fix(ai) Make sure warnings promise in streamObject is resolved and properly collects and passes warnings
+
+## 5.0.19
+
+### Patch Changes
+
+- 8da6e9c: fix(ai): use parsed tool input if possible when validation fails
+
+## 5.0.18
+
+### Patch Changes
+
+- Updated dependencies [8b96f99]
+  - @ai-sdk/gateway@1.0.9
+
+## 5.0.17
+
+### Patch Changes
+
+- 4176ecb: feat(ai): add reasoning text to generateObject result
+- 20f23f9: feat(ai): export LanguageModelMiddleware type
+
+## 5.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - @ai-sdk/gateway@1.0.8
+
+## 5.0.15
+
+### Patch Changes
+
+- ca4f68f: feat(ai): add validateUIMessages function
+- Updated dependencies [28a4006]
+  - @ai-sdk/gateway@1.0.7
+
+## 5.0.14
+
+### Patch Changes
+
+- 7729e32: fix(ai): expand mp3 detection to support all mpeg frame headers
+
+## 5.0.13
+
+### Patch Changes
+
+- a7b2e66: Added providerOptions to agent stream and generate calls
+- 9bed210: ### `extractReasoningMiddleware()`: delay sending `text-start` chunk to prevent rendering final text before reasoning
+
+  When wrapping a text stream in `extractReasoningMiddleware()`, delay queing the `text-start` chunk until either `reasoning-start` chunk was queued or the first `text-delta` chunk is about to be queued, whichever comes first.
+
+  https://github.com/vercel/ai/pull/8036
+
+## 5.0.12
+
+### Patch Changes
+
+- Updated dependencies [eefa730]
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/gateway@1.0.6
+  - @ai-sdk/provider-utils@3.0.3
+
+## 5.0.11
+
+### Patch Changes
+
+- 38ac190: feat(ai): preliminary tool results
+- e3a63cb: fix(ai): streamText promises reject when stream has errors
+- Updated dependencies [38ac190]
+- Updated dependencies [cf7b2ad]
+  - @ai-sdk/provider-utils@3.0.2
+  - @ai-sdk/gateway@1.0.5
+
+## 5.0.10
+
+### Patch Changes
+
+- 63a5dc5: fix(ai): convert user message text/file part provider metadata in convertToModelMessages
+
+## 5.0.9
+
+### Patch Changes
+
+- afd5c2a: fix(ai): preserve filename for file parts in convertToModelMessages
+
+## 5.0.8
+
+### Patch Changes
+
+- Updated dependencies [35f93ce]
+  - @ai-sdk/gateway@1.0.4
+
+## 5.0.7
+
+### Patch Changes
+
+- 8e72304: fix (ai): handle invalid tool calls
+
+## 5.0.6
+
+### Patch Changes
+
+- d983eee: feat(ai): allow passing model string for embeddings
+
+## 5.0.5
+
+### Patch Changes
+
+- Updated dependencies [893aed6]
+  - @ai-sdk/gateway@1.0.3
+
+## 5.0.4
+
+### Patch Changes
+
+- Updated dependencies [444df49]
+  - @ai-sdk/gateway@1.0.2
+
+## 5.0.3
+
+### Patch Changes
+
+- 90d212f: feat (ai): add experimental tool call context
+- Updated dependencies [028fb9c]
+- Updated dependencies [90d212f]
+- Updated dependencies [6331826]
+  - @ai-sdk/gateway@1.0.1
+  - @ai-sdk/provider-utils@3.0.1
+
+## 5.0.2
+
+### Patch Changes
+
+- 401d73e: fix (ai): support dynamic tool calls in lastAssistantMessageIsCompleteWithToolCalls
+- 69fde99: Set status to ready when reconnect stream is null
+
+## 5.0.1
+
+### Patch Changes
+
+- 4d0c108: fix(ai/ui): convert provider metadata for system messages to model messages
+
+## 5.0.0
+
+### Major Changes
+
+- e1cbf8a: chore(@ai-sdk/rsc): extract to separate package
+- a847c3e: chore: rename reasoning to reasoningText etc
+- 13fef90: chore (ai): remove automatic conversion of UI messages to model messages
+- d964901: - remove setting temperature to `0` by default
+  - remove `null` option from `DefaultSettingsMiddleware`
+  - remove setting defaults for `temperature` and `stopSequences` in `ai` to enable middleware changes
+- 0a710d8: feat (ui): typed tool parts in ui messages
+- 9ad0484: feat (ai): automatic tool execution error handling
+- 63f9e9b: chore (provider,ai): tools have input/output instead of args,result
+- ab7ccef: chore (ai): change source ui message parts to source-url
+- d5f588f: AI SDK 5
+- ec78cdc: chore (ai): remove "data" UIMessage role
+- 6a83f7d: refactoring (ai): restructure message metadata transfer
+- db345da: chore (ai): remove exports of internal ui functions
+- 496bbc1: chore (ui): inline/remove ChatRequest type
+- 72d7d72: chore (ai): stable activeTools
+- 40acf9b: feat (ui): introduce ChatStore and ChatTransport
+- 98f25e5: chore (ui): remove managed chat inputs
+- 2d03e19: chore (ai): remove StreamCallbacks.onCompletion
+- da70d79: chore (ai): remove getUIText helper
+- c60f895: chore (ai): remove useChat keepLastMessageOnError
+- 0560977: chore (ai): improve consistency of generate text result, stream text result, and step result
+- 9477ebb: chore (ui): remove useAssistant hook (**breaking change**)
+- 1f55c21: chore (ai): send reasoning to the client by default
+- e7dc6c7: chore (ai): remove onResponse callback
+- 8b86e99: chore (ai): replace `Message` with `UIMessage`
+- 04d5063: chore (ai): rename default provider global to AI_SDK_DEFAULT_PROVIDER
+- 319b989: chore (ai): remove content from ui messages
+- 14c9410: chore: refactor file towards source pattern (spec)
+- a34eb39: chore (ai): remove `data` and `allowEmptySubmit` from `ChatRequestOptions`
+- f04fb4a: chore (ai): replace useChat attachments with file ui parts
+- f7e8bf4: chore (ai): flatten ui message stream parts
+- 257224b: chore (ai): separate TextStreamChatTransport
+- fd1924b: chore (ai): remove redundant `mimeType` property
+- 2524fc7: chore (ai): remove ui message toolInvocations property
+- 6fba4c7: chore (ai): remove deprecated experimental_providerMetadata
+- b4b4bb2: chore (ui): rename experimental_resume to resumeStream
+- 441d042: chore (ui): data stream protocol v2 with SSEs
+- ef256ed: chore (ai): refactor and use chatstore in svelte
+- 516be5b: ### Move Image Model Settings into generate options
+
+  Image Models no longer have settings. Instead, `maxImagesPerCall` can be passed directly to `generateImage()`. All other image settings can be passed to `providerOptions[provider]`.
+
+  Before
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1', {
+      maxImagesPerCall: 5,
+      pollIntervalMillis: 500,
+    }),
+    prompt,
+    n: 10,
+  });
+  ```
+
+  After
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1'),
+    prompt,
+    n: 10,
+    maxImagesPerCall: 5,
+    providerOptions: {
+      luma: { pollIntervalMillis: 5 },
+    },
+  });
+  ```
+
+  Pull Request: https://github.com/vercel/ai/pull/6180
+
+- a662dea: chore (ai): remove sendExtraMessageFields
+- d884051: feat (ai): simplify default provider setup
+- e8324c5: feat (ai): add args callbacks to tools
+- fafc3f2: chore (ai): change file to parts to use urls instead of data
+- 1ed0287: chore (ai): stable sendStart/sendFinish options
+- c7710a9: chore (ai): rename DataStreamToSSETransformStream to JsonToSseTransformStream
+- bfbfc4c: feat (ai): streamText/generateText: totalUsage contains usage for all steps. usage is for a single step.
+- 9ae327d: chore (ui): replace chat store concept with chat instances
+- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to stepCountIs.
+- 247ee0c: chore (ai): remove steps from tool invocation ui parts
+- 109c0ac: chore (ai): rename id to chatId (in post request, resume request, and useChat)
+- 954aa73: feat (ui): extended regenerate support
+- 33eb499: feat (ai): inject message id in createUIMessageStream
+- 901df02: feat (ui): use UI_MESSAGE generic
+- 4892798: chore (ai): always stream tool calls
+- c25cbce: feat (ai): use console.error as default error handler for streamText and streamObject
+- b33ed7a: chore (ai): rename DataStream* to UIMessage*
+- ed675de: feat (ai): add ui data parts
+- 7bb58d4: chore (ai): restructure prepareRequest
+- ea7a7c9: feat (ui): UI message metadata
+- 0463011: fix (ai): update source url stream part
+- dcc549b: remove StreamTextResult.mergeIntoDataStream method
+  rename DataStreamOptions.getErrorMessage to onError
+  add pipeTextStreamToResponse function
+  add createTextStreamResponse function
+  change createDataStreamResponse function to accept a DataStream and not a DataStreamWriter
+  change pipeDataStreamToResponse function to accept a DataStream and not a DataStreamWriter
+  change pipeDataStreamToResponse function to have a single parameter
+- 35fc02c: chore (ui): rename RequestOptions to CompletionRequestOptions
+- 64f6d64: feat (ai): replace maxSteps with continueUntil (generateText)
+- 175b868: chore (ai): rename reasoning UI parts 'reasoning' property to 'text'
+- 60e2c56: feat (ai): restructure chat transports
+- 765f1cd: chore (ai): remove deprecated useChat isLoading helper
+- cb2b53a: chore (ai): refactor header preparation
+- e244a78: chore (ai): remove StreamData and mergeStreams
+- d306260: feat (ai): replace maxSteps with continueUntil (streamText)
+- 4bfe9ec: chore (ai): remove ui message reasoning property
+- 1766ede: chore: rename maxTokens to maxOutputTokens
+- 2877a74: chore (ai): remove ui message data property
+- 1409e13: chore (ai): remove experimental continueSteps
+- b32e192: chore (ai): rename reasoning to reasoningText, rename reasoningDetails to reasoning (streamText, generateText)
+- 92cb0a2: chore (ai): rename CoreMessage to ModelMessage
+- 2b637d6: chore (ai): rename UIMessageStreamPart to UIMessageChunk
+
+### Minor Changes
+
+- b7eae2d: feat (core): Add finishReason field to NoObjectGeneratedError
+- bcea599: feat (ai): add content to generateText result
+- 48d675a: feat (ai): add content to streamText result
+- c9ad635: feat (ai): add filename to file ui parts
+
+### Patch Changes
+
+- a571d6e: chore(provider-utils): move ToolResultContent to provider-utils
+- de2d2ab: feat(ai): add provider and provider registry middleware functionality
+- c22ad54: feat(smooth-stream): chunking callbacks
+- d88455d: feat (ai): expose http chat transport type
+- e7fcc86: feat (ai): introduce dynamic tools
+- da1e6f0: feat (ui): add generics to ui message stream parts
+- 48378b9: fix (ai): send null as tool output when tools return undefined
+- 5d1e3ba: chore (ai): remove provider re-exports
+- 93d53a1: chore (ai): remove cli
+- e90d45d: chore (rsc): move HANGING_STREAM_WARNING_TIME constant into @ai-sdk/rsc package
+- b32c141: feat (ai): add array support to stopWhen
+- bc3109f: chore (ai): push stream-callbacks into langchain/llamaindex adapters
+- 0d9583c: fix (ai): use user-provided media type when available
+- 38ae5cc: feat (ai): export InferUIMessageChunk type
+- 10b21eb: feat(cli): add ai command line interface
+- 9e40cbe: Allow destructuring output and errorText on `ToolUIPart` type
+- 6909543: feat (ai): support system parameter in Agent constructor
+- 86cfc72: feat (ai): add ignoreIncompleteToolCalls option to convertToModelMessages
+- 377bbcf: fix (ui): tool input can be undefined during input-streaming
+- d8aeaef: feat(providers/fal): add transcribe
+- ae77a99: chore (ai): rename text and reasoning chunks in streamText fullstream
+- 4fef487: feat: support for zod v4 for schema validation
+
+  All these methods now accept both a zod v4 and zod v3 schemas for validation:
+
+  - `generateObject()`
+  - `streamObject()`
+  - `generateText()`
+  - `experimental_useObject()` from `@ai-sdk/react`
+  - `streamUI()` from `@ai-sdk/rsc`
+
+- b1e3abd: feat (ai): expose ui message stream headers
+- 4f3e637: fix (ui): avoid caching globalThis.fetch in case it is patched by other libraries
+- 14cb3be: chore(providers/llamaindex): extract to separate package
+- 1f6ce57: feat (ai): infer tool call types in the `onToolCall` callback
+- 16ccfb2: feat (ai): add readUIMessageStream helper
+- 225f087: fix (ai/mcp): prevent mutation of customEnv
+- ce1d1f3: feat (ai): export mock image, speech, and transcription models
+- fc0380b: feat (ui): resolvable header, body, credentials in http chat transport
+- 6622441: feat (ai): add static/dynamic toolCalls/toolResults helpers
+- 4048ce3: fix (ai): add tests and examples for openai responses
+- 6c42e56: feat (ai): validate ui stream data chunks
+- bedb239: chore (ai): make ui stream parts value optional when it's not required
+- 9b4d074: feat(streamObject): add enum support
+- c8fce91: feat (ai): add experimental Agent abstraction
+- 655cf3c: feat (ui): add onFinish to createUIMessageStream
+- 3e10408: fix(utils/detect-mimetype): add support for detecting id3 tags
+- d5ae088: feat (ui): add sendAutomaticallyWhen to Chat
+- ced8eee: feat(ai): re-export zodSchema from main package
+- c040e2f: fix (ui): inject generated response message id
+- d3960e3: selectTelemetryAttributes more robustness
+- faea29f: fix (provider/openai): multi-step reasoning with text
+- 66af894: fix (ai): respect content order in toResponseMessages
+- 332167b: chore (ai): move maxSteps into UseChatOptions
+- 6b1c55c: feat (ai): introduce GLOBAL_DEFAULT_PROVIDER
+- 5a975a4: feat (ui): update Chat tool result submission
+- 507ac1d: fix (ui/react): update messages immediately with the submitted user message
+- a166433: feat: add transcription with experimental_transcribe
+- 26735b5: chore(embedding-model): add v2 interface
+- c93a8bc: chore(ai): export AsyncIterableStream type from async-iterable-stream module
+- 0d2c085: feat (ai): support string model ids through gateway
+- 2b9bbcd: feat (ai): improve prompt validation error message
+- a8c8bd5: feat(embed-many): respect supportsParallelCalls & concurrency
+- 75c3396: fix (ai): handle errors in 2nd streamText doStream call
+- cb9c9e4: remove deprecated `experimental_wrapLanguageModel`
+- 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
+- 9b0da33: fix (ai): do not send id with start unless specified
+- 28ad69e: fix(react-native): support experimental_attachments without FileList global
+- 0b78e17: chore(ai/generateObject): simplify function signature
+- 20398f2: feat: ai sdk cli documentation + adjusted default model
+- 66962ed: fix(packages): export node10 compatible types
+- b71fe8d: fix(ai): remove jsondiffpatch dependency
+- 7827a49: fix (ai/core): refactor `toResponseMessages` to filter out empty string/content
+- bd8a36c: feat(embedding-model-v2/embedMany): add response body field
+- d9209ca: fix (image-model): `specificationVersion: v1` -> `v2`
+- b346545: feat (ai): add data ui part schemas
+- 05d2819: feat: allow zod 4.x as peer dependency
+- f2b041e: Fix custom `fetch` in HttpChatTransport
+- 2a62513: Fix error thrown when emptying messages in onError or onFinish
+- 143c55b: feat (ai): export Chat callback types
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+- 904fa5e: feat (ai/core): add terminateOnError option to readUIMessageStream
+- 0a87932: core (ai): change transcription model mimeType to mediaType
+- 1675396: fix: avoid job executor deadlock when adding tool result
+- 51f497d: feat (ai): step input message modification in prepareStep
+- cee64b2: fix(otel): change back toolCall attributes of input/output back to args/result for compatibility
+- f04ffe4: feat (ui): add onData callback to Chat
+- bc24722: feat (ai): Add finishReason as a promise on StreamObjectResult to match StreamTextResult
+- b6f9f3c: remove deprecated `CoreTool*` types
+- 8aa9e20: feat: add speech with experimental_generateSpeech
+- 4617fab: chore(embedding-models): remove remaining settings
+- 8255639: ### Fix use with Google APIs + zod v4's `.literal()` schema
+
+  Before [zod@3.25.49](https://github.com/colinhacks/zod/releases/tag/v3.25.49), requests to Google's APIs failed due to a missing `type` in the provided schema. The problem has been resolved for the `ai` SDK by bumping our `zod` peer dependencies to `^3.25.49`.
+
+  pull request: https://github.com/vercel/ai/pull/6609
+
+- f81c720: chore(ai): bundle dependencies in CLI binary
+- cf9af6e: feat (ai): allow sync prepareStep
+- ee38081: Add support for audio/webm to detect-media-type
+- 2e4f9e4: feat (ai): improved error messages when using gateway
+- 3e3b9df: fix (ai/mcp): better support for zero-argument MCP tools
+- cda32ba: fix (ai): send `start` part in correct position in stream (streamText)
+- 48a7606: feat (ai): support changing the system prompt in prepareSteps
+- cb68df0: feat: add transcription and speech model support to provider registry
+- db64cbe: fix (provider/openai): multi-step reasoning with tool calls
+- 97c35c0: feat (ui): transient data parts
+- 26695a3: feat (ui): add state for text and reasoning ui message parts
+- 90ac328: fix (ui): tool part metadata support in ui messages
+- 60132dd: fixed date formatting for updated mcp protocol version
+- 4a1e0c8: fix(ai-cli): fix bundling and improve authentication error handling
+- c6b64a7: feat (ai): allow async prepareRequest on HttpChatTransport
+- fccf75c: update mcp protocol version
+- 9121250: Expose provider metadata as an attribute on exported OTEL spans
+- ea27cc6: chore (ai): use JSONValue definition from provider
+- 90ca2b9: feat(ai): Record tool call errors on tool call spans recorded in `generateText` and `streamText`.
+- 50f0362: fix (ai): fix experimental sendStart/sendFinish options in streamText
+- 825e8d7: release alpha.5
+- 7d97ab6: release alpha.4
+- 0ff02bb: chore(provider-utils): move over jsonSchema
+- 4f3776c: feat (ai): add InferUITools helper
+- 9338f3e: fix (ai): throw error for v1 models
+- 92c8e66: fix(ai/core): properly handle custom separator in provider registry
+- 53569b8: feat (ai): add experimental repairText function to streamObject
+- 82aa95d: fix (ai): merge data ui stream parts correctly
+- e7d2ce3: feat: provider-executed tools
+- add5ac1: feat (ai): make streamText toUIMessageStream async iterable
+- 37a916d: feat (ai): add prepareSteps to streamText
+- 30ac566: fix (ui): text message metadata support in ui messages
+- 8026705: fix (core): send buffered text in smooth stream when stream parts change
+- 9bd5ab5: feat (provider): add providerMetadata to ImageModelV2 interface (#5977)
+
+  The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
+
+  ```js
+  const prompt = 'Santa Claus driving a Cadillac';
+
+  const { providerMetadata } = await experimental_generateImage({
+    model: openai.image('dall-e-3'),
+    prompt,
+  });
+
+  const revisedPrompt = providerMetadata.openai.images[0]?.revisedPrompt;
+
+  console.log({
+    prompt,
+    revisedPrompt,
+  });
+  ```
+
+- ec5933d: chore (ai/mcp): add `assertCapability` method to experimental MCP client
+- 09f41ac: fix (ui): add message metadata in Chat.sendMessage
+- ff1c81a: feat (ai): add streamText onAbort callback
+- af1d5a5: fix(ai): Unexpected reasoning-start event in extract reasoning middleware
+- cb3b9c9: fix (ai): catch errors in ui message stream
+- 86293e5: fix (ai): use correct generateMessageId in streamText toUIMessageStream
+- d1a034f: feature: using Zod 4 for internal stuff
+- fd65bc6: chore(embedding-model-v2): rename rawResponse to response
+- d92b9a8: fix(ai): add support for MCP protocol version 2025-06-18
+- 102b066: fix (ai): fix invalid fetch call
+- 142576e: feat (ui): support message replacement in chat via messageId param on sendMessage
+- 84343eb: fix (ui): call sendAutomaticallyWhen with updated messages
+- a76a62b: feat (ai): add experimental prepareStep callback to generateText
+- 89ba235: fix (ui): support tool names with dash
+- 8e31d46: feat (ai): export SourceDocumentUIPart
+- bd398e4: fix (core): improve error handling in streamText's consumeStream method
+- 88a8ee5: fix (ai): support abort during retry waits
+- 205077b: fix: improve Zod compatibility
+- d91b50d: chore(ui-utils): merge into ai package
+- e4c8647: feat (ui): allow asynchronous onFinish in createUIMessageStream
+- c808e4d: fix (ui): do not send changing assistant message ids when onFinish is provided
+- e862b5b: feat (ai): allow sync tool.execute
+- 395c85e: feat (ai): add consumeSseStream option to UI message stream responses
+- 5bdff05: Removed deprecated `options.throwErrorForEmptyVectors` from `cosineSimilarity()`. Since `throwErrorForEmptyVectors` was the only option the entire `options` argument was removed.
+
+  ```diff
+  - cosineSimilarity(vector1, vector2, options)
+  +cosineSimilarity(vector1, vector2)
+  ```
+
+- 13b4f46: feat (ai): export experimental MCPClient and MCPClientConfig interfaces
+- a4f3007: chore: remove ai/react
+- 8e64e9c: feat (ai): allow using provider default temperature by specifying null
+- b983b51: feat (ai): support model message array in prompt
+- 56c232b: fix (ai): remove outdated sendStart jsdoc
+- 7324c21: fix (ai/telemetry): Avoid JSON.stringify on Uint8Arrays for telemetry
+- f10304b: feat(tool-calling): don't require the user to have to pass parameters
+- dd5fd43: feat (ai): support dynamic tools in Chat onToolCall
+- a753b3a: feat (provider/anthropic): cache control for tools
+- 383cbfa: feat (ai): add isAborted to onFinish callback for ui message streams
+- 27deb4d: feat (provider/gateway): Add providerMetadata to embeddings response
+- 5f2b3d4: chore (ai): stable prepareStep
+- 4c8f834: feat: automatically respect rate limit headers in retry logic
+
+  Added automatic support for respecting rate limit headers (`retry-after-ms` and `retry-after`) in the SDK's retry logic. When these headers are present and contain reasonable values (0-60 seconds), the retry mechanism will use the server-specified delay instead of exponential backoff. This matches the behavior of Anthropic and OpenAI client SDKs and improves rate limit handling without requiring any API changes.
+
+- f2c7f19: feat (ui): add Chat.clearError()
+- 7bd025b: fix (ai): fix sync tool execute with streamText
+- Updated dependencies [a571d6e]
+- Updated dependencies [742b7be]
+- Updated dependencies [9e16bfd]
+- Updated dependencies [e7fcc86]
+- Updated dependencies [0477a13]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [95857aa]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [6f6bb89]
+- Updated dependencies [26b6dd0]
+- Updated dependencies [060370c]
+- Updated dependencies [dc714f3]
+- Updated dependencies [b5da06a]
+- Updated dependencies [d1a1aa1]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [5d142ab]
+- Updated dependencies [d5f588f]
+- Updated dependencies [30ab1de]
+- Updated dependencies [e025824]
+- Updated dependencies [0571b98]
+- Updated dependencies [b6b43c7]
+- Updated dependencies [4fef487]
+- Updated dependencies [48d257a]
+- Updated dependencies [0c0c0b3]
+- Updated dependencies [0d2c085]
+- Updated dependencies [40acf9b]
+- Updated dependencies [9222aeb]
+- Updated dependencies [e2aceaf]
+- Updated dependencies [411e483]
+- Updated dependencies [97fedf9]
+- Updated dependencies [8ba77a7]
+- Updated dependencies [c91586a]
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [a166433]
+- Updated dependencies [3cbcbb7]
+- Updated dependencies [26735b5]
+- Updated dependencies [443d8ec]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [abf9a79]
+- Updated dependencies [14c9410]
+- Updated dependencies [e86be6f]
+- Updated dependencies [9bf7291]
+- Updated dependencies [2e13791]
+- Updated dependencies [9f95b35]
+- Updated dependencies [66962ed]
+- Updated dependencies [fedb55e]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [6c2c708]
+- Updated dependencies [d9c98f4]
+- Updated dependencies [05d2819]
+- Updated dependencies [9301f86]
+- Updated dependencies [0a87932]
+- Updated dependencies [c4a2fec]
+- Updated dependencies [957b739]
+- Updated dependencies [721775e]
+- Updated dependencies [70ebead]
+- Updated dependencies [79457bd]
+- Updated dependencies [a3f768e]
+- Updated dependencies [f3639fa]
+- Updated dependencies [7435eb5]
+- Updated dependencies [8aa9e20]
+- Updated dependencies [4617fab]
+- Updated dependencies [ac34802]
+- Updated dependencies [0054544]
+- Updated dependencies [cb68df0]
+- Updated dependencies [ad80501]
+- Updated dependencies [8bd3624]
+- Updated dependencies [68ecf2f]
+- Updated dependencies [9e9c809]
+- Updated dependencies [32831c6]
+- Updated dependencies [6dc848c]
+- Updated dependencies [6b98118]
+- Updated dependencies [d0f9495]
+- Updated dependencies [c145d62]
+- Updated dependencies [63d791d]
+- Updated dependencies [87b828f]
+- Updated dependencies [3f2f00c]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [0ff02bb]
+- Updated dependencies [7979f7f]
+- Updated dependencies [f77bc38]
+- Updated dependencies [989ac75]
+- Updated dependencies [39a4fab]
+- Updated dependencies [44f4aba]
+- Updated dependencies [7742ba3]
+- Updated dependencies [9bd5ab5]
+- Updated dependencies [57edfcb]
+- Updated dependencies [faf8446]
+- Updated dependencies [c190907]
+- Updated dependencies [7ea4132]
+- Updated dependencies [d1a034f]
+- Updated dependencies [d454e4b]
+- Updated dependencies [5c56081]
+- Updated dependencies [fd65bc6]
+- Updated dependencies [cf1e00e]
+- Updated dependencies [023ba40]
+- Updated dependencies [cc21603]
+- Updated dependencies [ea7a7c9]
+- Updated dependencies [26535e0]
+- Updated dependencies [e030615]
+- Updated dependencies [5e57fae]
+- Updated dependencies [393138b]
+- Updated dependencies [c57e248]
+- Updated dependencies [88a8ee5]
+- Updated dependencies [41fa418]
+- Updated dependencies [205077b]
+- Updated dependencies [71f938d]
+- Updated dependencies [e001ea1]
+- Updated dependencies [3795467]
+- Updated dependencies [28a5ed5]
+- Updated dependencies [7182d14]
+- Updated dependencies [c1e6647]
+- Updated dependencies [1766ede]
+- Updated dependencies [811dff3]
+- Updated dependencies [f10304b]
+- Updated dependencies [dd5fd43]
+- Updated dependencies [33f4a6a]
+- Updated dependencies [383cbfa]
+- Updated dependencies [27deb4d]
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider-utils@3.0.0
+  - @ai-sdk/provider@2.0.0
+  - @ai-sdk/gateway@1.0.0
+
+## 5.0.0-beta.34
+
+### Patch Changes
+
+- 53569b8: feat (ai): add experimental repairText function to streamObject
+- 88a8ee5: fix (ai): support abort during retry waits
+- f2c7f19: feat (ui): add Chat.clearError()
+- Updated dependencies [721775e]
+- Updated dependencies [88a8ee5]
+  - @ai-sdk/gateway@1.0.0-beta.19
+  - @ai-sdk/provider-utils@3.0.0-beta.10
+
+## 5.0.0-beta.33
+
+### Patch Changes
+
+- 48378b9: fix (ai): send null as tool output when tools return undefined
+- 93d53a1: chore (ai): remove cli
+- 27deb4d: feat (provider/gateway): Add providerMetadata to embeddings response
+- Updated dependencies [27deb4d]
+  - @ai-sdk/gateway@1.0.0-beta.18
+  - @ai-sdk/provider@2.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.9
+
+## 5.0.0-beta.32
+
+### Patch Changes
+
+- bc24722: feat (ai): Add finishReason as a promise on StreamObjectResult to match StreamTextResult
+- 13b4f46: feat (ai): export experimental MCPClient and MCPClientConfig interfaces
+- 56c232b: fix (ai): remove outdated sendStart jsdoc
+
+## 5.0.0-beta.31
+
+### Patch Changes
+
+- 6622441: feat (ai): add static/dynamic toolCalls/toolResults helpers
+- ced8eee: feat(ai): re-export zodSchema from main package
+- cee64b2: fix(otel): change back toolCall attributes of input/output back to args/result for compatibility
+- ee38081: Add support for audio/webm to detect-media-type
+- dd5fd43: feat (ai): support dynamic tools in Chat onToolCall
+- Updated dependencies [dd5fd43]
+  - @ai-sdk/provider-utils@3.0.0-beta.8
+  - @ai-sdk/gateway@1.0.0-beta.17
+
+## 5.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [fedb55e]
+  - @ai-sdk/gateway@1.0.0-beta.16
+
+## 5.0.0-beta.29
+
+### Patch Changes
+
+- e7fcc86: feat (ai): introduce dynamic tools
+- d92b9a8: fix(ai): add support for MCP protocol version 2025-06-18
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+  - @ai-sdk/gateway@1.0.0-beta.15
+
+## 5.0.0-beta.28
+
+### Patch Changes
+
+- 84343eb: fix (ui): call sendAutomaticallyWhen with updated messages
+- a753b3a: feat (provider/anthropic): cache control for tools
+- Updated dependencies [ac34802]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+  - @ai-sdk/gateway@1.0.0-beta.14
+
+## 5.0.0-beta.27
+
+### Patch Changes
+
+- d5ae088: feat (ui): add sendAutomaticallyWhen to Chat
+- Updated dependencies [0477a13]
+- Updated dependencies [cf1e00e]
+- Updated dependencies [cc21603]
+  - @ai-sdk/gateway@1.0.0-beta.13
+
+## 5.0.0-beta.26
+
+### Patch Changes
+
+- ae77a99: chore (ai): rename text and reasoning chunks in streamText fullstream
+- 1f6ce57: feat (ai): infer tool call types in the `onToolCall` callback
+- 5a975a4: feat (ui): update Chat tool result submission
+- 2a62513: Fix error thrown when emptying messages in onError or onFinish
+- 904fa5e: feat (ai/core): add terminateOnError option to readUIMessageStream
+- f81c720: chore(ai): bundle dependencies in CLI binary
+- Updated dependencies [70ebead]
+  - @ai-sdk/gateway@1.0.0-beta.12
+
+## 5.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [8bd3624]
+- Updated dependencies [e001ea1]
+  - @ai-sdk/gateway@1.0.0-beta.11
+
+## 5.0.0-beta.24
+
+### Patch Changes
+
+- add5ac1: feat (ai): make streamText toUIMessageStream async iterable
+- ff1c81a: feat (ai): add streamText onAbort callback
+- e4c8647: feat (ui): allow asynchronous onFinish in createUIMessageStream
+- 383cbfa: feat (ai): add isAborted to onFinish callback for ui message streams
+- Updated dependencies [57edfcb]
+- Updated dependencies [383cbfa]
+  - @ai-sdk/provider-utils@3.0.0-beta.5
+  - @ai-sdk/gateway@1.0.0-beta.10
+
+## 5.0.0-beta.23
+
+### Patch Changes
+
+- 89ba235: fix (ui): support tool names with dash
+
+## 5.0.0-beta.22
+
+### Patch Changes
+
+- de2d2ab: feat(ai): add provider and provider registry middleware functionality
+- 6c42e56: feat (ai): validate ui stream data chunks
+- c93a8bc: chore(ai): export AsyncIterableStream type from async-iterable-stream module
+- 20398f2: feat: ai sdk cli documentation + adjusted default model
+- 86293e5: fix (ai): use correct generateMessageId in streamText toUIMessageStream
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [205077b]
+  - @ai-sdk/provider-utils@3.0.0-beta.4
+  - @ai-sdk/gateway@1.0.0-beta.9
+
+## 5.0.0-beta.21
+
+### Patch Changes
+
+- 38ae5cc: feat (ai): export InferUIMessageChunk type
+- faea29f: fix (provider/openai): multi-step reasoning with text
+- 90ac328: fix (ui): tool part metadata support in ui messages
+- 4a1e0c8: fix(ai-cli): fix bundling and improve authentication error handling
+- 30ac566: fix (ui): text message metadata support in ui messages
+
+## 5.0.0-beta.20
+
+### Patch Changes
+
+- 4c8f834: feat: automatically respect rate limit headers in retry logic
+
+  Added automatic support for respecting rate limit headers (`retry-after-ms` and `retry-after`) in the SDK's retry logic. When these headers are present and contain reasonable values (0-60 seconds), the retry mechanism will use the server-specified delay instead of exponential backoff. This matches the behavior of Anthropic and OpenAI client SDKs and improves rate limit handling without requiring any API changes.
+
+## 5.0.0-beta.19
+
+### Patch Changes
+
+- 10b21eb: feat(cli): add ai command line interface
+- 75c3396: fix (ai): handle errors in 2nd streamText doStream call
+- 05d2819: feat: allow zod 4.x as peer dependency
+- db64cbe: fix (provider/openai): multi-step reasoning with tool calls
+- Updated dependencies [05d2819]
+  - @ai-sdk/provider-utils@3.0.0-beta.3
+  - @ai-sdk/gateway@1.0.0-beta.8
+
+## 5.0.0-beta.18
+
+### Patch Changes
+
+- d3960e3: selectTelemetryAttributes more robustness
+- 9338f3e: fix (ai): throw error for v1 models
+
+## 5.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [c190907]
+  - @ai-sdk/gateway@1.0.0-beta.7
+
+## 5.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [9e16bfd]
+  - @ai-sdk/gateway@1.0.0-beta.6
+
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- 8e31d46: feat (ai): export SourceDocumentUIPart
+
+## 5.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [30ab1de]
+  - @ai-sdk/gateway@1.0.0-beta.5
+
+## 5.0.0-beta.13
+
+### Patch Changes
+
+- 377bbcf: fix (ui): tool input can be undefined during input-streaming
+- ce1d1f3: feat (ai): export mock image, speech, and transcription models
+- c040e2f: fix (ui): inject generated response message id
+- c808e4d: fix (ui): do not send changing assistant message ids when onFinish is provided
+
+## 5.0.0-beta.12
+
+### Patch Changes
+
+- fc0380b: feat (ui): resolvable header, body, credentials in http chat transport
+- 51f497d: feat (ai): step input message modification in prepareStep
+- 4f3776c: feat (ai): add InferUITools helper
+
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- 9e40cbe: Allow destructuring output and errorText on `ToolUIPart` type
+
+## 5.0.0-beta.10
+
+### Major Changes
+
+- 2b637d6: chore (ai): rename UIMessageStreamPart to UIMessageChunk
+
+### Patch Changes
+
+- 16ccfb2: feat (ai): add readUIMessageStream helper
+- 90ca2b9: feat(ai): Record tool call errors on tool call spans recorded in `generateText` and `streamText`.
+- af1d5a5: fix(ai): Unexpected reasoning-start event in extract reasoning middleware
+
+## 5.0.0-beta.9
+
+### Patch Changes
+
+- 86cfc72: feat (ai): add ignoreIncompleteToolCalls option to convertToModelMessages
+
+## 5.0.0-beta.8
+
+### Patch Changes
+
+- 6909543: feat (ai): support system parameter in Agent constructor
+- c8fce91: feat (ai): add experimental Agent abstraction
+- 9121250: Expose provider metadata as an attribute on exported OTEL spans
+- Updated dependencies [97fedf9]
+  - @ai-sdk/gateway@1.0.0-beta.4
+
+## 5.0.0-beta.7
+
+### Patch Changes
+
+- 60132dd: fixed date formatting for updated mcp protocol version
+
+## 5.0.0-beta.6
+
+### Patch Changes
+
+- 143c55b: feat (ai): export Chat callback types
+- f04ffe4: feat (ui): add onData callback to Chat
+- 97c35c0: feat (ui): transient data parts
+- fccf75c: update mcp protocol version
+
 ## 5.0.0-beta.5
 
 ### Patch Changes

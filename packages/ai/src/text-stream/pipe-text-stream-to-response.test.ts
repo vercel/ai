@@ -1,6 +1,7 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { createMockServerResponse } from '../../core/test/mock-server-response';
+import { createMockServerResponse } from '../test/mock-server-response';
 import { pipeTextStreamToResponse } from './pipe-text-stream-to-response';
+import { describe, it, expect } from 'vitest';
 
 describe('pipeTextStreamToResponse', () => {
   it('should write to ServerResponse with correct headers and encoded stream', async () => {

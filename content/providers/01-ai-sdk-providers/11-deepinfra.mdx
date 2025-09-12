@@ -11,7 +11,7 @@ The [DeepInfra](https://deepinfra.com) provider contains support for state-of-th
 
 The DeepInfra provider is available via the `@ai-sdk/deepinfra` module. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/deepinfra" dark />
   </Tab>
@@ -20,6 +20,10 @@ The DeepInfra provider is available via the `@ai-sdk/deepinfra` module. You can 
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/deepinfra" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/deepinfra" dark />
   </Tab>
 </Tabs>
 
@@ -46,7 +50,10 @@ You can use the following optional settings to customize the DeepInfra provider 
 - **baseURL** _string_
 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
-  The default prefix is `https://api.deepinfra.com/v1/openai`.
+  The default prefix is `https://api.deepinfra.com/v1`.
+
+  Note: Language models and embeddings use OpenAI-compatible endpoints at `{baseURL}/openai`,
+  while image models use `{baseURL}/inference`.
 
 - **apiKey** _string_
 
@@ -96,7 +103,7 @@ DeepInfra language models can also be used in the `streamText` function (see [AI
 | `meta-llama/Llama-3.2-11B-Vision-Instruct`          | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta-llama/Llama-3.2-90B-Vision-Instruct`          | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `mistralai/Mixtral-8x7B-Instruct-v0.1`              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `deepseek-ai/DeepSeek-V3`                           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `deepseek-ai/DeepSeek-V3`                           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `deepseek-ai/DeepSeek-R1`                           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`         | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `deepseek-ai/DeepSeek-R1-Turbo`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
@@ -180,3 +187,44 @@ For models supporting size parameters, dimensions must typically be:
 | `stabilityai/sdxl-turbo`           | Aspect Ratio             | Optimized for fast generation                            |
 
 For more details and pricing information, see the [DeepInfra text-to-image models page](https://deepinfra.com/models/text-to-image).
+
+## Embedding Models
+
+You can create DeepInfra embedding models using the `.textEmbedding()` factory method.
+For more on embedding models with the AI SDK see [embed()](/docs/reference/ai-sdk-core/embed).
+
+```ts
+import { deepinfra } from '@ai-sdk/deepinfra';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: deepinfra.textEmbedding('BAAI/bge-large-en-v1.5'),
+  value: 'sunny day at the beach',
+});
+```
+
+### Model Capabilities
+
+| Model                                                 | Dimensions | Max Tokens |
+| ----------------------------------------------------- | ---------- | ---------- |
+| `BAAI/bge-base-en-v1.5`                               | 768        | 512        |
+| `BAAI/bge-large-en-v1.5`                              | 1024       | 512        |
+| `BAAI/bge-m3`                                         | 1024       | 8192       |
+| `intfloat/e5-base-v2`                                 | 768        | 512        |
+| `intfloat/e5-large-v2`                                | 1024       | 512        |
+| `intfloat/multilingual-e5-large`                      | 1024       | 512        |
+| `sentence-transformers/all-MiniLM-L12-v2`             | 384        | 256        |
+| `sentence-transformers/all-MiniLM-L6-v2`              | 384        | 256        |
+| `sentence-transformers/all-mpnet-base-v2`             | 768        | 384        |
+| `sentence-transformers/clip-ViT-B-32`                 | 512        | 77         |
+| `sentence-transformers/clip-ViT-B-32-multilingual-v1` | 512        | 77         |
+| `sentence-transformers/multi-qa-mpnet-base-dot-v1`    | 768        | 512        |
+| `sentence-transformers/paraphrase-MiniLM-L6-v2`       | 384        | 128        |
+| `shibing624/text2vec-base-chinese`                    | 768        | 512        |
+| `thenlper/gte-base`                                   | 768        | 512        |
+| `thenlper/gte-large`                                  | 1024       | 512        |
+
+<Note>
+  For a complete list of available embedding models, see the [DeepInfra
+  embeddings page](https://deepinfra.com/models/embeddings).
+</Note>

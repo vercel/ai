@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
 import {
-  parseAuthMethod,
   GATEWAY_AUTH_METHOD_HEADER,
+  parseAuthMethod,
 } from './parse-auth-method';
 
 describe('GATEWAY_AUTH_METHOD_HEADER', () => {
   it('should export the correct header name', () => {
-    expect(GATEWAY_AUTH_METHOD_HEADER).toBe('x-ai-gateway-auth-method');
+    expect(GATEWAY_AUTH_METHOD_HEADER).toBe('ai-gateway-auth-method');
   });
 });
 

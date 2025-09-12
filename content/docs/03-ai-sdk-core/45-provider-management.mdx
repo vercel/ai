@@ -28,7 +28,11 @@ with pre-configured settings.
 
 ```ts
 import { openai as originalOpenAI } from '@ai-sdk/openai';
-import { customProvider } from 'ai';
+import {
+  customProvider,
+  defaultSettingsMiddleware,
+  wrapLanguageModel,
+} from 'ai';
 
 // custom provider with different provider options:
 export const openai = customProvider({
@@ -90,7 +94,11 @@ You can limit the available models in the system, even if you have multiple prov
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
-import { customProvider } from 'ai';
+import {
+  customProvider,
+  defaultSettingsMiddleware,
+  wrapLanguageModel,
+} from 'ai';
 
 export const myProvider = customProvider({
   languageModels: {
@@ -109,7 +117,7 @@ export const myProvider = customProvider({
       }),
     }),
     'reasoning-fast': wrapLanguageModel({
-      model: originalOpenAI('gpt-4o-mini'),
+      model: openai('gpt-4o-mini'),
       middleware: defaultSettingsMiddleware({
         settings: {
           providerOptions: {
@@ -122,7 +130,7 @@ export const myProvider = customProvider({
     }),
   },
   embeddingModels: {
-    emdedding: openai.textEmbeddingModel('text-embedding-3-small'),
+    embedding: openai.textEmbeddingModel('text-embedding-3-small'),
   },
   // no fallback provider
 });
@@ -269,7 +277,7 @@ export const registry = createProviderRegistry(
           middleware: defaultSettingsMiddleware({
             settings: {
               maxOutputTokens: 100000, // example default setting
-              providerMetadata: {
+              providerOptions: {
                 anthropic: {
                   thinking: {
                     type: 'enabled',
@@ -298,3 +306,40 @@ export const registry = createProviderRegistry(
 // usage:
 const model = registry.languageModel('anthropic > reasoning');
 ```
+
+## Global Provider Configuration
+
+The AI SDK 5 includes a global provider feature that allows you to specify a model using just a plain model ID string:
+
+```ts
+import { streamText } from 'ai';
+
+const result = await streamText({
+  model: 'openai/gpt-4o', // Uses the global provider (defaults to AI Gateway)
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+By default, the global provider is set to the Vercel AI Gateway.
+
+### Customizing the Global Provider
+
+You can set your own preferred global provider:
+
+```ts filename="setup.ts"
+import { openai } from '@ai-sdk/openai';
+
+// Initialize once during startup:
+globalThis.AI_SDK_DEFAULT_PROVIDER = openai;
+```
+
+```ts filename="app.ts"
+import { streamText } from 'ai';
+
+const result = await streamText({
+  model: 'gpt-4o', // Uses OpenAI provider without prefix
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+This simplifies provider usage and makes it easier to switch between providers without changing your model references throughout your codebase.

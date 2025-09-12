@@ -44,8 +44,7 @@
     "mathjs": "14.0.0",
     "sharp": "^0.33.5",
     "terminal-image": "^2.0.0",
-    "zod": "3.25.49",
-    "zod-to-json-schema": "3.23.5",
+    "zod": "3.25.76",
     "valibot": "^1.0.0-rc.0 || ^1.0.0"
   },
   "scripts": {

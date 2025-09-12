@@ -13,19 +13,74 @@ import {
   isToolUIPart,
   TextStreamChatTransport,
   UIMessage,
-  UIMessageStreamPart,
+  UIMessageChunk,
 } from 'ai';
 import React, { act, useRef, useState } from 'react';
+import { Chat } from './chat.react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-function formatStreamPart(part: UIMessageStreamPart) {
+function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
 const server = createTestServer({
   '/api/chat': {},
   '/api/chat/123/stream': {},
+});
+
+describe('initial messages', () => {
+  setupTestComponent(
+    ({ id: idParam }: { id: string }) => {
+      const [id, setId] = React.useState<string>(idParam);
+      const {
+        messages,
+        status,
+        id: idKey,
+      } = useChat({
+        id,
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ text: 'hi', type: 'text' }],
+          },
+        ],
+      });
+
+      return (
+        <div>
+          <div data-testid="id">{idKey}</div>
+          <div data-testid="status">{status.toString()}</div>
+          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+        </div>
+      );
+    },
+    {
+      // use a random id to avoid conflicts:
+      init: TestComponent => <TestComponent id={`first-${mockId()()}`} />,
+    },
+  );
+
+  it('should show initial messages', async () => {
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          role: 'user',
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          id: 'id-0',
+        },
+      ]);
+    });
+  });
 });
 
 describe('data protocol stream', () => {
@@ -83,12 +138,12 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text-start', id: '0' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
-        formatStreamPart({ type: 'text-end', id: '0' }),
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -167,7 +222,7 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'error', errorText: 'custom error message' }),
+        formatChunk({ type: 'error', errorText: 'custom error message' }),
       ],
     };
 
@@ -194,11 +249,11 @@ describe('data protocol stream', () => {
         expect(screen.getByTestId('status')).toHaveTextContent('submitted');
       });
 
-      controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
       controller.write(
-        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
       );
-      controller.write(formatStreamPart({ type: 'text-end', id: '0' }));
+      controller.write(formatChunk({ type: 'text-end', id: '0' }));
 
       await waitFor(() => {
         expect(screen.getByTestId('status')).toHaveTextContent('streaming');
@@ -236,22 +291,18 @@ describe('data protocol stream', () => {
 
     await userEvent.click(screen.getByTestId('do-send'));
 
-    controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
     controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
     );
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: ',' }));
     controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+      formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
     );
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: '.' }));
+    controller.write(formatChunk({ type: 'text-end', id: '0' }));
     controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
-    );
-    controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
-    );
-    controller.write(formatStreamPart({ type: 'text-end', id: '0' }));
-    controller.write(
-      formatStreamPart({
+      formatChunk({
         type: 'finish',
         messageMetadata: {
           example: 'metadata',
@@ -295,6 +346,9 @@ describe('data protocol stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "isAbort": false,
+          "isDisconnect": false,
+          "isError": false,
           "message": {
             "id": "id-1",
             "metadata": {
@@ -302,6 +356,7 @@ describe('data protocol stream', () => {
             },
             "parts": [
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -309,6 +364,34 @@ describe('data protocol stream', () => {
             ],
             "role": "assistant",
           },
+          "messages": [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": {
+                "example": "metadata",
+              },
+              "parts": [
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
         },
       ]
     `);
@@ -319,12 +402,12 @@ describe('data protocol stream', () => {
       server.urls['/api/chat'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatStreamPart({ type: 'text-start', id: '0' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
-          formatStreamPart({ type: 'text-end', id: '0' }),
+          formatChunk({ type: 'text-start', id: '0' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+          formatChunk({ type: 'text-end', id: '0' }),
         ],
       };
 
@@ -345,56 +428,9 @@ describe('data protocol stream', () => {
               "role": "user",
             },
           ],
-          "trigger": "submit-user-message",
+          "trigger": "submit-message",
         }
       `);
-    });
-
-    it('should clear out messages when the id changes', async () => {
-      server.urls['/api/chat'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          formatStreamPart({ type: 'text-start', id: '0' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
-          formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
-          formatStreamPart({ type: 'text-end', id: '0' }),
-        ],
-      };
-
-      await userEvent.click(screen.getByTestId('do-send'));
-
-      await waitFor(() => {
-        expect(
-          JSON.parse(screen.getByTestId('messages').textContent ?? ''),
-        ).toStrictEqual([
-          {
-            id: expect.any(String),
-            parts: [
-              {
-                text: 'hi',
-                type: 'text',
-              },
-            ],
-            role: 'user',
-          },
-          {
-            id: 'id-1',
-            parts: [
-              {
-                text: 'Hello, world.',
-                type: 'text',
-                state: 'done',
-              },
-            ],
-            role: 'assistant',
-          },
-        ]);
-      });
-      await userEvent.click(screen.getByTestId('do-change-id'));
-
-      expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
     });
   });
 });
@@ -501,6 +537,9 @@ describe('text stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "isAbort": false,
+          "isDisconnect": false,
+          "isError": false,
           "message": {
             "id": "id-2",
             "metadata": undefined,
@@ -509,6 +548,7 @@ describe('text stream', () => {
                 "type": "step-start",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -516,6 +556,35 @@ describe('text stream', () => {
             ],
             "role": "assistant",
           },
+          "messages": [
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-2",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
         },
       ]
     `);
@@ -580,12 +649,12 @@ describe('prepareChatRequest', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text-start', id: '0' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
-        formatStreamPart({ type: 'text-end', id: '0' }),
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -624,7 +693,7 @@ describe('prepareChatRequest', () => {
         "requestMetadata": {
           "request-metadata-key": "request-metadata-value",
         },
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
 
@@ -652,12 +721,16 @@ describe('onToolCall', () => {
   let toolCallPromise: Promise<void>;
 
   setupTestComponent(() => {
-    const { messages, sendMessage } = useChat({
+    const { messages, sendMessage, addToolResult } = useChat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
-        return `test-tool-response: ${toolCall.toolName} ${
-          toolCall.toolCallId
-        } ${JSON.stringify(toolCall.input)}`;
+        addToolResult({
+          tool: 'test-tool',
+          toolCallId: toolCall.toolCallId,
+          output: `test-tool-response: ${toolCall.toolName} ${
+            toolCall.toolCallId
+          } ${JSON.stringify(toolCall.input)}`,
+        });
       },
     });
 
@@ -695,7 +768,7 @@ describe('onToolCall', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({
+        formatChunk({
           type: 'tool-input-available',
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
@@ -736,7 +809,6 @@ describe('onToolCall', () => {
 describe('tool invocations', () => {
   setupTestComponent(() => {
     const { messages, sendMessage, addToolResult } = useChat({
-      maxSteps: 5,
       generateId: mockId(),
     });
 
@@ -755,6 +827,7 @@ describe('tool invocations', () => {
                       data-testid={`add-result-${toolIdx}`}
                       onClick={() => {
                         addToolResult({
+                          tool: 'test-tool',
                           toolCallId: toolPart.toolCallId,
                           output: 'test-result',
                         });
@@ -799,7 +872,7 @@ describe('tool invocations', () => {
     await userEvent.click(screen.getByTestId('do-send'));
 
     controller.write(
-      formatStreamPart({
+      formatChunk({
         type: 'tool-input-start',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
@@ -817,7 +890,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatStreamPart({
+      formatChunk({
         type: 'tool-input-delta',
         toolCallId: 'tool-call-0',
         inputTextDelta: '{"testArg":"t',
@@ -836,7 +909,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatStreamPart({
+      formatChunk({
         type: 'tool-input-delta',
         toolCallId: 'tool-call-0',
         inputTextDelta: 'est-value"}}',
@@ -855,7 +928,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatStreamPart({
+      formatChunk({
         type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
@@ -875,7 +948,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatStreamPart({
+      formatChunk({
         type: 'tool-output-available',
         toolCallId: 'tool-call-0',
         output: 'test-result',
@@ -906,7 +979,7 @@ describe('tool invocations', () => {
     await userEvent.click(screen.getByTestId('do-send'));
 
     controller.write(
-      formatStreamPart({
+      formatChunk({
         type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
@@ -926,7 +999,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatStreamPart({
+      formatChunk({
         type: 'tool-output-available',
         toolCallId: 'tool-call-0',
         output: 'test-result',
@@ -956,10 +1029,10 @@ describe('tool invocations', () => {
 
     await userEvent.click(screen.getByTestId('do-send'));
 
-    controller.write(formatStreamPart({ type: 'start' }));
-    controller.write(formatStreamPart({ type: 'start-step' }));
+    controller.write(formatChunk({ type: 'start' }));
+    controller.write(formatChunk({ type: 'start-step' }));
     controller.write(
-      formatStreamPart({
+      formatChunk({
         type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
@@ -992,15 +1065,15 @@ describe('tool invocations', () => {
       });
     });
 
-    controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
     controller.write(
-      formatStreamPart({
+      formatChunk({
         type: 'text-delta',
         id: '0',
         delta: 'more text',
       }),
     );
-    controller.write(formatStreamPart({ type: 'text-end', id: '0' }));
+    controller.write(formatChunk({ type: 'text-end', id: '0' }));
     controller.close();
 
     await waitFor(() => {
@@ -1039,308 +1112,6 @@ describe('tool invocations', () => {
           role: 'assistant',
         },
       ]);
-    });
-  });
-
-  it('should delay tool result submission until the stream is finished', async () => {
-    const controller1 = new TestResponseController();
-
-    server.urls['/api/chat'].response = [
-      { type: 'controlled-stream', controller: controller1 },
-    ];
-
-    await userEvent.click(screen.getByTestId('do-send'));
-
-    // start stream
-    controller1.write(formatStreamPart({ type: 'start' }));
-    controller1.write(formatStreamPart({ type: 'start-step' }));
-
-    // tool call
-    controller1.write(
-      formatStreamPart({
-        type: 'tool-input-available',
-        toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
-        input: { testArg: 'test-value' },
-      }),
-    );
-
-    await waitFor(() => {
-      expect(
-        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
-      ).toStrictEqual({
-        state: 'input-available',
-        input: { testArg: 'test-value' },
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-      });
-    });
-
-    // user submits the tool result
-    await userEvent.click(screen.getByTestId('add-result-0'));
-
-    // UI should show the tool result
-    await waitFor(() => {
-      expect(
-        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
-      ).toStrictEqual({
-        state: 'output-available',
-        input: { testArg: 'test-value' },
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-        output: 'test-result',
-      });
-    });
-
-    // should not have called the API yet
-    expect(server.calls.length).toBe(1);
-
-    // finish stream
-    controller1.write(formatStreamPart({ type: 'finish-step' }));
-    controller1.write(formatStreamPart({ type: 'finish' }));
-
-    await controller1.close();
-
-    // 2nd call should happen after the stream is finished
-    await waitFor(() => {
-      expect(server.calls.length).toBe(2);
-    });
-  });
-
-  it('should trigger request when all tool calls are completed', async () => {
-    const controller1 = new TestResponseController();
-    const controller2 = new TestResponseController();
-
-    server.urls['/api/chat'].response = [
-      { type: 'controlled-stream', controller: controller1 },
-      { type: 'controlled-stream', controller: controller2 },
-    ];
-
-    await userEvent.click(screen.getByTestId('do-send'));
-
-    // start stream
-    controller1.write(formatStreamPart({ type: 'start' }));
-    controller1.write(formatStreamPart({ type: 'start-step' }));
-
-    // tool call
-    controller1.write(
-      formatStreamPart({
-        type: 'tool-input-available',
-        toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
-        input: { testArg: 'test-value' },
-      }),
-    );
-
-    // finish stream
-    controller1.write(formatStreamPart({ type: 'finish-step' }));
-    controller1.write(formatStreamPart({ type: 'finish' }));
-    await controller1.close();
-
-    await waitFor(() => {
-      expect(
-        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
-      ).toStrictEqual({
-        state: 'input-available',
-        input: { testArg: 'test-value' },
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-      });
-    });
-
-    // user submits the tool result
-    await userEvent.click(screen.getByTestId('add-result-0'));
-
-    // UI should show the tool result
-    await waitFor(() => {
-      expect(
-        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
-      ).toStrictEqual({
-        state: 'output-available',
-        input: { testArg: 'test-value' },
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-        output: 'test-result',
-      });
-    });
-
-    // should trigger second request w/ tool result
-    expect(server.calls.length).toBe(2);
-
-    controller2.write(formatStreamPart({ type: 'start' }));
-    controller2.write(formatStreamPart({ type: 'start-step' }));
-
-    controller2.write(formatStreamPart({ type: 'text-start', id: '0' }));
-    controller2.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: 'final result' }),
-    );
-    controller2.write(formatStreamPart({ type: 'text-end', id: '0' }));
-
-    controller2.write(formatStreamPart({ type: 'finish-step' }));
-    controller2.write(formatStreamPart({ type: 'finish' }));
-
-    await controller2.close();
-
-    // chunks from second request should show up in UI
-    await waitFor(() => {
-      expect(screen.getByTestId('message-1-text')).toHaveTextContent(
-        'final result',
-      );
-    });
-  });
-});
-
-describe('maxSteps', () => {
-  describe('two steps with automatic tool call', () => {
-    let onToolCallInvoked = false;
-
-    setupTestComponent(() => {
-      const { messages, sendMessage } = useChat({
-        async onToolCall({ toolCall }) {
-          onToolCallInvoked = true;
-
-          return `test-tool-response: ${toolCall.toolName} ${
-            toolCall.toolCallId
-          } ${JSON.stringify(toolCall.input)}`;
-        },
-        generateId: mockId(),
-        maxSteps: 5,
-      });
-
-      return (
-        <div>
-          {messages.map((m, idx) => (
-            <div data-testid={`message-${idx}`} key={m.id}>
-              {m.parts
-                .map(part => (part.type === 'text' ? part.text : ''))
-                .join('')}
-            </div>
-          ))}
-
-          <button
-            data-testid="do-send"
-            onClick={() => {
-              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
-            }}
-          />
-        </div>
-      );
-    });
-
-    beforeEach(() => {
-      onToolCallInvoked = false;
-    });
-
-    it('should automatically call api when tool call gets executed via onToolCall', async () => {
-      server.urls['/api/chat'].response = [
-        {
-          type: 'stream-chunks',
-          chunks: [
-            formatStreamPart({
-              type: 'tool-input-available',
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              input: { testArg: 'test-value' },
-            }),
-          ],
-        },
-        {
-          type: 'stream-chunks',
-          chunks: [
-            formatStreamPart({ type: 'text-start', id: '0' }),
-            formatStreamPart({
-              type: 'text-delta',
-              id: '0',
-              delta: 'final result',
-            }),
-            formatStreamPart({ type: 'text-end', id: '0' }),
-          ],
-        },
-      ];
-
-      await userEvent.click(screen.getByTestId('do-send'));
-
-      expect(onToolCallInvoked).toBe(true);
-
-      await screen.findByTestId('message-1');
-      expect(screen.getByTestId('message-1')).toHaveTextContent('final result');
-    });
-  });
-
-  describe('two steps with error response', () => {
-    let onToolCallCounter = 0;
-
-    setupTestComponent(() => {
-      const { messages, sendMessage, error } = useChat({
-        async onToolCall({ toolCall }) {
-          onToolCallCounter++;
-          return `test-tool-response: ${toolCall.toolName} ${
-            toolCall.toolCallId
-          } ${JSON.stringify(toolCall.input)}`;
-        },
-        generateId: mockId(),
-        maxSteps: 5,
-      });
-
-      return (
-        <div>
-          {error && <div data-testid="error">{error.toString()}</div>}
-
-          {messages.map((m, idx) => (
-            <div data-testid={`message-${idx}`} key={m.id}>
-              {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) =>
-                toolPart.state === 'output-available' ? (
-                  <div key={toolIdx} data-testid={`tool-${toolIdx}`}>
-                    {JSON.stringify(toolPart.output)}
-                  </div>
-                ) : null,
-              )}
-            </div>
-          ))}
-
-          <button
-            data-testid="do-send"
-            onClick={() => {
-              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
-            }}
-          />
-        </div>
-      );
-    });
-
-    beforeEach(() => {
-      onToolCallCounter = 0;
-    });
-
-    it('should automatically call api when tool call gets executed via onToolCall', async () => {
-      server.urls['/api/chat'].response = [
-        {
-          type: 'stream-chunks',
-          chunks: [
-            formatStreamPart({
-              type: 'tool-input-available',
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              input: { testArg: 'test-value' },
-            }),
-          ],
-        },
-        {
-          type: 'error',
-          status: 400,
-          body: 'call failure',
-        },
-      ];
-
-      await userEvent.click(screen.getByTestId('do-send'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('error')).toHaveTextContent(
-          'Error: call failure',
-        );
-      });
-
-      expect(onToolCallCounter).toBe(1);
     });
   });
 });
@@ -1398,16 +1169,16 @@ describe('file attachments with data url', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({
+        formatChunk({
           type: 'text-start',
           id: '0',
         }),
-        formatStreamPart({
+        formatChunk({
           type: 'text-delta',
           id: '0',
           delta: 'Response to message with text attachment',
         }),
-        formatStreamPart({ type: 'text-end', id: '0' }),
+        formatChunk({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -1479,7 +1250,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1488,16 +1259,16 @@ describe('file attachments with data url', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({
+        formatChunk({
           type: 'text-start',
           id: '0',
         }),
-        formatStreamPart({
+        formatChunk({
           type: 'text-delta',
           id: '0',
           delta: 'Response to message with image attachment',
         }),
-        formatStreamPart({ type: 'text-end', id: '0' }),
+        formatChunk({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -1569,7 +1340,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1620,16 +1391,16 @@ describe('file attachments with url', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({
+        formatChunk({
           type: 'text-start',
           id: '0',
         }),
-        formatStreamPart({
+        formatChunk({
           type: 'text-delta',
           id: '0',
           delta: 'Response to message with image attachment',
         }),
-        formatStreamPart({ type: 'text-end', id: '0' }),
+        formatChunk({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -1692,7 +1463,7 @@ describe('file attachments with url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1735,13 +1506,13 @@ describe('attachments with empty submit', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text-start', id: '0' }),
-        formatStreamPart({
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({
           type: 'text-delta',
           id: '0',
           delta: 'Response to message with image attachment',
         }),
-        formatStreamPart({ type: 'text-end', id: '0' }),
+        formatChunk({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -1795,7 +1566,7 @@ describe('attachments with empty submit', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1843,13 +1614,13 @@ describe('should send message with attachments', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text-start', id: '0' }),
-        formatStreamPart({
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({
           type: 'text-delta',
           id: '0',
           delta: 'Response to message with image attachment',
         }),
-        formatStreamPart({ type: 'text-end', id: '0' }),
+        formatChunk({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -1909,7 +1680,7 @@ describe('should send message with attachments', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1957,25 +1728,25 @@ describe('regenerate', () => {
       {
         type: 'stream-chunks',
         chunks: [
-          formatStreamPart({ type: 'text-start', id: '0' }),
-          formatStreamPart({
+          formatChunk({ type: 'text-start', id: '0' }),
+          formatChunk({
             type: 'text-delta',
             id: '0',
             delta: 'first response',
           }),
-          formatStreamPart({ type: 'text-end', id: '0' }),
+          formatChunk({ type: 'text-end', id: '0' }),
         ],
       },
       {
         type: 'stream-chunks',
         chunks: [
-          formatStreamPart({ type: 'text-start', id: '0' }),
-          formatStreamPart({
+          formatChunk({ type: 'text-start', id: '0' }),
+          formatChunk({
             type: 'text-delta',
             id: '0',
             delta: 'second response',
           }),
-          formatStreamPart({ type: 'text-end', id: '0' }),
+          formatChunk({ type: 'text-end', id: '0' }),
         ],
       },
     ];
@@ -2006,7 +1777,7 @@ describe('regenerate', () => {
           },
         ],
         "request-body-key": "request-body-value",
-        "trigger": "regenerate-assistant-message",
+        "trigger": "regenerate-message",
       }
     `);
 
@@ -2059,13 +1830,13 @@ describe('test sending additional fields during message submission', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text-start', id: '0' }),
-        formatStreamPart({
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({
           type: 'text-delta',
           id: '0',
           delta: 'first response',
         }),
-        formatStreamPart({ type: 'text-end', id: '0' }),
+        formatChunk({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -2092,7 +1863,7 @@ describe('test sending additional fields during message submission', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -2151,25 +1922,21 @@ describe('resume ongoing stream and return assistant message', () => {
       expect(screen.getByTestId('status')).toHaveTextContent('submitted');
     });
 
-    controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
     controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
     );
 
     await waitFor(() => {
       expect(screen.getByTestId('status')).toHaveTextContent('streaming');
     });
 
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: ',' }));
     controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+      formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
     );
-    controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
-    );
-    controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
-    );
-    controller.write(formatStreamPart({ type: 'text-end', id: '0' }));
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: '.' }));
+    controller.write(formatChunk({ type: 'text-end', id: '0' }));
 
     controller.close();
 
@@ -2235,9 +2002,9 @@ describe('stop', () => {
 
     await userEvent.click(screen.getByTestId('do-send'));
 
-    controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
     controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
     );
 
     await waitFor(() => {
@@ -2253,7 +2020,7 @@ describe('stop', () => {
 
     await expect(
       controller.write(
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ', world!' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ', world!' }),
       ),
     ).rejects.toThrow();
 
@@ -2307,9 +2074,9 @@ describe('experimental_throttle', () => {
 
     vi.useFakeTimers();
 
-    controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
     controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hel' }),
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hel' }),
     );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(throttleMs + 10);
@@ -2317,16 +2084,14 @@ describe('experimental_throttle', () => {
 
     expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
 
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: 'lo' }));
     controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: 'lo' }),
+      formatChunk({ type: 'text-delta', id: '0', delta: ' Th' }),
     );
     controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: ' Th' }),
+      formatChunk({ type: 'text-delta', id: '0', delta: 'ere' }),
     );
-    controller.write(
-      formatStreamPart({ type: 'text-delta', id: '0', delta: 'ere' }),
-    );
-    controller.write(formatStreamPart({ type: 'text-end', id: '0' }));
+    controller.write(formatChunk({ type: 'text-end', id: '0' }));
 
     expect(screen.getByTestId('message-1')).not.toHaveTextContent(
       'AI: Hello There',
@@ -2341,5 +2106,293 @@ describe('experimental_throttle', () => {
     );
 
     vi.useRealTimers();
+  });
+});
+
+describe('id changes', () => {
+  setupTestComponent(
+    () => {
+      const [id, setId] = React.useState<string>('initial-id');
+
+      const {
+        messages,
+        sendMessage,
+        error,
+        status,
+        id: idKey,
+      } = useChat({
+        id,
+        generateId: mockId(),
+      });
+
+      return (
+        <div>
+          <div data-testid="id">{idKey}</div>
+          <div data-testid="status">{status.toString()}</div>
+          {error && <div data-testid="error">{error.toString()}</div>}
+          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+            }}
+          />
+          <button
+            data-testid="do-change-id"
+            onClick={() => {
+              setId('second-id');
+            }}
+          />
+        </div>
+      );
+    },
+    {
+      init: TestComponent => <TestComponent />,
+    },
+  );
+
+  it('should update chat instance when the id changes', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
+      ],
+    };
+
+    await userEvent.click(screen.getByTestId('do-send'));
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          id: expect.any(String),
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          id: 'id-1',
+          parts: [
+            {
+              text: 'Hello, world.',
+              type: 'text',
+              state: 'done',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+    });
+    await userEvent.click(screen.getByTestId('do-change-id'));
+
+    expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+  });
+});
+
+describe('chat instance changes', () => {
+  setupTestComponent(
+    () => {
+      const [chat, setChat] = React.useState<Chat<UIMessage>>(
+        new Chat({
+          id: 'initial-id',
+          generateId: mockId(),
+        }),
+      );
+
+      const {
+        messages,
+        sendMessage,
+        error,
+        status,
+        id: idKey,
+      } = useChat({
+        chat,
+      });
+
+      return (
+        <div>
+          <div data-testid="id">{idKey}</div>
+          <div data-testid="status">{status.toString()}</div>
+          {error && <div data-testid="error">{error.toString()}</div>}
+          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+            }}
+          />
+          <button
+            data-testid="do-change-chat"
+            onClick={() => {
+              setChat(
+                new Chat({
+                  id: 'second-id',
+                  generateId: mockId(),
+                }),
+              );
+            }}
+          />
+        </div>
+      );
+    },
+    {
+      init: TestComponent => <TestComponent />,
+    },
+  );
+
+  it('should update chat instance when the id changes', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
+      ],
+    };
+
+    await userEvent.click(screen.getByTestId('do-send'));
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          id: expect.any(String),
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          id: 'id-1',
+          parts: [
+            {
+              text: 'Hello, world.',
+              type: 'text',
+              state: 'done',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+    });
+    await userEvent.click(screen.getByTestId('do-change-chat'));
+
+    expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+  });
+});
+
+describe('streaming with id change from undefined to defined', () => {
+  setupTestComponent(
+    () => {
+      const [id, setId] = React.useState<string | undefined>(undefined);
+      const { messages, sendMessage, status } = useChat({
+        id,
+        generateId: mockId(),
+      });
+
+      return (
+        <div>
+          <div data-testid="status">{status.toString()}</div>
+          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+          <button
+            data-testid="change-id"
+            onClick={() => {
+              setId('chat-123');
+            }}
+          />
+          <button
+            data-testid="send-message"
+            onClick={() => {
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+            }}
+          />
+        </div>
+      );
+    },
+    {
+      init: TestComponent => <TestComponent />,
+    },
+  );
+
+  it('should handle streaming correctly when id changes from undefined to defined', async () => {
+    const controller = new TestResponseController();
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    // First, change the ID from undefined to 'chat-123'
+    await userEvent.click(screen.getByTestId('change-id'));
+
+    // Then send a message
+    await userEvent.click(screen.getByTestId('send-message'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+    });
+
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+    );
+
+    // Verify streaming is working - text should appear immediately
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toContainEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: ',' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+    );
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: '.' }));
+    controller.write(formatChunk({ type: 'text-end', id: '0' }));
+    controller.close();
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toContainEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello, world.',
+              state: 'done',
+            }),
+          ]),
+        }),
+      );
+    });
   });
 });

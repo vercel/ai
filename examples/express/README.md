@@ -27,4 +27,5 @@ pnpm dev
 
 ```sh
 curl -X POST http://localhost:8080
+curl -X POST http://localhost:8080/custom-data-parts
 ```

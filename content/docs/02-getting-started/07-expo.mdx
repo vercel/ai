@@ -5,9 +5,9 @@ description: Welcome to the AI SDK quickstart guide for Expo!
 
 # Expo Quickstart
 
-In this quick start tutorial, you'll build a simple AI-chatbot with a streaming user interface with [Expo](https://expo.dev/). Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
+In this quickstart tutorial, you'll build a simple AI-chatbot with a streaming user interface with [Expo](https://expo.dev/). Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
 
-Check out [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Streaming](/docs/advanced/why-streaming) if you haven't heard of them.
+If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Streaming](/docs/advanced/why-streaming), you can optionally read these documents first.
 
 ## Prerequisites
 
@@ -42,24 +42,18 @@ Install `ai`, `@ai-sdk/react` and `@ai-sdk/openai`, the AI package, the AI React
   in the [providers](/providers) section.
 </Note>
 <div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
     <Tab>
-      <Snippet
-        text="pnpm add ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta zod"
-        dark
-      />
+      <Snippet text="pnpm add ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
     <Tab>
-      <Snippet
-        text="npm install ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta zod"
-        dark
-      />
+      <Snippet text="npm install ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
     <Tab>
-      <Snippet
-        text="yarn add ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta zod"
-        dark
-      />
+      <Snippet text="yarn add ai @ai-sdk/openai @ai-sdk/react zod" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="bun add ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
   </Tabs>
 </div>
@@ -126,13 +120,18 @@ Update your root page (`app/(tabs)/index.tsx`) with the following code to show a
 ```tsx filename="app/(tabs)/index.tsx"
 import { generateAPIUrl } from '@/utils';
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { fetch as expoFetch } from 'expo/fetch';
+import { useState } from 'react';
 import { View, TextInput, ScrollView, Text, SafeAreaView } from 'react-native';
 
 export default function App() {
-  const { messages, error, handleInputChange, input, handleSubmit } = useChat({
-    fetch: expoFetch as unknown as typeof globalThis.fetch,
-    api: generateAPIUrl('/api/chat'),
+  const [input, setInput] = useState('');
+  const { messages, error, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      fetch: expoFetch as unknown as typeof globalThis.fetch,
+      api: generateAPIUrl('/api/chat'),
+    }),
     onError: error => console.error(error, 'ERROR'),
   });
 
@@ -169,18 +168,11 @@ export default function App() {
             style={{ backgroundColor: 'white', padding: 8 }}
             placeholder="Say something..."
             value={input}
-            onChange={e =>
-              handleInputChange({
-                ...e,
-                target: {
-                  ...e.target,
-                  value: e.nativeEvent.text,
-                },
-              } as unknown as React.ChangeEvent<HTMLInputElement>)
-            }
+            onChange={e => setInput(e.nativeEvent.text)}
             onSubmitEditing={e => {
-              handleSubmit(e);
               e.preventDefault();
+              sendMessage({ text: input });
+              setInput('');
             }}
             autoFocus={true}
           />
@@ -194,8 +186,9 @@ export default function App() {
 This page utilizes the `useChat` hook, which will, by default, use the `POST` API route you created earlier (`/api/chat`). The hook provides functions and state for handling user input and form submission. The `useChat` hook provides multiple utility functions and state variables:
 
 - `messages` - the current chat messages (an array of objects with `id`, `role`, and `parts` properties).
-- `input` - the current value of the user's input field.
-- `handleInputChange` and `handleSubmit` - functions to handle user interactions (typing into the input field and submitting the form, respectively).
+- `sendMessage` - a function to send a message to the chat API.
+
+The component uses local state (`useState`) to manage the input field value, and handles form submission by calling `sendMessage` with the input text and then clearing the input field.
 
 The LLM's response is accessed through the message `parts` array. Each message contains an ordered array of `parts` that represents everything the model generated in its response. These parts can include plain text, reasoning tokens, and more that you will see later. The `parts` array preserves the sequence of the model's outputs, allowing you to display or process each component in the order it was generated.
 
@@ -279,7 +272,7 @@ export async function POST(req: Request) {
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => {
@@ -308,10 +301,10 @@ In this updated code:
 2. You define a `tools` object with a `weather` tool. This tool:
 
    - Has a description that helps the model understand when to use it.
-   - Defines parameters using a Zod schema, specifying that it requires a `location` string to execute this tool. The model will attempt to extract this parameter from the context of the conversation. If it can't, it will ask the user for the missing information.
+   - Defines `inputSchema` using a Zod schema, specifying that it requires a `location` string to execute this tool. The model will attempt to extract this input from the context of the conversation. If it can't, it will ask the user for the missing information.
    - Defines an `execute` function that simulates getting weather data (in this case, it returns a random temperature). This is an asynchronous function running on the server so you can fetch real data from an external API.
 
-   Now your chatbot can "fetch" weather information for any location the user asks about. When the model determines it needs to use the weather tool, it will generate a tool call with the necessary parameters. The `execute` function will then be automatically run, and you can access the results via `toolInvocations` that is available on the message object.
+Now your chatbot can "fetch" weather information for any location the user asks about. When the model determines it needs to use the weather tool, it will generate a tool call with the necessary input. The `execute` function will then be automatically run, and the tool output will be added to the `messages` as a `tool` message.
 
 <Note>
   You may need to restart your development server for the changes to take
@@ -320,29 +313,40 @@ In this updated code:
 
 Try asking something like "What's the weather in New York?" and see how the model uses the new tool.
 
-Notice the blank response in the UI? This is because instead of generating a text response, the model generated a tool call. You can access the tool call and subsequent tool result in the `toolInvocations` key of the message object.
+Notice the blank response in the UI? This is because instead of generating a text response, the model generated a tool call. You can access the tool call and subsequent tool result on the client via the `tool-weather` part of the `message.parts` array.
+
+<Note>
+  Tool parts are always named `tool-{toolName}`, where `{toolName}` is the key
+  you used when defining the tool. In this case, since we defined the tool as
+  `weather`, the part type is `tool-weather`.
+</Note>
 
 ### Update the UI
 
-To display the tool invocations in your UI, update your `app/(tabs)/index.tsx` file:
+To display the weather tool invocation in your UI, update your `app/(tabs)/index.tsx` file:
 
 ```tsx filename="app/(tabs)/index.tsx" highlight="31-35"
 import { generateAPIUrl } from '@/utils';
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { fetch as expoFetch } from 'expo/fetch';
+import { useState } from 'react';
 import { View, TextInput, ScrollView, Text, SafeAreaView } from 'react-native';
 
 export default function App() {
-  const { messages, error, handleInputChange, input, handleSubmit } = useChat({
-    fetch: expoFetch as unknown as typeof globalThis.fetch,
-    api: generateAPIUrl('/api/chat'),
+  const [input, setInput] = useState('');
+  const { messages, error, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      fetch: expoFetch as unknown as typeof globalThis.fetch,
+      api: generateAPIUrl('/api/chat'),
+    }),
     onError: error => console.error(error, 'ERROR'),
   });
 
   if (error) return <Text>{error.message}</Text>;
 
   return (
-    <SafeAreaView style={{ height: '100vh' }}>
+    <SafeAreaView style={{ height: '100%' }}>
       <View
         style={{
           height: '95%',
@@ -356,16 +360,18 @@ export default function App() {
             <View key={m.id} style={{ marginVertical: 8 }}>
               <View>
                 <Text style={{ fontWeight: 700 }}>{m.role}</Text>
-                {m.toolInvocations ? (
-                  <Text>{JSON.stringify(m.toolInvocations, null, 2)}</Text>
-                ) : (
-                  m.parts.map((part, i) => {
-                    switch (part.type) {
-                      case 'text':
-                        return <Text key={`${m.id}-${i}`}>{part.text}</Text>;
-                    }
-                  })
-                )}
+                {m.parts.map((part, i) => {
+                  switch (part.type) {
+                    case 'text':
+                      return <Text key={`${m.id}-${i}`}>{part.text}</Text>;
+                    case 'tool-weather':
+                      return (
+                        <Text key={`${m.id}-${i}`}>
+                          {JSON.stringify(part, null, 2)}
+                        </Text>
+                      );
+                  }
+                })}
               </View>
             </View>
           ))}
@@ -376,18 +382,11 @@ export default function App() {
             style={{ backgroundColor: 'white', padding: 8 }}
             placeholder="Say something..."
             value={input}
-            onChange={e =>
-              handleInputChange({
-                ...e,
-                target: {
-                  ...e.target,
-                  value: e.nativeEvent.text,
-                },
-              } as unknown as React.ChangeEvent<HTMLInputElement>)
-            }
+            onChange={e => setInput(e.nativeEvent.text)}
             onSubmitEditing={e => {
-              handleSubmit(e);
               e.preventDefault();
+              sendMessage({ text: input });
+              setInput('');
             }}
             autoFocus={true}
           />
@@ -403,21 +402,21 @@ export default function App() {
   effect.
 </Note>
 
-With this change, you check each message for any tool calls (`toolInvocations`). These tool calls will be displayed as stringified JSON. Otherwise, you show the message content as before.
+With this change, you're updating the UI to handle different message parts. For text parts, you display the text content as before. For weather tool invocations, you display a JSON representation of the tool call and its result.
 
-Now, when you ask about the weather, you'll see the tool invocation and its result displayed in your chat interface.
+Now, when you ask about the weather, you'll see the tool call and its result displayed in your chat interface.
 
 ## Enabling Multi-Step Tool Calls
 
 You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
-To solve this, you can enable multi-step tool calls using `stopWhen` in your API route. This feature will automatically send tool results back to the model to trigger an additional generation until the stopping condition you define is met. In this case, you want the model to answer your question using the results from the weather tool.
+To solve this, you can enable multi-step tool calls using `stopWhen`. By default, `stopWhen` is set to `stepCountIs(1)`, which means generation stops after the first step when there are tool results. By changing this condition, you can allow the model to automatically send tool results back to itself to trigger additional generations until your specified stopping condition is met. In this case, you want the model to continue generating so it can use the weather tool results to answer your original question.
 
 ### Update Your API Route
 
-Modify your `app/api/chat+api.ts` file to include `stopWhen`:
+Modify your `app/api/chat+api.ts` file to include the `stopWhen` condition:
 
-```tsx filename="app/api/chat+api.ts" highlight="2,11"
+```tsx filename="app/api/chat+api.ts" highlight="11"
 import { openai } from '@ai-sdk/openai';
 import {
   streamText,
@@ -438,7 +437,7 @@ export async function POST(req: Request) {
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => {
@@ -466,7 +465,7 @@ export async function POST(req: Request) {
   effect.
 </Note>
 
-Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
+Head back to the Expo app and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
 
 By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
 
@@ -495,7 +494,7 @@ export async function POST(req: Request) {
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => {
@@ -508,7 +507,7 @@ export async function POST(req: Request) {
       }),
       convertFahrenheitToCelsius: tool({
         description: 'Convert a temperature in fahrenheit to celsius',
-        parameters: z.object({
+        inputSchema: z.object({
           temperature: z
             .number()
             .describe('The temperature in fahrenheit to convert'),
@@ -537,6 +536,88 @@ export async function POST(req: Request) {
   effect.
 </Note>
 
+### Update the UI for the new tool
+
+To display the temperature conversion tool invocation in your UI, update your `app/(tabs)/index.tsx` file to handle the new tool part:
+
+```tsx filename="app/(tabs)/index.tsx" highlight="37-42"
+import { generateAPIUrl } from '@/utils';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { fetch as expoFetch } from 'expo/fetch';
+import { useState } from 'react';
+import { View, TextInput, ScrollView, Text, SafeAreaView } from 'react-native';
+
+export default function App() {
+  const [input, setInput] = useState('');
+  const { messages, error, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      fetch: expoFetch as unknown as typeof globalThis.fetch,
+      api: generateAPIUrl('/api/chat'),
+    }),
+    onError: error => console.error(error, 'ERROR'),
+  });
+
+  if (error) return <Text>{error.message}</Text>;
+
+  return (
+    <SafeAreaView style={{ height: '100%' }}>
+      <View
+        style={{
+          height: '95%',
+          display: 'flex',
+          flexDirection: 'column',
+          paddingHorizontal: 8,
+        }}
+      >
+        <ScrollView style={{ flex: 1 }}>
+          {messages.map(m => (
+            <View key={m.id} style={{ marginVertical: 8 }}>
+              <View>
+                <Text style={{ fontWeight: 700 }}>{m.role}</Text>
+                {m.parts.map((part, i) => {
+                  switch (part.type) {
+                    case 'text':
+                      return <Text key={`${m.id}-${i}`}>{part.text}</Text>;
+                    case 'tool-weather':
+                    case 'tool-convertFahrenheitToCelsius':
+                      return (
+                        <Text key={`${m.id}-${i}`}>
+                          {JSON.stringify(part, null, 2)}
+                        </Text>
+                      );
+                  }
+                })}
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+
+        <View style={{ marginTop: 8 }}>
+          <TextInput
+            style={{ backgroundColor: 'white', padding: 8 }}
+            placeholder="Say something..."
+            value={input}
+            onChange={e => setInput(e.nativeEvent.text)}
+            onSubmitEditing={e => {
+              e.preventDefault();
+              sendMessage({ text: input });
+              setInput('');
+            }}
+            autoFocus={true}
+          />
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+```
+
+<Note>
+  You may need to restart your development server for the changes to take
+  effect.
+</Note>
+
 Now, when you ask "What's the weather in New York in celsius?", you should see a more complete interaction:
 
 1. The model will call the weather tool for New York.
@@ -555,7 +636,7 @@ Several functions that are internally used by the AI SDK might not available in 
 First, install the following packages:
 
 <div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
     <Tab>
       <Snippet
         text="pnpm add @ungap/structured-clone @stardazed/streams-text-encoding"
@@ -571,6 +652,12 @@ First, install the following packages:
     <Tab>
       <Snippet
         text="yarn add @ungap/structured-clone @stardazed/streams-text-encoding"
+        dark
+      />
+    </Tab>
+    <Tab>
+      <Snippet
+        text="bun add @ungap/structured-clone @stardazed/streams-text-encoding"
         dark
       />
     </Tab>
