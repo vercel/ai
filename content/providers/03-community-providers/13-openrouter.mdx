@@ -103,7 +103,7 @@ const result = streamText({
   prompt: 'Write a short story about AI.',
 });
 
-for await (const chunk of result.fullStream) {
+for await (const chunk of result) {
   console.log(chunk);
 }
 ```
