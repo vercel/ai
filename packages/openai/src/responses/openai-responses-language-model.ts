@@ -21,11 +21,15 @@ import {
 import { z } from 'zod/v4';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import {
+  codeInterpreterInputSchema,
+  codeInterpreterOutputSchema,
+} from '../tool/code-interpreter';
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
+import { OpenAIResponsesIncludeOptions } from './openai-responses-api-types';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
-import { OpenAIResponsesIncludeOptions } from './openai-responses-api-types';
 
 const webSearchCallItem = z.object({
   type: z.literal('web_search_call'),
@@ -48,6 +52,21 @@ const webSearchCallItem = z.object({
       }),
     ])
     .nullish(),
+});
+
+const codeInterpreterCallItem = z.object({
+  type: z.literal('code_interpreter_call'),
+  id: z.string(),
+  code: z.string().nullable(),
+  container_id: z.string(),
+  outputs: z
+    .array(
+      z.discriminatedUnion('type', [
+        z.object({ type: z.literal('logs'), logs: z.string() }),
+        z.object({ type: z.literal('image'), url: z.string() }),
+      ]),
+    )
+    .nullable(),
 });
 
 /**
@@ -184,6 +203,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       ? Array.isArray(include)
         ? [...include, 'web_search_call.action.sources']
         : ['web_search_call.action.sources']
+      : include;
+
+    // when a code interpreter tool is present, automatically include the outputs:
+    const codeInterpreterToolName = (
+      tools?.find(
+        tool =>
+          tool.type === 'provider-defined' &&
+          tool.id === 'openai.code_interpreter',
+      ) as LanguageModelV2ProviderDefinedTool | undefined
+    )?.name;
+
+    include = codeInterpreterToolName
+      ? Array.isArray(include)
+        ? [...include, 'code_interpreter_call.outputs']
+        : ['code_interpreter_call.outputs']
       : include;
 
     const baseArgs = {
@@ -403,9 +437,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   }),
                 ),
               }),
-              z.object({
-                type: z.literal('code_interpreter_call'),
-              }),
+              codeInterpreterCallItem,
               z.object({
                 type: z.literal('function_call'),
                 call_id: z.string(),
@@ -622,6 +654,30 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               ...(part.queries && { queries: part.queries }),
               ...(part.results && { results: part.results }),
             },
+            providerExecuted: true,
+          });
+          break;
+        }
+
+        case 'code_interpreter_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'code_interpreter',
+            input: JSON.stringify({
+              code: part.code,
+              containerId: part.container_id,
+            } satisfies z.infer<typeof codeInterpreterInputSchema>),
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'code_interpreter',
+            result: {
+              outputs: part.outputs,
+            } satisfies z.infer<typeof codeInterpreterOutputSchema>,
             providerExecuted: true,
           });
           break;
@@ -919,6 +975,27 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   },
                   providerExecuted: true,
                 });
+              } else if (value.item.type === 'code_interpreter_call') {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'code_interpreter',
+                  input: JSON.stringify({
+                    code: value.item.code,
+                    containerId: value.item.container_id,
+                  } satisfies z.infer<typeof codeInterpreterInputSchema>),
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'code_interpreter',
+                  result: {
+                    outputs: value.item.outputs,
+                  } satisfies z.infer<typeof codeInterpreterOutputSchema>,
+                  providerExecuted: true,
+                });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-end',
@@ -1202,6 +1279,7 @@ const responseOutputItemDoneSchema = z.object({
       arguments: z.string(),
       status: z.literal('completed'),
     }),
+    codeInterpreterCallItem,
     webSearchCallItem,
     z.object({
       type: z.literal('computer_call'),
