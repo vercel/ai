@@ -1,4 +1,5 @@
 import {
+  LanguageModelV2,
   LanguageModelV2FunctionTool,
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
@@ -42,15 +43,6 @@ const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
   },
 ];
 
-function loadOpenAIChunks(filename: string) {
-  const lines = fs
-    .readFileSync(filename, 'utf8')
-    .split('\n')
-    .map(line => `data: ${line}\n\n`);
-  lines.push('data: [DONE]\n\n');
-  return lines;
-}
-
 const nonReasoningModelIds = openaiResponsesModelIds.filter(
   modelId =>
     !openaiResponsesReasoningModelIds.includes(
@@ -72,6 +64,29 @@ describe('OpenAIResponsesLanguageModel', () => {
   const server = createTestServer({
     'https://api.openai.com/v1/responses': {},
   });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/responses/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+    return;
+  }
+
+  function prepareChunksFixtureResponse(filename: string) {
+    const chunks = fs
+      .readFileSync(`src/responses/__fixtures__/${filename}.chunks.txt`, 'utf8')
+      .split('\n')
+      .map(line => `data: ${line}\n\n`);
+    chunks.push('data: [DONE]\n\n');
+
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'stream-chunks',
+      chunks,
+    };
+  }
 
   describe('doGenerate', () => {
     function prepareJsonResponse(body: any) {
@@ -2091,213 +2106,57 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
-    describe('code interpreter', () => {
-      beforeEach(() => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: {
-            id: 'resp_68c12b837ca881a0a062ebb60494ae7700553426a98f13ca',
-            object: 'response',
-            created_at: 1757490051,
-            status: 'completed',
-            background: false,
-            error: null,
-            incomplete_details: null,
-            instructions: null,
-            max_output_tokens: null,
-            max_tool_calls: null,
-            model: 'gpt-5-nano-2025-08-07',
-            output: [
-              {
-                id: 'rs_68c12b868cd081a09ec2d83759a43b9e00553426a98f13ca',
-                type: 'reasoning',
-                summary: [],
-              },
-              {
-                id: 'ci_68c12b8a4e6481a0bd969d4488e6809700553426a98f13ca',
-                type: 'code_interpreter_call',
-                status: 'completed',
-                code: 'import random\nrandom.seed(0)\nn = 10000\nsums = []\nfor _ in range(n):\n    a = random.randint(1,6)\n    b = random.randint(1,6)\n    sums.append(a+b)\ntotal = sum(sums)\nmean = total / n\nfrom collections import Counter\ncounts = Counter(sums)\ndist = {s: counts.get(s,0) for s in range(2,13)}\ntotal, mean, dist, sums[:20]',
-                container_id:
-                  'cntr_68c12b85cd34819190332dbb00ec850c0f117a6c6bf754ed',
-                outputs: null,
-              },
-              {
-                id: 'rs_68c12b8cf96081a08764e212603bb16600553426a98f13ca',
-                type: 'reasoning',
-                summary: [],
-              },
-              {
-                id: 'ci_68c12b8dfa3881a084c474e6fbd0220500553426a98f13ca',
-                type: 'code_interpreter_call',
-                status: 'completed',
-                code: "# Write sums to CSV\nimport csv\nwith open('/mnt/data/dice_sums_10000.csv','w', newline='') as f:\n    writer = csv.writer(f)\n    writer.writerow(['sum'])\n    for s in sums:\n        writer.writerow([s])\n# Write summary\nsummary = {\n    'n_trials': n,\n    'total_sum': total,\n    'mean_sum_per_trial': mean,\n    'distribution': {str(k): v for k,v in dist.items()}\n}\nimport json\nwith open('/mnt/data/dice_sums_summary.json','w') as f:\n    json.dump(summary, f, indent=2)\n('/mnt/data/dice_sums_10000.csv', '/mnt/data/dice_sums_summary.json')",
-                container_id:
-                  'cntr_68c12b85cd34819190332dbb00ec850c0f117a6c6bf754ed',
-                outputs: null,
-              },
-              {
-                id: 'rs_68c12b90775c81a0bdcb8c306da10e7700553426a98f13ca',
-                type: 'reasoning',
-                summary: [],
-              },
-              {
-                id: 'msg_68c12b93d98481a0b8696d68b6c5968100553426a98f13ca',
-                type: 'message',
-                status: 'completed',
-                content: [
-                  {
-                    type: 'output_text',
-                    annotations: [
-                      {
-                        type: 'container_file_citation',
-                        container_id:
-                          'cntr_68c12b85cd34819190332dbb00ec850c0f117a6c6bf754ed',
-                        end_index: 744,
-                        file_id: 'cfile_68c12b969ca881919d2ad197c7790751',
-                        filename: 'dice_sums_10000.csv',
-                        start_index: 707,
-                      },
-                      {
-                        type: 'container_file_citation',
-                        container_id:
-                          'cntr_68c12b85cd34819190332dbb00ec850c0f117a6c6bf754ed',
-                        end_index: 818,
-                        file_id: 'cfile_68c12b969cc88191846a76aa26a47fe8',
-                        filename: 'dice_sums_summary.json',
-                        start_index: 778,
-                      },
-                    ],
-                    logprobs: [],
-                    text: 'I ran a simulation of rolling two fair dice 10,000 times and computed the sums for each trial.\n\nKey results\n- Total sum of all 10,000 trial sums: 69953\n- Average sum per trial: 6.9953\n- Distribution of sums (counts for sums 2 through 12):\n  - 2: 285\n  - 3: 552\n  - 4: 818\n  - 5: 1134\n  - 6: 1359\n  - 7: 1721\n  - 8: 1378\n  - 9: 1108\n  - 10: 797\n  - 11: 558\n  - 12: 290\n\nSample of the first 20 trial sums\n[8, 4, 9, 7, 7, 7, 7, 5, 6, 8, 11, 5, 7, 7, 7, 6, 7, 8, 8, 9]\n\nFiles created\n- dice_sums_10000.csv: each row contains the sum of a trial (one column: "sum")\n- dice_sums_summary.json: a summary with n_trials, total_sum, mean_sum_per_trial, and the distribution\n\nDownload links\n- [Download the sums (CSV)](sandbox:/mnt/data/dice_sums_10000.csv)\n- [Download the summary (JSON)](sandbox:/mnt/data/dice_sums_summary.json)\n\nIf you want me to run again with a different seed, or to provide a fuller distribution table or a plotted histogram, tell me how you\u2019d like the results formatted.',
-                  },
-                ],
-                role: 'assistant',
-              },
-            ],
-            parallel_tool_calls: true,
-            previous_response_id: null,
-            prompt_cache_key: null,
-            reasoning: {
-              effort: 'medium',
-              summary: null,
+    describe('code interpreter tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-code-interpreter-tool.1');
+
+        result = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.code_interpreter',
+              name: 'code_interpreter',
+              args: {},
             },
-            safety_identifier: null,
-            service_tier: 'default',
-            store: true,
-            temperature: 1.0,
-            text: {
-              format: {
-                type: 'text',
-              },
-              verbosity: 'medium',
-            },
-            tool_choice: 'auto',
-            tools: [
-              {
-                type: 'code_interpreter',
-                container: {
-                  type: 'auto',
-                },
-              },
-            ],
-            top_logprobs: 0,
-            top_p: 1.0,
-            truncation: 'disabled',
-            usage: {
-              input_tokens: 4621,
-              input_tokens_details: {
-                cached_tokens: 3584,
-              },
-              output_tokens: 2094,
-              output_tokens_details: {
-                reasoning_tokens: 1728,
-              },
-              total_tokens: 6715,
-            },
-            user: null,
-            metadata: {},
-          },
-        };
+          ],
+        });
       });
 
-      it('should generate text response', async () => {
-        const result = await createModel('gpt-5-nano').doGenerate({
-          prompt: TEST_PROMPT,
-        });
-
-        expect(result.content).toMatchInlineSnapshot(`
-          [
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "rs_68c12b868cd081a09ec2d83759a43b9e00553426a98f13ca",
-                  "reasoningEncryptedContent": null,
-                },
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "code_interpreter_call.outputs",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
               },
-              "text": "",
-              "type": "reasoning",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "rs_68c12b8cf96081a08764e212603bb16600553426a98f13ca",
-                  "reasoningEncryptedContent": null,
+            ],
+            "model": "gpt-5-nano",
+            "tools": [
+              {
+                "container": {
+                  "type": "auto",
                 },
+                "type": "code_interpreter",
               },
-              "text": "",
-              "type": "reasoning",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "rs_68c12b90775c81a0bdcb8c306da10e7700553426a98f13ca",
-                  "reasoningEncryptedContent": null,
-                },
-              },
-              "text": "",
-              "type": "reasoning",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "msg_68c12b93d98481a0b8696d68b6c5968100553426a98f13ca",
-                },
-              },
-              "text": "I ran a simulation of rolling two fair dice 10,000 times and computed the sums for each trial.
-
-          Key results
-          - Total sum of all 10,000 trial sums: 69953
-          - Average sum per trial: 6.9953
-          - Distribution of sums (counts for sums 2 through 12):
-            - 2: 285
-            - 3: 552
-            - 4: 818
-            - 5: 1134
-            - 6: 1359
-            - 7: 1721
-            - 8: 1378
-            - 9: 1108
-            - 10: 797
-            - 11: 558
-            - 12: 290
-
-          Sample of the first 20 trial sums
-          [8, 4, 9, 7, 7, 7, 7, 5, 6, 8, 11, 5, 7, 7, 7, 6, 7, 8, 8, 9]
-
-          Files created
-          - dice_sums_10000.csv: each row contains the sum of a trial (one column: "sum")
-          - dice_sums_summary.json: a summary with n_trials, total_sum, mean_sum_per_trial, and the distribution
-
-          Download links
-          - [Download the sums (CSV)](sandbox:/mnt/data/dice_sums_10000.csv)
-          - [Download the summary (JSON)](sandbox:/mnt/data/dice_sums_summary.json)
-
-          If you want me to run again with a different seed, or to provide a fuller distribution table or a plotted histogram, tell me how you’d like the results formatted.",
-              "type": "text",
-            },
-          ]
+            ],
+          }
         `);
+      });
+
+      it('should include code interpreter tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
       });
     });
 
@@ -3807,12 +3666,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should stream web search results (sources, tool calls, tool results)', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'stream-chunks',
-          chunks: loadOpenAIChunks(
-            'src/responses/test-fixtures/openai-web-search-tool.chunks.txt',
-          ),
-        };
+        prepareChunksFixtureResponse('openai-web-search-tool');
 
         const { stream } = await createModel('gpt-5-nano').doStream({
           tools: [
@@ -4187,6 +4041,32 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             ]
           `);
+      });
+    });
+
+    describe('code interpreter tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('openai-code-interpreter-tool.1');
+
+        result = await createModel('gpt-5-nano').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.code_interpreter',
+              name: 'code_interpreter',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should stream code interpreter results', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
       });
     });
 
