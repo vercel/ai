@@ -3,7 +3,7 @@ import { google } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import path from 'path';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const fileManager = new GoogleAIFileManager(

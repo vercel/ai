@@ -33,6 +33,7 @@ export type GatewayModelId =
   | 'google/gemini-2.5-pro'
   | 'google/gemma-2-9b'
   | 'inception/mercury-coder-small'
+  | 'meituan/longcat-flash-chat'
   | 'meta/llama-3-70b'
   | 'meta/llama-3-8b'
   | 'meta/llama-3.1-70b'
