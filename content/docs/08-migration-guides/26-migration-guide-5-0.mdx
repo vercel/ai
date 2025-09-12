@@ -26,19 +26,20 @@ You need to update the following packages to the following versions in your `pac
 
 Additionally, you need to update the following peer dependencies:
 
-- `zod` package: `3.25.0` or later
+- `zod` package: `4.1.6` or later (recommended to avoid TypeScript performance issues)
 
 An example upgrade command would be:
 
 ```
-npm install ai @ai-sdk/react @ai-sdk/openai zod@3.25.0
+npm install ai @ai-sdk/react @ai-sdk/openai zod@^4.1.6
 ```
 
 <Note>
-  If you encounter TypeScript performance issues after upgrading, update your
-  `tsconfig.json` to use `moduleResolution: "nodenext"`. See the [TypeScript
-  performance troubleshooting
-  guide](/docs/troubleshooting/typescript-performance-zod) for more details.
+  If you encounter TypeScript performance issues after upgrading, ensure you're
+  using Zod 4.1.6 or later. If the issue persists, update your `tsconfig.json`
+  to use `moduleResolution: "nodenext"`. See the [TypeScript performance
+  troubleshooting guide](/docs/troubleshooting/typescript-performance-zod) for
+  more details.
 </Note>
 
 ## Codemods

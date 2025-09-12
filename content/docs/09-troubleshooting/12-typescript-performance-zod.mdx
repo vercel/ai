@@ -20,9 +20,19 @@ The AI SDK 5 has specific compatibility requirements with Zod versions. When imp
 
 ## Solution
 
-### Update TypeScript Configuration
+### Upgrade Zod to 4.1.6 or Later
 
-The recommended solution is to update your `tsconfig.json` to use `moduleResolution: "nodenext"`:
+The primary solution is to upgrade to Zod version 4.1.6 or later, which includes a fix for this module resolution issue:
+
+```bash
+pnpm add zod@^4.1.6
+```
+
+This version resolves the underlying problem where different module resolution settings were causing TypeScript to load the same Zod declarations twice, leading to expensive structural comparisons.
+
+### Alternative: Update TypeScript Configuration
+
+If upgrading Zod isn't possible, you can update your `tsconfig.json` to use `moduleResolution: "nodenext"`:
 
 ```json
 {
@@ -33,20 +43,4 @@ The recommended solution is to update your `tsconfig.json` to use `moduleResolut
 }
 ```
 
-This resolves the TypeScript performance issues while allowing you to continue using the standard Zod import:
-
-```typescript
-import { z } from 'zod'; // Works correctly with nodenext module resolution
-```
-
-### Alternative: Use the Zod Version-Specific Import Path
-
-If the above solution doesn't resolve the issue, you can try importing Zod using a version-specific import path:
-
-```typescript
-// ❌ Potentially problematic: Standard import may cause TypeScript issues
-import { z } from 'zod';
-
-// ✅ Alternative: version-specific import that may help with compatibility
-import { z } from 'zod/v4';
-```
+This resolves the TypeScript performance issues while allowing you to continue using the standard Zod import
