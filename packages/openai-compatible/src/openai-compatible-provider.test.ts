@@ -9,15 +9,6 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-// Mock runtime environment
-vi.mock('@ai-sdk/provider-utils', async () => {
-  const actual = await vi.importActual('@ai-sdk/provider-utils');
-  return {
-    ...actual,
-    getRuntimeEnvironmentUserAgent: () => 'runtime/test-env',
-  };
-});
-
 const OpenAICompatibleChatLanguageModelMock = vi.mocked(
   OpenAICompatibleChatLanguageModel,
 );
@@ -66,7 +57,7 @@ describe('OpenAICompatibleProvider', () => {
       expect(headers).toEqual({
         authorization: 'Bearer test-api-key',
         'custom-header': 'value',
-        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test runtime/test-env',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test',
       });
       expect(config.provider).toBe('test-provider.chat');
       expect(config.url({ modelId: 'model-id', path: '/v1/chat' })).toBe(
@@ -91,7 +82,7 @@ describe('OpenAICompatibleProvider', () => {
 
       expect(headers).toEqual({
         'custom-header': 'value',
-        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test runtime/test-env',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test',
       });
     });
   });
@@ -118,7 +109,7 @@ describe('OpenAICompatibleProvider', () => {
       expect(headers).toEqual({
         authorization: 'Bearer test-api-key',
         'custom-header': 'value',
-        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test runtime/test-env',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test',
       });
       expect(config.provider).toBe('test-provider.chat');
       expect(config.url({ modelId: 'model-id', path: '/v1/chat' })).toBe(
@@ -139,7 +130,7 @@ describe('OpenAICompatibleProvider', () => {
       expect(headers).toEqual({
         authorization: 'Bearer test-api-key',
         'custom-header': 'value',
-        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test runtime/test-env',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test',
       });
       expect(config.provider).toBe('test-provider.completion');
       expect(
@@ -159,7 +150,7 @@ describe('OpenAICompatibleProvider', () => {
       expect(headers).toEqual({
         authorization: 'Bearer test-api-key',
         'custom-header': 'value',
-        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test runtime/test-env',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test',
       });
       expect(config.provider).toBe('test-provider.embedding');
       expect(
