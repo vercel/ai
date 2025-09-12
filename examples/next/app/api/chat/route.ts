@@ -56,9 +56,12 @@ export async function POST(req: Request) {
   // save the user message
   saveChat({ id, messages, activeStreamId: null });
 
+  // TODO IMPLEMENT polling and correctly stop provider stream on user request
+
   const result = streamText({
     model: openai('gpt-4o-mini'),
     messages: convertToModelMessages(messages),
+    // TODO implement abortSignal: userStopSignal,
   });
 
   return result.toUIMessageStreamResponse({

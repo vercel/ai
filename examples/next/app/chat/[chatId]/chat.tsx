@@ -83,7 +83,15 @@ export default function ChatComponent({
       ))}
       <ChatInput
         status={status}
-        stop={stop}
+        stop={() => {
+          // send stop with chat id to the new api route
+          fetch(`/api/chat/${chatData.id}/stream`, {
+            method: 'DELETE',
+          });
+
+          // also call stop on chat to immediately stop ui stream
+          stop();
+        }}
         onSubmit={text => {
           sendMessage({ text, metadata: { createdAt: Date.now() } });
 
