@@ -3,10 +3,24 @@ import {
   TranscriptionModelV2,
   TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
-import { afterEach, beforeEach, describe, expect, it, vitest } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vitest,
+  vi,
+} from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { transcribe } from './transcribe';
+
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
 
 const audioData = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
@@ -86,14 +100,19 @@ describe('transcribe', () => {
         },
       }),
       audio: audioData,
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+      },
       abortSignal,
     });
 
     expect(capturedArgs).toStrictEqual({
       audio: audioData,
       mediaType: 'audio/wav',
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': 'ai/0.0.0-test',
+      },
       abortSignal,
       providerOptions: {},
     });
@@ -239,6 +258,7 @@ describe('transcribe', () => {
                 timestamp: testDate,
                 headers: {
                   'custom-response-header': 'response-header-value',
+                  'user-agent': 'ai/0.0.0-test',
                 },
               }),
           }),
@@ -253,6 +273,7 @@ describe('transcribe', () => {
             modelId: expect.any(String),
             headers: {
               'custom-response-header': 'response-header-value',
+              'user-agent': 'ai/0.0.0-test',
             },
           },
         ],

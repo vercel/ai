@@ -25,7 +25,7 @@ import {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
 } from '../tool/code-interpreter';
-import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
+import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import { OpenAIResponsesIncludeOptions } from './openai-responses-api-types';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
@@ -156,14 +156,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       warnings.push({ type: 'unsupported-setting', setting: 'stopSequences' });
     }
 
-    const { messages, warnings: messageWarnings } =
-      await convertToOpenAIResponsesMessages({
+    const { input, warnings: inputWarnings } =
+      await convertToOpenAIResponsesInput({
         prompt,
         systemMessageMode: modelConfig.systemMessageMode,
         fileIdPrefixes: this.config.fileIdPrefixes,
       });
 
-    warnings.push(...messageWarnings);
+    warnings.push(...inputWarnings);
 
     const openaiOptions = await parseProviderOptions({
       provider: 'openai',
@@ -222,7 +222,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     const baseArgs = {
       model: this.modelId,
-      input: messages,
+      input,
       temperature,
       top_p: topP,
       max_output_tokens: maxOutputTokens,
