@@ -159,32 +159,10 @@ export async function convertToOpenAIResponsesInput({
             }
 
             case 'tool-result': {
-              if (
-                part.toolName === 'code_interpreter' &&
-                part.output.type === 'json'
-              ) {
-                const toolCallPart = toolCallParts[part.toolCallId];
-                const inputValue = codeInterpreterInputSchema.parse(
-                  toolCallPart.input,
-                );
-
-                const outputValue = codeInterpreterOutputSchema.parse(
-                  part.output.value,
-                );
-
-                input.push({
-                  type: 'code_interpreter_call',
-                  id: part.toolCallId,
-                  code: inputValue.code ?? null,
-                  container_id: inputValue.containerId,
-                  outputs: outputValue.outputs ?? null,
-                });
-              } else {
-                warnings.push({
-                  type: 'other',
-                  message: `tool result parts in assistant messages are not supported for OpenAI responses`,
-                });
-              }
+              warnings.push({
+                type: 'other',
+                message: `tool result parts in assistant messages are not supported for OpenAI responses`,
+              });
               break;
             }
 

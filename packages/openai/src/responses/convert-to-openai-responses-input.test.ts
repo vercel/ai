@@ -1591,58 +1591,6 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
-  describe('code interpreter tool', () => {
-    it('should convert single code interpreter tool call and result into input item', async () => {
-      const result = await convertToOpenAIResponsesInput({
-        prompt: [
-          {
-            role: 'assistant',
-            content: [
-              {
-                input: { code: 'example code', containerId: 'container_123' },
-                providerExecuted: true,
-                toolCallId:
-                  'ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
-                toolName: 'code_interpreter',
-                type: 'tool-call',
-              },
-              {
-                output: {
-                  type: 'json',
-                  value: {
-                    outputs: [{ type: 'logs', logs: 'example logs' }],
-                  },
-                },
-                toolCallId:
-                  'ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
-                toolName: 'code_interpreter',
-                type: 'tool-result',
-              },
-            ],
-          },
-        ],
-        systemMessageMode: 'system',
-      });
-
-      expect(result.input).toMatchInlineSnapshot(`
-        [
-          {
-            "code": "example code",
-            "container_id": "container_123",
-            "id": "ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
-            "outputs": [
-              {
-                "logs": "example logs",
-                "type": "logs",
-              },
-            ],
-            "type": "code_interpreter_call",
-          },
-        ]
-      `);
-    });
-  });
-
   describe('function tools', () => {
     it('should include client-side tool calls in prompt', async () => {
       const result = await convertToOpenAIResponsesInput({
