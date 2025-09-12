@@ -28,6 +28,15 @@ export const codeInterpreterArgsSchema = z.object({
     .optional(),
 });
 
+type CodeInterpreterArgs = {
+  /**
+   * The code interpreter container.
+   * Can be a container ID
+   * or an object that specifies uploaded file IDs to make available to your code.
+   */
+  container?: string | { fileIds?: string[] };
+};
+
 export const codeInterpreterToolFactory =
   createProviderDefinedToolFactoryWithOutputSchema<
     {
@@ -65,14 +74,7 @@ export const codeInterpreterToolFactory =
           }
       > | null;
     },
-    {
-      /**
-       * The code interpreter container.
-       * Can be a container ID
-       * or an object that specifies uploaded file IDs to make available to your code.
-       */
-      container?: string | { fileIds?: string[] };
-    }
+    CodeInterpreterArgs
   >({
     id: 'openai.code_interpreter',
     name: 'code_interpreter',
@@ -81,7 +83,7 @@ export const codeInterpreterToolFactory =
   });
 
 export const codeInterpreter = (
-  args: Parameters<typeof codeInterpreterToolFactory>[0] = {}, // default
+  args: CodeInterpreterArgs = {}, // default
 ) => {
   return codeInterpreterToolFactory(args);
 };
