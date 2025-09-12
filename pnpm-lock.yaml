@@ -529,8 +529,8 @@ importers:
         specifier: 9.0.1
         version: 9.0.1(@types/react@18.3.3)(react@18.3.1)
       resumable-stream:
-        specifier: ^2.2.0
-        version: 2.2.0
+        specifier: ^2.2.4
+        version: 2.2.4
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -15827,6 +15827,9 @@ packages:
 
   resumable-stream@2.2.0:
     resolution: {integrity: sha512-538Sgz+EQV0Wv2tGzID1V/ETzh/SSWSgqHhMGchZfvNGpCeVMP8BiEK5OIqRw8Up5/ifa93STzMa/k75NhbHdA==}
+
+  resumable-stream@2.2.4:
+    resolution: {integrity: sha512-1MPxh4IjQVNPR4m4/7zV7/QtBa6qAhrWs+RPTeai8LnO1YnxFaGy+VbYtd0iLGZZ967F+rmOSFsNdm4BeoSYgA==}
 
   ret@0.5.0:
     resolution: {integrity: sha512-I1XxrZSQ+oErkRR4jYbAyEEu2I0avBvvMM5JN+6EBprOGRCs63ENqZ3vjavq8fBw2+62G5LF5XelKwuJpcvcxw==}
@@ -34985,6 +34988,8 @@ snapshots:
       signal-exit: 4.1.0
 
   resumable-stream@2.2.0: {}
+
+  resumable-stream@2.2.4: {}
 
   ret@0.5.0: {}
 

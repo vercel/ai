@@ -59,7 +59,6 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o-mini'),
     messages: convertToModelMessages(messages),
-    abortSignal: req.signal,
   });
 
   return result.toUIMessageStreamResponse({
