@@ -1,0 +1,120 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter > should generate text response 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e2cbc0a08190bc754d734af0940f0b24aae9c6c01e4f",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{"code":"import random\\nrandom.seed()  # system time\\nn=10000\\nsums=[(random.randint(1,6)+random.randint(1,6)) for _ in range(n)]\\ntotal=sum(sums)\\nmean=total/n\\nfrom collections import Counter\\ncounts=Counter(sums)\\ncounts_sorted=[(sum_val, counts[sum_val]) for sum_val in range(2,13)]\\ntotal, mean, counts_sorted[:5], counts_sorted[-5:]","containerId":"cntr_68c2e2caf50c8193b4069276f4c75ef301e63bd5fd6a4d4d"}",
+    "providerExecuted": true,
+    "toolCallId": "ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+    "toolName": "code_interpreter",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "outputs": [
+        {
+          "logs": "(70141,
+ 7.0141,
+ [(2, 269), (3, 511), (4, 865), (5, 1130), (6, 1353)],
+ [(8, 1387), (9, 1110), (10, 828), (11, 538), (12, 299)])",
+          "type": "logs",
+        },
+      ],
+    },
+    "toolCallId": "ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+    "toolName": "code_interpreter",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e2d67f60819097167827b0e29b4f0b24aae9c6c01e4f",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{"code":"counts_sorted_full = [(s,c) for s,c in sorted(counts.items())]\\ncounts_sorted_full","containerId":"cntr_68c2e2caf50c8193b4069276f4c75ef301e63bd5fd6a4d4d"}",
+    "providerExecuted": true,
+    "toolCallId": "ci_68c2e2d75fe08190b27c6e44213143010b24aae9c6c01e4f",
+    "toolName": "code_interpreter",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "outputs": [
+        {
+          "logs": "[(2, 269),
+ (3, 511),
+ (4, 865),
+ (5, 1130),
+ (6, 1353),
+ (7, 1710),
+ (8, 1387),
+ (9, 1110),
+ (10, 828),
+ (11, 538),
+ (12, 299)]",
+          "type": "logs",
+        },
+      ],
+    },
+    "toolCallId": "ci_68c2e2d75fe08190b27c6e44213143010b24aae9c6c01e4f",
+    "toolName": "code_interpreter",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e2dab6508190987f0d3db143b0580b24aae9c6c01e4f",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_68c2e2e513c88190a72cefb37140d19a0b24aae9c6c01e4f",
+      },
+    },
+    "text": "Here’s a quick result from simulating 10,000 rolls of two fair six-sided dice (sum per trial, then total across all trials):
+
+- Total sum of all 10,000 trial sums: 70141
+- Average sum per trial: 7.0141
+
+Distribution of the per-trial sums (2–12):
+- 2: 269 (2.69%)
+- 3: 511 (5.11%)
+- 4: 865 (8.65%)
+- 5: 1130 (11.30%)
+- 6: 1353 (13.53%)
+- 7: 1710 (17.10%)
+- 8: 1387 (13.87%)
+- 9: 1110 (11.10%)
+- 10: 828 (8.28%)
+- 11: 538 (5.38%)
+- 12: 299 (2.99%)
+
+Notes:
+- The total is around 7,0000 since the expected sum per trial is 7, so 10,000 trials ≈ 70000. Your exact total will vary with each run unless you fix a random seed.
+- If you’d like, I can provide the per-trial sums as a CSV file or share a reproducible run with a fixed seed.",
+    "type": "text",
+  },
+]
+`;
