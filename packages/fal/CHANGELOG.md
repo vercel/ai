@@ -1,5 +1,12 @@
 # @ai-sdk/fal
 
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
 ## 1.0.12
 
 ### Patch Changes
