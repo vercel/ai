@@ -7,7 +7,7 @@ export type AnthropicMessagesPrompt = {
 
 export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
 
-export type AnthropicCacheControl = { type: 'ephemeral'; ttl?: '5m' | '1h' };
+export type AnthropicCacheControl = { type: 'ephemeral' };
 
 export interface AnthropicUserMessage {
   role: 'user';
