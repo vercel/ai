@@ -2128,7 +2128,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
-      it('should send correct request body', async () => {
+      it('should send request body with include and tool', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
             "include": [
@@ -2158,7 +2158,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
 
-      it('should generate text response', async () => {
+      it('should include code interpreter tool call and result in content', async () => {
         expect(result.content).toMatchSnapshot();
       });
     });

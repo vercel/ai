@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter > should generate text response 1`] = `
+exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter > should include code interpreter tool call and result in content 1`] = `
 [
   {
     "providerMetadata": {
