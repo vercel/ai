@@ -11,7 +11,8 @@ export type OpenAIResponsesMessage =
   | OpenAIWebSearchCall
   | OpenAIComputerCall
   | OpenAIFileSearchCall
-  | OpenAIResponsesReasoning;
+  | OpenAIResponsesReasoning
+  | OpenAICodeInterpreterCall;
 
 export type OpenAIResponsesIncludeOptions =
   | Array<
@@ -78,6 +79,16 @@ export type OpenAIComputerCall = {
   type: 'computer_call';
   id: string;
   status?: string;
+};
+
+export type OpenAICodeInterpreterCall = {
+  type: 'code_interpreter_call';
+  container_id: string;
+  id: string;
+  code: string | null;
+  outputs: Array<
+    { type: 'logs'; logs: string } | { type: 'image'; url: string }
+  > | null;
 };
 
 export type OpenAIFileSearchCall = {
