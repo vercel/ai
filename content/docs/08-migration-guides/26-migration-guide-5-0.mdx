@@ -26,17 +26,17 @@ You need to update the following packages to the following versions in your `pac
 
 Additionally, you need to update the following peer dependencies:
 
-- `zod` package: `4.1.6` or later (recommended to avoid TypeScript performance issues)
+- `zod` package: `4.1.8` or later (recommended to avoid TypeScript performance issues)
 
 An example upgrade command would be:
 
 ```
-npm install ai @ai-sdk/react @ai-sdk/openai zod@^4.1.6
+npm install ai @ai-sdk/react @ai-sdk/openai zod@^4.1.8
 ```
 
 <Note>
   If you encounter TypeScript performance issues after upgrading, ensure you're
-  using Zod 4.1.6 or later. If the issue persists, update your `tsconfig.json`
+  using Zod 4.1.8 or later. If the issue persists, update your `tsconfig.json`
   to use `moduleResolution: "nodenext"`. See the [TypeScript performance
   troubleshooting guide](/docs/troubleshooting/typescript-performance-zod) for
   more details.
@@ -3102,7 +3102,11 @@ import {
 
 ### TypeScript Performance Issues with Zod
 
-If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0, update your `tsconfig.json` to use `moduleResolution: "nodenext"`:
+If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0:
+
+1. **First, ensure you're using Zod 4.1.8 or later** - this version includes a fix for module resolution issues that cause TypeScript performance problems.
+
+2. If the issue persists, update your `tsconfig.json` to use `moduleResolution: "nodenext"`:
 
 ```json
 {

@@ -20,12 +20,12 @@ The AI SDK 5 has specific compatibility requirements with Zod versions. When imp
 
 ## Solution
 
-### Upgrade Zod to 4.1.6 or Later
+### Upgrade Zod to 4.1.8 or Later
 
-The primary solution is to upgrade to Zod version 4.1.6 or later, which includes a fix for this module resolution issue:
+The primary solution is to upgrade to Zod version 4.1.8 or later, which includes a fix for this module resolution issue:
 
 ```bash
-pnpm add zod@^4.1.6
+pnpm add zod@^4.1.8
 ```
 
 This version resolves the underlying problem where different module resolution settings were causing TypeScript to load the same Zod declarations twice, leading to expensive structural comparisons.
@@ -43,4 +43,4 @@ If upgrading Zod isn't possible, you can update your `tsconfig.json` to use `mod
 }
 ```
 
-This resolves the TypeScript performance issues while allowing you to continue using the standard Zod import
+This resolves the TypeScript performance issues while allowing you to continue using the standard Zod import.
