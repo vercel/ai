@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.17
+
+### Patch Changes
+
+- 3aed04c: feat(provider/openai-compatible): set `user-agent` header for `createOpenAICompatible`
+
 ## 1.0.16
 
 ### Patch Changes

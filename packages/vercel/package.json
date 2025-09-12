@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vercel",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
