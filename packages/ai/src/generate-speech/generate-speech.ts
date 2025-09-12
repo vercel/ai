@@ -1,9 +1,5 @@
 import { JSONValue, SpeechModelV2 } from '@ai-sdk/provider';
-import {
-  ProviderOptions,
-  withUserAgentSuffix,
-  removeUndefinedEntries,
-} from '@ai-sdk/provider-utils';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';
@@ -127,7 +123,7 @@ Only applicable for HTTP-based providers.
   }
 
   const headersWithUserAgent = withUserAgentSuffix(
-    removeUndefinedEntries(headers ?? {}),
+    headers ?? {},
     `ai/${VERSION}`,
   );
 

@@ -4,7 +4,6 @@ import {
   InferSchema,
   ProviderOptions,
   Schema,
-  removeUndefinedEntries,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import * as z3 from 'zod/v3';
@@ -266,7 +265,7 @@ Default and recommended: 'auto' (best mode for the model).
   const callSettings = prepareCallSettings(settings);
 
   const headersWithUserAgent = withUserAgentSuffix(
-    removeUndefinedEntries(headers ?? {}),
+    headers ?? {},
     `ai/${VERSION}`,
   );
 

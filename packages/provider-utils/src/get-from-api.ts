@@ -3,7 +3,6 @@ import { extractResponseHeaders } from './extract-response-headers';
 import { FetchFunction } from './fetch-function';
 import { handleFetchError } from './handle-fetch-error';
 import { isAbortError } from './is-abort-error';
-import { removeUndefinedEntries } from './remove-undefined-entries';
 import { ResponseHandler } from './response-handler';
 import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 import { withUserAgentSuffix } from './with-user-agent-suffix';
@@ -31,7 +30,7 @@ export const getFromApi = async <T>({
     const response = await fetch(url, {
       method: 'GET',
       headers: withUserAgentSuffix(
-        removeUndefinedEntries(headers),
+        headers,
         `ai-sdk/provider-utils/${VERSION}`,
         getRuntimeEnvironmentUserAgent(),
       ),

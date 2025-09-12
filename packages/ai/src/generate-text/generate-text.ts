@@ -9,7 +9,6 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
-  removeUndefinedEntries,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
@@ -259,7 +258,7 @@ A function that attempts to repair a tool call that failed to parse.
   const callSettings = prepareCallSettings(settings);
 
   const headersWithUserAgent = withUserAgentSuffix(
-    removeUndefinedEntries(headers ?? {}),
+    headers ?? {},
     `ai/${VERSION}`,
   );
 

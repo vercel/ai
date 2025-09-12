@@ -2,14 +2,18 @@ import { describe, it, expect } from 'vitest';
 
 import { withUserAgentSuffix } from './with-user-agent-suffix';
 
-describe('withUserAgentSuffix', () => {
+describe.only('withUserAgentSuffix', () => {
   it('should create a new user-agent header when no existing user-agent exists', () => {
     const headers = {
       'content-type': 'application/json',
-      'authorization': 'Bearer token123',
+      authorization: 'Bearer token123',
     };
 
-    const result = withUserAgentSuffix(headers, 'ai-sdk/0.0.0-test', 'provider/test-openai');
+    const result = withUserAgentSuffix(
+      headers,
+      'ai-sdk/0.0.0-test',
+      'provider/test-openai',
+    );
 
     expect(result['user-agent']).toBe('ai-sdk/0.0.0-test provider/test-openai');
     expect(result['content-type']).toBe('application/json');
@@ -19,12 +23,36 @@ describe('withUserAgentSuffix', () => {
   it('should append suffix parts to existing user-agent header', () => {
     const headers = {
       'user-agent': 'TestApp/0.0.0-test',
-      'accept': 'application/json',
+      accept: 'application/json',
     };
 
-    const result = withUserAgentSuffix(headers, 'ai-sdk/0.0.0-test', 'provider/test-anthropic');
+    const result = withUserAgentSuffix(
+      headers,
+      'ai-sdk/0.0.0-test',
+      'provider/test-anthropic',
+    );
 
-    expect(result['user-agent']).toBe('TestApp/0.0.0-test ai-sdk/0.0.0-test provider/test-anthropic');
+    expect(result['user-agent']).toBe(
+      'TestApp/0.0.0-test ai-sdk/0.0.0-test provider/test-anthropic',
+    );
     expect(result['accept']).toBe('application/json');
+  });
+
+  it('should automatically remove undefined entries from headers', () => {
+    const headers = {
+      'content-type': 'application/json',
+      authorization: undefined,
+      'user-agent': 'TestApp/0.0.0-test',
+      accept: 'application/json',
+      'cache-control': null,
+    };
+
+    const result = withUserAgentSuffix(headers as any, 'ai-sdk/0.0.0-test');
+
+    expect(result['user-agent']).toBe('TestApp/0.0.0-test ai-sdk/0.0.0-test');
+    expect(result['content-type']).toBe('application/json');
+    expect(result['accept']).toBe('application/json');
+    expect(result['authorization']).toBeUndefined();
+    expect(result['cache-control']).toBeUndefined();
   });
 });

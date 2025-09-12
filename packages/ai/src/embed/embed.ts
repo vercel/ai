@@ -1,8 +1,4 @@
-import {
-  ProviderOptions,
-  withUserAgentSuffix,
-  removeUndefinedEntries,
-} from '@ai-sdk/provider-utils';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -84,7 +80,7 @@ Only applicable for HTTP-based providers.
   });
 
   const headersWithUserAgent = withUserAgentSuffix(
-    removeUndefinedEntries(headers ?? {}),
+    headers ?? {},
     `ai/${VERSION}`,
   );
 
