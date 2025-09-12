@@ -679,9 +679,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       const model = provider('claude-3-haiku-20240307');
 
       const result = await model.doGenerate({
-        headers: {
-          'anthropic-beta': 'extended-cache-ttl-2025-04-11',
-        },
         prompt: [
           {
             role: 'user',
@@ -2534,9 +2531,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
-        headers: {
-          'anthropic-beta': 'extended-cache-ttl-2025-04-11',
-        },
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
