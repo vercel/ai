@@ -16,7 +16,7 @@ export async function saveRawChunks({
   }
 
   fs.writeFileSync(
-    filename,
+    `output/${filename}.chunks.txt`,
     rawChunks.map(chunk => JSON.stringify(chunk)).join('\n'),
   );
 }
