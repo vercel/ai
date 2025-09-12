@@ -46,12 +46,7 @@ export type OpenAIResponsesUserMessage = {
 
 export type OpenAIResponsesAssistantMessage = {
   role: 'assistant';
-  content: Array<
-    | { type: 'output_text'; text: string }
-    | OpenAIResponsesWebSearchCall
-    | OpenAIResponsesComputerCall
-    | OpenAIResponsesFileSearchCall
-  >;
+  content: Array<{ type: 'output_text'; text: string }>;
   id?: string;
 };
 
