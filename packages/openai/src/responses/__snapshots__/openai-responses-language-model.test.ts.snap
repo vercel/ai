@@ -152,6 +152,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "type": "reasoning-end",
   },
   {
+    "input": "{"code":"import random, math\\nN=10000\\nsums=[]\\ns=0\\nfor _ in range(N):\\n    a=random.randint(1,6)\\n    b=random.randint(1,6)\\n    sm=a+b\\n    sums.append(sm)\\n    s+=sm\\nmin(sums), max(sums), sum(sums), sum(sums)/N\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
+    "providerExecuted": true,
+    "toolCallId": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "outputs": [
+        {
+          "logs": "(2, 12, 69868, 6.9868)",
+          "type": "logs",
+        },
+      ],
+    },
+    "toolCallId": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-result",
+  },
+  {
     "id": "rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9:0",
     "providerMetadata": {
       "openai": {
@@ -172,6 +193,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "type": "reasoning-end",
   },
   {
+    "input": "{"code":"import csv, pathlib\\npath = pathlib.Path('/mnt/data/roll2dice_sums_10000.csv')\\nwith open(path, 'w', newline='') as f:\\n    writer = csv.writer(f)\\n    writer.writerow(['sum'])\\n    for val in sums:\\n        writer.writerow([val])\\npath, path.exists(), len(sums)\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
+    "providerExecuted": true,
+    "toolCallId": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "outputs": [
+        {
+          "logs": "(PosixPath('/mnt/data/roll2dice_sums_10000.csv'), True, 10000)",
+          "type": "logs",
+        },
+      ],
+    },
+    "toolCallId": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-result",
+  },
+  {
     "id": "rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9:0",
     "providerMetadata": {
       "openai": {
@@ -190,6 +232,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
       },
     },
     "type": "reasoning-end",
+  },
+  {
+    "input": "{"code":"sums[:20]\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
+    "providerExecuted": true,
+    "toolCallId": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "outputs": [
+        {
+          "logs": "[6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7]",
+          "type": "logs",
+        },
+      ],
+    },
+    "toolCallId": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-result",
   },
   {
     "id": "rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9:0",

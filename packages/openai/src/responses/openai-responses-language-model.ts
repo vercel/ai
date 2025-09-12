@@ -975,6 +975,27 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   },
                   providerExecuted: true,
                 });
+              } else if (value.item.type === 'code_interpreter_call') {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'code_interpreter',
+                  input: JSON.stringify({
+                    code: value.item.code,
+                    containerId: value.item.container_id,
+                  } satisfies z.infer<typeof codeInterpreterInputSchema>),
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'code_interpreter',
+                  result: {
+                    outputs: value.item.outputs,
+                  } satisfies z.infer<typeof codeInterpreterOutputSchema>,
+                  providerExecuted: true,
+                });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-end',
