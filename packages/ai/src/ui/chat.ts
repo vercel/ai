@@ -551,15 +551,48 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
               // streaming is set on first write (before it should be "submitted")
               this.setStatus({ status: 'streaming' });
 
+              // Handle multiple messages in the queue
+              if (activeResponse.state.messageQueue && activeResponse.state.messageQueue.length > 0) {
+                // Add all queued messages to the chat
+                for (const queuedMessage of activeResponse.state.messageQueue) {
+                  const existingMessageIndex = this.state.messages.findIndex(
+                    msg => msg.id === queuedMessage.id
+                  );
+                  
+                  if (existingMessageIndex >= 0) {
+                    // Update existing message
+                    this.state.replaceMessage(existingMessageIndex, queuedMessage);
+                  } else {
+                    // Add new message
+                    this.state.pushMessage(queuedMessage);
+                  }
+                }
+                // Clear the queue after processing
+                activeResponse.state.messageQueue = [];
+              }
+
+              // Handle the current message
               const replaceLastMessage =
                 activeResponse.state.message.id === this.lastMessage?.id;
 
-              if (replaceLastMessage) {
+              const existingMessageIndex = this.state.messages.findIndex(
+                msg => msg.id === activeResponse.state.message.id
+              );
+
+              if (existingMessageIndex >= 0) {
+                // Update existing message
+                this.state.replaceMessage(
+                  existingMessageIndex,
+                  activeResponse.state.message,
+                );
+              } else if (replaceLastMessage) {
+                // Replace last message for backward compatibility
                 this.state.replaceMessage(
                   this.state.messages.length - 1,
                   activeResponse.state.message,
                 );
               } else {
+                // Add new message
                 this.state.pushMessage(activeResponse.state.message);
               }
             },
@@ -582,6 +615,22 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           throw error;
         },
       });
+
+      // Process any remaining messages in the queue after stream consumption
+      if (activeResponse.state.messageQueue && activeResponse.state.messageQueue.length > 0) {
+        for (const queuedMessage of activeResponse.state.messageQueue) {
+          const existingMessageIndex = this.state.messages.findIndex(
+            msg => msg.id === queuedMessage.id
+          );
+          
+          if (existingMessageIndex >= 0) {
+            this.state.replaceMessage(existingMessageIndex, queuedMessage);
+          } else {
+            this.state.pushMessage(queuedMessage);
+          }
+        }
+        activeResponse.state.messageQueue = [];
+      }
 
       this.setStatus({ status: 'ready' });
     } catch (err) {

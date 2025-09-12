@@ -38,6 +38,9 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
     string,
     { text: string; index: number; toolName: string; dynamic?: boolean }
   >;
+  // Support for multiple messages in a single stream
+  isFinalized?: boolean;
+  messageQueue?: UI_MESSAGE[];
 };
 
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
@@ -63,6 +66,8 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
     activeTextParts: {},
     activeReasoningParts: {},
     partialToolCalls: {},
+    isFinalized: false,
+    messageQueue: [],
   };
 }
 
@@ -600,11 +605,37 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'start': {
+              // Handle multiple messages in a single stream
               if (chunk.messageId != null) {
-                state.message.id = chunk.messageId;
+                // If current message is finalized, save it and create a new one
+                if (state.isFinalized && state.message.parts.length > 0) {
+                  // Save the current message to the queue
+                  state.messageQueue!.push(state.message);
+                  
+                  // Create a new message for the new messageId
+                  state.message = {
+                    id: chunk.messageId,
+                    metadata: chunk.messageMetadata as InferUIMessageMetadata<UI_MESSAGE>,
+                    role: 'assistant',
+                    parts: [] as UIMessagePart<
+                      InferUIMessageData<UI_MESSAGE>,
+                      InferUIMessageTools<UI_MESSAGE>
+                    >[],
+                  } as UI_MESSAGE;
+                  
+                  // Reset state for the new message
+                  state.activeTextParts = {};
+                  state.activeReasoningParts = {};
+                  state.partialToolCalls = {};
+                  state.isFinalized = false;
+                } else {
+                  // First message or updating existing message
+                  state.message.id = chunk.messageId;
+                  await updateMessageMetadata(chunk.messageMetadata);
+                }
+              } else {
+                await updateMessageMetadata(chunk.messageMetadata);
               }
-
-              await updateMessageMetadata(chunk.messageMetadata);
 
               if (chunk.messageId != null || chunk.messageMetadata != null) {
                 write();
@@ -617,6 +648,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               if (chunk.messageMetadata != null) {
                 write();
               }
+              // Mark the current message as finalized for multi-message support
+              state.isFinalized = true;
               break;
             }
 
