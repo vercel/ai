@@ -10,6 +10,7 @@ async function main() {
     headers: {
       Authorization: `Bearer ${process.env.TOGETHER_AI_API_KEY}`,
     },
+    supportsStructuredOutputs: true,
   });
   const model = togetherai.chatModel('mistralai/Mistral-7B-Instruct-v0.1');
   const result = await generateObject({
