@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import { withUserAgentSuffix } from './with-user-agent-suffix';
 
-describe.only('withUserAgentSuffix', () => {
+describe('withUserAgentSuffix', () => {
   it('should create a new user-agent header when no existing user-agent exists', () => {
     const headers = {
       'content-type': 'application/json',
