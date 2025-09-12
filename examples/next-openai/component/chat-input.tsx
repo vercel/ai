@@ -4,12 +4,10 @@ export default function ChatInput({
   status,
   onSubmit,
   stop,
-  placeholder = 'Say something...',
 }: {
   status: string;
   onSubmit: (text: string) => void;
   stop?: () => void;
-  placeholder?: string;
 }) {
   const [text, setText] = useState('');
 
@@ -23,15 +21,15 @@ export default function ChatInput({
       }}
     >
       <input
-        className="fixed bottom-0 p-2 mb-8 w-full max-w-md rounded border border-gray-300 shadow-xl"
-        placeholder={placeholder}
+        className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+        placeholder="Say something..."
         disabled={status !== 'ready'}
         value={text}
         onChange={e => setText(e.target.value)}
       />
       {stop && (status === 'streaming' || status === 'submitted') && (
         <button
-          className="fixed bottom-0 p-2 mb-8 w-full max-w-md rounded border border-gray-300 shadow-xl"
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           type="submit"
           onClick={stop}
         >
