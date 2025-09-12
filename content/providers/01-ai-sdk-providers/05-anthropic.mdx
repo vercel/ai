@@ -114,7 +114,7 @@ const anthropic = new Anthropic();
 // Your AI SDK messages
 const messages = [
   { role: 'system', content: 'You are a helpful assistant.' },
-  { role: 'user', content: 'What is the capital of France?' },
+  { role: 'user', content: [{ type: 'text', text: 'What is the capital of France?' }] },
 ];
 
 // Convert to Anthropic format
