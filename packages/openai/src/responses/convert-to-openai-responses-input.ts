@@ -1,6 +1,7 @@
 import {
   LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
+  LanguageModelV2ToolCallPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
@@ -9,6 +10,10 @@ import {
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api-types';
+import {
+  codeInterpreterInputSchema,
+  codeInterpreterOutputSchema,
+} from '../tool/code-interpreter';
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -122,6 +127,7 @@ export async function convertToOpenAIResponsesInput({
 
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
+        const toolCallParts: Record<string, LanguageModelV2ToolCallPart> = {};
 
         for (const part of content) {
           switch (part.type) {
@@ -135,6 +141,8 @@ export async function convertToOpenAIResponsesInput({
               break;
             }
             case 'tool-call': {
+              toolCallParts[part.toolCallId] = part;
+
               if (part.providerExecuted) {
                 break;
               }
@@ -151,14 +159,26 @@ export async function convertToOpenAIResponsesInput({
             }
 
             case 'tool-result': {
-              if (part.toolName === 'code_interpreter') {
-                // input.push({
-                //   type: 'code_interpreter_call',
-                //   id: part.toolCallId,
-                //   code: part.output.code,
-                //   container_id: part.output.container_id,
-                //   outputs: part.output.outputs,
-                // });
+              if (
+                part.toolName === 'code_interpreter' &&
+                part.output.type === 'json'
+              ) {
+                const toolCallPart = toolCallParts[part.toolCallId];
+                const inputValue = codeInterpreterInputSchema.parse(
+                  toolCallPart.input,
+                );
+
+                const outputValue = codeInterpreterOutputSchema.parse(
+                  part.output.value,
+                );
+
+                input.push({
+                  type: 'code_interpreter_call',
+                  id: part.toolCallId,
+                  code: inputValue.code ?? null,
+                  container_id: inputValue.containerId,
+                  outputs: outputValue.outputs ?? null,
+                });
               } else {
                 warnings.push({
                   type: 'other',
