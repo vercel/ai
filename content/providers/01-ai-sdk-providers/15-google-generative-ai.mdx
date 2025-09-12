@@ -110,7 +110,6 @@ await generateText({
           threshold: 'BLOCK_LOW_AND_ABOVE',
         },
       ],
-      responseModalities: ['TEXT', 'IMAGE'],
     },
   },
 });
@@ -582,7 +581,6 @@ const urlContextMetadata = metadata?.urlContextMetadata;
 ### Image Outputs
 
 Gemini models with image generation capabilities (`gemini-2.5-flash-image-preview`) support image generation. Images are exposed as files in the response.
-You need to enable image output in the provider options using the `responseModalities` option.
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -590,9 +588,6 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   model: google('gemini-2.5-flash-image-preview'),
-  providerOptions: {
-    google: { responseModalities: ['TEXT', 'IMAGE'] },
-  },
   prompt:
     'Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme',
 });

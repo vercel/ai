@@ -1,7 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const openai = createOpenAI({
   // Console log the API request body for debugging

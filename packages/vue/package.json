@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "2.0.39",
+  "version": "2.0.41",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -50,10 +50,14 @@
     "vitest": "2.1.4"
   },
   "peerDependencies": {
-    "vue": "^3.3.4"
+    "vue": "^3.3.4",
+    "zod": "^3.25.76 || ^4"
   },
   "peerDependenciesMeta": {
     "vue": {
+      "optional": true
+    },
+    "zod": {
       "optional": true
     }
   },
