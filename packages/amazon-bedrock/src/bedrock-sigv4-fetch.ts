@@ -3,8 +3,11 @@ import {
   FetchFunction,
   combineHeaders,
   removeUndefinedEntries,
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
 import { AwsV4Signer } from 'aws4fetch';
+import { VERSION } from './version';
 
 export interface BedrockCredentials {
   region: string;
@@ -40,12 +43,17 @@ export function createSigV4FetchFunction(
           : input.url;
 
     const originalHeaders = extractHeaders(init.headers);
+    const headersWithUserAgent = withUserAgentSuffix(
+      originalHeaders,
+      `ai-sdk/amazon-bedrock/${VERSION}`,
+      getRuntimeEnvironmentUserAgent(), // adding runtime environment user agent since this it won't be updated
+    );
     const body = prepareBodyString(init.body);
     const credentials = await getCredentials();
     const signer = new AwsV4Signer({
       url,
       method: 'POST',
-      headers: Object.entries(removeUndefinedEntries(originalHeaders)),
+      headers: Object.entries(removeUndefinedEntries(headersWithUserAgent)),
       body,
       region: credentials.region,
       accessKeyId: credentials.accessKeyId,
@@ -60,7 +68,7 @@ export function createSigV4FetchFunction(
       ...init,
       body,
       headers: removeUndefinedEntries(
-        combineHeaders(originalHeaders, signedHeaders),
+        combineHeaders(headersWithUserAgent, signedHeaders),
       ),
     });
   };
@@ -94,11 +102,16 @@ export function createApiKeyFetchFunction(
     init?: RequestInit,
   ): Promise<Response> => {
     const originalHeaders = extractHeaders(init?.headers);
+    const headersWithUserAgent = withUserAgentSuffix(
+      originalHeaders,
+      `ai-sdk/amazon-bedrock/${VERSION}`,
+      getRuntimeEnvironmentUserAgent(),
+    );
 
     return fetch(input, {
       ...init,
       headers: removeUndefinedEntries(
-        combineHeaders(originalHeaders, {
+        combineHeaders(headersWithUserAgent, {
           Authorization: `Bearer ${apiKey}`,
         }),
       ),
