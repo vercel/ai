@@ -4,11 +4,17 @@ import {
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
-import { FetchFunction, withoutTrailingSlash } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  withoutTrailingSlash,
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
+} from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
+import { VERSION } from './version';
 
 export interface OpenAICompatibleProvider<
   CHAT_MODEL_IDS extends string = string,
@@ -96,10 +102,15 @@ export function createOpenAICompatible<
     fetch?: FetchFunction;
   }
 
-  const getHeaders = () => ({
-    ...(options.apiKey && { Authorization: `Bearer ${options.apiKey}` }),
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        ...(options.apiKey && { Authorization: `Bearer ${options.apiKey}` }),
+        ...options.headers,
+      },
+      `ai-sdk/openai-compatible/${VERSION}`,
+      getRuntimeEnvironmentUserAgent(),
+    );
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `${providerName}.${modelType}`,

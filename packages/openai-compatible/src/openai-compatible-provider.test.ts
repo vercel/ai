@@ -4,6 +4,20 @@ import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-com
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
+// Mock version
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
+// Mock runtime environment
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    ...actual,
+    getRuntimeEnvironmentUserAgent: () => 'runtime/test-env',
+  };
+});
+
 const OpenAICompatibleChatLanguageModelMock = vi.mocked(
   OpenAICompatibleChatLanguageModel,
 );
@@ -37,7 +51,7 @@ describe('OpenAICompatibleProvider', () => {
         baseURL: 'https://api.example.com',
         name: 'test-provider',
         apiKey: 'test-api-key',
-        headers: { 'Custom-Header': 'value' },
+        headers: { 'custom-header': 'value' },
         queryParams: { 'Custom-Param': 'value' },
       };
 
@@ -50,8 +64,9 @@ describe('OpenAICompatibleProvider', () => {
       const headers = config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-api-key',
-        'Custom-Header': 'value',
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test runtime/test-env',
       });
       expect(config.provider).toBe('test-provider.chat');
       expect(config.url({ modelId: 'model-id', path: '/v1/chat' })).toBe(
@@ -59,11 +74,11 @@ describe('OpenAICompatibleProvider', () => {
       );
     });
 
-    it('should create headers without Authorization when no apiKey provided', () => {
+    it('should create headers without authorization when no apiKey provided', () => {
       const options = {
         baseURL: 'https://api.example.com',
         name: 'test-provider',
-        headers: { 'Custom-Header': 'value' },
+        headers: { 'custom-header': 'value' },
       };
 
       const provider = createOpenAICompatible(options);
@@ -75,7 +90,8 @@ describe('OpenAICompatibleProvider', () => {
       const headers = config.headers();
 
       expect(headers).toEqual({
-        'Custom-Header': 'value',
+        'custom-header': 'value',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test runtime/test-env',
       });
     });
   });
@@ -85,7 +101,7 @@ describe('OpenAICompatibleProvider', () => {
       baseURL: 'https://api.example.com',
       name: 'test-provider',
       apiKey: 'test-api-key',
-      headers: { 'Custom-Header': 'value' },
+      headers: { 'custom-header': 'value' },
       queryParams: { 'Custom-Param': 'value' },
     };
 
@@ -100,8 +116,9 @@ describe('OpenAICompatibleProvider', () => {
       const headers = config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-api-key',
-        'Custom-Header': 'value',
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test runtime/test-env',
       });
       expect(config.provider).toBe('test-provider.chat');
       expect(config.url({ modelId: 'model-id', path: '/v1/chat' })).toBe(
@@ -120,8 +137,9 @@ describe('OpenAICompatibleProvider', () => {
       const headers = config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-api-key',
-        'Custom-Header': 'value',
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test runtime/test-env',
       });
       expect(config.provider).toBe('test-provider.completion');
       expect(
@@ -139,8 +157,9 @@ describe('OpenAICompatibleProvider', () => {
       const headers = config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-api-key',
-        'Custom-Header': 'value',
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'user-agent': 'ai-sdk/openai-compatible/0.0.0-test runtime/test-env',
       });
       expect(config.provider).toBe('test-provider.embedding');
       expect(
