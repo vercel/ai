@@ -553,7 +553,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
-              },
+              } satisfies AnthropicProviderOptions,
             },
           },
         ],
@@ -689,7 +689,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral', ttl: '1h' },
-              },
+              } satisfies AnthropicProviderOptions,
             },
           },
         ],
