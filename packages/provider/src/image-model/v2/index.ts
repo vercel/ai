@@ -4,3 +4,4 @@ export type {
 } from './image-model-v2';
 export type { ImageModelV2CallOptions } from './image-model-v2-call-options';
 export type { ImageModelV2CallWarning } from './image-model-v2-call-warning';
+export type { ImageModelV2Usage } from './image-model-v2-usage';
