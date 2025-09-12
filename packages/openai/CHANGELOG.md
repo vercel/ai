@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.29
+
+### Patch Changes
+
+- 4235eb3: feat(provider/openai): code interpreter tool calls and results
+
 ## 2.0.28
 
 ### Patch Changes
