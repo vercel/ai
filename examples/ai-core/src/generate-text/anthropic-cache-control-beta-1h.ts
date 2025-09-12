@@ -26,7 +26,7 @@ async function main() {
             text: cachedMessage,
             providerOptions: {
               anthropic: {
-                cacheControl: { type: 'ephemeral', ttl: '1h'},
+                cacheControl: { type: 'ephemeral', ttl: '1h' },
               } satisfies AnthropicProviderOptions,
             },
           },
