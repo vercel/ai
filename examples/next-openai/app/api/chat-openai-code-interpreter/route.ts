@@ -35,5 +35,9 @@ export async function POST(req: Request) {
     },
   });
 
+  result.request.then(request => {
+    console.log(JSON.stringify(request.body, null, 2));
+  });
+
   return result.toUIMessageStreamResponse();
 }
