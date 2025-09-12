@@ -101,17 +101,14 @@ export function createOpenAICompatible<
     headers: () => Record<string, string>;
     fetch?: FetchFunction;
   }
-  
+
   const headers = {
     ...(options.apiKey && { Authorization: `Bearer ${options.apiKey}` }),
     ...options.headers,
-  }
+  };
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      headers,
-      `ai-sdk/openai-compatible/${VERSION}`,
-    );
+    withUserAgentSuffix(headers, `ai-sdk/openai-compatible/${VERSION}`);
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `${providerName}.${modelType}`,
