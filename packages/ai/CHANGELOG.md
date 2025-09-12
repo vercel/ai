@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.42
+
+### Patch Changes
+
+- de5c066: fix(ai): forwarded providerExecuted flag in validateUIMessages
+
 ## 5.0.41
 
 ### Patch Changes
