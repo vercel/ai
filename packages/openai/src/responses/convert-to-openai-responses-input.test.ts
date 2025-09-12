@@ -1513,8 +1513,8 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
-  describe('provider-executed tool calls', () => {
-    it('should exclude provider-executed tool calls and results from prompt', async () => {
+  describe('web search tool', () => {
+    it('should exclude web search tool calls and results from prompt', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -1589,7 +1589,9 @@ describe('convertToOpenAIResponsesInput', () => {
         }
       `);
     });
+  });
 
+  describe('function tools', () => {
     it('should include client-side tool calls in prompt', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
