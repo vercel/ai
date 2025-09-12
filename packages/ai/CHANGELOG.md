@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.43
+
+### Patch Changes
+
+- 0294b58: feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/gateway@1.0.22
+
 ## 5.0.42
 
 ### Patch Changes
