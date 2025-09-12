@@ -99,10 +99,7 @@
     },
     {
       "path": "../../packages/provider"
-    },
-    {
-      "path": "../../packages/provider-utils"
-    },
+    },    
     {
       "path": "../../packages/replicate"
     },
