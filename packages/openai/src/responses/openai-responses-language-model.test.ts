@@ -69,7 +69,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     server.urls['https://api.openai.com/v1/responses'].response = {
       type: 'json-value',
       body: JSON.parse(
-        fs.readFileSync(`src/responses/test-fixtures/${filename}.json`, 'utf8'),
+        fs.readFileSync(`src/responses/__fixtures__/${filename}.json`, 'utf8'),
       ),
     };
     return;
@@ -77,10 +77,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
   function prepareChunksFixtureResponse(filename: string) {
     const chunks = fs
-      .readFileSync(
-        `src/responses/test-fixtures/${filename}.chunks.txt`,
-        'utf8',
-      )
+      .readFileSync(`src/responses/__fixtures__/${filename}.chunks.txt`, 'utf8')
       .split('\n')
       .map(line => `data: ${line}\n\n`);
     chunks.push('data: [DONE]\n\n');
