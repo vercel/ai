@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   InferUITools,
@@ -27,6 +27,12 @@ export async function POST(req: Request) {
     model: openai.responses('gpt-5-nano'),
     tools,
     messages: convertToModelMessages(uiMessages),
+    providerOptions: {
+      openai: {
+        store: false,
+        include: ['reasoning.encrypted_content'],
+      } satisfies OpenAIResponsesProviderOptions,
+    },
   });
 
   return result.toUIMessageStreamResponse();

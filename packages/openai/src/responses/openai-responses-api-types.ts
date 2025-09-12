@@ -1,18 +1,18 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 
-export type OpenAIResponsesPrompt = Array<OpenAIResponsesMessage>;
+export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
-export type OpenAIResponsesMessage =
+export type OpenAIResponsesInputItem =
   | OpenAIResponsesSystemMessage
   | OpenAIResponsesUserMessage
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
-  | OpenAIWebSearchCall
-  | OpenAIComputerCall
-  | OpenAIFileSearchCall
+  | OpenAIResponsesWebSearchCall
+  | OpenAIResponsesComputerCall
+  | OpenAIResponsesFileSearchCall
   | OpenAIResponsesReasoning
-  | OpenAICodeInterpreterCall;
+  | OpenAIResponsesCodeInterpreterCall;
 
 export type OpenAIResponsesIncludeOptions =
   | Array<
@@ -48,9 +48,9 @@ export type OpenAIResponsesAssistantMessage = {
   role: 'assistant';
   content: Array<
     | { type: 'output_text'; text: string }
-    | OpenAIWebSearchCall
-    | OpenAIComputerCall
-    | OpenAIFileSearchCall
+    | OpenAIResponsesWebSearchCall
+    | OpenAIResponsesComputerCall
+    | OpenAIResponsesFileSearchCall
   >;
   id?: string;
 };
@@ -69,19 +69,19 @@ export type OpenAIResponsesFunctionCallOutput = {
   output: string;
 };
 
-export type OpenAIWebSearchCall = {
+export type OpenAIResponsesWebSearchCall = {
   type: 'web_search_call';
   id: string;
   status?: string;
 };
 
-export type OpenAIComputerCall = {
+export type OpenAIResponsesComputerCall = {
   type: 'computer_call';
   id: string;
   status?: string;
 };
 
-export type OpenAICodeInterpreterCall = {
+export type OpenAIResponsesCodeInterpreterCall = {
   type: 'code_interpreter_call';
   container_id: string;
   id: string;
@@ -91,7 +91,7 @@ export type OpenAICodeInterpreterCall = {
   > | null;
 };
 
-export type OpenAIFileSearchCall = {
+export type OpenAIResponsesFileSearchCall = {
   type: 'file_search_call';
   id: string;
   status?: string;
