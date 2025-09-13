@@ -23,6 +23,7 @@ import {
   type InferUIMessageData,
   type InferUIMessageMetadata,
   type InferUIMessageTools,
+  type ToolUIPart,
   type UIDataTypes,
   type UIMessage,
 } from './ui-messages';
@@ -413,15 +414,27 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
-  addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
+  addToolOutput = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
+    state = 'output-available',
     tool,
     toolCallId,
     output,
-  }: {
-    tool: TOOL;
-    toolCallId: string;
-    output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
-  }) =>
+    errorText,
+  }:
+    | {
+        state?: 'output-available';
+        tool: TOOL;
+        toolCallId: string;
+        output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+        errorText?: never;
+      }
+    | {
+        state: 'output-error';
+        tool: TOOL;
+        toolCallId: string;
+        output?: never;
+        errorText: string;
+      }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
@@ -430,7 +443,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         ...lastMessage,
         parts: lastMessage.parts.map(part =>
           isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
-            ? { ...part, state: 'output-available', output }
+            ? { ...part, state, output, errorText }
             : part,
         ),
       });
@@ -440,12 +453,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.activeResponse.state.message.parts =
           this.activeResponse.state.message.parts.map(part =>
             isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
-              ? {
+              ? ({
                   ...part,
-                  state: 'output-available',
+                  state,
                   output,
-                  errorText: undefined,
-                }
+                  errorText,
+                } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>)
               : part,
           );
       }
@@ -462,6 +475,24 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           messageId: this.lastMessage?.id,
         });
       }
+    });
+
+  /**
+   * @deprecated Use `addToolOutput` instead. This method will be removed in a future version.
+   */
+  addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
+    tool,
+    toolCallId,
+    output,
+  }: {
+    tool: TOOL;
+    toolCallId: string;
+    output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+  }) =>
+    this.addToolOutput({
+      tool,
+      toolCallId,
+      output,
     });
 
   /**

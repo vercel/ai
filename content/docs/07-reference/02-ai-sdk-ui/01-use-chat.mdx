@@ -418,10 +418,16 @@ Allows you to easily create a conversational user interface for your chatbot app
         'Function to resume an interrupted streaming response. Useful when a network error occurs during streaming.',
     },
     {
+      name: 'addToolOutput',
+      type: '(options: { tool: string; toolCallId: string; output: unknown } | { tool: string; toolCallId: string; state: "output-error", errorText: string }) => void',
+      description:
+        'Function to add a tool output to the chat. This will update the chat messages with the tool output. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
+    },
+    {
       name: 'addToolResult',
       type: '(options: { tool: string; toolCallId: string; output: unknown }) => void',
       description:
-        'Function to add a tool result to the chat. This will update the chat messages with the tool result. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
+        '**@deprecated** Use addToolOutput instead. Function to add a tool result to the chat. This will update the chat messages with the tool result. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
     },
     {
       name: 'setMessages',
