@@ -25,3 +25,5 @@ export async function GET(
     { headers: UI_MESSAGE_STREAM_HEADERS },
   );
 }
+
+// DELETE route to stop the stream
