@@ -607,12 +607,16 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'start': {
               // Handle multiple messages in a single stream
               if (chunk.messageId != null) {
-                // If current message is finalized, save it and create a new one
-                if (state.isFinalized && state.message.parts.length > 0) {
-                  // Save the current message to the queue
-                  state.messageQueue!.push(state.message);
+                // Check if this is a new message (different ID than current)
+                const isNewMessage = state.isFinalized && state.message.id !== chunk.messageId;
+                
+                if (isNewMessage) {
+                  // Save the current message to the queue (deep clone to prevent mutations)
+                  if (state.message.parts.length > 0 || state.message.id) {
+                    state.messageQueue!.push(structuredClone(state.message));
+                  }
                   
-                  // Create a new message for the new messageId
+                  // Create a completely new message for the new messageId
                   state.message = {
                     id: chunk.messageId,
                     metadata: chunk.messageMetadata as InferUIMessageMetadata<UI_MESSAGE>,
@@ -623,22 +627,36 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     >[],
                   } as UI_MESSAGE;
                   
-                  // Reset state for the new message
+                  // Reset ALL state for the new message
                   state.activeTextParts = {};
                   state.activeReasoningParts = {};
                   state.partialToolCalls = {};
                   state.isFinalized = false;
-                } else {
-                  // First message or updating existing message
+                  
+                  // Write to trigger UI update with the new message
+                  write();
+                } else if (!state.message.id) {
+                  // First message in the stream
                   state.message.id = chunk.messageId;
                   await updateMessageMetadata(chunk.messageMetadata);
+                  
+                  if (chunk.messageId != null || chunk.messageMetadata != null) {
+                    write();
+                  }
+                } else {
+                  // Same message, just update metadata if provided
+                  await updateMessageMetadata(chunk.messageMetadata);
+                  
+                  if (chunk.messageMetadata != null) {
+                    write();
+                  }
                 }
               } else {
+                // No messageId in chunk, just update metadata
                 await updateMessageMetadata(chunk.messageMetadata);
-              }
-
-              if (chunk.messageId != null || chunk.messageMetadata != null) {
-                write();
+                if (chunk.messageMetadata != null) {
+                  write();
+                }
               }
               break;
             }
@@ -649,6 +667,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 write();
               }
               // Mark the current message as finalized for multi-message support
+              // This allows the next 'start' event with a new messageId to create a new message
               state.isFinalized = true;
               break;
             }

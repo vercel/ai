@@ -551,19 +551,20 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
               // streaming is set on first write (before it should be "submitted")
               this.setStatus({ status: 'streaming' });
 
-              // Handle multiple messages in the queue
+              // Handle multiple messages in the queue first
               if (activeResponse.state.messageQueue && activeResponse.state.messageQueue.length > 0) {
-                // Add all queued messages to the chat
+                // Process all queued messages (these are complete, finalized messages)
                 for (const queuedMessage of activeResponse.state.messageQueue) {
-                  const existingMessageIndex = this.state.messages.findIndex(
+                  // Check if this message already exists
+                  const existingIndex = this.state.messages.findIndex(
                     msg => msg.id === queuedMessage.id
                   );
                   
-                  if (existingMessageIndex >= 0) {
-                    // Update existing message
-                    this.state.replaceMessage(existingMessageIndex, queuedMessage);
+                  if (existingIndex >= 0) {
+                    // Update the existing message with the final version
+                    this.state.replaceMessage(existingIndex, queuedMessage);
                   } else {
-                    // Add new message
+                    // Add as a new message
                     this.state.pushMessage(queuedMessage);
                   }
                 }
@@ -571,29 +572,36 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 activeResponse.state.messageQueue = [];
               }
 
-              // Handle the current message
-              const replaceLastMessage =
-                activeResponse.state.message.id === this.lastMessage?.id;
+              // Handle the current active message (the one being streamed)
+              if (!activeResponse.state.message.id) {
+                return; // Skip if message has no ID yet
+              }
 
-              const existingMessageIndex = this.state.messages.findIndex(
+              // Find if this message already exists in the chat
+              const currentMessageIndex = this.state.messages.findIndex(
                 msg => msg.id === activeResponse.state.message.id
               );
 
-              if (existingMessageIndex >= 0) {
-                // Update existing message
+              if (currentMessageIndex >= 0) {
+                // Update the existing message with new content
                 this.state.replaceMessage(
-                  existingMessageIndex,
-                  activeResponse.state.message,
-                );
-              } else if (replaceLastMessage) {
-                // Replace last message for backward compatibility
-                this.state.replaceMessage(
-                  this.state.messages.length - 1,
+                  currentMessageIndex,
                   activeResponse.state.message,
                 );
               } else {
-                // Add new message
-                this.state.pushMessage(activeResponse.state.message);
+                // Check if we should replace the last message (backward compatibility)
+                const replaceLastMessage =
+                  activeResponse.state.message.id === this.lastMessage?.id;
+                  
+                if (replaceLastMessage && this.state.messages.length > 0) {
+                  this.state.replaceMessage(
+                    this.state.messages.length - 1,
+                    activeResponse.state.message,
+                  );
+                } else {
+                  // Add as a new message
+                  this.state.pushMessage(activeResponse.state.message);
+                }
               }
             },
           }),
@@ -630,6 +638,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           }
         }
         activeResponse.state.messageQueue = [];
+      }
+      
+      // Also handle the final message if it was finalized
+      if (activeResponse.state.isFinalized && activeResponse.state.message.parts.length > 0) {
+        const existingMessageIndex = this.state.messages.findIndex(
+          msg => msg.id === activeResponse.state.message.id
+        );
+        
+        if (existingMessageIndex >= 0) {
+          this.state.replaceMessage(existingMessageIndex, activeResponse.state.message);
+        } else {
+          this.state.pushMessage(activeResponse.state.message);
+        }
       }
 
       this.setStatus({ status: 'ready' });

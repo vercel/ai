@@ -1,6 +1,6 @@
 {
-  "name": "@ai-sdk/react",
-  "version": "2.0.41",
+  "name": "@zenning/react",
+  "version": "2.0.44",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,8 +30,8 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "ai": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*",
+    "@zenning/ai": "latest",
+    "@ai-sdk/provider-utils": "latest",
     "swr": "^2.2.5",
     "throttleit": "2.1.0"
   },
@@ -42,9 +42,9 @@
     "@types/node": "20.17.24",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsconfig": "latest",
     "eslint": "8.57.1",
-    "eslint-config-vercel-ai": "workspace:*",
+    "eslint-config-vercel-ai": "latest",
     "jsdom": "^24.0.0",
     "msw": "2.6.4",
     "react-dom": "^18",
