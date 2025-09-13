@@ -1,6 +1,7 @@
 import { JSONArray, JSONValue } from '../../json-value';
 import { ImageModelV2CallOptions } from './image-model-v2-call-options';
 import { ImageModelV2CallWarning } from './image-model-v2-call-warning';
+import { ImageModelV2Usage } from './image-model-v2-usage';
 
 export type ImageModelV2ProviderMetadata = Record<
   string,
@@ -80,7 +81,11 @@ record is provider-specific metadata. It always includes an
 ```
       */
     providerMetadata?: ImageModelV2ProviderMetadata;
-
+    
+    /**
+     * Usage information for the image generation call.
+     */
+    usage: ImageModelV2Usage;
     /**
 Response information for telemetry and debugging purposes.
      */
