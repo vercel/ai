@@ -16,7 +16,7 @@ async function main() {
           sources: [
             {
               type: 'x',
-              xHandles: ['nishimiya'],
+              includedXHandles: ['nishimiya'],
             },
           ],
         },

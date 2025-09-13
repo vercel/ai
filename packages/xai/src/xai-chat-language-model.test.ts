@@ -409,7 +409,10 @@ describe('XaiChatLanguageModel', () => {
                 },
                 {
                   type: 'x',
-                  xHandles: ['grok'],
+                  includedXHandles: ['grok'],
+                  excludedXHandles: ['openai'],
+                  postFavoriteCount: 5,
+                  postViewCount: 50,
                 },
                 {
                   type: 'news',
@@ -439,7 +442,10 @@ describe('XaiChatLanguageModel', () => {
             },
             {
               type: 'x',
-              x_handles: ['grok'],
+              included_x_handles: ['grok'],
+              excluded_x_handles: ['openai'],
+              post_favorite_count: 5,
+              post_view_count: 50,
             },
             {
               type: 'news',
@@ -581,7 +587,10 @@ describe('XaiChatLanguageModel', () => {
                 },
                 {
                   type: 'x',
-                  xHandles: ['openai', 'deepmind'],
+                  includedXHandles: ['openai', 'deepmind'],
+                  excludedXHandles: ['grok'],
+                  postFavoriteCount: 10,
+                  postViewCount: 100,
                 },
               ],
             },
@@ -612,7 +621,10 @@ describe('XaiChatLanguageModel', () => {
             },
             {
               type: 'x',
-              x_handles: ['openai', 'deepmind'],
+              included_x_handles: ['openai', 'deepmind'],
+              excluded_x_handles: ['grok'],
+              post_favorite_count: 10,
+              post_view_count: 100,
             },
           ],
         },
