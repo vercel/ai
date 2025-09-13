@@ -4,3 +4,4 @@ export type {
   AmazonBedrockProviderSettings,
 } from './bedrock-provider';
 export type { BedrockProviderOptions } from './bedrock-chat-options';
+export { VERSION } from './version';
