@@ -114,6 +114,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
+
   provider.imageModel = createImageModel;
   provider.image = createImageModel;
 
