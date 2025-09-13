@@ -24,7 +24,11 @@ export type LanguageModelV2Message =
       }
     | {
         role: 'user';
-        content: Array<LanguageModelV2TextPart | LanguageModelV2FilePart>;
+        content: Array<
+          | LanguageModelV2TextPart
+          | LanguageModelV2FilePart
+          | LanguageModelV2ContainerUploadPart
+        >;
       }
     | {
         role: 'assistant';
@@ -59,6 +63,25 @@ export interface LanguageModelV2TextPart {
 The text content.
    */
   text: string;
+
+  /**
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerOptions?: SharedV2ProviderOptions;
+}
+
+/**
+Container uploads content part. Supported by Anthropic API. 
+ */
+export interface LanguageModelV2ContainerUploadPart {
+  type: 'container_upload';
+
+  /**
+   * The file id
+   */
+  file_id: string;
 
   /**
    * Additional provider-specific options. They are passed through
