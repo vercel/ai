@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.17
+
+### Patch Changes
+
+- da92132: fix(provider/anthorpic): add cacheControl to AnthropicProviderOptions
+
 ## 2.0.16
 
 ### Patch Changes
