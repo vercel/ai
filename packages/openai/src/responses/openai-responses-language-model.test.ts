@@ -3,9 +3,9 @@ import {
   LanguageModelV2FunctionTool,
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/provider-utils/test-server';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
