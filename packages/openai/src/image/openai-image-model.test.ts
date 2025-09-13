@@ -33,6 +33,15 @@ describe('doGenerate', () => {
             b64_json: 'base64-image-2',
           },
         ],
+        usage: {
+          total_tokens: 100,
+          input_tokens: 50,
+          output_tokens: 50,
+          input_tokens_details: {
+            text_tokens: 10,
+            image_tokens: 40,
+          },
+        },
       },
     };
   }
@@ -178,6 +187,28 @@ describe('doGenerate', () => {
         'content-type': 'application/json',
         'x-request-id': 'test-request-id',
         'x-ratelimit-remaining': '123',
+      },
+      body: {
+        created: 1733837122,
+        data: [
+          {
+            revised_prompt:
+              'A charming visual illustration of a baby sea otter swimming joyously.',
+            b64_json: 'base64-image-1',
+          },
+          {
+            b64_json: 'base64-image-2',
+          },
+        ],
+        usage: {
+          total_tokens: 100,
+          input_tokens: 50,
+          output_tokens: 50,
+          input_tokens_details: {
+            text_tokens: 10,
+            image_tokens: 40,
+          },
+        },
       },
     });
   });
