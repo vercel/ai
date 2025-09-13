@@ -640,7 +640,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: 'file_search',
-            input: '',
+            input: JSON.stringify({
+              queries: part.queries ? part.queries : [],
+            }),
             providerExecuted: true,
           });
 
@@ -959,7 +961,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'tool-call',
                   toolCallId: value.item.id,
                   toolName: 'file_search',
-                  input: '',
+                  input: JSON.stringify({
+                    queries: value.item.queries ? value.item.queries : [],
+                  }),
                   providerExecuted: true,
                 });
 
