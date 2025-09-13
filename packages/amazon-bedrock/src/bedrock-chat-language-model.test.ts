@@ -1443,6 +1443,42 @@ describe('doStream', () => {
     expect(requestBody).not.toHaveProperty('reasoningConfig');
   });
 
+  it('should include request body in stream response', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const result = await model.doStream({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 100,
+      temperature: 0.5,
+      includeRawChunks: false,
+    });
+
+    expect(result.request?.body).toMatchObject({
+      messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+      system: [{ text: 'System Prompt' }],
+      inferenceConfig: {
+        maxTokens: 100,
+        temperature: 0.5,
+      },
+    });
+  });
+
   it('should handle JSON response format in streaming', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -2465,5 +2501,24 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
 
     expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
+  });
+
+  it('should include request body in response', async () => {
+    prepareJsonResponse({});
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 100,
+      temperature: 0.5,
+    });
+
+    expect(result.request?.body).toMatchObject({
+      messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+      system: [{ text: 'System Prompt' }],
+      inferenceConfig: {
+        maxTokens: 100,
+        temperature: 0.5,
+      },
+    });
   });
 });
