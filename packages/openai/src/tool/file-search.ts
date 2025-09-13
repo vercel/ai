@@ -32,7 +32,7 @@ export const fileSearch = createProviderDefinedToolFactory<
     /**
      * The search query to execute.
      */
-    query: string;
+    query?: string;
   },
   {
     /**
@@ -70,6 +70,6 @@ export const fileSearch = createProviderDefinedToolFactory<
   id: 'openai.file_search',
   name: 'file_search',
   inputSchema: z.object({
-    query: z.string(),
+    query: z.string().optional(),
   }),
 });
