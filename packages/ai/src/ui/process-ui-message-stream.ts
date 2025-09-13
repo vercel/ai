@@ -355,11 +355,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'reasoning-end': {
               const reasoningPart = state.activeReasoningParts[chunk.id];
-              reasoningPart.providerMetadata =
-                chunk.providerMetadata ?? reasoningPart.providerMetadata;
-              reasoningPart.state = 'done';
-              delete state.activeReasoningParts[chunk.id];
-
+              if (reasoningPart){
+                reasoningPart.providerMetadata =
+                  chunk.providerMetadata ?? reasoningPart.providerMetadata;
+                reasoningPart.state = 'done';
+                delete state.activeReasoningParts[chunk.id];
+              }
               write();
               break;
             }
