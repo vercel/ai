@@ -30,9 +30,9 @@ export const fileSearchArgsSchema = z.object({
 export const fileSearch = createProviderDefinedToolFactory<
   {
     /**
-     * The search query to execute.
+     * The search query to execute. If not provided, the tool will use the conversation context to determine the query.
      */
-    query: string;
+    query?: string;
   },
   {
     /**
@@ -70,6 +70,6 @@ export const fileSearch = createProviderDefinedToolFactory<
   id: 'openai.file_search',
   name: 'file_search',
   inputSchema: z.object({
-    query: z.string(),
+    query: z.string().optional(),
   }),
 });
