@@ -1564,9 +1564,3 @@ const openaiResponsesProviderOptionsSchema = z.object({
 export type OpenAIResponsesProviderOptions = z.infer<
   typeof openaiResponsesProviderOptionsSchema
 >;
-
-declare module '@ai-sdk/provider-utils' {
-  interface RegisterProviderOptions {
-    openai: OpenAIResponsesProviderOptions;
-  }
-}

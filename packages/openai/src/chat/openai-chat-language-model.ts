@@ -31,6 +31,7 @@ import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAIChatModelId,
   openaiProviderOptions,
+  OpenAIProviderOptions,
 } from './openai-chat-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 
@@ -913,3 +914,5 @@ const reasoningModels = {
     systemMessageMode: 'developer',
   },
 } as const;
+
+export type { OpenAIProviderOptions as OpenAIChatProviderOptions };

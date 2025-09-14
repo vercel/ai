@@ -11,16 +11,25 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
+import {
+  OpenAIChatLanguageModel,
+  OpenAIChatProviderOptions,
+} from './chat/openai-chat-language-model';
 import { OpenAIChatModelId } from './chat/openai-chat-options';
-import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
+import {
+  OpenAICompletionLanguageModel,
+  OpenAICompletionProviderOptions,
+} from './completion/openai-completion-language-model';
 import { OpenAICompletionModelId } from './completion/openai-completion-options';
 import { OpenAIEmbeddingModel } from './embedding/openai-embedding-model';
 import { OpenAIEmbeddingModelId } from './embedding/openai-embedding-options';
 import { OpenAIImageModel } from './image/openai-image-model';
 import { OpenAIImageModelId } from './image/openai-image-options';
 import { openaiTools } from './openai-tools';
-import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
+import {
+  OpenAIResponsesLanguageModel,
+  OpenAIResponsesProviderOptions,
+} from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
 import { OpenAISpeechModelId } from './speech/openai-speech-options';
@@ -249,3 +258,12 @@ export function createOpenAI(
 Default OpenAI provider instance.
  */
 export const openai = createOpenAI();
+
+declare module '@ai-sdk/provider-utils' {
+  interface RegisterProviderOptions {
+    openai?:
+      | OpenAIResponsesProviderOptions
+      | OpenAIChatProviderOptions
+      | OpenAICompletionProviderOptions;
+  }
+}

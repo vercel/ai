@@ -26,6 +26,7 @@ import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAICompletionModelId,
   openaiCompletionProviderOptions,
+  OpenAICompletionProviderOptions,
 } from './openai-completion-options';
 
 type OpenAICompletionConfig = {
@@ -382,3 +383,5 @@ const openaiCompletionChunkSchema = z.union([
   }),
   openaiErrorDataSchema,
 ]);
+
+export type { OpenAICompletionProviderOptions };
