@@ -1,5 +1,20 @@
 # @ai-sdk/cohere
 
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.9
+
+### Patch Changes
+
+- 0816d3a: feat(provider/cohere): reasoning model support
+
+  Reasoning is now supported for all Cohere models that support it (`command-a-reasoning-08-2025` as of today). See https://docs.cohere.com/docs/reasoning
+
 ## 2.0.8
 
 ### Patch Changes

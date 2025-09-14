@@ -1,5 +1,25 @@
 # @ai-sdk/openai
 
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.29
+
+### Patch Changes
+
+- 4235eb3: feat(provider/openai): code interpreter tool calls and results
+
+## 2.0.28
+
+### Patch Changes
+
+- 4c2bb77: fix (provider/openai): send sources action as include
+- 561e8b0: fix (provider/openai): fix code interpreter tool in doGenerate
+
 ## 2.0.27
 
 ### Patch Changes

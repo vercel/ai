@@ -1,15 +1,19 @@
 import {
   LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
+  LanguageModelV2ToolCallPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { parseProviderOptions } from '@ai-sdk/provider-utils';
+import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  OpenAIResponsesPrompt,
+  OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api-types';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  codeInterpreterInputSchema,
+  codeInterpreterOutputSchema,
+} from '../tool/code-interpreter';
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -20,7 +24,7 @@ function isFileId(data: string, prefixes?: readonly string[]): boolean {
   return prefixes.some(prefix => data.startsWith(prefix));
 }
 
-export async function convertToOpenAIResponsesMessages({
+export async function convertToOpenAIResponsesInput({
   prompt,
   systemMessageMode,
   fileIdPrefixes,
@@ -29,10 +33,10 @@ export async function convertToOpenAIResponsesMessages({
   systemMessageMode: 'system' | 'developer' | 'remove';
   fileIdPrefixes?: readonly string[];
 }): Promise<{
-  messages: OpenAIResponsesPrompt;
+  input: OpenAIResponsesInput;
   warnings: Array<LanguageModelV2CallWarning>;
 }> {
-  const messages: OpenAIResponsesPrompt = [];
+  const input: OpenAIResponsesInput = [];
   const warnings: Array<LanguageModelV2CallWarning> = [];
 
   for (const { role, content } of prompt) {
@@ -40,11 +44,11 @@ export async function convertToOpenAIResponsesMessages({
       case 'system': {
         switch (systemMessageMode) {
           case 'system': {
-            messages.push({ role: 'system', content });
+            input.push({ role: 'system', content });
             break;
           }
           case 'developer': {
-            messages.push({ role: 'developer', content });
+            input.push({ role: 'developer', content });
             break;
           }
           case 'remove': {
@@ -65,7 +69,7 @@ export async function convertToOpenAIResponsesMessages({
       }
 
       case 'user': {
-        messages.push({
+        input.push({
           role: 'user',
           content: content.map((part, index) => {
             switch (part.type) {
@@ -123,11 +127,12 @@ export async function convertToOpenAIResponsesMessages({
 
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
+        const toolCallParts: Record<string, LanguageModelV2ToolCallPart> = {};
 
         for (const part of content) {
           switch (part.type) {
             case 'text': {
-              messages.push({
+              input.push({
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
                 id:
@@ -136,11 +141,13 @@ export async function convertToOpenAIResponsesMessages({
               break;
             }
             case 'tool-call': {
+              toolCallParts[part.toolCallId] = part;
+
               if (part.providerExecuted) {
                 break;
               }
 
-              messages.push({
+              input.push({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: part.toolName,
@@ -193,7 +200,7 @@ export async function convertToOpenAIResponsesMessages({
                       providerOptions?.reasoningEncryptedContent,
                     summary: summaryParts,
                   };
-                  messages.push(reasoningMessages[reasoningId]);
+                  input.push(reasoningMessages[reasoningId]);
                 } else {
                   existingReasoningMessage.summary.push(...summaryParts);
                 }
@@ -228,7 +235,7 @@ export async function convertToOpenAIResponsesMessages({
               break;
           }
 
-          messages.push({
+          input.push({
             type: 'function_call_output',
             call_id: part.toolCallId,
             output: contentValue,
@@ -245,7 +252,7 @@ export async function convertToOpenAIResponsesMessages({
     }
   }
 
-  return { messages, warnings };
+  return { input, warnings };
 }
 
 const openaiResponsesReasoningProviderOptionsSchema = z.object({

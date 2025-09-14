@@ -6,13 +6,27 @@ import {
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import assert, { fail } from 'node:assert';
-import { afterEach, beforeEach, describe, expect, it, vitest } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vitest,
+  vi,
+} from 'vitest';
 import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
+
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
 
 const dummyResponseValues = {
   finishReason: 'stop' as const,
@@ -250,6 +264,7 @@ describe('generateObject', () => {
                 modelId: 'test-response-model-id',
                 headers: {
                   'custom-response-header': 'response-header-value',
+                  'user-agent': 'ai/0.0.0-test',
                 },
                 body: 'test body',
               },
@@ -265,6 +280,7 @@ describe('generateObject', () => {
           modelId: 'test-response-model-id',
           headers: {
             'custom-response-header': 'response-header-value',
+            'user-agent': 'ai/0.0.0-test',
           },
           body: 'test body',
         });
@@ -523,6 +539,7 @@ describe('generateObject', () => {
             doGenerate: async ({ headers }) => {
               expect(headers).toStrictEqual({
                 'custom-request-header': 'request-header-value',
+                'user-agent': 'ai/0.0.0-test',
               });
 
               return {

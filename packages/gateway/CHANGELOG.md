@@ -1,5 +1,24 @@
 # @ai-sdk/gateway
 
+## 1.0.23
+
+### Patch Changes
+
+- f49f924: feat (provider/gateway): add qwen3 next model ids
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 1.0.21
+
+### Patch Changes
+
+- 4ee3719: feat(provider/gateway): Add Meituan LongCat Flash Chat to autocomplete
+
 ## 1.0.20
 
 ### Patch Changes

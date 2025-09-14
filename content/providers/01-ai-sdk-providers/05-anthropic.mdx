@@ -234,18 +234,13 @@ const result = await generateText({
 
 #### Longer cache TTL
 
-Anthropic also supports a longer 1-hour cache duration. At time of writing,
-[this is currently in beta](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching#1-hour-cache-duration),
-so you must pass a `'anthropic-beta'` header set to `'extended-cache-ttl-2025-04-11'`.
+Anthropic also supports a longer 1-hour cache duration.
 
 Here's an example:
 
 ```ts
 const result = await generateText({
   model: anthropic('claude-3-5-haiku-latest'),
-  headers: {
-    'anthropic-beta': 'extended-cache-ttl-2025-04-11',
-  },
   messages: [
     {
       role: 'user',
