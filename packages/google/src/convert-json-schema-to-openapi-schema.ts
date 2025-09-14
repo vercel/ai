@@ -5,11 +5,19 @@ import { JSONSchema7Definition } from '@ai-sdk/provider';
  */
 export function convertJSONSchemaToOpenAPISchema(
   jsonSchema: JSONSchema7Definition | undefined,
+  propertyOrdering?: Record<string, string[]> | string[],
+  currentPath: string = '',
 ): unknown {
   // parameters need to be undefined if they are empty objects:
   if (jsonSchema == null || isEmptyObjectSchema(jsonSchema)) {
     return undefined;
   }
+
+  // Normalize propertyOrdering: convert array format to object format
+  const normalizedPropertyOrdering: Record<string, string[]> | undefined =
+    Array.isArray(propertyOrdering)
+      ? { '': propertyOrdering }
+      : propertyOrdering;
 
   if (typeof jsonSchema === 'boolean') {
     return { type: 'boolean', properties: {} };
@@ -64,21 +72,47 @@ export function convertJSONSchemaToOpenAPISchema(
   if (properties != null) {
     result.properties = Object.entries(properties).reduce(
       (acc, [key, value]) => {
-        acc[key] = convertJSONSchemaToOpenAPISchema(value);
+        const nestedPath = currentPath ? `${currentPath}.${key}` : key;
+        acc[key] = convertJSONSchemaToOpenAPISchema(
+          value,
+          normalizedPropertyOrdering,
+          nestedPath,
+        );
         return acc;
       },
       {} as Record<string, unknown>,
     );
+
+    // Add propertyOrdering if it exists for this path
+    if (normalizedPropertyOrdering && normalizedPropertyOrdering[currentPath]) {
+      result.propertyOrdering = normalizedPropertyOrdering[currentPath];
+    }
   }
 
   if (items) {
     result.items = Array.isArray(items)
-      ? items.map(convertJSONSchemaToOpenAPISchema)
-      : convertJSONSchemaToOpenAPISchema(items);
+      ? items.map((item, index) =>
+          convertJSONSchemaToOpenAPISchema(
+            item,
+            normalizedPropertyOrdering,
+            `${currentPath}[${index}]`,
+          ),
+        )
+      : convertJSONSchemaToOpenAPISchema(
+          items,
+          normalizedPropertyOrdering,
+          `${currentPath}[]`,
+        );
   }
 
   if (allOf) {
-    result.allOf = allOf.map(convertJSONSchemaToOpenAPISchema);
+    result.allOf = allOf.map(schema =>
+      convertJSONSchemaToOpenAPISchema(
+        schema,
+        normalizedPropertyOrdering,
+        currentPath,
+      ),
+    );
   }
   if (anyOf) {
     // Handle cases where anyOf includes a null type
@@ -93,22 +127,44 @@ export function convertJSONSchemaToOpenAPISchema(
 
       if (nonNullSchemas.length === 1) {
         // If there's only one non-null schema, convert it and make it nullable
-        const converted = convertJSONSchemaToOpenAPISchema(nonNullSchemas[0]);
+        const converted = convertJSONSchemaToOpenAPISchema(
+          nonNullSchemas[0],
+          normalizedPropertyOrdering,
+          currentPath,
+        );
         if (typeof converted === 'object') {
           result.nullable = true;
           Object.assign(result, converted);
         }
       } else {
         // If there are multiple non-null schemas, keep them in anyOf
-        result.anyOf = nonNullSchemas.map(convertJSONSchemaToOpenAPISchema);
+        result.anyOf = nonNullSchemas.map(schema =>
+          convertJSONSchemaToOpenAPISchema(
+            schema,
+            normalizedPropertyOrdering,
+            currentPath,
+          ),
+        );
         result.nullable = true;
       }
     } else {
-      result.anyOf = anyOf.map(convertJSONSchemaToOpenAPISchema);
+      result.anyOf = anyOf.map(schema =>
+        convertJSONSchemaToOpenAPISchema(
+          schema,
+          normalizedPropertyOrdering,
+          currentPath,
+        ),
+      );
     }
   }
   if (oneOf) {
-    result.oneOf = oneOf.map(convertJSONSchemaToOpenAPISchema);
+    result.oneOf = oneOf.map(schema =>
+      convertJSONSchemaToOpenAPISchema(
+        schema,
+        normalizedPropertyOrdering,
+        currentPath,
+      ),
+    );
   }
 
   if (minLength !== undefined) {

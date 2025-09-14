@@ -581,3 +581,124 @@ it('should convert nullable string enum', () => {
     },
   });
 });
+
+it('should add propertyOrdering when provided', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      profile: {
+        type: 'object',
+        properties: {
+          bio: { type: 'string' },
+          settings: {
+            type: 'object',
+            properties: {
+              theme: { type: 'string' },
+              notifications: { type: 'boolean' },
+            },
+          },
+          contacts: { type: 'array', items: { type: 'string' } },
+        },
+      },
+      preferences: {
+        type: 'object',
+        properties: {
+          language: { type: 'string' },
+          timezone: { type: 'string' },
+        },
+      },
+    },
+  };
+
+  const propertyOrdering = {
+    '': ['name', 'profile', 'preferences'],
+    profile: ['bio', 'settings', 'contacts'],
+    'profile.settings': ['theme', 'notifications'],
+    preferences: ['language', 'timezone'],
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      profile: {
+        type: 'object',
+        properties: {
+          bio: { type: 'string' },
+          settings: {
+            type: 'object',
+            properties: {
+              theme: { type: 'string' },
+              notifications: { type: 'boolean' },
+            },
+            propertyOrdering: ['theme', 'notifications'],
+          },
+          contacts: { type: 'array', items: { type: 'string' } },
+        },
+        propertyOrdering: ['bio', 'settings', 'contacts'],
+      },
+      preferences: {
+        type: 'object',
+        properties: {
+          language: { type: 'string' },
+          timezone: { type: 'string' },
+        },
+        propertyOrdering: ['language', 'timezone'],
+      },
+    },
+    propertyOrdering: ['name', 'profile', 'preferences'],
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input, propertyOrdering)).toEqual(
+    expected,
+  );
+});
+
+it('should work without propertyOrdering', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      age: { type: 'number' },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      age: { type: 'number' },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
+it('should support simple array format for root-level property ordering', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      age: { type: 'number' },
+      email: { type: 'string' },
+    },
+  };
+
+  // Simple array format for root-level ordering
+  const propertyOrdering = ['name', 'email', 'age'];
+
+  const expected = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      age: { type: 'number' },
+      email: { type: 'string' },
+    },
+    propertyOrdering: ['name', 'email', 'age'],
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input, propertyOrdering)).toEqual(
+    expected,
+  );
+});

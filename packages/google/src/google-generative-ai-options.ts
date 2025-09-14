@@ -111,6 +111,19 @@ Optional. A list of unique safety settings for blocking unsafe content.
    * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls
    */
   labels: z.record(z.string(), z.string()).optional(),
+
+  /**
+   * Optional. Defines the ordering of the properties in the response.
+   *
+   * Can be either:
+   * - A simple array for root-level properties: ['name', 'age', 'email']
+   * - An object for nested properties: { '': ['name', 'profile'], 'profile': ['bio', 'settings'] }
+   *
+   * https://ai.google.dev/gemini-api/docs/structured-output?lang=node#property-ordering
+   */
+  propertyOrdering: z
+    .union([z.array(z.string()), z.record(z.string(), z.array(z.string()))])
+    .optional(),
 });
 
 export type GoogleGenerativeAIProviderOptions = z.infer<

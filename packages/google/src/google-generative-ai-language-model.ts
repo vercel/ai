@@ -153,7 +153,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             // so this is needed as an escape hatch:
             // TODO convert into provider option
             (googleOptions?.structuredOutputs ?? true)
-              ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
+              ? convertJSONSchemaToOpenAPISchema(
+                  responseFormat.schema,
+                  googleOptions?.propertyOrdering,
+                )
               : undefined,
           ...(googleOptions?.audioTimestamp && {
             audioTimestamp: googleOptions.audioTimestamp,
