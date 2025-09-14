@@ -13,7 +13,10 @@ export type {
 export type { DataContent } from './data-content';
 export { executeTool } from './execute-tool';
 export type { ModelMessage } from './model-message';
-export type { ProviderOptions } from './provider-options';
+export type {
+  RegisterProviderOptions,
+  ProviderOptions,
+} from './provider-options';
 export type { SystemModelMessage } from './system-model-message';
 export {
   dynamicTool,
