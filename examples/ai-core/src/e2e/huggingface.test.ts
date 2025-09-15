@@ -45,7 +45,7 @@ describe('HuggingFace Provider', () => {
       name: expect.any(String),
       age: expect.any(Number),
     });
-    expect(result.usage?.inputTokens).toBe(0);
+    expect(result.usage?.inputTokens).toBeGreaterThan(0);
   });
 
   it('should stream object', async () => {
