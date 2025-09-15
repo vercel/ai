@@ -9,6 +9,7 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
+  ToolModelMessage,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
@@ -304,15 +305,17 @@ A function that attempts to repair a tool call that failed to parse.
         const initialMessages = initialPrompt.messages;
         const responseMessages: Array<ResponseMessage> = [];
 
-        // create tool outputs (either execute or reject)
-        // for tool approval responses
+        // create tool outputs (either execute or reject) for tool approval responses:
         const toolApprovals = collectToolApprovals<TOOLS>({
           messages: initialMessages,
         });
 
         if (toolApprovals.length > 0) {
           const toolOutputs = await executeTools({
-            toolCalls: toolApprovals.map(toolApproval => toolApproval.toolCall),
+            // run only approved tool calls:
+            toolCalls: toolApprovals
+              .filter(toolApproval => toolApproval.approvalResponse.approved)
+              .map(toolApproval => toolApproval.toolCall),
             tools: tools as TOOLS,
             tracer,
             telemetry,
@@ -323,16 +326,33 @@ A function that attempts to repair a tool call that failed to parse.
 
           responseMessages.push({
             role: 'tool',
-            content: toolOutputs.map(output => ({
-              type: 'tool-result',
-              toolCallId: output.toolCallId,
-              toolName: output.toolName,
-              input: output.input,
-              output: {
-                type: 'json',
-                value: (output as any).output,
-              },
-            })),
+            content: [
+              // add tool results for approved tool calls:
+              ...toolOutputs.map(output => ({
+                type: 'tool-result' as const,
+                toolCallId: output.toolCallId,
+                toolName: output.toolName,
+                input: output.input,
+                output: {
+                  type: 'json' as const,
+                  value: (output as any).output,
+                },
+              })),
+              // add tool errors for rejected tool calls:
+              ...toolApprovals
+                .filter(toolApproval => !toolApproval.approvalResponse.approved)
+                .map(toolApproval => ({
+                  type: 'tool-result' as const,
+                  toolCallId: toolApproval.toolCall.toolCallId,
+                  toolName: toolApproval.toolCall.toolName,
+                  output: {
+                    type: 'error-text' as const,
+                    value:
+                      toolApproval.approvalResponse.reason ??
+                      'Tool execution rejected',
+                  },
+                })),
+            ],
           });
         }
 
