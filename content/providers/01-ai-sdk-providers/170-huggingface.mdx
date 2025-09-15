@@ -43,7 +43,7 @@ For custom configuration, you can import `createHuggingFace` and create a provid
 import { createHuggingFace } from '@ai-sdk/huggingface';
 
 const huggingface = createHuggingFace({
-  apiKey: process.env.HF_TOKEN ?? '',
+  apiKey: process.env.HUGGINGFACE_API_KEY ?? '',
 });
 ```
 
@@ -57,7 +57,7 @@ You can use the following optional settings to customize the Hugging Face provid
 - **apiKey** _string_
 
   API key that is being sent using the `Authorization` header. It defaults to
-  the `HF_TOKEN` environment variable.
+  the `HUGGINGFACE_API_KEY` environment variable.
 
 - **headers** _Record&lt;string,string&gt;_
 

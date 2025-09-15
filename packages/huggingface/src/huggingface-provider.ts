@@ -63,7 +63,7 @@ export function createHuggingFace(
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
-      environmentVariableName: 'HF_TOKEN',
+      environmentVariableName: 'HUGGINGFACE_API_KEY',
       description: 'Hugging Face',
     })}`,
     ...options.headers,
