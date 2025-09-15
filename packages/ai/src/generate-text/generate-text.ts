@@ -305,94 +305,98 @@ A function that attempts to repair a tool call that failed to parse.
         // create tool outputs (either execute or reject)
         // for tool approval responses
         const lastMessage = initialPrompt.messages.at(-1);
-        if (
-          lastMessage?.role === 'tool' &&
-          lastMessage.content.find(
-            part => part.type === 'tool-approval-response',
-          ) != null
-        ) {
-          const toolApprovalResponses = lastMessage.content.filter(
-            part => part.type === 'tool-approval-response',
-          );
+        if (lastMessage?.role === 'tool') {
+          const toolApprovals = lastMessage.content
+            .filter(part => part.type === 'tool-approval-response')
+            .map(response => {
+              // assume true for now
+              // get approval request by approval id
+              let approvalRequest: ToolApprovalRequest | undefined = undefined;
 
-          for (const toolApprovalResponse of toolApprovalResponses) {
-            // assume true for now
-            // get approval request by approval id
-            let approvalRequest: ToolApprovalRequest | undefined = undefined;
+              for (const message of initialPrompt.messages) {
+                if (
+                  message.role === 'assistant' &&
+                  !(typeof message.content === 'string')
+                ) {
+                  const content = message.content;
 
-            for (const message of initialPrompt.messages) {
-              if (
-                message.role === 'assistant' &&
-                !(typeof message.content === 'string')
-              ) {
-                const content = message.content;
-
-                for (const part of content) {
-                  if (
-                    part.type === 'tool-approval-request' &&
-                    part.approvalId === toolApprovalResponse.approvalId
-                  ) {
-                    approvalRequest = part;
-                    break;
+                  for (const part of content) {
+                    if (
+                      part.type === 'tool-approval-request' &&
+                      part.approvalId === response.approvalId
+                    ) {
+                      approvalRequest = part;
+                      break;
+                    }
                   }
                 }
               }
-            }
 
-            const toolCallId = approvalRequest!.toolCallId;
-            let toolCall: ToolCallPart | undefined = undefined;
-            for (const message of initialPrompt.messages) {
-              if (
-                message.role === 'assistant' &&
-                !(typeof message.content === 'string')
-              ) {
-                const content = message.content;
+              const toolCallId = approvalRequest!.toolCallId;
+              let toolCall: ToolCallPart | undefined = undefined;
+              for (const message of initialPrompt.messages) {
+                if (
+                  message.role === 'assistant' &&
+                  !(typeof message.content === 'string')
+                ) {
+                  const content = message.content;
 
-                for (const part of content) {
-                  if (
-                    part.type === 'tool-call' &&
-                    part.toolCallId === toolCallId
-                  ) {
-                    toolCall = part;
-                    break;
+                  for (const part of content) {
+                    if (
+                      part.type === 'tool-call' &&
+                      part.toolCallId === toolCallId
+                    ) {
+                      toolCall = part;
+                      break;
+                    }
                   }
                 }
               }
-            }
 
-            const x = await executeTools({
-              toolCalls: [
-                {
-                  type: 'tool-call',
-                  toolCallId: toolCall!.toolCallId,
-                  toolName: toolCall!.toolName as keyof TOOLS & string,
-                  input: toolCall!.input as any,
-                  dynamic: false,
-                } as StaticToolCall<TOOLS>,
-              ],
-              tools: tools!,
-              tracer,
-              telemetry,
-              messages: initialPrompt.messages,
-              abortSignal,
-              experimental_context,
+              return {
+                approvalRequest,
+                approvalResponse: response,
+                toolCall,
+              };
             });
 
-            lastMessage.content.push(
-              ...x.map(
-                output =>
-                  ({
-                    type: 'tool-result',
-                    toolCallId: output.toolCallId,
-                    toolName: output.toolName,
-                    input: output.input,
-                    output: {
-                      type: 'json',
-                      value: (output as any).output,
-                    },
-                  }) as any,
-              ),
-            );
+          if (toolApprovals.length > 0) {
+            for (const toolApproval of toolApprovals) {
+              const x = await executeTools({
+                toolCalls: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: toolApproval.toolCall!.toolCallId,
+                    toolName: toolApproval.toolCall!.toolName as keyof TOOLS &
+                      string,
+                    input: toolApproval.toolCall!.input as any,
+                    dynamic: false,
+                  } as StaticToolCall<TOOLS>,
+                ],
+                tools: tools!,
+                tracer,
+                telemetry,
+                messages: initialPrompt.messages,
+                abortSignal,
+                experimental_context,
+              });
+
+              lastMessage.content.push(
+                ...x.map(
+                  output =>
+                    ({
+                      type: 'tool-result',
+                      toolCallId: output.toolCallId,
+                      toolName: output.toolName,
+                      input: output.input,
+                      output: {
+                        type: 'json',
+                        value: (output as any).output,
+                      },
+                    }) as any,
+                ),
+              );
+            }
           }
         }
 
