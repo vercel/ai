@@ -230,7 +230,10 @@ const result = await generateText({
         sources: [
           {
             type: 'x',
-            xHandles: ['grok', 'xai'],
+            includedXHandles: ['grok', 'xai'],
+            excludedXHandles: ['openai'],
+            postFavoriteCount: 10,
+            postViewCount: 100,
           },
         ],
       },
@@ -241,7 +244,10 @@ const result = await generateText({
 
 #### X source parameters
 
-- **xHandles** _string[]_: Array of X handles to search (without @ symbol)
+- **includedXHandles** _string[]_: Array of X handles to search (without @ symbol)
+- **excludedXHandles** _string[]_: Array of X handles to exclude from search (without @ symbol)
+- **postFavoriteCount** _number_: Minimum favorite count of the X posts to consider.
+- **postViewCount** _number_: Minimum view count of the X posts to consider.
 
 #### News Search
 
@@ -324,7 +330,7 @@ const result = await generateText({
           },
           {
             type: 'x',
-            xHandles: ['openai', 'deepmind'],
+            includedXHandles: ['openai', 'deepmind'],
           },
         ],
       },
