@@ -24,7 +24,7 @@ export type MistralChatModelId =
   | 'open-mixtral-8x22b'
   | (string & {});
 
-export const mistralProviderOptions = z.object({
+export const mistralLanguageModelOptions = z.object({
   /**
 Whether to inject a safety prompt before all conversations.
 
@@ -34,6 +34,22 @@ Defaults to `false`.
 
   documentImageLimit: z.number().optional(),
   documentPageLimit: z.number().optional(),
+
+  /**
+   * Whether to use structured outputs.
+   *
+   * @default true
+   */
+  structuredOutputs: z.boolean().optional(),
+
+  /**
+   * Whether to use strict JSON schema validation.
+   *
+   * @default false
+   */
+  strictJsonSchema: z.boolean().optional(),
 });
 
-export type MistralProviderOptions = z.infer<typeof mistralProviderOptions>;
+export type MistralLanguageModelOptions = z.infer<
+  typeof mistralLanguageModelOptions
+>;

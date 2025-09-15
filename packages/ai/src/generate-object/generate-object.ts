@@ -4,12 +4,14 @@ import {
   InferSchema,
   ProviderOptions,
   Schema,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { extractReasoningContent } from '../generate-text/extract-reasoning-content';
 import { extractTextContent } from '../generate-text/extract-text-content';
+import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -33,6 +35,7 @@ import { LanguageModelRequestMetadata } from '../types/language-model-request-me
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
+import { DownloadFunction } from '../util/download/download-function';
 import { prepareHeaders } from '../util/prepare-headers';
 import { prepareRetries } from '../util/prepare-retries';
 import { GenerateObjectResult } from './generate-object-result';
@@ -40,6 +43,7 @@ import { getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 import { RepairTextFunction } from './repair-text';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { VERSION } from '../version';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -188,6 +192,13 @@ Default and recommended: 'auto' (best mode for the model).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+  Custom download function to use for URLs.
+
+  By default, files are downloaded if the model does not support the URL for the given media type.
+       */
+      experimental_download?: DownloadFunction | undefined;
+
+      /**
   Additional provider-specific options. They are passed through
   to the provider from the AI SDK and enable provider-specific
   functionality that can be fully encapsulated in the provider.
@@ -214,6 +225,7 @@ Default and recommended: 'auto' (best mode for the model).
     headers,
     experimental_repairText: repairText,
     experimental_telemetry: telemetry,
+    experimental_download: download,
     providerOptions,
     _internal: {
       generateId = originalGenerateId,
@@ -252,10 +264,15 @@ Default and recommended: 'auto' (best mode for the model).
 
   const callSettings = prepareCallSettings(settings);
 
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers,
+    headers: headersWithUserAgent,
     settings: { ...callSettings, maxRetries },
   });
 
@@ -300,11 +317,12 @@ Default and recommended: 'auto' (best mode for the model).
           system,
           prompt,
           messages,
-        });
+        } as Prompt);
 
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,
+          download,
         });
 
         const generateResult = await retry(() =>
@@ -347,7 +365,7 @@ Default and recommended: 'auto' (best mode for the model).
                 prompt: promptMessages,
                 providerOptions,
                 abortSignal,
-                headers,
+                headers: headersWithUserAgent,
               });
 
               const responseData = {
@@ -418,6 +436,8 @@ Default and recommended: 'auto' (best mode for the model).
         request = generateResult.request ?? {};
         response = generateResult.responseData;
         reasoning = generateResult.reasoning;
+
+        logWarnings(warnings);
 
         const object = await parseAndValidateObjectResultWithRepair(
           result,

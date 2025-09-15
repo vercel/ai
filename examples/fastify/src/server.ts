@@ -1,43 +1,56 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+} from 'ai';
 import 'dotenv/config';
 import Fastify from 'fastify';
 
 const fastify = Fastify({ logger: true });
 
-fastify.post('/', async function (request, reply) {
+fastify.post('/', async function (_, reply) {
   const result = streamText({
     model: openai('gpt-4o'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  // Mark the response as a v1 data stream:
-  reply.header('X-Vercel-AI-Data-Stream', 'v1');
-  reply.header('Content-Type', 'text/plain; charset=utf-8');
-
-  return reply.send(result.toUIMessageStream());
+  return reply.send(result.toUIMessageStreamResponse());
 });
 
-fastify.post('/stream-data', async function (request, reply) {
+fastify.post('/stream-data', async function (_, reply) {
   // immediately start streaming the response
-  const result = streamText({
-    model: openai('gpt-4o'),
-    prompt: 'Invent a new holiday and describe its traditions.',
-  });
+  const stream = createUIMessageStream({
+    execute: ({ writer }) => {
+      // send custom data
+      writer.write({ type: 'start' });
 
-  const dataStream = result.toUIMessageStream({
-    onError: error => {
-      // Error messages are masked by default for security reasons.
-      // If you want to expose the error message to the client, you can do so here:
-      return error instanceof Error ? error.message : String(error);
+      writer.write({
+        type: 'data-custom',
+        data: {
+          custom: 'Hello, world!',
+        },
+      });
+
+      const result = streamText({
+        model: openai('gpt-4o'),
+        prompt: 'Invent a new holiday and describe its traditions.',
+      });
+
+      writer.merge(
+        result.toUIMessageStream({
+          sendStart: false,
+          onError: error => {
+            // Error messages are masked by default for security reasons.
+            // If you want to expose the error message to the client, you can do so here:
+            return error instanceof Error ? error.message : String(error);
+          },
+        }),
+      );
     },
   });
 
-  // Mark the response as a v1 data stream:
-  reply.header('X-Vercel-AI-Data-Stream', 'v1');
-  reply.header('Content-Type', 'text/plain; charset=utf-8');
-
-  return reply.send(dataStream);
+  return reply.send(createUIMessageStreamResponse({ stream }));
 });
 
 fastify.listen({ port: 8080 });

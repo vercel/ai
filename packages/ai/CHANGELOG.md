@@ -1,5 +1,204 @@
 # ai
 
+## 5.0.44
+
+### Patch Changes
+
+- Updated dependencies [f49f924]
+  - @ai-sdk/gateway@1.0.23
+
+## 5.0.43
+
+### Patch Changes
+
+- 0294b58: feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/gateway@1.0.22
+
+## 5.0.42
+
+### Patch Changes
+
+- de5c066: fix(ai): forwarded providerExecuted flag in validateUIMessages
+
+## 5.0.41
+
+### Patch Changes
+
+- cd91e4b: fix(ai): use correct type for reasoning outputs
+
+## 5.0.40
+
+### Patch Changes
+
+- Updated dependencies [4ee3719]
+  - @ai-sdk/gateway@1.0.21
+
+## 5.0.39
+
+### Patch Changes
+
+- a0a725f: feat (ai): export createGateway
+
+## 5.0.38
+
+### Patch Changes
+
+- Updated dependencies [350a328]
+  - @ai-sdk/gateway@1.0.20
+
+## 5.0.37
+
+### Patch Changes
+
+- d6785d7: feat (ai): add tool and agent helpers
+
+## 5.0.36
+
+### Patch Changes
+
+- ccc2ded: feat (ai): export gateway provider
+
+## 5.0.35
+
+### Patch Changes
+
+- 99c946a: export missing type
+
+## 5.0.34
+
+### Patch Changes
+
+- Updated dependencies [034287f]
+- Updated dependencies [dee1afe]
+  - @ai-sdk/gateway@1.0.19
+
+## 5.0.33
+
+### Patch Changes
+
+- Updated dependencies [5d59a8c]
+  - @ai-sdk/gateway@1.0.18
+
+## 5.0.32
+
+### Patch Changes
+
+- Updated dependencies [b6005cd]
+  - @ai-sdk/gateway@1.0.17
+
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/gateway@1.0.16
+
+## 5.0.30
+
+### Patch Changes
+
+- 7fcc6be: feat(ai): throw InvalidArgumentError when messages is not provided
+
+## 5.0.29
+
+### Patch Changes
+
+- e0e9449: feat(ui): sent isAbort, isDisconnect, isError in useChat onFinish callback
+
+## 5.0.28
+
+### Patch Changes
+
+- 4b81e7d: fix(ai): remove vitest dependency from test exports
+- d68a4f2: feat(ai): log warnings
+
+## 5.0.27
+
+### Patch Changes
+
+- ca40fac: feat(ai): support custom download functions (experimental)
+
+## 5.0.26
+
+### Patch Changes
+
+- 33cf848: feat(ai): pass messages to `useChat({ onFinish })`
+- Updated dependencies [980633d]
+- Updated dependencies [1c5b88d]
+  - @ai-sdk/gateway@1.0.15
+
+## 5.0.25
+
+### Patch Changes
+
+- ca65923: fix(ai): remove use of `expect()` from production code
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/gateway@1.0.14
+
+## 5.0.24
+
+### Patch Changes
+
+- f8f3682: fix: call onFinish when stream is cancelled in toUIMessageStream
+
+  Previously, onFinish was only called on normal stream completion. Now it's also called when the reader is cancelled (e.g., browser close, navigation), ensuring partial messages are persisted.
+
+- Updated dependencies [1b5a3d3]
+- Updated dependencies [c9994f9]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/gateway@1.0.13
+
+## 5.0.23
+
+### Patch Changes
+
+- 5099b3d: fix(ai): make `chat.addToolResult()` compatible with dynamic tool calls
+- 7a2bf8d: fix(ai): support loop breaking behavior in async iterable stream
+- Updated dependencies [50e2029]
+- Updated dependencies [b8478f0]
+  - @ai-sdk/gateway@1.0.12
+
+## 5.0.22
+
+### Patch Changes
+
+- Updated dependencies [926259f]
+- Updated dependencies [c000f96]
+  - @ai-sdk/gateway@1.0.11
+
+## 5.0.21
+
+### Patch Changes
+
+- 581abea: fix(ai): call abort callback when stream is aborted during tool execution
+- 3c178ec: feat(ai): improved type checking for prompt/messages input
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+  - @ai-sdk/gateway@1.0.10
+
+## 5.0.20
+
+### Patch Changes
+
+- 8a87693: fix(ai) Make sure warnings promise in streamObject is resolved and properly collects and passes warnings
+
+## 5.0.19
+
+### Patch Changes
+
+- 8da6e9c: fix(ai): use parsed tool input if possible when validation fails
+
+## 5.0.18
+
+### Patch Changes
+
+- Updated dependencies [8b96f99]
+  - @ai-sdk/gateway@1.0.9
+
 ## 5.0.17
 
 ### Patch Changes

@@ -1,4 +1,4 @@
-import { beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as getEnvironmentModule from './get-environment';
 
 const DEFAULT_ENV = {

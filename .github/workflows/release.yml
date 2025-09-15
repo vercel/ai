@@ -17,6 +17,8 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # do not attempt running in forks
+    if: github.repository_owner == 'vercel'
     steps:
       - name: Create access token for GitHub App
         uses: actions/create-github-app-token@v2

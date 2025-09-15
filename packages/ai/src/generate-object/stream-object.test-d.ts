@@ -4,12 +4,14 @@ import { z } from 'zod/v4';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { FinishReason } from '../types';
 import { streamObject } from './stream-object';
+import { describe, it } from 'vitest';
 
 describe('streamObject', () => {
   it('should have finishReason property with correct type', () => {
     const result = streamObject({
       schema: z.object({ number: z.number() }),
       model: undefined!,
+      prompt: 'test',
     });
 
     expectTypeOf<typeof result.finishReason>().toEqualTypeOf<
@@ -22,6 +24,7 @@ describe('streamObject', () => {
       output: 'enum',
       enum: ['a', 'b', 'c'] as const,
       model: undefined!,
+      prompt: 'test',
     });
 
     expectTypeOf<typeof result.object>().toEqualTypeOf<
@@ -37,6 +40,7 @@ describe('streamObject', () => {
     const result = streamObject({
       schema: z.object({ number: z.number() }),
       model: undefined!,
+      prompt: 'test',
     });
 
     expectTypeOf<typeof result.object>().toEqualTypeOf<
@@ -48,6 +52,7 @@ describe('streamObject', () => {
     const result = streamObject({
       output: 'no-schema',
       model: undefined!,
+      prompt: 'test',
     });
 
     expectTypeOf<typeof result.object>().toEqualTypeOf<Promise<JSONValue>>();
@@ -58,6 +63,7 @@ describe('streamObject', () => {
       output: 'array',
       schema: z.number(),
       model: undefined!,
+      prompt: 'test',
     });
 
     expectTypeOf<typeof result.partialObjectStream>().toEqualTypeOf<

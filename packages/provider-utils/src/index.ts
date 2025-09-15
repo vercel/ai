@@ -3,6 +3,8 @@ export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-t
 export * from './delay';
 export * from './extract-response-headers';
 export * from './fetch-function';
+export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
+export { withUserAgentSuffix } from './with-user-agent-suffix';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
@@ -12,6 +14,7 @@ export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';
+export { mediaTypeToExtension } from './media-type-to-extension';
 export * from './parse-json';
 export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
@@ -47,3 +50,6 @@ export {
   EventSourceParserStream,
   type EventSourceMessage,
 } from 'eventsource-parser/stream';
+
+// user-agent exports
+export { VERSION } from './version';

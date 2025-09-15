@@ -1,5 +1,105 @@
 # @ai-sdk/gateway
 
+## 1.0.23
+
+### Patch Changes
+
+- f49f924: feat (provider/gateway): add qwen3 next model ids
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 1.0.21
+
+### Patch Changes
+
+- 4ee3719: feat(provider/gateway): Add Meituan LongCat Flash Chat to autocomplete
+
+## 1.0.20
+
+### Patch Changes
+
+- 350a328: feat(provider/gateway): Add stealth models to Gateway autocomplete
+
+## 1.0.19
+
+### Patch Changes
+
+- 034287f: feat (provider/gateway): add qwen3-max model id
+- dee1afe: feat(provider/gateway): Fix embeddings `providerOptions`
+
+## 1.0.18
+
+### Patch Changes
+
+- 5d59a8c: feat (provider/gateway): add moonshotai/kimi-k2-0905 model id
+
+## 1.0.17
+
+### Patch Changes
+
+- b6005cd: feat(provider/gateway): Add Voyage embedding models
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 1.0.15
+
+### Patch Changes
+
+- 980633d: feat(provider/gateway): Add xAI Grok Code Fast 1
+- 1c5b88d: feat (provider/gateway): add new model ids
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 1.0.13
+
+### Patch Changes
+
+- c9994f9: feat(provider/gateway): Add cache pricing fields to model metadata
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 1.0.12
+
+### Patch Changes
+
+- 50e2029: feat (provider/gateway): add deepseek v3.1 thinking model id
+- b8478f0: feat (provider/gateway): add mistral medium model id
+
+## 1.0.11
+
+### Patch Changes
+
+- 926259f: feat(provider/gateway): Expose model type in model spec
+- c000f96: feat(provider/gateway): Add DeepSeek V3.1
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 1.0.9
+
+### Patch Changes
+
+- 8b96f99: feat(provider/gateway): Add DeepSeek v3.1 Base
+
 ## 1.0.8
 
 ### Patch Changes

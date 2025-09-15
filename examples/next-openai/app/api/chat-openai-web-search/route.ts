@@ -14,9 +14,7 @@ export type OpenAIWebSearchMessage = UIMessage<
   never,
   UIDataTypes,
   {
-    web_search_preview: InferUITool<
-      ReturnType<typeof openai.tools.webSearchPreview>
-    >;
+    web_search: InferUITool<ReturnType<typeof openai.tools.webSearch>>;
   }
 >;
 
@@ -26,7 +24,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai.responses('gpt-4o-mini'),
     tools: {
-      web_search_preview: openai.tools.webSearchPreview({
+      web_search: openai.tools.webSearch({
         searchContextSize: 'high',
         userLocation: {
           type: 'approximate',

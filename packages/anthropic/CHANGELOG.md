@@ -1,5 +1,84 @@
 # @ai-sdk/anthropic
 
+## 2.0.17
+
+### Patch Changes
+
+- da92132: fix(provider/anthorpic): add cacheControl to AnthropicProviderOptions
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.15
+
+### Patch Changes
+
+- c8aab0a: fix (provider/anthropic): revert cd458a8c1667df86e6987a1f2e06159823453864
+
+## 2.0.14
+
+### Patch Changes
+
+- 2338c79: feat (provider/anthropic): update jsdoc of anthropic tools
+
+## 2.0.13
+
+### Patch Changes
+
+- cd458a8: fix(anthropic): reorder tool_result parts to front of combined user messages
+
+  Reorders tool_result content to appear before user text within combined user messages, ensuring Claude API validation requirements are met while preserving the intentional message combining behavior that prevents role alternation errors. Fixes #8318.
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 2.0.11
+
+### Patch Changes
+
+- c7fee29: feat(anthropic): handle `pause_turn` as value for `stop_reason`
+
+## 2.0.10
+
+### Patch Changes
+
+- c152ef7: feat(providers/anthropic): map 'refusal' stop reason to 'content-filter' finishReason
+
+## 2.0.9
+
+### Patch Changes
+
+- cdc6b7a: fix(provider/anthropic): disable parallel tool use when using json output tool for structured responses
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
 ## 2.0.5
 
 ### Patch Changes

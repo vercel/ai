@@ -1,5 +1,69 @@
 # @ai-sdk/mistral
 
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.11
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 2.0.10
+
+### Patch Changes
+
+- e214cb3: feat(provider/mistral): `response_format.type === 'json_schema'`
+
+## 2.0.9
+
+### Patch Changes
+
+- 3429644: feat(provider/mistral): `MistralLanguageModelOptions` type
+
+  ```ts
+  import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+  import { generateText } from 'ai';
+
+  await generateText({
+    model: mistral('open-mistral-7b'),
+    prompt: 'Invent a new holiday and describe its traditions.',
+    providerOptions: {
+      mistral: {
+        safePrompt: true,
+        documentImageLimit: 5,
+        documentPageLimit: 10,
+      } satisfies MistralLanguageModelOptions,
+    },
+  });
+  ```
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
 ## 2.0.7
 
 ### Patch Changes
