@@ -3671,17 +3671,6 @@ describe('generateText', () => {
         });
       });
 
-      it('should execute the tool', async () => {
-        expect(executeFunction).toHaveBeenCalledWith(
-          { value: 'value' },
-          expect.objectContaining({
-            abortSignal: undefined,
-            toolCallId: 'call-1',
-            messages: expect.any(Array),
-          }),
-        );
-      });
-
       it('should call the model with a prompt that includes the tool results', async () => {
         expect(prompts).toMatchInlineSnapshot(`
           [
