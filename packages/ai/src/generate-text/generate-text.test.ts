@@ -3303,4 +3303,82 @@ describe('generateText', () => {
       expect(logWarningsSpy).toHaveBeenCalledWith([]);
     });
   });
+
+  describe('tool execution approval', () => {
+    describe('when a single tool needs approval', () => {
+      let result: GenerateTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = await generateText({
+          model: new MockLanguageModelV2({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value" }`,
+                },
+              ],
+              finishReason: 'tool-calls',
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+              needsApproval: true,
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          prompt: 'test-input',
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            currentDate: () => new Date(0),
+          },
+        });
+      });
+
+      it('should only execute 1 step when the tool needs approval', async () => {
+        expect(result.steps.length).toBe(1);
+      });
+
+      it('should have tool-calls finish reason', async () => {
+        expect(result.finishReason).toBe('tool-calls');
+      });
+
+      it('should add a tool approval request to the content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "approvalId": "id-1",
+              "toolCall": {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              "type": "tool-approval-request",
+            },
+          ]
+        `);
+      });
+    });
+  });
 });
