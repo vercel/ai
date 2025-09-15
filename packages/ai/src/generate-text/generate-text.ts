@@ -306,57 +306,53 @@ A function that attempts to repair a tool call that failed to parse.
         // for tool approval responses
         const lastMessage = initialPrompt.messages.at(-1);
         if (lastMessage?.role === 'tool') {
+          // gather tool calls and prepare lookup
+          const toolCallsByToolCallId: Record<string, ToolCallPart> = {};
+          for (const message of initialPrompt.messages) {
+            if (
+              message.role === 'assistant' &&
+              typeof message.content !== 'string'
+            ) {
+              const content = message.content;
+              for (const part of content) {
+                if (part.type === 'tool-call') {
+                  toolCallsByToolCallId[part.toolCallId] = part;
+                }
+              }
+            }
+          }
+
+          // gather approval requests and prepare lookup
+          const toolApprovalRequestsByApprovalId: Record<
+            string,
+            ToolApprovalRequest
+          > = {};
+          for (const message of initialPrompt.messages) {
+            if (
+              message.role === 'assistant' &&
+              typeof message.content !== 'string'
+            ) {
+              const content = message.content;
+              for (const part of content) {
+                if (part.type === 'tool-approval-request') {
+                  toolApprovalRequestsByApprovalId[part.approvalId] = part;
+                }
+              }
+            }
+          }
+
           const toolApprovals = lastMessage.content
             .filter(part => part.type === 'tool-approval-response')
             .map(response => {
-              // assume true for now
-              // get approval request by approval id
-              let approvalRequest: ToolApprovalRequest | undefined = undefined;
-
-              for (const message of initialPrompt.messages) {
-                if (
-                  message.role === 'assistant' &&
-                  !(typeof message.content === 'string')
-                ) {
-                  const content = message.content;
-
-                  for (const part of content) {
-                    if (
-                      part.type === 'tool-approval-request' &&
-                      part.approvalId === response.approvalId
-                    ) {
-                      approvalRequest = part;
-                      break;
-                    }
-                  }
-                }
-              }
-
-              const toolCallId = approvalRequest!.toolCallId;
-              let toolCall: ToolCallPart | undefined = undefined;
-              for (const message of initialPrompt.messages) {
-                if (
-                  message.role === 'assistant' &&
-                  !(typeof message.content === 'string')
-                ) {
-                  const content = message.content;
-
-                  for (const part of content) {
-                    if (
-                      part.type === 'tool-call' &&
-                      part.toolCallId === toolCallId
-                    ) {
-                      toolCall = part;
-                      break;
-                    }
-                  }
-                }
-              }
+              const approvalRequest =
+                toolApprovalRequestsByApprovalId[response.approvalId];
 
               return {
                 approvalRequest,
                 approvalResponse: response,
-                toolCall: toolCall as TypedToolCall<TOOLS>,
+                toolCall: toolCallsByToolCallId[
+                  approvalRequest!.toolCallId
+                ] as TypedToolCall<TOOLS>,
               };
             });
 
