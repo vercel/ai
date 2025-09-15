@@ -14,7 +14,7 @@ This enables your AI applications to discover and use tools across various servi
 
 ## Initializing an MCP Client
 
-We recommend using HTTP transport (like `StreamableHTTPClientTransport`) for production deployments. The stdio transport should only be used for local development as it cannot be deployed to production environments.
+We recommend using HTTP transport (like `StreamableHTTPClientTransport`) for production deployments. The stdio transport should only be used for connecting to local servers as it cannot be deployed to production environments.
 
 Create an MCP client using one of the following transport options:
 
@@ -27,13 +27,10 @@ Create an MCP client using one of the following transport options:
 For production deployments, we recommend using HTTP transports like `StreamableHTTPClientTransport` from MCP's official TypeScript SDK:
 
 ```typescript
-import {
-  MCPTransport,
-  experimental_createMCPClient as createMCPClient,
-} from 'ai';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
+import { experimental_createMCPClient as createMCPClient } from 'ai';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
-const url = new URL('http://localhost:3000/mcp');
+const url = new URL('https://your-server.com/mcp');
 const mcpClient = await createMCPClient({
   transport: new StreamableHTTPClientTransport(url, {
     sessionId: 'session_123',
@@ -67,14 +64,16 @@ const mcpClient = await createMCPClient({
   The stdio transport should only be used for local servers.
 </Note>
 
-The Stdio transport requires importing the `StdioMCPTransport` class from the `ai/mcp-stdio` package:
+The Stdio transport can be imported from either the MCP SDK or the AI SDK:
 
 ```typescript
 import { experimental_createMCPClient as createMCPClient } from 'ai';
-import { Experimental_StdioMCPTransport as StdioMCPTransport } from 'ai/mcp-stdio';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+// Or use the AI SDK's stdio transport:
+// import { Experimental_StdioMCPTransport as StdioClientTransport } from 'ai/mcp-stdio';
 
 const mcpClient = await createMCPClient({
-  transport: new StdioMCPTransport({
+  transport: new StdioClientTransport({
     command: 'node',
     args: ['src/stdio/dist/server.js'],
   }),
@@ -109,7 +108,7 @@ const mcpClient = await experimental_createMCPClient({
 const tools = await mcpClient.tools();
 
 const result = await streamText({
-  model: openai('gpt-4o'),
+  model: 'openai/gpt-4.1',
   tools,
   prompt: 'What is the weather in Brooklyn, New York?',
   onFinish: async () => {
