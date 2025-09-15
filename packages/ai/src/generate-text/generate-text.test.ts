@@ -3690,7 +3690,7 @@ describe('generateText', () => {
                   {
                     "output": {
                       "type": "error-text",
-                      "value": "Tool execution rejected",
+                      "value": "Tool execution not approved.",
                     },
                     "providerOptions": undefined,
                     "toolCallId": "call-1",
@@ -3714,7 +3714,7 @@ describe('generateText', () => {
                 {
                   "output": {
                     "type": "error-text",
-                    "value": "Tool execution rejected",
+                    "value": "Tool execution not approved.",
                   },
                   "toolCallId": "call-1",
                   "toolName": "tool1",
