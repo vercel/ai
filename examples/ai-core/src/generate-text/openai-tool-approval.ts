@@ -45,9 +45,6 @@ run(async () => {
       tools: { weather: weatherTool },
       messages,
       stopWhen: stepCountIs(5),
-      onStepFinish: ({ request }) => {
-        console.log(JSON.stringify(request.body, null, 2));
-      },
     });
 
     process.stdout.write(`\nAssistant:\n`);
