@@ -252,7 +252,7 @@ describe('onToolOutput', () => {
   it('should be defined', () => {
     expectTypeOf<ChatInit<UIMessage>['onToolOutput']>().not.toBeUndefined();
   });
-  
+
   describe('no helpers', () => {
     it('single tool with output schema', () => {
       type Tools = {
@@ -262,9 +262,7 @@ describe('onToolOutput', () => {
         };
       };
 
-      expectTypeOf<
-        ToolOutputArgument<Tools>
-      >().toMatchTypeOf<{
+      expectTypeOf<ToolOutputArgument<Tools>>().toMatchTypeOf<{
         type: 'tool-result';
         toolCallId: string;
         toolName: string;
@@ -283,9 +281,7 @@ describe('onToolOutput', () => {
         };
       };
 
-      expectTypeOf<
-        ToolOutputArgument<Tools>
-      >().toMatchTypeOf<{
+      expectTypeOf<ToolOutputArgument<Tools>>().toMatchTypeOf<{
         type: 'tool-result';
         toolCallId: string;
         toolName: string;
@@ -313,9 +309,7 @@ describe('onToolOutput', () => {
         };
       };
 
-      expectTypeOf<
-        ToolOutputArgument<Tools>
-      >().toMatchTypeOf<{
+      expectTypeOf<ToolOutputArgument<Tools>>().toMatchTypeOf<{
         type: 'tool-result';
         toolCallId: string;
         toolName: string;
@@ -341,9 +335,7 @@ describe('onToolOutput', () => {
         };
       };
 
-      expectTypeOf<
-        ToolOutputArgument<Tools>
-      >().toMatchTypeOf<{
+      expectTypeOf<ToolOutputArgument<Tools>>().toMatchTypeOf<{
         type: 'tool-result';
         toolCallId: string;
         toolName: string;
@@ -366,9 +358,7 @@ describe('onToolOutput', () => {
         simple,
       };
 
-      expectTypeOf<
-        ToolOutputArgument<typeof tools>
-      >().toMatchTypeOf<{
+      expectTypeOf<ToolOutputArgument<typeof tools>>().toMatchTypeOf<{
         type: 'tool-result';
         toolCallId: string;
         toolName: string;
@@ -388,9 +378,7 @@ describe('onToolOutput', () => {
         simple,
       };
 
-      expectTypeOf<
-        ToolOutputArgument<typeof tools>
-      >().toMatchTypeOf<{
+      expectTypeOf<ToolOutputArgument<typeof tools>>().toMatchTypeOf<{
         type: 'tool-result';
         toolCallId: string;
         toolName: string;
@@ -424,9 +412,7 @@ describe('onToolOutput', () => {
         complex,
       };
 
-      expectTypeOf<
-        ToolOutputArgument<typeof tools>
-      >().toMatchTypeOf<{
+      expectTypeOf<ToolOutputArgument<typeof tools>>().toMatchTypeOf<{
         type: 'tool-result';
         toolCallId: string;
         toolName: string;
@@ -454,9 +440,7 @@ describe('onToolOutput', () => {
         complex,
       };
 
-      expectTypeOf<
-        ToolOutputArgument<typeof tools>
-      >().toMatchTypeOf<{
+      expectTypeOf<ToolOutputArgument<typeof tools>>().toMatchTypeOf<{
         type: 'tool-result';
         toolCallId: string;
         toolName: string;

@@ -561,21 +561,23 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               if (onToolOutput && !chunk.providerExecuted) {
                 // Get the tool invocation to construct the proper tool output
-                const toolInvocation = chunk.dynamic 
+                const toolInvocation = chunk.dynamic
                   ? getDynamicToolInvocation(chunk.toolCallId)
                   : getToolInvocation(chunk.toolCallId);
-                
+
                 const toolOutput = {
                   type: 'tool-result' as const,
                   toolCallId: chunk.toolCallId,
-                  toolName: chunk.dynamic ? (toolInvocation as any).toolName : getToolName(toolInvocation as any),
+                  toolName: chunk.dynamic
+                    ? (toolInvocation as any).toolName
+                    : getToolName(toolInvocation as any),
                   input: (toolInvocation as any).input,
                   output: chunk.output,
                   providerExecuted: chunk.providerExecuted,
                   dynamic: chunk.dynamic,
                   preliminary: chunk.preliminary,
                 } as InferUIMessageToolOutput<UI_MESSAGE>;
-                
+
                 await onToolOutput({
                   toolOutput,
                 });

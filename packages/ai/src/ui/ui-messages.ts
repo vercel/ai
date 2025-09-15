@@ -334,10 +334,14 @@ export type InferUIMessageToolOutput<UI_MESSAGE extends UIMessage> =
         type: 'tool-result';
         toolCallId: string;
         toolName: NAME & string;
-        input: InferUIMessageTools<UI_MESSAGE>[NAME] extends { input: infer INPUT }
+        input: InferUIMessageTools<UI_MESSAGE>[NAME] extends {
+          input: infer INPUT;
+        }
           ? INPUT
           : never;
-        output: InferUIMessageTools<UI_MESSAGE>[NAME] extends { output: infer OUTPUT }
+        output: InferUIMessageTools<UI_MESSAGE>[NAME] extends {
+          output: infer OUTPUT;
+        }
           ? OUTPUT
           : never;
         providerExecuted?: boolean;
