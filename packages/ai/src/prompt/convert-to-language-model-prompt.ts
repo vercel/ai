@@ -42,7 +42,7 @@ export async function convertToLanguageModelPrompt({
     supportedUrls,
   );
 
-  return [
+  const messages = [
     ...(prompt.system != null
       ? [{ role: 'system' as const, content: prompt.system }]
       : []),
@@ -50,6 +50,24 @@ export async function convertToLanguageModelPrompt({
       convertToLanguageModelMessage({ message, downloadedAssets }),
     ),
   ];
+
+  // combine consecutive tool messages into a single tool message
+  const combinedMessages = [];
+  for (const message of messages) {
+    if (message.role !== 'tool') {
+      combinedMessages.push(message);
+      continue;
+    }
+
+    const lastCombinedMessage = combinedMessages.at(-1);
+    if (lastCombinedMessage?.role === 'tool') {
+      lastCombinedMessage.content.push(...message.content);
+    } else {
+      combinedMessages.push(message);
+    }
+  }
+
+  return combinedMessages;
 }
 
 /**

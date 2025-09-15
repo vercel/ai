@@ -675,6 +675,93 @@ describe('convertToLanguageModelPrompt', () => {
     });
   });
 
+  describe('tool message', () => {
+    it('should combine 2 consecutive tool messages into a single tool message', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId',
+                  toolName: 'toolName',
+                  input: {},
+                },
+                {
+                  type: 'tool-approval-request',
+                  approvalId: 'approvalId',
+                  toolCallId: 'toolCallId',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: 'approvalId',
+                  approved: true,
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  output: { type: 'json', value: { some: 'result' } },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {},
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-call",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "json",
+                  "value": {
+                    "some": "result",
+                  },
+                },
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-result",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('custom download function', () => {
     it('should use custom download function to fetch URL content', async () => {
       const mockDownload = vi.fn().mockResolvedValue([
