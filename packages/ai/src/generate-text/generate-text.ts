@@ -9,9 +9,6 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
-  ToolApprovalRequest,
-  ToolCallPart,
-  ToolModelMessage,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
