@@ -293,16 +293,16 @@ describe('Google Vertex Edge Auth', () => {
       json: () => Promise.resolve({ access_token: 'mock.jwt.token' }),
     });
     global.fetch = mockFetch;
-  
+
     await generateAuthToken(mockCredentials);
-  
+
     expect(mockFetch).toHaveBeenCalledWith(
       'https://oauth2.googleapis.com/token',
       expect.objectContaining({
         headers: expect.objectContaining({
-          'user-agent': 'ai-sdk/google-vertex/0.0.0-test runtime/testenv'
+          'user-agent': 'ai-sdk/google-vertex/0.0.0-test runtime/testenv',
         }),
-      })
+      }),
     );
   });
 });
