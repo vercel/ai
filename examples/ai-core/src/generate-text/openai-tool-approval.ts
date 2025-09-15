@@ -72,8 +72,5 @@ run(async () => {
     process.stdout.write('\n\n');
 
     messages.push(...result.response.messages);
-
-    // TODO problem: the response messages currently loose the tool result
-    // if we add it, the response messages would lead to duplicated tool messages
   }
 });

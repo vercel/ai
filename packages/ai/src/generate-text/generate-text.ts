@@ -11,6 +11,7 @@ import {
   ProviderOptions,
   ToolApprovalRequest,
   ToolCallPart,
+  ToolModelMessage,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
@@ -54,7 +55,7 @@ import {
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
-import { StaticToolCall, TypedToolCall } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
@@ -303,43 +304,39 @@ A function that attempts to repair a tool call that failed to parse.
       }),
       tracer,
       fn: async span => {
+        const initialMessages = initialPrompt.messages;
+        const responseMessages: Array<ResponseMessage> = [];
+
         // create tool outputs (either execute or reject)
         // for tool approval responses
-        const lastMessage = initialPrompt.messages.at(-1);
-        if (lastMessage?.role === 'tool') {
-          const toolApprovals = collectToolApprovals<TOOLS>({
-            messages: initialPrompt.messages,
+        const toolApprovals = collectToolApprovals<TOOLS>({
+          messages: initialMessages,
+        });
+
+        if (toolApprovals.length > 0) {
+          const toolOutputs = await executeTools({
+            toolCalls: toolApprovals.map(toolApproval => toolApproval.toolCall),
+            tools: tools as TOOLS,
+            tracer,
+            telemetry,
+            messages: initialMessages,
+            abortSignal,
+            experimental_context,
           });
 
-          if (toolApprovals.length > 0) {
-            const toolOutputs = await executeTools({
-              toolCalls: toolApprovals.map(
-                toolApproval => toolApproval.toolCall,
-              ),
-              tools: tools as TOOLS,
-              tracer,
-              telemetry,
-              messages: initialPrompt.messages,
-              abortSignal,
-              experimental_context,
-            });
-
-            lastMessage.content.push(
-              ...toolOutputs.map(
-                output =>
-                  ({
-                    type: 'tool-result',
-                    toolCallId: output.toolCallId,
-                    toolName: output.toolName,
-                    input: output.input,
-                    output: {
-                      type: 'json',
-                      value: (output as any).output,
-                    },
-                  }) as any,
-              ),
-            );
-          }
+          responseMessages.push({
+            role: 'tool',
+            content: toolOutputs.map(output => ({
+              type: 'tool-result',
+              toolCallId: output.toolCallId,
+              toolName: output.toolName,
+              input: output.input,
+              output: {
+                type: 'json',
+                value: (output as any).output,
+              },
+            })),
+          });
         }
 
         const callSettings = prepareCallSettings(settings);
@@ -349,14 +346,10 @@ A function that attempts to repair a tool call that failed to parse.
         > & { response: { id: string; timestamp: Date; modelId: string } };
         let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
         let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
-        const responseMessages: Array<ResponseMessage> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
         do {
-          const stepInputMessages = [
-            ...initialPrompt.messages,
-            ...responseMessages,
-          ];
+          const stepInputMessages = [...initialMessages, ...responseMessages];
 
           const prepareStepResult = await prepareStep?.({
             model,
