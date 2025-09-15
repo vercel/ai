@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.22
+
+### Patch Changes
+
+- 32f3cef: feat: adding user-agent to all packages that use global fetch directly
+
 ## 3.0.21
 
 ### Patch Changes
