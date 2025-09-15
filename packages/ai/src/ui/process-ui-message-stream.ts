@@ -21,6 +21,7 @@ import {
   InferUIMessageData,
   InferUIMessageMetadata,
   InferUIMessageToolCall,
+  InferUIMessageToolOutput,
   InferUIMessageTools,
   isToolUIPart,
   ReasoningUIPart,
@@ -73,6 +74,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   runUpdateMessageJob,
   onError,
   onToolCall,
+  onToolOutput,
   onData,
 }: {
   // input stream is not fully typed yet:
@@ -83,6 +85,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
+  }) => void | PromiseLike<void>;
+  onToolOutput?: (options: {
+    toolOutput: InferUIMessageToolOutput<UI_MESSAGE>;
   }) => void | PromiseLike<void>;
   onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
   runUpdateMessageJob: (
@@ -553,6 +558,28 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               }
 
               write();
+
+              if (onToolOutput && !chunk.providerExecuted) {
+                // Get the tool invocation to construct the proper tool output
+                const toolInvocation = chunk.dynamic 
+                  ? getDynamicToolInvocation(chunk.toolCallId)
+                  : getToolInvocation(chunk.toolCallId);
+                
+                const toolOutput = {
+                  type: 'tool-result' as const,
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.dynamic ? (toolInvocation as any).toolName : getToolName(toolInvocation as any),
+                  input: (toolInvocation as any).input,
+                  output: chunk.output,
+                  providerExecuted: chunk.providerExecuted,
+                  dynamic: chunk.dynamic,
+                  preliminary: chunk.preliminary,
+                } as InferUIMessageToolOutput<UI_MESSAGE>;
+                
+                await onToolOutput({
+                  toolOutput,
+                });
+              }
               break;
             }
 

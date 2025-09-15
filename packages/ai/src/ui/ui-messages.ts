@@ -328,6 +328,34 @@ export type InferUIMessageTools<T extends UIMessage> =
 export type InferUIMessageToolOutputs<UI_MESSAGE extends UIMessage> =
   InferUIMessageTools<UI_MESSAGE>[keyof InferUIMessageTools<UI_MESSAGE>]['output'];
 
+export type InferUIMessageToolOutput<UI_MESSAGE extends UIMessage> =
+  | ValueOf<{
+      [NAME in keyof InferUIMessageTools<UI_MESSAGE>]: {
+        type: 'tool-result';
+        toolCallId: string;
+        toolName: NAME & string;
+        input: InferUIMessageTools<UI_MESSAGE>[NAME] extends { input: infer INPUT }
+          ? INPUT
+          : never;
+        output: InferUIMessageTools<UI_MESSAGE>[NAME] extends { output: infer OUTPUT }
+          ? OUTPUT
+          : never;
+        providerExecuted?: boolean;
+        dynamic?: false;
+        preliminary?: boolean;
+      };
+    }>
+  | {
+      type: 'tool-result';
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+      output: unknown;
+      providerExecuted?: boolean;
+      dynamic: true;
+      preliminary?: boolean;
+    };
+
 export type InferUIMessageToolCall<UI_MESSAGE extends UIMessage> =
   | ValueOf<{
       [NAME in keyof InferUIMessageTools<UI_MESSAGE>]: ToolCall<

@@ -1922,4 +1922,81 @@ describe('Chat', () => {
       expect(chat.status).toBe('ready');
     });
   });
+
+  describe('onToolOutput', () => {
+    it('should call onToolOutput when tool output is received', async () => {
+      const controller = new TestResponseController();
+      let onToolOutputCalled = false;
+      let toolOutputData: any = null;
+
+      server.urls['http://localhost:3000/api/chat'].response = [
+        { type: 'controlled-stream', controller },
+        { type: 'stream-chunks', chunks: [formatChunk({ type: 'start' })] },
+      ];
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        onToolOutput: ({ toolOutput }) => {
+          onToolOutputCalled = true;
+          toolOutputData = toolOutput;
+        },
+      });
+
+      chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      // start stream
+      controller.write(formatChunk({ type: 'start' }));
+      controller.write(formatChunk({ type: 'start-step' }));
+
+      // tool call
+      controller.write(
+        formatChunk({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        }),
+      );
+
+      // tool result
+      controller.write(
+        formatChunk({
+          type: 'tool-output-available',
+          toolCallId: 'tool-call-0',
+          output: { result: 'test-result' },
+        }),
+      );
+
+      controller.write(formatChunk({ type: 'finish-step' }));
+      controller.write(formatChunk({ type: 'finish' }));
+
+      await chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      expect(onToolOutputCalled).toBe(true);
+      expect(toolOutputData).toMatchInlineSnapshot(`
+        {
+          "dynamic": undefined,
+          "input": {
+            "testArg": "test-value",
+          },
+          "output": {
+            "result": "test-result",
+          },
+          "preliminary": undefined,
+          "providerExecuted": undefined,
+          "toolCallId": "tool-call-0",
+          "toolName": "test-tool",
+          "type": "tool-result",
+        }
+      `);
+    });
+  });
 });
