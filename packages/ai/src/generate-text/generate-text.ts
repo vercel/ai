@@ -60,6 +60,7 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
+import { collectToolApprovals } from './collect-tool-approvals';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -306,55 +307,9 @@ A function that attempts to repair a tool call that failed to parse.
         // for tool approval responses
         const lastMessage = initialPrompt.messages.at(-1);
         if (lastMessage?.role === 'tool') {
-          // gather tool calls and prepare lookup
-          const toolCallsByToolCallId: Record<string, ToolCallPart> = {};
-          for (const message of initialPrompt.messages) {
-            if (
-              message.role === 'assistant' &&
-              typeof message.content !== 'string'
-            ) {
-              const content = message.content;
-              for (const part of content) {
-                if (part.type === 'tool-call') {
-                  toolCallsByToolCallId[part.toolCallId] = part;
-                }
-              }
-            }
-          }
-
-          // gather approval requests and prepare lookup
-          const toolApprovalRequestsByApprovalId: Record<
-            string,
-            ToolApprovalRequest
-          > = {};
-          for (const message of initialPrompt.messages) {
-            if (
-              message.role === 'assistant' &&
-              typeof message.content !== 'string'
-            ) {
-              const content = message.content;
-              for (const part of content) {
-                if (part.type === 'tool-approval-request') {
-                  toolApprovalRequestsByApprovalId[part.approvalId] = part;
-                }
-              }
-            }
-          }
-
-          const toolApprovals = lastMessage.content
-            .filter(part => part.type === 'tool-approval-response')
-            .map(response => {
-              const approvalRequest =
-                toolApprovalRequestsByApprovalId[response.approvalId];
-
-              return {
-                approvalRequest,
-                approvalResponse: response,
-                toolCall: toolCallsByToolCallId[
-                  approvalRequest!.toolCallId
-                ] as TypedToolCall<TOOLS>,
-              };
-            });
+          const toolApprovals = collectToolApprovals<TOOLS>({
+            messages: initialPrompt.messages,
+          });
 
           if (toolApprovals.length > 0) {
             const toolOutputs = await executeTools({
