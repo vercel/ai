@@ -67,10 +67,10 @@ export function createSigV4FetchFunction(
 
     const signingResult = await signer.sign();
     const signedHeaders = convertHeadersToRecord(signingResult.headers);
-    
+
     // Use the combined headers directly as HeadersInit
     const combinedHeaders = combineHeaders(headersWithUserAgent, signedHeaders);
-    
+
     return fetch(input, {
       ...init,
       body,
