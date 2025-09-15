@@ -62,7 +62,96 @@ OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
 
 Replace the placeholder values with your actual Axiom token and dataset name.
 
-### 4. Wrap and Use the AI Model
+### 4. Set Up Instrumentation
+
+To send data to Axiom, configure a tracer. For example, use a dedicated instrumentation file and load it before the rest of your app. An example configuration for a Node.js environment:
+
+1. Install dependencies:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    ```bash
+    pnpm i \
+      dotenv \
+      @opentelemetry/exporter-trace-otlp-http \
+      @opentelemetry/resources \
+      @opentelemetry/sdk-node \
+      @opentelemetry/sdk-trace-node \
+      @opentelemetry/semantic-conventions \
+      @opentelemetry/api
+    ```
+  </Tab>
+  <Tab>
+    ```bash
+    npm i \
+      dotenv \
+      @opentelemetry/exporter-trace-otlp-http \
+      @opentelemetry/resources \
+      @opentelemetry/sdk-node \
+      @opentelemetry/sdk-trace-node \
+      @opentelemetry/semantic-conventions \
+      @opentelemetry/api
+    ```
+  </Tab>
+  <Tab>
+    ```bash
+    yarn add \
+      dotenv \
+      @opentelemetry/exporter-trace-otlp-http \
+      @opentelemetry/resources \
+      @opentelemetry/sdk-node \
+      @opentelemetry/sdk-trace-node \
+      @opentelemetry/semantic-conventions \
+      @opentelemetry/api
+    ```
+  </Tab>
+  <Tab>
+    ```bash
+    bun add \
+      dotenv \
+      @opentelemetry/exporter-trace-otlp-http \
+      @opentelemetry/resources \
+      @opentelemetry/sdk-node \
+      @opentelemetry/sdk-trace-node \
+      @opentelemetry/semantic-conventions \
+      @opentelemetry/api
+    ```
+  </Tab>
+</Tabs>
+
+2. Create instrumentation file:
+
+```typescript filename="src/instrumentation.ts"
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import type { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
+import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+import { initAxiomAI, RedactionPolicy } from 'axiom/ai';
+import { tracer } from './tracer';
+
+const sdk = new NodeSDK({
+  resource: resourceFromAttributes({
+    [ATTR_SERVICE_NAME]: 'nextjs-otel-example',
+  }) as Resource,
+  spanProcessor: new SimpleSpanProcessor(
+    new OTLPTraceExporter({
+      url: `https://api.axiom.co/v1/traces`,
+      headers: {
+        Authorization: `Bearer ${process.env.AXIOM_TOKEN}`,
+        'X-Axiom-Dataset': process.env.AXIOM_DATASET,
+      },
+    }),
+  ),
+});
+
+sdk.start();
+
+initAxiomAI({ tracer, redactionPolicy: RedactionPolicy.AxiomDefault });
+```
+
+### 5. Wrap and Use the AI Model
 
 In your application code, import `wrapAISDKModel` from Axiom and use it to wrap your existing AI SDK model client.
 
