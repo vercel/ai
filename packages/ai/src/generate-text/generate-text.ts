@@ -356,47 +356,38 @@ A function that attempts to repair a tool call that failed to parse.
               return {
                 approvalRequest,
                 approvalResponse: response,
-                toolCall,
+                toolCall: toolCall as TypedToolCall<TOOLS>,
               };
             });
 
           if (toolApprovals.length > 0) {
-            for (const toolApproval of toolApprovals) {
-              const x = await executeTools({
-                toolCalls: [
-                  {
-                    type: 'tool-call',
-                    toolCallId: toolApproval.toolCall!.toolCallId,
-                    toolName: toolApproval.toolCall!.toolName as keyof TOOLS &
-                      string,
-                    input: toolApproval.toolCall!.input as any,
-                    dynamic: false,
-                  } as StaticToolCall<TOOLS>,
-                ],
-                tools: tools!,
-                tracer,
-                telemetry,
-                messages: initialPrompt.messages,
-                abortSignal,
-                experimental_context,
-              });
+            const toolOutputs = await executeTools({
+              toolCalls: toolApprovals.map(
+                toolApproval => toolApproval.toolCall,
+              ),
+              tools: tools as TOOLS,
+              tracer,
+              telemetry,
+              messages: initialPrompt.messages,
+              abortSignal,
+              experimental_context,
+            });
 
-              lastMessage.content.push(
-                ...x.map(
-                  output =>
-                    ({
-                      type: 'tool-result',
-                      toolCallId: output.toolCallId,
-                      toolName: output.toolName,
-                      input: output.input,
-                      output: {
-                        type: 'json',
-                        value: (output as any).output,
-                      },
-                    }) as any,
-                ),
-              );
-            }
+            lastMessage.content.push(
+              ...toolOutputs.map(
+                output =>
+                  ({
+                    type: 'tool-result',
+                    toolCallId: output.toolCallId,
+                    toolName: output.toolName,
+                    input: output.input,
+                    output: {
+                      type: 'json',
+                      value: (output as any).output,
+                    },
+                  }) as any,
+              ),
+            );
           }
         }
 
