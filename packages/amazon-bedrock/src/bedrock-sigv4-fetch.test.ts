@@ -15,9 +15,6 @@ vi.mock('@ai-sdk/provider-utils', async () => {
   return {
     ...actual,
     getRuntimeEnvironmentUserAgent: vi.fn(() => 'runtime/testenv'),
-    withUserAgentSuffix: actual.withUserAgentSuffix,
-    combineHeaders: actual.combineHeaders,
-    removeUndefinedEntries: actual.removeUndefinedEntries,
   };
 });
 
