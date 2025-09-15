@@ -2,7 +2,6 @@ import { convertHeadersToRecord, extractHeaders } from './headers-utils';
 import {
   FetchFunction,
   combineHeaders,
-  removeUndefinedEntries,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
@@ -31,8 +30,18 @@ export function createSigV4FetchFunction(
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
+    const originalHeaders = extractHeaders(init?.headers);
+    const headersWithUserAgent = withUserAgentSuffix(
+      originalHeaders,
+      `ai-sdk/amazon-bedrock/${VERSION}`,
+      getRuntimeEnvironmentUserAgent(),
+    );
+
     if (init?.method?.toUpperCase() !== 'POST' || !init?.body) {
-      return fetch(input, init);
+      return fetch(input, {
+        ...init,
+        headers: headersWithUserAgent as HeadersInit,
+      });
     }
 
     const url =
@@ -42,18 +51,12 @@ export function createSigV4FetchFunction(
           ? input.href
           : input.url;
 
-    const originalHeaders = extractHeaders(init.headers);
-    const headersWithUserAgent = withUserAgentSuffix(
-      originalHeaders,
-      `ai-sdk/amazon-bedrock/${VERSION}`,
-      getRuntimeEnvironmentUserAgent(), // adding runtime environment user agent since this it won't be updated
-    );
     const body = prepareBodyString(init.body);
     const credentials = await getCredentials();
     const signer = new AwsV4Signer({
       url,
       method: 'POST',
-      headers: Object.entries(removeUndefinedEntries(headersWithUserAgent)),
+      headers: Object.entries(headersWithUserAgent),
       body,
       region: credentials.region,
       accessKeyId: credentials.accessKeyId,
@@ -64,12 +67,14 @@ export function createSigV4FetchFunction(
 
     const signingResult = await signer.sign();
     const signedHeaders = convertHeadersToRecord(signingResult.headers);
+    
+    // Use the combined headers directly as HeadersInit
+    const combinedHeaders = combineHeaders(headersWithUserAgent, signedHeaders);
+    
     return fetch(input, {
       ...init,
       body,
-      headers: removeUndefinedEntries(
-        combineHeaders(headersWithUserAgent, signedHeaders),
-      ),
+      headers: combinedHeaders as HeadersInit,
     });
   };
 }
@@ -108,13 +113,13 @@ export function createApiKeyFetchFunction(
       getRuntimeEnvironmentUserAgent(),
     );
 
+    const finalHeaders = combineHeaders(headersWithUserAgent, {
+      Authorization: `Bearer ${apiKey}`,
+    });
+
     return fetch(input, {
       ...init,
-      headers: removeUndefinedEntries(
-        combineHeaders(headersWithUserAgent, {
-          Authorization: `Bearer ${apiKey}`,
-        }),
-      ),
+      headers: finalHeaders as HeadersInit,
     });
   };
 }

@@ -65,6 +65,9 @@ describe('createSigV4FetchFunction', () => {
     const response = await fetchFn('http://example.com', { method: 'GET' });
     expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
       method: 'GET',
+      headers: {
+        'user-agent': 'ai-sdk/amazon-bedrock/0.0.0-test runtime/testenv',
+      },
     });
     expect(response).toBe(dummyResponse);
   });
@@ -77,6 +80,9 @@ describe('createSigV4FetchFunction', () => {
     const response = await fetchFn('http://example.com', { method: 'POST' });
     expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
       method: 'POST',
+      headers: {
+        'user-agent': 'ai-sdk/amazon-bedrock/0.0.0-test runtime/testenv',
+      },
     });
     expect(response).toBe(dummyResponse);
   });
@@ -242,7 +248,11 @@ describe('createSigV4FetchFunction', () => {
     const fetchFn = createFetchFunction(dummyFetch);
 
     const response = await fetchFn('http://example.com');
-    expect(dummyFetch).toHaveBeenCalledWith('http://example.com', undefined);
+    expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
+      headers: {
+        'user-agent': 'ai-sdk/amazon-bedrock/0.0.0-test runtime/testenv',
+      },
+    });
     expect(response).toBe(dummyResponse);
   });
 
