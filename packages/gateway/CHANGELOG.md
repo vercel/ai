@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.23
+
+### Patch Changes
+
+- f49f924: feat (provider/gateway): add qwen3 next model ids
+
 ## 1.0.22
 
 ### Patch Changes
