@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {

@@ -7,6 +7,7 @@ export type {
 } from './generated-file';
 export * as Output from './output';
 export type { PrepareStepFunction, PrepareStepResult } from './prepare-step';
+export type { ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
 export type { StepResult } from './step-result';
 export { hasToolCall, stepCountIs, type StopCondition } from './stop-condition';

@@ -11,6 +11,7 @@ import {
   ProviderOptions,
   ToolApprovalRequest,
   ToolCallPart,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
@@ -36,6 +37,7 @@ import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
 import { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
+import { VERSION } from '../version';
 import { ContentPart } from './content-part';
 import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
@@ -51,13 +53,13 @@ import {
   StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
+import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { StaticToolCall, TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -258,10 +260,15 @@ A function that attempts to repair a tool call that failed to parse.
 
   const callSettings = prepareCallSettings(settings);
 
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers,
+    headers: headersWithUserAgent,
     settings: { ...callSettings, maxRetries },
   });
 
@@ -484,7 +491,7 @@ A function that attempts to repair a tool call that failed to parse.
                   prompt: promptMessages,
                   providerOptions,
                   abortSignal,
-                  headers,
+                  headers: headersWithUserAgent,
                 });
 
                 // Fill in default values:

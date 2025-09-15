@@ -1,4 +1,3 @@
-import { ReasoningPart } from '@ai-sdk/provider-utils';
 import { CallWarning, FinishReason, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
@@ -6,6 +5,7 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
+import { ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
@@ -35,7 +35,7 @@ The text that was generated in the last step.
   /**
 The full reasoning that the model has generated in the last step.
    */
-  readonly reasoning: Array<ReasoningPart>;
+  readonly reasoning: Array<ReasoningOutput>;
 
   /**
 The reasoning text that the model has generated in the last step. Can be undefined if the model
