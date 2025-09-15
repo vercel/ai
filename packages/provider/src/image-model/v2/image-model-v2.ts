@@ -85,7 +85,7 @@ record is provider-specific metadata. It always includes an
     /**
      * Usage information for the image generation call.
      */
-    usage: ImageModelV2Usage;
+    usage?: ImageModelV2Usage;
     /**
 Response information for telemetry and debugging purposes.
      */
