@@ -896,6 +896,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: value.item.id,
                   toolName: 'file_search',
                 });
+              } else if (value.item.type === 'image_generation_call') {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'image_generation',
+                  input: '{}',
+                  providerExecuted: true,
+                });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-start',
@@ -1044,18 +1052,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'image_generation_call') {
-                const imageData = value.item.result!;
+                const imageData = value.item.result;
                 const mediaType = detectMediaType({
                   data: imageData,
                   signatures: imageMediaTypeSignatures,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName: 'image_generation',
-                  input: '{}',
-                  providerExecuted: true,
                 });
 
                 controller.enqueue({
@@ -1333,6 +1333,10 @@ const responseOutputItemAddedSchema = z.object({
         )
         .optional(),
     }),
+    z.object({
+      type: z.literal('image_generation_call'),
+      id: z.string(),
+    }),
   ]),
 });
 
@@ -1358,6 +1362,7 @@ const responseOutputItemDoneSchema = z.object({
       status: z.literal('completed'),
     }),
     codeInterpreterCallItem,
+    imageGenerationCallItem,
     webSearchCallItem,
     z.object({
       type: z.literal('computer_call'),
@@ -1381,12 +1386,6 @@ const responseOutputItemDoneSchema = z.object({
           }),
         )
         .nullish(),
-    }),
-    z.object({
-      type: z.literal('image_generation_call'),
-      id: z.string(),
-      output_format: z.string().nullish(),
-      result: z.string().nullish(),
     }),
   ]),
 });
