@@ -11,7 +11,7 @@ import {
 
 const tools = {
   web_search: openai.tools.webSearch({
-    searchContextSize: 'high',
+    searchContextSize: 'low',
     userLocation: {
       type: 'approximate',
       city: 'San Francisco',
