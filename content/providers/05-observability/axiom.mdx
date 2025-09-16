@@ -65,58 +65,32 @@ To send data to Axiom, configure a tracer. For example, use a dedicated instrume
 
 1. Install dependencies:
 
-<!-- prettier-ignore-start -->
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    ```bash
-    pnpm i \
-      dotenv \
-      @opentelemetry/exporter-trace-otlp-http \
-      @opentelemetry/resources \
-      @opentelemetry/sdk-node \
-      @opentelemetry/sdk-trace-node \
-      @opentelemetry/semantic-conventions \
-      @opentelemetry/api
-    ```
+    ```bash pnpm i dotenv @opentelemetry/exporter-trace-otlp-http\
+    @opentelemetry/resources @opentelemetry/sdk-node\
+    @opentelemetry/sdk-trace-node @opentelemetry/semantic-conventions\
+    @opentelemetry/api ```
   </Tab>
   <Tab>
-    ```bash
-    npm i \
-      dotenv \
-      @opentelemetry/exporter-trace-otlp-http \
-      @opentelemetry/resources \
-      @opentelemetry/sdk-node \
-      @opentelemetry/sdk-trace-node \
-      @opentelemetry/semantic-conventions \
-      @opentelemetry/api
-    ```
+    ```bash npm i dotenv @opentelemetry/exporter-trace-otlp-http\
+    @opentelemetry/resources @opentelemetry/sdk-node\
+    @opentelemetry/sdk-trace-node @opentelemetry/semantic-conventions\
+    @opentelemetry/api ```
   </Tab>
   <Tab>
-    ```bash
-    yarn add \
-      dotenv \
-      @opentelemetry/exporter-trace-otlp-http \
-      @opentelemetry/resources \
-      @opentelemetry/sdk-node \
-      @opentelemetry/sdk-trace-node \
-      @opentelemetry/semantic-conventions \
-      @opentelemetry/api
-    ```
+    ```bash yarn add dotenv @opentelemetry/exporter-trace-otlp-http\
+    @opentelemetry/resources @opentelemetry/sdk-node\
+    @opentelemetry/sdk-trace-node @opentelemetry/semantic-conventions\
+    @opentelemetry/api ```
   </Tab>
   <Tab>
-    ```bash
-    bun add \
-      dotenv \
-      @opentelemetry/exporter-trace-otlp-http \
-      @opentelemetry/resources \
-      @opentelemetry/sdk-node \
-      @opentelemetry/sdk-trace-node \
-      @opentelemetry/semantic-conventions \
-      @opentelemetry/api
-    ```
+    ```bash bun add dotenv @opentelemetry/exporter-trace-otlp-http\
+    @opentelemetry/resources @opentelemetry/sdk-node\
+    @opentelemetry/sdk-trace-node @opentelemetry/semantic-conventions\
+    @opentelemetry/api ```
   </Tab>
 </Tabs>
-<!-- prettier-ignore-end -->
 
 2. Create instrumentation file:
 
