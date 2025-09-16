@@ -28,10 +28,12 @@ export async function convertToOpenAIResponsesInput({
   prompt,
   systemMessageMode,
   fileIdPrefixes,
+  store,
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
   fileIdPrefixes?: readonly string[];
+  store: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<LanguageModelV2CallWarning>;
@@ -159,6 +161,8 @@ export async function convertToOpenAIResponsesInput({
             }
 
             case 'tool-result': {
+              // store: false -- omit
+              // store: true -- item reference
               if (
                 part.toolName === 'code_interpreter' &&
                 part.output.type === 'json'
