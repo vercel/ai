@@ -1,7 +1,7 @@
 import {
   LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
-  JSONValue,
+  JSONObject,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -46,7 +46,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         | { type: 'thinking'; thinking: string; signature: string }
         | { type: 'tool_use'; id: string; name: string; input: unknown }
       >;
-      usage?: Record<string, JSONValue> & {
+      usage?: JSONObject & {
         input_tokens: number;
         output_tokens: number;
         cache_creation_input_tokens?: number;
