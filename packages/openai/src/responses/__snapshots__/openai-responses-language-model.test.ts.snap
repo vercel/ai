@@ -1418,3 +1418,73 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   },
 ]
 `;
+
+exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > should stream code image generation results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0df93c0bb83a72f20068c979db26ac819e8b5a444fad3f0d7f",
+    "modelId": "gpt-5-2025-08-07",
+    "timestamp": 2025-09-16T14:53:15.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "data": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
+    "mediaType": "TODO",
+    "type": "file",
+  },
+  {
+    "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0df93c0bb83a72f20068c979db26ac819e8b5a444fad3f0d7f",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 1920,
+      "inputTokens": 2941,
+      "outputTokens": 1249,
+      "reasoningTokens": 1024,
+      "totalTokens": 4190,
+    },
+  },
+]
+`;

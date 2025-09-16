@@ -4125,6 +4125,32 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('image generation tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('openai-image-generation-tool.1');
+
+        result = await createModel('gpt-5-nano').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should stream code image generation results', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
     describe('errors', () => {
       it('should stream error parts', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
