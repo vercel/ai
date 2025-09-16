@@ -544,7 +544,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           if (typeof data === 'string' && data.length > 0) {
             content.push({
               type: 'file',
-              mediaType: mapOpenAIImageFormatToMediaTypeSimple('png'),
+              mediaType: 'TODO', // we know
               data,
             });
 
@@ -1058,9 +1058,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 if (typeof data === 'string' && data.length > 0) {
                   controller.enqueue({
                     type: 'file',
-                    mediaType: mapOpenAIImageFormatToMediaTypeSimple(
-                      value.item.output_format ?? 'png',
-                    ),
+                    mediaType: 'TODO', // we know
                     data,
                   });
                 }
@@ -1569,11 +1567,7 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   };
 }
 
-function mapOpenAIImageFormatToMediaTypeSimple(formatOrType: string): string {
-  const lower = (formatOrType ?? 'png').toLowerCase().trim();
-  return lower.includes('/') ? lower : `image/${lower}`;
-}
-
+// TODO AI SDK 6: use optional here instead of nullish
 const openaiResponsesProviderOptionsSchema = z.object({
   metadata: z.any().nullish(),
   parallelToolCalls: z.boolean().nullish(),
