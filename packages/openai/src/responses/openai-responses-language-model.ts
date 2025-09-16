@@ -156,20 +156,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       warnings.push({ type: 'unsupported-setting', setting: 'stopSequences' });
     }
 
-    const { input, warnings: inputWarnings } =
-      await convertToOpenAIResponsesInput({
-        prompt,
-        systemMessageMode: modelConfig.systemMessageMode,
-        fileIdPrefixes: this.config.fileIdPrefixes,
-      });
-
-    warnings.push(...inputWarnings);
-
     const openaiOptions = await parseProviderOptions({
       provider: 'openai',
       providerOptions,
       schema: openaiResponsesProviderOptionsSchema,
     });
+
+    const { input, warnings: inputWarnings } =
+      await convertToOpenAIResponsesInput({
+        prompt,
+        systemMessageMode: modelConfig.systemMessageMode,
+        fileIdPrefixes: this.config.fileIdPrefixes,
+        store: openaiOptions?.store ?? true,
+      });
+
+    warnings.push(...inputWarnings);
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
 
