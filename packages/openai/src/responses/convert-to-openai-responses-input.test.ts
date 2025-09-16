@@ -1551,87 +1551,8 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
-  describe('web search tool', () => {
-    it('should exclude web search tool calls and results from prompt', async () => {
-      const result = await convertToOpenAIResponsesInput({
-        prompt: [
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'text',
-                text: 'Let me search for recent news from San Francisco.',
-              },
-              {
-                type: 'tool-call',
-                toolCallId: 'ws_67cf2b3051e88190b006770db6fdb13d',
-                toolName: 'web_search_preview',
-                input: {
-                  query: 'San Francisco major news events June 22 2025',
-                },
-                providerExecuted: true,
-              },
-              {
-                type: 'tool-result',
-                toolCallId: 'ws_67cf2b3051e88190b006770db6fdb13d',
-                toolName: 'web_search_preview',
-                output: {
-                  type: 'json',
-                  value: [
-                    {
-                      url: 'https://patch.com/california/san-francisco/calendar',
-                    },
-                  ],
-                },
-              },
-              {
-                type: 'text',
-                text: 'Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).',
-              },
-            ],
-          },
-        ],
-        systemMessageMode: 'system',
-        store: true,
-      });
-
-      expect(result).toMatchInlineSnapshot(`
-        {
-          "input": [
-            {
-              "content": [
-                {
-                  "text": "Let me search for recent news from San Francisco.",
-                  "type": "output_text",
-                },
-              ],
-              "id": undefined,
-              "role": "assistant",
-            },
-            {
-              "content": [
-                {
-                  "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
-                  "type": "output_text",
-                },
-              ],
-              "id": undefined,
-              "role": "assistant",
-            },
-          ],
-          "warnings": [
-            {
-              "message": "Results for the web_search_preview tool are not sent to the API",
-              "type": "other",
-            },
-          ],
-        }
-      `);
-    });
-  });
-
-  describe('code interpreter tool', () => {
-    it('should convert single code interpreter tool call and result into input item', async () => {
+  describe('provider-executed tools', () => {
+    it('should convert single provider-executed tool call and result into item reference with store: true', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -1667,18 +1588,87 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "code": "example code",
-            "container_id": "container_123",
             "id": "ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
-            "outputs": [
-              {
-                "logs": "example logs",
-                "type": "logs",
-              },
-            ],
-            "type": "code_interpreter_call",
+            "type": "item_reference",
           },
         ]
+      `);
+    });
+
+    it('should exclude provider-executed tool calls and results from prompt with store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Let me search for recent news from San Francisco.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'ws_67cf2b3051e88190b006770db6fdb13d',
+                toolName: 'web_search',
+                input: {
+                  query: 'San Francisco major news events June 22 2025',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_67cf2b3051e88190b006770db6fdb13d',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: [
+                    {
+                      url: 'https://patch.com/california/san-francisco/calendar',
+                    },
+                  ],
+                },
+              },
+              {
+                type: 'text',
+                text: 'Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Let me search for recent news from San Francisco.",
+                  "type": "output_text",
+                },
+              ],
+              "id": undefined,
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
+                  "type": "output_text",
+                },
+              ],
+              "id": undefined,
+              "role": "assistant",
+            },
+          ],
+          "warnings": [
+            {
+              "message": "Results for OpenAI tool web_search are not sent to the API when store is false",
+              "type": "other",
+            },
+          ],
+        }
       `);
     });
   });

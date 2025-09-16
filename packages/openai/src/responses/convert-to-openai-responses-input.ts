@@ -168,7 +168,7 @@ export async function convertToOpenAIResponsesInput({
               } else {
                 warnings.push({
                   type: 'other',
-                  message: `Results for built-in OpenAI tools are not sent to the API when store is false`,
+                  message: `Results for OpenAI tool ${part.toolName} are not sent to the API when store is false`,
                 });
               }
 

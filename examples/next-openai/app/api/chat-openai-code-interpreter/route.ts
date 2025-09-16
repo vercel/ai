@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   const uiMessages = await validateUIMessages({ messages });
 
   const result = streamText({
-    model: openai.responses('gpt-5-nano'),
+    model: openai('gpt-5-nano'),
     tools,
     messages: convertToModelMessages(uiMessages),
     providerOptions: {
@@ -33,10 +33,9 @@ export async function POST(req: Request) {
         include: ['reasoning.encrypted_content'],
       } satisfies OpenAIResponsesProviderOptions,
     },
-  });
-
-  result.request.then(request => {
-    console.log(JSON.stringify(request.body, null, 2));
+    onStepFinish: ({ request }) => {
+      console.log(JSON.stringify(request.body, null, 2));
+    },
   });
 
   return result.toUIMessageStreamResponse();
