@@ -160,35 +160,18 @@ export async function convertToOpenAIResponsesInput({
               break;
             }
 
+            // assistant tool result parts are from provider-executed tools:
             case 'tool-result': {
-              // store: false -- omit
-              // store: true -- item reference
-              if (
-                part.toolName === 'code_interpreter' &&
-                part.output.type === 'json'
-              ) {
-                const toolCallPart = toolCallParts[part.toolCallId];
-                const inputValue = codeInterpreterInputSchema.parse(
-                  toolCallPart.input,
-                );
-
-                const outputValue = codeInterpreterOutputSchema.parse(
-                  part.output.value,
-                );
-
-                input.push({
-                  type: 'code_interpreter_call',
-                  id: part.toolCallId,
-                  code: inputValue.code ?? null,
-                  container_id: inputValue.containerId,
-                  outputs: outputValue.outputs ?? null,
-                });
+              if (store) {
+                // use item references to refer to tool results from built-in tools
+                input.push({ type: 'item_reference', id: part.toolCallId });
               } else {
                 warnings.push({
                   type: 'other',
-                  message: `tool result parts in assistant messages are not supported for OpenAI responses`,
+                  message: `Results for built-in OpenAI tools are not sent to the API when store is false`,
                 });
               }
+
               break;
             }
 

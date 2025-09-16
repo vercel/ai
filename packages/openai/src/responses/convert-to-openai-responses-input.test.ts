@@ -1621,7 +1621,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           "warnings": [
             {
-              "message": "tool result parts in assistant messages are not supported for OpenAI responses",
+              "message": "Results for the web_search_preview tool are not sent to the API",
               "type": "other",
             },
           ],
