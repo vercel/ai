@@ -1,6 +1,9 @@
 import { z } from 'zod/v4';
 import { InferUITool, UIMessage } from './ui-messages';
-import { validateUIMessages } from './validate-ui-messages';
+import {
+  safeValidateUIMessages,
+  validateUIMessages,
+} from './validate-ui-messages';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 describe('validateUIMessages', () => {
@@ -1104,5 +1107,141 @@ describe('validateUIMessages', () => {
         ]
       `);
     });
+  });
+});
+
+describe('safeValidateUIMessages', () => {
+  it('should return success result for valid messages', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Hello, world!' }],
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    }
+  });
+
+  it('should return failure result when messages parameter is null', async () => {
+    const result = await safeValidateUIMessages({
+      messages: null,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.reason).toBe(
+        'Invalid argument for parameter messages: messages parameter must be provided',
+      );
+      expect(result.error.name).toBe('AI_InvalidArgumentError');
+    }
+  });
+
+  it('should return failure result when metadata validation fails', async () => {
+    const result = await safeValidateUIMessages<UIMessage<{ foo: string }>>({
+      messages: [
+        {
+          id: '1',
+          role: 'user',
+          metadata: { foo: 123 },
+          parts: [{ type: 'text', text: 'Hello, world!' }],
+        },
+      ],
+      metadataSchema: z.object({ foo: z.string() }),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.reason).toContain('Type validation failed');
+      expect(result.error.name).toBe('AI_TypeValidationError');
+    }
+  });
+
+  it('should return failure result when tool input validation fails', async () => {
+    const testTool = {
+      name: 'foo',
+      inputSchema: z.object({ foo: z.string() }),
+      outputSchema: z.object({ result: z.string() }),
+    };
+
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'input-available',
+              input: { foo: 123 },
+              providerExecuted: true,
+            },
+          ],
+        },
+      ],
+      tools: { foo: testTool },
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.reason).toContain('Type validation failed');
+      expect(result.error.name).toBe('AI_TypeValidationError');
+    }
+  });
+
+  it('should return failure result when data schema is missing', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [{ type: 'data-bar', data: { foo: 'bar' } }],
+        },
+      ],
+      dataSchemas: {
+        foo: z.object({ foo: z.string() }),
+      },
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.reason).toContain('No data schema found for data part bar');
+      expect(result.error.name).toBe('AI_TypeValidationError');
+    }
+  });
+
+  it('should return failure result for invalid message structure', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          role: 'user',
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.reason).toContain('Type validation failed');
+      expect(result.error.name).toBe('AI_TypeValidationError');
+    }
   });
 });

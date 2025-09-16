@@ -286,3 +286,61 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
 
   return validatedMessages as Array<UI_MESSAGE>;
 }
+
+type SafeValidateUIMessagesResult<UI_MESSAGE extends UIMessage> =
+  | {
+      success: true;
+      data: Array<UI_MESSAGE>;
+    }
+  | {
+      success: false;
+      reason: string;
+      error: Error;
+    };
+
+/**
+ * Validates a list of UI messages without throwing.
+ *
+ * Metadata, data parts, and generic tool call structures are only validated if
+ * the corresponding schemas are provided. Otherwise, they are assumed to be
+ * valid.
+ */
+export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
+  messages,
+  metadataSchema,
+  dataSchemas,
+  tools,
+}: {
+  messages: unknown;
+  metadataSchema?:
+    | Validator<UIMessage['metadata']>
+    | StandardSchemaV1<unknown, UI_MESSAGE['metadata']>;
+  dataSchemas?: {
+    [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?:
+      | Validator<InferUIMessageData<UI_MESSAGE>[NAME]>
+      | StandardSchemaV1<unknown, InferUIMessageData<UI_MESSAGE>[NAME]>;
+  };
+  tools?: {
+    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
+      InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
+      InferUIMessageTools<UI_MESSAGE>[NAME]['output']
+    >;
+  };
+}): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
+  try {
+    const data = await validateUIMessages({
+      messages,
+      metadataSchema,
+      dataSchemas,
+      tools,
+    });
+    return { success: true, data };
+  } catch (error) {
+    const err = error as Error;
+    return {
+      success: false,
+      reason: err.message,
+      error: err,
+    };
+  }
+}
