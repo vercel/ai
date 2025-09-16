@@ -27,14 +27,14 @@ export async function POST(req: Request) {
     model: openai('gpt-5-nano'),
     tools,
     messages: convertToModelMessages(uiMessages),
+    onStepFinish: ({ request }) => {
+      console.log(JSON.stringify(request.body, null, 2));
+    },
     providerOptions: {
       openai: {
         store: false,
         include: ['reasoning.encrypted_content'],
       } satisfies OpenAIResponsesProviderOptions,
-    },
-    onStepFinish: ({ request }) => {
-      console.log(JSON.stringify(request.body, null, 2));
     },
   });
 
