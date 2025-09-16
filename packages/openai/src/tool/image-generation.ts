@@ -20,9 +20,18 @@ export const imageGenerationArgsSchema = z
   })
   .strict();
 
+export const imageGenerationOutputSchema = z.object({
+  result: z.string(),
+});
+
 export const imageGeneration = createProviderDefinedToolFactoryWithOutputSchema<
   {},
-  {},
+  {
+    /**
+     * The generated image encoded in base64.
+     */
+    result: string;
+  },
   {
     /**
      * Background type for the generated image. Default is 'auto'.
@@ -88,5 +97,5 @@ export const imageGeneration = createProviderDefinedToolFactoryWithOutputSchema<
   id: 'openai.image_generation',
   name: 'image_generation',
   inputSchema: z.object({}),
-  outputSchema: z.object({}),
+  outputSchema: imageGenerationOutputSchema,
 });

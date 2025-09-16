@@ -69,6 +69,12 @@ const codeInterpreterCallItem = z.object({
     .nullable(),
 });
 
+const imageGenerationCallItem = z.object({
+  type: z.literal('image_generation_call'),
+  id: z.string(),
+  result: z.string(),
+});
+
 /**
  * `top_logprobs` request body argument can be set to an integer between
  * 0 and 20 specifying the number of most likely tokens to return at each
@@ -439,11 +445,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 ),
               }),
               codeInterpreterCallItem,
-              z.object({
-                type: z.literal('image_generation_call'),
-                id: z.string(),
-                result: z.string().nullish(),
-              }),
+              imageGenerationCallItem,
               z.object({
                 type: z.literal('function_call'),
                 call_id: z.string(),
@@ -541,6 +543,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
         case 'image_generation_call': {
           const data = part.result;
+
           if (typeof data === 'string' && data.length > 0) {
             content.push({
               type: 'file',
