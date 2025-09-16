@@ -10,8 +10,6 @@ Axiom’s integration with the AI SDK uses a model wrapper to automatically capt
 
 ## Setup
 
-This guide will get you sending Vercel AI SDK traces to Axiom in minutes.
-
 ### 1. Configure Axiom
 
 First, you'll need an Axiom organization, a dataset to send traces to, and an API token.
@@ -44,9 +42,7 @@ Install the Axiom package in your project:
 
 Configure your environment variables in a `.env` file. This uses the standard OpenTelemetry configuration to send traces directly to your Axiom dataset.
 
-```bash
-# .env
-
+```bash filename=".env"
 # Axiom Configuration
 AXIOM_TOKEN="YOUR_AXIOM_API_TOKEN"
 AXIOM_DATASET="your-axiom-dataset-name"
@@ -179,7 +175,7 @@ const { text } = await generateText({
 console.log(text);
 ```
 
-That's it\! Any calls made using the `tracedGpt4o` model will now automatically send detailed traces to your Axiom dataset.
+Any calls made using the `tracedGpt4o` model will now automatically send detailed traces to your Axiom dataset.
 
 ## What You'll See in Axiom
 
@@ -198,7 +194,7 @@ Axiom’s AI SDK offers more advanced instrumentation for deeper visibility:
 
 To learn more about these features, see the [Axiom AI SDK Instrumentation guide](https://axiom.co/docs/ai-engineering/observe/axiom-ai-sdk-instrumentation).
 
-## Resources
+## Additional Resources
 
   * [Axiom AI Engineering Documentation](https://axiom.co/docs/ai-engineering/overview)
   * [Axiom AI SDK on GitHub](https://github.com/axiomhq/ai)
