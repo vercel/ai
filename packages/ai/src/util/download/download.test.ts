@@ -26,6 +26,9 @@ describe('download', () => {
     expect(result).not.toBeNull();
     expect(result!.data).toEqual(expectedBytes);
     expect(result!.mediaType).toBe('application/octet-stream');
+
+    // UA header assertion
+    expect(server.calls[0].requestUserAgent).toContain('ai-sdk/');
   });
 
   it('should throw DownloadError when response is not ok', async () => {
