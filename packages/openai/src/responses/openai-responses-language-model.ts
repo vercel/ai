@@ -1043,6 +1043,37 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   } satisfies z.infer<typeof codeInterpreterOutputSchema>,
                   providerExecuted: true,
                 });
+              } else if (value.item.type === 'image_generation_call') {
+                const imageData = value.item.result!;
+                const mediaType = detectMediaType({
+                  data: imageData,
+                  signatures: imageMediaTypeSignatures,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'image_generation',
+                  input: '{}',
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'image_generation',
+                  result: {
+                    result: imageData,
+                  } satisfies z.infer<typeof imageGenerationOutputSchema>,
+                  providerExecuted: true,
+                });
+
+                // expose the generated image as a file as well
+                controller.enqueue({
+                  type: 'file',
+                  mediaType: mediaType ?? 'image/unknown',
+                  data: imageData,
+                });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-end',
@@ -1066,15 +1097,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 }
 
                 delete activeReasoning[value.item.id];
-              } else if (value.item.type === 'image_generation_call') {
-                const data = value.item.result;
-                if (typeof data === 'string' && data.length > 0) {
-                  controller.enqueue({
-                    type: 'file',
-                    mediaType: 'TODO', // we know
-                    data,
-                  });
-                }
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
@@ -1362,6 +1384,7 @@ const responseOutputItemDoneSchema = z.object({
     }),
     z.object({
       type: z.literal('image_generation_call'),
+      id: z.string(),
       output_format: z.string().nullish(),
       result: z.string().nullish(),
     }),

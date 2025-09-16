@@ -19,7 +19,7 @@ export const imageMediaTypeSignatures = [
   {
     mediaType: 'image/webp' as const,
     bytesPrefix: [0x52, 0x49, 0x46, 0x46],
-    base64Prefix: 'UklGRg',
+    base64Prefix: 'UklGR',
   },
   {
     mediaType: 'image/bmp' as const,
