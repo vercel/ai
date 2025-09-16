@@ -82,7 +82,7 @@ export const imageGeneration = createProviderDefinedToolFactoryWithOutputSchema<
      * One of 1024x1024, 1024x1536, 1536x1024, or auto.
      * Default: auto.
      */
-    size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024' | 'auto';
+    size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024';
   }
 >({
   id: 'openai.image_generation',
