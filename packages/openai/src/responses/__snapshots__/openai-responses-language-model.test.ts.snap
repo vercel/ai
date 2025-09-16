@@ -119,6 +119,61 @@ Notes:
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > should include generate image tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0a33d15155cb126d0068c96c5527808195a933b468ccb5dfd9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ig_0a33d15155cb126d0068c96c59bc14819599154c9988b82996",
+    "toolName": "image_generation",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "result": "UklGRoitEQBXRUJQVlA4TEGzEAAv/8P/AM1AbNtGkITZhU4fH9J/wTOT+xIi+j8BuT4kABkCibNAZrlwIPyQ7W/bH5L2RHMzMBKgXmfZeYi9tLtrrQkZvN1yXHLLgG71gPkpDxmI/gc03YFulQR...AA9lhA0Y9rVdqQs/W4w/MOxeRW5+R1/UXmmNVi9yQ7x/vG0q2VRk01seZIuj5OmRYhD+yY82dZqMH1BCueTeOcNfGKxQ==",
+    },
+    "toolCallId": "ig_0a33d15155cb126d0068c96c59bc14819599154c9988b82996",
+    "toolName": "image_generation",
+    "type": "tool-result",
+  },
+  {
+    "data": "UklGRoitEQBXRUJQVlA4TEGzEAAv/8P/AM1AbNtGkITZhU4fH9J/wTOT+xIi+j8BuT4kABkCibNAZrlwIPyQ7W/bH5L2RHMzMBKgXmfZeYi9tLtrrQkZvN1yXHLLgG71gPkpDxmI/gc03YFulQR...AA9lhA0Y9rVdqQs/W4w/MOxeRW5+R1/UXmmNVi9yQ7x/vG0q2VRk01seZIuj5OmRYhD+yY82dZqMH1BCueTeOcNfGKxQ==",
+    "mediaType": "image/unknown",
+    "type": "file",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0a33d15155cb126d0068c96c6c0ef48195bc73e30faf832ba3",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0a33d15155cb126d0068c96c723ed88195b1405bc370bb8a65",
+      },
+    },
+    "text": "",
+    "type": "text",
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > should stream code interpreter results 1`] = `
 [
   {

@@ -96,64 +96,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       };
     }
 
-    it('should map image_generation_call to file content with mediaType', async () => {
-      // TODO use snapshot fixture
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'json-value',
-        body: {
-          id: 'resp_img_1',
-          object: 'response',
-          created_at: 1741257730,
-          status: 'completed',
-          error: null,
-          incomplete_details: null,
-          model: 'gpt-5',
-          output: [
-            {
-              type: 'image_generation_call',
-              id: 'ig_1',
-              status: 'completed',
-              output_format: 'png',
-              result: 'iVBORwTESTDATA', // png prefix
-              size: '1536x1024',
-            },
-          ],
-          usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
-        },
-      };
-
-      const result = await createModel('gpt-5').doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [],
-      });
-
-      expect(result.content).toMatchInlineSnapshot(`
-        [
-          {
-            "input": "{}",
-            "providerExecuted": true,
-            "toolCallId": "ig_1",
-            "toolName": "image_generation",
-            "type": "tool-call",
-          },
-          {
-            "providerExecuted": true,
-            "result": {
-              "result": "iVBORwTESTDATA",
-            },
-            "toolCallId": "ig_1",
-            "toolName": "image_generation",
-            "type": "tool-result",
-          },
-          {
-            "data": "iVBORwTESTDATA",
-            "mediaType": "image/png",
-            "type": "file",
-          },
-        ]
-      `);
-    });
-
     describe('basic text response', () => {
       beforeEach(() => {
         prepareJsonResponse({
@@ -2218,7 +2160,55 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
-    describe('web search', () => {
+    describe('image generation tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-generate-image-tool.1');
+
+        result = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.image-generation',
+              name: 'image-generation',
+              args: {
+                outputFormat: 'webp',
+                quality: 'low',
+                size: '1024x1024',
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-nano",
+            "tools": [],
+          }
+        `);
+      });
+
+      it('should include generate image tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('web search tool', () => {
       beforeEach(() => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
