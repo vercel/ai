@@ -109,6 +109,14 @@ export function prepareResponsesTools({
             openaiTools.push({
               type: 'image_generation',
               background: args.background,
+              input_fidelity: args.inputFidelity,
+              input_image_mask: args.inputImageMask
+                ? {
+                    file_id: args.inputImageMask.fileId,
+                    image_url: args.inputImageMask.imageUrl,
+                  }
+                : undefined,
+              model: args.model,
               size: args.size,
               quality: args.quality,
               moderation: args.moderation,

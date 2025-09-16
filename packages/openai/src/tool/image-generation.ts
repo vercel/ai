@@ -89,5 +89,4 @@ export const imageGeneration = createProviderDefinedToolFactoryWithOutputSchema<
   name: 'image_generation',
   inputSchema: z.object({}),
   outputSchema: z.object({}),
-  // TODO should this tool use toModelOutput?
 });

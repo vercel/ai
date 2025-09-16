@@ -79,13 +79,11 @@ export type OpenAIResponsesTool =
       name: string;
       description: string | undefined;
       parameters: JSONSchema7;
-      strict?: boolean;
+      strict: boolean | undefined;
     }
   | {
       type: 'web_search';
-      filters?: {
-        allowed_domains?: string[];
-      };
+      filters: { allowed_domains: string[] | undefined } | undefined;
       search_context_size: 'low' | 'medium' | 'high' | undefined;
       user_location:
         | {
@@ -116,12 +114,12 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'file_search';
-      vector_store_ids?: string[];
-      max_num_results?: number;
-      ranking_options?: {
-        ranker?: 'auto' | 'default-2024-08-21';
-      };
-      filters?:
+      vector_store_ids: string[] | undefined;
+      max_num_results: number | undefined;
+      ranking_options:
+        | { ranker: 'auto' | 'default-2024-08-21' | undefined }
+        | undefined;
+      filters:
         | {
             key: string;
             type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
@@ -130,16 +128,31 @@ export type OpenAIResponsesTool =
         | {
             type: 'and' | 'or';
             filters: any[];
-          };
+          }
+        | undefined;
     }
   | {
       type: 'image_generation';
-      background?: 'auto' | 'opaque' | 'transparent';
-      size?: 'auto' | `${number}x${number}` | string;
-      quality?: 'auto' | 'low' | 'medium' | 'high';
-      moderation?: 'auto';
-      output_format?: 'png' | 'jpeg' | 'webp';
-      output_compression?: number; // 0-100
+      background: 'auto' | 'opaque' | 'transparent' | undefined;
+      input_fidelity: 'low' | 'high' | undefined;
+      input_image_mask:
+        | {
+            file_id: string | undefined;
+            image_url: string | undefined;
+          }
+        | undefined;
+      model: string | undefined;
+      moderation: 'auto' | undefined;
+      output_compression: number | undefined;
+      output_format: 'png' | 'jpeg' | 'webp' | undefined;
+      quality: 'auto' | 'low' | 'medium' | 'high' | undefined;
+      size:
+        | 'auto'
+        | '1024x1024'
+        | '1024x1536'
+        | '1536x1024'
+        | 'auto'
+        | undefined;
     };
 
 export type OpenAIResponsesReasoning = {
