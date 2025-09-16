@@ -55,12 +55,21 @@ export async function POST(req: Request) {
   // save the user message
   saveChat({ id, messages, activeStreamId: null });
 
-  // TODO IMPLEMENT polling and correctly stop provider stream on user request
+  const userStopSignal = new AbortController();
 
   const result = streamText({
     model: 'openai/gpt-5-mini',
     messages: convertToModelMessages(messages),
-    // TODO implement abortSignal: userStopSignal,
+    abortSignal: userStopSignal.signal,
+    onChunk: async chunk => {
+      const { canceledAt } = await readChat(id);
+      if (canceledAt) {
+        userStopSignal.abort();
+      }
+    },
+    onAbort: () => {
+      console.log('aborted');
+    },
   });
 
   return result.toUIMessageStreamResponse({
