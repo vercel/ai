@@ -1,4 +1,4 @@
-import { JSONValue } from '../../json-value/json-value';
+import { JSONObject } from '../../json-value/json-value';
 
 /**
  * Additional provider-specific options.
@@ -21,4 +21,4 @@ import { JSONValue } from '../../json-value/json-value';
  * }
  * ```
  */
-export type SharedV2ProviderOptions = Record<string, Record<string, JSONValue>>;
+export type SharedV2ProviderOptions = Record<string, JSONObject>;
