@@ -2171,8 +2171,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           tools: [
             {
               type: 'provider-defined',
-              id: 'openai.image-generation',
-              name: 'image-generation',
+              id: 'openai.image_generation',
+              name: 'image_generation',
               args: {
                 outputFormat: 'webp',
                 quality: 'low',
@@ -2198,7 +2198,14 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             ],
             "model": "gpt-5-nano",
-            "tools": [],
+            "tools": [
+              {
+                "output_format": "webp",
+                "quality": "low",
+                "size": "1024x1024",
+                "type": "image_generation",
+              },
+            ],
           }
         `);
       });
