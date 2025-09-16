@@ -135,7 +135,7 @@ const tracer = trace.getTracer('my-tracer');
 
 const sdk = new NodeSDK({
   resource: resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: 'nextjs-otel-example',
+    [ATTR_SERVICE_NAME]: 'my-ai-app',
   }) as Resource,
   spanProcessor: new SimpleSpanProcessor(
     new OTLPTraceExporter({
