@@ -95,6 +95,10 @@ class TestServerCall {
     return headersObject;
   }
 
+  get requestUserAgent(): string | undefined {
+    return this.request!.headers.get('user-agent') ?? undefined;
+  }
+
   get requestUrlSearchParams() {
     return new URL(this.request!.url).searchParams;
   }

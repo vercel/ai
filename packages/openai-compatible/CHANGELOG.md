@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.18
+
+### Patch Changes
+
+- 28363da: feat(openai-compatible): add `supportsStructuredOutputs` to provider settings
+
 ## 1.0.17
 
 ### Patch Changes

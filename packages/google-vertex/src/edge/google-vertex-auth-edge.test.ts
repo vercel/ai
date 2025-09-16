@@ -4,6 +4,20 @@ import {
 } from './google-vertex-auth-edge';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
+// Mock provider-utils to control runtime environment detection
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    ...actual,
+    getRuntimeEnvironmentUserAgent: vi.fn(() => 'runtime/testenv'),
+    withUserAgentSuffix: actual.withUserAgentSuffix,
+  };
+});
+
+vi.mock('../version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
 describe('Google Vertex Edge Auth', () => {
   const mockCredentials: GoogleCredentials = {
     clientEmail: 'test@test.iam.gserviceaccount.com',
@@ -271,5 +285,24 @@ describe('Google Vertex Edge Auth', () => {
     // Verify header doesn't include kid when privateKeyId is not provided
     const header = JSON.parse(atob(parts[0]));
     expect(header).not.toHaveProperty('kid');
+  });
+
+  it('should include correct user-agent header', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ access_token: 'mock.jwt.token' }),
+    });
+    global.fetch = mockFetch;
+
+    await generateAuthToken(mockCredentials);
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://oauth2.googleapis.com/token',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'user-agent': 'ai-sdk/google-vertex/0.0.0-test runtime/testenv',
+        }),
+      }),
+    );
   });
 });
