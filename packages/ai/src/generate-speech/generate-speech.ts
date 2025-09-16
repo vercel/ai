@@ -1,21 +1,22 @@
 import { JSONValue, SpeechModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  audioMediaTypeSignatures,
+  detectMediaType,
+  ProviderOptions,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';
 import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
-import {
-  audioMediaTypeSignatures,
-  detectMediaType,
-} from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
+import { VERSION } from '../version';
 import { SpeechResult } from './generate-speech-result';
 import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
-import { VERSION } from '../version';
 /**
 Generates speech audio using a speech model.
 
