@@ -7,6 +7,7 @@ describe('convertToOpenAIResponsesInput', () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([{ role: 'system', content: 'Hello' }]);
@@ -16,6 +17,7 @@ describe('convertToOpenAIResponsesInput', () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
         systemMessageMode: 'developer',
+        store: true,
       });
 
       expect(result.input).toEqual([{ role: 'developer', content: 'Hello' }]);
@@ -25,6 +27,7 @@ describe('convertToOpenAIResponsesInput', () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
         systemMessageMode: 'remove',
+        store: true,
       });
 
       expect(result.input).toEqual([]);
@@ -41,6 +44,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -64,6 +68,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -95,6 +100,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -125,6 +131,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -156,6 +163,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         systemMessageMode: 'system',
         fileIdPrefixes: ['file-'],
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -186,6 +194,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -221,6 +230,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -255,6 +265,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -287,6 +298,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         systemMessageMode: 'system',
         fileIdPrefixes: ['file-'],
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -319,6 +331,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -353,6 +366,7 @@ describe('convertToOpenAIResponsesInput', () => {
             },
           ],
           systemMessageMode: 'system',
+          store: true,
         }),
       ).rejects.toThrow('file part media type text/plain');
     });
@@ -372,6 +386,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -404,6 +419,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           systemMessageMode: 'system',
           fileIdPrefixes: ['assistant-'],
+          store: true,
         });
 
         expect(result.input).toEqual([
@@ -435,6 +451,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           systemMessageMode: 'system',
           fileIdPrefixes: ['assistant-'],
+          store: true,
         });
 
         expect(result.input).toEqual([
@@ -471,6 +488,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           systemMessageMode: 'system',
           fileIdPrefixes: ['assistant-', 'file-'],
+          store: true,
         });
 
         expect(result.input).toEqual([
@@ -514,6 +532,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           systemMessageMode: 'system',
           // fileIdPrefixes intentionally omitted
+          store: true,
         });
 
         expect(result.input).toEqual([
@@ -550,6 +569,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           systemMessageMode: 'system',
           fileIdPrefixes: [], // Empty array should disable file ID detection
+          store: true,
         });
 
         expect(result.input).toEqual([
@@ -574,6 +594,7 @@ describe('convertToOpenAIResponsesInput', () => {
           { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -601,6 +622,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -652,6 +674,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toMatchInlineSnapshot(`
@@ -699,6 +722,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -738,6 +762,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
           expect(result.input).toEqual([
@@ -777,6 +802,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
           expect(result.input).toEqual([
@@ -816,6 +842,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
           expect(result.input).toEqual([
@@ -856,6 +883,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
           expect(result.input).toEqual([
@@ -890,6 +918,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
           expect(result.input).toEqual([
@@ -932,6 +961,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
           expect(result.input).toEqual([
@@ -988,6 +1018,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
           expect(result.input).toEqual([
@@ -1039,6 +1070,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
           expect(result.input).toEqual([
@@ -1121,6 +1153,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
           expect(result.input).toEqual([
@@ -1292,6 +1325,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
           expect(result.input).toEqual([
@@ -1388,6 +1422,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
           expect(result.input).toHaveLength(0);
@@ -1423,6 +1458,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
           expect(result.input).toHaveLength(0);
@@ -1460,6 +1496,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -1496,6 +1533,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -1513,8 +1551,51 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
-  describe('web search tool', () => {
-    it('should exclude web search tool calls and results from prompt', async () => {
+  describe('provider-executed tools', () => {
+    it('should convert single provider-executed tool call and result into item reference with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: { code: 'example code', containerId: 'container_123' },
+                providerExecuted: true,
+                toolCallId:
+                  'ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
+                toolName: 'code_interpreter',
+                type: 'tool-call',
+              },
+              {
+                output: {
+                  type: 'json',
+                  value: {
+                    outputs: [{ type: 'logs', logs: 'example logs' }],
+                  },
+                },
+                toolCallId:
+                  'ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
+                toolName: 'code_interpreter',
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should exclude provider-executed tool calls and results from prompt with store: false', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -1527,7 +1608,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'tool-call',
                 toolCallId: 'ws_67cf2b3051e88190b006770db6fdb13d',
-                toolName: 'web_search_preview',
+                toolName: 'web_search',
                 input: {
                   query: 'San Francisco major news events June 22 2025',
                 },
@@ -1536,7 +1617,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'tool-result',
                 toolCallId: 'ws_67cf2b3051e88190b006770db6fdb13d',
-                toolName: 'web_search_preview',
+                toolName: 'web_search',
                 output: {
                   type: 'json',
                   value: [
@@ -1554,6 +1635,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -1582,7 +1664,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           "warnings": [
             {
-              "message": "tool result parts in assistant messages are not supported for OpenAI responses",
+              "message": "Results for OpenAI tool web_search are not sent to the API when store is false",
               "type": "other",
             },
           ],
@@ -1609,6 +1691,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
