@@ -1,5 +1,26 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.22
+
+### Patch Changes
+
+- 32f3cef: feat: adding user-agent to all packages that use global fetch directly
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [da92132]
+  - @ai-sdk/anthropic@2.0.17
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/anthropic@2.0.16
+
 ## 3.0.19
 
 ### Patch Changes

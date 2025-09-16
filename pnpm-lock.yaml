@@ -504,9 +504,6 @@ importers:
 
   examples/next:
     dependencies:
-      '@ai-sdk/openai':
-        specifier: workspace:*
-        version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: workspace:*
         version: link:../../packages/react

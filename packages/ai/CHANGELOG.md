@@ -1,5 +1,27 @@
 # ai
 
+## 5.0.44
+
+### Patch Changes
+
+- Updated dependencies [f49f924]
+  - @ai-sdk/gateway@1.0.23
+
+## 5.0.43
+
+### Patch Changes
+
+- 0294b58: feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/gateway@1.0.22
+
+## 5.0.42
+
+### Patch Changes
+
+- de5c066: fix(ai): forwarded providerExecuted flag in validateUIMessages
+
 ## 5.0.41
 
 ### Patch Changes
