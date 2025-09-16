@@ -8,11 +8,9 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
-  | OpenAIResponsesWebSearchCall
   | OpenAIResponsesComputerCall
-  | OpenAIResponsesFileSearchCall
   | OpenAIResponsesReasoning
-  | OpenAIResponsesCodeInterpreterCall;
+  | OpenAIResponsesItemReference;
 
 export type OpenAIResponsesIncludeOptions =
   | Array<
@@ -64,32 +62,15 @@ export type OpenAIResponsesFunctionCallOutput = {
   output: string;
 };
 
-export type OpenAIResponsesWebSearchCall = {
-  type: 'web_search_call';
-  id: string;
-  status?: string;
-};
-
 export type OpenAIResponsesComputerCall = {
   type: 'computer_call';
   id: string;
   status?: string;
 };
 
-export type OpenAIResponsesCodeInterpreterCall = {
-  type: 'code_interpreter_call';
-  container_id: string;
+export type OpenAIResponsesItemReference = {
+  type: 'item_reference';
   id: string;
-  code: string | null;
-  outputs: Array<
-    { type: 'logs'; logs: string } | { type: 'image'; url: string }
-  > | null;
-};
-
-export type OpenAIResponsesFileSearchCall = {
-  type: 'file_search_call';
-  id: string;
-  status?: string;
 };
 
 export type OpenAIResponsesTool =
