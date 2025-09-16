@@ -2164,7 +2164,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
 
       beforeEach(async () => {
-        prepareJsonFixtureResponse('openai-generate-image-tool.1');
+        prepareJsonFixtureResponse('openai-image-generation-tool.1');
 
         result = await createModel('gpt-5-nano').doGenerate({
           prompt: TEST_PROMPT,
