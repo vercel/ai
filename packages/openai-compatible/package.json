@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/openai-compatible",
-  "version": "1.0.15",
+  "version": "1.0.18",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",

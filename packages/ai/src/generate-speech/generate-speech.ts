@@ -1,5 +1,5 @@
 import { JSONValue, SpeechModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';
@@ -15,7 +15,7 @@ import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
-
+import { VERSION } from '../version';
 /**
 Generates speech audio using a speech model.
 
@@ -122,6 +122,11 @@ Only applicable for HTTP-based providers.
     });
   }
 
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
   const { retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
@@ -136,7 +141,7 @@ Only applicable for HTTP-based providers.
       speed,
       language,
       abortSignal,
-      headers,
+      headers: headersWithUserAgent,
       providerOptions,
     }),
   );

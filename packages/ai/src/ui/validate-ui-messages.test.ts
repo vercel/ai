@@ -678,6 +678,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-streaming',
                 input: { foo: 'bar' },
+                providerExecuted: true,
               },
             ],
           },
@@ -695,6 +696,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": "bar",
                 },
+                "providerExecuted": true,
                 "state": "input-streaming",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -718,6 +720,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-available',
                 input: { foo: 'bar' },
+                providerExecuted: true,
               },
             ],
           },
@@ -735,6 +738,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": "bar",
                 },
+                "providerExecuted": true,
                 "state": "input-available",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -759,6 +763,7 @@ describe('validateUIMessages', () => {
                 state: 'output-available',
                 input: { foo: 'bar' },
                 output: { result: 'success' },
+                providerExecuted: true,
               },
             ],
           },
@@ -779,6 +784,7 @@ describe('validateUIMessages', () => {
                 "output": {
                   "result": "success",
                 },
+                "providerExecuted": true,
                 "state": "output-available",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -803,6 +809,7 @@ describe('validateUIMessages', () => {
                 state: 'output-error',
                 input: { foo: 'bar' },
                 errorText: 'Tool execution failed',
+                providerExecuted: true,
               },
             ],
           },
@@ -821,6 +828,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": "bar",
                 },
+                "providerExecuted": true,
                 "state": "output-error",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -844,6 +852,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-available',
                 input: { foo: 'bar' },
+                providerExecuted: true,
               },
             ],
           },
@@ -855,23 +864,24 @@ describe('validateUIMessages', () => {
 
       expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
       expect(messages).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "1",
-          "parts": [
-            {
-              "input": {
-                "foo": "bar",
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "input": {
+                  "foo": "bar",
+                },
+                "providerExecuted": true,
+                "state": "input-available",
+                "toolCallId": "1",
+                "type": "tool-foo",
               },
-              "state": "input-available",
-              "toolCallId": "1",
-              "type": "tool-foo",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
     });
 
     it('should validate tool input and output when state is output-available', async () => {
@@ -933,6 +943,7 @@ describe('validateUIMessages', () => {
                 state: 'output-error',
                 input: { foo: 'bar' },
                 errorText: 'Tool execution failed',
+                providerExecuted: true,
               },
             ],
           },
@@ -953,6 +964,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": "bar",
                 },
+                "providerExecuted": true,
                 "state": "output-error",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -977,6 +989,7 @@ describe('validateUIMessages', () => {
                   toolCallId: '1',
                   state: 'input-available',
                   input: { foo: 'bar' },
+                  providerExecuted: true,
                 },
               ],
             },
@@ -1004,6 +1017,7 @@ describe('validateUIMessages', () => {
                   toolCallId: '1',
                   state: 'input-available',
                   input: { foo: 123 }, // wrong type
+                  providerExecuted: true,
                 },
               ],
             },
@@ -1030,6 +1044,7 @@ describe('validateUIMessages', () => {
                   type: 'tool-foo',
                   toolCallId: '1',
                   state: 'output-available',
+                  providerExecuted: true,
                   input: { foo: 'bar' },
                   output: { result: 123 }, // wrong type
                 },
@@ -1058,6 +1073,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-streaming',
                 input: { foo: 123 }, // wrong type but should not be validated
+                providerExecuted: true,
               },
             ],
           },
@@ -1077,6 +1093,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": 123,
                 },
+                "providerExecuted": true,
                 "state": "input-streaming",
                 "toolCallId": "1",
                 "type": "tool-foo",

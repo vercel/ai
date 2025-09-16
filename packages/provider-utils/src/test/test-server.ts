@@ -88,10 +88,15 @@ class TestServerCall {
     // convert headers to object for easier comparison
     const headersObject: Record<string, string> = {};
     requestHeaders.forEach((value, key) => {
+      if (key.toLowerCase() === 'user-agent') return;
       headersObject[key] = value;
     });
 
     return headersObject;
+  }
+
+  get requestUserAgent(): string | undefined {
+    return this.request!.headers.get('user-agent') ?? undefined;
   }
 
   get requestUrlSearchParams() {
