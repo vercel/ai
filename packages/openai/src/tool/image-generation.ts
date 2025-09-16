@@ -24,78 +24,87 @@ export const imageGenerationOutputSchema = z.object({
   result: z.string(),
 });
 
-export const imageGeneration = createProviderDefinedToolFactoryWithOutputSchema<
-  {},
-  {
+type ImageGenerationArgs = {
+  /**
+   * Background type for the generated image. Default is 'auto'.
+   */
+  background?: 'auto' | 'opaque' | 'transparent';
+
+  /**
+   * Input fidelity for the generated image. Default is 'low'.
+   */
+  inputFidelity?: 'low' | 'high';
+
+  /**
+   * Optional mask for inpainting.
+   * Contains image_url (string, optional) and file_id (string, optional).
+   */
+  inputImageMask?: {
     /**
-     * The generated image encoded in base64.
+     * File ID for the mask image.
      */
-    result: string;
-  },
-  {
-    /**
-     * Background type for the generated image. Default is 'auto'.
-     */
-    background?: 'auto' | 'opaque' | 'transparent';
+    fileId?: string;
 
     /**
-     * Input fidelity for the generated image. Default is 'low'.
+     * Base64-encoded mask image.
      */
-    inputFidelity?: 'low' | 'high';
+    imageUrl?: string;
+  };
 
-    /**
-     * Optional mask for inpainting.
-     * Contains image_url (string, optional) and file_id (string, optional).
-     */
-    inputImageMask?: {
+  /**
+   * The image generation model to use. Default: gpt-image-1.
+   */
+  model?: string;
+
+  /**
+   * Moderation level for the generated image. Default: auto.
+   */
+  moderation?: 'auto';
+
+  /**
+   * Compression level for the output image. Default: 100.
+   */
+  outputCompression?: number;
+
+  /**
+   * The output format of the generated image. One of png, webp, or jpeg.
+   * Default: png
+   */
+  outputFormat?: 'png' | 'jpeg' | 'webp';
+
+  /**
+   * The quality of the generated image.
+   * One of low, medium, high, or auto. Default: auto.
+   */
+  quality?: 'auto' | 'low' | 'medium' | 'high';
+
+  /**
+   * The size of the generated image.
+   * One of 1024x1024, 1024x1536, 1536x1024, or auto.
+   * Default: auto.
+   */
+  size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024';
+};
+
+const imageGenerationToolFactory =
+  createProviderDefinedToolFactoryWithOutputSchema<
+    {},
+    {
       /**
-       * File ID for the mask image.
+       * The generated image encoded in base64.
        */
-      fileId?: string;
+      result: string;
+    },
+    ImageGenerationArgs
+  >({
+    id: 'openai.image_generation',
+    name: 'image_generation',
+    inputSchema: z.object({}),
+    outputSchema: imageGenerationOutputSchema,
+  });
 
-      /**
-       * Base64-encoded mask image.
-       */
-      imageUrl?: string;
-    };
-
-    /**
-     * The image generation model to use. Default: gpt-image-1.
-     */
-    model?: string;
-
-    /**
-     * Moderation level for the generated image. Default: auto.
-     */
-    moderation?: 'auto';
-
-    /**
-     * Compression level for the output image. Default: 100.
-     */
-    outputCompression?: number;
-
-    /**
-     * The output format of the generated image. One of png, webp, or jpeg.
-     * Default: png
-     */
-    outputFormat?: 'png' | 'jpeg' | 'webp';
-
-    /**
-     * The quality of the generated image.
-     * One of low, medium, high, or auto. Default: auto.
-     */
-    quality?: 'auto' | 'low' | 'medium' | 'high';
-
-    /**
-     * The size of the generated image.
-     * One of 1024x1024, 1024x1536, 1536x1024, or auto.
-     * Default: auto.
-     */
-    size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024';
-  }
->({
-  id: 'openai.image_generation',
-  name: 'image_generation',
-  inputSchema: z.object({}),
-  outputSchema: imageGenerationOutputSchema,
-});
+export const imageGeneration = (
+  args: ImageGenerationArgs = {}, // default
+) => {
+  return imageGenerationToolFactory(args);
+};
