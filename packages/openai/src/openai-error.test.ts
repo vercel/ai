@@ -1,5 +1,6 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { openaiErrorDataSchema } from './openai-error';
+import { describe, it, expect } from 'vitest';
 
 describe('openaiErrorDataSchema', () => {
   it('should parse OpenRouter resource exhausted error', async () => {

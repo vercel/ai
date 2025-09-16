@@ -14,6 +14,7 @@ import {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+import { InvalidArgumentError } from '../error';
 
 const textUIPartSchema = z.object({
   type: z.literal('text'),
@@ -112,6 +113,7 @@ const toolUIPartSchemas = [
     type: z.string().startsWith('tool-'),
     toolCallId: z.string(),
     state: z.literal('input-streaming'),
+    providerExecuted: z.boolean().optional(),
     input: z.unknown().optional(),
     output: z.never().optional(),
     errorText: z.never().optional(),
@@ -120,6 +122,7 @@ const toolUIPartSchemas = [
     type: z.string().startsWith('tool-'),
     toolCallId: z.string(),
     state: z.literal('input-available'),
+    providerExecuted: z.boolean().optional(),
     input: z.unknown(),
     output: z.never().optional(),
     errorText: z.never().optional(),
@@ -129,6 +132,7 @@ const toolUIPartSchemas = [
     type: z.string().startsWith('tool-'),
     toolCallId: z.string(),
     state: z.literal('output-available'),
+    providerExecuted: z.boolean().optional(),
     input: z.unknown(),
     output: z.unknown(),
     errorText: z.never().optional(),
@@ -139,6 +143,7 @@ const toolUIPartSchemas = [
     type: z.string().startsWith('tool-'),
     toolCallId: z.string(),
     state: z.literal('output-error'),
+    providerExecuted: z.boolean().optional(),
     input: z.unknown(),
     output: z.never().optional(),
     errorText: z.string(),
@@ -194,6 +199,14 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
     >;
   };
 }): Promise<Array<UI_MESSAGE>> {
+  if (messages == null) {
+    throw new InvalidArgumentError({
+      parameter: 'messages',
+      value: messages,
+      message: 'messages parameter must be provided',
+    });
+  }
+
   const validatedMessages = await validateTypes({
     value: messages,
     schema: z.array(uiMessageSchema),

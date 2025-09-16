@@ -1,5 +1,39 @@
 # @ai-sdk/groq
 
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.18
+
+### Patch Changes
+
+- c37bc3b: feat (provider/groq): remove obsolete saba model id
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
 ## 2.0.14
 
 ### Patch Changes

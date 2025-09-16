@@ -1,5 +1,85 @@
 # @ai-sdk/openai
 
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.29
+
+### Patch Changes
+
+- 4235eb3: feat(provider/openai): code interpreter tool calls and results
+
+## 2.0.28
+
+### Patch Changes
+
+- 4c2bb77: fix (provider/openai): send sources action as include
+- 561e8b0: fix (provider/openai): fix code interpreter tool in doGenerate
+
+## 2.0.27
+
+### Patch Changes
+
+- 2338c79: feat (provider/openai): add jsdoc for openai tools
+
+## 2.0.26
+
+### Patch Changes
+
+- 5819aec: fix (provider/openai): only send tool calls finish reason for tools that are not provider-executed
+- af8c6bb: feat (provider/openai): add web_search tool
+
+## 2.0.25
+
+### Patch Changes
+
+- fb45ade: fix timestamp granularities support for openai transcription
+
+## 2.0.24
+
+### Patch Changes
+
+- ad57512: fix(provider/openai): safe practice to include filename and fileExtension to avoid `experimental_transcribe` fails with valid Buffer
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 2.0.23
+
+### Patch Changes
+
+- a9a61b7: Add serviceTier to provider metadata for OpenAI responses
+
+## 2.0.22
+
+### Patch Changes
+
+- 0e272ae: fix(provider/openai): make file_citation annotation fields optional for responses api compatibility
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.21
+
+### Patch Changes
+
+- d18856a: fix(provider/openai): support websearch tool results without query property
+- 15271d6: fix(provider/openai): do not set `response_format` to `verbose_json` if model is `gpt-4o-transcribe` or `gpt-4o-mini-transcribe`
+
+  These two models do not support it:
+  https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 2.0.20
+
+### Patch Changes
+
+- 974de40: fix(provider/ai): do not set `.providerMetadata.openai.logprobs` to an array of empty arrays when using `streamText()`
+
 ## 2.0.19
 
 ### Patch Changes

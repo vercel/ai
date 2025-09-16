@@ -2,6 +2,7 @@ import { z } from 'zod/v4';
 
 // https://console.x.ai and see "View models"
 export type XaiChatModelId =
+  | 'grok-code-fast-1'
   | 'grok-4'
   | 'grok-4-0709'
   | 'grok-4-latest'
@@ -37,6 +38,13 @@ const webSourceSchema = z.object({
 
 const xSourceSchema = z.object({
   type: z.literal('x'),
+  excludedXHandles: z.array(z.string()).optional(),
+  includedXHandles: z.array(z.string()).optional(),
+  postFavoriteCount: z.number().int().optional(),
+  postViewCount: z.number().int().optional(),
+  /**
+   * @deprecated use `includedXHandles` instead
+   */
   xHandles: z.array(z.string()).optional(),
 });
 

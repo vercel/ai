@@ -3,11 +3,12 @@ import {
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { OpenAIResponsesTool } from './openai-responses-api-types';
-import { fileSearchArgsSchema } from '../tool/file-search';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
+import { fileSearchArgsSchema } from '../tool/file-search';
+import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
+import { OpenAIResponsesTool } from './openai-responses-api-types';
 
 export function prepareResponsesTools({
   tools,
@@ -25,6 +26,7 @@ export function prepareResponsesTools({
     | 'required'
     | { type: 'file_search' }
     | { type: 'web_search_preview' }
+    | { type: 'web_search' }
     | { type: 'function'; name: string }
     | { type: 'code_interpreter' }
     | { type: 'image_generation' };
@@ -71,6 +73,19 @@ export function prepareResponsesTools({
             const args = webSearchPreviewArgsSchema.parse(tool.args);
             openaiTools.push({
               type: 'web_search_preview',
+              search_context_size: args.searchContextSize,
+              user_location: args.userLocation,
+            });
+            break;
+          }
+          case 'openai.web_search': {
+            const args = webSearchArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'web_search',
+              filters:
+                args.filters != null
+                  ? { allowed_domains: args.filters.allowedDomains }
+                  : undefined,
               search_context_size: args.searchContextSize,
               user_location: args.userLocation,
             });
@@ -128,8 +143,9 @@ export function prepareResponsesTools({
         toolChoice:
           toolChoice.toolName === 'code_interpreter' ||
           toolChoice.toolName === 'file_search' ||
+          toolChoice.toolName === 'image_generation' ||
           toolChoice.toolName === 'web_search_preview' ||
-          toolChoice.toolName === 'image_generation'
+          toolChoice.toolName === 'web_search'
             ? { type: toolChoice.toolName }
             : { type: 'function', name: toolChoice.toolName },
         toolWarnings,

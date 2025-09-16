@@ -79,7 +79,8 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
       body: {
         instances: values.map(value => ({
           content: value,
-          taskType: googleOptions.taskType,
+          task_type: googleOptions.taskType,
+          title: googleOptions.title,
         })),
         parameters: {
           outputDimensionality: googleOptions.outputDimensionality,
