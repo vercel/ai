@@ -97,6 +97,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     }
 
     it('should map image_generation_call to file content with mediaType', async () => {
+      // TODO use snapshot fixture
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'json-value',
         body: {
@@ -113,7 +114,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               id: 'ig_1',
               status: 'completed',
               output_format: 'png',
-              result: 'BASE64DATA',
+              result: 'iVBORwTESTDATA', // png prefix
               size: '1536x1024',
             },
           ],
@@ -129,11 +130,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "data": "BASE64DATA",
-            "mediaType": "image/png",
-            "type": "file",
-          },
-          {
             "input": "{}",
             "providerExecuted": true,
             "toolCallId": "ig_1",
@@ -142,10 +138,17 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "providerExecuted": true,
-            "result": "BASE64DATA",
+            "result": {
+              "result": "iVBORwTESTDATA",
+            },
             "toolCallId": "ig_1",
             "toolName": "image_generation",
             "type": "tool-result",
+          },
+          {
+            "data": "iVBORwTESTDATA",
+            "mediaType": "image/png",
+            "type": "file",
           },
         ]
       `);

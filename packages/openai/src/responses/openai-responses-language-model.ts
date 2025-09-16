@@ -13,7 +13,9 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  detectMediaType,
   generateId,
+  imageMediaTypeSignatures,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -30,6 +32,7 @@ import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-rea
 import { OpenAIResponsesIncludeOptions } from './openai-responses-api-types';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
+import { imageGenerationOutputSchema } from '../tool/image-generation';
 
 const webSearchCallItem = z.object({
   type: z.literal('web_search_call'),
@@ -542,31 +545,37 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }
 
         case 'image_generation_call': {
-          const data = part.result;
+          const imageData = part.result;
+          const mediaType = detectMediaType({
+            data: imageData,
+            signatures: imageMediaTypeSignatures,
+          });
 
-          if (typeof data === 'string' && data.length > 0) {
-            content.push({
-              type: 'file',
-              mediaType: 'TODO', // we know
-              data,
-            });
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'image_generation',
+            input: '{}',
+            providerExecuted: true,
+          });
 
-            content.push({
-              type: 'tool-call',
-              toolCallId: part.id,
-              toolName: 'image_generation',
-              input: '{}',
-              providerExecuted: true,
-            });
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'image_generation',
+            result: {
+              result: imageData,
+            } satisfies z.infer<typeof imageGenerationOutputSchema>,
+            providerExecuted: true,
+          });
 
-            content.push({
-              type: 'tool-result',
-              toolCallId: part.id,
-              toolName: 'image_generation',
-              result: part.result,
-              providerExecuted: true,
-            });
-          }
+          // expose the generated image as a file as well
+          content.push({
+            type: 'file',
+            mediaType: mediaType ?? 'image/unknown',
+            data: imageData,
+          });
+
           break;
         }
 
@@ -647,6 +656,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             result: { status: part.status },
             providerExecuted: true,
           });
+
           break;
         }
 
