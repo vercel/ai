@@ -1,4 +1,4 @@
-import { anthropic } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import 'dotenv/config';
 import fs from 'node:fs';
@@ -27,7 +27,7 @@ async function main() {
             providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral', ttl: '1h' },
-              },
+              } satisfies AnthropicProviderOptions,
             },
           },
           {

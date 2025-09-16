@@ -1,5 +1,56 @@
 # @ai-sdk/gateway
 
+## 1.0.23
+
+### Patch Changes
+
+- f49f924: feat (provider/gateway): add qwen3 next model ids
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 1.0.21
+
+### Patch Changes
+
+- 4ee3719: feat(provider/gateway): Add Meituan LongCat Flash Chat to autocomplete
+
+## 1.0.20
+
+### Patch Changes
+
+- 350a328: feat(provider/gateway): Add stealth models to Gateway autocomplete
+
+## 1.0.19
+
+### Patch Changes
+
+- 034287f: feat (provider/gateway): add qwen3-max model id
+- dee1afe: feat(provider/gateway): Fix embeddings `providerOptions`
+
+## 1.0.18
+
+### Patch Changes
+
+- 5d59a8c: feat (provider/gateway): add moonshotai/kimi-k2-0905 model id
+
+## 1.0.17
+
+### Patch Changes
+
+- b6005cd: feat(provider/gateway): Add Voyage embedding models
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
 ## 1.0.15
 
 ### Patch Changes

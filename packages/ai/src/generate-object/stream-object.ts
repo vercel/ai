@@ -15,6 +15,7 @@ import {
 import { ServerResponse } from 'http';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
+import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -47,6 +48,7 @@ import {
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DelayedPromise } from '../util/delayed-promise';
+import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
@@ -248,6 +250,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+  Custom download function to use for URLs.
+
+  By default, files are downloaded if the model does not support the URL for the given media type.
+       */
+      experimental_download?: DownloadFunction | undefined;
+
+      /**
 Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
@@ -299,6 +308,7 @@ Callback that is called when the LLM response and the final object validation ar
     headers,
     experimental_repairText: repairText,
     experimental_telemetry: telemetry,
+    experimental_download: download,
     providerOptions,
     onError = ({ error }: { error: unknown }) => {
       console.error(error);
@@ -352,6 +362,7 @@ Callback that is called when the LLM response and the final object validation ar
     repairText,
     onError,
     onFinish,
+    download,
     generateId,
     currentDate,
     now,
@@ -398,6 +409,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     repairText,
     onError,
     onFinish,
+    download,
     generateId,
     currentDate,
     now,
@@ -418,6 +430,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     repairText: RepairTextFunction | undefined;
     onError: StreamObjectOnErrorCallback;
     onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
+    download: DownloadFunction | undefined;
     generateId: () => string;
     currentDate: () => Date;
     now: () => number;
@@ -502,6 +515,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           prompt: await convertToLanguageModelPrompt({
             prompt: standardizedPrompt,
             supportedUrls: await model.supportedUrls,
+            download,
           }),
           providerOptions,
           abortSignal,
@@ -712,6 +726,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                       usage,
                       response: fullResponse,
                     });
+
+                    // log warnings:
+                    logWarnings(warnings ?? []);
 
                     // resolve promises that can be resolved now:
                     self._usage.resolve(usage);

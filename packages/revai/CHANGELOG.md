@@ -1,5 +1,20 @@
 # @ai-sdk/revai
 
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 1.0.8
+
+### Patch Changes
+
+- 279f02c: fix(provider/revai): safe practice to include filename and fileExtension to avoid `experimental_transcribe` fails with valid Buffer
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
 ## 1.0.7
 
 ### Patch Changes

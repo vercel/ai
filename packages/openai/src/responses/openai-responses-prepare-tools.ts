@@ -3,10 +3,11 @@ import {
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { OpenAIResponsesTool } from './openai-responses-api-types';
-import { fileSearchArgsSchema } from '../tool/file-search';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
+import { fileSearchArgsSchema } from '../tool/file-search';
+import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
+import { OpenAIResponsesTool } from './openai-responses-api-types';
 
 export function prepareResponsesTools({
   tools,
@@ -24,6 +25,7 @@ export function prepareResponsesTools({
     | 'required'
     | { type: 'file_search' }
     | { type: 'web_search_preview' }
+    | { type: 'web_search' }
     | { type: 'function'; name: string }
     | { type: 'code_interpreter' };
   toolWarnings: LanguageModelV2CallWarning[];
@@ -74,6 +76,19 @@ export function prepareResponsesTools({
             });
             break;
           }
+          case 'openai.web_search': {
+            const args = webSearchArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'web_search',
+              filters:
+                args.filters != null
+                  ? { allowed_domains: args.filters.allowedDomains }
+                  : undefined,
+              search_context_size: args.searchContextSize,
+              user_location: args.userLocation,
+            });
+            break;
+          }
           case 'openai.code_interpreter': {
             const args = codeInterpreterArgsSchema.parse(tool.args);
             openaiTools.push({
@@ -117,7 +132,8 @@ export function prepareResponsesTools({
         toolChoice:
           toolChoice.toolName === 'code_interpreter' ||
           toolChoice.toolName === 'file_search' ||
-          toolChoice.toolName === 'web_search_preview'
+          toolChoice.toolName === 'web_search_preview' ||
+          toolChoice.toolName === 'web_search'
             ? { type: toolChoice.toolName }
             : { type: 'function', name: toolChoice.toolName },
         toolWarnings,

@@ -1,17 +1,31 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 
-export type OpenAIResponsesPrompt = Array<OpenAIResponsesMessage>;
+export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
-export type OpenAIResponsesMessage =
+export type OpenAIResponsesInputItem =
   | OpenAIResponsesSystemMessage
   | OpenAIResponsesUserMessage
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
-  | OpenAIWebSearchCall
-  | OpenAIComputerCall
-  | OpenAIFileSearchCall
-  | OpenAIResponsesReasoning;
+  | OpenAIResponsesWebSearchCall
+  | OpenAIResponsesComputerCall
+  | OpenAIResponsesFileSearchCall
+  | OpenAIResponsesReasoning
+  | OpenAIResponsesCodeInterpreterCall;
+
+export type OpenAIResponsesIncludeOptions =
+  | Array<
+      | 'web_search_call.action.sources'
+      | 'code_interpreter_call.outputs'
+      | 'computer_call_output.output.image_url'
+      | 'file_search_call.results'
+      | 'message.input_image.image_url'
+      | 'message.output_text.logprobs'
+      | 'reasoning.encrypted_content'
+    >
+  | undefined
+  | null;
 
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
@@ -32,12 +46,7 @@ export type OpenAIResponsesUserMessage = {
 
 export type OpenAIResponsesAssistantMessage = {
   role: 'assistant';
-  content: Array<
-    | { type: 'output_text'; text: string }
-    | OpenAIWebSearchCall
-    | OpenAIComputerCall
-    | OpenAIFileSearchCall
-  >;
+  content: Array<{ type: 'output_text'; text: string }>;
   id?: string;
 };
 
@@ -55,19 +64,29 @@ export type OpenAIResponsesFunctionCallOutput = {
   output: string;
 };
 
-export type OpenAIWebSearchCall = {
+export type OpenAIResponsesWebSearchCall = {
   type: 'web_search_call';
   id: string;
   status?: string;
 };
 
-export type OpenAIComputerCall = {
+export type OpenAIResponsesComputerCall = {
   type: 'computer_call';
   id: string;
   status?: string;
 };
 
-export type OpenAIFileSearchCall = {
+export type OpenAIResponsesCodeInterpreterCall = {
+  type: 'code_interpreter_call';
+  container_id: string;
+  id: string;
+  code: string | null;
+  outputs: Array<
+    { type: 'logs'; logs: string } | { type: 'image'; url: string }
+  > | null;
+};
+
+export type OpenAIResponsesFileSearchCall = {
   type: 'file_search_call';
   id: string;
   status?: string;
@@ -80,6 +99,22 @@ export type OpenAIResponsesTool =
       description: string | undefined;
       parameters: JSONSchema7;
       strict?: boolean;
+    }
+  | {
+      type: 'web_search';
+      filters?: {
+        allowed_domains?: string[];
+      };
+      search_context_size: 'low' | 'medium' | 'high' | undefined;
+      user_location:
+        | {
+            type: 'approximate';
+            city?: string;
+            country?: string;
+            region?: string;
+            timezone?: string;
+          }
+        | undefined;
     }
   | {
       type: 'web_search_preview';

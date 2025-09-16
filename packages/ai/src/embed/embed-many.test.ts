@@ -1,12 +1,17 @@
+import { EmbeddingModelV2 } from '@ai-sdk/provider';
 import assert from 'node:assert';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  MockEmbeddingModelV2,
-  mockEmbed,
-} from '../test/mock-embedding-model-v2';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
+import { Embedding, EmbeddingModelUsage } from '../types';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { embedMany } from './embed-many';
+
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3],
@@ -304,13 +309,16 @@ describe('options.headers', () => {
         doEmbed: async ({ headers }) => {
           assert.deepStrictEqual(headers, {
             'custom-request-header': 'request-header-value',
+            'user-agent': 'ai/0.0.0-test',
           });
 
           return { embeddings: dummyEmbeddings };
         },
       }),
       values: testValues,
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+      },
     });
 
     assert.deepStrictEqual(result.embeddings, dummyEmbeddings);
@@ -337,7 +345,9 @@ describe('options.providerOptions', () => {
 
     expect(model.doEmbed).toHaveBeenCalledWith({
       abortSignal: undefined,
-      headers: undefined,
+      headers: {
+        'user-agent': 'ai/0.0.0-test',
+      },
       providerOptions: {
         aProvider: { someKey: 'someValue' },
       },
@@ -472,3 +482,20 @@ describe('result.providerMetadata', () => {
     expect(result.providerMetadata).toStrictEqual(providerMetadata);
   });
 });
+
+function mockEmbed<VALUE>(
+  expectedValues: Array<VALUE>,
+  embeddings: Array<Embedding>,
+  usage?: EmbeddingModelUsage,
+  response: Awaited<
+    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+  >['response'] = { headers: {}, body: {} },
+  providerMetadata?: Awaited<
+    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+  >['providerMetadata'],
+): EmbeddingModelV2<VALUE>['doEmbed'] {
+  return async ({ values }) => {
+    assert.deepStrictEqual(expectedValues, values);
+    return { embeddings, usage, response, providerMetadata };
+  };
+}

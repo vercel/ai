@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { stepCountIs, Output, streamText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const { experimental_partialOutputStream: partialOutputStream } = streamText({

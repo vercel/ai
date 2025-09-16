@@ -1,5 +1,58 @@
 # @ai-sdk/openai
 
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.29
+
+### Patch Changes
+
+- 4235eb3: feat(provider/openai): code interpreter tool calls and results
+
+## 2.0.28
+
+### Patch Changes
+
+- 4c2bb77: fix (provider/openai): send sources action as include
+- 561e8b0: fix (provider/openai): fix code interpreter tool in doGenerate
+
+## 2.0.27
+
+### Patch Changes
+
+- 2338c79: feat (provider/openai): add jsdoc for openai tools
+
+## 2.0.26
+
+### Patch Changes
+
+- 5819aec: fix (provider/openai): only send tool calls finish reason for tools that are not provider-executed
+- af8c6bb: feat (provider/openai): add web_search tool
+
+## 2.0.25
+
+### Patch Changes
+
+- fb45ade: fix timestamp granularities support for openai transcription
+
+## 2.0.24
+
+### Patch Changes
+
+- ad57512: fix(provider/openai): safe practice to include filename and fileExtension to avoid `experimental_transcribe` fails with valid Buffer
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 2.0.23
+
+### Patch Changes
+
+- a9a61b7: Add serviceTier to provider metadata for OpenAI responses
+
 ## 2.0.22
 
 ### Patch Changes

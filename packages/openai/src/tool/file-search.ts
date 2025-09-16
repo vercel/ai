@@ -1,7 +1,6 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-// Filter schemas
 const comparisonFilterSchema = z.object({
   key: z.string(),
   type: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte']),
@@ -17,30 +16,14 @@ const compoundFilterSchema: z.ZodType<any> = z.object({
 
 const filtersSchema = z.union([comparisonFilterSchema, compoundFilterSchema]);
 
-// Args validation schema
 export const fileSearchArgsSchema = z.object({
-  /**
-   * List of vector store IDs to search through. If not provided, searches all available vector stores.
-   */
   vectorStoreIds: z.array(z.string()).optional(),
-
-  /**
-   * Maximum number of search results to return. Defaults to 10.
-   */
   maxNumResults: z.number().optional(),
-
-  /**
-   * Ranking options for the search.
-   */
   ranking: z
     .object({
       ranker: z.enum(['auto', 'default-2024-08-21']).optional(),
     })
     .optional(),
-
-  /**
-   * A filter to apply based on file attributes.
-   */
   filters: filtersSchema.optional(),
 });
 

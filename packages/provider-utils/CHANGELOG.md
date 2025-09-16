@@ -1,5 +1,17 @@
 # @ai-sdk/provider-utils
 
+## 3.0.9
+
+### Patch Changes
+
+- 0294b58: feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
+
+## 3.0.8
+
+### Patch Changes
+
+- 99964ed: fix(provider-utils): fix type inference for toModelOutput
+
 ## 3.0.7
 
 ### Patch Changes

@@ -1,5 +1,129 @@
 # @ai-sdk/vue
 
+## 2.0.44
+
+### Patch Changes
+
+- ai@5.0.44
+
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - ai@5.0.43
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [de5c066]
+  - ai@5.0.42
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [cd91e4b]
+  - ai@5.0.41
+
+## 2.0.40
+
+### Patch Changes
+
+- b75beb0: Add useObject support to Vue
+  - ai@5.0.40
+
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [a0a725f]
+  - ai@5.0.39
+
+## 2.0.38
+
+### Patch Changes
+
+- ai@5.0.38
+
+## 2.0.37
+
+### Patch Changes
+
+- Updated dependencies [d6785d7]
+  - ai@5.0.37
+
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [ccc2ded]
+  - ai@5.0.36
+
+## 2.0.35
+
+### Patch Changes
+
+- Updated dependencies [99c946a]
+  - ai@5.0.35
+
+## 2.0.34
+
+### Patch Changes
+
+- ai@5.0.34
+
+## 2.0.33
+
+### Patch Changes
+
+- ai@5.0.33
+
+## 2.0.32
+
+### Patch Changes
+
+- ai@5.0.32
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - ai@5.0.31
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [7fcc6be]
+  - ai@5.0.30
+
+## 2.0.29
+
+### Patch Changes
+
+- Updated dependencies [e0e9449]
+  - ai@5.0.29
+
+## 2.0.28
+
+### Patch Changes
+
+- Updated dependencies [4b81e7d]
+- Updated dependencies [d68a4f2]
+  - ai@5.0.28
+
+## 2.0.27
+
+### Patch Changes
+
+- Updated dependencies [ca40fac]
+  - ai@5.0.27
+
 ## 2.0.26
 
 ### Patch Changes

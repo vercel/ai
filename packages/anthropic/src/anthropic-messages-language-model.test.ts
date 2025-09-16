@@ -553,7 +553,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
-              },
+              } satisfies AnthropicProviderOptions,
             },
           },
         ],
@@ -679,9 +679,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       const model = provider('claude-3-haiku-20240307');
 
       const result = await model.doGenerate({
-        headers: {
-          'anthropic-beta': 'extended-cache-ttl-2025-04-11',
-        },
         prompt: [
           {
             role: 'user',
@@ -689,7 +686,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral', ttl: '1h' },
-              },
+              } satisfies AnthropicProviderOptions,
             },
           },
         ],
@@ -2534,9 +2531,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
-        headers: {
-          'anthropic-beta': 'extended-cache-ttl-2025-04-11',
-        },
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2637,6 +2631,54 @@ describe('AnthropicMessagesLanguageModel', () => {
             "top_p": undefined,
           },
         }
+      `);
+    });
+
+    it('should handle handle stop_reason:pause_turn', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":", "}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"pause_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      // consume stream
+      const chunks = await convertReadableStreamToArray(result.stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'finish'))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": null,
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 17,
+              "outputTokens": 227,
+              "totalTokens": 244,
+            },
+          },
+        ]
       `);
     });
 

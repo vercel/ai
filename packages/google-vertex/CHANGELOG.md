@@ -1,5 +1,92 @@
 # @ai-sdk/google-vertex
 
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [da92132]
+  - @ai-sdk/anthropic@2.0.17
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/anthropic@2.0.16
+  - @ai-sdk/google@2.0.14
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [c8aab0a]
+  - @ai-sdk/anthropic@2.0.15
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [2338c79]
+  - @ai-sdk/anthropic@2.0.14
+
+## 3.0.23
+
+### Patch Changes
+
+- 1887c53: feat(provider/google-vertex): add support for urlContext, googleSearch and codeExecution tools
+
+## 3.0.22
+
+### Patch Changes
+
+- Updated dependencies [cd458a8]
+- Updated dependencies [5a3ef3a]
+  - @ai-sdk/anthropic@2.0.13
+  - @ai-sdk/google@2.0.13
+
+## 3.0.21
+
+### Patch Changes
+
+- e2b7558: added the title parameter for embeddings through the google vertex provider
+
+## 3.0.20
+
+### Patch Changes
+
+- 921186b: chore (provider/vertex): update GoogleVertexModelId
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/anthropic@2.0.12
+  - @ai-sdk/google@2.0.12
+
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [c7fee29]
+  - @ai-sdk/anthropic@2.0.11
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [c152ef7]
+  - @ai-sdk/anthropic@2.0.10
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [cdc6b7a]
+  - @ai-sdk/anthropic@2.0.9
+
 ## 3.0.15
 
 ### Patch Changes

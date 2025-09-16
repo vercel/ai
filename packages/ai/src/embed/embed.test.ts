@@ -1,14 +1,19 @@
+import { EmbeddingModelV2 } from '@ai-sdk/provider';
 import assert from 'node:assert';
-import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  MockEmbeddingModelV2,
-  mockEmbed,
-} from '../test/mock-embedding-model-v2';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
+import { Embedding, EmbeddingModelUsage } from '../types';
 import { embed } from './embed';
 
 const dummyEmbedding = [0.1, 0.2, 0.3];
 const testValue = 'sunny day at the beach';
+
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
 
 describe('result.embedding', () => {
   it('should generate embedding', async () => {
@@ -111,13 +116,16 @@ describe('options.headers', () => {
         doEmbed: async ({ headers }) => {
           assert.deepStrictEqual(headers, {
             'custom-request-header': 'request-header-value',
+            'user-agent': 'ai/0.0.0-test',
           });
 
           return { embeddings: [dummyEmbedding] };
         },
       }),
       value: testValue,
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+      },
     });
 
     assert.deepStrictEqual(result.embedding, dummyEmbedding);
@@ -202,3 +210,20 @@ describe('telemetry', () => {
     expect(tracer.jsonSpans).toMatchSnapshot();
   });
 });
+
+function mockEmbed<VALUE>(
+  expectedValues: Array<VALUE>,
+  embeddings: Array<Embedding>,
+  usage?: EmbeddingModelUsage,
+  response: Awaited<
+    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+  >['response'] = { headers: {}, body: {} },
+  providerMetadata?: Awaited<
+    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+  >['providerMetadata'],
+): EmbeddingModelV2<VALUE>['doEmbed'] {
+  return async ({ values }) => {
+    assert.deepStrictEqual(expectedValues, values);
+    return { embeddings, usage, response, providerMetadata };
+  };
+}

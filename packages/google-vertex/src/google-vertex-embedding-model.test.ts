@@ -28,6 +28,7 @@ describe('GoogleVertexEmbeddingModel', () => {
   const mockProviderOptions = {
     outputDimensionality: 768,
     taskType: 'SEMANTIC_SIMILARITY',
+    title: 'test title',
     autoTruncate: false,
   };
 
@@ -123,6 +124,7 @@ describe('GoogleVertexEmbeddingModel', () => {
       instances: testValues.map(value => ({
         content: value,
         task_type: mockProviderOptions.taskType,
+        title: mockProviderOptions.title,
       })),
       parameters: {
         outputDimensionality: mockProviderOptions.outputDimensionality,
@@ -143,6 +145,23 @@ describe('GoogleVertexEmbeddingModel', () => {
       instances: testValues.map(value => ({
         content: value,
         task_type: mockProviderOptions.taskType,
+      })),
+      parameters: {},
+    });
+  });
+
+  it('should pass the title setting in instances', async () => {
+    prepareJsonResponse();
+
+    await model.doEmbed({
+      values: testValues,
+      providerOptions: { google: { title: mockProviderOptions.title } },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      instances: testValues.map(value => ({
+        content: value,
+        title: mockProviderOptions.title,
       })),
       parameters: {},
     });

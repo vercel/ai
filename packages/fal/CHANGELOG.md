@@ -1,5 +1,25 @@
 # @ai-sdk/fal
 
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 1.0.11
+
+### Patch Changes
+
+- 4a3dc44: fix: handle null width/height values in image response schema
+
 ## 1.0.10
 
 ### Patch Changes
