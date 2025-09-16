@@ -38,6 +38,13 @@ const webSourceSchema = z.object({
 
 const xSourceSchema = z.object({
   type: z.literal('x'),
+  excludedXHandles: z.array(z.string()).optional(),
+  includedXHandles: z.array(z.string()).optional(),
+  postFavoriteCount: z.number().int().optional(),
+  postViewCount: z.number().int().optional(),
+  /**
+   * @deprecated use `includedXHandles` instead
+   */
   xHandles: z.array(z.string()).optional(),
 });
 
