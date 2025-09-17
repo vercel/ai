@@ -30,11 +30,8 @@ export const fileSearchArgsSchema = z.object({
   filters: z.union([comparisonFilterSchema, compoundFilterSchema]).optional(),
 });
 
-export const fileSearchInputSchema = z.object({
-  queries: z.array(z.string()),
-});
-
 export const fileSearchOutputSchema = z.object({
+  queries: z.array(z.string()),
   results: z
     .array(
       z.object({
@@ -49,13 +46,13 @@ export const fileSearchOutputSchema = z.object({
 });
 
 export const fileSearch = createProviderDefinedToolFactoryWithOutputSchema<
+  {},
   {
     /**
      * The search query to execute.
      */
     queries: string[];
-  },
-  {
+
     /**
      * The results of the file search tool call.
      */
@@ -130,6 +127,6 @@ export const fileSearch = createProviderDefinedToolFactoryWithOutputSchema<
 >({
   id: 'openai.file_search',
   name: 'file_search',
-  inputSchema: fileSearchInputSchema,
+  inputSchema: z.object({}),
   outputSchema: fileSearchOutputSchema,
 });

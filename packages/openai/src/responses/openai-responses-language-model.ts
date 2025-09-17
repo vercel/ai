@@ -62,6 +62,23 @@ const webSearchCallItem = z.object({
     .nullish(),
 });
 
+const fileSearchCallItem = z.object({
+  type: z.literal('file_search_call'),
+  id: z.string(),
+  queries: z.array(z.string()),
+  results: z
+    .array(
+      z.object({
+        attributes: z.record(z.string(), z.unknown()),
+        file_id: z.string(),
+        filename: z.string(),
+        score: z.number(),
+        text: z.string(),
+      }),
+    )
+    .nullish(),
+});
+
 const codeInterpreterCallItem = z.object({
   type: z.literal('code_interpreter_call'),
   id: z.string(),
@@ -451,6 +468,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   }),
                 ),
               }),
+              webSearchCallItem,
+              fileSearchCallItem,
               codeInterpreterCallItem,
               imageGenerationCallItem,
               z.object({
@@ -460,27 +479,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 arguments: z.string(),
                 id: z.string(),
               }),
-              webSearchCallItem,
               z.object({
                 type: z.literal('computer_call'),
                 id: z.string(),
                 status: z.string().optional(),
-              }),
-              z.object({
-                type: z.literal('file_search_call'),
-                id: z.string(),
-                queries: z.array(z.string()),
-                results: z
-                  .array(
-                    z.object({
-                      attributes: z.record(z.string(), z.unknown()),
-                      file_id: z.string(),
-                      filename: z.string(),
-                      score: z.number(),
-                      text: z.string(),
-                    }),
-                  )
-                  .nullish(),
               }),
               z.object({
                 type: z.literal('reasoning'),
@@ -676,10 +678,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: 'file_search',
-            input: JSON.stringify({
-              queries: part.queries,
-            } satisfies z.infer<typeof fileSearchInputSchema>),
-            providerExecuted: true,
+            input: '{}',
           });
 
           content.push({
@@ -687,6 +686,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolCallId: part.id,
             toolName: 'file_search',
             result: {
+              queries: part.queries,
               results:
                 part.results?.map(result => ({
                   attributes: result.attributes,
@@ -1346,28 +1346,11 @@ const responseOutputItemDoneSchema = z.object({
     codeInterpreterCallItem,
     imageGenerationCallItem,
     webSearchCallItem,
+    fileSearchCallItem,
     z.object({
       type: z.literal('computer_call'),
       id: z.string(),
       status: z.literal('completed'),
-    }),
-    z.object({
-      type: z.literal('file_search_call'),
-      id: z.string(),
-      status: z.literal('completed'),
-      queries: z.array(z.string()).nullish(),
-      results: z
-        .array(
-          z.object({
-            attributes: z.object({
-              file_id: z.string(),
-              filename: z.string(),
-              score: z.number(),
-              text: z.string(),
-            }),
-          }),
-        )
-        .nullish(),
     }),
   ]),
 });
