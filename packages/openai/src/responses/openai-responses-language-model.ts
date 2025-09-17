@@ -30,6 +30,7 @@ import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-rea
 import { OpenAIResponsesIncludeOptions } from './openai-responses-api-types';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
+import { imageGenerationOutputSchema } from '../tool/image-generation';
 
 const webSearchCallItem = z.object({
   type: z.literal('web_search_call'),
@@ -67,6 +68,12 @@ const codeInterpreterCallItem = z.object({
       ]),
     )
     .nullable(),
+});
+
+const imageGenerationCallItem = z.object({
+  type: z.literal('image_generation_call'),
+  id: z.string(),
+  result: z.string(),
 });
 
 /**
@@ -249,6 +256,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }),
 
       // provider options:
+      max_tool_calls: openaiOptions?.maxToolCalls,
       metadata: openaiOptions?.metadata,
       parallel_tool_calls: openaiOptions?.parallelToolCalls,
       previous_response_id: openaiOptions?.previousResponseId,
@@ -439,6 +447,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 ),
               }),
               codeInterpreterCallItem,
+              imageGenerationCallItem,
               z.object({
                 type: z.literal('function_call'),
                 call_id: z.string(),
@@ -534,6 +543,28 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           break;
         }
 
+        case 'image_generation_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'image_generation',
+            input: '{}',
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'image_generation',
+            result: {
+              result: part.result,
+            } satisfies z.infer<typeof imageGenerationOutputSchema>,
+            providerExecuted: true,
+          });
+
+          break;
+        }
+
         case 'message': {
           for (const contentPart of part.content) {
             if (
@@ -611,6 +642,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             result: { status: part.status },
             providerExecuted: true,
           });
+
           break;
         }
 
@@ -850,6 +882,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: value.item.id,
                   toolName: 'file_search',
                 });
+              } else if (value.item.type === 'image_generation_call') {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'image_generation',
+                  input: '{}',
+                  providerExecuted: true,
+                });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-start',
@@ -995,6 +1035,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   result: {
                     outputs: value.item.outputs,
                   } satisfies z.infer<typeof codeInterpreterOutputSchema>,
+                  providerExecuted: true,
+                });
+              } else if (value.item.type === 'image_generation_call') {
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'image_generation',
+                  result: {
+                    result: value.item.result,
+                  } satisfies z.infer<typeof imageGenerationOutputSchema>,
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
@@ -1256,6 +1306,10 @@ const responseOutputItemAddedSchema = z.object({
         )
         .optional(),
     }),
+    z.object({
+      type: z.literal('image_generation_call'),
+      id: z.string(),
+    }),
   ]),
 });
 
@@ -1281,6 +1335,7 @@ const responseOutputItemDoneSchema = z.object({
       status: z.literal('completed'),
     }),
     codeInterpreterCallItem,
+    imageGenerationCallItem,
     webSearchCallItem,
     z.object({
       type: z.literal('computer_call'),
@@ -1522,16 +1577,6 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
 
 // TODO AI SDK 6: use optional here instead of nullish
 const openaiResponsesProviderOptionsSchema = z.object({
-  metadata: z.any().nullish(),
-  parallelToolCalls: z.boolean().nullish(),
-  previousResponseId: z.string().nullish(),
-  store: z.boolean().nullish(),
-  user: z.string().nullish(),
-  reasoningEffort: z.string().nullish(),
-  strictJsonSchema: z.boolean().nullish(),
-  instructions: z.string().nullish(),
-  reasoningSummary: z.string().nullish(),
-  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
   include: z
     .array(
       z.enum([
@@ -1541,9 +1586,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
       ]),
     )
     .nullish(),
-  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
-  promptCacheKey: z.string().nullish(),
-  safetyIdentifier: z.string().nullish(),
+  instructions: z.string().nullish(),
 
   /**
    * Return the log probabilities of the tokens.
@@ -1560,6 +1603,26 @@ const openaiResponsesProviderOptionsSchema = z.object({
   logprobs: z
     .union([z.boolean(), z.number().min(1).max(TOP_LOGPROBS_MAX)])
     .optional(),
+
+  /**
+   * The maximum number of total calls to built-in tools that can be processed in a response.
+   * This maximum number applies across all built-in tool calls, not per individual tool.
+   * Any further attempts to call a tool by the model will be ignored.
+   */
+  maxToolCalls: z.number().nullish(),
+
+  metadata: z.any().nullish(),
+  parallelToolCalls: z.boolean().nullish(),
+  previousResponseId: z.string().nullish(),
+  promptCacheKey: z.string().nullish(),
+  reasoningEffort: z.string().nullish(),
+  reasoningSummary: z.string().nullish(),
+  safetyIdentifier: z.string().nullish(),
+  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
+  store: z.boolean().nullish(),
+  strictJsonSchema: z.boolean().nullish(),
+  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
+  user: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<
