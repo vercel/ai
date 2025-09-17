@@ -198,7 +198,7 @@ const result = await generateText({
   model: azure('your-deployment-name'),
   prompt: 'Write a short story about a robot.',
   providerOptions: {
-    azure: {
+    openai: {
       logitBias: {
         // optional likelihood for specific tokens
         '50256': -100,
@@ -378,7 +378,7 @@ const result = await generateText({
   model: azure.completion('your-gpt-35-turbo-instruct-deployment'),
   prompt: 'Write a haiku about coding.',
   providerOptions: {
-    azure: {
+    openai: {
       echo: true, // optional, echo the prompt in addition to the completion
       logitBias: {
         // optional likelihood for specific tokens
@@ -453,7 +453,7 @@ const { embedding } = await embed({
   model: azure.textEmbedding('your-embedding-deployment'),
   value: 'sunny day at the beach',
   providerOptions: {
-    azure: {
+    openai: {
       dimensions: 512, // optional, number of dimensions for the embedding
       user: 'test-user', // optional unique user identifier
     },
@@ -489,7 +489,7 @@ await generateImage({
   prompt: 'A photorealistic image of a cat astronaut floating in space',
   size: '1024x1024', // '1024x1024', '1792x1024', or '1024x1792' for DALL-E 3
   providerOptions: {
-    azure: {
+    openai: {
       user: 'test-user', // optional unique user identifier
       responseFormat: 'url', // 'url' or 'b64_json', defaults to 'url'
     },
@@ -567,7 +567,7 @@ import { readFile } from 'fs/promises';
 const result = await transcribe({
   model: azure.transcription('whisper-1'),
   audio: await readFile('audio.mp3'),
-  providerOptions: { azure: { language: 'en' } },
+  providerOptions: { openai: { language: 'en' } },
 });
 ```
 
