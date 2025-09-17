@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test-server';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAI } from '../openai-provider';
 import { OpenAIImageModel } from './openai-image-model';
 import { describe, it, expect } from 'vitest';

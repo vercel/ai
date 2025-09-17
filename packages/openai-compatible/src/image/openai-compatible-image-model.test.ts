@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { FetchFunction } from '@ai-sdk/provider-utils';
-import { createTestServer } from '@ai-sdk/provider-utils/test-server';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
 import { z } from 'zod/v4';
 import { ProviderErrorStructure } from '../openai-compatible-error';
