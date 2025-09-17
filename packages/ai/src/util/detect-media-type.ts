@@ -3,52 +3,56 @@ import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 export const imageMediaTypeSignatures = [
   {
     mediaType: 'image/gif' as const,
-    bytesPrefix: [0x47, 0x49, 0x46],
-    base64Prefix: 'R0lG',
+    bytesPrefix: [0x47, 0x49, 0x46], // GIF
   },
   {
     mediaType: 'image/png' as const,
-    bytesPrefix: [0x89, 0x50, 0x4e, 0x47],
-    base64Prefix: 'iVBORw',
+    bytesPrefix: [0x89, 0x50, 0x4e, 0x47], // PNG
   },
   {
     mediaType: 'image/jpeg' as const,
-    bytesPrefix: [0xff, 0xd8],
-    base64Prefix: '/9j/',
+    bytesPrefix: [0xff, 0xd8], // JPEG
   },
   {
     mediaType: 'image/webp' as const,
-    bytesPrefix: [0x52, 0x49, 0x46, 0x46],
-    base64Prefix: 'UklGR',
+    bytesPrefix: [
+      0x52,
+      0x49,
+      0x46,
+      0x46, // "RIFF"
+      null,
+      null,
+      null,
+      null, // file size (variable)
+      0x57,
+      0x45,
+      0x42,
+      0x50, // "WEBP"
+    ],
   },
   {
     mediaType: 'image/bmp' as const,
     bytesPrefix: [0x42, 0x4d],
-    base64Prefix: 'Qk',
   },
   {
     mediaType: 'image/tiff' as const,
     bytesPrefix: [0x49, 0x49, 0x2a, 0x00],
-    base64Prefix: 'SUkqAA',
   },
   {
     mediaType: 'image/tiff' as const,
     bytesPrefix: [0x4d, 0x4d, 0x00, 0x2a],
-    base64Prefix: 'TU0AKg',
   },
   {
     mediaType: 'image/avif' as const,
     bytesPrefix: [
       0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66,
     ],
-    base64Prefix: 'AAAAIGZ0eXBhdmlm',
   },
   {
     mediaType: 'image/heic' as const,
     bytesPrefix: [
       0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63,
     ],
-    base64Prefix: 'AAAAIGZ0eXBoZWlj',
   },
 ] as const;
 
@@ -56,62 +60,63 @@ export const audioMediaTypeSignatures = [
   {
     mediaType: 'audio/mpeg' as const,
     bytesPrefix: [0xff, 0xfb],
-    base64Prefix: '//s=',
   },
   {
     mediaType: 'audio/mpeg' as const,
     bytesPrefix: [0xff, 0xfa],
-    base64Prefix: '//o=',
   },
   {
     mediaType: 'audio/mpeg' as const,
     bytesPrefix: [0xff, 0xf3],
-    base64Prefix: '//M=',
   },
   {
     mediaType: 'audio/mpeg' as const,
     bytesPrefix: [0xff, 0xf2],
-    base64Prefix: '//I=',
   },
   {
     mediaType: 'audio/mpeg' as const,
     bytesPrefix: [0xff, 0xe3],
-    base64Prefix: '/+M=',
   },
   {
     mediaType: 'audio/mpeg' as const,
     bytesPrefix: [0xff, 0xe2],
-    base64Prefix: '/+I=',
   },
   {
     mediaType: 'audio/wav' as const,
-    bytesPrefix: [0x52, 0x49, 0x46, 0x46],
-    base64Prefix: 'UklGR',
+    bytesPrefix: [
+      0x52, // R
+      0x49, // I
+      0x46, // F
+      0x46, // F
+      null,
+      null,
+      null,
+      null,
+      0x57, // W
+      0x41, // A
+      0x56, // V
+      0x45, // E
+    ],
   },
   {
     mediaType: 'audio/ogg' as const,
     bytesPrefix: [0x4f, 0x67, 0x67, 0x53],
-    base64Prefix: 'T2dnUw',
   },
   {
     mediaType: 'audio/flac' as const,
     bytesPrefix: [0x66, 0x4c, 0x61, 0x43],
-    base64Prefix: 'ZkxhQw',
   },
   {
     mediaType: 'audio/aac' as const,
     bytesPrefix: [0x40, 0x15, 0x00, 0x00],
-    base64Prefix: 'QBUA',
   },
   {
     mediaType: 'audio/mp4' as const,
     bytesPrefix: [0x66, 0x74, 0x79, 0x70],
-    base64Prefix: 'ZnR5cA',
   },
   {
     mediaType: 'audio/webm',
     bytesPrefix: [0x1a, 0x45, 0xdf, 0xa3],
-    base64Prefix: 'GkXf',
   },
 ] as const;
 
@@ -156,14 +161,20 @@ export function detectMediaType({
 }): (typeof signatures)[number]['mediaType'] | undefined {
   const processedData = stripID3TagsIfPresent(data);
 
+  // Convert the first ~18 bytes (24 base64 chars) for consistent detection logic:
+  const bytes =
+    typeof processedData === 'string'
+      ? convertBase64ToUint8Array(
+          processedData.substring(0, Math.min(processedData.length, 24)),
+        )
+      : processedData;
+
   for (const signature of signatures) {
     if (
-      typeof processedData === 'string'
-        ? processedData.startsWith(signature.base64Prefix)
-        : processedData.length >= signature.bytesPrefix.length &&
-          signature.bytesPrefix.every(
-            (byte, index) => processedData[index] === byte,
-          )
+      bytes.length >= signature.bytesPrefix.length &&
+      signature.bytesPrefix.every(
+        (byte, index) => byte === null || bytes[index] === byte,
+      )
     ) {
       return signature.mediaType;
     }
