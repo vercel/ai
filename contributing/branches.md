@@ -9,6 +9,6 @@ When we start working on a pre-release like v5.1 or v6.0, we do a few things
    - Create the branch
    - Create branch protections
    - update triggers in workflows ([example pull request](https://github.com/vercel/ai/pull/8708))
-3. All pull requests must continue to go against `main` while in pre-release mode. If we want to release patch releases while in pre-release mode, we have to manually backport pull requests that got merged into `main` into the stable release version branch (`v5.0` in above example). 
+3. All pull requests must continue to go against `main` while in pre-release mode. If we want to release patch releases while in pre-release mode, we have to manually backport pull requests that got merged into `main` into the stable release version branch (`v5.0` in above example).
 
-Once we are ready to exit pre-release mode, run [`npm run changeset pre exit`](https://changesets-docs.vercel.app/en/prereleases). 
+Once we are ready to exit pre-release mode, run [`npm run changeset pre exit`](https://changesets-docs.vercel.app/en/prereleases).
