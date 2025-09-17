@@ -70,5 +70,7 @@
     "generate-llms-txt": "0.0.0",
     "@vercel/ai-tsconfig": "0.0.0"
   },
-  "changesets": []
+  "changesets": [
+    "curly-glasses-count"
+  ]
 }
