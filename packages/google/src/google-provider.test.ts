@@ -3,7 +3,6 @@ import { createGoogleGenerativeAI } from './google-provider';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
-import { V } from 'vitest/dist/chunks/reporters.anwo7Y6a.js';
 
 // Mock the imported modules using a partial mock to preserve original exports
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
