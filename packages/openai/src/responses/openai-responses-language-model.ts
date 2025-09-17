@@ -13,7 +13,6 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  detectMediaType,
   generateId,
   imageMediaTypeSignatures,
   parseProviderOptions,
@@ -545,12 +544,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }
 
         case 'image_generation_call': {
-          const imageData = part.result;
-          const mediaType = detectMediaType({
-            data: imageData,
-            signatures: imageMediaTypeSignatures,
-          });
-
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
@@ -564,16 +557,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolCallId: part.id,
             toolName: 'image_generation',
             result: {
-              result: imageData,
+              result: part.result,
             } satisfies z.infer<typeof imageGenerationOutputSchema>,
             providerExecuted: true,
-          });
-
-          // expose the generated image as a file as well
-          content.push({
-            type: 'file',
-            mediaType: mediaType ?? 'image/unknown',
-            data: imageData,
           });
 
           break;
@@ -1052,27 +1038,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'image_generation_call') {
-                const imageData = value.item.result;
-                const mediaType = detectMediaType({
-                  data: imageData,
-                  signatures: imageMediaTypeSignatures,
-                });
-
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: 'image_generation',
                   result: {
-                    result: imageData,
+                    result: value.item.result,
                   } satisfies z.infer<typeof imageGenerationOutputSchema>,
                   providerExecuted: true,
-                });
-
-                // expose the generated image as a file as well
-                controller.enqueue({
-                  type: 'file',
-                  mediaType: mediaType ?? 'image/unknown',
-                  data: imageData,
                 });
               } else if (value.item.type === 'message') {
                 controller.enqueue({

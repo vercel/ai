@@ -148,11 +148,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > sho
     "type": "tool-result",
   },
   {
-    "data": "UklGRoitEQBXRUJQVlA4TEGzEAAv/8P/AM1AbNtGkITZhU4fH9J/wTOT+xIi+j8BuT4kABkCibNAZrlwIPyQ7W/bH5L2RHMzMBKgXmfZeYi9tLtrrQkZvN1yXHLLgG71gPkpDxmI/gc03YFulQR...AA9lhA0Y9rVdqQs/W4w/MOxeRW5+R1/UXmmNVi9yQ7x/vG0q2VRk01seZIuj5OmRYhD+yY82dZqMH1BCueTeOcNfGKxQ==",
-    "mediaType": "image/webp",
-    "type": "file",
-  },
-  {
     "providerMetadata": {
       "openai": {
         "itemId": "rs_0a33d15155cb126d0068c96c6c0ef48195bc73e30faf832ba3",
@@ -1466,11 +1461,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
     "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
     "toolName": "image_generation",
     "type": "tool-result",
-  },
-  {
-    "data": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
-    "mediaType": "image/webp",
-    "type": "file",
   },
   {
     "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
