@@ -14,7 +14,6 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  imageMediaTypeSignatures,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
