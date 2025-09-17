@@ -350,23 +350,26 @@ const result = await generateText({
   prompt: 'What does the document say about user authentication?',
   tools: {
     file_search: openai.tools.fileSearch({
-      // optional configuration:
-      vectorStoreIds: ['vs_123', 'vs_456'],
-      maxNumResults: 10,
+      vectorStoreIds: ['vs_123'],
+      // configuration below is optional:
+      maxNumResults: 5,
+      filters: {
+        key: 'author',
+        type: 'eq',
+        value: 'Jane Smith',
+      },
       ranking: {
         ranker: 'auto',
-      },
-      filters: {
-        type: 'and',
-        filters: [
-          { key: 'author', type: 'eq', value: 'John Doe' },
-          { key: 'date', type: 'gte', value: '2023-01-01' },
-        ],
+        scoreThreshold: 0.5,
       },
     }),
   },
-  // Force file search tool:
-  toolChoice: { type: 'tool', toolName: 'file_search' },
+  providerOptions: {
+    openai: {
+      // optional: include results
+      include: ['file_search_call.results'],
+    } satisfies OpenAIResponsesProviderOptions,
+  },
 });
 ```
 
