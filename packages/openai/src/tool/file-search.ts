@@ -1,4 +1,8 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
+import {
+  OpenAIResponsesFileSearchToolComparisonFilter,
+  OpenAIResponsesFileSearchToolCompoundFilter,
+} from '../responses/openai-responses-api-types';
 import { z } from 'zod/v4';
 
 const comparisonFilterSchema = z.object({
@@ -25,41 +29,6 @@ export const fileSearchArgsSchema = z.object({
     .optional(),
   filters: z.union([comparisonFilterSchema, compoundFilterSchema]).optional(),
 });
-
-/**
- * A filter used to compare a specified attribute key to a given value using a defined comparison operation.
- */
-export type ComparisonFilter = {
-  /**
-   * The key to compare against the value.
-   */
-  key: string;
-
-  /**
-   * Specifies the comparison operator: eq, ne, gt, gte, lt, lte.
-   */
-  type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
-
-  /**
-   * The value to compare against the attribute key; supports string, number, or boolean types.
-   */
-  value: string | number | boolean;
-};
-
-/**
- * Combine multiple filters using and or or.
- */
-export type CompoundFilter = {
-  /**
-   * Type of operation: and or or.
-   */
-  type: 'and' | 'or';
-
-  /**
-   * Array of filters to combine. Items can be ComparisonFilter or CompoundFilter.
-   */
-  filters: Array<ComparisonFilter | CompoundFilter>;
-};
 
 export const fileSearch = createProviderDefinedToolFactory<
   {
@@ -99,7 +68,9 @@ export const fileSearch = createProviderDefinedToolFactory<
     /**
      * A filter to apply.
      */
-    filters?: ComparisonFilter | CompoundFilter;
+    filters?:
+      | OpenAIResponsesFileSearchToolComparisonFilter
+      | OpenAIResponsesFileSearchToolCompoundFilter;
   }
 >({
   id: 'openai.file_search',
