@@ -2408,6 +2408,9 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send request body with include and tool', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
+            "include": [
+              "file_search_call.results",
+            ],
             "input": [
               {
                 "content": [

@@ -192,7 +192,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           : undefined;
 
     include = topLogprobs
-      ? Array.isArray(include)
+      ? include != null
         ? [...include, 'message.output_text.logprobs']
         : ['message.output_text.logprobs']
       : include;
@@ -208,25 +208,33 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     )?.name;
 
     include = webSearchToolName
-      ? Array.isArray(include)
+      ? include != null
         ? [...include, 'web_search_call.action.sources']
         : ['web_search_call.action.sources']
       : include;
 
     // when a code interpreter tool is present, automatically include the outputs:
-    const codeInterpreterToolName = (
+    include =
       tools?.find(
         tool =>
           tool.type === 'provider-defined' &&
           tool.id === 'openai.code_interpreter',
-      ) as LanguageModelV2ProviderDefinedTool | undefined
-    )?.name;
+      ) != null
+        ? include != null
+          ? [...include, 'code_interpreter_call.outputs']
+          : ['code_interpreter_call.outputs']
+        : include;
 
-    include = codeInterpreterToolName
-      ? Array.isArray(include)
-        ? [...include, 'code_interpreter_call.outputs']
-        : ['code_interpreter_call.outputs']
-      : include;
+    // when a file search tool is present, automatically include the results:
+    include =
+      tools?.find(
+        tool =>
+          tool.type === 'provider-defined' && tool.id === 'openai.file_search',
+      ) != null
+        ? include != null
+          ? [...include, 'file_search_call.results']
+          : ['file_search_call.results']
+        : include;
 
     const baseArgs = {
       model: this.modelId,
