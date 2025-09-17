@@ -27,6 +27,41 @@ export const fileSearchArgsSchema = z.object({
   filters: filtersSchema.optional(),
 });
 
+/**
+ * A filter used to compare a specified attribute key to a given value using a defined comparison operation.
+ */
+type ComparisonFilter = {
+  /**
+   * The key to compare against the value.
+   */
+  key: string;
+
+  /**
+   * Specifies the comparison operator: eq, ne, gt, gte, lt, lte.
+   */
+  type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
+
+  /**
+   * The value to compare against the attribute key; supports string, number, or boolean types.
+   */
+  value: string | number | boolean;
+};
+
+/**
+ * Combine multiple filters using and or or.
+ */
+type CompoundFilter = {
+  /**
+   * Type of operation: and or or.
+   */
+  type: 'and' | 'or';
+
+  /**
+   * Array of filters to combine. Items can be ComparisonFilter or CompoundFilter.
+   */
+  filters: Array<ComparisonFilter | CompoundFilter>;
+};
+
 export const fileSearch = createProviderDefinedToolFactory<
   {
     /**
@@ -36,9 +71,9 @@ export const fileSearch = createProviderDefinedToolFactory<
   },
   {
     /**
-     * List of vector store IDs to search through. If not provided, searches all available vector stores.
+     * List of vector store IDs to search through.
      */
-    vectorStoreIds?: string[];
+    vectorStoreIds: string[];
 
     /**
      * Maximum number of search results to return. Defaults to 10.
@@ -48,23 +83,24 @@ export const fileSearch = createProviderDefinedToolFactory<
     /**
      * Ranking options for the search.
      */
-    ranking?: {
-      ranker?: 'auto' | 'default-2024-08-21';
+    ranking: {
+      /**
+       * The ranker to use for the file search.
+       */
+      ranker?: string;
+
+      /**
+       * The score threshold for the file search, a number between 0 and 1.
+       * Numbers closer to 1 will attempt to return only the most relevant results,
+       * but may return fewer results.
+       */
+      scoreThreshold?: number;
     };
 
     /**
-     * A filter to apply based on file attributes.
+     * A filter to apply.
      */
-    filters?:
-      | {
-          key: string;
-          type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
-          value: string | number | boolean;
-        }
-      | {
-          type: 'and' | 'or';
-          filters: any[];
-        };
+    filters?: ComparisonFilter | CompoundFilter;
   }
 >({
   id: 'openai.file_search',
