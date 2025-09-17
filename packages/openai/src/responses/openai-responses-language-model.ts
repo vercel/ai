@@ -256,6 +256,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }),
 
       // provider options:
+      max_tool_calls: openaiOptions?.maxToolCalls,
       metadata: openaiOptions?.metadata,
       parallel_tool_calls: openaiOptions?.parallelToolCalls,
       previous_response_id: openaiOptions?.previousResponseId,
@@ -1576,16 +1577,6 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
 
 // TODO AI SDK 6: use optional here instead of nullish
 const openaiResponsesProviderOptionsSchema = z.object({
-  metadata: z.any().nullish(),
-  parallelToolCalls: z.boolean().nullish(),
-  previousResponseId: z.string().nullish(),
-  store: z.boolean().nullish(),
-  user: z.string().nullish(),
-  reasoningEffort: z.string().nullish(),
-  strictJsonSchema: z.boolean().nullish(),
-  instructions: z.string().nullish(),
-  reasoningSummary: z.string().nullish(),
-  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
   include: z
     .array(
       z.enum([
@@ -1595,9 +1586,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
       ]),
     )
     .nullish(),
-  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
-  promptCacheKey: z.string().nullish(),
-  safetyIdentifier: z.string().nullish(),
+  instructions: z.string().nullish(),
 
   /**
    * Return the log probabilities of the tokens.
@@ -1614,6 +1603,26 @@ const openaiResponsesProviderOptionsSchema = z.object({
   logprobs: z
     .union([z.boolean(), z.number().min(1).max(TOP_LOGPROBS_MAX)])
     .optional(),
+
+  /**
+   * The maximum number of total calls to built-in tools that can be processed in a response.
+   * This maximum number applies across all built-in tool calls, not per individual tool.
+   * Any further attempts to call a tool by the model will be ignored.
+   */
+  maxToolCalls: z.number().nullish(),
+
+  metadata: z.any().nullish(),
+  parallelToolCalls: z.boolean().nullish(),
+  previousResponseId: z.string().nullish(),
+  promptCacheKey: z.string().nullish(),
+  reasoningEffort: z.string().nullish(),
+  reasoningSummary: z.string().nullish(),
+  safetyIdentifier: z.string().nullish(),
+  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
+  store: z.boolean().nullish(),
+  strictJsonSchema: z.boolean().nullish(),
+  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
+  user: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<
