@@ -2,7 +2,6 @@
 import {
   createUIMessageStreamResponse,
   createUIMessageStream,
-  readUIMessageStream,
   UIMessageStream,
   UIMessageStreamWriter,
   UIMessageStreamOptions,
@@ -20,8 +19,6 @@ async function handler() {
     stream,
     options,
   });
-
-  const data = await readUIMessageStream(response.body);
 
   return response;
 }

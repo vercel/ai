@@ -6,7 +6,6 @@ export default createTransformer((fileInfo, api, options, context) => {
   const replacements = [
     ['createDataStreamResponse', 'createUIMessageStreamResponse'],
     ['createDataStream', 'createUIMessageStream'],
-    ['readDataStream', 'readUIMessageStream'],
     ['DataStreamWriter', 'UIMessageStreamWriter'],
     ['DataStreamOptions', 'UIMessageStreamOptions'],
     ['DataStream', 'UIMessageStream'],

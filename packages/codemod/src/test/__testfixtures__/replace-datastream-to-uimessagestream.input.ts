@@ -2,7 +2,6 @@
 import {
   createDataStreamResponse,
   createDataStream,
-  readDataStream,
   DataStream,
   DataStreamWriter,
   DataStreamOptions,
@@ -20,8 +19,6 @@ async function handler() {
     stream,
     options,
   });
-
-  const data = await readDataStream(response.body);
 
   return response;
 }
