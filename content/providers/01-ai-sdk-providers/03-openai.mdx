@@ -421,6 +421,12 @@ for await (const part of result.fullStream) {
 }
 ```
 
+<Note>
+  When you set `store: false`, then previously generated images will not be
+  accessible by the model. We recommend using the image generation tool without
+  setting `store: false`.
+</Note>
+
 For complete details on model availability, image quality controls, supported sizes, and tool-specific parameters,
 refer to the OpenAI documentation:
 
