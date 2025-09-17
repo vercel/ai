@@ -58,15 +58,20 @@ export function prepareResponsesTools({
         switch (tool.id) {
           case 'openai.file_search': {
             const args = fileSearchArgsSchema.parse(tool.args);
+
             openaiTools.push({
               type: 'file_search',
               vector_store_ids: args.vectorStoreIds,
               max_num_results: args.maxNumResults,
               ranking_options: args.ranking
-                ? { ranker: args.ranking.ranker }
+                ? {
+                    ranker: args.ranking.ranker,
+                    score_threshold: args.ranking.scoreThreshold,
+                  }
                 : undefined,
               filters: args.filters,
             });
+
             break;
           }
           case 'openai.web_search_preview': {
