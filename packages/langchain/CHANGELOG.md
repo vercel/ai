@@ -1,5 +1,14 @@
 # @ai-sdk/langchain
 
+## 1.0.45
+
+### Patch Changes
+
+- Updated dependencies [76024fc]
+- Updated dependencies [93d8b60]
+- Updated dependencies [d8eb31f]
+  - ai@5.0.45
+
 ## 1.0.44
 
 ### Patch Changes
