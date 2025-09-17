@@ -373,16 +373,8 @@ const result = await generateText({
 
 #### Image Generation Tool
 
-OpenAI's Responses API supports multi-modal image generation as a provider-defined tool. Availability is restricted to specific models (for example, `gpt-5` variants). [Refer to the OpenAI docs](https://platform.openai.com/docs/guides/image-generation#supported-models) for the current list of supported models.
-
-- Tool factory: `openai.tools.imageGeneration(options)`
-- Supported options (camelCase):
-  - `background`: `'auto' | 'opaque' | 'transparent'`
-  - `size`: `'auto' | "<width>x<height>"`
-  - `quality`: `'auto' | 'low' | 'medium' | 'high'`
-  - `moderation`: `'auto'`
-  - `outputFormat`: `'png' | 'jpeg' | 'webp'`
-  - `outputCompression`: `0..100`
+OpenAI's Responses API supports multi-modal image generation as a provider-defined tool.
+Availability is restricted to specific models (for example, `gpt-5` variants).
 
 You can use the image tool with either `generateText` or `streamText`:
 
@@ -429,7 +421,8 @@ for await (const part of result.fullStream) {
 }
 ```
 
-For complete details on model availability, image quality controls, supported sizes, and tool-specific parameters, refer to the OpenAI documentation:
+For complete details on model availability, image quality controls, supported sizes, and tool-specific parameters,
+refer to the OpenAI documentation:
 
 - Image generation overview and models: [OpenAI Image Generation](https://platform.openai.com/docs/guides/image-generation)
 - Image generation tool parameters (background, size, quality, format, etc.): [Image Generation Tool Options](https://platform.openai.com/docs/guides/tools-image-generation#tool-options)
