@@ -34,6 +34,7 @@ import {
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
+import { FileSearchInput, FileSearchOutput } from '../tool/file-search';
 
 const webSearchCallItem = z.object({
   type: z.literal('web_search_call'),
@@ -470,17 +471,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               z.object({
                 type: z.literal('file_search_call'),
                 id: z.string(),
-                status: z.string().optional(),
-                queries: z.array(z.string()).nullish(),
+                queries: z.array(z.string()),
                 results: z
                   .array(
                     z.object({
-                      attributes: z.object({
-                        file_id: z.string(),
-                        filename: z.string(),
-                        score: z.number(),
-                        text: z.string(),
-                      }),
+                      attributes: z.record(z.string(), z.unknown()),
+                      file_id: z.string(),
+                      filename: z.string(),
+                      score: z.number(),
+                      text: z.string(),
                     }),
                   )
                   .nullish(),
@@ -679,7 +678,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: 'file_search',
-            input: '',
+            input: JSON.stringify({
+              queries: part.queries,
+            } satisfies FileSearchInput),
             providerExecuted: true,
           });
 
@@ -688,11 +689,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolCallId: part.id,
             toolName: 'file_search',
             result: {
-              type: 'file_search_tool_result',
-              status: part.status || 'completed',
-              ...(part.queries && { queries: part.queries }),
-              ...(part.results && { results: part.results }),
-            },
+              results:
+                part.results?.map(result => ({
+                  attributes: result.attributes,
+                  fileId: result.file_id,
+                  filename: result.filename,
+                  score: result.score,
+                  text: result.text,
+                })) ?? null,
+            } satisfies FileSearchOutput,
             providerExecuted: true,
           });
           break;

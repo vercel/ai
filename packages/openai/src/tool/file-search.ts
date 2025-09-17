@@ -1,4 +1,7 @@
-import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
+import {
+  createProviderDefinedToolFactory,
+  createProviderDefinedToolFactoryWithOutputSchema,
+} from '@ai-sdk/provider-utils';
 import {
   OpenAIResponsesFileSearchToolComparisonFilter,
   OpenAIResponsesFileSearchToolCompoundFilter,
@@ -30,13 +33,54 @@ export const fileSearchArgsSchema = z.object({
   filters: z.union([comparisonFilterSchema, compoundFilterSchema]).optional(),
 });
 
-export const fileSearch = createProviderDefinedToolFactory<
-  {
-    /**
-     * The search query to execute.
-     */
-    query: string;
-  },
+export type FileSearchInput = {
+  /**
+   * The search query to execute.
+   */
+  queries: string[];
+};
+
+export type FileSearchOutput = {
+  /**
+   * The results of the file search tool call.
+   */
+  results:
+    | null
+    | {
+        /**
+         * Set of 16 key-value pairs that can be attached to an object.
+         * This can be useful for storing additional information about the object
+         * in a structured format, and querying for objects via API or the dashboard.
+         * Keys are strings with a maximum length of 64 characters.
+         * Values are strings with a maximum length of 512 characters, booleans, or numbers.
+         */
+        attributes: Record<string, unknown>;
+
+        /**
+         * The unique ID of the file.
+         */
+        fileId: string;
+
+        /**
+         * The name of the file.
+         */
+        filename: string;
+
+        /**
+         * The relevance score of the file - a value between 0 and 1.
+         */
+        score: number;
+
+        /**
+         * The text that was retrieved from the file.
+         */
+        text: string;
+      }[];
+};
+
+export const fileSearch = createProviderDefinedToolFactoryWithOutputSchema<
+  FileSearchInput,
+  FileSearchOutput,
   {
     /**
      * List of vector store IDs to search through.
@@ -76,6 +120,17 @@ export const fileSearch = createProviderDefinedToolFactory<
   id: 'openai.file_search',
   name: 'file_search',
   inputSchema: z.object({
-    query: z.string(),
+    queries: z.array(z.string()),
+  }),
+  outputSchema: z.object({
+    results: z.array(
+      z.object({
+        attributes: z.record(z.string(), z.unknown()),
+        fileId: z.string(),
+        filename: z.string(),
+        score: z.number(),
+        text: z.string(),
+      }),
+    ),
   }),
 });
