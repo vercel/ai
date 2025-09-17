@@ -17,7 +17,7 @@ import {
 } from './process-ui-message-stream';
 import {
   InferUIMessageToolCall,
-  InferUIMessageToolOutput,
+  InferUIMessageToolOutputs,
   isToolOrDynamicToolUIPart,
   type DataUIPart,
   type FileUIPart,
@@ -96,7 +96,7 @@ export type ChatOnToolCallCallback<UI_MESSAGE extends UIMessage = UIMessage> =
 
 export type ChatOnToolOutputCallback<UI_MESSAGE extends UIMessage = UIMessage> =
   (options: {
-    toolOutput: InferUIMessageToolOutput<UI_MESSAGE>;
+    toolOutput: InferUIMessageToolOutputs<UI_MESSAGE>;
   }) => void | PromiseLike<void>;
 
 export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (

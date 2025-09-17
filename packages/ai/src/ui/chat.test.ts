@@ -1983,18 +1983,11 @@ describe('Chat', () => {
       expect(onToolOutputCalled).toBe(true);
       expect(toolOutputData).toMatchInlineSnapshot(`
         {
-          "dynamic": undefined,
-          "input": {
-            "testArg": "test-value",
-          },
           "output": {
             "result": "test-result",
           },
-          "preliminary": undefined,
-          "providerExecuted": undefined,
           "toolCallId": "tool-call-0",
-          "toolName": "test-tool",
-          "type": "tool-result",
+          "type": "tool-output-available",
         }
       `);
     });
