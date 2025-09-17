@@ -159,7 +159,8 @@ export type OpenAIResponsesTool =
         | undefined;
       filters:
         | OpenAIResponsesFileSearchToolComparisonFilter
-        | OpenAIResponsesFileSearchToolCompoundFilter;
+        | OpenAIResponsesFileSearchToolCompoundFilter
+        | undefined;
     }
   | {
       type: 'image_generation';
