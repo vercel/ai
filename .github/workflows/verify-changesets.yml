@@ -9,6 +9,7 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
     branches:
       - main
+      - v5.0
     paths:
       - '.changeset/*.md'
 
