@@ -25,10 +25,7 @@ import {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
 } from '../tool/code-interpreter';
-import {
-  fileSearchInputSchema,
-  fileSearchOutputSchema,
-} from '../tool/file-search';
+import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
@@ -1009,7 +1006,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'tool-call',
                   toolCallId: value.item.id,
                   toolName: 'file_search',
-                  input: '',
+                  input: '{}',
                   providerExecuted: true,
                 });
 
@@ -1018,11 +1015,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolCallId: value.item.id,
                   toolName: 'file_search',
                   result: {
-                    type: 'file_search_tool_result',
-                    status: value.item.status || 'completed',
-                    ...(value.item.queries && { queries: value.item.queries }),
-                    ...(value.item.results && { results: value.item.results }),
-                  },
+                    queries: value.item.queries,
+                    results:
+                      value.item.results?.map(result => ({
+                        attributes: result.attributes,
+                        fileId: result.file_id,
+                        filename: result.filename,
+                        score: result.score,
+                        text: result.text,
+                      })) ?? null,
+                  } satisfies z.infer<typeof fileSearchOutputSchema>,
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'code_interpreter_call') {

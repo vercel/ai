@@ -1586,7 +1586,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
 ]
 `;
 
-exports[`OpenAIResponsesLanguageModel > doStream > file search tool > without results include > should stream code interpreter results 1`] = `
+exports[`OpenAIResponsesLanguageModel > doStream > file search tool > without results include > should stream file search results 1`] = `
 [
   {
     "type": "stream-start",
@@ -1628,7 +1628,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > without re
     "type": "tool-input-end",
   },
   {
-    "input": "",
+    "input": "{}",
     "providerExecuted": true,
     "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
     "toolName": "file_search",
@@ -1642,8 +1642,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > without re
         "What is an embedding model defined as in the document?",
         "definition of embedding model",
       ],
-      "status": "completed",
-      "type": "file_search_tool_result",
+      "results": null,
     },
     "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
     "toolName": "file_search",
