@@ -30,7 +30,7 @@ export const fileSearchArgsSchema = z.object({
 /**
  * A filter used to compare a specified attribute key to a given value using a defined comparison operation.
  */
-type ComparisonFilter = {
+export type ComparisonFilter = {
   /**
    * The key to compare against the value.
    */
@@ -50,7 +50,7 @@ type ComparisonFilter = {
 /**
  * Combine multiple filters using and or or.
  */
-type CompoundFilter = {
+export type CompoundFilter = {
   /**
    * Type of operation: and or or.
    */
