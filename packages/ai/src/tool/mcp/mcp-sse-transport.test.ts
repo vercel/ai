@@ -1,7 +1,7 @@
 import {
   createTestServer,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test-server';
+} from '@ai-sdk/test-server/with-vitest';
 import { MCPClientError } from '../../error/mcp-client-error';
 import { SseMCPTransport } from './mcp-sse-transport';
 import { beforeEach, describe, expect, it } from 'vitest';
