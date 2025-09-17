@@ -1139,7 +1139,9 @@ describe('OpenAIResponsesLanguageModel', () => {
               type: 'provider-defined',
               id: 'openai.file_search',
               name: 'file_search',
-              args: {},
+              args: {
+                vectorStoreIds: ['vs_123'],
+              },
             },
           ],
           prompt: TEST_PROMPT,
@@ -1162,6 +1164,9 @@ describe('OpenAIResponsesLanguageModel', () => {
             "tools": [
               {
                 "type": "file_search",
+                "vector_store_ids": [
+                  "vs_123",
+                ],
               },
             ],
           }

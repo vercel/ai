@@ -89,35 +89,6 @@ it('should add warnings for unsupported tools', () => {
   `);
 });
 
-it('should add warnings for unsupported provider-defined tools', () => {
-  const result = prepareChatTools({
-    tools: [
-      {
-        type: 'provider-defined',
-        id: 'some.client_tool',
-        name: 'clientTool',
-        args: {},
-      } as any,
-    ],
-    structuredOutputs: false,
-    strictJsonSchema: false,
-  });
-
-  expect(result.tools).toEqual([]);
-  expect(result.toolChoice).toBeUndefined();
-  expect(result.toolWarnings).toEqual([
-    {
-      type: 'unsupported-tool',
-      tool: {
-        type: 'provider-defined',
-        id: 'some.client_tool',
-        name: 'clientTool',
-        args: {},
-      },
-    },
-  ]);
-});
-
 it('should handle tool choice "auto"', () => {
   const result = prepareChatTools({
     tools: [

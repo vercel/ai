@@ -153,12 +153,11 @@ export type OpenAIResponsesTool =
   | {
       type: 'file_search';
       vector_store_ids: string[];
-      max_num_results?: number;
-      ranking_options?: {
-        ranker?: string;
-        score_threshold?: number;
-      };
-      filters?:
+      max_num_results: number | undefined;
+      ranking_options:
+        | { ranker?: string; score_threshold?: number }
+        | undefined;
+      filters:
         | OpenAIResponsesFileSearchToolComparisonFilter
         | OpenAIResponsesFileSearchToolCompoundFilter;
     }
