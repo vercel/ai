@@ -5,11 +5,16 @@ import { run } from '../lib/run';
 run(async () => {
   const result = streamText({
     model: openai('gpt-5-mini'),
-    prompt: 'What happened in tech news today?',
+    prompt: 'What is an embedding model according to this document?',
     tools: {
-      web_search: openai.tools.webSearch({
-        searchContextSize: 'medium',
+      file_search: openai.tools.fileSearch({
+        vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
       }),
+    },
+    providerOptions: {
+      openai: {
+        include: ['file_search_call.results'],
+      },
     },
   });
 
@@ -35,11 +40,9 @@ run(async () => {
       }
 
       case 'source': {
-        if (chunk.sourceType === 'url') {
-          process.stdout.write(
-            `\n\n\x1b[36mSource: ${chunk.title} (${chunk.url})\x1b[0m\n\n`,
-          );
-        }
+        process.stdout.write(
+          `\n\n\x1b[36mSource: ${chunk.title} (${JSON.stringify(chunk)})\x1b[0m\n\n`,
+        );
         break;
       }
 
