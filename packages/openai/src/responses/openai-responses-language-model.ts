@@ -27,7 +27,10 @@ import {
 } from '../tool/code-interpreter';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
-import { OpenAIResponsesIncludeOptions } from './openai-responses-api-types';
+import {
+  OpenAIResponsesIncludeOptions,
+  OpenAIResponsesIncludeValue,
+} from './openai-responses-api-types';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
@@ -183,6 +186,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
 
+    function addInclude(key: OpenAIResponsesIncludeValue) {
+      include = include != null ? [...include, key] : [key];
+    }
+
+    function hasOpenAITool(id: string) {
+      return (
+        tools?.find(
+          tool => tool.type === 'provider-defined' && tool.id === id,
+        ) != null
+      );
+    }
+
     // when logprobs are requested, automatically include them:
     const topLogprobs =
       typeof openaiOptions?.logprobs === 'number'
@@ -191,11 +206,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           ? TOP_LOGPROBS_MAX
           : undefined;
 
-    include = topLogprobs
-      ? include != null
-        ? [...include, 'message.output_text.logprobs']
-        : ['message.output_text.logprobs']
-      : include;
+    if (topLogprobs) {
+      addInclude('message.output_text.logprobs');
+    }
 
     // when a web search tool is present, automatically include the sources:
     const webSearchToolName = (
@@ -207,34 +220,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       ) as LanguageModelV2ProviderDefinedTool | undefined
     )?.name;
 
-    include = webSearchToolName
-      ? include != null
-        ? [...include, 'web_search_call.action.sources']
-        : ['web_search_call.action.sources']
-      : include;
+    if (webSearchToolName) {
+      addInclude('web_search_call.action.sources');
+    }
 
     // when a code interpreter tool is present, automatically include the outputs:
-    include =
-      tools?.find(
-        tool =>
-          tool.type === 'provider-defined' &&
-          tool.id === 'openai.code_interpreter',
-      ) != null
-        ? include != null
-          ? [...include, 'code_interpreter_call.outputs']
-          : ['code_interpreter_call.outputs']
-        : include;
+    if (hasOpenAITool('openai.code_interpreter')) {
+      addInclude('code_interpreter_call.outputs');
+    }
 
     // when a file search tool is present, automatically include the results:
-    include =
-      tools?.find(
-        tool =>
-          tool.type === 'provider-defined' && tool.id === 'openai.file_search',
-      ) != null
-        ? include != null
-          ? [...include, 'file_search_call.results']
-          : ['file_search_call.results']
-        : include;
+    if (hasOpenAITool('openai.file_search')) {
+      addInclude('file_search_call.results');
+    }
 
     const baseArgs = {
       model: this.modelId,
