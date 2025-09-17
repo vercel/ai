@@ -1,5 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
+import { convertBase64ToUint8Array } from '../lib/convertBase64ToUint8Array';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
 
@@ -17,8 +18,14 @@ run(async () => {
   });
 
   for await (const part of result.fullStream) {
-    if (part.type == 'file' && part.file.mediaType.startsWith('image/')) {
-      await presentImages([part.file]);
+    if (part.type == 'tool-result' && !part.dynamic) {
+      await presentImages([
+        {
+          mediaType: 'image/webp',
+          base64: part.output.result,
+          uint8Array: convertBase64ToUint8Array(part.output.result),
+        },
+      ]);
     }
   }
 });
