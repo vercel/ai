@@ -23,6 +23,8 @@ import type {
   EmbeddingModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
+import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import { VERSION } from './version';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
@@ -101,12 +103,15 @@ export function createGatewayProvider(
   const getHeaders = async () => {
     const auth = await getGatewayAuthToken(options);
     if (auth) {
-      return {
-        Authorization: `Bearer ${auth.token}`,
-        'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
-        [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
-        ...options.headers,
-      };
+      return withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${auth.token}`,
+          'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
+          [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
+          ...options.headers,
+        },
+        `ai-sdk/gateway/${VERSION}`,
+      );
     }
 
     throw GatewayAuthenticationError.createContextualError({

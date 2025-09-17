@@ -40,6 +40,10 @@ vi.mock('./vercel-environment', () => ({
   getVercelRequestId: vi.fn(),
 }));
 
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
 describe('GatewayProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -79,10 +83,11 @@ describe('GatewayProvider', () => {
       const headers = await config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-api-key',
-        'Custom-Header': 'value',
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
       });
     });
 
@@ -100,10 +105,11 @@ describe('GatewayProvider', () => {
       const headers = await config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer mock-oidc-token',
-        'Custom-Header': 'value',
+        authorization: 'Bearer mock-oidc-token',
+        'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'oidc',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
       });
     });
 
@@ -379,8 +385,9 @@ describe('GatewayProvider', () => {
       const headers = await resolve(config.headers());
 
       // Verify that the API key was used in the Authorization header
-      expect(headers.Authorization).toBe(`Bearer ${testApiKey}`);
+      expect(headers['authorization']).toBe(`Bearer ${testApiKey}`);
       expect(headers['ai-gateway-auth-method']).toBe('api-key');
+      expect(headers['user-agent']).toBe('ai-sdk/gateway/0.0.0-test');
 
       // Verify getVercelOidcToken was never called
       expect(getVercelOidcToken).not.toHaveBeenCalled();
