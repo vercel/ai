@@ -14,17 +14,16 @@ const compoundFilterSchema: z.ZodType<any> = z.object({
   ),
 });
 
-const filtersSchema = z.union([comparisonFilterSchema, compoundFilterSchema]);
-
 export const fileSearchArgsSchema = z.object({
-  vectorStoreIds: z.array(z.string()).optional(),
+  vectorStoreIds: z.array(z.string()),
   maxNumResults: z.number().optional(),
   ranking: z
     .object({
-      ranker: z.enum(['auto', 'default-2024-08-21']).optional(),
+      ranker: z.string().optional(),
+      scoreThreshold: z.number().optional(),
     })
     .optional(),
-  filters: filtersSchema.optional(),
+  filters: z.union([comparisonFilterSchema, compoundFilterSchema]).optional(),
 });
 
 /**
