@@ -3951,6 +3951,37 @@ describe('OpenAIResponsesLanguageModel', () => {
           ).toMatchSnapshot();
         });
       });
+
+      describe('with results include', () => {
+        beforeEach(async () => {
+          prepareChunksFixtureResponse('openai-file-search-tool.2');
+
+          result = await createModel('gpt-5-nano').doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                },
+              },
+            ],
+            providerOptions: {
+              openai: {
+                include: ['file_search_call.results'],
+              },
+            },
+          });
+        });
+
+        it('should stream file search results', async () => {
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
     });
 
     describe('code interpreter tool', () => {
