@@ -7,7 +7,7 @@ async function main() {
   // Performance Client automatically handles batching and parallel processing
   const EMBEDDING_MODEL_ID = '<model-id>'; // e.g. 03y7n6e3
   const EMBEDDING_MODEL_URL = `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync`;
-  
+
   const baseten = createBaseten({
     modelURL: EMBEDDING_MODEL_URL,
   });
@@ -16,7 +16,7 @@ async function main() {
     model: baseten.textEmbeddingModel(),
     values: [
       'sunny day at the beach',
-      'rainy afternoon in the city', 
+      'rainy afternoon in the city',
       'snowy mountain peak',
       'foggy morning in the forest',
     ],

@@ -74,6 +74,9 @@ importers:
       '@ai-sdk/azure':
         specifier: workspace:*
         version: link:../../packages/azure
+      '@ai-sdk/baseten':
+        specifier: workspace:*
+        version: link:../../packages/baseten
       '@ai-sdk/cerebras':
         specifier: workspace:*
         version: link:../../packages/cerebras
@@ -1598,9 +1601,6 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
-      ai:
-        specifier: workspace:*
-        version: link:../ai
       tsup:
         specifier: ^8
         version: 8.3.0(jiti@2.4.0)(postcss@8.5.3)(tsx@4.19.2)(typescript@5.8.3)(yaml@2.7.0)

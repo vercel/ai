@@ -7,7 +7,7 @@ async function main() {
   // Performance Client requires /sync endpoints and handles batching automatically
   const EMBEDDING_MODEL_ID = '<model-id>'; // e.g. 03y7n6e3
   const EMBEDDING_MODEL_URL = `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync`;
-  
+
   const baseten = createBaseten({
     modelURL: EMBEDDING_MODEL_URL,
   });

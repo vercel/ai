@@ -6,7 +6,7 @@ async function main() {
   // Using custom model URL for chat/text generation
   const CHAT_MODEL_ID = '<model-id>'; // e.g. 6wg17egw
   const CHAT_MODEL_URL = `https://model-${CHAT_MODEL_ID}.api.baseten.co/environments/production/sync/v1`;
-  
+
   const baseten = createBaseten({
     modelURL: CHAT_MODEL_URL,
   });
