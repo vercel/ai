@@ -1,7 +1,7 @@
 import {
   createTestServer,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test-server';
+} from '@ai-sdk/test-server/with-vitest';
 import { render } from '@testing-library/svelte';
 import type { UIMessageChunk } from 'ai';
 import { Completion } from './completion.svelte.js';
