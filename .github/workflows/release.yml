@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - v5
+      - v5.0
     paths:
       - '.changeset/**'
       - '.github/workflows/release.yml'
