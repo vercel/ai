@@ -2,6 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
+import { convertBase64ToUint8Array } from '../lib/convertBase64ToUint8Array';
 
 run(async () => {
   const result = await generateText({
@@ -16,9 +17,15 @@ run(async () => {
     },
   });
 
-  for (const file of result.files) {
-    if (file.mediaType.startsWith('image/')) {
-      await presentImages([file]);
+  for (const toolResult of result.staticToolResults) {
+    if (toolResult.toolName === 'image_generation') {
+      await presentImages([
+        {
+          mediaType: 'image/webp',
+          base64: toolResult.output.result,
+          uint8Array: convertBase64ToUint8Array(toolResult.output.result),
+        },
+      ]);
     }
   }
 });
