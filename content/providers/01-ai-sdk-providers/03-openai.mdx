@@ -391,9 +391,9 @@ const result = await generateText({
   },
 });
 
-for (const file of result.files) {
-  if (file.mediaType.startsWith('image/')) {
-    // file.data is base64; render or save as needed
+for (const toolResult of result.staticToolResults) {
+  if (toolResult.toolName === 'image_generation') {
+    const base64Image = toolResult.output.result;
   }
 }
 ```
@@ -415,8 +415,8 @@ const result = streamText({
 });
 
 for await (const part of result.fullStream) {
-  if (part.type === 'file' && part.file.mediaType.startsWith('image/')) {
-    // part.file.data is base64; render or save as needed
+  if (part.type == 'tool-result' && !part.dynamic) {
+    const base64Image = part.output.result;
   }
 }
 ```
