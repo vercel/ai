@@ -18,9 +18,11 @@ export default function FileSearchView({
         <div className="p-4 mb-2 bg-gray-900 rounded-xl border border-gray-600 shadow-lg">
           <div className="mb-2">
             <span className="font-semibold text-gray-300">Queries:</span>
-            <div className="mt-1 text-sm text-gray-100">
-              {invocation.output.queries.join(', ')}
-            </div>
+            <ul className="mt-1 text-sm list-disc list-inside text-gray-100">
+              {invocation.output.queries.map((query, index) => (
+                <li key={index}>- {query}</li>
+              ))}
+            </ul>
           </div>
           <div>
             <span className="font-semibold text-gray-300">Results:</span>
