@@ -1390,6 +1390,9 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@opentelemetry/api':
         specifier: 1.9.0
         version: 1.9.0
@@ -2509,6 +2512,24 @@ importers:
       zod:
         specifier: 3.25.76
         version: 3.25.76
+
+  packages/test-server:
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      msw:
+        specifier: ^2.7.0
+        version: 2.7.0(@types/node@20.17.24)(typescript@5.8.3)
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.5.3)(tsx@4.19.2)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
 
   packages/togetherai:
     dependencies:
