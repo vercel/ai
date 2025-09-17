@@ -1,7 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
-import { saveRawChunks } from '../lib/save-raw-chunks';
 
 run(async () => {
   const result = streamText({
@@ -17,8 +16,39 @@ run(async () => {
         // include: ['file_search_call.results'],
       },
     },
-    includeRawChunks: true,
   });
 
-  await saveRawChunks({ result, filename: 'openai-file-search-tool' });
+  for await (const chunk of result.fullStream) {
+    switch (chunk.type) {
+      case 'text-delta': {
+        process.stdout.write(chunk.text);
+        break;
+      }
+
+      case 'tool-call': {
+        console.log(
+          `\x1b[32m\x1b[1mTool call:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
+        );
+        break;
+      }
+
+      case 'tool-result': {
+        console.log(
+          `\x1b[32m\x1b[1mTool result:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
+        );
+        break;
+      }
+
+      case 'source': {
+        process.stdout.write(
+          `\n\n\x1b[36mSource: ${chunk.title} (${JSON.stringify(chunk)})\x1b[0m\n\n`,
+        );
+        break;
+      }
+
+      case 'error':
+        console.error('Error:', chunk.error);
+        break;
+    }
+  }
 });
