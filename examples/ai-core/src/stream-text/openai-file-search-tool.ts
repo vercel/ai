@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -14,7 +14,7 @@ run(async () => {
     providerOptions: {
       openai: {
         include: ['file_search_call.results'],
-      },
+      } satisfies OpenAIResponsesProviderOptions,
     },
   });
 
