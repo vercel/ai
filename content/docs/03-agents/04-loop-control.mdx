@@ -190,7 +190,7 @@ const result = await generateText({
 
 You can also force a specific tool to be used:
 
-````ts
+```ts
 prepareStep: async ({ stepNumber }) => {
   if (stepNumber === 0) {
     // Force the search tool to be used first
@@ -207,7 +207,8 @@ prepareStep: async ({ stepNumber }) => {
   }
 
   return {};
-}
+};
+```
 
 ### Message Modification
 
@@ -235,7 +236,7 @@ const result = await generateText({
     return { messages: processedMessages };
   },
 });
-````
+```
 
 ## Access Step Information
 
