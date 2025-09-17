@@ -96,15 +96,19 @@ When streams are aborted (e.g., via chat stop button), you may want to perform c
 
 The `onAbort` callback is called when a stream is aborted via `AbortSignal`, but `onFinish` is not called. This ensures you can still update your UI state appropriately.
 
-```ts highlight="5-9"
+```ts highlight="5-12"
 import { streamText } from 'ai';
 
 const { textStream } = streamText({
   model: 'openai/gpt-4.1',
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-  onAbort: ({ steps }) => {
+  onAbort: ({ steps, usage, totalUsage }) => {
     // Update stored messages or perform cleanup
     console.log('Stream aborted after', steps.length, 'steps');
+    console.log('Last step usage', usage);
+    console.log('Total usage before abort', totalUsage);
+    console.log('Reasoning tokens so far', usage.reasoningTokens ?? 'n/a');
+    console.log('Cached input tokens so far', totalUsage.cachedInputTokens ?? 'n/a');
   },
   onFinish: ({ steps, totalUsage }) => {
     // This is called on normal completion
@@ -120,6 +124,10 @@ for await (const textPart of textStream) {
 The `onAbort` callback receives:
 
 - `steps`: An array of all completed steps before the abort
+- `usage`: Token usage of the last completed step (or `undefined` values when no step finished)
+- `totalUsage`: Combined token usage across all completed steps
+
+Both usage objects include `reasoningTokens` and `cachedInputTokens` when provided by the model, even if the stream aborts before completion.
 
 You can also handle abort events directly in the stream:
 

@@ -173,6 +173,16 @@ export type StreamTextOnAbortCallback<TOOLS extends ToolSet> = (event: {
 Details for all previously finished steps.
    */
   readonly steps: StepResult<TOOLS>[];
+
+  /**
+Token usage of the last finished step, if any.
+   */
+  readonly usage: LanguageModelUsage;
+
+  /**
+Total token usage across all finished steps.
+   */
+  readonly totalUsage: LanguageModelUsage;
 }) => PromiseLike<void> | void;
 
 /**
@@ -953,7 +963,55 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       async pull(controller) {
         // abort handling:
         function abort() {
-          onAbort?.({ steps: recordedSteps });
+          const createEmptyUsage = (): LanguageModelUsage => ({
+            inputTokens: undefined,
+            outputTokens: undefined,
+            totalTokens: undefined,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+          });
+
+          const lastStepUsage =
+            recordedSteps.length > 0
+              ? recordedSteps[recordedSteps.length - 1].usage
+              : createEmptyUsage();
+
+          const usageFromSteps =
+            recordedSteps.reduce<LanguageModelUsage | undefined>(
+              (accumulator, step) =>
+                accumulator == null
+                  ? step.usage
+                  : addLanguageModelUsage(accumulator, step.usage),
+              undefined,
+            ) ??
+            createEmptyUsage();
+
+          const aggregatedUsage =
+            recordedTotalUsage == null
+              ? usageFromSteps
+              : {
+                  inputTokens:
+                    recordedTotalUsage.inputTokens ??
+                    usageFromSteps.inputTokens,
+                  outputTokens:
+                    recordedTotalUsage.outputTokens ??
+                    usageFromSteps.outputTokens,
+                  totalTokens:
+                    recordedTotalUsage.totalTokens ??
+                    usageFromSteps.totalTokens,
+                  reasoningTokens:
+                    recordedTotalUsage.reasoningTokens ??
+                    usageFromSteps.reasoningTokens,
+                  cachedInputTokens:
+                    recordedTotalUsage.cachedInputTokens ??
+                    usageFromSteps.cachedInputTokens,
+                };
+
+          onAbort?.({
+            steps: recordedSteps,
+            usage: lastStepUsage,
+            totalUsage: aggregatedUsage,
+          });
           controller.enqueue({ type: 'abort' });
           controller.close();
         }

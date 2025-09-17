@@ -38,6 +38,7 @@ import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
+import { LanguageModelUsage } from '../types/usage';
 import { object, text } from './output';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
@@ -12432,7 +12433,11 @@ describe('streamText', () => {
     describe('basic abort', () => {
       let result: StreamTextResult<ToolSet, TextStreamPart<ToolSet>>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<ToolSet>[] }> = [];
+      let onAbortCalls: Array<{
+        steps: StepResult<ToolSet>[];
+        usage: LanguageModelUsage;
+        totalUsage: LanguageModelUsage;
+      }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -12502,6 +12507,20 @@ describe('streamText', () => {
           [
             {
               "steps": [],
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": undefined,
+                "outputTokens": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": undefined,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": undefined,
+                "outputTokens": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": undefined,
+              },
             },
           ]
         `);
@@ -12547,7 +12566,11 @@ describe('streamText', () => {
     describe('abort in 2nd step', () => {
       let result: StreamTextResult<any, TextStreamPart<any>>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+      let onAbortCalls: Array<{
+        steps: StepResult<any>[];
+        usage: LanguageModelUsage;
+        totalUsage: LanguageModelUsage;
+      }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -12729,6 +12752,20 @@ describe('streamText', () => {
                   "warnings": [],
                 },
               ],
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
             },
           ]
         `);
@@ -12837,7 +12874,11 @@ describe('streamText', () => {
     describe('abort during tool call', () => {
       let result: StreamTextResult<any, TextStreamPart<any>>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+      let onAbortCalls: Array<{
+        steps: StepResult<any>[];
+        usage: LanguageModelUsage;
+        totalUsage: LanguageModelUsage;
+      }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -12951,6 +12992,20 @@ describe('streamText', () => {
           [
             {
               "steps": [],
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": undefined,
+                "outputTokens": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": undefined,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": undefined,
+                "outputTokens": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": undefined,
+              },
             },
           ]
         `);
