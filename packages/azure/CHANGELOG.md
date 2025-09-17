@@ -1,5 +1,35 @@
 # @ai-sdk/azure
 
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/openai@2.1.0-beta.0
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.32
+
+### Patch Changes
+
+- Updated dependencies [1cf857d]
+- Updated dependencies [01de47f]
+  - @ai-sdk/openai@2.0.32
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [bb94467]
+- Updated dependencies [4a2b70e]
+- Updated dependencies [643711d]
+  - @ai-sdk/openai@2.0.31
+
 ## 2.0.30
 
 ### Patch Changes
