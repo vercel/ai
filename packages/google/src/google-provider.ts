@@ -102,14 +102,18 @@ export function createGoogleGenerativeAI(
     withoutTrailingSlash(options.baseURL) ??
     'https://generativelanguage.googleapis.com/v1beta';
 
-  const getHeaders = () => withUserAgentSuffix({
-    'x-goog-api-key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'GOOGLE_GENERATIVE_AI_API_KEY',
-      description: 'Google Generative AI',
-    }),
-    ...options.headers,
-  }, `ai-sdk/google/${VERSION}`);
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        'x-goog-api-key': loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'GOOGLE_GENERATIVE_AI_API_KEY',
+          description: 'Google Generative AI',
+        }),
+        ...options.headers,
+      },
+      `ai-sdk/google/${VERSION}`,
+    );
 
   const createChatModel = (modelId: GoogleGenerativeAIModelId) =>
     new GoogleGenerativeAILanguageModel(modelId, {
