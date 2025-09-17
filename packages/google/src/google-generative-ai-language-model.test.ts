@@ -2,7 +2,7 @@ import {
   LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/test-server';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 
