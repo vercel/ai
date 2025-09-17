@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 2.0.32
+
+### Patch Changes
+
+- 1cf857d: fix(provider/openai): remove provider-executed tools from chat completions model
+- 01de47f: feat(provider/openai): rework file search tool
+
 ## 2.0.31
 
 ### Patch Changes
