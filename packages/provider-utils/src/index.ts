@@ -1,11 +1,6 @@
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 export * from './delay';
-export {
-  audioMediaTypeSignatures,
-  detectMediaType,
-  imageMediaTypeSignatures,
-} from './detect-media-type';
 export * from './extract-response-headers';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';

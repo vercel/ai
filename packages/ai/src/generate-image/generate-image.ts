@@ -1,10 +1,5 @@
 import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
-import {
-  detectMediaType,
-  imageMediaTypeSignatures,
-  ProviderOptions,
-  withUserAgentSuffix,
-} from '@ai-sdk/provider-utils';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import {
@@ -14,6 +9,10 @@ import {
 import { logWarnings } from '../logger/log-warnings';
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
+import {
+  detectMediaType,
+  imageMediaTypeSignatures,
+} from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { GenerateImageResult } from './generate-image-result';

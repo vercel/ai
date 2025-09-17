@@ -6,14 +6,16 @@ import {
 } from '@ai-sdk/provider';
 import {
   DataContent,
-  detectMediaType,
   FilePart,
-  imageMediaTypeSignatures,
   ImagePart,
   isUrlSupported,
   ModelMessage,
   TextPart,
 } from '@ai-sdk/provider-utils';
+import {
+  detectMediaType,
+  imageMediaTypeSignatures,
+} from '../util/detect-media-type';
 import {
   createDefaultDownloadFunction,
   DownloadFunction,

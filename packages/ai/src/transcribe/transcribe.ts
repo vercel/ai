@@ -1,10 +1,5 @@
 import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
-import {
-  audioMediaTypeSignatures,
-  detectMediaType,
-  ProviderOptions,
-  withUserAgentSuffix,
-} from '@ai-sdk/provider-utils';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';
@@ -12,6 +7,10 @@ import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
+import {
+  audioMediaTypeSignatures,
+  detectMediaType,
+} from '../util/detect-media-type';
 import { download } from '../util/download/download';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
