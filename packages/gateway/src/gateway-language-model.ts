@@ -28,7 +28,9 @@ type GatewayChatConfig = GatewayConfig & {
 
 export class GatewayLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly supportedUrls = { '*/*': [/.*/] };
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    // No URLs are supported. For URLs to be supported, all providers available in the gateway should support them.
+  };
 
   constructor(
     readonly modelId: GatewayModelId,
