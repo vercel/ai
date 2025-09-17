@@ -591,7 +591,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
               providerMetadata = {
                 google: {
-                  promptFeedback: candidate.promptFeedback ?? null,
+                  promptFeedback: value.promptFeedback ?? null,
                   groundingMetadata: candidate.groundingMetadata ?? null,
                   urlContextMetadata: candidate.urlContextMetadata ?? null,
                   safetyRatings: candidate.safetyRatings ?? null,
