@@ -119,6 +119,56 @@ Notes:
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > should include generate image tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0a33d15155cb126d0068c96c5527808195a933b468ccb5dfd9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ig_0a33d15155cb126d0068c96c59bc14819599154c9988b82996",
+    "toolName": "image_generation",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "result": "UklGRoitEQBXRUJQVlA4TEGzEAAv/8P/AM1AbNtGkITZhU4fH9J/wTOT+xIi+j8BuT4kABkCibNAZrlwIPyQ7W/bH5L2RHMzMBKgXmfZeYi9tLtrrQkZvN1yXHLLgG71gPkpDxmI/gc03YFulQR...AA9lhA0Y9rVdqQs/W4w/MOxeRW5+R1/UXmmNVi9yQ7x/vG0q2VRk01seZIuj5OmRYhD+yY82dZqMH1BCueTeOcNfGKxQ==",
+    },
+    "toolCallId": "ig_0a33d15155cb126d0068c96c59bc14819599154c9988b82996",
+    "toolName": "image_generation",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0a33d15155cb126d0068c96c6c0ef48195bc73e30faf832ba3",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0a33d15155cb126d0068c96c723ed88195b1405bc370bb8a65",
+      },
+    },
+    "text": "",
+    "type": "text",
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > should stream code interpreter results 1`] = `
 [
   {
@@ -1359,6 +1409,87 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
       "outputTokens": 1623,
       "reasoningTokens": 1408,
       "totalTokens": 7670,
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > should stream code image generation results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0df93c0bb83a72f20068c979db26ac819e8b5a444fad3f0d7f",
+    "modelId": "gpt-5-2025-08-07",
+    "timestamp": 2025-09-16T14:53:15.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
+    "toolName": "image_generation",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "result": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
+    },
+    "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
+    "toolName": "image_generation",
+    "type": "tool-result",
+  },
+  {
+    "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0df93c0bb83a72f20068c979db26ac819e8b5a444fad3f0d7f",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 1920,
+      "inputTokens": 2941,
+      "outputTokens": 1249,
+      "reasoningTokens": 1024,
+      "totalTokens": 4190,
     },
   },
 ]

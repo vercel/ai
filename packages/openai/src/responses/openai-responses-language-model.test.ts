@@ -213,17 +213,36 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
           temperature: 0.5,
           topP: 0.3,
+          providerOptions: {
+            openai: {
+              maxToolCalls: 10,
+            },
+          },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          temperature: 0.5,
-          top_p: 0.3,
-          input: [
-            { role: 'system', content: 'You are a helpful assistant.' },
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": "You are a helpful assistant.",
+                "role": "system",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "max_tool_calls": 10,
+            "model": "gpt-4o",
+            "temperature": 0.5,
+            "top_p": 0.3,
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -2160,7 +2179,62 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
-    describe('web search', () => {
+    describe('image generation tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-image-generation-tool.1');
+
+        result = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: {
+                outputFormat: 'webp',
+                quality: 'low',
+                size: '1024x1024',
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-nano",
+            "tools": [
+              {
+                "output_format": "webp",
+                "quality": "low",
+                "size": "1024x1024",
+                "type": "image_generation",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include generate image tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('web search tool', () => {
       beforeEach(() => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
@@ -4064,6 +4138,32 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should stream code interpreter results', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('image generation tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('openai-image-generation-tool.1');
+
+        result = await createModel('gpt-5-nano').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should stream code image generation results', async () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();

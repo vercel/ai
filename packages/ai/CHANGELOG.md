@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.45
+
+### Patch Changes
+
+- 76024fc: fix(ai): fix static tool call and result detection when dynamic is undefined
+- 93d8b60: fix(ai): do not filter zero-length text parts that have provider options
+- d8eb31f: fix(ai): fix webp image detection from base64
+
 ## 5.0.44
 
 ### Patch Changes

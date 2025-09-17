@@ -168,6 +168,11 @@ The following provider options are available:
   include `['reasoning.encrypted_content']` in the `include` option to ensure reasoning
   content is available across conversation steps.
 
+- **maxToolCalls** _integer_
+  The maximum number of total calls to built-in tools that can be processed in a response.
+  This maximum number applies across all built-in tool calls, not per individual tool.
+  Any further attempts to call a tool by the model will be ignored.
+
 - **metadata** _Record&lt;string, string&gt;_
   Additional metadata to store with the generation.
 
@@ -233,33 +238,6 @@ The following OpenAI-specific metadata is returned:
 
 - **reasoningTokens** _number_
   The number of reasoning tokens that the model generated.
-
-#### Web Search
-
-The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
-
-```ts
-const result = await generateText({
-  model: openai('gpt-5'),
-  prompt: 'What happened in San Francisco last week?',
-  tools: {
-    web_search: openai.tools.webSearch({
-      // optional configuration:
-      searchContextSize: 'high',
-      userLocation: {
-        type: 'approximate',
-        city: 'San Francisco',
-        region: 'California',
-      },
-    }),
-  },
-  // Force web search tool (optional):
-  toolChoice: { type: 'tool', toolName: 'web_search' },
-});
-
-// URL sources
-const sources = result.sources;
-```
 
 #### Reasoning Output
 
@@ -333,7 +311,34 @@ The `textVerbosity` parameter scales output length without changing the underlyi
 - `'medium'`: Balanced detail (default)
 - `'high'`: Verbose responses with comprehensive detail
 
-#### File Search
+#### Web Search Tool
+
+The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
+
+```ts
+const result = await generateText({
+  model: openai('gpt-5'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    web_search: openai.tools.webSearch({
+      // optional configuration:
+      searchContextSize: 'high',
+      userLocation: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'California',
+      },
+    }),
+  },
+  // Force web search tool (optional):
+  toolChoice: { type: 'tool', toolName: 'web_search' },
+});
+
+// URL sources
+const sources = result.sources;
+```
+
+#### File Search Tool
 
 The OpenAI responses API supports file search through the `openai.tools.fileSearch` tool.
 
@@ -371,7 +376,69 @@ const result = await generateText({
   be customized.
 </Note>
 
-#### Code Interpreter
+#### Image Generation Tool
+
+OpenAI's Responses API supports multi-modal image generation as a provider-defined tool.
+Availability is restricted to specific models (for example, `gpt-5` variants).
+
+You can use the image tool with either `generateText` or `streamText`:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-5'),
+  prompt:
+    'Generate an image of an echidna swimming across the Mozambique channel.',
+  tools: {
+    image_generation: openai.tools.imageGeneration({ outputFormat: 'webp' }),
+  },
+});
+
+for (const toolResult of result.staticToolResults) {
+  if (toolResult.toolName === 'image_generation') {
+    const base64Image = toolResult.output.result;
+  }
+}
+```
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: openai('gpt-5'),
+  prompt:
+    'Generate an image of an echidna swimming across the Mozambique channel.',
+  tools: {
+    image_generation: openai.tools.imageGeneration({
+      outputFormat: 'webp',
+      quality: 'low',
+    }),
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type == 'tool-result' && !part.dynamic) {
+    const base64Image = part.output.result;
+  }
+}
+```
+
+<Note>
+  When you set `store: false`, then previously generated images will not be
+  accessible by the model. We recommend using the image generation tool without
+  setting `store: false`.
+</Note>
+
+For complete details on model availability, image quality controls, supported sizes, and tool-specific parameters,
+refer to the OpenAI documentation:
+
+- Image generation overview and models: [OpenAI Image Generation](https://platform.openai.com/docs/guides/image-generation)
+- Image generation tool parameters (background, size, quality, format, etc.): [Image Generation Tool Options](https://platform.openai.com/docs/guides/tools-image-generation#tool-options)
+
+#### Code Interpreter Tool
 
 The OpenAI responses API supports the code interpreter tool through the `openai.tools.codeInterpreter` tool. This allows models to write and execute Python code.
 
@@ -403,7 +470,7 @@ The code interpreter tool can be configured with:
   be customized.
 </Note>
 
-#### Image Support
+#### Image Inputs
 
 The OpenAI Responses API supports Image inputs for appropriate models.
 You can pass Image files as part of the message content using the 'image' type:
@@ -450,7 +517,7 @@ You can also pass the URL of an image.
 }
 ```
 
-#### PDF support
+#### PDF Inputs
 
 The OpenAI Responses API supports reading PDF files.
 You can pass PDF files as part of the message content using the `file` type:
