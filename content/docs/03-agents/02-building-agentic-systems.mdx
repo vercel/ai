@@ -1,0 +1,113 @@
+---
+title: Building Agentic Systems
+description: Learn how to build agentic systems with the AI SDK.
+---
+
+// maybe this page should be more about the "agentic" style loops
+// cover multi-step and stop when and prepare step
+
+# Building Agentic Systems
+
+When building agentic systems, you combine flexible building blocks that work together to create **systems that can understand context and take meaningful actions**.
+
+## Building Blocks
+
+When building these systems, you can combine the following fundamental components:
+
+- Single-Step Generation
+- Tool Usage
+- Multi-Step (Agentic) Tool Usage
+
+### Single-Step Generation
+
+The basic building block - one call to an LLM to get a response. Useful for straightforward tasks like classification or text generation.
+
+```ts
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5',
+  prompt: 'Classify the following text:' + '"I am angry"',
+});
+```
+
+### Tool Usage
+
+Enhanced capabilities through tools (like calculators, APIs, or databases) that the LLM can use to accomplish tasks. Tools provide a controlled way to extend what the LLM can do.
+
+```ts
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5',
+  prompt: 'Weather in SF?',
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+  },
+});
+
+console.log(result.toolResults);
+```
+
+## Multi-Step (Agentic) Tool Usage
+
+When solving complex problems, **an LLM can make multiple tool calls across multiple steps without you explicitly specifying the order** - for example, looking up information in a database, using that to make calculations, and then storing results. The AI SDK makes this multi-step tool usage straightforward through the `stopWhen` parameter.
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5',
+  prompt: 'Weather in SF in celsius?',
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+    convertFahrenheitToCelsius: tool({
+      description: 'Convert a temperature in fahrenheit to celsius',
+      inputSchema: z.object({
+        temperature: z
+          .number()
+          .describe('The temperature in fahrenheit to convert'),
+      }),
+      execute: async ({ temperature }) => {
+        const celsius = Math.round((temperature - 32) * (5 / 9));
+        return {
+          celsius,
+        };
+      },
+    }),
+  },
+  stopWhen: stepCountIs(10), // Stop after a maximum 10 steps
+});
+
+console.log(result.toolResults);
+```
+
+In this example, the LLM **might** follow this sequence: first calling the `weather` tool to get the temperature in San Francisco (in Fahrenheit), then calling the `convertFahrenheitToCelsius` tool to convert that temperature, and finally generating a text response with the converted temperature. However, **this behavior isn't guaranteed (deterministic)** - the LLM decides the order and number of tool calls based on its understanding of the task.
+
+Each step builds upon the previous ones, with the conversation history growing to include all tool calls and results. This allows the LLM to reference earlier results when making subsequent decisions or generating its final response.
+
+## When You Need More Control
+
+Agents (LLMs with tools and complete autonomy) are powerful, but their non-deterministic nature can make them hard to rely on in production environments. When you need reliable, repeatable outcomes, consider composing multiple focused "agents" within a more deterministic architecture.
+
+This approach combines tool calling and structured outputs with standard programming primitives - conditional statements, functions, and explicit control flow. Instead of letting the LLM decide everything, you build predictable **workflows** that leverage AI strategically and give you explicit control over execution flow, branching logic, error handling, and step sequences.
+
+[Learn more about building workflows](/docs/agents/workflows)

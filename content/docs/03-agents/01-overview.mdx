@@ -1,0 +1,119 @@
+---
+title: Agents
+description: Learn how to build agents with the AI SDK.
+---
+
+# Agents
+
+Agents are **large language models (LLMs)** using **tools** in a **loop** to accomplish tasks.
+
+Each component plays a distinct role:
+
+- **LLMs** process input (text) and decide what action to take next
+- **Tools** extend what the model can do beyond text generation (e.g. reading files, calling APIs, writing to databases)
+- **Loop** orchestrates execution through:
+  - **Context management** - Maintaining conversation history and deciding what the model sees (input) at each step
+  - **Stopping conditions** - Determining when the loop (task) is complete
+
+## Build Agents
+
+You can build agents with the AI SDK using two approaches:
+
+- **Agent primitive** - Object-oriented abstraction that handles the loop for you
+- **Core functions** - Use `generateText` or `streamText` with flexible control
+
+## Agent Primitive
+
+The Agent primitive provides an object-oriented approach to building agents. It encapsulates the agent loop, tools, and stopping conditions in a single class. You can create and invoke agents without managing the underlying loop mechanics.
+
+```ts
+import { experimental_Agent as Agent } from 'ai';
+
+const myAgent = new Agent({
+  model: 'openai/gpt-5',
+  tools: {
+    // your tools
+  },
+  stopWhen: stepCountIs(10), // continue for up to 10 steps
+});
+
+const result = await myAgent.generate({ prompt: 'Hey, how are you?' });
+
+console.dir(result.response.messages, Infinity);
+```
+
+Learn more about the [ Agent primitive ](/docs/agents/agent-class).
+
+## Core Functions
+
+Build agents with `generateText` or `streamText` and tools. You have two options: use the built-in loop or manage the loop yourself.
+
+### Built-in Loop
+
+The built-in loop uses `stopWhen` and `prepareStep` parameters to handle the agent execution cycle. Define stopping conditions and modify parameters between steps without writing loop management code.
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+
+const main = async () => {
+  const result = await generateText({
+    model: 'openai/gpt-5',
+    prompt: '...',
+    tools: {
+      //  your tools
+    },
+    stopWhen: stepCountIs(10), // continue for up to 10 steps
+
+    prepareStep: ({ messages, steps, stepNumber, model }) => {}, // run before each step (can change settings)
+    onStepFinish: step => {}, // callback after each step (for monitoring, saving)
+  });
+
+  console.dir(result.response.messages, Infinity);
+};
+
+main();
+```
+
+Learn more about [loop controls](/docs/agents/loop-controls).
+
+### Manage Your Own Loop
+
+Manage the agent loop yourself for complete control over execution. You decide when tools are executed, how conversation history is managed, and when the loop terminates. This approach requires more code but allows custom logic between tool calls, specific error handling, and integration with external systems.
+
+```ts
+import { ModelMessage, generateText } from 'ai';
+
+const messages: ModelMessage[] = [
+  {
+    role: 'user',
+    content: '...',
+  },
+];
+
+const MAX_STEPS = 10;
+
+const main = async () => {
+  let step = 0;
+  while (step < MAX_STEPS) {
+    const result = await generateText({
+      model: 'openai/gpt-5',
+      messages,
+      tools: {
+        //  your tools
+      },
+    });
+
+    // add response messages to conversation
+    messages.push(...result.response.messages);
+
+    // stop when model generates text instead of calling tools
+    if (result.text) {
+      break;
+    }
+
+    step++;
+  }
+  console.dir(messages, Infinity);
+};
+main();
+```
