@@ -878,15 +878,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolName: 'computer_use',
                 });
               } else if (value.item.type === 'file_search_call') {
-                ongoingToolCalls[value.output_index] = {
-                  toolName: 'file_search',
-                  toolCallId: value.item.id,
-                };
-
                 controller.enqueue({
-                  type: 'tool-input-start',
-                  id: value.item.id,
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
                   toolName: 'file_search',
+                  input: '{}',
+                  providerExecuted: true,
                 });
               } else if (value.item.type === 'image_generation_call') {
                 controller.enqueue({
@@ -996,19 +993,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               } else if (value.item.type === 'file_search_call') {
                 ongoingToolCalls[value.output_index] = undefined;
-
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: value.item.id,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName: 'file_search',
-                  input: '{}',
-                  providerExecuted: true,
-                });
 
                 controller.enqueue({
                   type: 'tool-result',
@@ -1302,20 +1286,6 @@ const responseOutputItemAddedSchema = z.object({
     z.object({
       type: z.literal('file_search_call'),
       id: z.string(),
-      status: z.string(),
-      queries: z.array(z.string()).nullish(),
-      results: z
-        .array(
-          z.object({
-            attributes: z.object({
-              file_id: z.string(),
-              filename: z.string(),
-              score: z.number(),
-              text: z.string(),
-            }),
-          }),
-        )
-        .optional(),
     }),
     z.object({
       type: z.literal('image_generation_call'),

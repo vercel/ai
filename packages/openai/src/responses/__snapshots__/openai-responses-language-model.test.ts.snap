@@ -1619,15 +1619,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > with resul
     "type": "reasoning-end",
   },
   {
-    "id": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
-    "toolName": "file_search",
-    "type": "tool-input-start",
-  },
-  {
-    "id": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
-    "type": "tool-input-end",
-  },
-  {
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
@@ -2161,15 +2152,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > without re
       },
     },
     "type": "reasoning-end",
-  },
-  {
-    "id": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
-    "toolName": "file_search",
-    "type": "tool-input-start",
-  },
-  {
-    "id": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
-    "type": "tool-input-end",
   },
   {
     "input": "{}",
