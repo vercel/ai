@@ -170,6 +170,152 @@ const uiMessageSchema = z.object({
   ),
 });
 
+export type SafeValidateUIMessagesResult<UI_MESSAGE extends UIMessage> =
+  | {
+      success: true;
+      data: Array<UI_MESSAGE>;
+    }
+  | {
+      success: false;
+      error: Error;
+    };
+
+/**
+ * Validates a list of UI messages like `validateUIMessages`,
+ * but instead of throwing it returns `{ success: true, data }`
+ * or `{ success: false, error }`.
+ */
+export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
+  messages,
+  metadataSchema,
+  dataSchemas,
+  tools,
+}: {
+  messages: unknown;
+  metadataSchema?:
+    | Validator<UIMessage['metadata']>
+    | StandardSchemaV1<unknown, UI_MESSAGE['metadata']>;
+  dataSchemas?: {
+    [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?:
+      | Validator<InferUIMessageData<UI_MESSAGE>[NAME]>
+      | StandardSchemaV1<unknown, InferUIMessageData<UI_MESSAGE>[NAME]>;
+  };
+  tools?: {
+    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
+      InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
+      InferUIMessageTools<UI_MESSAGE>[NAME]['output']
+    >;
+  };
+}): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
+  try {
+    if (messages == null) {
+      return {
+        success: false,
+        error: new InvalidArgumentError({
+          parameter: 'messages',
+          value: messages,
+          message: 'messages parameter must be provided',
+        }),
+      };
+    }
+
+    const validatedMessages = await validateTypes({
+      value: messages,
+      schema: z.array(uiMessageSchema),
+    });
+
+    if (metadataSchema) {
+      for (const message of validatedMessages) {
+        await validateTypes({
+          value: message.metadata,
+          schema: metadataSchema,
+        });
+      }
+    }
+
+    if (dataSchemas) {
+      for (const message of validatedMessages) {
+        const dataParts = message.parts.filter(part =>
+          part.type.startsWith('data-'),
+        ) as DataUIPart<InferUIMessageData<UI_MESSAGE>>[];
+
+        for (const dataPart of dataParts) {
+          const dataName = dataPart.type.slice(5);
+          const dataSchema = dataSchemas[dataName];
+
+          if (!dataSchema) {
+            return {
+              success: false,
+              error: new TypeValidationError({
+                value: dataPart.data,
+                cause: `No data schema found for data part ${dataName}`,
+              }),
+            };
+          }
+
+          await validateTypes({
+            value: dataPart.data,
+            schema: dataSchema,
+          });
+        }
+      }
+    }
+
+    if (tools) {
+      for (const message of validatedMessages) {
+        const toolParts = message.parts.filter(part =>
+          part.type.startsWith('tool-'),
+        ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>[];
+
+        for (const toolPart of toolParts) {
+          const toolName = toolPart.type.slice(5);
+          const tool = tools[toolName];
+
+          if (!tool) {
+            return {
+              success: false,
+              error: new TypeValidationError({
+                value: toolPart.input,
+                cause: `No tool schema found for tool part ${toolName}`,
+              }),
+            };
+          }
+
+          if (
+            toolPart.state === 'input-available' ||
+            toolPart.state === 'output-available' ||
+            toolPart.state === 'output-error'
+          ) {
+            await validateTypes({
+              value: toolPart.input,
+              schema: tool.inputSchema,
+            });
+          }
+
+          if (toolPart.state === 'output-available' && tool.outputSchema) {
+            await validateTypes({
+              value: toolPart.output,
+              schema: tool.outputSchema,
+            });
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      data: validatedMessages as Array<UI_MESSAGE>,
+    };
+  } catch (error) {
+    const err = error as Error;
+
+    return {
+      success: false,
+      error: err,
+    };
+  }
+}
+
 /**
  * Validates a list of UI messages.
  *
@@ -199,148 +345,14 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
     >;
   };
 }): Promise<Array<UI_MESSAGE>> {
-  if (messages == null) {
-    throw new InvalidArgumentError({
-      parameter: 'messages',
-      value: messages,
-      message: 'messages parameter must be provided',
-    });
-  }
-
-  const validatedMessages = await validateTypes({
-    value: messages,
-    schema: z.array(uiMessageSchema),
+  const response = await safeValidateUIMessages({
+    messages,
+    metadataSchema,
+    dataSchemas,
+    tools,
   });
 
-  if (metadataSchema) {
-    for (const message of validatedMessages) {
-      await validateTypes({
-        value: message.metadata,
-        schema: metadataSchema,
-      });
-    }
-  }
+  if (!response.success) throw response.error;
 
-  if (dataSchemas) {
-    for (const message of validatedMessages) {
-      const dataParts = message.parts.filter(part =>
-        part.type.startsWith('data-'),
-      ) as DataUIPart<InferUIMessageData<UI_MESSAGE>>[];
-
-      for (const dataPart of dataParts) {
-        const dataName = dataPart.type.slice(5);
-        const dataSchema = dataSchemas[dataName];
-
-        if (!dataSchema) {
-          throw new TypeValidationError({
-            value: dataPart.data,
-            cause: `No data schema found for data part ${dataName}`,
-          });
-        }
-
-        await validateTypes({
-          value: dataPart.data,
-          schema: dataSchema,
-        });
-      }
-    }
-  }
-
-  if (tools) {
-    for (const message of validatedMessages) {
-      const toolParts = message.parts.filter(part =>
-        part.type.startsWith('tool-'),
-      ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>[];
-
-      for (const toolPart of toolParts) {
-        const toolName = toolPart.type.slice(5);
-        const tool = tools[toolName];
-
-        if (!tool) {
-          throw new TypeValidationError({
-            value: toolPart.input,
-            cause: `No tool schema found for tool part ${toolName}`,
-          });
-        }
-
-        if (
-          toolPart.state === 'input-available' ||
-          toolPart.state === 'output-available' ||
-          toolPart.state === 'output-error'
-        ) {
-          await validateTypes({
-            value: toolPart.input,
-            schema: tool.inputSchema,
-          });
-        }
-
-        if (toolPart.state === 'output-available' && tool.outputSchema) {
-          await validateTypes({
-            value: toolPart.output,
-            schema: tool.outputSchema,
-          });
-        }
-      }
-    }
-  }
-
-  return validatedMessages as Array<UI_MESSAGE>;
-}
-
-type SafeValidateUIMessagesResult<UI_MESSAGE extends UIMessage> =
-  | {
-      success: true;
-      data: Array<UI_MESSAGE>;
-    }
-  | {
-      success: false;
-      reason: string;
-      error: Error;
-    };
-
-/**
- * Validates a list of UI messages without throwing.
- *
- * Metadata, data parts, and generic tool call structures are only validated if
- * the corresponding schemas are provided. Otherwise, they are assumed to be
- * valid.
- */
-export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
-  messages,
-  metadataSchema,
-  dataSchemas,
-  tools,
-}: {
-  messages: unknown;
-  metadataSchema?:
-    | Validator<UIMessage['metadata']>
-    | StandardSchemaV1<unknown, UI_MESSAGE['metadata']>;
-  dataSchemas?: {
-    [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?:
-      | Validator<InferUIMessageData<UI_MESSAGE>[NAME]>
-      | StandardSchemaV1<unknown, InferUIMessageData<UI_MESSAGE>[NAME]>;
-  };
-  tools?: {
-    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
-      InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
-      InferUIMessageTools<UI_MESSAGE>[NAME]['output']
-    >;
-  };
-}): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
-  try {
-    const data = await validateUIMessages({
-      messages,
-      metadataSchema,
-      dataSchemas,
-      tools,
-    });
-    return { success: true, data };
-  } catch (error) {
-    const err = error as Error;
-    return {
-      success: false,
-      reason: err.message,
-      error: err,
-    };
-  }
+  return response.data;
 }

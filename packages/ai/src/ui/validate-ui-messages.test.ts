@@ -1148,10 +1148,10 @@ describe('safeValidateUIMessages', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toBe(
+      expect(result.error.name).toBe('AI_InvalidArgumentError');
+      expect(result.error.message).toBe(
         'Invalid argument for parameter messages: messages parameter must be provided',
       );
-      expect(result.error.name).toBe('AI_InvalidArgumentError');
     }
   });
 
@@ -1170,8 +1170,8 @@ describe('safeValidateUIMessages', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain('Type validation failed');
       expect(result.error.name).toBe('AI_TypeValidationError');
+      expect(result.error.message).toContain('Type validation failed');
     }
   });
 
@@ -1203,8 +1203,8 @@ describe('safeValidateUIMessages', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain('Type validation failed');
       expect(result.error.name).toBe('AI_TypeValidationError');
+      expect(result.error.message).toContain('Type validation failed');
     }
   });
 
@@ -1224,8 +1224,10 @@ describe('safeValidateUIMessages', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain('No data schema found for data part bar');
       expect(result.error.name).toBe('AI_TypeValidationError');
+      expect(result.error.message).toContain(
+        'No data schema found for data part bar',
+      );
     }
   });
 
@@ -1240,7 +1242,6 @@ describe('safeValidateUIMessages', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain('Type validation failed');
       expect(result.error.name).toBe('AI_TypeValidationError');
     }
   });
