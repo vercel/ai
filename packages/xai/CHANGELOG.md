@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.20
+
+### Patch Changes
+
+- 3a10095: added new xai x live search fields
+
 ## 2.0.19
 
 ### Patch Changes

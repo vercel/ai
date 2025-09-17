@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 2.0.31
+
+### Patch Changes
+
+- bb94467: feat(provider/openai): add maxToolCalls provider option
+- 4a2b70e: feat(provider/openai): send item references for provider-executed tool results
+- 643711d: feat (provider/openai): provider defined image generation tool support
+
 ## 2.0.30
 
 ### Patch Changes
