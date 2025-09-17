@@ -676,6 +676,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolCallId: part.id,
             toolName: 'file_search',
             input: '{}',
+            providerExecuted: true,
           });
 
           content.push({

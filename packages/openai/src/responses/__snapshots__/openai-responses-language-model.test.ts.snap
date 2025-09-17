@@ -133,6 +133,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > with res
   },
   {
     "input": "{}",
+    "providerExecuted": true,
     "toolCallId": "fs_0365d26c32c64c650068cabb04aa388194b53c59de50a3951e",
     "toolName": "file_search",
     "type": "tool-call",
@@ -242,6 +243,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without 
   },
   {
     "input": "{}",
+    "providerExecuted": true,
     "toolCallId": "fs_0a098396a8feca410068caae3cab5c8196a54fd00498464e62",
     "toolName": "file_search",
     "type": "tool-call",
