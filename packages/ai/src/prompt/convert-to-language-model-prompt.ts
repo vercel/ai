@@ -108,8 +108,11 @@ export function convertToLanguageModelMessage({
         role: 'assistant',
         content: message.content
           .filter(
-            // remove empty text parts:
-            part => part.type !== 'text' || part.text !== '',
+            // remove empty text parts (no text, and no provider options):
+            part =>
+              part.type !== 'text' ||
+              part.text !== '' ||
+              part.providerOptions != null,
           )
           .map(part => {
             const providerOptions = part.providerOptions;
