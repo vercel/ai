@@ -25,6 +25,11 @@ import {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
 } from '../tool/code-interpreter';
+import {
+  fileSearchInputSchema,
+  fileSearchOutputSchema,
+} from '../tool/file-search';
+import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
@@ -33,8 +38,6 @@ import {
 } from './openai-responses-api-types';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
-import { imageGenerationOutputSchema } from '../tool/image-generation';
-import { FileSearchInput, FileSearchOutput } from '../tool/file-search';
 
 const webSearchCallItem = z.object({
   type: z.literal('web_search_call'),
@@ -680,7 +683,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolName: 'file_search',
             input: JSON.stringify({
               queries: part.queries,
-            } satisfies FileSearchInput),
+            } satisfies z.infer<typeof fileSearchInputSchema>),
             providerExecuted: true,
           });
 
@@ -697,7 +700,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   score: result.score,
                   text: result.text,
                 })) ?? null,
-            } satisfies FileSearchOutput,
+            } satisfies z.infer<typeof fileSearchOutputSchema>,
             providerExecuted: true,
           });
           break;
