@@ -1,0 +1,359 @@
+---
+title: Agent Class
+description: Learn how to build agents with the Agent class.
+---
+
+# Agent Class
+
+The Agent class provides a structured way to encapsulate LLM configuration, tools, and behavior into reusable components. It handles the agent loop for you, allowing the LLM to call tools multiple times in sequence to accomplish complex tasks. Define agents once and use them across your application.
+
+## Why Use the Agent Class?
+
+When building AI applications, you often need to:
+
+- **Reuse configurations** - Same model settings, tools, and prompts across different parts of your application
+- **Maintain consistency** - Ensure the same behavior and capabilities throughout your codebase
+- **Simplify API routes** - Reduce boilerplate in your endpoints
+- **Type safety** - Get full TypeScript support for your agent's tools and outputs
+
+The Agent class provides a single place to define your agent's behavior.
+
+## Creating an Agent
+
+Define an agent by instantiating the Agent class with your desired configuration:
+
+```ts
+import { Experimental_Agent as Agent } from 'ai';
+
+const myAgent = new Agent({
+  model: 'openai/gpt-4o',
+  system: 'You are a helpful assistant.',
+  tools: {
+    // Your tools here
+  },
+});
+```
+
+## Configuration Options
+
+The Agent class accepts all the same settings as `generateText` and `streamText`. Configure:
+
+### Model and System Prompt
+
+```ts
+import { Experimental_Agent as Agent } from 'ai';
+
+const agent = new Agent({
+  model: 'openai/gpt-4o',
+  system: 'You are an expert software engineer.',
+});
+```
+
+### Tools
+
+Provide tools that the agent can use to accomplish tasks:
+
+```ts
+import { Experimental_Agent as Agent, tool } from 'ai';
+import { z } from 'zod';
+
+const codeAgent = new Agent({
+  model: 'openai/gpt-4o',
+  tools: {
+    runCode: tool({
+      description: 'Execute Python code',
+      inputSchema: z.object({
+        code: z.string(),
+      }),
+      execute: async ({ code }) => {
+        // Execute code and return result
+        return { output: 'Code executed successfully' };
+      },
+    }),
+  },
+});
+```
+
+### Loop Control
+
+By default, agents run for only one step. In each step, the model either generates text or calls a tool. If it generates text, the agent completes. If it calls a tool, the AI SDK executes that tool.
+
+To let agents call multiple tools in sequence, configure `stopWhen` to allow more steps. After each tool execution, the agent triggers a new generation where the model can call another tool or generate text:
+
+```ts
+import { Experimental_Agent as Agent, stepCountIs } from 'ai';
+
+const agent = new Agent({
+  model: 'openai/gpt-4o',
+  stopWhen: stepCountIs(10), // Allow up to 10 steps
+});
+```
+
+Each step represents one generation (which results in either text or a tool call). The loop continues until:
+
+- The model generates text instead of calling a tool, or
+- A stop condition is met
+
+You can combine multiple conditions:
+
+```ts
+import { Experimental_Agent as Agent, stepCountIs } from 'ai';
+
+const agent = new Agent({
+  model: 'openai/gpt-4o',
+  stopWhen: [
+    stepCountIs(10), // Maximum 10 steps
+    yourCustomCondition(), // Custom logic for when to stop
+  ],
+});
+```
+
+Learn more about [loop control and stop conditions](/docs/agents/loop-control).
+
+### Tool Choice
+
+Control how the agent uses tools:
+
+```ts
+import { Experimental_Agent as Agent } from 'ai';
+
+const agent = new Agent({
+  model: 'openai/gpt-4o',
+  tools: {
+    // your tools here
+  },
+  toolChoice: 'required', // Force tool use
+  // or toolChoice: 'none' to disable tools
+  // or toolChoice: 'auto' (default) to let the model decide
+});
+```
+
+You can also force the use of a specific tool:
+
+```ts
+import { Experimental_Agent as Agent } from 'ai';
+
+const agent = new Agent({
+  model: 'openai/gpt-4o',
+  tools: {
+    weather: weatherTool,
+    cityAttractions: attractionsTool,
+  },
+  toolChoice: {
+    type: 'tool',
+    toolName: 'weather', // Force the weather tool to be used
+  },
+});
+```
+
+### Structured Output
+
+Define structured output schemas:
+
+```ts
+import { Experimental_Agent as Agent, Output, stepCountIs } from 'ai';
+import { z } from 'zod';
+
+const analysisAgent = new Agent({
+  model: 'openai/gpt-4o',
+  experimental_output: Output.object({
+    schema: z.object({
+      sentiment: z.enum(['positive', 'neutral', 'negative']),
+      summary: z.string(),
+      keyPoints: z.array(z.string()),
+    }),
+  }),
+  stopWhen: stepCountIs(10),
+});
+
+const { experimental_output: output } = await analysisAgent.generate({
+  prompt: 'Analyze customer feedback from the last quarter',
+});
+```
+
+## Define Agent Behavior with System Prompts
+
+System prompts define your agent's behavior, personality, and constraints. They set the context for all interactions and guide how the agent responds to user queries and uses tools.
+
+### Basic System Prompts
+
+Set the agent's role and expertise:
+
+```ts
+const agent = new Agent({
+  model: 'openai/gpt-4o',
+  system:
+    'You are an expert data analyst. You provide clear insights from complex data.',
+});
+```
+
+### Detailed Behavioral Instructions
+
+Provide specific guidelines for agent behavior:
+
+```ts
+const codeReviewAgent = new Agent({
+  model: 'openai/gpt-4o',
+  system: `You are a senior software engineer conducting code reviews.
+
+  Your approach:
+  - Focus on security vulnerabilities first
+  - Identify performance bottlenecks
+  - Suggest improvements for readability and maintainability
+  - Be constructive and educational in your feedback
+  - Always explain why something is an issue and how to fix it`,
+});
+```
+
+### Constrain Agent Behavior
+
+Set boundaries and ensure consistent behavior:
+
+```ts
+const customerSupportAgent = new Agent({
+  model: 'openai/gpt-4o',
+  system: `You are a customer support specialist for an e-commerce platform.
+
+  Rules:
+  - Never make promises about refunds without checking the policy
+  - Always be empathetic and professional
+  - If you don't know something, say so and offer to escalate
+  - Keep responses concise and actionable
+  - Never share internal company information`,
+  tools: {
+    checkOrderStatus,
+    lookupPolicy,
+    createTicket,
+  },
+});
+```
+
+### Tool Usage Instructions
+
+Guide how the agent should use available tools:
+
+```ts
+const researchAgent = new Agent({
+  model: 'openai/gpt-4o',
+  system: `You are a research assistant with access to search and document tools.
+
+  When researching:
+  1. Always start with a broad search to understand the topic
+  2. Use document analysis for detailed information
+  3. Cross-reference multiple sources before drawing conclusions
+  4. Cite your sources when presenting information
+  5. If information conflicts, present both viewpoints`,
+  tools: {
+    webSearch,
+    analyzeDocument,
+    extractQuotes,
+  },
+});
+```
+
+### Format and Style Instructions
+
+Control the output format and communication style:
+
+```ts
+const technicalWriterAgent = new Agent({
+  model: 'openai/gpt-4o',
+  system: `You are a technical documentation writer.
+
+  Writing style:
+  - Use clear, simple language
+  - Avoid jargon unless necessary
+  - Structure information with headers and bullet points
+  - Include code examples where relevant
+  - Write in second person ("you" instead of "the user")
+
+  Always format responses in Markdown.`,
+});
+```
+
+## Using an Agent
+
+Once defined, you can use your agent in three ways:
+
+### Generate Text
+
+Use `generate()` for one-time text generation:
+
+```ts
+const result = await myAgent.generate({
+  prompt: 'What is the weather like?',
+});
+
+console.log(result.text);
+```
+
+### Stream Text
+
+Use `stream()` for streaming responses:
+
+```ts
+const stream = myAgent.stream({
+  prompt: 'Tell me a story',
+});
+
+for await (const chunk of stream.textStream) {
+  console.log(chunk);
+}
+```
+
+### Respond to UI Messages
+
+Use `respond()` to create API responses for client applications:
+
+```ts
+// In your API route (e.g., app/api/chat/route.ts)
+import { validateUIMessages } from 'ai';
+
+export async function POST(request: Request) {
+  const { messages } = await request.json();
+
+  return myAgent.respond({
+    messages: await validateUIMessages({ messages }),
+  });
+}
+```
+
+## End-to-end Type Safety
+
+You can infer types for your Agent's `UIMessage`s:
+
+```ts
+import {
+  Experimental_Agent as Agent,
+  Experimental_InferAgentUIMessage as InferAgentUIMessage,
+} from 'ai';
+
+const myAgent = new Agent({
+  // ... configuration
+});
+
+// Infer the UIMessage type for UI components or persistence
+export type MyAgentUIMessage = InferAgentUIMessage<typeof myAgent>;
+```
+
+Use this type in your client components with `useChat`:
+
+```tsx filename="components/chat.tsx"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import type { MyAgentUIMessage } from '@/agent/my-agent';
+
+export function Chat() {
+  const { messages } = useChat<MyAgentUIMessage>();
+  // Full type safety for your messages and tools
+}
+```
+
+## Next Steps
+
+Now that you understand the Agent class, you can:
+
+- Explore [tool patterns](/docs/agents/tools) to add capabilities to your agents
+- Learn about [workflow patterns](/docs/agents/workflows) for complex multi-agent systems
+- Understand [building agentic systems](/docs/agents/building-agentic-systems) for architectural guidance
