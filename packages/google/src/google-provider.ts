@@ -9,7 +9,9 @@ import {
   generateId,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { VERSION } from './version';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
@@ -100,14 +102,14 @@ export function createGoogleGenerativeAI(
     withoutTrailingSlash(options.baseURL) ??
     'https://generativelanguage.googleapis.com/v1beta';
 
-  const getHeaders = () => ({
+  const getHeaders = () => withUserAgentSuffix({
     'x-goog-api-key': loadApiKey({
       apiKey: options.apiKey,
       environmentVariableName: 'GOOGLE_GENERATIVE_AI_API_KEY',
       description: 'Google Generative AI',
     }),
     ...options.headers,
-  });
+  }, `ai-sdk/google/${VERSION}`);
 
   const createChatModel = (modelId: GoogleGenerativeAIModelId) =>
     new GoogleGenerativeAILanguageModel(modelId, {

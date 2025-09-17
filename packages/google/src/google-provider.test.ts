@@ -3,6 +3,7 @@ import { createGoogleGenerativeAI } from './google-provider';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
+import { V } from 'vitest/dist/chunks/reporters.anwo7Y6a.js';
 
 // Mock the imported modules using a partial mock to preserve original exports
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
@@ -25,7 +26,9 @@ vi.mock('./google-generative-ai-embedding-model', () => ({
 vi.mock('./google-generative-ai-image-model', () => ({
   GoogleGenerativeAIImageModel: vi.fn(),
 }));
-
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 describe('google-provider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -92,7 +95,8 @@ describe('google-provider', () => {
     const headers = options.headers();
     expect(headers).toEqual({
       'x-goog-api-key': 'test-api-key',
-      'Custom-Header': 'custom-value',
+      'custom-header': 'custom-value',
+      'user-agent': 'ai-sdk/google/0.0.0-test',
     });
   });
 
