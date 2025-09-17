@@ -640,27 +640,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send include provider option for file search results', async () => {
-        const { warnings } = await createModel('gpt-4o-mini').doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: {
-            openai: {
-              include: ['file_search_call.results'],
-            },
-          },
-        });
-
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o-mini',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          include: ['file_search_call.results'],
-        });
-
-        expect(warnings).toStrictEqual([]);
-      });
-
       it('should send include provider option with multiple values', async () => {
         const { warnings } = await createModel('o3-mini').doGenerate({
           prompt: TEST_PROMPT,
@@ -969,208 +948,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ],
         });
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send file_search tool', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_123', 'vs_456'],
-                maxNumResults: 10,
-                ranking: {
-                  ranker: 'auto',
-                },
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tools": [
-              {
-                "max_num_results": 10,
-                "ranking_options": {
-                  "ranker": "auto",
-                },
-                "type": "file_search",
-                "vector_store_ids": [
-                  "vs_123",
-                  "vs_456",
-                ],
-              },
-            ],
-          }
-        `);
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send file_search tool as tool_choice', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          toolChoice: {
-            type: 'tool',
-            toolName: 'file_search',
-          },
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_789'],
-                maxNumResults: 5,
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tool_choice": {
-              "type": "file_search",
-            },
-            "tools": [
-              {
-                "max_num_results": 5,
-                "type": "file_search",
-                "vector_store_ids": [
-                  "vs_789",
-                ],
-              },
-            ],
-          }
-        `);
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send file_search tool with filters', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_123'],
-                maxNumResults: 5,
-                filters: {
-                  key: 'author',
-                  type: 'eq',
-                  value: 'Jane Smith',
-                },
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tools": [
-              {
-                "filters": {
-                  "key": "author",
-                  "type": "eq",
-                  "value": "Jane Smith",
-                },
-                "max_num_results": 5,
-                "type": "file_search",
-                "vector_store_ids": [
-                  "vs_123",
-                ],
-              },
-            ],
-          }
-        `);
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send file_search tool with minimal args', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_123'],
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tools": [
-              {
-                "type": "file_search",
-                "vector_store_ids": [
-                  "vs_123",
-                ],
-              },
-            ],
-          }
-        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -2594,6 +2371,79 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ]
         `);
+      });
+    });
+
+    describe('file search tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-file-search-tool.1');
+
+        result = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                maxNumResults: 5,
+                filters: {
+                  key: 'author',
+                  type: 'eq',
+                  value: 'Jane Smith',
+                },
+                ranking: {
+                  ranker: 'auto',
+                  scoreThreshold: 0.5,
+                },
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-nano",
+            "tools": [
+              {
+                "filters": {
+                  "key": "author",
+                  "type": "eq",
+                  "value": "Jane Smith",
+                },
+                "max_num_results": 5,
+                "ranking_options": {
+                  "ranker": "auto",
+                  "score_threshold": 0.5,
+                },
+                "type": "file_search",
+                "vector_store_ids": [
+                  "vs_68caad8bd5d88191ab766cf043d89a18",
+                ],
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include file search tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
       });
     });
 
