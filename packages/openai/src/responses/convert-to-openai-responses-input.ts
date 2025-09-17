@@ -10,10 +10,6 @@ import {
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api-types';
-import {
-  codeInterpreterInputSchema,
-  codeInterpreterOutputSchema,
-} from '../tool/code-interpreter';
 
 /**
  * Check if a string is a file ID based on the given prefixes
