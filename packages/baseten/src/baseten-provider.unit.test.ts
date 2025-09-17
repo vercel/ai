@@ -44,6 +44,13 @@ vi.mock('@ai-sdk/provider-utils', () => ({
   withoutTrailingSlash: vi.fn(url => url),
 }));
 
+vi.mock('@basetenlabs/performance-client', () => ({
+  PerformanceClient: vi.fn().mockImplementation(() => ({
+    embed: vi.fn(),
+    embedBatch: vi.fn(),
+  })),
+}));
+
 describe('BasetenProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
