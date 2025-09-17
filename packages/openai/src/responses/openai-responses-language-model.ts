@@ -1522,16 +1522,6 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
 
 // TODO AI SDK 6: use optional here instead of nullish
 const openaiResponsesProviderOptionsSchema = z.object({
-  metadata: z.any().nullish(),
-  parallelToolCalls: z.boolean().nullish(),
-  previousResponseId: z.string().nullish(),
-  store: z.boolean().nullish(),
-  user: z.string().nullish(),
-  reasoningEffort: z.string().nullish(),
-  strictJsonSchema: z.boolean().nullish(),
-  instructions: z.string().nullish(),
-  reasoningSummary: z.string().nullish(),
-  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
   include: z
     .array(
       z.enum([
@@ -1541,9 +1531,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
       ]),
     )
     .nullish(),
-  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
-  promptCacheKey: z.string().nullish(),
-  safetyIdentifier: z.string().nullish(),
+  instructions: z.string().nullish(),
 
   /**
    * Return the log probabilities of the tokens.
@@ -1560,6 +1548,19 @@ const openaiResponsesProviderOptionsSchema = z.object({
   logprobs: z
     .union([z.boolean(), z.number().min(1).max(TOP_LOGPROBS_MAX)])
     .optional(),
+
+  metadata: z.any().nullish(),
+  parallelToolCalls: z.boolean().nullish(),
+  previousResponseId: z.string().nullish(),
+  promptCacheKey: z.string().nullish(),
+  reasoningEffort: z.string().nullish(),
+  reasoningSummary: z.string().nullish(),
+  safetyIdentifier: z.string().nullish(),
+  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
+  store: z.boolean().nullish(),
+  strictJsonSchema: z.boolean().nullish(),
+  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
+  user: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<
