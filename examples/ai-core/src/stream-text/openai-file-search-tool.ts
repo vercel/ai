@@ -13,7 +13,7 @@ run(async () => {
     },
     providerOptions: {
       openai: {
-        // include: ['file_search_call.results'],
+        include: ['file_search_call.results'],
       },
     },
   });
