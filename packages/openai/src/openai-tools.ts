@@ -1,5 +1,6 @@
 import { codeInterpreter } from './tool/code-interpreter';
 import { fileSearch } from './tool/file-search';
+import { imageGeneration } from './tool/image-generation';
 import { webSearch } from './tool/web-search';
 import { webSearchPreview } from './tool/web-search-preview';
 
@@ -28,6 +29,21 @@ export const openaiTools = {
    * @param filters - The filters to use for the file search.
    */
   fileSearch,
+
+  /**
+   * The image generation tool allows you to generate images using a text prompt,
+   * and optionally image inputs. It leverages the GPT Image model,
+   * and automatically optimizes text inputs for improved performance.
+   *
+   * Must have name `image_generation`.
+   *
+   * @param size - Image dimensions (e.g., 1024x1024, 1024x1536)
+   * @param quality - Rendering quality (e.g. low, medium, high)
+   * @param format - File output format
+   * @param compression - Compression level (0-100%) for JPEG and WebP formats
+   * @param background - Transparent or opaque
+   */
+  imageGeneration,
 
   /**
    * Web search allows models to access up-to-date information from the internet

@@ -30,6 +30,7 @@ import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-rea
 import { OpenAIResponsesIncludeOptions } from './openai-responses-api-types';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
+import { imageGenerationOutputSchema } from '../tool/image-generation';
 
 const webSearchCallItem = z.object({
   type: z.literal('web_search_call'),
@@ -67,6 +68,12 @@ const codeInterpreterCallItem = z.object({
       ]),
     )
     .nullable(),
+});
+
+const imageGenerationCallItem = z.object({
+  type: z.literal('image_generation_call'),
+  id: z.string(),
+  result: z.string(),
 });
 
 /**
@@ -440,6 +447,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 ),
               }),
               codeInterpreterCallItem,
+              imageGenerationCallItem,
               z.object({
                 type: z.literal('function_call'),
                 call_id: z.string(),
@@ -535,6 +543,28 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           break;
         }
 
+        case 'image_generation_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'image_generation',
+            input: '{}',
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'image_generation',
+            result: {
+              result: part.result,
+            } satisfies z.infer<typeof imageGenerationOutputSchema>,
+            providerExecuted: true,
+          });
+
+          break;
+        }
+
         case 'message': {
           for (const contentPart of part.content) {
             if (
@@ -612,6 +642,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             result: { status: part.status },
             providerExecuted: true,
           });
+
           break;
         }
 
@@ -851,6 +882,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: value.item.id,
                   toolName: 'file_search',
                 });
+              } else if (value.item.type === 'image_generation_call') {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'image_generation',
+                  input: '{}',
+                  providerExecuted: true,
+                });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-start',
@@ -996,6 +1035,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   result: {
                     outputs: value.item.outputs,
                   } satisfies z.infer<typeof codeInterpreterOutputSchema>,
+                  providerExecuted: true,
+                });
+              } else if (value.item.type === 'image_generation_call') {
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'image_generation',
+                  result: {
+                    result: value.item.result,
+                  } satisfies z.infer<typeof imageGenerationOutputSchema>,
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
@@ -1257,6 +1306,10 @@ const responseOutputItemAddedSchema = z.object({
         )
         .optional(),
     }),
+    z.object({
+      type: z.literal('image_generation_call'),
+      id: z.string(),
+    }),
   ]),
 });
 
@@ -1282,6 +1335,7 @@ const responseOutputItemDoneSchema = z.object({
       status: z.literal('completed'),
     }),
     codeInterpreterCallItem,
+    imageGenerationCallItem,
     webSearchCallItem,
     z.object({
       type: z.literal('computer_call'),
