@@ -10,12 +10,12 @@ import {
   detectMediaType,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
-import { VERSION } from '../version';
 import { SpeechResult } from './generate-speech-result';
 import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
+import { VERSION } from '../version';
 /**
 Generates speech audio using a speech model.
 

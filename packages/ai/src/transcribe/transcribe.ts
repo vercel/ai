@@ -13,8 +13,8 @@ import {
 } from '../util/detect-media-type';
 import { download } from '../util/download/download';
 import { prepareRetries } from '../util/prepare-retries';
-import { VERSION } from '../version';
 import { TranscriptionResult } from './transcribe-result';
+import { VERSION } from '../version';
 /**
 Generates transcripts using a transcription model.
 

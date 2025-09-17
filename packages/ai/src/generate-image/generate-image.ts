@@ -1,21 +1,21 @@
 import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
-import {
-  DefaultGeneratedFile,
-  GeneratedFile,
-} from '../generate-text/generated-file';
-import { logWarnings } from '../logger/log-warnings';
-import { ImageGenerationWarning } from '../types/image-model';
-import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
-import { VERSION } from '../version';
+import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
+import {
+  DefaultGeneratedFile,
+  GeneratedFile,
+} from '../generate-text/generated-file';
+import { ImageGenerationWarning } from '../types/image-model';
+import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
+import { logWarnings } from '../logger/log-warnings';
+import { VERSION } from '../version';
 
 /**
 Generates images using an image model.
