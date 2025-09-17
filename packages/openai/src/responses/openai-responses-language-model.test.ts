@@ -3945,7 +3945,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           });
         });
 
-        it('should stream code interpreter results', async () => {
+        it('should stream file search results', async () => {
           expect(
             await convertReadableStreamToArray(result.stream),
           ).toMatchSnapshot();
