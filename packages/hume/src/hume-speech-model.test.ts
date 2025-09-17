@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test-server';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { HumeSpeechModel } from './hume-speech-model';
 import { createHume } from './hume-provider';
 import { describe, it, expect } from 'vitest';
