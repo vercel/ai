@@ -7,7 +7,8 @@ description: Control agent execution with built-in loop management using stopWhe
 
 When building agents with the AI SDK, you can control both the execution flow and the settings at each step of the agent loop. The AI SDK provides built-in loop control through two parameters: `stopWhen` for defining stopping conditions and `prepareStep` for modifying settings (model, tools, messages, and more) between steps.
 
-Both parameters are available on:
+Both parameters work with:
+
 - `generateText` and `streamText` functions from AI SDK Core
 - The `Agent` class for object-oriented agent implementations
 
@@ -17,7 +18,7 @@ The `stopWhen` parameter controls when to stop the generation when there are too
 
 When you provide `stopWhen`, the AI SDK continues generating responses after tool calls until a stopping condition is met. When the condition is an array, the generation stops when any of the conditions are met.
 
-### Using Built-in Conditions
+### Use Built-in Conditions
 
 The AI SDK provides several built-in stopping conditions:
 
@@ -34,12 +35,12 @@ const result = await generateText({
 });
 ```
 
-### Combining Multiple Conditions
+### Combine Multiple Conditions
 
-You can combine multiple stopping conditions. The loop stops when any condition is met:
+Combine multiple stopping conditions. The loop stops when it meets any condition:
 
 ```ts
-import { generateText, stepCountIs } from 'ai';
+import { generateText, stepCountIs, hasToolCall } from 'ai';
 
 const result = await generateText({
   model: 'openai/gpt-4o',
@@ -48,47 +49,57 @@ const result = await generateText({
   },
   stopWhen: [
     stepCountIs(10), // Maximum 10 steps
-    yourCustomCondition(), // Custom logic
+    hasToolCall('someTool'), // Stop after calling 'someTool'
   ],
   prompt: 'Research and analyze the topic',
 });
 ```
 
-### Creating Custom Conditions
+### Create Custom Conditions
 
 Build custom stopping conditions for specific requirements:
 
 ```ts
-import { generateText, StopCondition } from 'ai';
+import { generateText, StopCondition, ToolSet } from 'ai';
 
-const hasAnswer: StopCondition = ({ text, toolCalls }) => {
+const tools = {
+  // your tools
+} satisfies ToolSet;
+
+const hasAnswer: StopCondition<typeof tools> = ({ steps }) => {
   // Stop when the model generates text containing "ANSWER:"
-  return text?.includes('ANSWER:') ?? false;
+  return steps.some(step => step.text?.includes('ANSWER:')) ?? false;
 };
 
 const result = await generateText({
   model: 'openai/gpt-4o',
-  tools: {
-    // your tools
-  },
+  tools,
   stopWhen: hasAnswer,
   prompt: 'Find the answer and respond with "ANSWER: [your answer]"',
 });
 ```
 
-Custom conditions receive the current step information:
+Custom conditions receive step information across all steps:
 
 ```ts
-const budgetExceeded: StopCondition = ({ usage }) => {
+const budgetExceeded: StopCondition<typeof tools> = ({ steps }) => {
+  const totalUsage = steps.reduce(
+    (acc, step) => ({
+      inputTokens: acc.inputTokens + (step.usage?.inputTokens ?? 0),
+      outputTokens: acc.outputTokens + (step.usage?.outputTokens ?? 0),
+    }),
+    { inputTokens: 0, outputTokens: 0 },
+  );
+
   const costEstimate =
-    (usage.promptTokens * 0.01 + usage.completionTokens * 0.03) / 1000;
+    (totalUsage.inputTokens * 0.01 + totalUsage.outputTokens * 0.03) / 1000;
   return costEstimate > 0.5; // Stop if cost exceeds $0.50
 };
 ```
 
 ## Prepare Step
 
-The `prepareStep` callback runs before each step in the loop. Use it to modify settings, manage context, or implement dynamic behavior based on the execution history.
+The `prepareStep` callback runs before each step in the loop and defaults to the initial settings if you don't return any changes. Use it to modify settings, manage context, or implement dynamic behavior based on execution history.
 
 ### Dynamic Model Selection
 
@@ -205,23 +216,11 @@ Transform messages before sending them to the model:
 ```ts
 const result = await generateText({
   model: 'openai/gpt-4o',
+  messages,
   tools: {
     // your tools
   },
   prepareStep: async ({ messages, stepNumber }) => {
-    // Add context instructions for specific steps
-    if (stepNumber === 0) {
-      return {
-        messages: [
-          {
-            role: 'system',
-            content: 'Start by gathering all necessary information',
-          },
-          ...messages,
-        ],
-      };
-    }
-
     // Summarize tool results to reduce token usage
     const processedMessages = messages.map(msg => {
       if (msg.role === 'tool' && msg.content.length > 1000) {
@@ -238,7 +237,7 @@ const result = await generateText({
 });
 ````
 
-## Accessing Step Information
+## Access Step Information
 
 Both `stopWhen` and `prepareStep` receive detailed information about the current execution:
 
@@ -248,7 +247,6 @@ prepareStep: async ({
   stepNumber, // Current step number (0-indexed)
   steps, // All previous steps with their results
   messages, // Messages to be sent to the model
-  stopWhen, // Current stopping conditions
 }) => {
   // Access previous tool calls and results
   const previousToolCalls = steps.flatMap(step => step.toolCalls);
@@ -262,11 +260,11 @@ prepareStep: async ({
   }
 
   return {};
-};
+},
 ```
 
 ## Manual Loop Control
 
-For scenarios requiring complete control over the agent loop, you can implement your own loop management instead of using `stopWhen` and `prepareStep`. This approach provides maximum flexibility for complex workflows.
+For scenarios requiring complete control over the agent loop, implement your own loop management instead of using `stopWhen` and `prepareStep`. This approach provides maximum flexibility for complex workflows.
 
-[Learn more about manual agent loops in the cookbook →](/cookbook/05-node/55-manual-agent-loop)
+[Learn more about manual agent loops in the cookbook](/cookbook/node/manual-agent-loop).

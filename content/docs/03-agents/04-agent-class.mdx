@@ -5,7 +5,7 @@ description: Learn how to build agents with the Agent class.
 
 # Agent Class
 
-The Agent class provides a structured way to encapsulate LLM configuration, tools, and behavior into reusable components. It handles the agent loop for you, allowing the LLM to call tools multiple times in sequence to accomplish complex tasks. This abstraction allows you to define agents once and use them across your application.
+The Agent class provides a structured way to encapsulate LLM configuration, tools, and behavior into reusable components. It handles the agent loop for you, allowing the LLM to call tools multiple times in sequence to accomplish complex tasks. Define agents once and use them across your application.
 
 ## Why Use the Agent Class?
 
@@ -16,7 +16,7 @@ When building AI applications, you often need to:
 - **Simplify API routes** - Reduce boilerplate in your endpoints
 - **Type safety** - Get full TypeScript support for your agent's tools and outputs
 
-The Agent class addresses these needs by providing a single place to define your agent's behavior.
+The Agent class provides a single place to define your agent's behavior.
 
 ## Creating an Agent
 
@@ -37,7 +37,7 @@ const myAgent = new Agent({
 
 ## Configuration Options
 
-The Agent class accepts all the same settings as `generateText` and `streamText`, allowing you to configure:
+The Agent class accepts all the same settings as `generateText` and `streamText`. Configure:
 
 ### Model and System Prompt
 
@@ -79,7 +79,7 @@ const codeAgent = new Agent({
 
 By default, agents run for only one step. In each step, the model either generates text or calls a tool. If it generates text, the agent completes. If it calls a tool, the AI SDK executes that tool.
 
-To enable agents to call multiple tools in sequence, configure `stopWhen` to allow more steps. After each tool execution, the agent triggers a new generation where the model can call another tool or generate text:
+To let agents call multiple tools in sequence, configure `stopWhen` to allow more steps. After each tool execution, the agent triggers a new generation where the model can call another tool or generate text:
 
 ```ts
 import { Experimental_Agent as Agent, stepCountIs } from 'ai';
@@ -120,7 +120,7 @@ import { Experimental_Agent as Agent } from 'ai';
 const agent = new Agent({
   model: 'openai/gpt-4o',
   tools: {
-    /* ... */
+    // your tools here
   },
   toolChoice: 'required', // Force tool use
   // or toolChoice: 'none' to disable tools
@@ -128,7 +128,7 @@ const agent = new Agent({
 });
 ```
 
-You can also force a specific tool to be used:
+You can also force the use of a specific tool:
 
 ```ts
 import { Experimental_Agent as Agent } from 'ai';
@@ -167,17 +167,17 @@ const analysisAgent = new Agent({
 });
 
 const { experimental_output: output } = await analysisAgent.generate({
-  prompt: '...',
+  prompt: 'Analyze customer feedback from the last quarter',
 });
 ```
 
-## Defining Agent Behavior with System Prompts
+## Define Agent Behavior with System Prompts
 
-System prompts are the primary way to define your agent's behavior, personality, and constraints. They set the context for all interactions and guide how the agent responds to user queries and uses tools.
+System prompts define your agent's behavior, personality, and constraints. They set the context for all interactions and guide how the agent responds to user queries and uses tools.
 
 ### Basic System Prompts
 
-Define the agent's role and expertise:
+Set the agent's role and expertise:
 
 ```ts
 const agent = new Agent({
@@ -189,7 +189,7 @@ const agent = new Agent({
 
 ### Detailed Behavioral Instructions
 
-Provide specific guidelines for how the agent should behave:
+Provide specific guidelines for agent behavior:
 
 ```ts
 const codeReviewAgent = new Agent({
@@ -205,9 +205,9 @@ const codeReviewAgent = new Agent({
 });
 ```
 
-### Constraining Agent Behavior
+### Constrain Agent Behavior
 
-Use system prompts to set boundaries and ensure consistent behavior:
+Set boundaries and ensure consistent behavior:
 
 ```ts
 const customerSupportAgent = new Agent({
@@ -318,9 +318,9 @@ export async function POST(request: Request) {
 }
 ```
 
-## TypeScript Support
+## End-to-end Type Safety
 
-The Agent class provides full TypeScript support. You can infer types for UI messages:
+You can infer types for your Agent's `UIMessage`s:
 
 ```ts
 import {
@@ -332,11 +332,11 @@ const myAgent = new Agent({
   // ... configuration
 });
 
-// Infer the UI message type for client components
+// Infer the UIMessage type for UI components or persistence
 export type MyAgentUIMessage = InferAgentUIMessage<typeof myAgent>;
 ```
 
-Use this type in your client components:
+Use this type in your client components with `useChat`:
 
 ```tsx filename="components/chat.tsx"
 'use client';
@@ -346,7 +346,7 @@ import type { MyAgentUIMessage } from '@/agent/my-agent';
 
 export function Chat() {
   const { messages } = useChat<MyAgentUIMessage>();
-  // Full type safety for messages and tool invocations
+  // Full type safety for your messages and tools
 }
 ```
 
