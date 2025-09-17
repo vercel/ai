@@ -2450,7 +2450,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       describe('with results include', () => {
         beforeEach(async () => {
-          prepareJsonFixtureResponse('openai-file-search-tool.1');
+          prepareJsonFixtureResponse('openai-file-search-tool.2');
 
           result = await createModel('gpt-5-nano').doGenerate({
             prompt: TEST_PROMPT,

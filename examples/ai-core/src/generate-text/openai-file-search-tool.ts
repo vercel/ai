@@ -11,9 +11,14 @@ run(async () => {
         vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
       }),
     },
+    providerOptions: {
+      openai: {
+        include: ['file_search_call.results'],
+      },
+    },
   });
 
-  console.dir(result.response.body, { depth: Infinity });
+  console.log(JSON.stringify(result.response.body, null, 2));
   console.dir(result.toolCalls, { depth: Infinity });
   console.dir(result.toolResults, { depth: Infinity });
   console.dir(result.sources, { depth: Infinity });
