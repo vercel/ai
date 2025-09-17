@@ -68,9 +68,11 @@
     "analyze-downloads": "0.0.0",
     "eslint-config-vercel-ai": "0.0.0",
     "generate-llms-txt": "0.0.0",
-    "@vercel/ai-tsconfig": "0.0.0"
+    "@vercel/ai-tsconfig": "0.0.0",
+    "@ai-sdk/baseten": "0.0.0"
   },
   "changesets": [
-    "curly-glasses-count"
+    "curly-glasses-count",
+    "quiet-pens-suffer"
   ]
 }
