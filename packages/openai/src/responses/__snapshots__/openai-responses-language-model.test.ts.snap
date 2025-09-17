@@ -1576,6 +1576,513 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doStream > file search tool > without results include > should stream code interpreter results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-09-17T14:03:38.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
+    "toolName": "file_search",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "",
+    "providerExecuted": true,
+    "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
+    "toolName": "file_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "queries": [
+        "What is an embedding model according to this document?",
+        "What is an embedding model defined as in the document?",
+        "definition of embedding model",
+      ],
+      "status": "completed",
+      "type": "file_search_tool_result",
+    },
+    "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
+    "toolName": "file_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "According",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " document",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " model",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " converts",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " complex",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "e",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".g",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " words",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " images",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dense",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " list",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " called",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Unlike",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gener",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ative",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " do",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " not",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " generate",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " new",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " text",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " instead",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " they",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " produce",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " representations",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " capture",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " semantic",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " synt",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "actic",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " relationships",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " be",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " used",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " input",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " other",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NLP",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tasks",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-1",
+    "mediaType": "text/plain",
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 2304,
+      "inputTokens": 3737,
+      "outputTokens": 621,
+      "reasoningTokens": 512,
+      "totalTokens": 4358,
+    },
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > should stream code image generation results 1`] = `
 [
   {
