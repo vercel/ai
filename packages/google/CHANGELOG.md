@@ -1,5 +1,57 @@
 # @ai-sdk/google
 
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.13
+
+### Patch Changes
+
+- 5a3ef3a: Fixed handling of image response in the tool call result.
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 2.0.11
+
+### Patch Changes
+
+- a14fc2b: feat(provider/google): add gemini 2.5 flash image preview model support
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.9
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
 ## 2.0.8
 
 ### Patch Changes

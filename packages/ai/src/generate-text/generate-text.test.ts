@@ -10,14 +10,32 @@ import {
   tool,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
+import {
+  afterEach,
+  assert,
+  assertType,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
 import { z } from 'zod/v4';
 import { Output } from '.';
+import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
+
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
 
 const dummyResponseValues = {
   finishReason: 'stop' as const,
@@ -103,6 +121,18 @@ const modelWithReasoning = new MockLanguageModelV2({
 });
 
 describe('generateText', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   describe('result.content', () => {
     it('should generate content', async () => {
       const result = await generateText({
@@ -1653,9 +1683,10 @@ describe('generateText', () => {
       const result = await generateText({
         model: new MockLanguageModelV2({
           doGenerate: async ({ headers }) => {
-            assert.deepStrictEqual(headers, {
-              'custom-request-header': 'request-header-value',
-            });
+            assert.equal(
+              headers?.['custom-request-header'],
+              'request-header-value',
+            );
 
             return {
               ...dummyResponseValues,
@@ -1906,6 +1937,7 @@ describe('generateText', () => {
               "ai.model.provider": "mock-provider",
               "ai.operationId": "ai.generateText",
               "ai.prompt": "{"prompt":"test-input"}",
+              "ai.request.headers.user-agent": "ai/0.0.0-test",
               "ai.response.finishReason": "stop",
               "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
               "ai.settings.maxRetries": 2,
@@ -1926,6 +1958,7 @@ describe('generateText', () => {
               "ai.prompt.tools": [
                 "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
               ],
+              "ai.request.headers.user-agent": "ai/0.0.0-test",
               "ai.response.finishReason": "stop",
               "ai.response.id": "test-id",
               "ai.response.model": "mock-model-id",
@@ -2242,7 +2275,7 @@ describe('generateText', () => {
   });
 
   describe('provider-executed tools', () => {
-    describe('single provider-executed tool call and result', () => {
+    describe('two provider-executed tool calls and results', () => {
       let result: GenerateTextResult<any, any>;
 
       beforeEach(async () => {
@@ -2341,6 +2374,51 @@ describe('generateText', () => {
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-error",
+            },
+          ]
+        `);
+      });
+
+      it('should include provider-executed tool calls in staticToolCalls', async () => {
+        expect(result.staticToolCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should include provider-executed results in staticToolResults (errors excluded)', async () => {
+        expect(result.staticToolResults).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": undefined,
+              "input": {
+                "value": "value",
+              },
+              "output": "{ "value": "result1" }",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-result",
             },
           ]
         `);
@@ -2446,37 +2524,39 @@ describe('generateText', () => {
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
-        {
-          "abortSignal": undefined,
-          "frequencyPenalty": undefined,
-          "headers": undefined,
-          "maxOutputTokens": undefined,
-          "presencePenalty": undefined,
-          "prompt": [
-            {
-              "content": [
-                {
-                  "text": "prompt",
-                  "type": "text",
-                },
-              ],
-              "providerOptions": undefined,
-              "role": "user",
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
             },
-          ],
-          "providerOptions": undefined,
-          "responseFormat": {
-            "type": "text",
-          },
-          "seed": undefined,
-          "stopSequences": undefined,
-          "temperature": undefined,
-          "toolChoice": undefined,
-          "tools": undefined,
-          "topK": undefined,
-          "topP": undefined,
-        }
-      `);
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "text": "prompt",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": {
+              "type": "text",
+            },
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
       });
     });
 
@@ -2518,50 +2598,52 @@ describe('generateText', () => {
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
-        {
-          "abortSignal": undefined,
-          "frequencyPenalty": undefined,
-          "headers": undefined,
-          "maxOutputTokens": undefined,
-          "presencePenalty": undefined,
-          "prompt": [
-            {
-              "content": [
-                {
-                  "text": "prompt",
-                  "type": "text",
-                },
-              ],
-              "providerOptions": undefined,
-              "role": "user",
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
             },
-          ],
-          "providerOptions": undefined,
-          "responseFormat": {
-            "schema": {
-              "$schema": "http://json-schema.org/draft-07/schema#",
-              "additionalProperties": false,
-              "properties": {
-                "value": {
-                  "type": "string",
-                },
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "text": "prompt",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
               },
-              "required": [
-                "value",
-              ],
-              "type": "object",
+            ],
+            "providerOptions": undefined,
+            "responseFormat": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "type": "json",
             },
-            "type": "json",
-          },
-          "seed": undefined,
-          "stopSequences": undefined,
-          "temperature": undefined,
-          "toolChoice": undefined,
-          "tools": undefined,
-          "topK": undefined,
-          "topP": undefined,
-        }
-      `);
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
       });
     });
   });
@@ -3161,6 +3243,109 @@ describe('generateText', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('logWarnings', () => {
+    it('should call logWarnings with warnings from a single step', async () => {
+      const expectedWarnings = [
+        {
+          type: 'other' as const,
+          message: 'Setting is not supported',
+        },
+        {
+          type: 'unsupported-setting' as const,
+          setting: 'temperature',
+          details: 'Temperature parameter not supported',
+        },
+      ];
+
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            warnings: expectedWarnings,
+          },
+        }),
+        prompt: 'Hello',
+      });
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    });
+
+    it('should call logWarnings once for each step with warnings from that step', async () => {
+      const warning1 = {
+        type: 'other' as const,
+        message: 'Warning from step 1',
+      };
+      const warning2 = {
+        type: 'other' as const,
+        message: 'Warning from step 2',
+      };
+
+      let callCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => {
+            switch (callCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'testTool',
+                      input: `{ "value": "test" }`,
+                    },
+                  ],
+                  finishReason: 'tool-calls',
+                  warnings: [warning1],
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Final response' }],
+                  warnings: [warning2],
+                };
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt: 'Hello',
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result',
+          },
+        },
+        stopWhen: stepCountIs(3),
+      });
+
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, [warning1]);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, [warning2]);
+    });
+
+    it('should call logWarnings with empty array when no warnings are present', async () => {
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            warnings: [], // no warnings
+          },
+        }),
+        prompt: 'Hello',
+      });
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith([]);
     });
   });
 });

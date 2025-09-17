@@ -1,5 +1,174 @@
 # @ai-sdk/llamaindex
 
+## 1.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - ai@5.1.0-beta.0
+
+## 1.0.45
+
+### Patch Changes
+
+- Updated dependencies [76024fc]
+- Updated dependencies [93d8b60]
+- Updated dependencies [d8eb31f]
+  - ai@5.0.45
+
+## 1.0.44
+
+### Patch Changes
+
+- ai@5.0.44
+
+## 1.0.43
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - ai@5.0.43
+
+## 1.0.42
+
+### Patch Changes
+
+- Updated dependencies [de5c066]
+  - ai@5.0.42
+
+## 1.0.41
+
+### Patch Changes
+
+- Updated dependencies [cd91e4b]
+  - ai@5.0.41
+
+## 1.0.40
+
+### Patch Changes
+
+- ai@5.0.40
+
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [a0a725f]
+  - ai@5.0.39
+
+## 1.0.38
+
+### Patch Changes
+
+- ai@5.0.38
+
+## 1.0.37
+
+### Patch Changes
+
+- Updated dependencies [d6785d7]
+  - ai@5.0.37
+
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [ccc2ded]
+  - ai@5.0.36
+
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [99c946a]
+  - ai@5.0.35
+
+## 1.0.34
+
+### Patch Changes
+
+- ai@5.0.34
+
+## 1.0.33
+
+### Patch Changes
+
+- ai@5.0.33
+
+## 1.0.32
+
+### Patch Changes
+
+- ai@5.0.32
+
+## 1.0.31
+
+### Patch Changes
+
+- ai@5.0.31
+
+## 1.0.30
+
+### Patch Changes
+
+- Updated dependencies [7fcc6be]
+  - ai@5.0.30
+
+## 1.0.29
+
+### Patch Changes
+
+- Updated dependencies [e0e9449]
+  - ai@5.0.29
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [4b81e7d]
+- Updated dependencies [d68a4f2]
+  - ai@5.0.28
+
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [ca40fac]
+  - ai@5.0.27
+
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [33cf848]
+  - ai@5.0.26
+
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [ca65923]
+  - ai@5.0.25
+
+## 1.0.24
+
+### Patch Changes
+
+- Updated dependencies [f8f3682]
+  - ai@5.0.24
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [5099b3d]
+- Updated dependencies [7a2bf8d]
+  - ai@5.0.23
+
 ## 1.0.22
 
 ### Patch Changes

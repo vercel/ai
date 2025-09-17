@@ -1,5 +1,6 @@
 import { ModelMessage } from '@ai-sdk/provider-utils';
 import { convertToModelMessages } from './convert-to-model-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('convertToModelMessages', () => {
   describe('system message', () => {
@@ -1040,6 +1041,13 @@ describe('convertToModelMessages', () => {
               },
               {
                 type: 'tool-screenshot',
+                state: 'input-available',
+                toolCallId: 'call-3',
+                input: { value: 'value-3' },
+              },
+              {
+                type: 'dynamic-tool',
+                toolName: 'tool-screenshot2',
                 state: 'input-available',
                 toolCallId: 'call-3',
                 input: { value: 'value-3' },

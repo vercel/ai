@@ -1,3 +1,5 @@
+import { describe, expect, it, vi } from 'vitest';
+import { createDefaultDownloadFunction } from '../util/download/download-function';
 import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,
@@ -22,13 +24,13 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: createDefaultDownloadFunction(async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'image/png',
             };
-          },
+          }),
         });
 
         expect(result).toEqual([
@@ -61,13 +63,13 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: createDefaultDownloadFunction(async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'image/png',
             };
-          },
+          }),
         });
 
         expect(result).toEqual([
@@ -105,6 +107,7 @@ describe('convertToLanguageModelPrompt', () => {
           supportedUrls: {
             '*': [/^https:\/\/.*$/],
           },
+          download: undefined,
         });
 
         expect(result).toEqual([
@@ -141,13 +144,13 @@ describe('convertToLanguageModelPrompt', () => {
             // PDF is not supported, but image/* is
             'image/*': [/^https:\/\/.*$/],
           },
-          downloadImplementation: async ({ url }) => {
+          download: createDefaultDownloadFunction(async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'application/pdf',
             };
-          },
+          }),
         });
 
         expect(result).toEqual([
@@ -184,6 +187,7 @@ describe('convertToLanguageModelPrompt', () => {
           supportedUrls: {
             'image/*': [/^https:\/\/.*$/],
           },
+          download: undefined,
         });
 
         expect(result).toEqual([
@@ -220,6 +224,7 @@ describe('convertToLanguageModelPrompt', () => {
           supportedUrls: {
             'image/*': [/^https:\/\/.*$/],
           },
+          download: undefined,
         });
 
         expect(result).toEqual([
@@ -253,13 +258,13 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: createDefaultDownloadFunction(async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'application/pdf',
             };
-          },
+          }),
         });
 
         expect(result).toEqual([
@@ -293,13 +298,13 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: createDefaultDownloadFunction(async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'application/pdf',
             };
-          },
+          }),
         });
 
         expect(result).toEqual([
@@ -338,13 +343,13 @@ describe('convertToLanguageModelPrompt', () => {
               /^(?!https:\/\/example\.com\/document\.pdf$).*$/,
             ],
           },
-          downloadImplementation: async ({ url }) => {
+          download: createDefaultDownloadFunction(async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'application/pdf',
             };
-          },
+          }),
         });
 
         expect(result).toEqual([
@@ -383,6 +388,7 @@ describe('convertToLanguageModelPrompt', () => {
               /^https:\/\/example\.com\/document\.pdf$/,
             ],
           },
+          download: undefined,
         });
 
         expect(result).toEqual([
@@ -416,13 +422,13 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: createDefaultDownloadFunction(async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'application/pdf',
             };
-          },
+          }),
         });
 
         expect(result).toEqual([
@@ -459,6 +465,7 @@ describe('convertToLanguageModelPrompt', () => {
           supportedUrls: {
             'image/*': [/^https:\/\/.*$/],
           },
+          download: undefined,
         });
 
         expect(result).toEqual([
@@ -494,13 +501,13 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: createDefaultDownloadFunction(async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'application/pdf',
             };
-          },
+          }),
         });
 
         expect(result).toEqual([
@@ -535,13 +542,13 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: createDefaultDownloadFunction(async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.jpg'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'application/octet-stream',
             };
-          },
+          }),
         });
 
         expect(result).toMatchInlineSnapshot(`
@@ -585,13 +592,13 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          downloadImplementation: async ({ url }) => {
+          download: createDefaultDownloadFunction(async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.txt'));
             return {
               data: new Uint8Array([72, 101, 108, 108, 111]),
               mediaType: 'text/plain',
             };
-          },
+          }),
         });
 
         expect(result).toMatchInlineSnapshot(`
@@ -643,6 +650,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
+          download: undefined,
         });
 
         expect(result).toEqual([
@@ -664,6 +672,58 @@ describe('convertToLanguageModelPrompt', () => {
           },
         ]);
       });
+    });
+  });
+
+  describe('custom download function', () => {
+    it('should use custom download function to fetch URL content', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([
+        {
+          url: new URL('https://example.com/test-file.txt'),
+          data: new Uint8Array([72, 101, 108, 108, 111]), // "Hello" in ASCII
+          mediaType: 'text/plain',
+        },
+      ]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: 'https://example.com/test-file.txt',
+                  mediaType: 'text/plain',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {}, // No URL support, so download should be triggered
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledOnce();
+      expect(mockDownload).toHaveBeenCalledWith([
+        {
+          url: new URL('https://example.com/test-file.txt'),
+          isUrlSupportedByModel: false,
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              data: new Uint8Array([72, 101, 108, 108, 111]),
+            },
+          ],
+        },
+      ]);
     });
   });
 });
@@ -839,7 +899,7 @@ describe('convertToLanguageModelMessage', () => {
 
   describe('assistant message', () => {
     describe('text parts', () => {
-      it('should ignore empty text parts', async () => {
+      it('should ignore empty text parts when there are no provider options', async () => {
         const result = convertToLanguageModelMessage({
           message: {
             role: 'assistant',
@@ -870,6 +930,58 @@ describe('convertToLanguageModelMessage', () => {
             },
           ],
         });
+      });
+
+      it('should include empty text parts when there are provider options', async () => {
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                input: {},
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                  },
+                },
+                "text": "",
+                "type": "text",
+              },
+              {
+                "input": {},
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-call",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          }
+        `);
       });
     });
 
