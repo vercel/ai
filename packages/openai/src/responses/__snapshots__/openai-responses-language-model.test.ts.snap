@@ -119,6 +119,230 @@ Notes:
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > with results include > should include file search tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0365d26c32c64c650068cabb03bcc48194bfbd973152bca8f6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "fs_0365d26c32c64c650068cabb04aa388194b53c59de50a3951e",
+    "toolName": "file_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "queries": [
+        "What is an embedding model according to this document?",
+        "What is an embedding model in the document?",
+        "definition of embedding model",
+        "embedding model explanation 'embedding model'",
+      ],
+      "results": [
+        {
+          "attributes": {},
+          "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "filename": "ai.pdf",
+          "score": 0.9311,
+          "text": "AI 1
+
+AI
+Generative artificial intelligence refers to models that predict and generate 
+various types of outputs (such as text, images, or audio) based on whatʼs 
+statistically likely, pulling from patterns theyʼve learned from their training data. 
+For example:
+
+Given a photo, a generative model can generate a caption.
+
+Given an audio file, a generative model can generate a transcription.
+
+Given a text description, a generative model can generate an image.
+
+A large language model LLM is a subset of generative models focused 
+primarily on text. An LLM takes a sequence of words as input and aims to 
+predict the most likely sequence to follow. It assigns probabilities to potential 
+next sequences and then selects one. The model continues to generate 
+sequences until it meets a specified stopping criterion.
+
+LLMs learn by training on massive collections of written text, which means they 
+will be better suited to some use cases than others. For example, a model 
+trained on GitHub data would understand the probabilities of sequences in 
+source code particularly well.
+
+However, it's crucial to understand LLMs' limitations. When asked about less 
+known or absent information, like the birthday of a personal relative, LLMs 
+might "hallucinate" or make up information. It's essential to consider how well-
+represented the information you need is in the model.
+
+An embedding model is used to convert complex data (like words or images) 
+into a dense vector (a list of numbers) representation, known as an embedding. 
+Unlike generative models, embedding models do not generate new text or data. 
+Instead, they provide representations of semantic and synactic relationships 
+between entities that can be used as input for other models or other natural 
+language processing tasks.
+
+In the next section, you will learn about the difference between models 
+providers and models, and which ones are available in the AI SDK.",
+        },
+      ],
+    },
+    "toolCallId": "fs_0365d26c32c64c650068cabb04aa388194b53c59de50a3951e",
+    "toolName": "file_search",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0365d26c32c64c650068cabb061740819491324d349d0f07ca",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0365d26c32c64c650068cabb0e66b081949f66f61dacef39f3",
+      },
+    },
+    "text": "According to the document, an embedding model converts complex data (like words or images) into a dense vector — a list of numbers — called an embedding. It does not generate new text or data; instead it encodes semantic and syntactic relationships between entities so those vector representations can be used as inputs for other models or NLP tasks .",
+    "type": "text",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without results include > should include file search tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0a098396a8feca410068caae3b47208196957fe59419daad70",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "fs_0a098396a8feca410068caae3cab5c8196a54fd00498464e62",
+    "toolName": "file_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "queries": [
+        "What is an embedding model according to this document?",
+        "What is an embedding model?",
+        "definition of embedding model in the document",
+        "embedding model description",
+      ],
+      "results": null,
+    },
+    "toolCallId": "fs_0a098396a8feca410068caae3cab5c8196a54fd00498464e62",
+    "toolName": "file_search",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0a098396a8feca410068caae3e21a081968e7ac588401c4a6a",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0a098396a8feca410068caae457c508196b2fcd079d1d3ec74",
+      },
+    },
+    "text": "According to the document, an embedding model is used to convert complex data (like words or images) into a dense vector (a list of numbers) representation called an embedding, which captures semantic and syntactic relationships. Unlike generative models, embedding models do not generate new text or data; instead, they provide these vector representations to be used as input for other models or other natural language processing tasks .",
+    "type": "text",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > should include generate image tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0a33d15155cb126d0068c96c5527808195a933b468ccb5dfd9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ig_0a33d15155cb126d0068c96c59bc14819599154c9988b82996",
+    "toolName": "image_generation",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "result": "UklGRoitEQBXRUJQVlA4TEGzEAAv/8P/AM1AbNtGkITZhU4fH9J/wTOT+xIi+j8BuT4kABkCibNAZrlwIPyQ7W/bH5L2RHMzMBKgXmfZeYi9tLtrrQkZvN1yXHLLgG71gPkpDxmI/gc03YFulQR...AA9lhA0Y9rVdqQs/W4w/MOxeRW5+R1/UXmmNVi9yQ7x/vG0q2VRk01seZIuj5OmRYhD+yY82dZqMH1BCueTeOcNfGKxQ==",
+    },
+    "toolCallId": "ig_0a33d15155cb126d0068c96c59bc14819599154c9988b82996",
+    "toolName": "image_generation",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0a33d15155cb126d0068c96c6c0ef48195bc73e30faf832ba3",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0a33d15155cb126d0068c96c723ed88195b1405bc370bb8a65",
+      },
+    },
+    "text": "",
+    "type": "text",
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > should stream code interpreter results 1`] = `
 [
   {
@@ -1359,6 +1583,1119 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
       "outputTokens": 1623,
       "reasoningTokens": 1408,
       "totalTokens": 7670,
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > file search tool > with results include > should stream file search results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_06456cb9918b63780068cacd710b0881a1b00b5fca56e7100b",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-09-17T15:02:09.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
+    "toolName": "file_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "queries": [
+        "What is an embedding model according to this document?",
+        "What is an embedding model definition in this document?",
+        "How does the document define an embedding model?",
+      ],
+      "results": [
+        {
+          "attributes": {},
+          "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "filename": "ai.pdf",
+          "score": 0.9312,
+          "text": "AI 1
+
+AI
+Generative artificial intelligence refers to models that predict and generate 
+various types of outputs (such as text, images, or audio) based on whatʼs 
+statistically likely, pulling from patterns theyʼve learned from their training data. 
+For example:
+
+Given a photo, a generative model can generate a caption.
+
+Given an audio file, a generative model can generate a transcription.
+
+Given a text description, a generative model can generate an image.
+
+A large language model LLM is a subset of generative models focused 
+primarily on text. An LLM takes a sequence of words as input and aims to 
+predict the most likely sequence to follow. It assigns probabilities to potential 
+next sequences and then selects one. The model continues to generate 
+sequences until it meets a specified stopping criterion.
+
+LLMs learn by training on massive collections of written text, which means they 
+will be better suited to some use cases than others. For example, a model 
+trained on GitHub data would understand the probabilities of sequences in 
+source code particularly well.
+
+However, it's crucial to understand LLMs' limitations. When asked about less 
+known or absent information, like the birthday of a personal relative, LLMs 
+might "hallucinate" or make up information. It's essential to consider how well-
+represented the information you need is in the model.
+
+An embedding model is used to convert complex data (like words or images) 
+into a dense vector (a list of numbers) representation, known as an embedding. 
+Unlike generative models, embedding models do not generate new text or data. 
+Instead, they provide representations of semantic and synactic relationships 
+between entities that can be used as input for other models or other natural 
+language processing tasks.
+
+In the next section, you will learn about the difference between models 
+providers and models, and which ones are available in the AI SDK.",
+        },
+      ],
+    },
+    "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
+    "toolName": "file_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " document",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " defines",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " model",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tool",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " converts",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " complex",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "e",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".g",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " words",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " images",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dense",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "a",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " list",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " called",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Unlike",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gener",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ative",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " don",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "’t",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " generate",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " new",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " text",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " they",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " provide",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " representations",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " capture",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " semantic",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " synt",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "actic",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " relationships",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " be",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " used",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " input",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " other",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NLP",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tasks",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "delta": ".",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_06456cb9918b63780068cacd710b0881a1b00b5fca56e7100b",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 2304,
+      "inputTokens": 3748,
+      "outputTokens": 543,
+      "reasoningTokens": 448,
+      "totalTokens": 4291,
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > file search tool > without results include > should stream file search results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-09-17T14:03:38.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
+    "toolName": "file_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "queries": [
+        "What is an embedding model according to this document?",
+        "What is an embedding model defined as in the document?",
+        "definition of embedding model",
+      ],
+      "results": null,
+    },
+    "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
+    "toolName": "file_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "According",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " document",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " model",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " converts",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " complex",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "e",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".g",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " words",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " images",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dense",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " list",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " called",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Unlike",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gener",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ative",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " do",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " not",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " generate",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " new",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " text",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " instead",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " they",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " produce",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " representations",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " capture",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " semantic",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " synt",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "actic",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " relationships",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " be",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " used",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " input",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " other",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NLP",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tasks",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-1",
+    "mediaType": "text/plain",
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 2304,
+      "inputTokens": 3737,
+      "outputTokens": 621,
+      "reasoningTokens": 512,
+      "totalTokens": 4358,
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > should stream code image generation results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0df93c0bb83a72f20068c979db26ac819e8b5a444fad3f0d7f",
+    "modelId": "gpt-5-2025-08-07",
+    "timestamp": 2025-09-16T14:53:15.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
+    "toolName": "image_generation",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "result": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
+    },
+    "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
+    "toolName": "image_generation",
+    "type": "tool-result",
+  },
+  {
+    "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0df93c0bb83a72f20068c979db26ac819e8b5a444fad3f0d7f",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 1920,
+      "inputTokens": 2941,
+      "outputTokens": 1249,
+      "reasoningTokens": 1024,
+      "totalTokens": 4190,
     },
   },
 ]
