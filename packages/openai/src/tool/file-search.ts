@@ -1,7 +1,4 @@
-import {
-  createProviderDefinedToolFactory,
-  createProviderDefinedToolFactoryWithOutputSchema,
-} from '@ai-sdk/provider-utils';
+import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
 import {
   OpenAIResponsesFileSearchToolComparisonFilter,
   OpenAIResponsesFileSearchToolCompoundFilter,

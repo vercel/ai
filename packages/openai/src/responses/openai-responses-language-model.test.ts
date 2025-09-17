@@ -2377,40 +2377,38 @@ describe('OpenAIResponsesLanguageModel', () => {
     describe('file search tool', () => {
       let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
 
-      beforeEach(async () => {
-        prepareJsonFixtureResponse('openai-file-search-tool.1');
+      describe('without results include', () => {
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('openai-file-search-tool.1');
 
-        result = await createModel('gpt-5-nano').doGenerate({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
-                maxNumResults: 5,
-                filters: {
-                  key: 'author',
-                  type: 'eq',
-                  value: 'Jane Smith',
-                },
-                ranking: {
-                  ranker: 'auto',
-                  scoreThreshold: 0.5,
+          result = await createModel('gpt-5-nano').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                  maxNumResults: 5,
+                  filters: {
+                    key: 'author',
+                    type: 'eq',
+                    value: 'Jane Smith',
+                  },
+                  ranking: {
+                    ranker: 'auto',
+                    scoreThreshold: 0.5,
+                  },
                 },
               },
-            },
-          ],
-        });
-      });
-
-      it('should send request body with include and tool', async () => {
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "include": [
-              "file_search_call.results",
             ],
+          });
+        });
+
+        it('should send request body with tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
             "input": [
               {
                 "content": [
@@ -2443,10 +2441,90 @@ describe('OpenAIResponsesLanguageModel', () => {
             ],
           }
         `);
+        });
+
+        it('should include file search tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
       });
 
-      it('should include file search tool call and result in content', async () => {
-        expect(result.content).toMatchSnapshot();
+      describe('with results include', () => {
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('openai-file-search-tool.1');
+
+          result = await createModel('gpt-5-nano').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                  maxNumResults: 5,
+                  filters: {
+                    key: 'author',
+                    type: 'eq',
+                    value: 'Jane Smith',
+                  },
+                  ranking: {
+                    ranker: 'auto',
+                    scoreThreshold: 0.5,
+                  },
+                },
+              },
+            ],
+            providerOptions: {
+              openai: {
+                include: ['file_search_call.results'],
+              },
+            },
+          });
+        });
+
+        it('should send request body with tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "include": [
+                "file_search_call.results",
+              ],
+              "input": [
+                {
+                  "content": [
+                    {
+                      "text": "Hello",
+                      "type": "input_text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "gpt-5-nano",
+              "tools": [
+                {
+                  "filters": {
+                    "key": "author",
+                    "type": "eq",
+                    "value": "Jane Smith",
+                  },
+                  "max_num_results": 5,
+                  "ranking_options": {
+                    "ranker": "auto",
+                    "score_threshold": 0.5,
+                  },
+                  "type": "file_search",
+                  "vector_store_ids": [
+                    "vs_68caad8bd5d88191ab766cf043d89a18",
+                  ],
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should include file search tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
       });
     });
 

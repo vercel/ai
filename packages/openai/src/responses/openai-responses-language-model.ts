@@ -233,11 +233,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       addInclude('code_interpreter_call.outputs');
     }
 
-    // when a file search tool is present, automatically include the results:
-    if (hasOpenAITool('openai.file_search')) {
-      addInclude('file_search_call.results');
-    }
-
     const baseArgs = {
       model: this.modelId,
       input,
