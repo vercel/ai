@@ -1,5 +1,5 @@
 import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/test-server';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createCohere } from './cohere-provider';
 import { describe, it, expect } from 'vitest';
 

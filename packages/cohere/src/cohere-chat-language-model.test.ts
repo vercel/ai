@@ -1,5 +1,5 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/test-server';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
   isNodeVersion,
