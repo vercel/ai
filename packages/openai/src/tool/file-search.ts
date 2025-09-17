@@ -51,7 +51,7 @@ export const fileSearch = createProviderDefinedToolFactory<
     /**
      * Ranking options for the search.
      */
-    ranking: {
+    ranking?: {
       /**
        * The ranker to use for the file search.
        */
