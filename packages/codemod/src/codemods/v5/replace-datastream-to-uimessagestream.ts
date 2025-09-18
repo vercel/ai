@@ -34,6 +34,23 @@ export default createTransformer((fileInfo, api, options, context) => {
       });
 
     root
+      .find(j.Property)
+      .filter(path => {
+        return !!(
+          path.node.shorthand &&
+          path.node.key.type === 'Identifier' &&
+          path.node.key.name === oldName
+        );
+      })
+      .forEach(path => {
+        if (path.node.key.type === 'Identifier' && path.node.value.type === 'Identifier') {
+          path.node.key.name = newName;
+          path.node.value.name = newName;
+          context.hasChanges = true;
+        }
+      });
+
+    root
       .find(j.Identifier)
       .filter(path => {
         const parent = path.parent;
@@ -47,9 +64,9 @@ export default createTransformer((fileInfo, api, options, context) => {
           ) &&
           !(parent.node.type === 'Property' && parent.node.key === path.node) &&
           !(
-            parent.node.type === 'ObjectProperty' &&
-            parent.node.key === path.node &&
-            !parent.node.shorthand
+            parent.node.type === 'Property' &&
+            parent.node.value === path.node &&
+            parent.node.shorthand
           )
         );
       })
