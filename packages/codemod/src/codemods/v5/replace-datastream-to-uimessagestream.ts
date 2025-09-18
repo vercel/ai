@@ -7,8 +7,6 @@ export default createTransformer((fileInfo, api, options, context) => {
     ['createDataStreamResponse', 'createUIMessageStreamResponse'],
     ['createDataStream', 'createUIMessageStream'],
     ['DataStreamWriter', 'UIMessageStreamWriter'],
-    ['DataStreamOptions', 'UIMessageStreamOptions'],
-    ['DataStream', 'UIMessageStream'],
   ];
 
   replacements.forEach(([oldName, newName]) => {
