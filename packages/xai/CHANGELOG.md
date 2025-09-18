@@ -1,5 +1,24 @@
 # @ai-sdk/xai
 
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/openai-compatible@1.1.0-beta.0
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.20
+
+### Patch Changes
+
+- 3a10095: added new xai x live search fields
+
 ## 2.0.19
 
 ### Patch Changes
