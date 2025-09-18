@@ -56,8 +56,9 @@ export function PartialExtraction() {
 }
 
 export function OnlyHandleInputChange() {
+  const [input, setInput] = useState('');
   const {
     messages
   } = useChat();
-  return e => {};
+  return e => setInput(e.target.value);
 }

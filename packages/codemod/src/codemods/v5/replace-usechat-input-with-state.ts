@@ -111,6 +111,16 @@ export default createTransformer((fileInfo, api, options, context) => {
             });
         }
       } else if (foundHandleInputChange && handleInputChangeName) {
+        needsUseStateImport = true;
+        const inputName = 'input';
+        const setterName = 'setInput';
+
+        inputStates.push({
+          inputName,
+          setterName,
+          parentPath: path.parent,
+        });
+
         const functionScope =
           j(path).closest(j.FunctionDeclaration).size() > 0
             ? j(path).closest(j.FunctionDeclaration)
@@ -134,7 +144,15 @@ export default createTransformer((fileInfo, api, options, context) => {
           .replaceWith(() => {
             return j.arrowFunctionExpression(
               [j.identifier('e')],
-              j.blockStatement([]),
+              j.callExpression(j.identifier(setterName), [
+                j.memberExpression(
+                  j.memberExpression(
+                    j.identifier('e'),
+                    j.identifier('target'),
+                  ),
+                  j.identifier('value'),
+                ),
+              ]),
             );
           });
       }
