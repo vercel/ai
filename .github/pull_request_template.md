@@ -25,7 +25,7 @@ Remove the section if it's not needed (e.g. for docs).
 ## Checklist
 
 <!--
-Do not edit this list. If you need subtasks, create a new "## Tasks" section
+Do not edit this list. Leave items unchecked that don't apply. If you need to track subtasks, create a new "## Tasks" section
 
 Please check if the PR fulfills the following requirements:
 -->
