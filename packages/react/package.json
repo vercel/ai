@@ -32,7 +32,7 @@
   "dependencies": {
     "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*",
-    "@ai-sdk/test-server": "workspace:^",
+    "@ai-sdk/test-server": "workspace:*",
     "swr": "^2.2.5",
     "throttleit": "2.1.0"
   },

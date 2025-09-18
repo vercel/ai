@@ -53,7 +53,7 @@
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "workspace:*",
-    "@ai-sdk/test-server": "workspace:^",
+    "@ai-sdk/test-server": "workspace:*",
     "ai": "workspace:*"
   },
   "devDependencies": {
