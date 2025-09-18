@@ -146,10 +146,7 @@ export default createTransformer((fileInfo, api, options, context) => {
               [j.identifier('e')],
               j.callExpression(j.identifier(setterName), [
                 j.memberExpression(
-                  j.memberExpression(
-                    j.identifier('e'),
-                    j.identifier('target'),
-                  ),
+                  j.memberExpression(j.identifier('e'), j.identifier('target')),
                   j.identifier('value'),
                 ),
               ]),
