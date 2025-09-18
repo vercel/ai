@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.20
+
+### Patch Changes
+
+- e389009: fix(provider/groq): track cached tokens usage
+
 ## 2.0.19
 
 ### Patch Changes
