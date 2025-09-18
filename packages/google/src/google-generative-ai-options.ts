@@ -111,6 +111,20 @@ Optional. A list of unique safety settings for blocking unsafe content.
    * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls
    */
   labels: z.record(z.string(), z.string()).optional(),
+
+  /**
+   * Optional. If specified, the media resolution specified will be used.
+   *
+   * https://ai.google.dev/api/generate-content#MediaResolution
+   */
+  mediaResolution: z
+    .enum([
+      'MEDIA_RESOLUTION_UNSPECIFIED',
+      'MEDIA_RESOLUTION_LOW',
+      'MEDIA_RESOLUTION_MEDIUM',
+      'MEDIA_RESOLUTION_HIGH',
+    ])
+    .optional(),
 });
 
 export type GoogleGenerativeAIProviderOptions = z.infer<
