@@ -43,7 +43,10 @@ export default createTransformer((fileInfo, api, options, context) => {
         );
       })
       .forEach(path => {
-        if (path.node.key.type === 'Identifier' && path.node.value.type === 'Identifier') {
+        if (
+          path.node.key.type === 'Identifier' &&
+          path.node.value.type === 'Identifier'
+        ) {
           path.node.key.name = newName;
           path.node.value.name = newName;
           context.hasChanges = true;
