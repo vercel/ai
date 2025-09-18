@@ -68,12 +68,8 @@ jobs:
         id: create-pr
         run: |
           # Create the backport PR
-          PR_TITLE="Backport of #${{ github.event.pull_request.number }}"
-          PR_BODY="This is an automated backport of #${{ github.event.pull_request.number }} to the v5.0 branch.
-
-          Original PR: #${{ github.event.pull_request.number }}
-          Original Title: ${{ github.event.pull_request.title }}
-          Original Author: @${{ github.event.pull_request.user.login }}"
+          PR_TITLE="Backport: ${{ github.event.pull_request.title }}"
+          PR_BODY="This is an automated backport of #${{ github.event.pull_request.number }} to the v5.0 branch."
           
           PR_URL=$(gh pr create \
             --title "$PR_TITLE" \
