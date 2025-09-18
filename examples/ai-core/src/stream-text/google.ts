@@ -13,7 +13,7 @@ async function main() {
     process.stdout.write(textPart);
   }
 
-  const googleMetadata = (await result.experimental_providerMetadata)?.google;
+  const googleMetadata = (await result.providerMetadata)?.google;
 
   console.log();
   console.log('Token usage:', await result.usage);

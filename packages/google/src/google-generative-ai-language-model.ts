@@ -766,11 +766,11 @@ const responseSchema = z.object({
   ),
   usageMetadata: usageSchema.nullish(),
   promptFeedback: z
-  .object({
-    blockReason: z.string().nullish(),
-    safetyRatings: z.array(safetyRatingSchema).nullish(),
-  })
-  .nullish(),
+    .object({
+      blockReason: z.string().nullish(),
+      safetyRatings: z.array(safetyRatingSchema).nullish(),
+    })
+    .nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -789,9 +789,9 @@ const chunkSchema = z.object({
     .nullish(),
   usageMetadata: usageSchema.nullish(),
   promptFeedback: z
-  .object({
-    blockReason: z.string().nullish(),
-    safetyRatings: z.array(safetyRatingSchema).nullish(),
-  })
-  .nullish(),
+    .object({
+      blockReason: z.string().nullish(),
+      safetyRatings: z.array(safetyRatingSchema).nullish(),
+    })
+    .nullish(),
 });

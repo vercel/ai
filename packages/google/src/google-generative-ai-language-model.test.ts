@@ -1929,6 +1929,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -2446,6 +2447,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -2725,6 +2727,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": null,
               "urlContextMetadata": null,
               "usageMetadata": {
@@ -2853,6 +2856,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",

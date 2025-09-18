@@ -8,7 +8,7 @@ async function main() {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  const googleMetadata = result.experimental_providerMetadata?.google;
+  const googleMetadata = result.providerMetadata?.google;
 
   console.log(result.text);
   console.log();
