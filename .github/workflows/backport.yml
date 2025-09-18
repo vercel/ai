@@ -75,22 +75,19 @@ jobs:
           Original Title: ${{ github.event.pull_request.title }}
           Original Author: @${{ github.event.pull_request.user.login }}"
           
-          PR_NUMBER=$(gh pr create \
+          PR_URL=$(gh pr create \
             --title "$PR_TITLE" \
             --body "$PR_BODY" \
             --base v5.0 \
-            --head backport-pr-${{ github.event.pull_request.number }}-to-v5.0 \
-            --assignee ${{ github.event.pull_request.user.login }} \
-            --json number \
-            --jq .number)
+            --head backport-pr-${{ github.event.pull_request.number }}-to-v5.0)
           
-          echo "backport-pr-number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-          echo "Created backport PR #$PR_NUMBER"
+          echo "backport-pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "Created backport PR $PR_URL"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Remove backport label from original PR
-        if: steps.create-pr.outputs.backport-pr-number
+        if: steps.create-pr.outputs.backport-pr-url
         run: |
           # Remove the backport label from the original PR
           gh pr edit ${{ github.event.pull_request.number }} --remove-label backport
@@ -99,8 +96,8 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Comment on original PR
-        if: steps.create-pr.outputs.backport-pr-number
+        if: steps.create-pr.outputs.backport-pr-url
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "✅ Backport PR created: #${{ steps.create-pr.outputs.backport-pr-number }}"
+          gh pr comment ${{ github.event.pull_request.number }} --body "✅ Backport PR created: ${{ steps.create-pr.outputs.backport-pr-url }}"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
