@@ -31,11 +31,11 @@ describe('user-agent', () => {
     });
 
     expect(mockFetch).toHaveBeenCalled();
-    
+
     const fetchCallArgs = mockFetch.mock.calls[0];
     const requestInit = fetchCallArgs[1] as RequestInit;
     const headers = requestInit.headers as Record<string, string>;
-    
+
     // Verify the user-agent header includes our package version
     expect(headers['user-agent']).toContain('ai-sdk/anthropic/0.0.0-test');
   });
