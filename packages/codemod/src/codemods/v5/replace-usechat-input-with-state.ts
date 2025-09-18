@@ -10,48 +10,43 @@ export default createTransformer((fileInfo, api, options, context) => {
     parentPath: any;
   }> = [];
 
-  root
-    .find(j.VariableDeclarator)
-    .forEach(path => {
-      const init = path.node.init;
-      const id = path.node.id;
+  root.find(j.VariableDeclarator).forEach(path => {
+    const init = path.node.init;
+    const id = path.node.id;
 
-      if (
-        !init ||
-        init.type !== 'CallExpression' ||
-        init.callee.type !== 'Identifier' ||
-        init.callee.name !== 'useChat' ||
-        id.type !== 'ObjectPattern'
-      ) {
-        return;
-      }
+    if (
+      !init ||
+      init.type !== 'CallExpression' ||
+      init.callee.type !== 'Identifier' ||
+      init.callee.name !== 'useChat' ||
+      id.type !== 'ObjectPattern'
+    ) {
+      return;
+    }
 
-      const objectPattern = id;
-      let inputName = '';
-      let handleInputChangeName = '';
-      let foundInput = false;
-      let foundHandleInputChange = false;
-      const filteredProperties: any[] = [];
+    const objectPattern = id;
+    let inputName = '';
+    let handleInputChangeName = '';
+    let foundInput = false;
+    let foundHandleInputChange = false;
+    const filteredProperties: any[] = [];
 
-      objectPattern.properties.forEach((prop: any) => {
-        if (prop.type === 'Property' || prop.type === 'ObjectProperty') {
-          if (prop.key.type === 'Identifier') {
-            if (prop.key.name === 'input') {
-              foundInput = true;
-              if (prop.value && prop.value.type === 'Identifier') {
-                inputName = prop.value.name;
-              } else if (prop.shorthand) {
-                inputName = 'input';
-              }
-            } else if (prop.key.name === 'handleInputChange') {
-              foundHandleInputChange = true;
-              if (prop.value && prop.value.type === 'Identifier') {
-                handleInputChangeName = prop.value.name;
-              } else if (prop.shorthand) {
-                handleInputChangeName = 'handleInputChange';
-              }
-            } else {
-              filteredProperties.push(prop);
+    objectPattern.properties.forEach((prop: any) => {
+      if (prop.type === 'Property' || prop.type === 'ObjectProperty') {
+        if (prop.key.type === 'Identifier') {
+          if (prop.key.name === 'input') {
+            foundInput = true;
+            if (prop.value && prop.value.type === 'Identifier') {
+              inputName = prop.value.name;
+            } else if (prop.shorthand) {
+              inputName = 'input';
+            }
+          } else if (prop.key.name === 'handleInputChange') {
+            foundHandleInputChange = true;
+            if (prop.value && prop.value.type === 'Identifier') {
+              handleInputChangeName = prop.value.name;
+            } else if (prop.shorthand) {
+              handleInputChangeName = 'handleInputChange';
             }
           } else {
             filteredProperties.push(prop);
@@ -59,90 +54,99 @@ export default createTransformer((fileInfo, api, options, context) => {
         } else {
           filteredProperties.push(prop);
         }
-      });
+      } else {
+        filteredProperties.push(prop);
+      }
+    });
 
-      if (foundInput || foundHandleInputChange) {
-        context.hasChanges = true;
+    if (foundInput || foundHandleInputChange) {
+      context.hasChanges = true;
 
-        objectPattern.properties = filteredProperties;
+      objectPattern.properties = filteredProperties;
 
-        if (foundInput && inputName) {
-          needsUseStateImport = true;
-          const setterName = `set${inputName.charAt(0).toUpperCase()}${inputName.slice(1)}`;
+      if (foundInput && inputName) {
+        needsUseStateImport = true;
+        const setterName = `set${inputName.charAt(0).toUpperCase()}${inputName.slice(1)}`;
 
-          inputStates.push({
-            inputName,
-            setterName,
-            parentPath: path.parent
-          });
+        inputStates.push({
+          inputName,
+          setterName,
+          parentPath: path.parent,
+        });
 
-          if (foundHandleInputChange && handleInputChangeName) {
-            const functionScope = j(path).closest(j.FunctionDeclaration).size() > 0 ?
-              j(path).closest(j.FunctionDeclaration) :
-              j(path).closest(j.FunctionExpression).size() > 0 ?
-                j(path).closest(j.FunctionExpression) :
-                j(path).closest(j.ArrowFunctionExpression);
-
-            functionScope
-              .find(j.Identifier, { name: handleInputChangeName })
-              .filter(idPath => {
-                const parent = idPath.parent.node;
-                return !(
-                  ((parent.type === 'Property' || parent.type === 'ObjectProperty') && parent.key === idPath.node) ||
-                  (parent.type === 'MemberExpression' && parent.property === idPath.node && !parent.computed)
-                );
-              })
-              .replaceWith(() => {
-                return j.arrowFunctionExpression(
-                  [j.identifier('e')],
-                  j.callExpression(
-                    j.identifier(setterName),
-                    [j.memberExpression(
-                      j.memberExpression(j.identifier('e'), j.identifier('target')),
-                      j.identifier('value')
-                    )]
-                  )
-                );
-              });
-          }
-        } else if (foundHandleInputChange && handleInputChangeName) {
-          const functionScope = j(path).closest(j.FunctionDeclaration).size() > 0 ?
-            j(path).closest(j.FunctionDeclaration) :
-            j(path).closest(j.FunctionExpression).size() > 0 ?
-              j(path).closest(j.FunctionExpression) :
-              j(path).closest(j.ArrowFunctionExpression);
+        if (foundHandleInputChange && handleInputChangeName) {
+          const functionScope =
+            j(path).closest(j.FunctionDeclaration).size() > 0
+              ? j(path).closest(j.FunctionDeclaration)
+              : j(path).closest(j.FunctionExpression).size() > 0
+                ? j(path).closest(j.FunctionExpression)
+                : j(path).closest(j.ArrowFunctionExpression);
 
           functionScope
             .find(j.Identifier, { name: handleInputChangeName })
             .filter(idPath => {
               const parent = idPath.parent.node;
               return !(
-                ((parent.type === 'Property' || parent.type === 'ObjectProperty') && parent.key === idPath.node) ||
-                (parent.type === 'MemberExpression' && parent.property === idPath.node && !parent.computed)
+                ((parent.type === 'Property' ||
+                  parent.type === 'ObjectProperty') &&
+                  parent.key === idPath.node) ||
+                (parent.type === 'MemberExpression' &&
+                  parent.property === idPath.node &&
+                  !parent.computed)
               );
             })
             .replaceWith(() => {
               return j.arrowFunctionExpression(
                 [j.identifier('e')],
-                j.blockStatement([])
+                j.callExpression(j.identifier(setterName), [
+                  j.memberExpression(
+                    j.memberExpression(
+                      j.identifier('e'),
+                      j.identifier('target'),
+                    ),
+                    j.identifier('value'),
+                  ),
+                ]),
               );
             });
         }
+      } else if (foundHandleInputChange && handleInputChangeName) {
+        const functionScope =
+          j(path).closest(j.FunctionDeclaration).size() > 0
+            ? j(path).closest(j.FunctionDeclaration)
+            : j(path).closest(j.FunctionExpression).size() > 0
+              ? j(path).closest(j.FunctionExpression)
+              : j(path).closest(j.ArrowFunctionExpression);
+
+        functionScope
+          .find(j.Identifier, { name: handleInputChangeName })
+          .filter(idPath => {
+            const parent = idPath.parent.node;
+            return !(
+              ((parent.type === 'Property' ||
+                parent.type === 'ObjectProperty') &&
+                parent.key === idPath.node) ||
+              (parent.type === 'MemberExpression' &&
+                parent.property === idPath.node &&
+                !parent.computed)
+            );
+          })
+          .replaceWith(() => {
+            return j.arrowFunctionExpression(
+              [j.identifier('e')],
+              j.blockStatement([]),
+            );
+          });
       }
-    });
+    }
+  });
 
   inputStates.forEach(({ inputName, setterName, parentPath }) => {
     const useStateDeclaration = j.variableDeclaration('const', [
       j.variableDeclarator(
-        j.arrayPattern([
-          j.identifier(inputName),
-          j.identifier(setterName)
-        ]),
-        j.callExpression(
-          j.identifier('useState'),
-          [j.literal('')]
-        )
-      )
+        j.arrayPattern([j.identifier(inputName), j.identifier(setterName)]),
+        j.callExpression(j.identifier('useState'), [j.literal('')]),
+      ),
     ]);
 
     j(parentPath).insertBefore(useStateDeclaration);
@@ -150,33 +154,34 @@ export default createTransformer((fileInfo, api, options, context) => {
 
   if (needsUseStateImport) {
     const reactImports = root.find(j.ImportDeclaration, {
-      source: { value: 'react' }
+      source: { value: 'react' },
     });
 
     if (reactImports.length > 0) {
       const firstReactImport = reactImports.at(0);
       const specifiers = firstReactImport.get().node.specifiers || [];
 
-      const hasUseState = specifiers.some((spec: any) =>
-        spec.type === 'ImportSpecifier' &&
-        spec.imported.type === 'Identifier' &&
-        spec.imported.name === 'useState'
+      const hasUseState = specifiers.some(
+        (spec: any) =>
+          spec.type === 'ImportSpecifier' &&
+          spec.imported.type === 'Identifier' &&
+          spec.imported.name === 'useState',
       );
 
       if (!hasUseState) {
-        specifiers.push(
-          j.importSpecifier(j.identifier('useState'))
-        );
+        specifiers.push(j.importSpecifier(j.identifier('useState')));
       }
     } else {
       const imports = root.find(j.ImportDeclaration);
       if (imports.length > 0) {
-        imports.at(0).insertAfter(
-          j.importDeclaration(
-            [j.importSpecifier(j.identifier('useState'))],
-            j.literal('react')
-          )
-        );
+        imports
+          .at(0)
+          .insertAfter(
+            j.importDeclaration(
+              [j.importSpecifier(j.identifier('useState'))],
+              j.literal('react'),
+            ),
+          );
       }
     }
   }
