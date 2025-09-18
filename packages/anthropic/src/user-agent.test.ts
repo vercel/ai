@@ -1,30 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createAnthropic } from './anthropic-provider';
 
+// Only mock the version for consistent testing
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-vi.mock('@ai-sdk/provider-utils', async () => {
-  const actual = await vi.importActual('@ai-sdk/provider-utils');
-  return {
-    ...actual,
-    getRuntimeEnvironmentUserAgent: vi.fn(() => 'runtime/test-env'),
-    withUserAgentSuffix: vi.fn((headers, ...suffixes) => {
-      withUserAgentSuffixMock(headers, ...suffixes);
-      return { ...headers, 'user-agent': suffixes.join(' ') };
-    }),
-  };
-});
-
-const withUserAgentSuffixMock = vi.fn();
-
 describe('user-agent', () => {
-  beforeEach(() => {
-    withUserAgentSuffixMock.mockClear();
-  });
-
-  it('should include ai-sdk/anthropic/<version> in user-agent header', async () => {
+  it('should include anthropic version in user-agent header', async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -47,9 +30,13 @@ describe('user-agent', () => {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }],
     });
 
-    expect(withUserAgentSuffixMock).toHaveBeenCalled();
-    const suffixArg = withUserAgentSuffixMock.mock.calls[0][1];
-
-    expect(suffixArg).toBe('ai-sdk/anthropic/0.0.0-test');
+    expect(mockFetch).toHaveBeenCalled();
+    
+    const fetchCallArgs = mockFetch.mock.calls[0];
+    const requestInit = fetchCallArgs[1] as RequestInit;
+    const headers = requestInit.headers as Record<string, string>;
+    
+    // Verify the user-agent header includes our package version
+    expect(headers['user-agent']).toContain('ai-sdk/anthropic/0.0.0-test');
   });
 });
