@@ -33,7 +33,8 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "@ai-sdk/test-server": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
