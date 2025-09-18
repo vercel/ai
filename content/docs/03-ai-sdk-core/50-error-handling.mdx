@@ -108,7 +108,10 @@ const { textStream } = streamText({
     console.log('Last step usage', usage);
     console.log('Total usage before abort', totalUsage);
     console.log('Reasoning tokens so far', usage.reasoningTokens ?? 'n/a');
-    console.log('Cached input tokens so far', totalUsage.cachedInputTokens ?? 'n/a');
+    console.log(
+      'Cached input tokens so far',
+      totalUsage.cachedInputTokens ?? 'n/a',
+    );
   },
   onFinish: ({ steps, totalUsage }) => {
     // This is called on normal completion

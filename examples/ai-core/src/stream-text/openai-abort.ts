@@ -6,8 +6,11 @@ async function main() {
   try {
     const { textStream } = streamText({
       model: openai('gpt-3.5-turbo'),
-      prompt: 'Write a short story about a robot learning to love:\n\n',
+      prompt: 'Write a story about a robot learning to love:\n\n',
       abortSignal: AbortSignal.timeout(3000),
+      onAbort: (...args) => {
+        console.log('Aborted!', ...args);
+      },
     });
 
     for await (const textPart of textStream) {

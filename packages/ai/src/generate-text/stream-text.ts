@@ -983,8 +983,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   ? step.usage
                   : addLanguageModelUsage(accumulator, step.usage),
               undefined,
-            ) ??
-            createEmptyUsage();
+            ) ?? createEmptyUsage();
 
           const aggregatedUsage =
             recordedTotalUsage == null
