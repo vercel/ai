@@ -28,11 +28,6 @@ export default createTransformer((fileInfo, api, options, context) => {
             specifier.imported.name === oldName
           ) {
             specifier.imported.name = newName;
-            if (!specifier.local || specifier.local.name === oldName) {
-              if (specifier.local) {
-                specifier.local.name = newName;
-              }
-            }
             context.hasChanges = true;
           }
         });
