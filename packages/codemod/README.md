@@ -124,6 +124,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/replace-simulate-streaming`                                       | Transforms v5/replace simulate streaming                                       |
 | `v5/replace-textdelta-with-text`                                      | Transforms v5/replace textdelta with text                                      |
 | `v5/replace-usage-token-properties`                                   | Transforms v5/replace usage token properties                                   |
+| `v5/replace-usechat-input-with-state`                                 | Transforms v5/replace usechat input with state                                 |
 | `v5/replace-zod-import-with-v3`                                       | Transforms v5/replace zod import with v3                                       |
 | `v5/require-createIdGenerator-size-argument`                          | Transforms v5/require createIdGenerator size argument                          |
 | `v5/restructure-file-stream-parts`                                    | Transforms v5/restructure file stream parts                                    |
