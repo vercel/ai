@@ -585,7 +585,9 @@ describe('GatewayFetchMetadata', () => {
 
       const metadata = createBasicMetadataFetcher();
 
-      await expect(metadata.getCredits()).rejects.toThrow(GatewayRateLimitError);
+      await expect(metadata.getCredits()).rejects.toThrow(
+        GatewayRateLimitError,
+      );
     });
 
     it('should handle internal server errors for credits endpoint', async () => {

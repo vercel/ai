@@ -49,9 +49,8 @@ export class GatewayFetchMetadata {
       const { value } = await getFromApi({
         url: `${this.config.baseURL}/credits`,
         headers: await resolve(this.config.headers()),
-        successfulResponseHandler: createJsonResponseHandler(
-          gatewayCreditsSchema,
-        ),
+        successfulResponseHandler:
+          createJsonResponseHandler(gatewayCreditsSchema),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
           errorToMessage: data => data,
