@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/provider-utils': patch
+'@ai-sdk/test-server': major
 ---
 
-fix(provider-utils/test-server): exporting now from `./internal`
+feat(test-server): inital version
