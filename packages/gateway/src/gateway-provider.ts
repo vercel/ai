@@ -181,15 +181,15 @@ export function createGatewayProvider(
   };
 
   const getCredits = async () => {
-    try {
-      return await new GatewayFetchMetadata({
-        baseURL,
-        headers: getHeaders,
-        fetch: options.fetch,
-      }).getCredits();
-    } catch (error: unknown) {
-      throw asGatewayError(error, parseAuthMethod(await getHeaders()));
-    }
+    return new GatewayFetchMetadata({
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    })
+      .getCredits()
+      .catch(async (error: unknown) => {
+        throw asGatewayError(error, parseAuthMethod(await getHeaders()));
+      });
   };
 
   const provider = function (modelId: GatewayModelId) {

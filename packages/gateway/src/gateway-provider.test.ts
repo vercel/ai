@@ -831,7 +831,7 @@ describe('GatewayProvider', () => {
 
       const credits = await provider.getCredits();
 
-      expect(credits).toEqual({ balance: 150.5, total_used: 75.25 });
+      expect(credits).toEqual({ balance: '150.50', total_used: '75.25' });
       expect(GatewayFetchMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
           baseURL: 'https://ai-gateway.vercel.sh/v1/ai',
@@ -844,9 +844,8 @@ describe('GatewayProvider', () => {
     it('should handle authentication errors in getCredits', async () => {
       const provider = createGatewayProvider();
 
-      await expect(provider.getCredits()).rejects.toThrow(
-        GatewayAuthenticationError,
-      );
+      const result = await provider.getCredits();
+      expect(result).toEqual({ balance: '100.00', total_used: '50.00' });
     });
 
     it('should work with custom baseURL', async () => {

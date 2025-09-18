@@ -16,8 +16,8 @@ export interface GatewayFetchMetadataResponse {
 }
 
 export interface GatewayCreditsResponse {
-  balance: number;
-  total_used: number;
+  balance: string;
+  total_used: string;
 }
 
 export class GatewayFetchMetadata {
@@ -102,6 +102,6 @@ const gatewayFetchMetadataSchema = z.object({
 });
 
 const gatewayCreditsSchema = z.object({
-  balance: z.string().transform(val => parseFloat(val)),
-  total_used: z.string().transform(val => parseFloat(val)),
+  balance: z.string(),
+  total_used: z.string(),
 });

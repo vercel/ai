@@ -519,8 +519,8 @@ describe('GatewayFetchMetadata', () => {
       const result = await metadata.getCredits();
 
       expect(result).toEqual({
-        balance: 150.5,
-        total_used: 75.25,
+        balance: '150.50',
+        total_used: '75.25',
       });
     });
 
@@ -547,8 +547,8 @@ describe('GatewayFetchMetadata', () => {
         'custom-header': 'custom-value',
       });
       expect(result).toEqual({
-        balance: 100,
-        total_used: 50,
+        balance: '100.00',
+        total_used: '50.00',
       });
     });
 
@@ -577,7 +577,7 @@ describe('GatewayFetchMetadata', () => {
         status: 429,
         body: JSON.stringify({
           error: {
-            type: 'rate_limit_error',
+            type: 'rate_limit_exceeded',
             message: 'Rate limit exceeded',
           },
         }),
@@ -617,19 +617,29 @@ describe('GatewayFetchMetadata', () => {
       };
 
       const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getCredits();
 
-      await expect(metadata.getCredits()).rejects.toThrow();
+      expect(result).toEqual({
+        balance: 'not-a-number',
+        total_used: '75.25',
+      });
     });
 
     it('should use custom fetch function when provided', async () => {
-      const customFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          balance: '200.00',
-          total_used: '100.50',
-        }),
-      });
+      const customFetch = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            balance: '200.00',
+            total_used: '100.50',
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        ),
+      );
 
       const metadata = createBasicMetadataFetcher({
         fetch: customFetch as unknown as FetchFunction,
@@ -638,8 +648,8 @@ describe('GatewayFetchMetadata', () => {
       const result = await metadata.getCredits();
 
       expect(result).toEqual({
-        balance: 200,
-        total_used: 100.5,
+        balance: '200.00',
+        total_used: '100.50',
       });
 
       expect(customFetch).toHaveBeenCalledWith(
@@ -647,7 +657,7 @@ describe('GatewayFetchMetadata', () => {
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
-            Authorization: 'Bearer test-token',
+            authorization: 'Bearer test-token',
           }),
         }),
       );
@@ -754,8 +764,8 @@ describe('GatewayFetchMetadata', () => {
       const result = await metadata.getCredits();
 
       expect(result).toEqual({
-        balance: 0,
-        total_used: 0,
+        balance: '0.00',
+        total_used: '0.00',
       });
     });
   });
