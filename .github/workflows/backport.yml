@@ -1,7 +1,7 @@
 name: Backport
 
 on:
-  pull_request:
+  pull_request_target:
     types: [closed, labeled]
 
 concurrency: ${{ github.workflow }}-${{ github.event.pull_request.number }}
@@ -42,6 +42,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
+          ref: v5.0
 
       - name: Create backport branch
         run: |
@@ -68,12 +69,8 @@ jobs:
         id: create-pr
         run: |
           # Create the backport PR
-          PR_TITLE="Backport of #${{ github.event.pull_request.number }}"
-          PR_BODY="This is an automated backport of #${{ github.event.pull_request.number }} to the v5.0 branch.
-
-          Original PR: #${{ github.event.pull_request.number }}
-          Original Title: ${{ github.event.pull_request.title }}
-          Original Author: @${{ github.event.pull_request.user.login }}"
+          PR_TITLE="Backport: ${{ github.event.pull_request.title }}"
+          PR_BODY="This is an automated backport of #${{ github.event.pull_request.number }} to the v5.0 branch."
           
           PR_URL=$(gh pr create \
             --title "$PR_TITLE" \
