@@ -1,5 +1,25 @@
 # @ai-sdk/rsc
 
+## 1.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [a7f6f81]
+  - ai@5.1.0-beta.1
+
+## 1.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - ai@5.1.0-beta.0
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
 ## 1.0.45
 
 ### Patch Changes
