@@ -1110,6 +1110,13 @@ describe('validateUIMessages', () => {
   });
 });
 
+export function expectToBe<T extends boolean>(
+  value: boolean,
+  expected: T,
+): asserts value is T {
+  expect(value).toBe(expected);
+}
+
 describe('safeValidateUIMessages', () => {
   it('should return success result for valid messages', async () => {
     const result = await safeValidateUIMessages({
@@ -1122,23 +1129,21 @@ describe('safeValidateUIMessages', () => {
       ],
     });
 
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data).toMatchInlineSnapshot(`
-        [
-          {
-            "id": "1",
-            "parts": [
-              {
-                "text": "Hello, world!",
-                "type": "text",
-              },
-            ],
-            "role": "user",
-          },
-        ]
-      `);
-    }
+    expectToBe(result.success, true);
+    expect(result.data).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "1",
+          "parts": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
   });
 
   it('should return failure result when messages parameter is null', async () => {
@@ -1146,13 +1151,11 @@ describe('safeValidateUIMessages', () => {
       messages: null,
     });
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.name).toBe('AI_InvalidArgumentError');
-      expect(result.error.message).toBe(
-        'Invalid argument for parameter messages: messages parameter must be provided',
-      );
-    }
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_InvalidArgumentError');
+    expect(result.error.message).toBe(
+      'Invalid argument for parameter messages: messages parameter must be provided',
+    );
   });
 
   it('should return failure result when metadata validation fails', async () => {
@@ -1168,11 +1171,9 @@ describe('safeValidateUIMessages', () => {
       metadataSchema: z.object({ foo: z.string() }),
     });
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.name).toBe('AI_TypeValidationError');
-      expect(result.error.message).toContain('Type validation failed');
-    }
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('Type validation failed');
   });
 
   it('should return failure result when tool input validation fails', async () => {
@@ -1201,11 +1202,9 @@ describe('safeValidateUIMessages', () => {
       tools: { foo: testTool },
     });
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.name).toBe('AI_TypeValidationError');
-      expect(result.error.message).toContain('Type validation failed');
-    }
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('Type validation failed');
   });
 
   it('should return failure result when data schema is missing', async () => {
@@ -1222,13 +1221,11 @@ describe('safeValidateUIMessages', () => {
       },
     });
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.name).toBe('AI_TypeValidationError');
-      expect(result.error.message).toContain(
-        'No data schema found for data part bar',
-      );
-    }
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain(
+      'No data schema found for data part bar',
+    );
   });
 
   it('should return failure result for invalid message structure', async () => {
@@ -1240,9 +1237,7 @@ describe('safeValidateUIMessages', () => {
       ],
     });
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.name).toBe('AI_TypeValidationError');
-    }
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
   });
 });
