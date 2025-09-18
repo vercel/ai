@@ -898,7 +898,7 @@ describe('GatewayProvider', () => {
     it('should include proper headers for credits request', async () => {
       const provider = createGatewayProvider({
         apiKey: 'test-key',
-        headers: { 'Custom-Header': 'custom-value' },
+        headers: { 'custom-header': 'custom-value' },
       });
 
       await provider.getCredits();
@@ -907,10 +907,11 @@ describe('GatewayProvider', () => {
       const headers = await config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-key',
+        authorization: 'Bearer test-key',
         'ai-gateway-protocol-version': '0.0.1',
         'ai-gateway-auth-method': 'api-key',
-        'Custom-Header': 'custom-value',
+        'custom-header': 'custom-value',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
       });
     });
 

@@ -72,7 +72,9 @@ describe('user-agent', () => {
     expect(mockConfigs[0].modelId).toBe('anthropic.claude-v2');
 
     const headers = mockConfigs[0].config.headers();
-    expect(headers['user-agent']).toStrictEqual('ai-sdk/amazon-bedrock/0.0.0-test');
+    expect(headers['user-agent']).toStrictEqual(
+      'ai-sdk/amazon-bedrock/0.0.0-test',
+    );
   });
 
   it('should include amazon-bedrock version in user-agent header for embedding models', async () => {
@@ -87,7 +89,9 @@ describe('user-agent', () => {
     expect(mockConfigs[0].modelId).toBe('amazon.titan-embed-text-v1');
 
     const headers = mockConfigs[0].config.headers();
-    expect(headers['user-agent']).toStrictEqual('ai-sdk/amazon-bedrock/0.0.0-test');
+    expect(headers['user-agent']).toStrictEqual(
+      'ai-sdk/amazon-bedrock/0.0.0-test',
+    );
   });
 
   it('should include amazon-bedrock version in user-agent header for image models', async () => {
@@ -102,6 +106,8 @@ describe('user-agent', () => {
     expect(mockConfigs[0].modelId).toBe('amazon.titan-image-generator');
 
     const headers = mockConfigs[0].config.headers();
-    expect(headers['user-agent']).toStrictEqual('ai-sdk/amazon-bedrock/0.0.0-test');
+    expect(headers['user-agent']).toStrictEqual(
+      'ai-sdk/amazon-bedrock/0.0.0-test',
+    );
   });
 });
