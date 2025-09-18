@@ -1,7 +1,7 @@
 name: Backport
 
 on:
-  pull_request:
+  pull_request_target:
     types: [closed, labeled]
 
 concurrency: ${{ github.workflow }}-${{ github.event.pull_request.number }}
@@ -42,6 +42,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
+          ref: v5.0
 
       - name: Create backport branch
         run: |
