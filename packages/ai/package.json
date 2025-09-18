@@ -54,6 +54,7 @@
     }
   },
   "dependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@ai-sdk/gateway": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",

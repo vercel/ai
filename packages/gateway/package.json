@@ -37,6 +37,7 @@
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@types/node": "18.15.11",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
