@@ -7,9 +7,6 @@ import {
   type UrlHandlers,
 } from './index';
 
-console.log('now in packages/test-server/src/with-vitest.ts');
-console.log('NOW USING NEW TEST SERVER');
-
 export function createTestServer<
   URLS extends {
     [url: string]: {

@@ -1,4 +1,3 @@
-console.log('USING NEW TEST SERVER');
 export {
   createTestServer,
   TestResponseController,
