@@ -4824,8 +4824,31 @@ describe('streamText', () => {
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
           "sources": [],
-          "staticToolCalls": [],
-          "staticToolResults": [],
+          "staticToolCalls": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "staticToolResults": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "output": "value-result",
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
           "steps": [
             DefaultStepResult {
               "content": [
@@ -10623,8 +10646,31 @@ describe('streamText', () => {
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
             "sources": [],
-            "staticToolCalls": [],
-            "staticToolResults": [],
+            "staticToolCalls": [
+              {
+                "input": {
+                  "value": "VALUE",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "staticToolResults": [
+              {
+                "input": {
+                  "value": "VALUE",
+                },
+                "output": "VALUE-RESULT",
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
             "steps": [
               DefaultStepResult {
                 "content": [

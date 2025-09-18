@@ -1,5 +1,32 @@
 # ai
 
+## 5.1.0-beta.1
+
+### Patch Changes
+
+- a7f6f81: Add safeValidateUIMessages utility to validate UI messages without throwing, returning a success/failure result object like Zod’s safeParse
+
+## 5.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/gateway@1.1.0-beta.0
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 5.0.45
+
+### Patch Changes
+
+- 76024fc: fix(ai): fix static tool call and result detection when dynamic is undefined
+- 93d8b60: fix(ai): do not filter zero-length text parts that have provider options
+- d8eb31f: fix(ai): fix webp image detection from base64
+
 ## 5.0.44
 
 ### Patch Changes

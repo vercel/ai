@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAICompatible } from '../openai-compatible-provider';
 
 const dummyEmbeddings = [

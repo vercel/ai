@@ -12,7 +12,7 @@ When building a chatbot, you may want to allow the user to generate an image. Th
 
 Let's create an endpoint at `/api/chat` that generates the assistant's response based on the conversation history. You will also define a tool called `generateImage` that will generate an image based on the assistant's response.
 
-```typescript filename='tools/get-weather.ts'
+```typescript filename='tools/generate-image.ts'
 import { openai } from '@ai-sdk/openai';
 import { experimental_generateImage, tool } from 'ai';
 import z from 'zod';
@@ -43,7 +43,7 @@ import {
   type UIMessage,
 } from 'ai';
 
-import { generateImage } from '@/tools/get-weather';
+import { generateImage } from '@/tools/generate-image';
 
 const tools = {
   generateImage,

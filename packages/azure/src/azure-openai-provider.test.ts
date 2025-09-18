@@ -2,7 +2,7 @@ import {
   EmbeddingModelV2Embedding,
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createAzure } from './azure-openai-provider';
 import { describe, it, expect } from 'vitest';
 

@@ -1,8 +1,8 @@
 import {
   createTestServer,
-  mockId,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
+import { mockId } from '@ai-sdk/provider-utils/test';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { AbstractChat, ChatInit, ChatState, ChatStatus } from './chat';
 import { UIMessage } from './ui-messages';
