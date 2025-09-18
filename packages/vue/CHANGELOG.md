@@ -1,5 +1,12 @@
 # @ai-sdk/vue
 
+## 2.0.46
+
+### Patch Changes
+
+- Updated dependencies [c580fbd]
+  - ai@5.0.46
+
 ## 2.0.45
 
 ### Patch Changes
