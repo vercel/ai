@@ -12,16 +12,17 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference;
 
+export type OpenAIResponsesIncludeValue =
+  | 'web_search_call.action.sources'
+  | 'code_interpreter_call.outputs'
+  | 'computer_call_output.output.image_url'
+  | 'file_search_call.results'
+  | 'message.input_image.image_url'
+  | 'message.output_text.logprobs'
+  | 'reasoning.encrypted_content';
+
 export type OpenAIResponsesIncludeOptions =
-  | Array<
-      | 'web_search_call.action.sources'
-      | 'code_interpreter_call.outputs'
-      | 'computer_call_output.output.image_url'
-      | 'file_search_call.results'
-      | 'message.input_image.image_url'
-      | 'message.output_text.logprobs'
-      | 'reasoning.encrypted_content'
-    >
+  | Array<OpenAIResponsesIncludeValue>
   | undefined
   | null;
 
@@ -73,6 +74,44 @@ export type OpenAIResponsesItemReference = {
   id: string;
 };
 
+/**
+ * A filter used to compare a specified attribute key to a given value using a defined comparison operation.
+ */
+export type OpenAIResponsesFileSearchToolComparisonFilter = {
+  /**
+   * The key to compare against the value.
+   */
+  key: string;
+
+  /**
+   * Specifies the comparison operator: eq, ne, gt, gte, lt, lte.
+   */
+  type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
+
+  /**
+   * The value to compare against the attribute key; supports string, number, or boolean types.
+   */
+  value: string | number | boolean;
+};
+
+/**
+ * Combine multiple filters using and or or.
+ */
+export type OpenAIResponsesFileSearchToolCompoundFilter = {
+  /**
+   * Type of operation: and or or.
+   */
+  type: 'and' | 'or';
+
+  /**
+   * Array of filters to combine. Items can be ComparisonFilter or CompoundFilter.
+   */
+  filters: Array<
+    | OpenAIResponsesFileSearchToolComparisonFilter
+    | OpenAIResponsesFileSearchToolCompoundFilter
+  >;
+};
+
 export type OpenAIResponsesTool =
   | {
       type: 'function';
@@ -114,21 +153,14 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'file_search';
-      vector_store_ids: string[] | undefined;
+      vector_store_ids: string[];
       max_num_results: number | undefined;
       ranking_options:
-        | { ranker: 'auto' | 'default-2024-08-21' | undefined }
+        | { ranker?: string; score_threshold?: number }
         | undefined;
       filters:
-        | {
-            key: string;
-            type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
-            value: string | number | boolean;
-          }
-        | {
-            type: 'and' | 'or';
-            filters: any[];
-          }
+        | OpenAIResponsesFileSearchToolComparisonFilter
+        | OpenAIResponsesFileSearchToolCompoundFilter
         | undefined;
     }
   | {
