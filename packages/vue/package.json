@@ -30,8 +30,9 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "ai": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
+    "@ai-sdk/test-server": "workspace:*",
+    "ai": "workspace:*",
     "swrv": "^1.0.4"
   },
   "devDependencies": {

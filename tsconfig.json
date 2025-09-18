@@ -37,6 +37,7 @@
     { "path": "packages/revai" },
     { "path": "packages/rsc" },
     { "path": "packages/svelte" },
+    { "path": "packages/test-server" },
     { "path": "packages/togetherai" },
     { "path": "packages/valibot" },
     { "path": "packages/vercel" },
