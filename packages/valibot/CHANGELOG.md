@@ -1,5 +1,12 @@
 # @ai-sdk/valibot
 
+## 1.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+
 ## 1.1.0-beta.0
 
 ### Minor Changes
