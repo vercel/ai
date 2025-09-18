@@ -114,9 +114,12 @@ export function createVertex(
     // Create a function that adds the user-agent suffix to headers
     const getHeaders = async () => {
       const originalHeaders = await resolve(options.headers ?? {});
-      return withUserAgentSuffix(originalHeaders, `ai-sdk/google-vertex/${VERSION}`);
+      return withUserAgentSuffix(
+        originalHeaders,
+        `ai-sdk/google-vertex/${VERSION}`,
+      );
     };
-    
+
     return {
       provider: `google.vertex.${name}`,
       headers: getHeaders,

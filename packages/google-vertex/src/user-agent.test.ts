@@ -7,19 +7,23 @@ vi.mock('./version', () => ({
 
 // Mock the Google AI model that Google Vertex uses
 vi.mock('@ai-sdk/google/internal', () => ({
-  GoogleGenerativeAILanguageModel: vi.fn().mockImplementation((modelId, config) => ({
-    doGenerate: vi.fn().mockImplementation(async () => {
-      if (config?.fetch) {
-        await config.fetch('https://test-url', { headers: await config.headers() });
-      }
-      return {
-        content: [{ type: 'text', text: 'response' }],
-        finishReason: 'stop',
-        usage: {},
-        warnings: [],
-      };
-    }),
-  })),
+  GoogleGenerativeAILanguageModel: vi
+    .fn()
+    .mockImplementation((modelId, config) => ({
+      doGenerate: vi.fn().mockImplementation(async () => {
+        if (config?.fetch) {
+          await config.fetch('https://test-url', {
+            headers: await config.headers(),
+          });
+        }
+        return {
+          content: [{ type: 'text', text: 'response' }],
+          finishReason: 'stop',
+          usage: {},
+          warnings: [],
+        };
+      }),
+    })),
   googleTools: {
     googleSearch: vi.fn(),
     urlContext: vi.fn(),
@@ -32,13 +36,15 @@ describe('user-agent', () => {
     const mockFetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          candidates: [{
-            content: {
-              parts: [{ text: 'ok' }],
-              role: 'model',
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'ok' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
             },
-            finishReason: 'STOP',
-          }],
+          ],
           promptFeedback: {},
         }),
       ),
