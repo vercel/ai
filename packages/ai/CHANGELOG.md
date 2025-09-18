@@ -1,5 +1,11 @@
 # ai
 
+## 5.1.0-beta.1
+
+### Patch Changes
+
+- a7f6f81: Add safeValidateUIMessages utility to validate UI messages without throwing, returning a success/failure result object like Zod’s safeParse
+
 ## 5.1.0-beta.0
 
 ### Minor Changes
