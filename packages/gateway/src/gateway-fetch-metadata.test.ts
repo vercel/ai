@@ -655,7 +655,7 @@ describe('GatewayFetchMetadata', () => {
       });
 
       expect(customFetch).toHaveBeenCalledWith(
-        'https://api.example.com/credits',
+        'https://api.example.com/v1/credits',
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({

@@ -46,8 +46,11 @@ export class GatewayFetchMetadata {
 
   async getCredits(): Promise<GatewayCreditsResponse> {
     try {
+      const baseUrl = new URL(this.config.baseURL);
+      const creditsUrl = `${baseUrl.origin}/v1/credits`;
+
       const { value } = await getFromApi({
-        url: `${this.config.baseURL}/credits`,
+        url: creditsUrl,
         headers: await resolve(this.config.headers()),
         successfulResponseHandler:
           createJsonResponseHandler(gatewayCreditsSchema),
