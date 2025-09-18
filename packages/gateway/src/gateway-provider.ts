@@ -12,6 +12,7 @@ import {
 import {
   GatewayFetchMetadata,
   type GatewayFetchMetadataResponse,
+  type GatewayCreditsResponse,
 } from './gateway-fetch-metadata';
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
@@ -36,6 +37,11 @@ Creates a model for text generation.
 Returns available providers and models for use with the remote provider.
  */
   getAvailableModels(): Promise<GatewayFetchMetadataResponse>;
+
+  /**
+Returns credit information for the authenticated user.
+ */
+  getCredits(): Promise<GatewayCreditsResponse>;
 
   /**
 Creates a model for generating text embeddings.
@@ -174,6 +180,18 @@ export function createGatewayProvider(
     return metadataCache ? Promise.resolve(metadataCache) : pendingMetadata;
   };
 
+  const getCredits = async () => {
+    try {
+      return await new GatewayFetchMetadata({
+        baseURL,
+        headers: getHeaders,
+        fetch: options.fetch,
+      }).getCredits();
+    } catch (error: unknown) {
+      throw asGatewayError(error, parseAuthMethod(await getHeaders()));
+    }
+  };
+
   const provider = function (modelId: GatewayModelId) {
     if (new.target) {
       throw new Error(
@@ -185,6 +203,7 @@ export function createGatewayProvider(
   };
 
   provider.getAvailableModels = getAvailableModels;
+  provider.getCredits = getCredits;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
