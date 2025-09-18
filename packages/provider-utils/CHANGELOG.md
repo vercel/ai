@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.1.0-beta.1
+
+### Patch Changes
+
+- cbb1d35: Update for provider-util changeset after change in PR #8588
+
 ## 3.1.0-beta.0
 
 ### Minor Changes
