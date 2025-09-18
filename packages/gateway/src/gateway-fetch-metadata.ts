@@ -21,7 +21,7 @@ export interface GatewayCreditsResponse {
 }
 
 export class GatewayFetchMetadata {
-  constructor(private readonly config: GatewayFetchMetadataConfig) { }
+  constructor(private readonly config: GatewayFetchMetadataConfig) {}
 
   async getAvailableModels(): Promise<GatewayFetchMetadataResponse> {
     try {

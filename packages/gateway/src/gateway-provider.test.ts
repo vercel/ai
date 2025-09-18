@@ -124,7 +124,7 @@ describe('GatewayProvider', () => {
       expect(() => {
         new (provider as unknown as {
           (modelId: string): unknown;
-          new(modelId: string): never;
+          new (modelId: string): never;
         })('test-model');
       }).toThrow(
         'The Gateway Provider model function cannot be called with the new keyword.',
