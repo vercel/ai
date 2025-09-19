@@ -125,7 +125,9 @@ const { text } = await generateText({
 You can create models that call the Baseten embeddings API using the `.textEmbeddingModel()` factory method. The Baseten provider uses the high-performance `@basetenlabs/performance-client` for optimal embedding performance.
 
 <Note>
-  **Important:** Embedding models require a dedicated deployment with a custom `modelURL`. Unlike chat models, embeddings cannot use Baseten's default Models API and must specify a dedicated model endpoint.
+  **Important:** Embedding models require a dedicated deployment with a custom
+  `modelURL`. Unlike chat models, embeddings cannot use Baseten's default Models
+  API and must specify a dedicated model endpoint.
 </Note>
 
 ```ts
