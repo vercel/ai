@@ -4,8 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
-import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
-import { VERSION } from './version';
+import { createXai } from './xai-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -309,13 +308,11 @@ describe('XaiChatLanguageModel', () => {
       const modelWithHeaders = new XaiChatLanguageModel('grok-beta', {
         provider: 'xai.chat',
         baseURL: 'https://api.x.ai/v1',
-        headers: () => withUserAgentSuffix(
-          {
-            authorization: 'Bearer test-api-key',
-            'Custom-Provider-Header': 'provider-header-value',
-          },
-          `ai-sdk/xai/${VERSION}`,
-        ),
+        headers: () => ({
+          authorization: 'Bearer test-api-key',
+          'Custom-Provider-Header': 'provider-header-value',
+        }),
+
         generateId: () => 'test-id',
       });
 
@@ -335,7 +332,26 @@ describe('XaiChatLanguageModel', () => {
         'custom-request-header': 'request-header-value',
       });
 
-      expect(server.calls[0].requestUserAgent).toContain(`ai-sdk/xai/0.0.0-test`);
+    });
+
+    it('should include provider user agent when using createXai', async () => {
+      prepareJsonResponse({ content: '' });
+
+      const xai = createXai({
+        apiKey: 'test-api-key',
+        headers: { 'Custom-Provider-Header': 'provider-header-value' },
+      });
+
+      const modelWithHeaders = xai.chat('grok-beta');
+
+      await modelWithHeaders.doGenerate({
+        prompt: TEST_PROMPT,
+        headers: { 'Custom-Request-Header': 'request-header-value' },
+      });
+
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/xai/0.0.0-test`,
+      );
     });
 
     it('should send request body', async () => {
