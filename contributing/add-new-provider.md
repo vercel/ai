@@ -4,7 +4,7 @@
 
 Every provider is welcome to create a 3rd party package. We are happy to link to it from our documentation.
 
-If you would prefer a 1st party `@ai-sdk/<provider>` package, the decision comes usually down to whether the Vercel AI Gateway will support the provider or not. If AI Gateway is or will support the provider, we prefer the provider package to be part of the `vercel/ai` repository.
+If you would prefer a 1st party `@ai-sdk/<provider>` package, please create an issue first to discuss.
 
 ## Example
 
