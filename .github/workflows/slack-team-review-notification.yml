@@ -34,4 +34,4 @@ jobs:
           SLACK_SEND_MESSAGE_URL: ${{ secrets.SLACK_SEND_MESSAGE_URL }}
           CHANNEL_ID: "C050WU03V3N"
           TEXT: |
-            :pr: ${{ github.event.pull_request.title }} <${{ github.event.pull_request.html_url }}|#${{ github.event.pull_request.number }}>"
+            :pr: ${{ github.event.pull_request.title }} <${{ github.event.pull_request.html_url }}|#${{ github.event.pull_request.number }}>
