@@ -7,6 +7,7 @@
 '@ai-sdk/azure': patch
 '@ai-sdk/amazon-bedrock': patch
 '@ai-sdk/cohere': patch
+'@ai-sdk/mistral': patch
 ---
 
 feat(provider/gateway): add version to user-agent header
@@ -17,3 +18,4 @@ feat(provider/google-vertex): add version to user-agent header
 feat(provider/azure): add version to user-agent header
 feat(provider/amazon-bedrock): add version to user-agent header
 feat(provider/cohere): add version to user-agent header
+feat(provider/mistral): add version to user-agent header
