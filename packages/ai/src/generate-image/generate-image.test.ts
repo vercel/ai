@@ -1,5 +1,5 @@
 import {
-  ImageModelV2,
+  ImageModelV3,
   ImageModelV3CallWarning,
   ImageModelV3ProviderMetadata,
 } from '@ai-sdk/provider';
@@ -75,7 +75,7 @@ describe('generateImage', () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<ImageModelV2['doGenerate']>[0];
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
 
     await generateImage({
       model: new MockImageModelV2({

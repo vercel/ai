@@ -16,7 +16,7 @@ type GetMaxImagesPerCallFunction = (options: {
 /**
 Image generation model specification version 2.
  */
-export type ImageModelV2 = {
+export type ImageModelV3 = {
   /**
 The image model must specify which image model interface
 version it implements. This will allow us to evolve the image

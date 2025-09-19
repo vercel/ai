@@ -1,5 +1,5 @@
 export type {
-  ImageModelV2,
+  ImageModelV3,
   ImageModelV3ProviderMetadata,
 } from './image-model-v3';
 export type { ImageModelV3CallOptions } from './image-model-v3-call-options';

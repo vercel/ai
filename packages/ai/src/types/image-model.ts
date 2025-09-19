@@ -1,5 +1,5 @@
 import {
-  ImageModelV2,
+  ImageModelV3,
   ImageModelV3CallWarning,
   ImageModelV3ProviderMetadata,
 } from '@ai-sdk/provider';
@@ -7,7 +7,7 @@ import {
 /**
 Image model that is used by the AI SDK Core functions.
   */
-export type ImageModel = ImageModelV2;
+export type ImageModel = ImageModelV3;
 
 /**
 Warning from the model provider for this call. The call will proceed, but e.g.

@@ -1,4 +1,4 @@
-import { ImageModelV2, ImageModelV3ProviderMetadata } from '@ai-sdk/provider';
+import { ImageModelV3, ImageModelV3ProviderMetadata } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
@@ -50,7 +50,7 @@ export async function generateImage({
   /**
 The image model to use.
      */
-  model: ImageModelV2;
+  model: ImageModelV3;
 
   /**
 The prompt that should be used to generate the image.
@@ -239,7 +239,7 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   }
 }
 
-async function invokeModelMaxImagesPerCall(model: ImageModelV2) {
+async function invokeModelMaxImagesPerCall(model: ImageModelV3) {
   const isFunction = model.maxImagesPerCall instanceof Function;
 
   if (!isFunction) {

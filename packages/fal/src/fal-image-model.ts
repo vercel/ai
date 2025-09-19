@@ -1,5 +1,5 @@
 import type {
-  ImageModelV2,
+  ImageModelV3,
   ImageModelV3CallWarning,
   JSONObject,
 } from '@ai-sdk/provider';
@@ -28,7 +28,7 @@ interface FalImageModelConfig {
   };
 }
 
-export class FalImageModel implements ImageModelV2 {
+export class FalImageModel implements ImageModelV3 {
   readonly specificationVersion = 'v2';
   readonly maxImagesPerCall = 1;
 
@@ -50,8 +50,8 @@ export class FalImageModel implements ImageModelV2 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV2['doGenerate']>>
+  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
     const warnings: Array<ImageModelV3CallWarning> = [];
 

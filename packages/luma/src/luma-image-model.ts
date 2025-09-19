@@ -1,5 +1,5 @@
 import {
-  ImageModelV2,
+  ImageModelV3,
   ImageModelV3CallWarning,
   InvalidResponseDataError,
 } from '@ai-sdk/provider';
@@ -30,7 +30,7 @@ interface LumaImageModelConfig {
   };
 }
 
-export class LumaImageModel implements ImageModelV2 {
+export class LumaImageModel implements ImageModelV3 {
   readonly specificationVersion = 'v2';
   readonly maxImagesPerCall = 1;
   readonly pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS;
@@ -54,8 +54,8 @@ export class LumaImageModel implements ImageModelV2 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV2['doGenerate']>>
+  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
     const warnings: Array<ImageModelV3CallWarning> = [];
 
