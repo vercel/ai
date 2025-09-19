@@ -1,5 +1,11 @@
 # @ai-sdk/llamaindex
 
+## 1.1.0-beta.3
+
+### Patch Changes
+
+- ai@5.1.0-beta.3
+
 ## 1.1.0-beta.2
 
 ### Patch Changes
