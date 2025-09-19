@@ -29,9 +29,10 @@ jobs:
       - name: Send Slack notification
         if: steps.check_team.outputs.ai_sdk_requested == 'true'
         run: |
-          curl ${{ env.SLACK_SEND_MESSAGE_URL }} -X POST -H "Content-Type: application/json" -d '{"channel_id": "${{ env.CHANNEL_ID }}", "message": ${{ toJson(env.TEXT) }}}'
+          curl ${{ env.SLACK_SEND_MESSAGE_URL }} -X POST -H "Content-Type: application/json" -d '{"channel_id": "${{ env.CHANNEL_ID }}", "number": "${{ env.NUMBER }}", "title": ${{ toJson(env.TITLE) }}, "url": "${{ env.URL }}"}'
         env:
           SLACK_SEND_MESSAGE_URL: ${{ secrets.SLACK_SEND_MESSAGE_URL }}
           CHANNEL_ID: "C050WU03V3N"
-          TEXT: |
-            :pr: ${{ github.event.pull_request.title }} <${{ github.event.pull_request.html_url }}|#${{ github.event.pull_request.number }}>
+          NUMBER: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          URL: ${{ github.event.pull_request.html_url }}
