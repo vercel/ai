@@ -40,12 +40,13 @@ describe('user-agent', () => {
     });
 
     const model = provider('deepseek-model-id');
-    
+
     // Extract the OpenAICompatibleChatLanguageModel constructor call
-    const constructorCall = vi.mocked(OpenAICompatibleChatLanguageModel).mock.calls[0];
+    const constructorCall = vi.mocked(OpenAICompatibleChatLanguageModel).mock
+      .calls[0];
     const config = constructorCall[1];
     const headers = config.headers();
-    
+
     expect(headers['user-agent']).toContain('ai-sdk/deepseek/0.0.0-test');
   });
 });

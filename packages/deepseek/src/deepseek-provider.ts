@@ -57,7 +57,7 @@ export function createDeepSeek(
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.deepseek.com/v1',
   );
-  const getHeaders = () => 
+  const getHeaders = () =>
     withUserAgentSuffix(
       {
         Authorization: `Bearer ${loadApiKey({
