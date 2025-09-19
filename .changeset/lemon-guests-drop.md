@@ -21,6 +21,7 @@
 '@ai-sdk/elevenlabs': patch
 '@ai-sdk/assemblyai': patch
 '@ai-sdk/deepgram': patch
+'@ai-sdk/gladia': patch
 ---
 
 feat(provider/gateway): add version to user-agent header
@@ -45,3 +46,4 @@ feat(provider/vercel): add version to user-agent header
 feat(provider/elevenlabs): add version to user-agent header
 feat(provider/assemblyai): add version to user-agent header
 feat(provider/deepgram): add version to user-agent header
+feat(provider/gladia): add version to user-agent header
