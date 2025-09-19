@@ -22,6 +22,8 @@ import {
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 
+const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+
 export interface GoogleGenerativeAIProvider extends ProviderV2 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
@@ -96,9 +98,7 @@ Create a Google Generative AI provider instance.
 export function createGoogleGenerativeAI(
   options: GoogleGenerativeAIProviderSettings = {},
 ): GoogleGenerativeAIProvider {
-  const baseURL =
-    withoutTrailingSlash(options.baseURL) ??
-    'https://generativelanguage.googleapis.com/v1beta';
+  const baseURL = withoutTrailingSlash(options.baseURL) ?? DEFAULT_BASE_URL;
 
   const getHeaders = () => ({
     'x-goog-api-key': loadApiKey({
@@ -119,7 +119,7 @@ export function createGoogleGenerativeAI(
         '*': [
           // Google Generative Language "files" endpoint
           // e.g. https://generativelanguage.googleapis.com/v1beta/files/...
-          new RegExp(`^${baseURL}/files/.*$`),
+          new RegExp(`^${DEFAULT_BASE_URL}/files/.*$`),
           // YouTube URLs (public or unlisted videos)
           new RegExp(
             `^https://(?:www\\.)?youtube\\.com/watch\\?v=[\\w-]+(?:&[\\w=&.-]*)?$`,
