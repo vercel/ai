@@ -331,7 +331,6 @@ describe('XaiChatLanguageModel', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
-
     });
 
     it('should include provider user agent when using createXai', async () => {
