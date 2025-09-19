@@ -48,7 +48,7 @@ describe('GatewayLanguageModel', () => {
       const model = createTestModel();
       expect(model.modelId).toBe('test-model');
       expect(model.provider).toBe('test-provider');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v2');
     });
   });
 
