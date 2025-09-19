@@ -19,11 +19,10 @@ async function main() {
     prompt: 'Invent a new holiday and describe its traditions.',
     onAbort: ({ usage, totalUsage }) => {
       console.log('Stream aborted before completion.');
+      console.log('Usage snapshot:', usage);
+      console.log('Total usage so far:', totalUsage);
       console.log('Reasoning tokens generated:', usage.reasoningTokens ?? 0);
-      console.log(
-        'Cached input tokens served:',
-        totalUsage.cachedInputTokens ?? 0,
-      );
+      console.log('Cached input tokens served:', totalUsage.cachedInputTokens ?? 0);
     },
     experimental_telemetry: {
       isEnabled: true,

@@ -14,18 +14,18 @@ async function main() {
         console.log('\n\nAborted!');
         console.log('Steps completed:', steps.length);
         console.log('Last step usage:', {
-          inputTokens: usage.inputTokens,
-          outputTokens: usage.outputTokens,
-          totalTokens: usage.totalTokens,
-          reasoningTokens: usage.reasoningTokens,
-          cachedInputTokens: usage.cachedInputTokens,
+          inputTokens: usage.inputTokens ?? 0,
+          outputTokens: usage.outputTokens ?? 0,
+          totalTokens: usage.totalTokens ?? 0,
+          reasoningTokens: usage.reasoningTokens ?? 0,
+          cachedInputTokens: usage.cachedInputTokens ?? 0,
         });
         console.log('Total usage:', {
-          inputTokens: totalUsage.inputTokens,
-          outputTokens: totalUsage.outputTokens,
-          totalTokens: totalUsage.totalTokens,
-          reasoningTokens: totalUsage.reasoningTokens,
-          cachedInputTokens: totalUsage.cachedInputTokens,
+          inputTokens: totalUsage.inputTokens ?? 0,
+          outputTokens: totalUsage.outputTokens ?? 0,
+          totalTokens: totalUsage.totalTokens ?? 0,
+          reasoningTokens: totalUsage.reasoningTokens ?? 0,
+          cachedInputTokens: totalUsage.cachedInputTokens ?? 0,
         });
       },
     });
