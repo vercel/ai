@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.2
+
+### Patch Changes
+
+- 3e83633: add getCredits() gateway method
+- f83903d: getCredits style improvements
+
 ## 1.1.0-beta.1
 
 ### Patch Changes
