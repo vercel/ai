@@ -28,10 +28,9 @@ jobs:
 
       - name: Send Slack notification
         if: steps.check_team.outputs.ai_sdk_requested == 'true'
-        uses: slackapi/slack-github-action@v2.1.1
-        with:
-          method: chat.postMessage
-          token: ${{ secrets.SLACK_BOT_TOKEN }}
-          payload: |
-            channel: C050WU03V3N
-            text: ":pr: ${{ github.event.pull_request.title }} <${{ github.event.pull_request.html_url }}|#${{ github.event.pull_request.number }}>"
+        run: |
+          curl SLACK_SEND_MESSAGE_URL -X POST -H "Content-Type: application/json" -d '{"channel_id": "${{ env.CHANNEL_ID }}", "text": ${{ toJson(env.TEXT) }}}'
+        env:
+          CHANNEL_ID: "C050WU03V3N"
+          TEXT: |
+            :pr: ${{ github.event.pull_request.title }} <${{ github.event.pull_request.html_url }}|#${{ github.event.pull_request.number }}>"
