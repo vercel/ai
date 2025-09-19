@@ -18,6 +18,7 @@
 '@ai-sdk/togetherai': patch
 '@ai-sdk/xai': patch
 '@ai-sdk/vercel': patch
+'@ai-sdk/elevenlabs': patch
 ---
 
 feat(provider/gateway): add version to user-agent header
@@ -39,3 +40,4 @@ feat(provider/replicate): add version to user-agent header
 feat(provider/togetherai): add version to user-agent header
 feat(provider/xai): add version to user-agent header
 feat(provider/vercel): add version to user-agent header
+feat(provider/elevenlabs): add version to user-agent header
