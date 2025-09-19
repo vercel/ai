@@ -14,6 +14,7 @@
 '@ai-sdk/deepseek': patch
 '@ai-sdk/fireworks': patch
 '@ai-sdk/perplexity': patch
+'@ai-sdk/replicate': patch
 ---
 
 feat(provider/gateway): add version to user-agent header
@@ -31,3 +32,4 @@ feat(provider/deepinfra): add version to user-agent header
 feat(provider/deepseek): add version to user-agent header
 feat(provider/fireworks): add version to user-agent header
 feat(provider/perplexity): add version to user-agent header
+feat(provider/replicate): add version to user-agent header
