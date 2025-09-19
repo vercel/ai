@@ -12,6 +12,7 @@
 '@ai-sdk/cerebras': patch
 '@ai-sdk/deepinfra': patch
 '@ai-sdk/deepseek': patch
+'@ai-sdk/fireworks': patch
 ---
 
 feat(provider/gateway): add version to user-agent header
@@ -27,3 +28,4 @@ feat(provider/groq): add version to user-agent header
 feat(provider/cerebras): add version to user-agent header
 feat(provider/deepinfra): add version to user-agent header
 feat(provider/deepseek): add version to user-agent header
+feat(provider/fireworks): add version to user-agent header
