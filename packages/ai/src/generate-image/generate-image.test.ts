@@ -1,7 +1,7 @@
 import {
   ImageModelV2,
   ImageModelV3CallWarning,
-  ImageModelV2ProviderMetadata,
+  ImageModelV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -41,7 +41,7 @@ const createMockResponse = (options: {
   warnings?: ImageModelV3CallWarning[];
   timestamp?: Date;
   modelId?: string;
-  providerMetaData?: ImageModelV2ProviderMetadata;
+  providerMetaData?: ImageModelV3ProviderMetadata;
   headers?: Record<string, string>;
 }) => ({
   images: options.images,

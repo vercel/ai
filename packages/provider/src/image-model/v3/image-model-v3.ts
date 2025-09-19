@@ -2,7 +2,7 @@ import { JSONArray, JSONValue } from '../../json-value';
 import { ImageModelV3CallOptions } from './image-model-v3-call-options';
 import { ImageModelV3CallWarning } from './image-model-v3-call-warning';
 
-export type ImageModelV2ProviderMetadata = Record<
+export type ImageModelV3ProviderMetadata = Record<
   string,
   {
     images: JSONArray;
@@ -79,7 +79,7 @@ record is provider-specific metadata. It always includes an
 }
 ```
       */
-    providerMetadata?: ImageModelV2ProviderMetadata;
+    providerMetadata?: ImageModelV3ProviderMetadata;
 
     /**
 Response information for telemetry and debugging purposes.

@@ -1,7 +1,7 @@
 import {
   ImageModelV2,
   ImageModelV3CallWarning,
-  ImageModelV2ProviderMetadata,
+  ImageModelV3ProviderMetadata,
 } from '@ai-sdk/provider';
 
 /**
@@ -18,4 +18,4 @@ export type ImageGenerationWarning = ImageModelV3CallWarning;
 /**
 Metadata from the model provider for this call
   */
-export type ImageModelProviderMetadata = ImageModelV2ProviderMetadata;
+export type ImageModelProviderMetadata = ImageModelV3ProviderMetadata;

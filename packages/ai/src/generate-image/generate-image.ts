@@ -1,4 +1,4 @@
-import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV3ProviderMetadata } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
@@ -171,7 +171,7 @@ Only applicable for HTTP-based providers.
   const images: Array<DefaultGeneratedFile> = [];
   const warnings: Array<ImageGenerationWarning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
-  const providerMetadata: ImageModelV2ProviderMetadata = {};
+  const providerMetadata: ImageModelV3ProviderMetadata = {};
   for (const result of results) {
     images.push(
       ...result.images.map(
@@ -220,13 +220,13 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedFile>;
   readonly warnings: Array<ImageGenerationWarning>;
   readonly responses: Array<ImageModelResponseMetadata>;
-  readonly providerMetadata: ImageModelV2ProviderMetadata;
+  readonly providerMetadata: ImageModelV3ProviderMetadata;
 
   constructor(options: {
     images: Array<GeneratedFile>;
     warnings: Array<ImageGenerationWarning>;
     responses: Array<ImageModelResponseMetadata>;
-    providerMetadata: ImageModelV2ProviderMetadata;
+    providerMetadata: ImageModelV3ProviderMetadata;
   }) {
     this.images = options.images;
     this.warnings = options.warnings;
