@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.47
+
+### Patch Changes
+
+- Updated dependencies [c86e0f7]
+- Updated dependencies [6bbae01]
+  - @ai-sdk/gateway@1.0.24
+
 ## 5.0.46
 
 ### Patch Changes

@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@5.0.47
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [c580fbd]
   - ai@5.0.46
 
