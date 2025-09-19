@@ -498,6 +498,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
               usage.cachedInputTokens =
                 value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
 
+              // Send finish chunk immediately when usage is received during streaming
+              // This ensures usage information is available for abort scenarios
+              controller.enqueue({
+                type: 'finish',
+                finishReason: finishReason || 'unknown',
+                usage: { ...usage },
+                ...(providerMetadata != null ? { providerMetadata } : {}),
+              });
+
               if (
                 value.usage.completion_tokens_details
                   ?.accepted_prediction_tokens != null
