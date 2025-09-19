@@ -23,6 +23,7 @@
 '@ai-sdk/deepgram': patch
 '@ai-sdk/gladia': patch
 '@ai-sdk/revai': patch
+'@ai-sdk/luma': patch
 ---
 
 feat(provider/gateway): add version to user-agent header
@@ -49,3 +50,4 @@ feat(provider/assemblyai): add version to user-agent header
 feat(provider/deepgram): add version to user-agent header
 feat(provider/gladia): add version to user-agent header
 feat(provider/revai): add version to user-agent header
+feat(provider/luma): add version to user-agent header
