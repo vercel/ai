@@ -1,0 +1,37 @@
+name: Slack Team Review Notification
+
+on:
+  pull_request:
+    types: [review_requested]
+
+jobs:
+  notify-slack:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: debug
+        run: echo "${{ toJSON(github.event) }}"
+      - name: Check if ai-sdk team was requested
+        id: check_team
+        run: |
+          echo "Checking requested teams..."
+          teams='${{ toJson(github.event.pull_request.requested_teams) }}'
+          
+          # Check if ai-sdk team is in the requested teams
+          if echo "$teams" | jq -e '.[] | select(.slug == "ai-sdk")' > /dev/null; then
+            echo "ai_sdk_requested=true" >> $GITHUB_OUTPUT
+            echo "✅ ai-sdk team was requested for review"
+          else
+            echo "ai_sdk_requested=false" >> $GITHUB_OUTPUT
+            echo "❌ ai-sdk team was not requested for review"
+          fi
+
+      - name: Send Slack notification
+        if: steps.check_team.outputs.ai_sdk_requested == 'true'
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload: |
+            channel: C050WU03V3N
+            text: ":pr: ${{ github.event.pull_request.title }} <${{ github.event.pull_request.html_url }}|#${{ github.event.pull_request.number }}>"
