@@ -1,5 +1,5 @@
 import { JSONArray, JSONValue } from '../../json-value';
-import { ImageModelV2CallOptions } from './image-model-v3-call-options';
+import { ImageModelV3CallOptions } from './image-model-v3-call-options';
 import { ImageModelV2CallWarning } from './image-model-v3-call-warning';
 
 export type ImageModelV2ProviderMetadata = Record<
@@ -47,7 +47,7 @@ optionally as a promise.
   /**
 Generates an array of images.
    */
-  doGenerate(options: ImageModelV2CallOptions): PromiseLike<{
+  doGenerate(options: ImageModelV3CallOptions): PromiseLike<{
     /**
 Generated images as base64 encoded strings or binary data.
 The images should be returned without any unnecessary conversion.

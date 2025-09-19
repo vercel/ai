@@ -1,6 +1,6 @@
 import { SharedV2ProviderOptions } from '../../shared';
 
-export type ImageModelV2CallOptions = {
+export type ImageModelV3CallOptions = {
   /**
 Prompt for the image generation.
      */
