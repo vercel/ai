@@ -24,7 +24,7 @@ model interface and retain backwards compatibility. The different
 implementation versions can be handled as a discriminated union
 on our side.
    */
-  readonly specificationVersion: 'v2';
+  readonly specificationVersion: 'v3';
 
   /**
 Name of the provider for logging purposes.
