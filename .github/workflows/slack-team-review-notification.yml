@@ -10,7 +10,7 @@ jobs:
     
     steps:
       - name: debug
-        run: echo "${{ toJSON(github.event) }}"
+        run: cat $GITHUB_EVENT_PATH
       - name: Check if ai-sdk team was requested
         id: check_team
         run: |
