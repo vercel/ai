@@ -225,6 +225,25 @@ The `getCredits()` method returns your team's credit information based on the au
 - **balance** _number_ - Your team's current available credit balance
 - **total_used** _number_ - Total credits consumed by your team
 
+## Generation Data
+
+You can retrieve detailed information about a specific generation using its `generationId`:
+
+```ts
+import { gateway } from 'ai';
+
+const generationData = await gateway.getGeneration('gen_01234567890123456789012345');
+
+console.log(`Provider: ${generationData.provider}`);
+console.log(`Model: ${generationData.model}`);
+console.log(`Cost: $${generationData.cost}`);
+console.log(`Input tokens: ${generationData.inputTokens}`);
+console.log(`Output tokens: ${generationData.outputTokens}`);
+console.log(`Request duration: ${generationData.requestDurationMs}ms`);
+console.log(`Time to first token: ${generationData.timeToFirstTokenMs}`);
+console.log(`Token throughput: ${generationData.tokenThroughput}`);
+```
+
 ## Examples
 
 ### Basic Text Generation
