@@ -1,13 +1,19 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
+import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import { VERSION } from './version';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const testConfig = {
   provider: 'xai.chat',
@@ -303,10 +309,13 @@ describe('XaiChatLanguageModel', () => {
       const modelWithHeaders = new XaiChatLanguageModel('grok-beta', {
         provider: 'xai.chat',
         baseURL: 'https://api.x.ai/v1',
-        headers: () => ({
-          authorization: 'Bearer test-api-key',
-          'Custom-Provider-Header': 'provider-header-value',
-        }),
+        headers: () => withUserAgentSuffix(
+          {
+            authorization: 'Bearer test-api-key',
+            'Custom-Provider-Header': 'provider-header-value',
+          },
+          `ai-sdk/xai/${VERSION}`,
+        ),
         generateId: () => 'test-id',
       });
 
@@ -325,6 +334,8 @@ describe('XaiChatLanguageModel', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+
+      expect(server.calls[0].requestUserAgent).toContain(`ai-sdk/xai/0.0.0-test`);
     });
 
     it('should send request body', async () => {
