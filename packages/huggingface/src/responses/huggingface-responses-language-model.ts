@@ -243,7 +243,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: 'list_tools',
-            input: `{"server_label": "${part.server_label}"}`,
+            input: JSON.stringify({ server_label: part.server_label }),
             providerExecuted: true,
           });
 
