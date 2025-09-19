@@ -520,7 +520,7 @@ describe('GatewayFetchMetadata', () => {
 
       expect(result).toEqual({
         balance: '150.50',
-        total_used: '75.25',
+        totalUsed: '75.25',
       });
     });
 
@@ -548,7 +548,7 @@ describe('GatewayFetchMetadata', () => {
       });
       expect(result).toEqual({
         balance: '100.00',
-        total_used: '50.00',
+        totalUsed: '50.00',
       });
     });
 
@@ -623,7 +623,7 @@ describe('GatewayFetchMetadata', () => {
 
       expect(result).toEqual({
         balance: 'not-a-number',
-        total_used: '75.25',
+        totalUsed: '75.25',
       });
     });
 
@@ -651,7 +651,7 @@ describe('GatewayFetchMetadata', () => {
 
       expect(result).toEqual({
         balance: '200.00',
-        total_used: '100.50',
+        totalUsed: '100.50',
       });
 
       expect(customFetch).toHaveBeenCalledWith(
@@ -767,7 +767,7 @@ describe('GatewayFetchMetadata', () => {
 
       expect(result).toEqual({
         balance: '0.00',
-        total_used: '0.00',
+        totalUsed: '0.00',
       });
     });
   });
