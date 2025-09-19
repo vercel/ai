@@ -25,7 +25,7 @@ export type OpenAICompatibleImageModelConfig = {
 };
 
 export class OpenAICompatibleImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly maxImagesPerCall = 10;
 
   get provider(): string {

@@ -18,7 +18,7 @@ import {
   vitest,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockImageModelV2 } from '../test/mock-image-model-v2';
+import { MockImageModelV3 } from '../test/mock-image-model-v2';
 import { generateImage } from './generate-image';
 
 const prompt = 'sunny day at the beach';
@@ -78,7 +78,7 @@ describe('generateImage', () => {
     let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
 
     await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
@@ -118,7 +118,7 @@ describe('generateImage', () => {
 
   it('should return warnings', async () => {
     const result = await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -155,7 +155,7 @@ describe('generateImage', () => {
     ];
 
     await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -183,7 +183,7 @@ describe('generateImage', () => {
     let callCount = 0;
 
     await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         maxImagesPerCall: 1,
         doGenerate: async () => {
           switch (callCount++) {
@@ -212,7 +212,7 @@ describe('generateImage', () => {
 
   it('should call logWarnings with empty array when no warnings are present', async () => {
     await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -229,7 +229,7 @@ describe('generateImage', () => {
   describe('base64 image data', () => {
     it('should return generated images with correct mime types', async () => {
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           doGenerate: async () =>
             createMockResponse({
               images: [pngBase64, jpegBase64],
@@ -260,7 +260,7 @@ describe('generateImage', () => {
 
     it('should return the first image with correct mime type', async () => {
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           doGenerate: async () =>
             createMockResponse({
               images: [pngBase64, jpegBase64],
@@ -289,7 +289,7 @@ describe('generateImage', () => {
       ];
 
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           doGenerate: async () =>
             createMockResponse({
               images: uint8ArrayImages,
@@ -323,7 +323,7 @@ describe('generateImage', () => {
       let callCount = 0;
 
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           maxImagesPerCall: 2,
           doGenerate: async options => {
             switch (callCount++) {
@@ -390,7 +390,7 @@ describe('generateImage', () => {
       let callCount = 0;
 
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           maxImagesPerCall: 2,
           doGenerate: async options => {
             switch (callCount++) {
@@ -464,7 +464,7 @@ describe('generateImage', () => {
         const maxImagesPerCallMock = vitest.fn(maxImagesPerCall);
 
         const result = await generateImage({
-          model: new MockImageModelV2({
+          model: new MockImageModelV3({
             maxImagesPerCall: maxImagesPerCallMock,
             doGenerate: async options => {
               switch (callCount++) {
@@ -535,7 +535,7 @@ describe('generateImage', () => {
     it('should throw NoImageGeneratedError when no images are returned', async () => {
       await expect(
         generateImage({
-          model: new MockImageModelV2({
+          model: new MockImageModelV3({
             doGenerate: async () =>
               createMockResponse({
                 images: [],
@@ -559,7 +559,7 @@ describe('generateImage', () => {
     it('should include response headers in error when no images generated', async () => {
       await expect(
         generateImage({
-          model: new MockImageModelV2({
+          model: new MockImageModelV3({
             doGenerate: async () =>
               createMockResponse({
                 images: [],
@@ -593,7 +593,7 @@ describe('generateImage', () => {
     const testHeaders = { 'x-test': 'value' };
 
     const result = await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -616,7 +616,7 @@ describe('generateImage', () => {
 
   it('should return provider metadata', async () => {
     const result = await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64, pngBase64],

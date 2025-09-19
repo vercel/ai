@@ -116,7 +116,7 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<GenerateImageResult> {
-  if (model.specificationVersion !== 'v2') {
+  if (model.specificationVersion !== 'v3') {
     throw new UnsupportedModelVersionError({
       version: model.specificationVersion,
       provider: model.provider,

@@ -20,7 +20,7 @@ interface DeepInfraImageModelConfig {
 }
 
 export class DeepInfraImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {

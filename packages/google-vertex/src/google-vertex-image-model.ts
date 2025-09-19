@@ -23,7 +23,7 @@ interface GoogleVertexImageModelConfig {
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
 export class GoogleVertexImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
   readonly maxImagesPerCall = 4;
 

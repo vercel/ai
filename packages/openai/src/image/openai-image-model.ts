@@ -20,7 +20,7 @@ interface OpenAIImageModelConfig extends OpenAIConfig {
 }
 
 export class OpenAIImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
 
   get maxImagesPerCall(): number {
     return modelMaxImagesPerCall[this.modelId] ?? 1;

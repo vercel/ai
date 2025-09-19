@@ -1,8 +1,8 @@
 import { ImageModelV3 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
-export class MockImageModelV2 implements ImageModelV3 {
-  readonly specificationVersion = 'v2';
+export class MockImageModelV3 implements ImageModelV3 {
+  readonly specificationVersion = 'v3';
   readonly provider: ImageModelV3['provider'];
   readonly modelId: ImageModelV3['modelId'];
   readonly maxImagesPerCall: ImageModelV3['maxImagesPerCall'];

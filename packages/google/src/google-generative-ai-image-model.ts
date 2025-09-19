@@ -26,7 +26,7 @@ interface GoogleGenerativeAIImageModelConfig {
 }
 
 export class GoogleGenerativeAIImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
 
   get maxImagesPerCall(): number {
     // https://ai.google.dev/gemini-api/docs/imagen#imagen-model
