@@ -1,6 +1,6 @@
 import { JSONArray, JSONValue } from '../../json-value';
-import { ImageModelV2CallOptions } from './image-model-v2-call-options';
-import { ImageModelV2CallWarning } from './image-model-v2-call-warning';
+import { ImageModelV2CallOptions } from './image-model-v3-call-options';
+import { ImageModelV2CallWarning } from './image-model-v3-call-warning';
 
 export type ImageModelV2ProviderMetadata = Record<
   string,
