@@ -24,6 +24,7 @@ vi.mock('./gateway-language-model', () => ({
 // We'll create a more flexible mock that can simulate auth failures
 const mockGetAvailableModels = vi.fn();
 const mockGetCredits = vi.fn();
+const mockGetGeneration = vi.fn();
 vi.mock('./gateway-fetch-metadata', () => ({
   GatewayFetchMetadata: vi.fn().mockImplementation((config: any) => ({
     getAvailableModels: async () => {
@@ -39,6 +40,13 @@ vi.mock('./gateway-fetch-metadata', () => ({
         await config.headers();
       }
       return mockGetCredits();
+    },
+    getGeneration: async (generationId: string) => {
+      // Call the headers function to trigger authentication logic
+      if (config.headers && typeof config.headers === 'function') {
+        await config.headers();
+      }
+      return mockGetGeneration(generationId);
     },
   })),
 }));
@@ -56,6 +64,42 @@ describe('GatewayProvider', () => {
     // Set up default mock behavior for getAvailableModels and getCredits
     mockGetAvailableModels.mockReturnValue({ models: [] });
     mockGetCredits.mockReturnValue({ balance: '100.00', total_used: '50.00' });
+    mockGetGeneration.mockReturnValue({
+      timestamp: '2024-01-15T10:30:00Z',
+      projectId: 'proj_12345',
+      ownerId: 'user_67890',
+      referrerUrl: 'https://example.com',
+      appName: 'test-app',
+      environment: 'production',
+      deploymentId: 'dpl_abcdef',
+      gatewayModelId: 'gpt-4',
+      model: 'gpt-4',
+      modelType: 'language',
+      provider: 'openai',
+      currency: 'USD',
+      marketCostCurrency: 'USD',
+      cachedInputTokensCurrency: 'USD',
+      cacheCreationInputTokensCurrency: 'USD',
+      responseStatusCode: 200,
+      inputCostPerToken: 0.00003,
+      inputCostPerTokenCurrency: 'USD',
+      outputCostPerToken: 0.00006,
+      outputCostPerTokenCurrency: 'USD',
+      gatewayTimestamp: '2024-01-15T10:30:01Z',
+      isFreeTier: 'false',
+      isByok: 'false',
+      generationId: 'gen_01234567890123456789012345',
+      cost: 0.0045,
+      marketCost: 0.0045,
+      inputTokens: 100,
+      outputTokens: 50,
+      cachedInputTokens: 0,
+      cacheCreationInputTokens: 0,
+      reasoningTokens: 0,
+      requestDurationMs: 1250,
+      timeToFirstTokenMs: 150,
+      tokenThroughput: 40.0,
+    });
     if ('AI_GATEWAY_API_KEY' in process.env) {
       Reflect.deleteProperty(process.env, 'AI_GATEWAY_API_KEY');
     }
@@ -910,6 +954,153 @@ describe('GatewayProvider', () => {
     it('should be available on the provider interface', () => {
       const provider = createGatewayProvider({ apiKey: 'test-key' });
       expect(typeof provider.getCredits).toBe('function');
+    });
+  });
+
+  describe('getGeneration method', () => {
+    const mockGenerationData = {
+      timestamp: '2024-01-15T10:30:00Z',
+      projectId: 'proj_12345',
+      ownerId: 'user_67890',
+      referrerUrl: 'https://example.com',
+      appName: 'test-app',
+      environment: 'production',
+      deploymentId: 'dpl_abcdef',
+      gatewayModelId: 'gpt-4',
+      model: 'gpt-4',
+      modelType: 'language',
+      provider: 'openai',
+      currency: 'USD',
+      marketCostCurrency: 'USD',
+      cachedInputTokensCurrency: 'USD',
+      cacheCreationInputTokensCurrency: 'USD',
+      responseStatusCode: 200,
+      inputCostPerToken: 0.00003,
+      inputCostPerTokenCurrency: 'USD',
+      outputCostPerToken: 0.00006,
+      outputCostPerTokenCurrency: 'USD',
+      gatewayTimestamp: '2024-01-15T10:30:01Z',
+      isFreeTier: 'false',
+      isByok: 'false',
+      generationId: 'gen_01234567890123456789012345',
+      cost: 0.0045,
+      marketCost: 0.0045,
+      inputTokens: 100,
+      outputTokens: 50,
+      cachedInputTokens: 0,
+      cacheCreationInputTokens: 0,
+      reasoningTokens: 0,
+      requestDurationMs: 1250,
+      timeToFirstTokenMs: 150,
+      tokenThroughput: 40.0,
+    };
+
+    it('should fetch generation data successfully', async () => {
+      mockGetGeneration.mockReturnValue(mockGenerationData);
+
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+      });
+
+      const generation = await provider.getGeneration(
+        'gen_01234567890123456789012345',
+      );
+
+      expect(generation).toEqual(mockGenerationData);
+      expect(mockGetGeneration).toHaveBeenCalledWith(
+        'gen_01234567890123456789012345',
+      );
+      expect(GatewayFetchMetadata).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: 'https://ai-gateway.vercel.sh/v1/ai',
+          headers: expect.any(Function),
+          fetch: undefined,
+        }),
+      );
+    });
+
+    it('should handle authentication errors in getGeneration', async () => {
+      const provider = createGatewayProvider();
+
+      const result = await provider.getGeneration(
+        'gen_01234567890123456789012345',
+      );
+      expect(result).toEqual(mockGenerationData);
+    });
+
+    it('should work with custom baseURL', async () => {
+      const customBaseURL = 'https://custom-gateway.example.com/v1/ai';
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+        baseURL: customBaseURL,
+      });
+
+      await provider.getGeneration('gen_01234567890123456789012345');
+
+      expect(GatewayFetchMetadata).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: customBaseURL,
+        }),
+      );
+    });
+
+    it('should work with OIDC authentication', async () => {
+      vi.mocked(getVercelOidcToken).mockResolvedValue('oidc-token');
+
+      const provider = createGatewayProvider();
+
+      const generation = await provider.getGeneration(
+        'gen_01234567890123456789012345',
+      );
+
+      expect(generation).toBeDefined();
+      expect(getVercelOidcToken).toHaveBeenCalled();
+    });
+
+    it('should handle errors from the generation endpoint', async () => {
+      const testError = new Error('Generation not found');
+      mockGetGeneration.mockRejectedValue(testError);
+
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+      });
+
+      await expect(
+        provider.getGeneration('gen_01234567890123456789012345'),
+      ).rejects.toThrow('Generation not found');
+    });
+
+    it('should include proper headers for generation request', async () => {
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+        headers: { 'Custom-Header': 'custom-value' },
+      });
+
+      await provider.getGeneration('gen_01234567890123456789012345');
+
+      const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
+      const headers = await config.headers();
+
+      expect(headers).toEqual({
+        Authorization: 'Bearer test-key',
+        'ai-gateway-protocol-version': '0.0.1',
+        'ai-gateway-auth-method': 'api-key',
+        'Custom-Header': 'custom-value',
+      });
+    });
+
+    it('should pass generation ID correctly', async () => {
+      const provider = createGatewayProvider({ apiKey: 'test-key' });
+      const testGenerationId = 'gen_98765432109876543210987654';
+
+      await provider.getGeneration(testGenerationId);
+
+      expect(mockGetGeneration).toHaveBeenCalledWith(testGenerationId);
+    });
+
+    it('should be available on the provider interface', () => {
+      const provider = createGatewayProvider({ apiKey: 'test-key' });
+      expect(typeof provider.getGeneration).toBe('function');
     });
   });
 

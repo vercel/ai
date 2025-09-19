@@ -771,4 +771,321 @@ describe('GatewayFetchMetadata', () => {
       });
     });
   });
+
+  describe('getGeneration', () => {
+    const mockGenerationResponse = {
+      timestamp: '2024-01-15T10:30:00Z',
+      projectId: 'proj_12345',
+      ownerId: 'user_67890',
+      referrerUrl: 'https://example.com',
+      appName: 'test-app',
+      environment: 'production',
+      deploymentId: 'dpl_abcdef',
+      gatewayModelId: 'gpt-4',
+      model: 'gpt-4',
+      modelType: 'language',
+      provider: 'openai',
+      currency: 'USD',
+      marketCostCurrency: 'USD',
+      cachedInputTokensCurrency: 'USD',
+      cacheCreationInputTokensCurrency: 'USD',
+      responseStatusCode: 200,
+      inputCostPerToken: 0.00003,
+      inputCostPerTokenCurrency: 'USD',
+      outputCostPerToken: 0.00006,
+      outputCostPerTokenCurrency: 'USD',
+      gatewayTimestamp: '2024-01-15T10:30:01Z',
+      isFreeTier: 'false',
+      isByok: 'false',
+      generationId: 'gen_01234567890123456789012345',
+      cost: 0.0045,
+      marketCost: 0.0045,
+      inputTokens: 100,
+      outputTokens: 50,
+      cachedInputTokens: 0,
+      cacheCreationInputTokens: 0,
+      reasoningTokens: 0,
+      requestDurationMs: 1250,
+      timeToFirstTokenMs: 150,
+      tokenThroughput: 40.0,
+    };
+
+    it('should fetch generation data from the correct endpoint', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: mockGenerationResponse,
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getGeneration(
+        'gen_01234567890123456789012345',
+      );
+
+      expect(server.calls[0].requestMethod).toBe('GET');
+      expect(server.calls[0].requestUrl).toBe(
+        'https://api.example.com/v1/generation?id=gen_01234567890123456789012345',
+      );
+      expect(result).toEqual(mockGenerationResponse);
+    });
+
+    it('should properly encode generation ID in URL', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: mockGenerationResponse,
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const generationId = 'gen_01234567890123456789012345';
+      await metadata.getGeneration(generationId);
+
+      expect(server.calls[0].requestUrl).toBe(
+        `https://api.example.com/v1/generation?id=${encodeURIComponent(generationId)}`,
+      );
+    });
+
+    it('should pass headers correctly to generation endpoint', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: mockGenerationResponse,
+      };
+
+      const metadata = createBasicMetadataFetcher({
+        headers: () => ({
+          Authorization: 'Bearer custom-token',
+          'Custom-Header': 'custom-value',
+        }),
+      });
+
+      const result = await metadata.getGeneration(
+        'gen_01234567890123456789012345',
+      );
+
+      expect(server.calls[0].requestHeaders).toEqual({
+        authorization: 'Bearer custom-token',
+        'custom-header': 'custom-value',
+      });
+      expect(result).toEqual(mockGenerationResponse);
+    });
+
+    it('should handle API errors for generation endpoint', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'error',
+        status: 401,
+        body: JSON.stringify({
+          error: {
+            type: 'authentication_error',
+            message: 'Invalid API key',
+          },
+        }),
+      };
+
+      const metadata = createBasicMetadataFetcher();
+
+      await expect(
+        metadata.getGeneration('gen_01234567890123456789012345'),
+      ).rejects.toThrow(GatewayAuthenticationError);
+    });
+
+    it('should handle generation not found errors', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          error: 'Usage event not found',
+          id: 'gen_01234567890123456789012345',
+          message:
+            'No usage event found with ID gen_01234567890123456789012345.',
+        }),
+      };
+
+      const metadata = createBasicMetadataFetcher();
+
+      await expect(
+        metadata.getGeneration('gen_01234567890123456789012345'),
+      ).rejects.toThrow(GatewayResponseError);
+    });
+
+    it('should handle invalid generation ID format errors', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: 'Invalid generation ID format. Expected format: gen_<ulid>',
+        }),
+      };
+
+      const metadata = createBasicMetadataFetcher();
+
+      await expect(metadata.getGeneration('invalid-id')).rejects.toThrow(
+        GatewayResponseError,
+      );
+    });
+
+    it('should handle rate limit errors for generation endpoint', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'error',
+        status: 429,
+        body: JSON.stringify({
+          error: {
+            type: 'rate_limit_exceeded',
+            message: 'Rate limit exceeded',
+          },
+        }),
+      };
+
+      const metadata = createBasicMetadataFetcher();
+
+      await expect(
+        metadata.getGeneration('gen_01234567890123456789012345'),
+      ).rejects.toThrow(GatewayRateLimitError);
+    });
+
+    it('should handle internal server errors for generation endpoint', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'error',
+        status: 500,
+        body: JSON.stringify({
+          error: {
+            type: 'internal_server_error',
+            message: 'Database unavailable',
+          },
+        }),
+      };
+
+      const metadata = createBasicMetadataFetcher();
+
+      await expect(
+        metadata.getGeneration('gen_01234567890123456789012345'),
+      ).rejects.toThrow(GatewayInternalServerError);
+    });
+
+    it('should use custom fetch function when provided', async () => {
+      const customFetch = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(mockGenerationResponse), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+
+      const metadata = createBasicMetadataFetcher({
+        fetch: customFetch as unknown as FetchFunction,
+      });
+
+      const result = await metadata.getGeneration(
+        'gen_01234567890123456789012345',
+      );
+
+      expect(result).toEqual(mockGenerationResponse);
+
+      expect(customFetch).toHaveBeenCalledWith(
+        'https://api.example.com/v1/generation?id=gen_01234567890123456789012345',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            authorization: 'Bearer test-token',
+          }),
+        }),
+      );
+    });
+
+    it('should convert API call errors to Gateway errors', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'error',
+        status: 403,
+        body: JSON.stringify({
+          error: {
+            message: 'Forbidden access',
+            type: 'authentication_error',
+          },
+        }),
+      };
+
+      const metadata = createBasicMetadataFetcher();
+
+      try {
+        await metadata.getGeneration('gen_01234567890123456789012345');
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
+        const authError = error as GatewayAuthenticationError;
+        expect(authError.message).toContain('No authentication provided');
+        expect(authError.type).toBe('authentication_error');
+        expect(authError.statusCode).toBe(403);
+      }
+    });
+
+    it('should handle malformed JSON error responses', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'error',
+        status: 500,
+        body: '{ invalid json',
+      };
+
+      const metadata = createBasicMetadataFetcher();
+
+      try {
+        await metadata.getGeneration('gen_01234567890123456789012345');
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayResponseError.isInstance(error)).toBe(true);
+        const responseError = error as GatewayResponseError;
+        expect(responseError.statusCode).toBe(500);
+        expect(responseError.type).toBe('response_error');
+      }
+    });
+
+    it('should preserve error cause chain', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'error',
+        status: 401,
+        body: JSON.stringify({
+          error: {
+            message: 'Token expired',
+            type: 'authentication_error',
+          },
+        }),
+      };
+
+      const metadata = createBasicMetadataFetcher();
+
+      try {
+        await metadata.getGeneration('gen_01234567890123456789012345');
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
+        const authError = error as GatewayAuthenticationError;
+        expect(authError.cause).toBeDefined();
+      }
+    });
+
+    it('should handle generation response with all fields', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: mockGenerationResponse,
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getGeneration(
+        'gen_01234567890123456789012345',
+      );
+
+      expect(result).toHaveProperty('timestamp');
+      expect(result).toHaveProperty('projectId');
+      expect(result).toHaveProperty('ownerId');
+      expect(result).toHaveProperty('generationId');
+      expect(result).toHaveProperty('cost');
+      expect(result).toHaveProperty('inputTokens');
+      expect(result).toHaveProperty('outputTokens');
+      expect(result).toHaveProperty('requestDurationMs');
+      expect(result).toHaveProperty('timeToFirstTokenMs');
+      expect(result).toHaveProperty('tokenThroughput');
+
+      expect(typeof result.cost).toBe('number');
+      expect(typeof result.inputTokens).toBe('number');
+      expect(typeof result.outputTokens).toBe('number');
+      expect(typeof result.requestDurationMs).toBe('number');
+    });
+  });
 });
