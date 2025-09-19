@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "3.0.27",
+  "version": "3.1.0-beta.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -54,6 +54,7 @@
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
+    "@ai-sdk/test-server": "workspace:*",
     "google-auth-library": "^9.15.0"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "2.0.44",
+  "version": "2.1.0-beta.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,8 +30,9 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "ai": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
+    "ai": "workspace:*",
+    "@ai-sdk/test-server": "workspace:*",
     "swr": "^2.2.5",
     "throttleit": "2.1.0"
   },
@@ -47,7 +48,7 @@
     "eslint-config-vercel-ai": "workspace:*",
     "jsdom": "^24.0.0",
     "msw": "2.6.4",
-    "react-dom": "^18",
+    "react-dom": "^18 || ^19 || ^19.0.0-rc",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
     "zod": "3.25.76"
