@@ -1,6 +1,6 @@
 import type {
   ImageModelV2,
-  ImageModelV2CallWarning,
+  ImageModelV3CallWarning,
   JSONObject,
 } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
@@ -53,7 +53,7 @@ export class FalImageModel implements ImageModelV2 {
   }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV2CallWarning> = [];
+    const warnings: Array<ImageModelV3CallWarning> = [];
 
     let imageSize: FalImageSize | undefined;
     if (size) {

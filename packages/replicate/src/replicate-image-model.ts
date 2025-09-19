@@ -1,4 +1,4 @@
-import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV2, ImageModelV3CallWarning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -48,7 +48,7 @@ export class ReplicateImageModel implements ImageModelV2 {
   }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV2CallWarning> = [];
+    const warnings: Array<ImageModelV3CallWarning> = [];
 
     const [modelId, version] = this.modelId.split(':');
 

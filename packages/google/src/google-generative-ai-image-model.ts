@@ -1,4 +1,4 @@
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV3CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -56,7 +56,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV2 {
       headers,
       abortSignal,
     } = options;
-    const warnings: Array<ImageModelV2CallWarning> = [];
+    const warnings: Array<ImageModelV3CallWarning> = [];
 
     if (size != null) {
       warnings.push({

@@ -1,4 +1,4 @@
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV3CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -92,7 +92,7 @@ export class FireworksImageModel implements ImageModelV2 {
   }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV2CallWarning> = [];
+    const warnings: Array<ImageModelV3CallWarning> = [];
 
     const backendConfig = modelToBackendConfig[this.modelId];
     if (!backendConfig?.supportsSize && size != null) {

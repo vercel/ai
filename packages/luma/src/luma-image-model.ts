@@ -1,6 +1,6 @@
 import {
   ImageModelV2,
-  ImageModelV2CallWarning,
+  ImageModelV3CallWarning,
   InvalidResponseDataError,
 } from '@ai-sdk/provider';
 import {
@@ -57,7 +57,7 @@ export class LumaImageModel implements ImageModelV2 {
   }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV2CallWarning> = [];
+    const warnings: Array<ImageModelV3CallWarning> = [];
 
     if (seed != null) {
       warnings.push({

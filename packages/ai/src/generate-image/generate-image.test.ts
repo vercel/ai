@@ -1,6 +1,6 @@
 import {
   ImageModelV2,
-  ImageModelV2CallWarning,
+  ImageModelV3CallWarning,
   ImageModelV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -38,7 +38,7 @@ vi.mock('../version', () => {
 
 const createMockResponse = (options: {
   images: string[] | Uint8Array[];
-  warnings?: ImageModelV2CallWarning[];
+  warnings?: ImageModelV3CallWarning[];
   timestamp?: Date;
   modelId?: string;
   providerMetaData?: ImageModelV2ProviderMetadata;
@@ -142,7 +142,7 @@ describe('generateImage', () => {
   });
 
   it('should call logWarnings with the correct warnings', async () => {
-    const expectedWarnings: ImageModelV2CallWarning[] = [
+    const expectedWarnings: ImageModelV3CallWarning[] = [
       {
         type: 'other',
         message: 'Setting is not supported',
@@ -170,11 +170,11 @@ describe('generateImage', () => {
   });
 
   it('should call logWarnings with aggregated warnings from multiple calls', async () => {
-    const warning1: ImageModelV2CallWarning = {
+    const warning1: ImageModelV3CallWarning = {
       type: 'other',
       message: 'Warning from call 1',
     };
-    const warning2: ImageModelV2CallWarning = {
+    const warning2: ImageModelV3CallWarning = {
       type: 'other',
       message: 'Warning from call 2',
     };

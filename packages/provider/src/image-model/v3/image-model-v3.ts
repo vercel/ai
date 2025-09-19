@@ -1,6 +1,6 @@
 import { JSONArray, JSONValue } from '../../json-value';
 import { ImageModelV3CallOptions } from './image-model-v3-call-options';
-import { ImageModelV2CallWarning } from './image-model-v3-call-warning';
+import { ImageModelV3CallWarning } from './image-model-v3-call-warning';
 
 export type ImageModelV2ProviderMetadata = Record<
   string,
@@ -60,7 +60,7 @@ be returned as binary data.
     /**
 Warnings for the call, e.g. unsupported settings.
      */
-    warnings: Array<ImageModelV2CallWarning>;
+    warnings: Array<ImageModelV3CallWarning>;
 
     /**
 Additional provider-specific metadata. They are passed through
