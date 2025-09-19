@@ -19,3 +19,7 @@ https://github.com/vercel/ai/pull/8136/files
 5. Add documentation in `content/providers/01-ai-sdk-providers/<last number + 10>-<provider>.mdx`
 
 See also [providers.md](providers.md)
+
+## When in pre-release mode
+
+If `main` is set up to publish `beta` releases, no further action is necessary. Just make sure not to backport it to the `vX.Y` stable branch since it will result in an npm version conflict once we exit pre-release mode on `main`
