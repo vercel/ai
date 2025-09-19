@@ -92,7 +92,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Add comment if no provider detected
-        if: fromJSON(steps.classify-issue.outputs.json).confidence <= 0.6
+        if: fromJSON(steps.classify-issue.outputs.json).confidence <= 0.6 && github.event.issue.author_association != 'MEMBER'
         run: |
           gh api /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
             --method POST \
