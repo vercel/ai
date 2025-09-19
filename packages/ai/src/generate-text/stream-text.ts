@@ -276,15 +276,21 @@ function approximateUsageFromContent<TOOLS extends ToolSet>({
           id: part.id,
           sourceType: part.sourceType,
           ...(part.title != null ? { title: part.title } : undefined),
-          ...('url' in part && part.url != null ? { url: part.url } : undefined),
+          ...('url' in part && part.url != null
+            ? { url: part.url }
+            : undefined),
           ...('filename' in part && part.filename != null
             ? { filename: part.filename }
             : undefined),
           ...('mediaType' in part && part.mediaType != null
             ? { mediaType: part.mediaType }
             : undefined),
-          ...('start' in part && part.start != null ? { start: part.start } : undefined),
-          ...('end' in part && part.end != null ? { end: part.end } : undefined),
+          ...('start' in part && part.start != null
+            ? { start: part.start }
+            : undefined),
+          ...('end' in part && part.end != null
+            ? { end: part.end }
+            : undefined),
           ...('metadata' in part && part.metadata != null
             ? { metadata: part.metadata }
             : undefined),
@@ -1396,9 +1402,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             download,
           });
 
-          const approximateInputTokens = approximatePromptTokenCount(
-            promptMessages,
-          );
+          const approximateInputTokens =
+            approximatePromptTokenCount(promptMessages);
           currentStepInputTokenEstimate = approximateInputTokens ?? undefined;
           let approximatedUsage: LanguageModelUsage | undefined =
             approximateInputTokens != null

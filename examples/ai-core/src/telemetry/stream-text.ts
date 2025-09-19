@@ -22,7 +22,10 @@ async function main() {
       console.log('Usage snapshot:', usage);
       console.log('Total usage so far:', totalUsage);
       console.log('Reasoning tokens generated:', usage.reasoningTokens ?? 0);
-      console.log('Cached input tokens served:', totalUsage.cachedInputTokens ?? 0);
+      console.log(
+        'Cached input tokens served:',
+        totalUsage.cachedInputTokens ?? 0,
+      );
     },
     experimental_telemetry: {
       isEnabled: true,

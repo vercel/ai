@@ -8,7 +8,8 @@ async function main() {
 
     const { textStream } = streamText({
       model: openai('gpt-3.5-turbo'),
-      prompt: 'Write a very long story about a robot learning to love. Include many details and make it at least 2000 words:\n\n',
+      prompt:
+        'Write a very long story about a robot learning to love. Include many details and make it at least 2000 words:\n\n',
       abortSignal: abortController.signal,
       onAbort: ({ steps, usage, totalUsage }) => {
         console.log('\n\nAborted!');
