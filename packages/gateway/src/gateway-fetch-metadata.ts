@@ -16,8 +16,10 @@ export interface GatewayFetchMetadataResponse {
 }
 
 export interface GatewayCreditsResponse {
+  /** The remaining gateway credit balance available for API usage */
   balance: string;
-  total_used: string;
+  /** The total amount of gateway credits that have been consumed */
+  totalUsed: string;
 }
 
 export class GatewayFetchMetadata {
@@ -47,10 +49,9 @@ export class GatewayFetchMetadata {
   async getCredits(): Promise<GatewayCreditsResponse> {
     try {
       const baseUrl = new URL(this.config.baseURL);
-      const creditsUrl = `${baseUrl.origin}/v1/credits`;
 
       const { value } = await getFromApi({
-        url: creditsUrl,
+        url: `${baseUrl.origin}/v1/credits`,
         headers: await resolve(this.config.headers()),
         successfulResponseHandler:
           createJsonResponseHandler(gatewayCreditsSchema),
@@ -103,7 +104,12 @@ const gatewayFetchMetadataSchema = z.object({
   models: z.array(gatewayLanguageModelEntrySchema),
 });
 
-const gatewayCreditsSchema = z.object({
-  balance: z.string(),
-  total_used: z.string(),
-});
+const gatewayCreditsSchema = z
+  .object({
+    balance: z.string(),
+    total_used: z.string(),
+  })
+  .transform(({ balance, total_used }) => ({
+    balance,
+    totalUsed: total_used,
+  }));
