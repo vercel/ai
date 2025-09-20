@@ -1,5 +1,19 @@
 # @ai-sdk/cerebras
 
+## 1.1.0-beta.2
+
+### Patch Changes
+
+- 4d34a89: feat (provider/cerebras): enable structured outputs
+
+## 1.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+  - @ai-sdk/openai-compatible@1.1.0-beta.1
+
 ## 1.1.0-beta.0
 
 ### Minor Changes
