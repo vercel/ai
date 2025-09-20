@@ -2,7 +2,7 @@ import {
   LanguageModelV2,
   EmbeddingModelV2,
   ProviderV2,
-  ImageModelV2,
+  ImageModelV3,
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -54,12 +54,12 @@ Creates a chat model for text generation.
   /**
 Creates a model for image generation.
   */
-  image(modelId: DeepInfraImageModelId): ImageModelV2;
+  image(modelId: DeepInfraImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
   */
-  imageModel(modelId: DeepInfraImageModelId): ImageModelV2;
+  imageModel(modelId: DeepInfraImageModelId): ImageModelV3;
 
   /**
 Creates a chat model for text generation.

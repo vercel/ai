@@ -31,7 +31,7 @@ At its heart, the V2 specification defines three main interfaces:
 
 1. **ProviderV2**: The top-level interface that serves as a factory for different model types
 2. **LanguageModelV2**: The primary interface for text generation models
-3. **EmbeddingModelV2** and **ImageModelV2**: Interfaces for embeddings and image generation
+3. **EmbeddingModelV2** and **ImageModelV3**: Interfaces for embeddings and image generation
 
 ### `ProviderV2`
 
@@ -41,7 +41,7 @@ The `ProviderV2` interface acts as the entry point:
 interface ProviderV2 {
   languageModel(modelId: string): LanguageModelV2;
   textEmbeddingModel(modelId: string): EmbeddingModelV2<string>;
-  imageModel(modelId: string): ImageModelV2;
+  imageModel(modelId: string): ImageModelV3;
 }
 ```
 

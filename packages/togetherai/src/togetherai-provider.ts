@@ -2,7 +2,7 @@ import {
   LanguageModelV2,
   EmbeddingModelV2,
   ProviderV2,
-  ImageModelV2,
+  ImageModelV3,
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -71,12 +71,12 @@ Creates a text embedding model for text generation.
   /**
 Creates a model for image generation.
 */
-  image(modelId: TogetherAIImageModelId): ImageModelV2;
+  image(modelId: TogetherAIImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
 */
-  imageModel(modelId: TogetherAIImageModelId): ImageModelV2;
+  imageModel(modelId: TogetherAIImageModelId): ImageModelV3;
 }
 
 export function createTogetherAI(

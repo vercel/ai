@@ -1,5 +1,5 @@
 import {
-  ImageModelV2,
+  ImageModelV3,
   NoSuchModelError,
   ProviderV2,
   SpeechModelV2,
@@ -43,12 +43,12 @@ export interface FalProvider extends ProviderV2 {
   /**
 Creates a model for image generation.
    */
-  image(modelId: FalImageModelId): ImageModelV2;
+  image(modelId: FalImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(modelId: FalImageModelId): ImageModelV2;
+  imageModel(modelId: FalImageModelId): ImageModelV3;
 
   /**
 Creates a model for transcription.

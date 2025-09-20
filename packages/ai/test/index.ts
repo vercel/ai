@@ -5,7 +5,7 @@ export {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 export { MockEmbeddingModelV2 } from '../src/test/mock-embedding-model-v2';
-export { MockImageModelV2 } from '../src/test/mock-image-model-v2';
+export { MockImageModelV3 } from '../src/test/mock-image-model-v2';
 export { MockLanguageModelV2 } from '../src/test/mock-language-model-v2';
 export { MockProviderV2 } from '../src/test/mock-provider-v2';
 export { MockSpeechModelV2 } from '../src/test/mock-speech-model-v2';

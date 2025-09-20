@@ -1,6 +1,6 @@
 import {
   EmbeddingModelV2,
-  ImageModelV2,
+  ImageModelV3,
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
@@ -43,10 +43,10 @@ export interface ProviderRegistryProvider<
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['imageModel']>>[0]>}`
       : never,
-  ): ImageModelV2;
+  ): ImageModelV3;
   imageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): ImageModelV2;
+  ): ImageModelV3;
 
   transcriptionModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
@@ -237,7 +237,7 @@ class DefaultProviderRegistry<
 
   imageModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): ImageModelV2 {
+  ): ImageModelV3 {
     const [providerId, modelId] = this.splitId(id, 'imageModel');
     const provider = this.getProvider(providerId, 'imageModel');
 

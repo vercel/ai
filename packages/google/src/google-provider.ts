@@ -2,7 +2,7 @@ import {
   EmbeddingModelV2,
   LanguageModelV2,
   ProviderV2,
-  ImageModelV2,
+  ImageModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -35,7 +35,7 @@ Creates a model for image generation.
   image(
     modelId: GoogleGenerativeAIImageModelId,
     settings?: GoogleGenerativeAIImageSettings,
-  ): ImageModelV2;
+  ): ImageModelV3;
 
   /**
    * @deprecated Use `chat()` instead.

@@ -305,7 +305,7 @@ describe('FalImageModel', () => {
 
       expect(model.provider).toBe('fal.image');
       expect(model.modelId).toBe('fal-ai/qwen-image');
-      expect(model.specificationVersion).toBe('v2');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

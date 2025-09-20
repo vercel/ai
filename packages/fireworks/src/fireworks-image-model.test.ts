@@ -353,7 +353,7 @@ describe('FireworksImageModel', () => {
 
       expect(model.provider).toBe('fireworks');
       expect(model.modelId).toBe('accounts/fireworks/models/flux-1-dev-fp8');
-      expect(model.specificationVersion).toBe('v2');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });
