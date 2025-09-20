@@ -12,7 +12,9 @@ import {
   imagePartSchema,
   reasoningPartSchema,
   textPartSchema,
+  toolApprovalRequestSchema,
   toolCallPartSchema,
+  toolApprovalResponseSchema,
   toolResultPartSchema,
 } from './content-part';
 
@@ -75,6 +77,7 @@ export const assistantModelMessageSchema: z.ZodType<AssistantModelMessage> =
           reasoningPartSchema,
           toolCallPartSchema,
           toolResultPartSchema,
+          toolApprovalRequestSchema,
         ]),
       ),
     ]),
@@ -95,7 +98,7 @@ export type CoreToolMessage = ToolModelMessage;
 
 export const toolModelMessageSchema: z.ZodType<ToolModelMessage> = z.object({
   role: z.literal('tool'),
-  content: z.array(toolResultPartSchema),
+  content: z.array(z.union([toolResultPartSchema, toolApprovalResponseSchema])),
   providerOptions: providerMetadataSchema.optional(),
 });
 
