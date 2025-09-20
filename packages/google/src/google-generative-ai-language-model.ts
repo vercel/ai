@@ -292,6 +292,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       warnings,
       providerMetadata: {
         google: {
+          promptFeedback: response.promptFeedback ?? null,
           groundingMetadata: candidate.groundingMetadata ?? null,
           urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
@@ -590,6 +591,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
               providerMetadata = {
                 google: {
+                  promptFeedback: value.promptFeedback ?? null,
                   groundingMetadata: candidate.groundingMetadata ?? null,
                   urlContextMetadata: candidate.urlContextMetadata ?? null,
                   safetyRatings: candidate.safetyRatings ?? null,
@@ -763,6 +765,12 @@ const responseSchema = z.object({
     }),
   ),
   usageMetadata: usageSchema.nullish(),
+  promptFeedback: z
+    .object({
+      blockReason: z.string().nullish(),
+      safetyRatings: z.array(safetyRatingSchema).nullish(),
+    })
+    .nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -780,4 +788,10 @@ const chunkSchema = z.object({
     )
     .nullish(),
   usageMetadata: usageSchema.nullish(),
+  promptFeedback: z
+    .object({
+      blockReason: z.string().nullish(),
+      safetyRatings: z.array(safetyRatingSchema).nullish(),
+    })
+    .nullish(),
 });

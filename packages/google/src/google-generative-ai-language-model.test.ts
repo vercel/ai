@@ -925,6 +925,35 @@ describe('doGenerate', () => {
     ]);
   });
 
+  it('should expose PromptFeedback in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'No' }], role: 'model' },
+            finishReason: 'SAFETY',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: {
+          blockReason: 'SAFETY',
+          safetyRatings: SAFETY_RATINGS,
+        },
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.promptFeedback).toStrictEqual({
+      blockReason: 'SAFETY',
+      safetyRatings: SAFETY_RATINGS,
+    });
+  });
+
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
       content: 'test response',
@@ -1900,6 +1929,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -1971,6 +2001,36 @@ describe('doStream', () => {
         blocked: false,
       },
     ]);
+  });
+
+  it('should expose PromptFeedback in provider metadata on finish', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"candidates": [{"content": {"parts": [{"text": "No"}],"role": "model"},` +
+          `"finishReason": "PROHIBITED_CONTENT","index": 0}],` +
+          `"promptFeedback": {"blockReason": "PROHIBITED_CONTENT","safetyRatings": [` +
+          `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
+          `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
+          `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
+          `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.promptFeedback,
+    ).toStrictEqual({
+      blockReason: 'PROHIBITED_CONTENT',
+      safetyRatings: SAFETY_RATINGS,
+    });
   });
 
   it('should stream code execution tool calls and results', async () => {
@@ -2387,6 +2447,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -2666,6 +2727,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": null,
               "urlContextMetadata": null,
               "usageMetadata": {
@@ -2794,6 +2856,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
