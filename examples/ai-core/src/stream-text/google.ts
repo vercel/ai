@@ -13,9 +13,15 @@ async function main() {
     process.stdout.write(textPart);
   }
 
+  const googleMetadata = (await result.providerMetadata)?.google;
+
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
+  console.log('Safety info:', {
+    promptFeedback: googleMetadata?.promptFeedback,
+    safetyRatings: googleMetadata?.safetyRatings,
+  });
 }
 
 main().catch(console.error);
