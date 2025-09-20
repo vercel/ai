@@ -89,19 +89,25 @@ Unlike `onFinish`, which is called when a stream completes normally, `onAbort` i
   single callback.
 </Note>
 
-```tsx highlight="8-12"
+```tsx highlight="8-15"
 import { streamText } from 'ai';
 
 const result = streamText({
   model: openai('gpt-4.1'),
   prompt: 'Write a long story...',
   abortSignal: controller.signal,
-  onAbort: ({ steps }) => {
+  onAbort: async ({ steps, usage, totalUsage }) => {
     // Called when stream is aborted - persist partial results
     await savePartialResults(steps);
     await logAbortEvent(steps.length);
+    await recordUsage({
+      lastStep: usage,
+      total: totalUsage,
+      reasoningTokens: usage.reasoningTokens,
+      cachedInputTokens: totalUsage.cachedInputTokens,
+    });
   },
-  onFinish: ({ steps, totalUsage }) => {
+  onFinish: async ({ steps, totalUsage }) => {
     // Called when stream completes normally
     await saveFinalResults(steps, totalUsage);
   },
@@ -111,6 +117,10 @@ const result = streamText({
 The `onAbort` callback receives:
 
 - `steps`: Array of all completed steps before the abort occurred
+- `usage`: Token usage of the last completed step (or `undefined` values when no step finished)
+- `totalUsage`: Combined token usage across all completed steps
+
+The usage objects surface `reasoningTokens` and `cachedInputTokens` whenever the provider reports them, so you can continue tracking those values even after an abort.
 
 This is particularly useful for:
 
