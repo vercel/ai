@@ -73,6 +73,7 @@
     "@ai-sdk/test-server": "0.0.0"
   },
   "changesets": [
+    "angry-hats-cry",
     "curly-glasses-count",
     "four-candles-buy",
     "grumpy-actors-sleep",
