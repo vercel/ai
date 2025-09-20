@@ -6,6 +6,7 @@ export {
   type ChatOnErrorCallback,
   type ChatOnFinishCallback,
   type ChatOnToolCallCallback,
+  type ChatOnToolOutputCallback,
   type ChatRequestOptions,
   type ChatState,
   type ChatStatus,
