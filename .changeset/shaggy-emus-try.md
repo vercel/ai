@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/google': major
+'@ai-sdk/google': patch
 ---
 
 add promptFeedback outputs
