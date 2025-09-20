@@ -1,6 +1,5 @@
 import {
   JSONObject,
-  JSONValue,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -74,7 +73,7 @@ const documentCitationSchema = z.discriminatedUnion('type', [
 type Citation = z.infer<typeof citationSchema>;
 export type DocumentCitation = z.infer<typeof documentCitationSchema>;
 export type AnthropicProviderMetadata = SharedV2ProviderMetadata & {
-  usage?: Record<string, JSONValue>;
+  usage?: JSONObject;
 };
 
 function processCitation(

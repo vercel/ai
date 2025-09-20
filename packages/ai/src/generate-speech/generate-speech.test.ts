@@ -1,5 +1,5 @@
 import {
-  JSONValue,
+  JSONObject,
   SpeechModelV2,
   SpeechModelV2CallWarning,
 } from '@ai-sdk/provider';
@@ -41,7 +41,7 @@ const createMockResponse = (options: {
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
-  providerMetadata?: Record<string, Record<string, JSONValue>>;
+  providerMetadata?: Record<string, JSONObject>;
 }) => ({
   audio: options.audio.uint8Array,
   warnings: options.warnings ?? [],

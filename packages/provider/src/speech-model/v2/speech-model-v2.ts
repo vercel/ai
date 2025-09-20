@@ -1,4 +1,4 @@
-import { JSONValue } from '../../json-value';
+import { JSONObject } from '../../json-value';
 import { SharedV2Headers } from '../../shared';
 import { SpeechModelV2CallOptions } from './speech-model-v2-call-options';
 import { SpeechModelV2CallWarning } from './speech-model-v2-call-warning';
@@ -84,6 +84,6 @@ export type SpeechModelV2 = {
      * from the provider to the AI SDK and enable provider-specific
      * results that can be fully encapsulated in the provider.
      */
-    providerMetadata?: Record<string, Record<string, JSONValue>>;
+    providerMetadata?: Record<string, JSONObject>;
   }>;
 };
