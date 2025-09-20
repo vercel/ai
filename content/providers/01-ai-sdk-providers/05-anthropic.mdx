@@ -680,7 +680,45 @@ respond to questions about it.
 The PDF file should be passed using the `data` field,
 and the `mediaType` should be set to `'application/pdf'`.
 
-### Model Capabilities
+## Converting Messages to Anthropic Format
+
+You can convert AI SDK messages to Anthropic's native message format using the `convertToAnthropicMessagesPrompt` function. This is useful when you want to use Anthropic's native APIs directly while still using the AI SDK's message format.
+
+A common use case is leveraging Anthropic's token counting API to estimate costs before making requests:
+
+```ts
+import { convertToAnthropicMessagesPrompt } from '@ai-sdk/anthropic';
+import Anthropic from '@anthropic-ai/sdk';
+
+const anthropic = new Anthropic();
+
+// Your AI SDK messages
+const messages = [
+  { role: 'system', content: 'You are a helpful assistant.' },
+  {
+    role: 'user',
+    content: [{ type: 'text', text: 'What is the capital of France?' }],
+  },
+];
+
+// Convert to Anthropic format
+const anthropicPrompt = await convertToAnthropicMessagesPrompt({
+  prompt: messages,
+  sendReasoning: false,
+  warnings: [],
+});
+
+// Use with Anthropic's native token counting API
+const tokenCount = await anthropic.messages.countTokens({
+  model: 'claude-3-5-sonnet-20241022',
+  system: anthropicPrompt.prompt.system,
+  messages: anthropicPrompt.prompt.messages,
+});
+
+console.log(`Estimated tokens: ${tokenCount.input_tokens}`);
+```
+
+## Model Capabilities
 
 | Model                        | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
 | ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
