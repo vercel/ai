@@ -3,9 +3,11 @@ import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { LumaImageModel } from './luma-image-model';
 import { LumaImageModelId } from './luma-image-settings';
+import { VERSION } from './version';
 
 export interface LumaProviderSettings {
   /**
@@ -44,14 +46,18 @@ const defaultBaseURL = 'https://api.lumalabs.ai';
 
 export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'LUMA_API_KEY',
-      description: 'Luma',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'LUMA_API_KEY',
+          description: 'Luma',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/luma/${VERSION}`,
+    );
 
   const createImageModel = (modelId: LumaImageModelId) =>
     new LumaImageModel(modelId, {

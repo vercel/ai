@@ -13,12 +13,14 @@ import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { TogetherAIChatModelId } from './togetherai-chat-options';
 import { TogetherAIEmbeddingModelId } from './togetherai-embedding-options';
 import { TogetherAICompletionModelId } from './togetherai-completion-options';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { TogetherAIImageModelId } from './togetherai-image-settings';
+import { VERSION } from './version';
 
 export interface TogetherAIProviderSettings {
   /**
@@ -85,14 +87,18 @@ export function createTogetherAI(
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.together.xyz/v1/',
   );
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'TOGETHER_AI_API_KEY',
-      description: 'TogetherAI',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'TOGETHER_AI_API_KEY',
+          description: 'TogetherAI',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/togetherai/${VERSION}`,
+    );
 
   interface CommonModelConfig {
     provider: string;

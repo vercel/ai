@@ -15,6 +15,7 @@ vi.mock('@ai-sdk/openai-compatible', () => ({
 vi.mock('@ai-sdk/provider-utils', () => ({
   loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
   withoutTrailingSlash: vi.fn(url => url),
+  withUserAgentSuffix: vi.fn(headers => headers),
 }));
 
 vi.mock('./vercel-image-model', () => ({

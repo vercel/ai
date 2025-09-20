@@ -3,8 +3,13 @@ import {
   ProviderV2,
   NoSuchModelError,
 } from '@ai-sdk/provider';
-import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
+import { VERSION } from './version';
 
 export interface GladiaProvider extends ProviderV2 {
   (): {
@@ -41,14 +46,18 @@ Create a Gladia provider instance.
 export function createGladia(
   options: GladiaProviderSettings = {},
 ): GladiaProvider {
-  const getHeaders = () => ({
-    'x-gladia-key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'GLADIA_API_KEY',
-      description: 'Gladia',
-    }),
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        'x-gladia-key': loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'GLADIA_API_KEY',
+          description: 'Gladia',
+        }),
+        ...options.headers,
+      },
+      `ai-sdk/gladia/${VERSION}`,
+    );
 
   const createTranscriptionModel = () =>
     new GladiaTranscriptionModel('default', {

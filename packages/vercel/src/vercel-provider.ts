@@ -8,8 +8,10 @@ import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { VercelChatModelId } from './vercel-chat-options';
+import { VERSION } from './version';
 
 export interface VercelProviderSettings {
   /**
@@ -49,14 +51,18 @@ export function createVercel(
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.v0.dev/v1',
   );
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'VERCEL_API_KEY',
-      description: 'Vercel',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'VERCEL_API_KEY',
+          description: 'Vercel',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/vercel/${VERSION}`,
+    );
 
   interface CommonModelConfig {
     provider: string;

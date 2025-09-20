@@ -48,6 +48,10 @@ vi.mock('./vercel-environment', () => ({
   getVercelRequestId: vi.fn(),
 }));
 
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
 describe('GatewayProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -88,10 +92,11 @@ describe('GatewayProvider', () => {
       const headers = await config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-api-key',
-        'Custom-Header': 'value',
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
       });
     });
 
@@ -109,10 +114,11 @@ describe('GatewayProvider', () => {
       const headers = await config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer mock-oidc-token',
-        'Custom-Header': 'value',
+        authorization: 'Bearer mock-oidc-token',
+        'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'oidc',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
       });
     });
 
@@ -388,8 +394,9 @@ describe('GatewayProvider', () => {
       const headers = await resolve(config.headers());
 
       // Verify that the API key was used in the Authorization header
-      expect(headers.Authorization).toBe(`Bearer ${testApiKey}`);
+      expect(headers['authorization']).toBe(`Bearer ${testApiKey}`);
       expect(headers['ai-gateway-auth-method']).toBe('api-key');
+      expect(headers['user-agent']).toBe('ai-sdk/gateway/0.0.0-test');
 
       // Verify getVercelOidcToken was never called
       expect(getVercelOidcToken).not.toHaveBeenCalled();
@@ -891,7 +898,7 @@ describe('GatewayProvider', () => {
     it('should include proper headers for credits request', async () => {
       const provider = createGatewayProvider({
         apiKey: 'test-key',
-        headers: { 'Custom-Header': 'custom-value' },
+        headers: { 'custom-header': 'custom-value' },
       });
 
       await provider.getCredits();
@@ -900,10 +907,11 @@ describe('GatewayProvider', () => {
       const headers = await config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-key',
+        authorization: 'Bearer test-key',
         'ai-gateway-protocol-version': '0.0.1',
         'ai-gateway-auth-method': 'api-key',
-        'Custom-Header': 'custom-value',
+        'custom-header': 'custom-value',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
       });
     });
 

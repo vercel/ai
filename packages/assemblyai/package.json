@@ -18,6 +18,7 @@
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
+    "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
     "test:node": "vitest --config vitest.node.config.js --run",
     "test:node:watch": "vitest --config vitest.node.config.js --watch"

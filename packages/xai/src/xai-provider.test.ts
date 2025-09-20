@@ -28,6 +28,7 @@ vi.mock('@ai-sdk/provider-utils', () => ({
   withoutTrailingSlash: vi.fn(url => url),
   createJsonErrorResponseHandler: vi.fn().mockReturnValue(() => {}),
   generateId: vi.fn().mockReturnValue('mock-id'),
+  withUserAgentSuffix: vi.fn(headers => headers),
 }));
 
 describe('xAIProvider', () => {

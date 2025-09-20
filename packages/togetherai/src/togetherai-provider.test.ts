@@ -4,7 +4,7 @@ import {
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
 import { LanguageModelV2, EmbeddingModelV2 } from '@ai-sdk/provider';
-import { loadApiKey } from '@ai-sdk/provider-utils';
+import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { createTogetherAI } from './togetherai-provider';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
@@ -22,6 +22,7 @@ vi.mock('@ai-sdk/openai-compatible', () => ({
 vi.mock('@ai-sdk/provider-utils', () => ({
   loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
   withoutTrailingSlash: vi.fn(url => url),
+  withUserAgentSuffix: vi.fn(headers => headers),
 }));
 
 vi.mock('./togetherai-image-model', () => ({

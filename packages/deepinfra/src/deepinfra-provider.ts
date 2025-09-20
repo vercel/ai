@@ -13,12 +13,14 @@ import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { DeepInfraChatModelId } from './deepinfra-chat-options';
 import { DeepInfraEmbeddingModelId } from './deepinfra-embedding-options';
 import { DeepInfraCompletionModelId } from './deepinfra-completion-options';
 import { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { DeepInfraImageModel } from './deepinfra-image-model';
+import { VERSION } from './version';
 
 export interface DeepInfraProviderSettings {
   /**
@@ -85,14 +87,18 @@ export function createDeepInfra(
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.deepinfra.com/v1',
   );
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'DEEPINFRA_API_KEY',
-      description: "DeepInfra's API key",
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'DEEPINFRA_API_KEY',
+          description: "DeepInfra's API key",
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/deepinfra/${VERSION}`,
+    );
 
   interface CommonModelConfig {
     provider: string;

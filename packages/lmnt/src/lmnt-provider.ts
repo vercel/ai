@@ -1,7 +1,12 @@
 import { SpeechModelV2, ProviderV2 } from '@ai-sdk/provider';
-import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { LMNTSpeechModel } from './lmnt-speech-model';
 import { LMNTSpeechModelId } from './lmnt-speech-options';
+import { VERSION } from './version';
 
 export interface LMNTProvider extends Pick<ProviderV2, 'speechModel'> {
   (
@@ -39,14 +44,18 @@ or to provide a custom fetch implementation for e.g. testing.
 Create an LMNT provider instance.
  */
 export function createLMNT(options: LMNTProviderSettings = {}): LMNTProvider {
-  const getHeaders = () => ({
-    'x-api-key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'LMNT_API_KEY',
-      description: 'LMNT',
-    }),
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        'x-api-key': loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'LMNT_API_KEY',
+          description: 'LMNT',
+        }),
+        ...options.headers,
+      },
+      `ai-sdk/lmnt/${VERSION}`,
+    );
 
   const createSpeechModel = (modelId: LMNTSpeechModelId) =>
     new LMNTSpeechModel(modelId, {
