@@ -64,8 +64,41 @@ export function createDeepSeek(
     ...options.headers,
   });
 
+  class DeepSeekChatLanguageModel extends OpenAICompatibleChatLanguageModel {
+    private addJsonInstruction<
+      T extends Parameters<LanguageModelV2['doGenerate']>[0],
+    >(opts: T): T {
+      if (opts.responseFormat?.type !== 'json') return opts;
+
+      const promptArray = Array.isArray(opts.prompt) ? opts.prompt : [];
+
+      const hasJsonWord = promptArray.some(
+        m =>
+          m.role === 'user' &&
+          Array.isArray(m.content) &&
+          m.content.some(p => p.type === 'text' && /json/i.test(p.text ?? '')),
+      );
+      if (hasJsonWord) return opts;
+
+      const instruction = 'Return ONLY a valid JSON object.';
+      const adjustedPrompt = [
+        ...promptArray,
+        { role: 'user', content: [{ type: 'text', text: instruction }] },
+      ];
+      return { ...opts, prompt: adjustedPrompt } as T;
+    }
+
+    async doGenerate(options: Parameters<LanguageModelV2['doGenerate']>[0]) {
+      return super.doGenerate(this.addJsonInstruction(options));
+    }
+
+    async doStream(options: Parameters<LanguageModelV2['doStream']>[0]) {
+      return super.doStream(this.addJsonInstruction(options));
+    }
+  }
+
   const createLanguageModel = (modelId: DeepSeekChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, {
+    return new DeepSeekChatLanguageModel(modelId, {
       provider: `deepseek.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
