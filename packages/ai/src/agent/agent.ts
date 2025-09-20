@@ -7,7 +7,7 @@ import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
-import { streamText } from '../generate-text/stream-text';
+import { streamText, StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
 import { ToolSet } from '../generate-text/tool-set';
@@ -86,6 +86,15 @@ A function that attempts to repair a tool call that failed to parse.
   experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
   /**
+   * Optional stream transformations.
+   * They are applied in the order they are provided.
+   * The stream transformations must maintain the stream structure for streamText to work correctly.
+   */
+  experimental_transform?:
+    | StreamTextTransform<TOOLS>
+    | Array<StreamTextTransform<TOOLS>>;
+
+  /**
   Callback that is called when each step (LLM call) is finished, including intermediate steps.
   */
   onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
@@ -98,6 +107,19 @@ A function that attempts to repair a tool call that failed to parse.
    * @default undefined
    */
   experimental_context?: unknown;
+
+  /**
+   * Additional provider-specific metadata. They are passed through
+   * from the provider to the AI SDK and enable provider-specific
+   * results that can be fully encapsulated in the provider.
+   */
+  providerMetadata?: ProviderMetadata;
+  /**
+   * Additional provider-specific metadata. They are passed through
+   *  to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerOptions?: ProviderOptions;
 
   /**
    * Internal. For test use only. May change without notice.
