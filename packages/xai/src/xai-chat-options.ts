@@ -71,10 +71,6 @@ const searchSourceSchema = z.discriminatedUnion('type', [
 
 // xai-specific provider options
 export const xaiProviderOptions = z.object({
-  /**
-   * reasoning effort for reasoning models
-   * only supported by grok-3-mini and grok-3-mini-fast models
-   */
   reasoningEffort: z.enum(['low', 'high']).optional(),
 
   searchParameters: z
