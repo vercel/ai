@@ -31,6 +31,12 @@ import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
 
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
+
 const dummyResponseValues = {
   finishReason: 'stop' as const,
   usage: {
@@ -1677,9 +1683,10 @@ describe('generateText', () => {
       const result = await generateText({
         model: new MockLanguageModelV2({
           doGenerate: async ({ headers }) => {
-            assert.deepStrictEqual(headers, {
-              'custom-request-header': 'request-header-value',
-            });
+            assert.equal(
+              headers?.['custom-request-header'],
+              'request-header-value',
+            );
 
             return {
               ...dummyResponseValues,
@@ -1930,6 +1937,7 @@ describe('generateText', () => {
               "ai.model.provider": "mock-provider",
               "ai.operationId": "ai.generateText",
               "ai.prompt": "{"prompt":"test-input"}",
+              "ai.request.headers.user-agent": "ai/0.0.0-test",
               "ai.response.finishReason": "stop",
               "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
               "ai.settings.maxRetries": 2,
@@ -1950,6 +1958,7 @@ describe('generateText', () => {
               "ai.prompt.tools": [
                 "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
               ],
+              "ai.request.headers.user-agent": "ai/0.0.0-test",
               "ai.response.finishReason": "stop",
               "ai.response.id": "test-id",
               "ai.response.model": "mock-model-id",
@@ -2266,7 +2275,7 @@ describe('generateText', () => {
   });
 
   describe('provider-executed tools', () => {
-    describe('single provider-executed tool call and result', () => {
+    describe('two provider-executed tool calls and results', () => {
       let result: GenerateTextResult<any, any>;
 
       beforeEach(async () => {
@@ -2365,6 +2374,51 @@ describe('generateText', () => {
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-error",
+            },
+          ]
+        `);
+      });
+
+      it('should include provider-executed tool calls in staticToolCalls', async () => {
+        expect(result.staticToolCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should include provider-executed results in staticToolResults (errors excluded)', async () => {
+        expect(result.staticToolResults).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": undefined,
+              "input": {
+                "value": "value",
+              },
+              "output": "{ "value": "result1" }",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-result",
             },
           ]
         `);
@@ -2470,37 +2524,39 @@ describe('generateText', () => {
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
-        {
-          "abortSignal": undefined,
-          "frequencyPenalty": undefined,
-          "headers": undefined,
-          "maxOutputTokens": undefined,
-          "presencePenalty": undefined,
-          "prompt": [
-            {
-              "content": [
-                {
-                  "text": "prompt",
-                  "type": "text",
-                },
-              ],
-              "providerOptions": undefined,
-              "role": "user",
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
             },
-          ],
-          "providerOptions": undefined,
-          "responseFormat": {
-            "type": "text",
-          },
-          "seed": undefined,
-          "stopSequences": undefined,
-          "temperature": undefined,
-          "toolChoice": undefined,
-          "tools": undefined,
-          "topK": undefined,
-          "topP": undefined,
-        }
-      `);
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "text": "prompt",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": {
+              "type": "text",
+            },
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
       });
     });
 
@@ -2542,50 +2598,52 @@ describe('generateText', () => {
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
-        {
-          "abortSignal": undefined,
-          "frequencyPenalty": undefined,
-          "headers": undefined,
-          "maxOutputTokens": undefined,
-          "presencePenalty": undefined,
-          "prompt": [
-            {
-              "content": [
-                {
-                  "text": "prompt",
-                  "type": "text",
-                },
-              ],
-              "providerOptions": undefined,
-              "role": "user",
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
             },
-          ],
-          "providerOptions": undefined,
-          "responseFormat": {
-            "schema": {
-              "$schema": "http://json-schema.org/draft-07/schema#",
-              "additionalProperties": false,
-              "properties": {
-                "value": {
-                  "type": "string",
-                },
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "text": "prompt",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
               },
-              "required": [
-                "value",
-              ],
-              "type": "object",
+            ],
+            "providerOptions": undefined,
+            "responseFormat": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "type": "json",
             },
-            "type": "json",
-          },
-          "seed": undefined,
-          "stopSequences": undefined,
-          "temperature": undefined,
-          "toolChoice": undefined,
-          "tools": undefined,
-          "topK": undefined,
-          "topP": undefined,
-        }
-      `);
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
       });
     });
   });

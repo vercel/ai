@@ -1,10 +1,8 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 
-import {
-  convertReadableStreamToArray,
-  createTestServer,
-} from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
@@ -409,7 +407,10 @@ describe('XaiChatLanguageModel', () => {
                 },
                 {
                   type: 'x',
-                  xHandles: ['grok'],
+                  includedXHandles: ['grok'],
+                  excludedXHandles: ['openai'],
+                  postFavoriteCount: 5,
+                  postViewCount: 50,
                 },
                 {
                   type: 'news',
@@ -439,7 +440,10 @@ describe('XaiChatLanguageModel', () => {
             },
             {
               type: 'x',
-              x_handles: ['grok'],
+              included_x_handles: ['grok'],
+              excluded_x_handles: ['openai'],
+              post_favorite_count: 5,
+              post_view_count: 50,
             },
             {
               type: 'news',
@@ -581,7 +585,10 @@ describe('XaiChatLanguageModel', () => {
                 },
                 {
                   type: 'x',
-                  xHandles: ['openai', 'deepmind'],
+                  includedXHandles: ['openai', 'deepmind'],
+                  excludedXHandles: ['grok'],
+                  postFavoriteCount: 10,
+                  postViewCount: 100,
                 },
               ],
             },
@@ -612,7 +619,10 @@ describe('XaiChatLanguageModel', () => {
             },
             {
               type: 'x',
-              x_handles: ['openai', 'deepmind'],
+              included_x_handles: ['openai', 'deepmind'],
+              excluded_x_handles: ['grok'],
+              post_favorite_count: 10,
+              post_view_count: 100,
             },
           ],
         },

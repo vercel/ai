@@ -1,18 +1,20 @@
 import {
+  LanguageModelV2,
   LanguageModelV2FunctionTool,
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import fs from 'node:fs';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import {
   openaiResponsesModelIds,
   openaiResponsesReasoningModelIds,
 } from './openai-responses-settings';
-import { beforeEach, describe, expect, it } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -62,6 +64,29 @@ describe('OpenAIResponsesLanguageModel', () => {
   const server = createTestServer({
     'https://api.openai.com/v1/responses': {},
   });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/responses/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+    return;
+  }
+
+  function prepareChunksFixtureResponse(filename: string) {
+    const chunks = fs
+      .readFileSync(`src/responses/__fixtures__/${filename}.chunks.txt`, 'utf8')
+      .split('\n')
+      .map(line => `data: ${line}\n\n`);
+    chunks.push('data: [DONE]\n\n');
+
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'stream-chunks',
+      chunks,
+    };
+  }
 
   describe('doGenerate', () => {
     function prepareJsonResponse(body: any) {
@@ -188,17 +213,36 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
           temperature: 0.5,
           topP: 0.3,
+          providerOptions: {
+            openai: {
+              maxToolCalls: 10,
+            },
+          },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          temperature: 0.5,
-          top_p: 0.3,
-          input: [
-            { role: 'system', content: 'You are a helpful assistant.' },
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": "You are a helpful assistant.",
+                "role": "system",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "max_tool_calls": 10,
+            "model": "gpt-4o",
+            "temperature": 0.5,
+            "top_p": 0.3,
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -596,27 +640,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send include provider option for file search results', async () => {
-        const { warnings } = await createModel('gpt-4o-mini').doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: {
-            openai: {
-              include: ['file_search_call.results'],
-            },
-          },
-        });
-
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o-mini',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          include: ['file_search_call.results'],
-        });
-
-        expect(warnings).toStrictEqual([]);
-      });
-
       it('should send include provider option with multiple values', async () => {
         const { warnings } = await createModel('o3-mini').doGenerate({
           prompt: TEST_PROMPT,
@@ -925,280 +948,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ],
         });
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send web_search tool', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.web_search_preview',
-              name: 'web_search_preview',
-              args: {
-                searchContextSize: 'high',
-                userLocation: {
-                  type: 'approximate',
-                  city: 'San Francisco',
-                },
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          tools: [
-            {
-              type: 'web_search_preview',
-              search_context_size: 'high',
-              user_location: { type: 'approximate', city: 'San Francisco' },
-            },
-          ],
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send web_search tool as tool_choice', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          toolChoice: {
-            type: 'tool',
-            toolName: 'web_search_preview',
-          },
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.web_search_preview',
-              name: 'web_search_preview',
-              args: {
-                searchContextSize: 'high',
-                userLocation: {
-                  type: 'approximate',
-                  city: 'San Francisco',
-                },
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          tool_choice: { type: 'web_search_preview' },
-          tools: [
-            {
-              type: 'web_search_preview',
-              search_context_size: 'high',
-              user_location: { type: 'approximate', city: 'San Francisco' },
-            },
-          ],
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send file_search tool', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_123', 'vs_456'],
-                maxNumResults: 10,
-                ranking: {
-                  ranker: 'auto',
-                },
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tools": [
-              {
-                "max_num_results": 10,
-                "ranking_options": {
-                  "ranker": "auto",
-                },
-                "type": "file_search",
-                "vector_store_ids": [
-                  "vs_123",
-                  "vs_456",
-                ],
-              },
-            ],
-          }
-        `);
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send file_search tool as tool_choice', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          toolChoice: {
-            type: 'tool',
-            toolName: 'file_search',
-          },
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_789'],
-                maxNumResults: 5,
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tool_choice": {
-              "type": "file_search",
-            },
-            "tools": [
-              {
-                "max_num_results": 5,
-                "type": "file_search",
-                "vector_store_ids": [
-                  "vs_789",
-                ],
-              },
-            ],
-          }
-        `);
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send file_search tool with filters', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_123'],
-                maxNumResults: 5,
-                filters: {
-                  key: 'author',
-                  type: 'eq',
-                  value: 'Jane Smith',
-                },
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tools": [
-              {
-                "filters": {
-                  "key": "author",
-                  "type": "eq",
-                  "value": "Jane Smith",
-                },
-                "max_num_results": 5,
-                "type": "file_search",
-                "vector_store_ids": [
-                  "vs_123",
-                ],
-              },
-            ],
-          }
-        `);
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send file_search tool with minimal args', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {},
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tools": [
-              {
-                "type": "file_search",
-              },
-            ],
-          }
-        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -2158,9 +1907,116 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
-    describe('web search', () => {
-      const outputText = `Last week in San Francisco, several notable events and developments took place:\n\n**Bruce Lee Statue in Chinatown**\n\nThe Chinese Historical Society of America Museum announced plans to install a Bruce Lee statue in Chinatown. This initiative, supported by the Rose Pak Community Fund, the Bruce Lee Foundation, and Stand With Asians, aims to honor Lee's contributions to film and martial arts. Artist Arnie Kim has been commissioned for the project, with a fundraising goal of $150,000. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com))\n\n**Office Leasing Revival**\n\nThe Bay Area experienced a resurgence in office leasing, securing 11 of the largest U.S. office leases in 2024. This trend, driven by the tech industry's growth and advancements in generative AI, suggests a potential boost to downtown recovery through increased foot traffic. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com))\n\n**Spring Blooms in the Bay Area**\n\nWith the arrival of spring, several locations in the Bay Area are showcasing vibrant blooms. Notable spots include the Conservatory of Flowers, Japanese Tea Garden, Queen Wilhelmina Tulip Garden, and the San Francisco Botanical Garden, each offering unique floral displays. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com))\n\n**Oceanfront Great Highway Park**\n\nSan Francisco's long-awaited Oceanfront Great Highway park is set to open on April 12. This 43-acre, car-free park will span a two-mile stretch of the Great Highway from Lincoln Way to Sloat Boulevard, marking the largest pedestrianization project in California's history. The park follows voter approval of Proposition K, which permanently bans cars on part of the highway. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com))\n\n**Warmer Spring Seasons**\n\nAn analysis by Climate Central revealed that San Francisco, along with most U.S. cities, is experiencing increasingly warmer spring seasons. Over a 55-year period from 1970 to 2024, the national average temperature during March through May rose by 2.4°F. This warming trend poses various risks, including early snowmelt and increased wildfire threats. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com))\n\n\n# Key San Francisco Developments Last Week:\n- [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)\n- [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)\n- [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)`;
+    describe('code interpreter tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
 
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-code-interpreter-tool.1');
+
+        result = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.code_interpreter',
+              name: 'code_interpreter',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "code_interpreter_call.outputs",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-nano",
+            "tools": [
+              {
+                "container": {
+                  "type": "auto",
+                },
+                "type": "code_interpreter",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include code interpreter tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('image generation tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-image-generation-tool.1');
+
+        result = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: {
+                outputFormat: 'webp',
+                quality: 'low',
+                size: '1024x1024',
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-nano",
+            "tools": [
+              {
+                "output_format": "webp",
+                "quality": "low",
+                "size": "1024x1024",
+                "type": "image_generation",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include generate image tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('web search tool', () => {
       beforeEach(() => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
@@ -2201,7 +2057,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 content: [
                   {
                     type: 'output_text',
-                    text: outputText,
+                    text: `Last week in San Francisco, several notable events and developments took place:\n\n**Bruce Lee Statue in Chinatown**\n\nThe Chinese Historical Society of America Museum announced plans to install a Bruce Lee statue in Chinatown. This initiative, supported by the Rose Pak Community Fund, the Bruce Lee Foundation, and Stand With Asians, aims to honor Lee's contributions to film and martial arts. Artist Arnie Kim has been commissioned for the project, with a fundraising goal of $150,000. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com))\n\n**Office Leasing Revival**\n\nThe Bay Area experienced a resurgence in office leasing, securing 11 of the largest U.S. office leases in 2024. This trend, driven by the tech industry's growth and advancements in generative AI, suggests a potential boost to downtown recovery through increased foot traffic. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com))\n\n**Spring Blooms in the Bay Area**\n\nWith the arrival of spring, several locations in the Bay Area are showcasing vibrant blooms. Notable spots include the Conservatory of Flowers, Japanese Tea Garden, Queen Wilhelmina Tulip Garden, and the San Francisco Botanical Garden, each offering unique floral displays. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com))\n\n**Oceanfront Great Highway Park**\n\nSan Francisco's long-awaited Oceanfront Great Highway park is set to open on April 12. This 43-acre, car-free park will span a two-mile stretch of the Great Highway from Lincoln Way to Sloat Boulevard, marking the largest pedestrianization project in California's history. The park follows voter approval of Proposition K, which permanently bans cars on part of the highway. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com))\n\n**Warmer Spring Seasons**\n\nAn analysis by Climate Central revealed that San Francisco, along with most U.S. cities, is experiencing increasingly warmer spring seasons. Over a 55-year period from 1970 to 2024, the national average temperature during March through May rose by 2.4°F. This warming trend poses various risks, including early snowmelt and increased wildfire threats. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com))\n\n\n# Key San Francisco Developments Last Week:\n- [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)\n- [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)\n- [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)`,
                     annotations: [
                       {
                         type: 'url_citation',
@@ -2263,7 +2119,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             tool_choice: 'auto',
             tools: [
               {
-                type: 'web_search_preview',
+                type: 'web_search',
                 search_context_size: 'medium',
                 user_location: {
                   type: 'approximate',
@@ -2293,7 +2149,118 @@ describe('OpenAIResponsesLanguageModel', () => {
         };
       });
 
-      it('should generate text and sources', async () => {
+      it('should send web_search tool', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search',
+              name: 'web_search',
+              args: {
+                searchContextSize: 'high',
+                userLocation: {
+                  type: 'approximate',
+                  city: 'San Francisco',
+                },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "web_search_call.action.sources",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tools": [
+              {
+                "search_context_size": "high",
+                "type": "web_search",
+                "user_location": {
+                  "city": "San Francisco",
+                  "type": "approximate",
+                },
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send web_search tool as tool_choice', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          toolChoice: {
+            type: 'tool',
+            toolName: 'web_search',
+          },
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search',
+              name: 'web_search',
+              args: {
+                searchContextSize: 'high',
+                userLocation: {
+                  type: 'approximate',
+                  city: 'San Francisco',
+                },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "web_search_call.action.sources",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tool_choice": {
+              "type": "web_search",
+            },
+            "tools": [
+              {
+                "search_context_size": "high",
+                "type": "web_search",
+                "user_location": {
+                  "city": "San Francisco",
+                  "type": "approximate",
+                },
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should generate content', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
         });
@@ -2304,7 +2271,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
               "providerExecuted": true,
               "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "web_search_preview",
+              "toolName": "web_search",
               "type": "tool-call",
             },
             {
@@ -2313,14 +2280,14 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "status": "completed",
               },
               "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "web_search_preview",
+              "toolName": "web_search",
               "type": "tool-result",
             },
             {
               "input": "{"action":{"type":"search"}}",
               "providerExecuted": true,
               "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-              "toolName": "web_search_preview",
+              "toolName": "web_search",
               "type": "tool-call",
             },
             {
@@ -2329,7 +2296,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "status": "completed",
               },
               "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-              "toolName": "web_search_preview",
+              "toolName": "web_search",
               "type": "tool-result",
             },
             {
@@ -2405,233 +2372,254 @@ describe('OpenAIResponsesLanguageModel', () => {
           ]
         `);
       });
+    });
 
-      it('should handle file_search tool calls in generate', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: {
-            id: 'resp_67cf3390786881908b27489d7e8cfb6b',
-            object: 'response',
-            created_at: 1741632400,
-            status: 'completed',
-            error: null,
-            incomplete_details: null,
-            input: [],
-            instructions: null,
-            max_output_tokens: null,
-            model: 'gpt-4o-mini-2024-07-18',
-            output: [
-              {
-                type: 'file_search_call',
-                id: 'fs_67cf3390e9608190869b5d45698a7067',
-                status: 'completed',
-                queries: ['AI information'],
-                results: [
-                  {
-                    attributes: {
-                      file_id: 'file-123',
-                      filename: 'ai_guide.pdf',
-                      score: 0.95,
-                      text: 'AI is a field of computer science',
-                    },
-                  },
-                ],
-              },
-              {
-                id: 'msg_67cf33924ea88190b8c12bf68c1f6416',
-                type: 'message',
-                status: 'completed',
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'output_text',
-                    text: 'Based on the search results, here is the information you requested.',
-                    annotations: [],
-                  },
-                ],
-              },
-            ],
-            parallel_tool_calls: true,
-            previous_response_id: null,
-            reasoning: {
-              effort: null,
-              summary: null,
-            },
-            store: true,
-            temperature: 0,
-            text: {
-              format: {
-                type: 'text',
-              },
-            },
-            tool_choice: 'auto',
+    describe('file search tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+
+      describe('without results include', () => {
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('openai-file-search-tool.1');
+
+          result = await createModel('gpt-5-nano').doGenerate({
+            prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'file_search',
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                  maxNumResults: 5,
+                  filters: {
+                    key: 'author',
+                    type: 'eq',
+                    value: 'Jane Smith',
+                  },
+                  ranking: {
+                    ranker: 'auto',
+                    scoreThreshold: 0.5,
+                  },
+                },
               },
             ],
-            top_p: 1,
-            truncation: 'disabled',
-            usage: {
-              input_tokens: 327,
-              input_tokens_details: {
-                cached_tokens: 0,
-              },
-              output_tokens: 834,
-              output_tokens_details: {
-                reasoning_tokens: 0,
-              },
-              total_tokens: 1161,
-            },
-            user: null,
-            metadata: {},
-          },
-        };
-
-        const result = await createModel('gpt-4o-mini').doGenerate({
-          prompt: TEST_PROMPT,
+          });
         });
 
-        expect(result.content).toMatchInlineSnapshot(`
+        it('should send request body with tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-nano",
+            "tools": [
+              {
+                "filters": {
+                  "key": "author",
+                  "type": "eq",
+                  "value": "Jane Smith",
+                },
+                "max_num_results": 5,
+                "ranking_options": {
+                  "ranker": "auto",
+                  "score_threshold": 0.5,
+                },
+                "type": "file_search",
+                "vector_store_ids": [
+                  "vs_68caad8bd5d88191ab766cf043d89a18",
+                ],
+              },
+            ],
+          }
+        `);
+        });
+
+        it('should include file search tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+
+      describe('with results include', () => {
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('openai-file-search-tool.2');
+
+          result = await createModel('gpt-5-nano').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                  maxNumResults: 5,
+                  filters: {
+                    key: 'author',
+                    type: 'eq',
+                    value: 'Jane Smith',
+                  },
+                  ranking: {
+                    ranker: 'auto',
+                    scoreThreshold: 0.5,
+                  },
+                },
+              },
+            ],
+            providerOptions: {
+              openai: {
+                include: ['file_search_call.results'],
+              },
+            },
+          });
+        });
+
+        it('should send request body with tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "include": [
+                "file_search_call.results",
+              ],
+              "input": [
+                {
+                  "content": [
+                    {
+                      "text": "Hello",
+                      "type": "input_text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "gpt-5-nano",
+              "tools": [
+                {
+                  "filters": {
+                    "key": "author",
+                    "type": "eq",
+                    "value": "Jane Smith",
+                  },
+                  "max_num_results": 5,
+                  "ranking_options": {
+                    "ranker": "auto",
+                    "score_threshold": 0.5,
+                  },
+                  "type": "file_search",
+                  "vector_store_ids": [
+                    "vs_68caad8bd5d88191ab766cf043d89a18",
+                  ],
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should include file search tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+    });
+
+    it('should handle computer use tool calls', async () => {
+      function prepareJsonResponse(body: any) {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body,
+        };
+      }
+      prepareJsonResponse({
+        id: 'resp_computer_test',
+        object: 'response',
+        created_at: 1741630255,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o-mini',
+        output: [
+          {
+            type: 'computer_call',
+            id: 'computer_67cf2b3051e88190b006770db6fdb13d',
+            status: 'completed',
+          },
+          {
+            type: 'message',
+            id: 'msg_computer_test',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: "I've completed the computer task.",
+                annotations: [],
+              },
+            ],
+          },
+        ],
+        usage: { input_tokens: 100, output_tokens: 50 },
+      });
+
+      const result = await createModel('gpt-4o-mini').doGenerate({
+        prompt: [
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Use the computer to complete a task.',
+              },
+            ],
+          },
+        ],
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.computer_use',
+            name: 'computer_use',
+            args: {},
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
           [
             {
               "input": "",
               "providerExecuted": true,
-              "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
-              "toolName": "file_search",
-              "type": "tool-call",
-            },
-            {
-              "providerExecuted": true,
-              "result": {
-                "queries": [
-                  "AI information",
-                ],
-                "results": [
-                  {
-                    "attributes": {
-                      "file_id": "file-123",
-                      "filename": "ai_guide.pdf",
-                      "score": 0.95,
-                      "text": "AI is a field of computer science",
-                    },
-                  },
-                ],
-                "status": "completed",
-                "type": "file_search_tool_result",
-              },
-              "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
-              "toolName": "file_search",
-              "type": "tool-result",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                },
-              },
-              "text": "Based on the search results, here is the information you requested.",
-              "type": "text",
-            },
-          ]
-        `);
-      });
-
-      it('should handle web search with action query field', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: {
-            id: 'resp_test',
-            object: 'response',
-            created_at: 1741630255,
-            status: 'completed',
-            error: null,
-            incomplete_details: null,
-            instructions: null,
-            max_output_tokens: null,
-            model: 'o3-2025-04-16',
-            output: [
-              {
-                type: 'web_search_call',
-                id: 'ws_test',
-                status: 'completed',
-                action: {
-                  type: 'search',
-                  query: 'Vercel AI SDK next version features',
-                },
-              },
-              {
-                type: 'message',
-                id: 'msg_test',
-                status: 'completed',
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'output_text',
-                    text: 'Based on the search results, here are the upcoming features.',
-                    annotations: [],
-                  },
-                ],
-              },
-            ],
-            parallel_tool_calls: true,
-            previous_response_id: null,
-            reasoning: { effort: null, summary: null },
-            store: true,
-            temperature: 0,
-            text: { format: { type: 'text' } },
-            tool_choice: 'auto',
-            tools: [
-              { type: 'web_search_preview', search_context_size: 'medium' },
-            ],
-            top_p: 1,
-            truncation: 'disabled',
-            usage: {
-              input_tokens: 50,
-              input_tokens_details: { cached_tokens: 0 },
-              output_tokens: 25,
-              output_tokens_details: { reasoning_tokens: 0 },
-              total_tokens: 75,
-            },
-            user: null,
-            metadata: {},
-          },
-        };
-
-        const result = await createModel('o3-2025-04-16').doGenerate({
-          prompt: TEST_PROMPT,
-        });
-
-        expect(result.content).toMatchInlineSnapshot(`
-          [
-            {
-              "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
-              "providerExecuted": true,
-              "toolCallId": "ws_test",
-              "toolName": "web_search_preview",
+              "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "computer_use",
               "type": "tool-call",
             },
             {
               "providerExecuted": true,
               "result": {
                 "status": "completed",
+                "type": "computer_use_tool_result",
               },
-              "toolCallId": "ws_test",
-              "toolName": "web_search_preview",
+              "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "computer_use",
               "type": "tool-result",
             },
             {
               "providerMetadata": {
                 "openai": {
-                  "itemId": "msg_test",
+                  "itemId": "msg_computer_test",
                 },
               },
-              "text": "Based on the search results, here are the upcoming features.",
+              "text": "I've completed the computer task.",
               "type": "text",
             },
           ]
         `);
-      });
     });
 
     describe('errors', () => {
@@ -3049,108 +3037,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
-    it('should handle streaming web search with action query field', async () => {
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data:{"type":"response.created","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"in_progress","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
-          `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_test"}\n\n`,
-          `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_test"}\n\n`,
-          `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_test"}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_test","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-          `data:{"type":"response.content_part.added","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_test","output_index":1,"content_index":0,"delta":"Based on the search results, here are the upcoming features."}\n\n`,
-          `data:{"type":"response.output_text.done","item_id":"msg_test","output_index":1,"content_index":0,"text":"Based on the search results, here are the upcoming features."}\n\n`,
-          `data:{"type":"response.content_part.done","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}}\n\n`,
-          `data:{"type":"response.completed","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}},{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":50,"input_tokens_details":{"cached_tokens":0},"output_tokens":25,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":75},"user":null,"metadata":{}}}\n\n`,
-          'data: [DONE]\n\n',
-        ],
-      };
-
-      const { stream } = await createModel('o3-2025-04-16').doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
-
-      const result = await convertReadableStreamToArray(stream);
-      expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "resp_test",
-            "modelId": "o3-2025-04-16",
-            "timestamp": 2025-03-10T18:10:55.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "ws_test",
-            "toolName": "web_search_preview",
-            "type": "tool-input-start",
-          },
-          {
-            "id": "ws_test",
-            "type": "tool-input-end",
-          },
-          {
-            "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
-            "providerExecuted": true,
-            "toolCallId": "ws_test",
-            "toolName": "web_search_preview",
-            "type": "tool-call",
-          },
-          {
-            "providerExecuted": true,
-            "result": {
-              "status": "completed",
-            },
-            "toolCallId": "ws_test",
-            "toolName": "web_search_preview",
-            "type": "tool-result",
-          },
-          {
-            "id": "msg_test",
-            "providerMetadata": {
-              "openai": {
-                "itemId": "msg_test",
-              },
-            },
-            "type": "text-start",
-          },
-          {
-            "delta": "Based on the search results, here are the upcoming features.",
-            "id": "msg_test",
-            "type": "text-delta",
-          },
-          {
-            "id": "msg_test",
-            "type": "text-end",
-          },
-          {
-            "finishReason": "tool-calls",
-            "providerMetadata": {
-              "openai": {
-                "responseId": "resp_test",
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 50,
-              "outputTokens": 25,
-              "reasoningTokens": 0,
-              "totalTokens": 75,
-            },
-          },
-        ]
-      `);
-    });
-
     it('should send finish reason for incomplete response', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
@@ -3556,64 +3442,59 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
-    it('should stream sources', async () => {
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.in_progress","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_67cf3390e9608190869b5d45698a7067","status":"in_progress"}}\n\n`,
-          `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_67cf3390e9608190869b5d45698a7067"}\n\n`,
-          `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_67cf3390e9608190869b5d45698a7067"}\n\n`,
-          `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_67cf3390e9608190869b5d45698a7067"}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_67cf3390e9608190869b5d45698a7067","status":"completed"}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-          `data:{"type":"response.content_part.added","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"Last week"}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":" in San Francisco"}\n\n`,
-          `data:{"type":"response.output_text.annotation.added","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"}}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":" a themed party"}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))"}\n\n`,
-          `data:{"type":"response.output_text.annotation.added","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"annotation_index":1,"annotation":{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"."}\n\n`,
-          `data:{"type":"response.output_text.done","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"text":"Last week in San Francisco a themed..."}\n\n`,
-          `data:{"type":"response.content_part.done","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Last week in San Francisco a themed party...","annotations":[{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"},{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}]}}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Last week in San Francisco a themed party...","annotations":[{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"},{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}]}]}}\n\n`,
-          `data:{"type":"response.completed","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"web_search_call","id":"ws_67cf3390e9608190869b5d45698a7067","status":"completed"},{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Last week in San Francisco a themed party...","annotations":[{"type":"url_citation","start_index":383,"end_index":493,"url":"https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com","title":"San Francisco Events in March 2025: Festivals, Theater & Easter"},{"type":"url_citation","start_index":630,"end_index":762,"url":"https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com","title":"SF weekend events: Giants FanFest, crab crawl and more"}]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":327,"input_tokens_details":{"cached_tokens":0},"output_tokens":834,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":1161},"user":null,"metadata":{}}}\n\n`,
-        ],
-      };
+    describe('web search tool', () => {
+      it('should handle streaming web search with action query field', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"in_progress","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
+            `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_test"}\n\n`,
+            `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_test"}\n\n`,
+            `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_test"}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_test","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+            `data:{"type":"response.content_part.added","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_test","output_index":1,"content_index":0,"delta":"Based on the search results, here are the upcoming features."}\n\n`,
+            `data:{"type":"response.output_text.done","item_id":"msg_test","output_index":1,"content_index":0,"text":"Based on the search results, here are the upcoming features."}\n\n`,
+            `data:{"type":"response.content_part.done","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}},{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":50,"input_tokens_details":{"cached_tokens":0},"output_tokens":25,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":75},"user":null,"metadata":{}}}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
 
-      const { stream } = await createModel('gpt-4o-mini').doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
+        const { stream } = await createModel('o3-2025-04-16').doStream({
+          prompt: TEST_PROMPT,
+        });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        const result = await convertReadableStreamToArray(stream);
+        expect(result).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
             "warnings": [],
           },
           {
-            "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-            "modelId": "gpt-4o-mini-2024-07-18",
-            "timestamp": 2025-03-10T18:46:40.000Z,
+            "id": "resp_test",
+            "modelId": "o3-2025-04-16",
+            "timestamp": 2025-03-10T18:10:55.000Z,
             "type": "response-metadata",
           },
           {
-            "id": "ws_67cf3390e9608190869b5d45698a7067",
-            "toolName": "web_search_preview",
+            "id": "ws_test",
+            "toolName": "web_search",
             "type": "tool-input-start",
           },
           {
-            "id": "ws_67cf3390e9608190869b5d45698a7067",
+            "id": "ws_test",
             "type": "tool-input-end",
           },
           {
-            "input": "{}",
+            "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
             "providerExecuted": true,
-            "toolCallId": "ws_67cf3390e9608190869b5d45698a7067",
-            "toolName": "web_search_preview",
+            "toolCallId": "ws_test",
+            "toolName": "web_search",
             "type": "tool-call",
           },
           {
@@ -3621,80 +3502,538 @@ describe('OpenAIResponsesLanguageModel', () => {
             "result": {
               "status": "completed",
             },
-            "toolCallId": "ws_67cf3390e9608190869b5d45698a7067",
-            "toolName": "web_search_preview",
+            "toolCallId": "ws_test",
+            "toolName": "web_search",
             "type": "tool-result",
           },
           {
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "id": "msg_test",
             "providerMetadata": {
               "openai": {
-                "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+                "itemId": "msg_test",
               },
             },
             "type": "text-start",
           },
           {
-            "delta": "Last week",
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "delta": "Based on the search results, here are the upcoming features.",
+            "id": "msg_test",
             "type": "text-delta",
           },
           {
-            "delta": " in San Francisco",
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-            "type": "text-delta",
-          },
-          {
-            "id": "id-0",
-            "sourceType": "url",
-            "title": "San Francisco Events in March 2025: Festivals, Theater & Easter",
-            "type": "source",
-            "url": "https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com",
-          },
-          {
-            "delta": " a themed party",
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-            "type": "text-delta",
-          },
-          {
-            "delta": "([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))",
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-            "type": "text-delta",
-          },
-          {
-            "id": "id-1",
-            "sourceType": "url",
-            "title": "SF weekend events: Giants FanFest, crab crawl and more",
-            "type": "source",
-            "url": "https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com",
-          },
-          {
-            "delta": ".",
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-            "type": "text-delta",
-          },
-          {
-            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "id": "msg_test",
             "type": "text-end",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": "stop",
             "providerMetadata": {
               "openai": {
-                "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+                "responseId": "resp_test",
               },
             },
             "type": "finish",
             "usage": {
               "cachedInputTokens": 0,
-              "inputTokens": 327,
-              "outputTokens": 834,
+              "inputTokens": 50,
+              "outputTokens": 25,
               "reasoningTokens": 0,
-              "totalTokens": 1161,
+              "totalTokens": 75,
             },
           },
         ]
       `);
+      });
+
+      it('should stream web search results (sources, tool calls, tool results)', async () => {
+        prepareChunksFixtureResponse('openai-web-search-tool');
+
+        const { stream } = await createModel('gpt-5-nano').doStream({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await convertReadableStreamToArray(stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_68c187cc09508192aa225af9734e2ed905ca09a4773fcd25",
+                "modelId": "gpt-5-nano-2025-08-07",
+                "timestamp": 2025-09-10T14:14:36.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "id": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "id": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"action":{"type":"search","query":"Berlin news today"}}",
+                "providerExecuted": true,
+                "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "status": "completed",
+                },
+                "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "id": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"action":{"type":"search"}}",
+                "providerExecuted": true,
+                "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "status": "completed",
+                },
+                "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "id": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"action":{"type":"search"}}",
+                "providerExecuted": true,
+                "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "status": "completed",
+                },
+                "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "id": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"action":{"type":"search"}}",
+                "providerExecuted": true,
+                "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "providerExecuted": true,
+                "result": {
+                  "status": "completed",
+                },
+                "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+              {
+                "id": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "id": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                  },
+                },
+                "type": "text-start",
+              },
+              {
+                "delta": "Here’s what’s notable in Berlin today (September 10, 2025), based on three quick web searches:
+
+            - Berlin Art Week 2025 kicks off today and runs through September 14. The city’s autumn art season opens with more than 100 venues, featuring exhibitions from Patti Smith, Mark Leckey, Katharina Grosse, Carrie Mae Weems, and more. ([wallpaper.com](https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025))
+
+            - The city is highlighting its 200-year Museum Island anniversary this year, with ongoing events and exhibitions around Berlin’s historic center. This is part of Berlin’s big year of cultural highlights. ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
+
+            - 49h ICC: Open House is scheduled for September 11–14, offering guided tours and design talks at the former ICC Berlin. It’s one of the major architecture/design events associated with Berlin 2025. ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
+
+            - Open Monument Day is coming up on September 13–14, when many",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "id": "id-0",
+                "sourceType": "url",
+                "title": "What to see at Berlin Art Week 2025 | Wallpaper*",
+                "type": "source",
+                "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
+              },
+              {
+                "id": "id-1",
+                "sourceType": "url",
+                "title": "Berlin 2025 – the main events | visitBerlin.de",
+                "type": "source",
+                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+              },
+              {
+                "id": "id-2",
+                "sourceType": "url",
+                "title": "Berlin 2025 – the main events | visitBerlin.de",
+                "type": "source",
+                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+              },
+              {
+                "delta": " historic sites around Berlin open to the public with special programs. If you’re in town this weekend, it’s a good chance to explore landmarks that aren’t usually accessible.",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": " ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
+
+            - If you’re a sports fan, Berlin will host NFL games",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "id": "id-3",
+                "sourceType": "url",
+                "title": "Berlin 2025 – the main events | visitBerlin.de",
+                "type": "source",
+                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+              },
+              {
+                "delta": " in November 2025 (three regular-season games in the Olympic Stadium, with the Indianapolis Colts among",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": " the teams). It’s part of Berlin’s ongoing slate of major events this year",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": ". ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
+
+            - For some broader",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "id": "id-4",
+                "sourceType": "url",
+                "title": "Berlin 2025 – the main events | visitBerlin.de",
+                "type": "source",
+                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+              },
+              {
+                "delta": " context, Berlin has been discussing its role in postwar security arrangements for Ukraine, with",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": " German officials signaling readiness to increase support but delaying a formal deployment decision until broader conditions are",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": " clearer. This",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": " was reported for early September 2025. ([reuters.com](https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/))",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "id": "id-5",
+                "sourceType": "url",
+                "title": "Berlin holds off decision on participation in postwar Ukraine force | Reuters",
+                "type": "source",
+                "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",
+              },
+              {
+                "delta": "
+
+            Would you like me to pull live updates or focus on a specific topic (arts,",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "delta": " politics, sports) from today?",
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-delta",
+              },
+              {
+                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "type": "text-end",
+              },
+              {
+                "finishReason": "stop",
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_68c187cc09508192aa225af9734e2ed905ca09a4773fcd25",
+                    "serviceTier": "default",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": 34560,
+                  "inputTokens": 60093,
+                  "outputTokens": 4080,
+                  "reasoningTokens": 3648,
+                  "totalTokens": 64173,
+                },
+              },
+            ]
+          `);
+      });
+    });
+
+    describe('file search tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+
+      describe('without results include', () => {
+        beforeEach(async () => {
+          prepareChunksFixtureResponse('openai-file-search-tool.1');
+
+          result = await createModel('gpt-5-nano').doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                },
+              },
+            ],
+          });
+        });
+
+        it('should stream file search results', async () => {
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+
+      describe('with results include', () => {
+        beforeEach(async () => {
+          prepareChunksFixtureResponse('openai-file-search-tool.2');
+
+          result = await createModel('gpt-5-nano').doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                },
+              },
+            ],
+            providerOptions: {
+              openai: {
+                include: ['file_search_call.results'],
+              },
+            },
+          });
+        });
+
+        it('should stream file search results', async () => {
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+    });
+
+    describe('code interpreter tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('openai-code-interpreter-tool.1');
+
+        result = await createModel('gpt-5-nano').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.code_interpreter',
+              name: 'code_interpreter',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should stream code interpreter results', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('image generation tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('openai-image-generation-tool.1');
+
+        result = await createModel('gpt-5-nano').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should stream code image generation results', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
     });
 
     describe('errors', () => {
@@ -3702,7 +4041,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
           chunks: [
-            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
             `data:{"type":"error","code":"ERR_SOMETHING","message":"Something went wrong","param":null,"sequence_number":1}\n\n`,
           ],
         };
@@ -3751,211 +4090,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ]
         `);
-      });
-
-      it('should handle file_search tool calls', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"in_progress"}}\n\n`,
-            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed"}}\n\n`,
-            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"Based on the search results, here is the information you requested."}\n\n`,
-            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}}\n\n`,
-            `data:{"type":"response.completed","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed"},{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":327,"input_tokens_details":{"cached_tokens":0},"output_tokens":834,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":1161},"user":null,"metadata":{}}}\n\n`,
-          ],
-        };
-
-        const { stream } = await createModel('gpt-4o-mini').doStream({
-          prompt: TEST_PROMPT,
-          includeRawChunks: false,
-        });
-
-        expect(await convertReadableStreamToArray(stream))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "stream-start",
-                "warnings": [],
-              },
-              {
-                "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-                "modelId": "gpt-4o-mini-2024-07-18",
-                "timestamp": 2025-03-10T18:46:40.000Z,
-                "type": "response-metadata",
-              },
-              {
-                "id": "fs_67cf3390e9608190869b5d45698a7067",
-                "toolName": "file_search",
-                "type": "tool-input-start",
-              },
-              {
-                "id": "fs_67cf3390e9608190869b5d45698a7067",
-                "type": "tool-input-end",
-              },
-              {
-                "input": "",
-                "providerExecuted": true,
-                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
-                "toolName": "file_search",
-                "type": "tool-call",
-              },
-              {
-                "providerExecuted": true,
-                "result": {
-                  "status": "completed",
-                  "type": "file_search_tool_result",
-                },
-                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
-                "toolName": "file_search",
-                "type": "tool-result",
-              },
-              {
-                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                  },
-                },
-                "type": "text-start",
-              },
-              {
-                "delta": "Based on the search results, here is the information you requested.",
-                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                "type": "text-delta",
-              },
-              {
-                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                "type": "text-end",
-              },
-              {
-                "finishReason": "tool-calls",
-                "providerMetadata": {
-                  "openai": {
-                    "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
-                  },
-                },
-                "type": "finish",
-                "usage": {
-                  "cachedInputTokens": 0,
-                  "inputTokens": 327,
-                  "outputTokens": 834,
-                  "reasoningTokens": 0,
-                  "totalTokens": 1161,
-                },
-              },
-            ]
-          `);
-      });
-
-      it('should handle file_search tool calls with results', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"in_progress"}}\n\n`,
-            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed","queries":["AI information"],"results":[{"attributes":{"file_id":"file-123","filename":"ai_guide.pdf","score":0.95,"text":"AI is a field of computer science"}}]}}\n\n`,
-            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"Based on the search results, here is the information you requested."}\n\n`,
-            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}}\n\n`,
-            `data:{"type":"response.completed","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed","queries":["AI information"],"results":[{"attributes":{"file_id":"file-123","filename":"ai_guide.pdf","score":0.95,"text":"AI is a field of computer science"}}]},{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":327,"input_tokens_details":{"cached_tokens":0},"output_tokens":834,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":1161},"user":null,"metadata":{}}}\n\n`,
-          ],
-        };
-
-        const { stream } = await createModel('gpt-4o-mini').doStream({
-          prompt: TEST_PROMPT,
-          includeRawChunks: false,
-        });
-
-        expect(await convertReadableStreamToArray(stream))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "stream-start",
-                "warnings": [],
-              },
-              {
-                "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-                "modelId": "gpt-4o-mini-2024-07-18",
-                "timestamp": 2025-03-10T18:46:40.000Z,
-                "type": "response-metadata",
-              },
-              {
-                "id": "fs_67cf3390e9608190869b5d45698a7067",
-                "toolName": "file_search",
-                "type": "tool-input-start",
-              },
-              {
-                "id": "fs_67cf3390e9608190869b5d45698a7067",
-                "type": "tool-input-end",
-              },
-              {
-                "input": "",
-                "providerExecuted": true,
-                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
-                "toolName": "file_search",
-                "type": "tool-call",
-              },
-              {
-                "providerExecuted": true,
-                "result": {
-                  "queries": [
-                    "AI information",
-                  ],
-                  "results": [
-                    {
-                      "attributes": {
-                        "file_id": "file-123",
-                        "filename": "ai_guide.pdf",
-                        "score": 0.95,
-                        "text": "AI is a field of computer science",
-                      },
-                    },
-                  ],
-                  "status": "completed",
-                  "type": "file_search_tool_result",
-                },
-                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
-                "toolName": "file_search",
-                "type": "tool-result",
-              },
-              {
-                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                  },
-                },
-                "type": "text-start",
-              },
-              {
-                "delta": "Based on the search results, here is the information you requested.",
-                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                "type": "text-delta",
-              },
-              {
-                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                "type": "text-end",
-              },
-              {
-                "finishReason": "tool-calls",
-                "providerMetadata": {
-                  "openai": {
-                    "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
-                  },
-                },
-                "type": "finish",
-                "usage": {
-                  "cachedInputTokens": 0,
-                  "inputTokens": 327,
-                  "outputTokens": 834,
-                  "reasoningTokens": 0,
-                  "totalTokens": 1161,
-                },
-              },
-            ]
-          `);
       });
     });
 
@@ -4808,230 +4942,6 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           stream: true,
         });
-      });
-    });
-
-    describe('server-side tools', () => {
-      const TEST_PROMPT = [
-        {
-          role: 'user' as const,
-          content: [
-            {
-              type: 'text' as const,
-              text: 'Search for recent news about San Francisco tech events, then check the status of our server-side tool implementation.',
-            },
-          ],
-        },
-      ];
-
-      function prepareJsonResponse(body: any) {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body,
-        };
-      }
-
-      it('should enable server-side web search when using openai.tools.webSearchPreview', async () => {
-        prepareJsonResponse({
-          id: 'resp_67cf2b2f6bd081909be2c8054ddef0eb',
-          object: 'response',
-          created_at: 1741630255,
-          status: 'completed',
-          error: null,
-          incomplete_details: null,
-          instructions: null,
-          max_output_tokens: null,
-          model: 'gpt-4o-mini',
-          output: [
-            {
-              type: 'web_search_call',
-              id: 'ws_67cf2b3051e88190b006770db6fdb13d',
-              status: 'completed',
-            },
-            {
-              type: 'message',
-              id: 'msg_67cf2b35467481908f24412e4fd40d66',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: "As of June 23, 2025, here are some recent developments in San Francisco's tech scene:",
-                  annotations: [
-                    {
-                      type: 'url_citation',
-                      start_index: 0,
-                      end_index: 50,
-                      url: 'https://www.eventbrite.sg/d/ca--san-francisco/tech-events/?utm_source=openai',
-                      title:
-                        'Discover Tech Events & Activities in San Francisco, CA | Eventbrite',
-                    },
-                    {
-                      type: 'url_citation',
-                      start_index: 51,
-                      end_index: 100,
-                      url: 'https://www.axios.com/2024/12/10/ai-sf-summit-2024-roundup?utm_source=openai',
-                      title: 'AI+ SF Summit: AI agents are the next big thing',
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-          usage: { input_tokens: 1359, output_tokens: 624 },
-        });
-
-        const result = await createModel('gpt-4o-mini').doGenerate({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.web_search_preview',
-              name: 'web_search_preview',
-              args: {
-                searchContextSize: 'high',
-                userLocation: {
-                  type: 'approximate',
-                  city: 'San Francisco',
-                  region: 'California',
-                  country: 'US',
-                },
-              },
-            },
-          ],
-        });
-
-        expect(result.content).toMatchInlineSnapshot(`
-          [
-            {
-              "input": "{}",
-              "providerExecuted": true,
-              "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "web_search_preview",
-              "type": "tool-call",
-            },
-            {
-              "providerExecuted": true,
-              "result": {
-                "status": "completed",
-              },
-              "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "web_search_preview",
-              "type": "tool-result",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "msg_67cf2b35467481908f24412e4fd40d66",
-                },
-              },
-              "text": "As of June 23, 2025, here are some recent developments in San Francisco's tech scene:",
-              "type": "text",
-            },
-            {
-              "id": "id-0",
-              "sourceType": "url",
-              "title": "Discover Tech Events & Activities in San Francisco, CA | Eventbrite",
-              "type": "source",
-              "url": "https://www.eventbrite.sg/d/ca--san-francisco/tech-events/?utm_source=openai",
-            },
-            {
-              "id": "id-1",
-              "sourceType": "url",
-              "title": "AI+ SF Summit: AI agents are the next big thing",
-              "type": "source",
-              "url": "https://www.axios.com/2024/12/10/ai-sf-summit-2024-roundup?utm_source=openai",
-            },
-          ]
-        `);
-      });
-
-      it('should handle computer use tool calls', async () => {
-        prepareJsonResponse({
-          id: 'resp_computer_test',
-          object: 'response',
-          created_at: 1741630255,
-          status: 'completed',
-          error: null,
-          incomplete_details: null,
-          instructions: null,
-          max_output_tokens: null,
-          model: 'gpt-4o-mini',
-          output: [
-            {
-              type: 'computer_call',
-              id: 'computer_67cf2b3051e88190b006770db6fdb13d',
-              status: 'completed',
-            },
-            {
-              type: 'message',
-              id: 'msg_computer_test',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: "I've completed the computer task.",
-                  annotations: [],
-                },
-              ],
-            },
-          ],
-          usage: { input_tokens: 100, output_tokens: 50 },
-        });
-
-        const result = await createModel('gpt-4o-mini').doGenerate({
-          prompt: [
-            {
-              role: 'user' as const,
-              content: [
-                {
-                  type: 'text' as const,
-                  text: 'Use the computer to complete a task.',
-                },
-              ],
-            },
-          ],
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.computer_use',
-              name: 'computer_use',
-              args: {},
-            },
-          ],
-        });
-
-        expect(result.content).toMatchInlineSnapshot(`
-          [
-            {
-              "input": "",
-              "providerExecuted": true,
-              "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "computer_use",
-              "type": "tool-call",
-            },
-            {
-              "providerExecuted": true,
-              "result": {
-                "status": "completed",
-                "type": "computer_use_tool_result",
-              },
-              "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "computer_use",
-              "type": "tool-result",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "msg_computer_test",
-                },
-              },
-              "text": "I've completed the computer task.",
-              "type": "text",
-            },
-          ]
-        `);
       });
     });
   });
