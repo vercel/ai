@@ -12,9 +12,6 @@ on:
     paths:
       - '.changeset/*.md'
 
-
-
-
 jobs:
   verify-changesets:
     runs-on: ubuntu-latest
