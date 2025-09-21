@@ -45,4 +45,64 @@ const result = await generateText({
 });
 ```
 
+## Important: Tool Calls vs Structured Output
+
+When a generation finishes with tool calls (finish reason: `tool-calls`), the structured output parsing is automatically skipped. This means:
+
+- experimental_output will not inforce structured output when the LLM retunres with tool calls as a last message.
+- This prevents unnecessary parsing of tool call responses that don't contain structured text output
+- result.experimental_output will throw "No output specified"
+
+example:
+
+```tsx
+const result = await generateText({
+  model: openai('gpt-4o'),
+  experimental_output: Output.object({
+    shcema: jsonSchema({
+      type: 'object',
+      properties: {
+        response: {
+          type: 'string',
+          description: 'the ai response',
+        }
+      },
+      required: ['result'],
+    }),
+  }),
+  tools: {
+    calculate: tool({
+      description: 'Perform basic arithmetic calculations',
+      inputSchema: jsonSchema({
+        type: 'object',
+        properties: {
+          operation: {
+            type: 'string',
+            enum: ['add', 'subtract', 'multiply', 'divide'],
+            description: 'The arithmetic operation to perform',
+          },
+          a: {
+            type: 'number',
+            description: 'First number',
+          },
+          b: {
+            type: 'number',
+            description: 'Second number',
+          },
+        },
+        required: ['operation', 'a', 'b'],
+      }),
+    });
+  },
+  prompt: 'Calculate 15 * 7',
+});
+
+// If the last step finished with tool calls:
+// result.experimental_output will throw "No output specified"
+// result.toolCalls and result.toolResults will contain the tool data
+
+// If the last step finished with text:
+// result.experimental_output will contain the parsed structured output
+```
+
 For more information about using structured outputs with `generateText` and `streamText` see [Generating Structured Data](/docs/ai-sdk-core/generating-structured-data#structured-outputs-with-generatetext-and-streamtext).

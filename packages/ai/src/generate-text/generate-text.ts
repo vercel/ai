@@ -600,16 +600,22 @@ A function that attempts to repair a tool call that failed to parse.
 
         const lastStep = steps[steps.length - 1];
 
-        return new DefaultGenerateTextResult({
-          steps,
-          resolvedOutput: await output?.parseOutput(
+        // tool-calls does not requier structured output parsing.
+        let resolvedOutput;
+        if (lastStep.finishReason !== 'tool-calls') {
+          resolvedOutput = await output?.parseOutput(
             { text: lastStep.text },
             {
               response: lastStep.response,
               usage: lastStep.usage,
               finishReason: lastStep.finishReason,
             },
-          ),
+          );
+        }
+
+        return new DefaultGenerateTextResult({
+          steps,
+          resolvedOutput: resolvedOutput,
         });
       },
     });
