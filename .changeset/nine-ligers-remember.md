@@ -1,5 +1,5 @@
 ---
-'ai': major
+'ai': patch
 ---
 
 testing
