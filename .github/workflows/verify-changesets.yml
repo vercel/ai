@@ -22,6 +22,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 'lts/*'
+          cache: 'npm'
+          cache-dependency-path: .github/workflows/actions/verify-changesets/package.json
       - name: get all changed files from .changeset/*.md
         id: changeset-files
         run: |
