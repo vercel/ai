@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.21
+
+### Patch Changes
+
+- 52c4606: feat(xai) add grok-4-fast model ids
+
 ## 2.0.20
 
 ### Patch Changes
