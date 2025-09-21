@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.3
+
+### Patch Changes
+
+- ea9ca31: feat(provider/gateway): Add new xAI models
+
 ## 1.1.0-beta.2
 
 ### Patch Changes
