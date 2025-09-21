@@ -21,7 +21,7 @@ jobs:
           private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
 
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Fetch existing provider labels
         id: fetch-labels

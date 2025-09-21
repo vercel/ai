@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- 7dea60e: add promptFeedback outputs
+
 ## 2.1.0-beta.1
 
 ### Patch Changes
