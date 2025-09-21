@@ -1,7 +1,7 @@
 {
   "name": "@ai-sdk/gateway",
   "private": false,
-  "version": "1.0.23",
+  "version": "1.1.0-beta.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -37,6 +37,7 @@
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@types/node": "18.15.11",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",

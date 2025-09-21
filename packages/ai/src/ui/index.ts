@@ -55,4 +55,8 @@ export {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from './use-completion';
-export { validateUIMessages } from './validate-ui-messages';
+export {
+  validateUIMessages,
+  safeValidateUIMessages,
+  type SafeValidateUIMessagesResult,
+} from './validate-ui-messages';

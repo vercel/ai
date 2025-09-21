@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
 ## 2.0.0
 
 ### Major Changes

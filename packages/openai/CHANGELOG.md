@@ -1,5 +1,33 @@
 # @ai-sdk/openai
 
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.32
+
+### Patch Changes
+
+- 1cf857d: fix(provider/openai): remove provider-executed tools from chat completions model
+- 01de47f: feat(provider/openai): rework file search tool
+
 ## 2.0.31
 
 ### Patch Changes
