@@ -173,6 +173,9 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
         ...baseArgs,
         tools: mistralTools,
         tool_choice: mistralToolChoice,
+        ...(mistralTools != null && options.parallelToolCalls !== undefined
+          ? { parallel_tool_calls: options.parallelToolCalls }
+          : {}),
       },
       warnings: [...warnings, ...toolWarnings],
     };
