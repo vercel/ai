@@ -2,6 +2,8 @@ import { z } from 'zod/v4';
 
 // https://console.x.ai and see "View models"
 export type XaiChatModelId =
+  | 'grok-4-fast-non-reasoning'
+  | 'grok-4-fast-reasoning'
   | 'grok-code-fast-1'
   | 'grok-4'
   | 'grok-4-0709'
@@ -69,10 +71,6 @@ const searchSourceSchema = z.discriminatedUnion('type', [
 
 // xai-specific provider options
 export const xaiProviderOptions = z.object({
-  /**
-   * reasoning effort for reasoning models
-   * only supported by grok-3-mini and grok-3-mini-fast models
-   */
   reasoningEffort: z.enum(['low', 'high']).optional(),
 
   searchParameters: z
