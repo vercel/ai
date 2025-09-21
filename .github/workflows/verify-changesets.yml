@@ -15,9 +15,6 @@ on:
 jobs:
   verify-changesets:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .github/workflows/actions/verify-changesets
     steps:
       - uses: actions/checkout@v5
         with:
@@ -25,14 +22,16 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 'lts/*'
+          cache-dependency-path: .github/workflows/actions/verify-changesets/package.json
       - name: get all changed files from .changeset/*.md
         id: changeset-files
         run: |
-          echo "changed-files=$(git diff --diff-filter=dr --name-only $BASE_SHA -- '../../../../.changeset/*.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          echo "changed-files=$(git diff --diff-filter=dr --name-only $BASE_SHA -- '.changeset/*.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
       - name: Verify changesets
         if: steps.changeset-files.outputs.changed-files != ''
+        working-directory: .github/workflows/actions/verify-changesets
         run: |
           node index.js
         env:
