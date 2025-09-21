@@ -87,6 +87,7 @@ import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
+import { executeScorer, Scorer, ScorerResult } from './scorer';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -238,6 +239,7 @@ export function streamText<
   abortSignal,
   headers,
   stopWhen = stepCountIs(1),
+  scorers,
   experimental_output: output,
   experimental_telemetry: telemetry,
   prepareStep,
@@ -289,6 +291,10 @@ When the condition is an array, any of the conditions can be met to stop the gen
       | StopCondition<NoInfer<TOOLS>>
       | Array<StopCondition<NoInfer<TOOLS>>>;
 
+    /**
+Optional scorers to evaluate tool outputs.
+    */
+    scorers?: Scorer[];
     /**
 Optional telemetry configuration (experimental).
      */
@@ -435,6 +441,7 @@ Internal. For test use only. May change without notice.
     generateId,
     experimental_context,
     download,
+    scorers,
   });
 }
 
@@ -604,6 +611,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onStepFinish,
     experimental_context,
     download,
+    scorers,
   }: {
     model: LanguageModelV2;
     telemetry: TelemetrySettings | undefined;
@@ -629,6 +637,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     generateId: () => string;
     experimental_context: unknown;
     download: DownloadFunction | undefined;
+    scorers: Scorer[] | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -647,6 +656,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let stepFinish!: DelayedPromise<void>;
 
     let recordedContent: Array<ContentPart<TOOLS>> = [];
+    let recordedScorers: Array<ScorerResult> = [];
     const recordedResponseMessages: Array<ResponseMessage> = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
@@ -795,6 +805,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'tool-result' && !part.preliminary) {
+          for (const scorer of scorers ?? []) {
+            if (scorer?.tool === part?.toolName) {
+              recordedScorers.push({
+                tool: scorer.tool,
+                name: scorer.name,
+                result: executeScorer(scorer.scorer, part.output),
+              });
+            }
+          }
+
           recordedContent.push(part);
         }
 
@@ -825,6 +845,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               messages: [...recordedResponseMessages, ...stepMessages],
             },
             providerMetadata: part.providerMetadata,
+            scorers: recordedScorers,
           });
 
           await onStepFinish?.(currentStepResult);
@@ -902,6 +923,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             warnings: finalStep.warnings,
             providerMetadata: finalStep.providerMetadata,
             steps: recordedSteps,
+            scorers: recordedScorers,
           });
 
           // Add response information to the root span:

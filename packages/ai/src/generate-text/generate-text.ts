@@ -554,6 +554,7 @@ A function that attempts to repair a tool call that failed to parse.
               // deep clone msgs to avoid mutating past messages in multi-step:
               messages: structuredClone(responseMessages),
             },
+            scorers: undefined,
           });
 
           logWarnings(currentModelResponse.warnings ?? []);

@@ -18,6 +18,7 @@ import {
   TypedToolResult,
 } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ScorerResult } from './scorer';
 
 /**
  * The result of a single step in the generation process.
@@ -126,6 +127,10 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
    */
   readonly providerMetadata: ProviderMetadata | undefined;
+  /**
+Results from scoring tool outputs.
+  */
+  readonly scorers: ScorerResult[] | undefined;
 };
 
 export class DefaultStepResult<TOOLS extends ToolSet>
@@ -138,6 +143,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   readonly request: StepResult<TOOLS>['request'];
   readonly response: StepResult<TOOLS>['response'];
   readonly providerMetadata: StepResult<TOOLS>['providerMetadata'];
+  readonly scorers: StepResult<TOOLS>['scorers'];
 
   constructor({
     content,
@@ -147,6 +153,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     request,
     response,
     providerMetadata,
+    scorers,
   }: {
     content: StepResult<TOOLS>['content'];
     finishReason: StepResult<TOOLS>['finishReason'];
@@ -155,6 +162,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     request: StepResult<TOOLS>['request'];
     response: StepResult<TOOLS>['response'];
     providerMetadata: StepResult<TOOLS>['providerMetadata'];
+    scorers: StepResult<TOOLS>['scorers'];
   }) {
     this.content = content;
     this.finishReason = finishReason;
@@ -163,6 +171,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     this.request = request;
     this.response = response;
     this.providerMetadata = providerMetadata;
+    this.scorers = scorers;
   }
 
   get text() {
