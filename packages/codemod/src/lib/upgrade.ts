@@ -14,57 +14,66 @@ const bundle = [
   'v4/remove-experimental-streamdata',
   'v4/remove-experimental-tool',
   'v4/remove-experimental-useassistant',
-  'v5/remove-experimental-wrap-language-model',
-  'v5/remove-get-ui-text',
   'v4/remove-google-facade',
   'v4/remove-isxxxerror',
   'v4/remove-metadata-with-headers',
   'v4/remove-mistral-facade',
-  'v5/remove-openai-compatibility',
   'v4/remove-openai-facade',
-  'v5/remove-sendExtraMessageFields',
-  'v5/rename-core-message-to-model-message',
-  'v5/rename-datastream-transform-stream',
   'v4/rename-format-stream-part',
-  'v5/rename-languagemodelv1providermetadata',
-  'v5/rename-max-tokens-to-max-output-tokens',
-  'v5/rename-message-to-ui-message',
-  'v5/rename-mime-type-to-media-type',
   'v4/rename-parse-stream-part',
-  'v5/rename-reasoning-properties',
-  'v5/rename-reasoning-to-reasoningText',
-  'v5/rename-request-options',
   'v4/replace-baseurl',
-  'v5/replace-bedrock-snake-case',
-  'v5/replace-content-with-parts',
   'v4/replace-continuation-steps',
-  'v5/replace-experimental-provider-metadata',
-  'v5/replace-generatetext-text-property',
-  'v5/replace-image-type-with-file-type',
   'v4/replace-langchain-toaistream',
-  'v5/replace-llamaindex-adapter',
   'v4/replace-nanoid',
-  'v5/replace-oncompletion-with-onfinal',
-  'v5/replace-provider-metadata-with-provider-options',
-  'v5/replace-rawresponse-with-response',
-  'v5/replace-redacted-reasoning-type',
   'v4/replace-roundtrips-with-maxsteps',
-  'v5/replace-simulate-streaming',
-  'v5/replace-textdelta-with-text',
   'v4/replace-token-usage-types',
-  'v5/replace-usage-token-properties',
-  'v5/restructure-file-stream-parts',
-  'v5/restructure-source-stream-parts',
   'v4/rewrite-framework-imports',
-  'v5/rsc-package',
   'v5/flatten-streamtext-file-properties',
   'v5/import-LanguageModelV2-from-provider-package',
   'v5/migrate-to-data-stream-protocol-v2',
   'v5/move-image-model-maxImagesPerCall',
   'v5/move-langchain-adapter',
+  'v5/move-maxsteps-to-stopwhen',
   'v5/move-provider-options',
   'v5/move-react-to-ai-sdk',
   'v5/move-ui-utils-to-ai',
+  'v5/remove-experimental-wrap-language-model',
+  'v5/remove-get-ui-text',
+  'v5/remove-openai-compatibility',
+  'v5/remove-sendExtraMessageFields',
+  'v5/rename-converttocoremessages-to-converttomodelmessages',
+  'v5/rename-core-message-to-model-message',
+  'v5/rename-datastream-methods-to-uimessage',
+  'v5/rename-datastream-transform-stream',
+  'v5/rename-IDGenerator-to-IdGenerator',
+  'v5/rename-languagemodelv1providermetadata',
+  'v5/rename-max-tokens-to-max-output-tokens',
+  'v5/rename-message-to-ui-message',
+  'v5/rename-mime-type-to-media-type',
+  'v5/rename-pipedatastreamtoresponse-to-pipeuimessagestreamtoresponse',
+  'v5/rename-reasoning-properties',
+  'v5/rename-reasoning-to-reasoningText',
+  'v5/rename-request-options',
+  'v5/rename-todatastreamresponse-to-touimessagestreamresponse',
+  'v5/rename-tool-parameters-to-inputschema',
+  'v5/replace-bedrock-snake-case',
+  'v5/replace-content-with-parts',
+  'v5/replace-experimental-provider-metadata',
+  'v5/replace-image-type-with-file-type',
+  'v5/replace-llamaindex-adapter',
+  'v5/replace-oncompletion-with-onfinal',
+  'v5/replace-provider-metadata-with-provider-options',
+  'v5/replace-rawresponse-with-response',
+  'v5/replace-redacted-reasoning-type',
+  'v5/replace-simulate-streaming',
+  'v5/replace-textdelta-with-text',
+  'v5/replace-usage-token-properties',
+  'v5/replace-zod-import-with-v3',
+  'v5/require-createIdGenerator-size-argument',
+  'v5/restructure-file-stream-parts',
+  'v5/restructure-source-stream-parts',
+  'v5/rsc-package',
+  'v5/not-implemented/pattern',
 ];
 
 const log = debug('codemod:upgrade');
@@ -91,9 +100,15 @@ function runCodemods(
   );
   bar.start(modCount, 0, { codemod: 'Starting...' });
   const allErrors: TransformErrors = [];
+  let notImplementedAvailable = false;
   for (const [index, codemod] of codemods.entries()) {
-    const errors = transform(codemod, cwd, options, { logStatus: false });
+    const { errors, notImplementedErrors } = transform(codemod, cwd, options, {
+      logStatus: false,
+    });
     allErrors.push(...errors);
+    if (notImplementedErrors.length > 0) {
+      notImplementedAvailable = true;
+    }
     bar.increment(1, { codemod });
   }
   bar.stop();
@@ -105,6 +120,12 @@ function runCodemods(
     allErrors.forEach(({ transform, filename, summary }) => {
       error(`codemod=${transform}, path=${filename}, summary=${summary}`);
     });
+  }
+
+  if (notImplementedAvailable) {
+    log(
+      `Some ${versionLabel} codemods require manual changes. Please search your codebase for \`FIXME(@ai-sdk-upgrade-v5): \` comments and follow the instructions to complete the upgrade.`,
+    );
   }
 
   log(`${versionLabel} codemods complete.`);
@@ -131,9 +152,15 @@ export function upgrade(options: TransformOptions) {
   );
   bar.start(modCount, 0, { codemod: 'Starting...' });
   const allErrors: TransformErrors = [];
+  let notImplementedAvailable = false;
   for (const [index, codemod] of bundle.entries()) {
-    const errors = transform(codemod, cwd, options, { logStatus: false });
+    const { errors, notImplementedErrors } = transform(codemod, cwd, options, {
+      logStatus: false,
+    });
     allErrors.push(...errors);
+    if (notImplementedErrors.length > 0) {
+      notImplementedAvailable = true;
+    }
     bar.increment(1, { codemod });
   }
   bar.stop();
@@ -143,6 +170,12 @@ export function upgrade(options: TransformOptions) {
     allErrors.forEach(({ transform, filename, summary }) => {
       error(`codemod=${transform}, path=${filename}, summary=${summary}`);
     });
+  }
+
+  if (notImplementedAvailable) {
+    log(
+      'Some codemods require manual changes. Please search your codebase for `FIXME(@ai-sdk-upgrade-v5): ` comments and follow the instructions to complete the upgrade.',
+    );
   }
 
   log('Upgrade complete.');

@@ -1,9 +1,6 @@
-import {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2Middleware,
-} from '@ai-sdk/provider';
-import { asArray } from '../../src/util/as-array';
+import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { LanguageModelMiddleware } from '../types';
+import { asArray } from '../util/as-array';
 
 /**
  * Wraps a LanguageModelV2 instance with middleware functionality.
@@ -24,7 +21,7 @@ export const wrapLanguageModel = ({
   providerId,
 }: {
   model: LanguageModelV2;
-  middleware: LanguageModelV2Middleware | LanguageModelV2Middleware[];
+  middleware: LanguageModelMiddleware | LanguageModelMiddleware[];
   modelId?: string;
   providerId?: string;
 }): LanguageModelV2 => {
@@ -49,7 +46,7 @@ const doWrap = ({
   providerId,
 }: {
   model: LanguageModelV2;
-  middleware: LanguageModelV2Middleware;
+  middleware: LanguageModelMiddleware;
   modelId?: string;
   providerId?: string;
 }): LanguageModelV2 => {

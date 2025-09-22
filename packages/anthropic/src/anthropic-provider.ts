@@ -24,14 +24,8 @@ Creates a model for text generation.
 */
   languageModel(modelId: AnthropicMessagesModelId): LanguageModelV2;
 
-  /**
-@deprecated Use `.languageModel()` instead.
-*/
   chat(modelId: AnthropicMessagesModelId): LanguageModelV2;
 
-  /**
-@deprecated Use `.languageModel()` instead.
-   */
   messages(modelId: AnthropicMessagesModelId): LanguageModelV2;
 
   /**

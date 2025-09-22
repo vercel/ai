@@ -16,6 +16,8 @@ import { consumeStream } from '../util/consume-stream';
  *
  * @param options.message - The last assistant message to use as a starting point when the conversation is resumed. Otherwise undefined.
  * @param options.stream - The stream of `UIMessageChunk`s to read.
+ * @param options.terminateOnError - Whether to terminate the stream if an error occurs.
+ * @param options.onError - A function that is called when an error occurs.
  *
  * @returns An `AsyncIterableStream` of `UIMessage`s. Each stream part is a different state of the same message
  * as it is being completed.
@@ -23,11 +25,16 @@ import { consumeStream } from '../util/consume-stream';
 export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
   message,
   stream,
+  onError,
+  terminateOnError = false,
 }: {
   message?: UI_MESSAGE;
   stream: ReadableStream<UIMessageChunk>;
+  onError?: (error: unknown) => void;
+  terminateOnError?: boolean;
 }): AsyncIterableStream<UI_MESSAGE> {
   let controller: ReadableStreamDefaultController<UI_MESSAGE> | undefined;
+  let hasErrored = false;
 
   const outputStream = new ReadableStream<UI_MESSAGE>({
     start(controllerParam) {
@@ -39,6 +46,15 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
     messageId: message?.id ?? '',
     lastMessage: message,
   });
+
+  const handleError = (error: unknown) => {
+    onError?.(error);
+
+    if (!hasErrored && terminateOnError) {
+      hasErrored = true;
+      controller?.error(error);
+    }
+  };
 
   consumeStream({
     stream: processUIMessageStream({
@@ -56,12 +72,15 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
           },
         });
       },
-      onError: error => {
-        throw error;
-      },
+      onError: handleError,
     }),
+    onError: handleError,
   }).finally(() => {
-    controller?.close();
+    // Only close if no error occurred. Calling close() on an errored controller
+    // throws "Invalid state: Controller is already closed" TypeError.
+    if (!hasErrored) {
+      controller?.close();
+    }
   });
 
   return createAsyncIterableStream(outputStream);

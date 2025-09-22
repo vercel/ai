@@ -1,10 +1,11 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { createGroq } from './groq-provider';
+import { describe, it, expect } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -52,6 +53,9 @@ describe('doGenerate', () => {
       prompt_tokens?: number;
       total_tokens?: number;
       completion_tokens?: number;
+      prompt_tokens_details?: {
+        cached_tokens?: number;
+      };
     };
     finish_reason?: string;
     created?: number;
@@ -133,6 +137,7 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
+        "cachedInputTokens": undefined,
         "inputTokens": 20,
         "outputTokens": 5,
         "totalTokens": 25,
@@ -172,12 +177,40 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
+        "cachedInputTokens": undefined,
         "inputTokens": 20,
         "outputTokens": undefined,
         "totalTokens": 20,
       }
     `);
   });
+
+  it('should extract cached input tokens', async () => {
+    prepareJsonResponse({
+      usage: {
+        prompt_tokens: 20,
+        total_tokens: 25,
+        completion_tokens: 5,
+        prompt_tokens_details: {
+          cached_tokens: 15,
+        },
+      },
+    });
+
+    const { usage } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": 15,
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "totalTokens": 25,
+      }
+    `);
+  });
+
   it('should extract finish reason', async () => {
     prepareJsonResponse({
       finish_reason: 'stop',
@@ -256,6 +289,25 @@ describe('doGenerate', () => {
       parallel_tool_calls: false,
       user: 'test-user-id',
       reasoning_format: 'hidden',
+    });
+  });
+
+  it('should pass serviceTier provider option', async () => {
+    prepareJsonResponse();
+
+    await provider('gemma2-9b-it').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        groq: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      service_tier: 'flex',
     });
   });
 
@@ -380,7 +432,7 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should pass response format information', async () => {
+  it('should pass response format information as json_schema when structuredOutputs enabled by default', async () => {
     prepareJsonResponse({ content: '{"value":"Spark"}' });
 
     const model = provider('gemma2-9b-it');
@@ -405,9 +457,294 @@ describe('doGenerate', () => {
       model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
       response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'test-name',
+          description: 'test description',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+  });
+
+  it('should pass response format information as json_object when structuredOutputs explicitly disabled', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider('gemma2-9b-it');
+
+    const { warnings } = await model.doGenerate({
+      providerOptions: {
+        groq: {
+          structuredOutputs: false,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
         type: 'json_object',
       },
     });
+
+    expect(warnings).toEqual([
+      {
+        details:
+          'JSON response format schema is only supported with structuredOutputs',
+        setting: 'responseFormat',
+        type: 'unsupported-setting',
+      },
+    ]);
+  });
+
+  it('should use json_schema format when structuredOutputs explicitly enabled', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider('gemma2-9b-it');
+
+    await model.doGenerate({
+      providerOptions: {
+        groq: {
+          structuredOutputs: true,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'test-name',
+          description: 'test description',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+  });
+
+  it('should allow explicit structuredOutputs override', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider('gemma2-9b-it');
+
+    await model.doGenerate({
+      providerOptions: {
+        groq: {
+          structuredOutputs: true,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'response',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+  });
+
+  it('should handle structured outputs with Kimi K2 model', async () => {
+    prepareJsonResponse({
+      content:
+        '{"recipe":{"name":"Spaghetti Aglio e Olio","ingredients":["spaghetti","garlic","olive oil","parmesan"],"instructions":["Boil pasta","Sauté garlic","Combine"]}}',
+    });
+
+    const kimiModel = provider('moonshotai/kimi-k2-instruct');
+
+    const result = await kimiModel.doGenerate({
+      providerOptions: {
+        groq: {
+          structuredOutputs: true,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        name: 'recipe_response',
+        description: 'A recipe with ingredients and instructions',
+        schema: {
+          type: 'object',
+          properties: {
+            recipe: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                ingredients: { type: 'array', items: { type: 'string' } },
+                instructions: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['name', 'ingredients', 'instructions'],
+            },
+          },
+          required: ['recipe'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a simple pasta recipe' }],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Generate a simple pasta recipe",
+            "role": "user",
+          },
+        ],
+        "model": "moonshotai/kimi-k2-instruct",
+        "response_format": {
+          "json_schema": {
+            "description": "A recipe with ingredients and instructions",
+            "name": "recipe_response",
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "recipe": {
+                  "properties": {
+                    "ingredients": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "instructions": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                    "ingredients",
+                    "instructions",
+                  ],
+                  "type": "object",
+                },
+              },
+              "required": [
+                "recipe",
+              ],
+              "type": "object",
+            },
+          },
+          "type": "json_schema",
+        },
+      }
+    `);
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "{"recipe":{"name":"Spaghetti Aglio e Olio","ingredients":["spaghetti","garlic","olive oil","parmesan"],"instructions":["Boil pasta","Sauté garlic","Combine"]}}",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should include warnings when structured outputs explicitly disabled but schema provided', async () => {
+    prepareJsonResponse({ content: '{"value":"test"}' });
+
+    const { warnings } = await model.doGenerate({
+      providerOptions: {
+        groq: {
+          structuredOutputs: false,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "JSON response format schema is only supported with structuredOutputs",
+          "setting": "responseFormat",
+          "type": "unsupported-setting",
+        },
+      ]
+    `);
   });
 
   it('should send request body', async () => {
@@ -507,6 +844,7 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
             "totalTokens": 457,
@@ -590,6 +928,7 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
             "totalTokens": 457,
@@ -720,6 +1059,7 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
             "totalTokens": 457,
@@ -855,6 +1195,7 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
             "totalTokens": 457,
@@ -981,6 +1322,7 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": undefined,
             "outputTokens": undefined,
             "totalTokens": undefined,
@@ -1060,6 +1402,7 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
             "totalTokens": 457,
@@ -1100,6 +1443,7 @@ describe('doStream', () => {
           "finishReason": "error",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": undefined,
             "outputTokens": undefined,
             "totalTokens": undefined,
@@ -1138,6 +1482,7 @@ describe('doStream', () => {
             "finishReason": "error",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": undefined,
               "outputTokens": undefined,
               "totalTokens": undefined,
@@ -1338,6 +1683,7 @@ describe('doStream with raw chunks', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 10,
             "outputTokens": 5,
             "totalTokens": 15,

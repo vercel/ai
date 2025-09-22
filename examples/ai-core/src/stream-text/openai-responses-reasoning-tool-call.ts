@@ -1,7 +1,7 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { stepCountIs, streamText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const result = streamText({
@@ -62,7 +62,7 @@ async function main() {
         process.stdout.write('\x1b[34m');
         break;
 
-      case 'reasoning':
+      case 'reasoning-delta':
         process.stdout.write(chunk.text);
         break;
 
@@ -101,7 +101,7 @@ async function main() {
         process.stdout.write('\x1b[32m');
         break;
 
-      case 'text':
+      case 'text-delta':
         process.stdout.write(chunk.text);
         break;
 

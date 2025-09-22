@@ -1,13 +1,14 @@
 import {
   createTestServer,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { UIMessageChunk } from 'ai';
 import { setupTestComponent } from './setup-test-component';
 import { useCompletion } from './use-completion';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;

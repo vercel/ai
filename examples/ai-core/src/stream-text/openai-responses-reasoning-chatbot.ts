@@ -2,7 +2,7 @@ import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { stepCountIs, ModelMessage, streamText, tool, APICallError } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const terminal = readline.createInterface({
   input: process.stdin,
@@ -66,7 +66,7 @@ async function main() {
           process.stdout.write('\x1b[34m');
           break;
 
-        case 'reasoning':
+        case 'reasoning-delta':
           process.stdout.write(chunk.text);
           break;
 
@@ -105,7 +105,7 @@ async function main() {
           process.stdout.write('\x1b[32m');
           break;
 
-        case 'text':
+        case 'text-delta':
           process.stdout.write(chunk.text);
           break;
 

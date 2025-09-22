@@ -1,5 +1,320 @@
 # @ai-sdk/groq
 
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- 3f464f4: fix(provider/groq): track cached tokens usage
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.18
+
+### Patch Changes
+
+- c37bc3b: feat (provider/groq): remove obsolete saba model id
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 2.0.14
+
+### Patch Changes
+
+- 1e8f9b7: fix (provider/groq): add missing provider.transcriptionModel
+
+## 2.0.13
+
+### Patch Changes
+
+- 72757a0: feat (provider/groq): add service tier provider option
+
+## 2.0.12
+
+### Patch Changes
+
+- 0857788: fix(provider/groq): `experimental_transcribe` fails with valid Buffer
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 2.0.11
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 2.0.10
+
+### Patch Changes
+
+- ff008b9: fix(groq): strip unsupported `reasoning` fields for non-reasoning models
+
+## 2.0.9
+
+### Patch Changes
+
+- d48613a: Added support for browser use tool in groq
+
+## 2.0.8
+
+### Patch Changes
+
+- 7f62adf: ### Groq: send reasoning input
+
+  Groq's API now accepts reasoning for tool calls, see https://cookbook.openai.com/articles/openai-harmony#handling-reasoning-output-in-subsequent-sampling
+
+  https://github.com/vercel/ai/pull/8037
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [f25040d]
+  - @ai-sdk/provider-utils@3.0.3
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [38ac190]
+  - @ai-sdk/provider-utils@3.0.2
+
+## 2.0.5
+
+### Patch Changes
+
+- 8f8a521: fix(providers): use convertToBase64 for Uint8Array image parts to produce valid data URLs; keep mediaType normalization and URL passthrough
+
+## 2.0.4
+
+### Patch Changes
+
+- 4b50c36: patch reasoningEffort parameter "low", "medium", "high" for gpt-oss
+
+## 2.0.3
+
+### Patch Changes
+
+- e49b556: feat(provider/groq): added openai gpt-oss model ids
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+
+## 2.0.1
+
+### Patch Changes
+
+- 2b99d35: Add reasoningEffort
+
+## 2.0.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- e2aceaf: feat: add raw chunk support
+- e0d9541: feat: add kimi k2 model via groq
+- 9bd148e: feat(providers/groq): add transcribe
+- ae3a4fd: feat(provider/groq): add structured outputs support
+- d1a034f: feature: using Zod 4 for internal stuff
+- ebeac90: chore(providers/groq): convert to providerOptions
+- 67b9604: feat (provider/groq): add llama 4 model
+- 205077b: fix: improve Zod compatibility
+- 6f231db: fix(providers): always use optional instead of mix of nullish for providerOptions
+- Updated dependencies [a571d6e]
+- Updated dependencies [742b7be]
+- Updated dependencies [e7fcc86]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [95857aa]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [6f6bb89]
+- Updated dependencies [060370c]
+- Updated dependencies [dc714f3]
+- Updated dependencies [b5da06a]
+- Updated dependencies [d1a1aa1]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [5d142ab]
+- Updated dependencies [d5f588f]
+- Updated dependencies [e025824]
+- Updated dependencies [0571b98]
+- Updated dependencies [b6b43c7]
+- Updated dependencies [4fef487]
+- Updated dependencies [48d257a]
+- Updated dependencies [0c0c0b3]
+- Updated dependencies [0d2c085]
+- Updated dependencies [40acf9b]
+- Updated dependencies [9222aeb]
+- Updated dependencies [e2aceaf]
+- Updated dependencies [411e483]
+- Updated dependencies [8ba77a7]
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [a166433]
+- Updated dependencies [26735b5]
+- Updated dependencies [443d8ec]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [abf9a79]
+- Updated dependencies [14c9410]
+- Updated dependencies [e86be6f]
+- Updated dependencies [9bf7291]
+- Updated dependencies [2e13791]
+- Updated dependencies [9f95b35]
+- Updated dependencies [66962ed]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [d9c98f4]
+- Updated dependencies [05d2819]
+- Updated dependencies [9301f86]
+- Updated dependencies [0a87932]
+- Updated dependencies [c4a2fec]
+- Updated dependencies [957b739]
+- Updated dependencies [79457bd]
+- Updated dependencies [a3f768e]
+- Updated dependencies [7435eb5]
+- Updated dependencies [8aa9e20]
+- Updated dependencies [4617fab]
+- Updated dependencies [ac34802]
+- Updated dependencies [0054544]
+- Updated dependencies [cb68df0]
+- Updated dependencies [ad80501]
+- Updated dependencies [68ecf2f]
+- Updated dependencies [9e9c809]
+- Updated dependencies [32831c6]
+- Updated dependencies [6dc848c]
+- Updated dependencies [6b98118]
+- Updated dependencies [d0f9495]
+- Updated dependencies [63d791d]
+- Updated dependencies [87b828f]
+- Updated dependencies [3f2f00c]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [0ff02bb]
+- Updated dependencies [7979f7f]
+- Updated dependencies [39a4fab]
+- Updated dependencies [44f4aba]
+- Updated dependencies [9bd5ab5]
+- Updated dependencies [57edfcb]
+- Updated dependencies [faf8446]
+- Updated dependencies [7ea4132]
+- Updated dependencies [d1a034f]
+- Updated dependencies [5c56081]
+- Updated dependencies [fd65bc6]
+- Updated dependencies [023ba40]
+- Updated dependencies [ea7a7c9]
+- Updated dependencies [26535e0]
+- Updated dependencies [e030615]
+- Updated dependencies [5e57fae]
+- Updated dependencies [393138b]
+- Updated dependencies [c57e248]
+- Updated dependencies [88a8ee5]
+- Updated dependencies [41fa418]
+- Updated dependencies [205077b]
+- Updated dependencies [71f938d]
+- Updated dependencies [3795467]
+- Updated dependencies [28a5ed5]
+- Updated dependencies [7182d14]
+- Updated dependencies [c1e6647]
+- Updated dependencies [1766ede]
+- Updated dependencies [811dff3]
+- Updated dependencies [f10304b]
+- Updated dependencies [dd5fd43]
+- Updated dependencies [33f4a6a]
+- Updated dependencies [383cbfa]
+- Updated dependencies [27deb4d]
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider-utils@3.0.0
+  - @ai-sdk/provider@2.0.0
+
+## 2.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [88a8ee5]
+  - @ai-sdk/provider-utils@3.0.0-beta.10
+
+## 2.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [27deb4d]
+  - @ai-sdk/provider@2.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.9
+
+## 2.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [dd5fd43]
+  - @ai-sdk/provider-utils@3.0.0-beta.8
+
+## 2.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [ac34802]
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+
+## 2.0.0-beta.7
+
+### Patch Changes
+
+- ae3a4fd: feat(provider/groq): add structured outputs support
+
 ## 2.0.0-beta.6
 
 ### Patch Changes

@@ -15,23 +15,12 @@ import {
 import { ServerResponse } from 'http';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
-import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
-import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { DeepPartial, isDeepEqualData, parsePartialJson } from '../../src/util';
-import {
-  AsyncIterableStream,
-  createAsyncIterableStream,
-} from '../../src/util/async-iterable-stream';
-import { createStitchableStream } from '../../src/util/create-stitchable-stream';
-import { DelayedPromise } from '../../src/util/delayed-promise';
-import { now as originalNow } from '../../src/util/now';
-import { prepareRetries } from '../../src/util/prepare-retries';
+import { logWarnings } from '../logger/log-warnings';
+import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { resolveLanguageModel } from '../prompt/resolve-language-model';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -41,12 +30,30 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { CallWarning, LanguageModel } from '../types/language-model';
+import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
+import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
+import {
+  CallWarning,
+  FinishReason,
+  LanguageModel,
+} from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
+import { DeepPartial, isDeepEqualData, parsePartialJson } from '../util';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../util/async-iterable-stream';
+import { createStitchableStream } from '../util/create-stitchable-stream';
+import { DelayedPromise } from '../util/delayed-promise';
+import { DownloadFunction } from '../util/download/download-function';
+import { now as originalNow } from '../util/now';
+import { prepareRetries } from '../util/prepare-retries';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
+import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
+import { RepairTextFunction } from './repair-text';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
@@ -231,10 +238,23 @@ The language model to use.
       model: LanguageModel;
 
       /**
+A function that attempts to repair the raw output of the model
+to enable JSON parsing.
+       */
+      experimental_repairText?: RepairTextFunction;
+
+      /**
 Optional telemetry configuration (experimental).
        */
 
       experimental_telemetry?: TelemetrySettings;
+
+      /**
+  Custom download function to use for URLs.
+
+  By default, files are downloaded if the model does not support the URL for the given media type.
+       */
+      experimental_download?: DownloadFunction | undefined;
 
       /**
 Additional provider-specific options. They are passed through
@@ -286,7 +306,9 @@ Callback that is called when the LLM response and the final object validation ar
     maxRetries,
     abortSignal,
     headers,
+    experimental_repairText: repairText,
     experimental_telemetry: telemetry,
+    experimental_download: download,
     providerOptions,
     onError = ({ error }: { error: unknown }) => {
       console.error(error);
@@ -337,8 +359,10 @@ Callback that is called when the LLM response and the final object validation ar
     schemaName,
     schemaDescription,
     providerOptions,
+    repairText,
     onError,
     onFinish,
+    download,
     generateId,
     currentDate,
     now,
@@ -358,6 +382,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     new DelayedPromise<LanguageModelRequestMetadata>();
   private readonly _response =
     new DelayedPromise<LanguageModelResponseMetadata>();
+  private readonly _finishReason = new DelayedPromise<FinishReason>();
 
   private readonly baseStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
 
@@ -381,8 +406,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaName,
     schemaDescription,
     providerOptions,
+    repairText,
     onError,
     onFinish,
+    download,
     generateId,
     currentDate,
     now,
@@ -400,8 +427,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaName: string | undefined;
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
+    repairText: RepairTextFunction | undefined;
     onError: StreamObjectOnErrorCallback;
     onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
+    download: DownloadFunction | undefined;
     generateId: () => string;
     currentDate: () => Date;
     now: () => number;
@@ -410,6 +439,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
+      abortSignal,
     });
 
     const callSettings = prepareCallSettings(settings);
@@ -472,7 +502,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           system,
           prompt,
           messages,
-        });
+        } as Prompt);
 
         const callOptions = {
           responseFormat: {
@@ -485,6 +515,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           prompt: await convertToLanguageModelPrompt({
             prompt: standardizedPrompt,
             supportedUrls: await model.supportedUrls,
+            download,
           }),
           providerOptions,
           abortSignal,
@@ -504,6 +535,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               case 'response-metadata':
               case 'finish':
               case 'error':
+              case 'stream-start':
                 controller.enqueue(chunk);
                 break;
             }
@@ -695,41 +727,35 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                       response: fullResponse,
                     });
 
+                    // log warnings:
+                    logWarnings(warnings ?? []);
+
                     // resolve promises that can be resolved now:
                     self._usage.resolve(usage);
                     self._providerMetadata.resolve(providerMetadata);
+                    self._warnings.resolve(warnings);
                     self._response.resolve({
                       ...fullResponse,
                       headers: response?.headers,
                     });
+                    self._finishReason.resolve(finishReason ?? 'unknown');
 
-                    // resolve the object promise with the latest object:
-                    const validationResult =
-                      await outputStrategy.validateFinalResult(
-                        latestObjectJson,
+                    try {
+                      object = await parseAndValidateObjectResultWithRepair(
+                        accumulatedText,
+                        outputStrategy,
+                        repairText,
                         {
-                          text: accumulatedText,
                           response: fullResponse,
                           usage,
+                          finishReason,
                         },
                       );
-
-                    if (validationResult.success) {
-                      object = validationResult.value;
                       self._object.resolve(object);
-                    } else {
-                      error = new NoObjectGeneratedError({
-                        message:
-                          'No object generated: response did not match schema.',
-                        cause: validationResult.error,
-                        text: accumulatedText,
-                        response: fullResponse,
-                        usage,
-                        finishReason,
-                      });
-                      self._object.reject(error);
+                    } catch (e) {
+                      error = e;
+                      self._object.reject(e);
                     }
-
                     break;
                   }
 
@@ -868,6 +894,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
   get response() {
     return this._response.promise;
+  }
+
+  get finishReason() {
+    return this._finishReason.promise;
   }
 
   get partialObjectStream(): AsyncIterableStream<PARTIAL> {

@@ -257,13 +257,13 @@ functionality that can be fully encapsulated in the provider.
     renderFinished.resolve(undefined);
   }
 
-  const { retry } = prepareRetries({ maxRetries });
+  const { retry } = prepareRetries({ maxRetries, abortSignal });
 
   const validatedPrompt = await standardizePrompt({
     system,
     prompt,
     messages,
-  });
+  } as Prompt);
   const result = await retry(async () =>
     model.doStream({
       ...prepareCallSettings(settings),
@@ -275,6 +275,7 @@ functionality that can be fully encapsulated in the provider.
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         supportedUrls: await model.supportedUrls,
+        download: undefined,
       }),
       providerOptions,
       abortSignal,

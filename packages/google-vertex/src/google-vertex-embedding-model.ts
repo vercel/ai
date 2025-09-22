@@ -77,9 +77,14 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
       url,
       headers: mergedHeaders,
       body: {
-        instances: values.map(value => ({ content: value })),
+        instances: values.map(value => ({
+          content: value,
+          task_type: googleOptions.taskType,
+          title: googleOptions.title,
+        })),
         parameters: {
           outputDimensionality: googleOptions.outputDimensionality,
+          autoTruncate: googleOptions.autoTruncate,
         },
       },
       failedResponseHandler: googleVertexFailedResponseHandler,

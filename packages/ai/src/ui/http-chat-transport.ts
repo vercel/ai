@@ -1,7 +1,14 @@
-import { FetchFunction, Resolvable, resolve } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  Resolvable,
+  resolve,
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
+} from '@ai-sdk/provider-utils';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { ChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
+import { VERSION } from '../version';
 
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   options: {
@@ -13,10 +20,7 @@ export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
     headers: HeadersInit | undefined;
     api: string;
   } & {
-    trigger:
-      | 'submit-user-message'
-      | 'submit-tool-result'
-      | 'regenerate-assistant-message';
+    trigger: 'submit-message' | 'regenerate-message';
     messageId: string | undefined;
   },
 ) =>
@@ -191,10 +195,14 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
     const response = await fetch(api, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
+      headers: withUserAgentSuffix(
+        {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        `ai-sdk/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ),
       body: JSON.stringify(body),
       credentials,
       signal: abortSignal,
@@ -241,7 +249,11 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
     const response = await fetch(api, {
       method: 'GET',
-      headers,
+      headers: withUserAgentSuffix(
+        headers,
+        `ai-sdk/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ),
       credentials,
     });
 

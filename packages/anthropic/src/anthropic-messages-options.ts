@@ -61,6 +61,23 @@ export const anthropicProviderOptions = z.object({
       budgetTokens: z.number().optional(),
     })
     .optional(),
+
+  /**
+   * Whether to disable parallel function calling during tool use. Default is false.
+   * When set to true, Claude will use at most one tool per response.
+   */
+  disableParallelToolUse: z.boolean().optional(),
+
+  /**
+   * Cache control settings for this message.
+   * See https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
+   */
+  cacheControl: z
+    .object({
+      type: z.literal('ephemeral'),
+      ttl: z.union([z.literal('5m'), z.literal('1h')]).optional(),
+    })
+    .optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;

@@ -1,8 +1,9 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import { createAssemblyAI } from './assemblyai-provider';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { describe, it, expect } from 'vitest';
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createAssemblyAI({ apiKey: 'test-api-key' });

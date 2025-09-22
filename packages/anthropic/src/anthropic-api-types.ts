@@ -7,7 +7,9 @@ export type AnthropicMessagesPrompt = {
 
 export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
 
-export type AnthropicCacheControl = { type: 'ephemeral' };
+export type AnthropicCacheControl = {
+  type: 'ephemeral';
+};
 
 export interface AnthropicUserMessage {
   role: 'user';
@@ -28,6 +30,7 @@ export interface AnthropicAssistantMessage {
     | AnthropicToolCallContent
     | AnthropicServerToolUseContent
     | AnthropicWebSearchToolResultContent
+    | AnthropicCodeExecutionToolResultContent
   >;
 }
 
@@ -92,7 +95,7 @@ export interface AnthropicToolCallContent {
 export interface AnthropicServerToolUseContent {
   type: 'server_tool_use';
   id: string;
-  name: 'web_search';
+  name: 'web_search' | 'code_execution';
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -118,11 +121,24 @@ export interface AnthropicWebSearchToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+export interface AnthropicCodeExecutionToolResultContent {
+  type: 'code_execution_tool_result';
+  tool_use_id: string;
+  content: {
+    type: 'code_execution_result';
+    stdout: string;
+    stderr: string;
+    return_code: number;
+  };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
 export type AnthropicTool =
   | {
       name: string;
       description: string | undefined;
       input_schema: JSONSchema7;
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       name: string;
@@ -155,8 +171,12 @@ export type AnthropicTool =
         country?: string;
         timezone?: string;
       };
+    }
+  | {
+      type: 'code_execution_20250522';
+      name: string;
     };
 
 export type AnthropicToolChoice =
-  | { type: 'auto' | 'any' }
-  | { type: 'tool'; name: string };
+  | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
+  | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean };

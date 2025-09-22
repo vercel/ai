@@ -1,11 +1,11 @@
 import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { NoImageGeneratedError } from '../../src/error/no-image-generated-error';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
-} from '../../src/util/detect-media-type';
-import { prepareRetries } from '../../src/util/prepare-retries';
+} from '../util/detect-media-type';
+import { prepareRetries } from '../util/prepare-retries';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import {
   DefaultGeneratedFile,
@@ -14,6 +14,8 @@ import {
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
+import { logWarnings } from '../logger/log-warnings';
+import { VERSION } from '../version';
 
 /**
 Generates images using an image model.
@@ -122,7 +124,15 @@ Only applicable for HTTP-based providers.
     });
   }
 
-  const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
+  const { retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
@@ -147,7 +157,7 @@ Only applicable for HTTP-based providers.
           prompt,
           n: callImageCount,
           abortSignal,
-          headers,
+          headers: headersWithUserAgent,
           size,
           aspectRatio,
           seed,
@@ -191,6 +201,8 @@ Only applicable for HTTP-based providers.
 
     responses.push(result.response);
   }
+
+  logWarnings(warnings);
 
   if (!images.length) {
     throw new NoImageGeneratedError({ responses });

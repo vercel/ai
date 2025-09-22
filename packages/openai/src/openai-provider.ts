@@ -3,29 +3,29 @@ import {
   ImageModelV2,
   LanguageModelV2,
   ProviderV2,
-  TranscriptionModelV2,
   SpeechModelV2,
+  TranscriptionModelV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { OpenAIChatLanguageModel } from './openai-chat-language-model';
-import { OpenAIChatModelId } from './openai-chat-options';
-import { OpenAICompletionLanguageModel } from './openai-completion-language-model';
-import { OpenAICompletionModelId } from './openai-completion-options';
-import { OpenAIEmbeddingModel } from './openai-embedding-model';
-import { OpenAIEmbeddingModelId } from './openai-embedding-options';
-import { OpenAIImageModel } from './openai-image-model';
-import { OpenAIImageModelId } from './openai-image-settings';
+import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
+import { OpenAIChatModelId } from './chat/openai-chat-options';
+import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
+import { OpenAICompletionModelId } from './completion/openai-completion-options';
+import { OpenAIEmbeddingModel } from './embedding/openai-embedding-model';
+import { OpenAIEmbeddingModelId } from './embedding/openai-embedding-options';
+import { OpenAIImageModel } from './image/openai-image-model';
+import { OpenAIImageModelId } from './image/openai-image-options';
 import { openaiTools } from './openai-tools';
-import { OpenAITranscriptionModel } from './openai-transcription-model';
-import { OpenAITranscriptionModelId } from './openai-transcription-options';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
-import { OpenAISpeechModel } from './openai-speech-model';
-import { OpenAISpeechModelId } from './openai-speech-options';
+import { OpenAISpeechModel } from './speech/openai-speech-model';
+import { OpenAISpeechModelId } from './speech/openai-speech-options';
+import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
+import { OpenAITranscriptionModelId } from './transcription/openai-transcription-options';
 
 export interface OpenAIProvider extends ProviderV2 {
   (modelId: OpenAIResponsesModelId): LanguageModelV2;
@@ -33,7 +33,7 @@ export interface OpenAIProvider extends ProviderV2 {
   /**
 Creates an OpenAI model for text generation.
    */
-  languageModel(modelId: OpenAIResponsesModelId): OpenAIResponsesLanguageModel;
+  languageModel(modelId: OpenAIResponsesModelId): LanguageModelV2;
 
   /**
 Creates an OpenAI chat model for text generation.
@@ -57,8 +57,6 @@ Creates a model for text embeddings.
 
   /**
 Creates a model for text embeddings.
-
-@deprecated Use `textEmbeddingModel` instead.
    */
   textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
 
@@ -69,7 +67,6 @@ Creates a model for text embeddings.
 
   /**
 Creates a model for image generation.
-@deprecated Use `imageModel` instead.
    */
   image(modelId: OpenAIImageModelId): ImageModelV2;
 
@@ -218,6 +215,7 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      fileIdPrefixes: ['file-'],
     });
   };
 

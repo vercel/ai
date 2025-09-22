@@ -1,8 +1,9 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { RevaiTranscriptionModel } from './revai-transcription-model';
 import { createRevai } from './revai-provider';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { describe, it, expect } from 'vitest';
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createRevai({ apiKey: 'test-api-key' });

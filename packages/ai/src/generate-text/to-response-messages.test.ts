@@ -1,7 +1,8 @@
+import { tool } from '@ai-sdk/provider-utils';
 import z from 'zod/v4';
 import { DefaultGeneratedFile } from './generated-file';
 import { toResponseMessages } from './to-response-messages';
-import { tool } from '../tool';
+import { describe, it, expect } from 'vitest';
 
 describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {

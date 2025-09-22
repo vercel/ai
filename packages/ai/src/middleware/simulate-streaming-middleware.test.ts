@@ -1,12 +1,13 @@
-import { jsonSchema } from '@ai-sdk/provider-utils';
+import { jsonSchema, tool } from '@ai-sdk/provider-utils';
 import {
   convertAsyncIterableToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import { afterEach, beforeEach, describe, expect, it, vitest } from 'vitest';
 import { streamText } from '../generate-text';
+import * as logWarningsModule from '../logger/log-warnings';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
-import { tool } from '@ai-sdk/provider-utils';
 import { simulateStreamingMiddleware } from './simulate-streaming-middleware';
 
 const DEFAULT_SETTINGs = {
@@ -27,6 +28,18 @@ const testUsage = {
 };
 
 describe('simulateStreamingMiddleware', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   it('should simulate streaming with text response', async () => {
     const mockModel = new MockLanguageModelV2({
       async doGenerate() {
@@ -49,60 +62,60 @@ describe('simulateStreamingMiddleware', () => {
 
     expect(await convertAsyncIterableToArray(result.fullStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "type": "start",
-        },
-        {
-          "request": {},
-          "type": "start-step",
-          "warnings": [],
-        },
-        {
-          "id": "0",
-          "type": "text-start",
-        },
-        {
-          "id": "0",
-          "providerMetadata": undefined,
-          "text": "This is a test response",
-          "type": "text",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": undefined,
-          "response": {
-            "headers": undefined,
-            "id": "id-0",
-            "modelId": "mock-model-id",
-            "timestamp": 2025-01-01T00:00:00.000Z,
+        [
+          {
+            "type": "start",
           },
-          "type": "finish-step",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 5,
-            "outputTokens": 10,
-            "reasoningTokens": 3,
-            "totalTokens": 18,
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
           },
-        },
-        {
-          "finishReason": "stop",
-          "totalUsage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 5,
-            "outputTokens": 10,
-            "reasoningTokens": 3,
-            "totalTokens": 18,
+          {
+            "id": "0",
+            "type": "text-start",
           },
-          "type": "finish",
-        },
-      ]
-    `);
+          {
+            "id": "0",
+            "providerMetadata": undefined,
+            "text": "This is a test response",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 2025-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
   });
 
   it('should simulate streaming with reasoning as string', async () => {
@@ -134,75 +147,75 @@ describe('simulateStreamingMiddleware', () => {
 
     expect(await convertAsyncIterableToArray(result.fullStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "type": "start",
-        },
-        {
-          "request": {},
-          "type": "start-step",
-          "warnings": [],
-        },
-        {
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "reasoning-start",
-        },
-        {
-          "id": "0",
-          "providerMetadata": undefined,
-          "text": "This is the reasoning process",
-          "type": "reasoning",
-        },
-        {
-          "id": "0",
-          "type": "reasoning-end",
-        },
-        {
-          "id": "1",
-          "type": "text-start",
-        },
-        {
-          "id": "1",
-          "providerMetadata": undefined,
-          "text": "This is a test response",
-          "type": "text",
-        },
-        {
-          "id": "1",
-          "type": "text-end",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": undefined,
-          "response": {
-            "headers": undefined,
-            "id": "id-1",
-            "modelId": "mock-model-id",
-            "timestamp": 2025-01-01T00:00:00.000Z,
+        [
+          {
+            "type": "start",
           },
-          "type": "finish-step",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 5,
-            "outputTokens": 10,
-            "reasoningTokens": 3,
-            "totalTokens": 18,
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
           },
-        },
-        {
-          "finishReason": "stop",
-          "totalUsage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 5,
-            "outputTokens": 10,
-            "reasoningTokens": 3,
-            "totalTokens": 18,
+          {
+            "id": "0",
+            "providerMetadata": undefined,
+            "type": "reasoning-start",
           },
-          "type": "finish",
-        },
-      ]
-    `);
+          {
+            "id": "0",
+            "providerMetadata": undefined,
+            "text": "This is the reasoning process",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "0",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "This is a test response",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-1",
+              "modelId": "mock-model-id",
+              "timestamp": 2025-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
   });
 
   it('should simulate streaming with reasoning as array of text objects', async () => {
@@ -246,109 +259,109 @@ describe('simulateStreamingMiddleware', () => {
 
     expect(await convertAsyncIterableToArray(result.fullStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "type": "start",
-        },
-        {
-          "request": {},
-          "type": "start-step",
-          "warnings": [],
-        },
-        {
-          "id": "0",
-          "type": "text-start",
-        },
-        {
-          "id": "0",
-          "providerMetadata": undefined,
-          "text": "This is a test response",
-          "type": "text",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
-        },
-        {
-          "id": "1",
-          "providerMetadata": undefined,
-          "type": "reasoning-start",
-        },
-        {
-          "id": "1",
-          "providerMetadata": undefined,
-          "text": "First reasoning step",
-          "type": "reasoning",
-        },
-        {
-          "id": "1",
-          "type": "reasoning-end",
-        },
-        {
-          "id": "2",
-          "providerMetadata": undefined,
-          "type": "reasoning-start",
-        },
-        {
-          "id": "2",
-          "providerMetadata": undefined,
-          "text": "Second reasoning step",
-          "type": "reasoning",
-        },
-        {
-          "id": "2",
-          "type": "reasoning-end",
-        },
-        {
-          "id": "3",
-          "providerMetadata": {
-            "testProvider": {
-              "signature": "abc",
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "id": "0",
+            "providerMetadata": undefined,
+            "text": "This is a test response",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "type": "reasoning-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "First reasoning step",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "2",
+            "providerMetadata": undefined,
+            "type": "reasoning-start",
+          },
+          {
+            "id": "2",
+            "providerMetadata": undefined,
+            "text": "Second reasoning step",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "2",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "3",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "abc",
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "id": "3",
+            "providerMetadata": undefined,
+            "text": "",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "3",
+            "type": "reasoning-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-2",
+              "modelId": "mock-model-id",
+              "timestamp": 2025-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
             },
           },
-          "type": "reasoning-start",
-        },
-        {
-          "id": "3",
-          "providerMetadata": undefined,
-          "text": "",
-          "type": "reasoning",
-        },
-        {
-          "id": "3",
-          "type": "reasoning-end",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": undefined,
-          "response": {
-            "headers": undefined,
-            "id": "id-2",
-            "modelId": "mock-model-id",
-            "timestamp": 2025-01-01T00:00:00.000Z,
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
+            },
+            "type": "finish",
           },
-          "type": "finish-step",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 5,
-            "outputTokens": 10,
-            "reasoningTokens": 3,
-            "totalTokens": 18,
-          },
-        },
-        {
-          "finishReason": "stop",
-          "totalUsage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 5,
-            "outputTokens": 10,
-            "reasoningTokens": 3,
-            "totalTokens": 18,
-          },
-          "type": "finish",
-        },
-      ]
-    `);
+        ]
+      `);
   });
 
   it('should simulate streaming with reasoning as array of mixed objects', async () => {
@@ -389,94 +402,94 @@ describe('simulateStreamingMiddleware', () => {
 
     expect(await convertAsyncIterableToArray(result.fullStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "type": "start",
-        },
-        {
-          "request": {},
-          "type": "start-step",
-          "warnings": [],
-        },
-        {
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "reasoning-start",
-        },
-        {
-          "id": "0",
-          "providerMetadata": undefined,
-          "text": "First reasoning step",
-          "type": "reasoning",
-        },
-        {
-          "id": "0",
-          "type": "reasoning-end",
-        },
-        {
-          "id": "1",
-          "providerMetadata": {
-            "testProvider": {
-              "isRedacted": true,
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "0",
+            "providerMetadata": undefined,
+            "type": "reasoning-start",
+          },
+          {
+            "id": "0",
+            "providerMetadata": undefined,
+            "text": "First reasoning step",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "0",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "providerMetadata": {
+              "testProvider": {
+                "isRedacted": true,
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "data",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "2",
+            "type": "text-start",
+          },
+          {
+            "id": "2",
+            "providerMetadata": undefined,
+            "text": "This is a test response",
+            "type": "text-delta",
+          },
+          {
+            "id": "2",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-3",
+              "modelId": "mock-model-id",
+              "timestamp": 2025-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
             },
           },
-          "type": "reasoning-start",
-        },
-        {
-          "id": "1",
-          "providerMetadata": undefined,
-          "text": "data",
-          "type": "reasoning",
-        },
-        {
-          "id": "1",
-          "type": "reasoning-end",
-        },
-        {
-          "id": "2",
-          "type": "text-start",
-        },
-        {
-          "id": "2",
-          "providerMetadata": undefined,
-          "text": "This is a test response",
-          "type": "text",
-        },
-        {
-          "id": "2",
-          "type": "text-end",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": undefined,
-          "response": {
-            "headers": undefined,
-            "id": "id-3",
-            "modelId": "mock-model-id",
-            "timestamp": 2025-01-01T00:00:00.000Z,
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
+            },
+            "type": "finish",
           },
-          "type": "finish-step",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 5,
-            "outputTokens": 10,
-            "reasoningTokens": 3,
-            "totalTokens": 18,
-          },
-        },
-        {
-          "finishReason": "stop",
-          "totalUsage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 5,
-            "outputTokens": 10,
-            "reasoningTokens": 3,
-            "totalTokens": 18,
-          },
-          "type": "finish",
-        },
-      ]
-    `);
+        ]
+      `);
   });
 
   it('should simulate streaming with tool calls', async () => {
@@ -549,7 +562,7 @@ describe('simulateStreamingMiddleware', () => {
             "id": "0",
             "providerMetadata": undefined,
             "text": "This is a test response",
-            "type": "text",
+            "type": "text-delta",
           },
           {
             "id": "0",
@@ -631,64 +644,64 @@ describe('simulateStreamingMiddleware', () => {
 
     expect(await convertAsyncIterableToArray(result.fullStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "type": "start",
-        },
-        {
-          "request": {},
-          "type": "start-step",
-          "warnings": [],
-        },
-        {
-          "id": "0",
-          "type": "text-start",
-        },
-        {
-          "id": "0",
-          "providerMetadata": undefined,
-          "text": "This is a test response",
-          "type": "text",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": {
-            "custom": {
-              "key": "value",
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "id": "0",
+            "providerMetadata": undefined,
+            "text": "This is a test response",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "custom": {
+                "key": "value",
+              },
+            },
+            "response": {
+              "headers": undefined,
+              "id": "id-5",
+              "modelId": "mock-model-id",
+              "timestamp": 2025-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
             },
           },
-          "response": {
-            "headers": undefined,
-            "id": "id-5",
-            "modelId": "mock-model-id",
-            "timestamp": 2025-01-01T00:00:00.000Z,
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
+            },
+            "type": "finish",
           },
-          "type": "finish-step",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 5,
-            "outputTokens": 10,
-            "reasoningTokens": 3,
-            "totalTokens": 18,
-          },
-        },
-        {
-          "finishReason": "stop",
-          "totalUsage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 5,
-            "outputTokens": 10,
-            "reasoningTokens": 3,
-            "totalTokens": 18,
-          },
-          "type": "finish",
-        },
-      ]
-    `);
+        ]
+      `);
   });
 
   it('should handle empty text response', async () => {

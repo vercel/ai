@@ -15,6 +15,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > onSte
         "type": "tool-call",
       },
       {
+        "dynamic": false,
         "input": {
           "value": "value",
         },
@@ -205,6 +206,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
         "type": "tool-call",
       },
       {
+        "dynamic": false,
         "input": {
           "value": "value",
         },
@@ -351,6 +353,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "type": "tool-call",
       },
       {
+        "dynamic": false,
         "input": {
           "value": "value",
         },
@@ -541,6 +544,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "type": "tool-call",
       },
       {
+        "dynamic": false,
         "input": {
           "value": "value",
         },
@@ -1087,6 +1091,7 @@ exports[`generateText > telemetry > should not record telemetry inputs / outputs
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.generateText",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.response.finishReason": "stop",
       "ai.settings.maxRetries": 2,
       "ai.usage.completionTokens": 10,
@@ -1101,6 +1106,7 @@ exports[`generateText > telemetry > should not record telemetry inputs / outputs
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.generateText.doGenerate",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.response.finishReason": "stop",
       "ai.response.id": "test-id",
       "ai.response.model": "mock-model-id",
@@ -1145,6 +1151,7 @@ exports[`generateText > telemetry > should record telemetry data when enabled 1`
       "ai.prompt": "{"prompt":"prompt"}",
       "ai.request.headers.header1": "value1",
       "ai.request.headers.header2": "value2",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.response.finishReason": "stop",
       "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
       "ai.response.text": "Hello, world!",
@@ -1176,6 +1183,7 @@ exports[`generateText > telemetry > should record telemetry data when enabled 1`
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"prompt"}]}]",
       "ai.request.headers.header1": "value1",
       "ai.request.headers.header2": "value2",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.response.finishReason": "stop",
       "ai.response.id": "test-id-from-model",
       "ai.response.model": "test-response-model-id",

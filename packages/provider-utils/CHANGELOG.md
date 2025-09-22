@@ -1,5 +1,230 @@
 # @ai-sdk/provider-utils
 
+## 3.1.0-beta.1
+
+### Patch Changes
+
+- cbb1d35: Update for provider-util changeset after change in PR #8588
+
+## 3.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+
+## 3.0.9
+
+### Patch Changes
+
+- 0294b58: feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
+
+## 3.0.8
+
+### Patch Changes
+
+- 99964ed: fix(provider-utils): fix type inference for toModelOutput
+
+## 3.0.7
+
+### Patch Changes
+
+- 886e7cd: chore(provider-utils): upgrade event-source parser to 3.0.5
+
+## 3.0.6
+
+### Patch Changes
+
+- 1b5a3d3: chore(provider-util): integrate zod-to-json-schema
+
+## 3.0.5
+
+### Patch Changes
+
+- 0857788: fix(provider/groq): `experimental_transcribe` fails with valid Buffer
+
+## 3.0.4
+
+### Patch Changes
+
+- 68751f9: fix(provider-utils): add inject json utility function
+
+## 3.0.3
+
+### Patch Changes
+
+- 034e229: fix(provider/utils): fix FlexibleSchema type inference with zod/v3
+- f25040d: fix(provider-utils): fix tools type inference
+
+## 3.0.2
+
+### Patch Changes
+
+- 38ac190: feat(ai): preliminary tool results
+
+## 3.0.1
+
+### Patch Changes
+
+- 90d212f: feat (ai): add experimental tool call context
+
+## 3.0.0
+
+### Major Changes
+
+- 5d142ab: remove deprecated `CoreToolCall` and `CoreToolResult` types
+- d5f588f: AI SDK 5
+- e025824: refactoring (ai): restructure provider-defined tools
+- 40acf9b: feat (ui): introduce ChatStore and ChatTransport
+- 957b739: chore (provider-utils): rename TestServerCall.requestBody to requestBodyJson
+- ea7a7c9: feat (ui): UI message metadata
+- 41fa418: chore (provider-utils): return IdGenerator interface
+- 71f938d: feat (ai): add output schema for tools
+
+### Patch Changes
+
+- a571d6e: chore(provider-utils): move ToolResultContent to provider-utils
+- e7fcc86: feat (ai): introduce dynamic tools
+- 45c1ea2: refactoring: introduce FlexibleSchema
+- 060370c: feat(provider-utils): add TestServerCall#requestCredentials
+- 0571b98: chore (provider-utils): update eventsource-parser to 3.0.3
+- 4fef487: feat: support for zod v4 for schema validation
+
+  All these methods now accept both a zod v4 and zod v3 schemas for validation:
+
+  - `generateObject()`
+  - `streamObject()`
+  - `generateText()`
+  - `experimental_useObject()` from `@ai-sdk/react`
+  - `streamUI()` from `@ai-sdk/rsc`
+
+- 0c0c0b3: refactor (provider-utils): move `customAlphabet()` method from `nanoid` into codebase
+- 8ba77a7: chore (provider-utils): use eventsource-parser library
+- a166433: feat: add transcription with experimental_transcribe
+- 9f95b35: refactor (provider-utils): copy relevant code from `secure-json-parse` into codebase
+- 66962ed: fix(packages): export node10 compatible types
+- 05d2819: feat: allow zod 4.x as peer dependency
+- ac34802: Add clear object function to StructuredObject
+- 63d791d: chore (utils): remove unused test helpers
+- 87b828f: fix(provider-utils): fix SSE parser bug (CRLF)
+- bfdca8d: feat (ai): add InferToolInput and InferToolOutput helpers
+- 0ff02bb: chore(provider-utils): move over jsonSchema
+- 39a4fab: fix (provider-utils): detect failed fetch in browser environments
+- 57edfcb: Adds support for async zod validators
+- faf8446: chore (provider-utils): switch to standard-schema
+- d1a034f: feature: using Zod 4 for internal stuff
+- 88a8ee5: fix (ai): support abort during retry waits
+- 205077b: fix: improve Zod compatibility
+- 28a5ed5: refactoring: move tools helper into provider-utils
+- dd5fd43: feat (ai): support dynamic tools in Chat onToolCall
+- 383cbfa: feat (ai): add isAborted to onFinish callback for ui message streams
+- Updated dependencies [742b7be]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [95857aa]
+- Updated dependencies [6f6bb89]
+- Updated dependencies [dc714f3]
+- Updated dependencies [b5da06a]
+- Updated dependencies [d1a1aa1]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [d5f588f]
+- Updated dependencies [b6b43c7]
+- Updated dependencies [48d257a]
+- Updated dependencies [0d2c085]
+- Updated dependencies [9222aeb]
+- Updated dependencies [e2aceaf]
+- Updated dependencies [411e483]
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [a166433]
+- Updated dependencies [26735b5]
+- Updated dependencies [443d8ec]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [abf9a79]
+- Updated dependencies [14c9410]
+- Updated dependencies [e86be6f]
+- Updated dependencies [9bf7291]
+- Updated dependencies [2e13791]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [d9c98f4]
+- Updated dependencies [9301f86]
+- Updated dependencies [0a87932]
+- Updated dependencies [c4a2fec]
+- Updated dependencies [79457bd]
+- Updated dependencies [a3f768e]
+- Updated dependencies [7435eb5]
+- Updated dependencies [8aa9e20]
+- Updated dependencies [4617fab]
+- Updated dependencies [0054544]
+- Updated dependencies [cb68df0]
+- Updated dependencies [ad80501]
+- Updated dependencies [68ecf2f]
+- Updated dependencies [9e9c809]
+- Updated dependencies [32831c6]
+- Updated dependencies [6dc848c]
+- Updated dependencies [6b98118]
+- Updated dependencies [d0f9495]
+- Updated dependencies [3f2f00c]
+- Updated dependencies [7979f7f]
+- Updated dependencies [44f4aba]
+- Updated dependencies [9bd5ab5]
+- Updated dependencies [7ea4132]
+- Updated dependencies [5c56081]
+- Updated dependencies [fd65bc6]
+- Updated dependencies [023ba40]
+- Updated dependencies [26535e0]
+- Updated dependencies [e030615]
+- Updated dependencies [5e57fae]
+- Updated dependencies [393138b]
+- Updated dependencies [c57e248]
+- Updated dependencies [3795467]
+- Updated dependencies [7182d14]
+- Updated dependencies [c1e6647]
+- Updated dependencies [1766ede]
+- Updated dependencies [811dff3]
+- Updated dependencies [f10304b]
+- Updated dependencies [33f4a6a]
+- Updated dependencies [27deb4d]
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0
+
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- 88a8ee5: fix (ai): support abort during retry waits
+
+## 3.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [27deb4d]
+  - @ai-sdk/provider@2.0.0-beta.2
+
+## 3.0.0-beta.8
+
+### Patch Changes
+
+- dd5fd43: feat (ai): support dynamic tools in Chat onToolCall
+
+## 3.0.0-beta.7
+
+### Patch Changes
+
+- e7fcc86: feat (ai): introduce dynamic tools
+
+## 3.0.0-beta.6
+
+### Patch Changes
+
+- ac34802: Add clear object function to StructuredObject
+
 ## 3.0.0-beta.5
 
 ### Patch Changes

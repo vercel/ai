@@ -140,9 +140,9 @@ export class StructuredObject<
    */
   submit = async (input: INPUT) => {
     try {
-      this.#object.set(undefined); // reset the data
+      this.#clearObject();
+
       this.#loading.set(true);
-      this.#error.set(undefined);
 
       const abortController = new AbortController();
       this.#abortController = abortController;
@@ -229,5 +229,16 @@ export class StructuredObject<
       this.#loading.set(false);
       this.#error.set(coalescedError);
     }
+  };
+
+  clear = () => {
+    this.stop();
+    this.#clearObject();
+  };
+
+  #clearObject = () => {
+    this.#object.set(undefined);
+    this.#error.set(undefined);
+    this.#loading.set(false);
   };
 }

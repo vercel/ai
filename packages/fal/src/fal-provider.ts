@@ -2,6 +2,7 @@ import {
   ImageModelV2,
   NoSuchModelError,
   ProviderV2,
+  SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
@@ -10,6 +11,8 @@ import { FalImageModel } from './fal-image-model';
 import { FalImageModelId } from './fal-image-settings';
 import { FalTranscriptionModelId } from './fal-transcription-options';
 import { FalTranscriptionModel } from './fal-transcription-model';
+import { FalSpeechModelId } from './fal-speech-settings';
+import { FalSpeechModel } from './fal-speech-model';
 
 export interface FalProviderSettings {
   /**
@@ -39,7 +42,6 @@ requests, or to provide a custom fetch implementation for e.g. testing.
 export interface FalProvider extends ProviderV2 {
   /**
 Creates a model for image generation.
-@deprecated Use `imageModel` instead.
    */
   image(modelId: FalImageModelId): ImageModelV2;
 
@@ -52,6 +54,11 @@ Creates a model for image generation.
 Creates a model for transcription.
    */
   transcription(modelId: FalTranscriptionModelId): TranscriptionModelV2;
+
+  /**
+Creates a model for speech generation.
+   */
+  speech(modelId: FalSpeechModelId): SpeechModelV2;
 }
 
 const defaultBaseURL = 'https://fal.run';
@@ -117,6 +124,14 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       fetch: options.fetch,
     });
 
+  const createSpeechModel = (modelId: FalSpeechModelId) =>
+    new FalSpeechModel(modelId, {
+      provider: `fal.speech`,
+      url: ({ path }) => path,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createTranscriptionModel = (modelId: FalTranscriptionModelId) =>
     new FalTranscriptionModel(modelId, {
       provider: `fal.transcription`,
@@ -134,6 +149,7 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
         modelType: 'languageModel',
       });
     },
+    speech: createSpeechModel,
     textEmbeddingModel: () => {
       throw new NoSuchModelError({
         modelId: 'textEmbeddingModel',

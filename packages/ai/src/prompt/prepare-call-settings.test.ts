@@ -1,5 +1,6 @@
-import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { prepareCallSettings } from './prepare-call-settings';
+import { describe, it, expect } from 'vitest';
 
 describe('prepareCallSettings', () => {
   describe('valid inputs', () => {

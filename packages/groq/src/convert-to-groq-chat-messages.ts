@@ -3,6 +3,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { GroqChatPrompt } from './groq-api-types';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGroqChatMessages(
   prompt: LanguageModelV2Prompt,
@@ -45,7 +46,7 @@ export function convertToGroqChatMessages(
                     url:
                       part.data instanceof URL
                         ? part.data.toString()
-                        : `data:${mediaType};base64,${part.data}`,
+                        : `data:${mediaType};base64,${convertToBase64(part.data)}`,
                   },
                 };
               }
@@ -58,6 +59,7 @@ export function convertToGroqChatMessages(
 
       case 'assistant': {
         let text = '';
+        let reasoning = '';
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -66,10 +68,18 @@ export function convertToGroqChatMessages(
 
         for (const part of content) {
           switch (part.type) {
+            // groq supports reasoning for tool-calls in multi-turn conversations
+            // https://github.com/vercel/ai/issues/7860
+            case 'reasoning': {
+              reasoning += part.text;
+              break;
+            }
+
             case 'text': {
               text += part.text;
               break;
             }
+
             case 'tool-call': {
               toolCalls.push({
                 id: part.toolCallId,
@@ -87,7 +97,8 @@ export function convertToGroqChatMessages(
         messages.push({
           role: 'assistant',
           content: text,
-          tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+          ...(reasoning.length > 0 ? { reasoning } : null),
+          ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : null),
         });
 
         break;

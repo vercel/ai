@@ -11,39 +11,15 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
-import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
-import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
-import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { UIMessage } from '../../src/ui';
-import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
-import { getResponseUIMessageId } from '../../src/ui-message-stream/get-response-ui-message-id';
-import { handleUIMessageStreamFinish } from '../../src/ui-message-stream/handle-ui-message-stream-finish';
-import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
-import {
-  InferUIMessageChunk,
-  UIMessageChunk,
-} from '../../src/ui-message-stream/ui-message-chunks';
-import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
-import {
-  InferUIMessageData,
-  InferUIMessageMetadata,
-} from '../../src/ui/ui-messages';
-import { asArray } from '../../src/util/as-array';
-import {
-  AsyncIterableStream,
-  createAsyncIterableStream,
-} from '../../src/util/async-iterable-stream';
-import { consumeStream } from '../../src/util/consume-stream';
-import { createStitchableStream } from '../../src/util/create-stitchable-stream';
-import { DelayedPromise } from '../../src/util/delayed-promise';
-import { now as originalNow } from '../../src/util/now';
-import { prepareRetries } from '../../src/util/prepare-retries';
+import { NoOutputGeneratedError } from '../error';
+import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { logWarnings } from '../logger/log-warnings';
+import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
-import { resolveLanguageModel } from '../prompt/resolve-language-model';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -53,6 +29,8 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
+import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import { LanguageModelRequestMetadata } from '../types';
 import {
   CallWarning,
@@ -62,7 +40,28 @@ import {
 } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { filterStreamErrors } from '../util/filter-stream-errors';
+import { UIMessage } from '../ui';
+import { createUIMessageStreamResponse } from '../ui-message-stream/create-ui-message-stream-response';
+import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
+import { handleUIMessageStreamFinish } from '../ui-message-stream/handle-ui-message-stream-finish';
+import { pipeUIMessageStreamToResponse } from '../ui-message-stream/pipe-ui-message-stream-to-response';
+import {
+  InferUIMessageChunk,
+  UIMessageChunk,
+} from '../ui-message-stream/ui-message-chunks';
+import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
+import { InferUIMessageData, InferUIMessageMetadata } from '../ui/ui-messages';
+import { asArray } from '../util/as-array';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../util/async-iterable-stream';
+import { consumeStream } from '../util/consume-stream';
+import { createStitchableStream } from '../util/create-stitchable-stream';
+import { DelayedPromise } from '../util/delayed-promise';
+import { DownloadFunction } from '../util/download/download-function';
+import { now as originalNow } from '../util/now';
+import { prepareRetries } from '../util/prepare-retries';
 import { ContentPart } from './content-part';
 import { Output } from './output';
 import { PrepareStepFunction } from './prepare-step';
@@ -84,7 +83,7 @@ import {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
-import { ToolCallUnion } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
@@ -133,8 +132,8 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
     TextStreamPart<TOOLS>,
     {
       type:
-        | 'text'
-        | 'reasoning'
+        | 'text-delta'
+        | 'reasoning-delta'
         | 'source'
         | 'tool-call'
         | 'tool-input-start'
@@ -247,6 +246,7 @@ export function streamText<
   activeTools = experimental_activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
+  experimental_download: download,
   includeRawChunks = false,
   onChunk,
   onError = ({ error }) => {
@@ -255,6 +255,7 @@ export function streamText<
   onFinish,
   onAbort,
   onStepFinish,
+  experimental_context,
   _internal: {
     now = originalNow,
     generateId = originalGenerateId,
@@ -344,6 +345,13 @@ The stream transformations must maintain the stream structure for streamText to 
       | Array<StreamTextTransform<TOOLS>>;
 
     /**
+Custom download function to use for URLs.
+
+By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+    experimental_download?: DownloadFunction | undefined;
+
+    /**
 Whether to include raw chunks from the provider in the stream.
 When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
 This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
@@ -378,6 +386,15 @@ The usage is the combined usage of all steps.
 Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
     onStepFinish?: StreamTextOnStepFinishCallback<TOOLS>;
+
+    /**
+     * Context that is passed into tool execution.
+     *
+     * Experimental (can break in patch releases).
+     *
+     * @default undefined
+     */
+    experimental_context?: unknown;
 
     /**
 Internal. For test use only. May change without notice.
@@ -416,6 +433,8 @@ Internal. For test use only. May change without notice.
     now,
     currentDate,
     generateId,
+    experimental_context,
+    download,
   });
 }
 
@@ -461,7 +480,7 @@ function createOutputTransformStream<
   }) {
     controller.enqueue({
       part: {
-        type: 'text',
+        type: 'text-delta',
         id: firstTextChunkId!,
         text: textChunk,
       },
@@ -481,7 +500,7 @@ function createOutputTransformStream<
       }
 
       if (
-        chunk.type !== 'text' &&
+        chunk.type !== 'text-delta' &&
         chunk.type !== 'text-start' &&
         chunk.type !== 'text-end'
       ) {
@@ -553,6 +572,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   private includeRawChunks: boolean;
 
+  private tools: TOOLS | undefined;
+
   constructor({
     model,
     telemetry,
@@ -581,6 +602,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onFinish,
     onAbort,
     onStepFinish,
+    experimental_context,
+    download,
   }: {
     model: LanguageModelV2;
     telemetry: TelemetrySettings | undefined;
@@ -604,6 +627,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
+    experimental_context: unknown;
+    download: DownloadFunction | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -614,6 +639,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }) {
     this.output = output;
     this.includeRawChunks = includeRawChunks;
+    this.tools = tools;
 
     // promise to ensure that the step has been fully processed by the event processor
     // before a new step is started. This is required because the continuation condition
@@ -658,8 +684,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         const { part } = chunk;
 
         if (
-          part.type === 'text' ||
-          part.type === 'reasoning' ||
+          part.type === 'text-delta' ||
+          part.type === 'reasoning-delta' ||
           part.type === 'source' ||
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
@@ -684,7 +710,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(activeTextContent[part.id]);
         }
 
-        if (part.type === 'text') {
+        if (part.type === 'text-delta') {
           const activeText = activeTextContent[part.id];
 
           if (activeText == null) {
@@ -717,7 +743,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(activeReasoningContent[part.id]);
         }
 
-        if (part.type === 'reasoning') {
+        if (part.type === 'reasoning-delta') {
           const activeReasoning = activeReasoningContent[part.id];
 
           if (activeReasoning == null) {
@@ -768,7 +794,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(part);
         }
 
-        if (part.type === 'tool-result') {
+        if (part.type === 'tool-result' && !part.preliminary) {
           recordedContent.push(part);
         }
 
@@ -803,6 +829,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           await onStepFinish?.(currentStepResult);
 
+          logWarnings(recordedWarnings);
+
           recordedSteps.push(currentStepResult);
 
           recordedContent = [];
@@ -825,6 +853,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       async flush(controller) {
         try {
           if (recordedSteps.length === 0) {
+            const error = new NoOutputGeneratedError({
+              message: 'No output generated. Check the stream for errors.',
+            });
+
+            self._finishReason.reject(error);
+            self._totalUsage.reject(error);
+            self._steps.reject(error);
+
             return; // no steps recorded (e.g. in error scenario)
           }
 
@@ -856,7 +892,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             files: finalStep.files,
             sources: finalStep.sources,
             toolCalls: finalStep.toolCalls,
+            staticToolCalls: finalStep.staticToolCalls,
+            dynamicToolCalls: finalStep.dynamicToolCalls,
             toolResults: finalStep.toolResults,
+            staticToolResults: finalStep.staticToolResults,
+            dynamicToolResults: finalStep.dynamicToolResults,
             request: finalStep.request,
             response: finalStep.response,
             warnings: finalStep.warnings,
@@ -902,27 +942,49 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
 
-    let stream = stitchableStream.stream;
+    // resilient stream that handles abort signals and errors:
+    const reader = stitchableStream.stream.getReader();
+    let stream = new ReadableStream<TextStreamPart<TOOLS>>({
+      async start(controller) {
+        // send start event:
+        controller.enqueue({ type: 'start' });
+      },
 
-    // filter out abort errors:
-    stream = filterStreamErrors(stream, ({ error, controller }) => {
-      if (isAbortError(error) && abortSignal?.aborted) {
-        onAbort?.({ steps: recordedSteps });
-        controller.enqueue({ type: 'abort' });
-        controller.close();
-      } else {
-        controller.error(error);
-      }
+      async pull(controller) {
+        // abort handling:
+        function abort() {
+          onAbort?.({ steps: recordedSteps });
+          controller.enqueue({ type: 'abort' });
+          controller.close();
+        }
+
+        try {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            controller.close();
+            return;
+          }
+
+          if (abortSignal?.aborted) {
+            abort();
+            return;
+          }
+
+          controller.enqueue(value);
+        } catch (error) {
+          if (isAbortError(error) && abortSignal?.aborted) {
+            abort();
+          } else {
+            controller.error(error);
+          }
+        }
+      },
+
+      cancel(reason) {
+        return stitchableStream.stream.cancel(reason);
+      },
     });
-
-    // add a stream that emits a start event:
-    stream = stream.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
-        start(controller) {
-          controller.enqueue({ type: 'start' });
-        },
-      }),
-    );
 
     // transform the stream before output parsing
     // to enable replacement of stream segments:
@@ -943,6 +1005,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
+      abortSignal,
     });
 
     const tracer = getTracer(telemetry);
@@ -993,7 +1056,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             system,
             prompt,
             messages,
-          });
+          } as Prompt);
 
           const stepInputMessages = [
             ...initialPrompt.messages,
@@ -1013,6 +1076,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
             supportedUrls: await model.supportedUrls,
+            download,
           });
 
           const stepModel = resolveLanguageModel(
@@ -1104,10 +1168,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             messages: stepInputMessages,
             repairToolCall,
             abortSignal,
+            experimental_context,
           });
 
           const stepRequest = request ?? {};
-          const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
+          const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           let warnings: LanguageModelV2CallWarning[] | undefined;
 
@@ -1175,7 +1240,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'text-delta': {
                       if (chunk.delta.length > 0) {
                         controller.enqueue({
-                          type: 'text',
+                          type: 'text-delta',
                           id: chunk.id,
                           text: chunk.delta,
                           providerMetadata: chunk.providerMetadata,
@@ -1193,7 +1258,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'reasoning-delta': {
                       controller.enqueue({
-                        type: 'reasoning',
+                        type: 'reasoning-delta',
                         id: chunk.id,
                         text: chunk.delta,
                         providerMetadata: chunk.providerMetadata,
@@ -1210,7 +1275,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'tool-result': {
                       controller.enqueue(chunk);
-                      stepToolOutputs.push(chunk);
+
+                      if (!chunk.preliminary) {
+                        stepToolOutputs.push(chunk);
+                      }
+
                       break;
                     }
 
@@ -1268,10 +1337,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           toolCallId: chunk.id,
                           messages: stepInputMessages,
                           abortSignal,
+                          experimental_context,
                         });
                       }
 
-                      controller.enqueue(chunk);
+                      controller.enqueue({
+                        ...chunk,
+                        dynamic: tool?.type === 'dynamic',
+                      });
                       break;
                     }
 
@@ -1291,6 +1364,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           toolCallId: chunk.id,
                           messages: stepInputMessages,
                           abortSignal,
+                          experimental_context,
                         });
                       }
 
@@ -1467,6 +1541,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get steps() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
     return this._steps.promise;
   }
 
@@ -1510,8 +1588,24 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     return this.finalStep.then(step => step.toolCalls);
   }
 
+  get staticToolCalls() {
+    return this.finalStep.then(step => step.staticToolCalls);
+  }
+
+  get dynamicToolCalls() {
+    return this.finalStep.then(step => step.dynamicToolCalls);
+  }
+
   get toolResults() {
     return this.finalStep.then(step => step.toolResults);
+  }
+
+  get staticToolResults() {
+    return this.finalStep.then(step => step.staticToolResults);
+  }
+
+  get dynamicToolResults() {
+    return this.finalStep.then(step => step.dynamicToolResults);
   }
 
   get usage() {
@@ -1527,10 +1621,18 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get totalUsage() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
     return this._totalUsage.promise;
   }
 
   get finishReason() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
     return this._finishReason.promise;
   }
 
@@ -1553,7 +1655,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       this.teeStream().pipeThrough(
         new TransformStream<EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>, string>({
           transform({ part }, controller) {
-            if (part.type === 'text') {
+            if (part.type === 'text-delta') {
               controller.enqueue(part.text);
             }
           },
@@ -1630,6 +1732,14 @@ However, the LLM results are expected to be small enough to not cause issues.
           })
         : undefined;
 
+    const toolNamesByCallId: Record<string, string> = {};
+
+    const isDynamic = (toolCallId: string) => {
+      const toolName = toolNamesByCallId[toolCallId];
+      const dynamic = this.tools?.[toolName]?.type === 'dynamic';
+      return dynamic ? true : undefined; // only send when dynamic to reduce data transfer
+    };
+
     const baseStream = this.fullStream.pipeThrough(
       new TransformStream<
         TextStreamPart<TOOLS>,
@@ -1654,7 +1764,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'text': {
+            case 'text-delta': {
               controller.enqueue({
                 type: 'text-delta',
                 id: part.id,
@@ -1688,7 +1798,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'reasoning': {
+            case 'reasoning-delta': {
               if (sendReasoning) {
                 controller.enqueue({
                   type: 'reasoning-delta',
@@ -1751,11 +1861,17 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-input-start': {
+              toolNamesByCallId[part.id] = part.toolName;
+              const dynamic = isDynamic(part.id);
+
               controller.enqueue({
                 type: 'tool-input-start',
                 toolCallId: part.id,
                 toolName: part.toolName,
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(dynamic != null ? { dynamic } : {}),
               });
               break;
             }
@@ -1770,33 +1886,72 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-call': {
-              controller.enqueue({
-                type: 'tool-input-available',
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-                input: part.input,
-                providerExecuted: part.providerExecuted,
-                providerMetadata: part.providerMetadata,
-              });
+              toolNamesByCallId[part.toolCallId] = part.toolName;
+              const dynamic = isDynamic(part.toolCallId);
+
+              if (part.invalid) {
+                controller.enqueue({
+                  type: 'tool-input-error',
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  input: part.input,
+                  ...(part.providerExecuted != null
+                    ? { providerExecuted: part.providerExecuted }
+                    : {}),
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                  ...(dynamic != null ? { dynamic } : {}),
+                  errorText: onError(part.error),
+                });
+              } else {
+                controller.enqueue({
+                  type: 'tool-input-available',
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  input: part.input,
+                  ...(part.providerExecuted != null
+                    ? { providerExecuted: part.providerExecuted }
+                    : {}),
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                  ...(dynamic != null ? { dynamic } : {}),
+                });
+              }
+
               break;
             }
 
             case 'tool-result': {
+              const dynamic = isDynamic(part.toolCallId);
+
               controller.enqueue({
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
                 output: part.output,
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.preliminary != null
+                  ? { preliminary: part.preliminary }
+                  : {}),
+                ...(dynamic != null ? { dynamic } : {}),
               });
               break;
             }
 
             case 'tool-error': {
+              const dynamic = isDynamic(part.toolCallId);
+
               controller.enqueue({
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,
                 errorText: onError(part.error),
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(dynamic != null ? { dynamic } : {}),
               });
               break;
             }

@@ -1,5 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`streamText > errors > should swallow error to prevent server crash 1`] = `[]`;
+
 exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should record telemetry data for each step 1`] = `
 [
   {
@@ -72,10 +74,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
   {
     "attributes": {
       "ai.operationId": "ai.toolCall",
+      "ai.toolCall.args": "{"value":"value"}",
       "ai.toolCall.id": "call-1",
-      "ai.toolCall.input": "{"value":"value"}",
       "ai.toolCall.name": "tool1",
-      "ai.toolCall.output": ""result1"",
+      "ai.toolCall.result": ""result1"",
       "operation.name": "ai.toolCall",
     },
     "events": [],
@@ -206,10 +208,10 @@ exports[`streamText > options.transform > with base transformation > telemetry s
   {
     "attributes": {
       "ai.operationId": "ai.toolCall",
+      "ai.toolCall.args": "{"value":"value"}",
       "ai.toolCall.id": "call-1",
-      "ai.toolCall.input": "{"value":"value"}",
       "ai.toolCall.name": "tool1",
-      "ai.toolCall.output": ""value-result"",
+      "ai.toolCall.result": ""value-result"",
       "operation.name": "ai.toolCall",
     },
     "events": [],
@@ -561,8 +563,6 @@ exports[`streamText > result.textStream > should not include reasoning content i
 ]
 `;
 
-exports[`streamText > result.textStream > should swallow error to prevent server crash 1`] = `[]`;
-
 exports[`streamText > result.toUIMessageStream > should mask error messages by default 1`] = `
 [
   {
@@ -593,7 +593,6 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
     "type": "start-step",
   },
   {
-    "providerExecuted": undefined,
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-input-start",
@@ -612,15 +611,12 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
     "input": {
       "value": "value",
     },
-    "providerExecuted": undefined,
-    "providerMetadata": undefined,
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-input-available",
   },
   {
     "output": "value-result",
-    "providerExecuted": undefined,
     "toolCallId": "call-1",
     "type": "tool-output-available",
   },
@@ -844,10 +840,10 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
   {
     "attributes": {
       "ai.operationId": "ai.toolCall",
+      "ai.toolCall.args": "{"value":"value"}",
       "ai.toolCall.id": "call-1",
-      "ai.toolCall.input": "{"value":"value"}",
       "ai.toolCall.name": "tool1",
-      "ai.toolCall.output": ""value-result"",
+      "ai.toolCall.result": ""value-result"",
       "operation.name": "ai.toolCall",
     },
     "events": [],

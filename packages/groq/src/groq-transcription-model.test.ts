@@ -1,8 +1,9 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GroqTranscriptionModel } from './groq-transcription-model';
 import { createGroq } from './groq-provider';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { describe, it, expect } from 'vitest';
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createGroq({ apiKey: 'test-api-key' });

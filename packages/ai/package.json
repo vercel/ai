@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "5.0.0-beta.25",
+  "version": "5.1.0-beta.4",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -14,9 +14,6 @@
     "mcp-stdio.d.ts",
     "test.d.ts"
   ],
-  "bin": {
-    "ai": "./dist/bin/ai.min.js"
-  },
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
@@ -57,6 +54,7 @@
     }
   },
   "dependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@ai-sdk/gateway": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
@@ -93,7 +91,19 @@
   "keywords": [
     "ai",
     "vercel",
-    "next",
-    "nextjs"
+    "sdk",
+    "mcp",
+    "tool-calling",
+    "tools",
+    "structured-output",
+    "agent",
+    "agentic",
+    "generative",
+    "chatbot",
+    "prompt",
+    "inference",
+    "llm",
+    "language-model",
+    "streaming"
   ]
 }

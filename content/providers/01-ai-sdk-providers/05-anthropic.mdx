@@ -11,7 +11,7 @@ The [Anthropic](https://www.anthropic.com/) provider contains language model sup
 
 The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/anthropic" dark />
   </Tab>
@@ -20,6 +20,10 @@ The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can i
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/anthropic" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/anthropic" dark />
   </Tab>
 </Tabs>
 
@@ -139,13 +143,6 @@ on how to integrate reasoning into your chatbot.
 
 ### Cache Control
 
-<Note>
-  Anthropic cache control was originally a beta feature and required passing an
-  opt-in `cacheControl` setting when creating the model instance. It is now
-  Generally Available and enabled by default. The `cacheControl` setting is no
-  longer needed and will be removed in a future release.
-</Note>
-
 In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
 You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
@@ -210,6 +207,60 @@ const result = await generateText({
   ],
 });
 ```
+
+Cache control for tools:
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-3-5-haiku-latest'),
+  tools: {
+    cityAttractions: tool({
+      inputSchema: z.object({ city: z.string() }),
+      providerOptions: {
+        anthropic: {
+          cacheControl: { type: 'ephemeral' },
+        },
+      },
+    }),
+  },
+  messages: [
+    {
+      role: 'user',
+      content: 'User prompt',
+    },
+  ],
+});
+```
+
+#### Longer cache TTL
+
+Anthropic also supports a longer 1-hour cache duration.
+
+Here's an example:
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-3-5-haiku-latest'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Long cached message',
+          providerOptions: {
+            anthropic: {
+              cacheControl: { type: 'ephemeral', ttl: '1h' },
+            },
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
+#### Limitations
 
 The minimum cacheable prompt length is:
 
@@ -497,6 +548,74 @@ for await (const part of result.textStream) {
   if (part.type === 'error') {
     console.log('Search error:', part.error);
     // Handle search error appropriately
+  }
+}
+```
+
+## Code Execution
+
+Anthropic provides a provider-defined code execution tool that gives Claude direct access to a real Python environment allowing it to execute code to inform its responses.
+
+You can enable code execution using the provider-defined code execution tool:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+const codeExecutionTool = anthropic.tools.codeExecution_20250522();
+const result = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt:
+    'Calculate the mean and standard deviation of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]',
+  tools: {
+    code_execution: codeExecutionTool,
+  },
+});
+```
+
+#### Error Handling
+
+Code execution errors are handled differently depending on whether you're using streaming or non-streaming:
+
+**Non-streaming (`generateText`, `generateObject`):**
+Code execution errors are delivered as tool result parts in the response:
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'Execute some Python script',
+  tools: {
+    code_execution: codeExecutionTool,
+  },
+});
+
+const toolErrors = result.content?.filter(
+  content => content.type === 'tool-error',
+);
+
+toolErrors?.forEach(error => {
+  console.error('Tool execution error:', {
+    toolName: error.toolName,
+    toolCallId: error.toolCallId,
+    error: error.error,
+  });
+});
+```
+
+**Streaming (`streamText`, `streamObject`):**
+Code execution errors are delivered as error parts in the stream:
+
+```ts
+const result = await streamText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'Execute some Python script',
+  tools: {
+    code_execution: codeExecutionTool,
+  },
+});
+for await (const part of result.textStream) {
+  if (part.type === 'error') {
+    console.log('Code execution error:', part.error);
+    // Handle code execution error appropriately
   }
 }
 ```

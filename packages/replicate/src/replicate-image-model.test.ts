@@ -1,6 +1,7 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createReplicate } from './replicate-provider';
 import { ReplicateImageModel } from './replicate-image-model';
+import { describe, it, expect } from 'vitest';
 
 const prompt = 'The Loch Ness monster getting a manicure';
 

@@ -1,21 +1,41 @@
 import {
   LanguageModelV2CallOptions,
   LanguageModelV2FunctionTool,
-  LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
-import { jsonSchema, ModelMessage, tool } from '@ai-sdk/provider-utils';
+import {
+  dynamicTool,
+  jsonSchema,
+  ModelMessage,
+  tool,
+} from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import assert from 'node:assert';
+import {
+  afterEach,
+  assert,
+  assertType,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
 import { z } from 'zod/v4';
 import { Output } from '.';
+import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
+
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
 
 const dummyResponseValues = {
   finishReason: 'stop' as const,
@@ -101,6 +121,18 @@ const modelWithReasoning = new MockLanguageModelV2({
 });
 
 describe('generateText', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   describe('result.content', () => {
     it('should generate content', async () => {
       const result = await generateText({
@@ -197,6 +229,7 @@ describe('generateText', () => {
             "type": "text",
           },
           {
+            "dynamic": false,
             "input": {
               "value": "value",
             },
@@ -320,6 +353,7 @@ describe('generateText', () => {
                   required: ['value'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
               {
                 type: 'function',
@@ -332,6 +366,7 @@ describe('generateText', () => {
                   required: ['somethingElse'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
             ]);
 
@@ -373,7 +408,10 @@ describe('generateText', () => {
       });
 
       // test type inference
-      if (result.toolCalls[0].toolName === 'tool1') {
+      if (
+        result.toolCalls[0].toolName === 'tool1' &&
+        !result.toolCalls[0].dynamic
+      ) {
         assertType<string>(result.toolCalls[0].input.value);
       }
 
@@ -411,6 +449,7 @@ describe('generateText', () => {
                   required: ['value'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
             ]);
 
@@ -451,19 +490,27 @@ describe('generateText', () => {
       });
 
       // test type inference
-      if (result.toolResults[0].toolName === 'tool1') {
+      if (
+        result.toolResults[0].toolName === 'tool1' &&
+        !result.toolResults[0].dynamic
+      ) {
         assertType<string>(result.toolResults[0].output);
       }
 
-      expect(result.toolResults).toStrictEqual([
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          input: { value: 'value' },
-          output: 'result1',
-        },
-      ]);
+      expect(result.toolResults).toMatchInlineSnapshot(`
+        [
+          {
+            "dynamic": false,
+            "input": {
+              "value": "value",
+            },
+            "output": "result1",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+        ]
+      `);
     });
   });
 
@@ -627,6 +674,7 @@ describe('generateText', () => {
                         required: ['value'],
                         type: 'object',
                       },
+                      providerOptions: undefined,
                     },
                   ]);
 
@@ -906,6 +954,7 @@ describe('generateText', () => {
                       "type": "tool-call",
                     },
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1087,6 +1136,7 @@ describe('generateText', () => {
                       "type": "tool-call",
                     },
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1262,6 +1312,7 @@ describe('generateText', () => {
                     "type": "object",
                   },
                   "name": "tool1",
+                  "providerOptions": undefined,
                   "type": "function",
                 },
               ],
@@ -1481,6 +1532,7 @@ describe('generateText', () => {
                       "type": "tool-call",
                     },
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1558,6 +1610,7 @@ describe('generateText', () => {
                       "type": "tool-call",
                     },
                     {
+                      "dynamic": false,
                       "input": {
                         "value": "value",
                       },
@@ -1630,9 +1683,10 @@ describe('generateText', () => {
       const result = await generateText({
         model: new MockLanguageModelV2({
           doGenerate: async ({ headers }) => {
-            assert.deepStrictEqual(headers, {
-              'custom-request-header': 'request-header-value',
-            });
+            assert.equal(
+              headers?.['custom-request-header'],
+              'request-header-value',
+            );
 
             return {
               ...dummyResponseValues,
@@ -1769,6 +1823,7 @@ describe('generateText', () => {
             "type": "object",
           },
           "name": "tool1",
+          "providerOptions": undefined,
           "type": "function",
         },
       ]
@@ -1882,6 +1937,7 @@ describe('generateText', () => {
               "ai.model.provider": "mock-provider",
               "ai.operationId": "ai.generateText",
               "ai.prompt": "{"prompt":"test-input"}",
+              "ai.request.headers.user-agent": "ai/0.0.0-test",
               "ai.response.finishReason": "stop",
               "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
               "ai.settings.maxRetries": 2,
@@ -1902,6 +1958,7 @@ describe('generateText', () => {
               "ai.prompt.tools": [
                 "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
               ],
+              "ai.request.headers.user-agent": "ai/0.0.0-test",
               "ai.response.finishReason": "stop",
               "ai.response.id": "test-id",
               "ai.response.model": "mock-model-id",
@@ -1927,8 +1984,8 @@ describe('generateText', () => {
           {
             "attributes": {
               "ai.operationId": "ai.toolCall",
+              "ai.toolCall.args": "{"value":"value"}",
               "ai.toolCall.id": "call-1",
-              "ai.toolCall.input": "{"value":"value"}",
               "ai.toolCall.name": "tool1",
               "ai.toolCall.result": ""result1"",
               "operation.name": "ai.toolCall",
@@ -2086,25 +2143,26 @@ describe('generateText', () => {
       });
 
       expect(recordedCalls).toMatchInlineSnapshot(`
-      [
-        {
-          "options": {
-            "abortSignal": undefined,
-            "input": {
-              "value": "value",
-            },
-            "messages": [
-              {
-                "content": "test-input",
-                "role": "user",
+        [
+          {
+            "options": {
+              "abortSignal": undefined,
+              "experimental_context": undefined,
+              "input": {
+                "value": "value",
               },
-            ],
-            "toolCallId": "call-1",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call-1",
+            },
+            "type": "onInputAvailable",
           },
-          "type": "onInputAvailable",
-        },
-      ]
-    `);
+        ]
+      `);
     });
   });
 
@@ -2124,6 +2182,7 @@ describe('generateText', () => {
                   required: ['value'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
               {
                 type: 'function',
@@ -2135,6 +2194,7 @@ describe('generateText', () => {
                   required: ['somethingElse'],
                   type: 'object',
                 },
+                providerOptions: undefined,
               },
             ]);
 
@@ -2190,7 +2250,10 @@ describe('generateText', () => {
       });
 
       // test type inference
-      if (result.toolCalls[0].toolName === 'tool1') {
+      if (
+        result.toolCalls[0].toolName === 'tool1' &&
+        !result.toolCalls[0].dynamic
+      ) {
         assertType<string>(result.toolCalls[0].input.value);
       }
 
@@ -2212,7 +2275,7 @@ describe('generateText', () => {
   });
 
   describe('provider-executed tools', () => {
-    describe('single provider-executed tool call and result', () => {
+    describe('two provider-executed tool calls and results', () => {
       let result: GenerateTextResult<any, any>;
 
       beforeEach(async () => {
@@ -2281,6 +2344,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
+              "dynamic": undefined,
               "input": {
                 "value": "value",
               },
@@ -2301,6 +2365,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
+              "dynamic": undefined,
               "error": "ERROR",
               "input": {
                 "value": "value",
@@ -2309,6 +2374,51 @@ describe('generateText', () => {
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-error",
+            },
+          ]
+        `);
+      });
+
+      it('should include provider-executed tool calls in staticToolCalls', async () => {
+        expect(result.staticToolCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should include provider-executed results in staticToolResults (errors excluded)', async () => {
+        expect(result.staticToolResults).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": undefined,
+              "input": {
+                "value": "value",
+              },
+              "output": "{ "value": "result1" }",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-result",
             },
           ]
         `);
@@ -2414,37 +2524,39 @@ describe('generateText', () => {
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
-        {
-          "abortSignal": undefined,
-          "frequencyPenalty": undefined,
-          "headers": undefined,
-          "maxOutputTokens": undefined,
-          "presencePenalty": undefined,
-          "prompt": [
-            {
-              "content": [
-                {
-                  "text": "prompt",
-                  "type": "text",
-                },
-              ],
-              "providerOptions": undefined,
-              "role": "user",
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
             },
-          ],
-          "providerOptions": undefined,
-          "responseFormat": {
-            "type": "text",
-          },
-          "seed": undefined,
-          "stopSequences": undefined,
-          "temperature": undefined,
-          "toolChoice": undefined,
-          "tools": undefined,
-          "topK": undefined,
-          "topP": undefined,
-        }
-      `);
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "text": "prompt",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": {
+              "type": "text",
+            },
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
       });
     });
 
@@ -2486,50 +2598,52 @@ describe('generateText', () => {
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
-        {
-          "abortSignal": undefined,
-          "frequencyPenalty": undefined,
-          "headers": undefined,
-          "maxOutputTokens": undefined,
-          "presencePenalty": undefined,
-          "prompt": [
-            {
-              "content": [
-                {
-                  "text": "prompt",
-                  "type": "text",
-                },
-              ],
-              "providerOptions": undefined,
-              "role": "user",
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
             },
-          ],
-          "providerOptions": undefined,
-          "responseFormat": {
-            "schema": {
-              "$schema": "http://json-schema.org/draft-07/schema#",
-              "additionalProperties": false,
-              "properties": {
-                "value": {
-                  "type": "string",
-                },
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "text": "prompt",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
               },
-              "required": [
-                "value",
-              ],
-              "type": "object",
+            ],
+            "providerOptions": undefined,
+            "responseFormat": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "type": "json",
             },
-            "type": "json",
-          },
-          "seed": undefined,
-          "stopSequences": undefined,
-          "temperature": undefined,
-          "toolChoice": undefined,
-          "tools": undefined,
-          "topK": undefined,
-          "topP": undefined,
-        }
-      `);
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
       });
     });
   });
@@ -2579,6 +2693,7 @@ describe('generateText', () => {
             "type": "tool-call",
           },
           {
+            "dynamic": false,
             "error": [Error: test error],
             "input": {
               "value": "value",
@@ -2685,6 +2800,7 @@ describe('generateText', () => {
             "type": "tool-call",
           },
           {
+            "dynamic": undefined,
             "input": {
               "value": "test",
             },
@@ -2699,10 +2815,11 @@ describe('generateText', () => {
         ]
       `);
 
-      // tool results should be empty since the tool wasn't executed
+      // tool results should include the result from the provider
       expect(result.toolResults).toMatchInlineSnapshot(`
         [
           {
+            "dynamic": undefined,
             "input": {
               "value": "test",
             },
@@ -2716,6 +2833,519 @@ describe('generateText', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('dynamic tools', () => {
+    it('should execute dynamic tools', async () => {
+      let toolExecuted = false;
+
+      const result = await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'dynamicTool',
+                input: `{ "value": "test" }`,
+              },
+            ],
+            finishReason: 'tool-calls',
+          }),
+        }),
+        tools: {
+          dynamicTool: dynamicTool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => {
+              toolExecuted = true;
+              return { value: 'test-result' };
+            },
+          }),
+        },
+        prompt: 'test-input',
+      });
+
+      // tool should be executed by client
+      expect(toolExecuted).toBe(true);
+
+      // tool call should be included in content
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "dynamic": true,
+            "input": {
+              "value": "test",
+            },
+            "providerExecuted": undefined,
+            "providerMetadata": undefined,
+            "toolCallId": "call-1",
+            "toolName": "dynamicTool",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": true,
+            "input": {
+              "value": "test",
+            },
+            "output": {
+              "value": "test-result",
+            },
+            "toolCallId": "call-1",
+            "toolName": "dynamicTool",
+            "type": "tool-result",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('tool execution context', () => {
+    it('should send context to tool execution', async () => {
+      let recordedContext: unknown | undefined;
+
+      const result = await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 't1',
+                input: `{ "value": "test" }`,
+              },
+            ],
+            finishReason: 'tool-calls',
+          }),
+        }),
+        tools: {
+          t1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { experimental_context }) => {
+              recordedContext = experimental_context;
+              return { value: 'test-result' };
+            },
+          }),
+        },
+        experimental_context: {
+          context: 'test',
+        },
+        prompt: 'test-input',
+      });
+
+      // tool should be executed by client
+      expect(recordedContext).toStrictEqual({
+        context: 'test',
+      });
+    });
+  });
+
+  describe('invalid tool calls', () => {
+    describe('single invalid tool call', () => {
+      let result: GenerateTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = await generateText({
+          model: new MockLanguageModelV2({
+            doGenerate: async () => ({
+              warnings: [],
+              usage: {
+                inputTokens: 10,
+                outputTokens: 20,
+                totalTokens: 30,
+              },
+              finishReason: 'tool-calls',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'cityAttractions',
+                  // wrong tool call arguments (city vs cities):
+                  input: `{ "cities": "San Francisco" }`,
+                },
+              ],
+            }),
+          }),
+          tools: {
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+            }),
+          },
+          prompt: 'What are the tourist attractions in San Francisco?',
+        });
+      });
+
+      it('should add tool error part to the content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": true,
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]],
+              "input": {
+                "cities": "San Francisco",
+              },
+              "invalid": true,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": true,
+              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]",
+              "input": {
+                "cities": "San Francisco",
+              },
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-error",
+            },
+          ]
+        `);
+      });
+
+      it('should include error result in response messages', async () => {
+        expect(result.response.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "input": {
+                    "cities": "San Francisco",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-call",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "error-text",
+                    "value": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ]
+        `);
+      });
+    });
+  });
+
+  describe('tools with preliminary results', () => {
+    describe('single tool with preliminary results', () => {
+      let result: GenerateTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = await generateText({
+          model: new MockLanguageModelV2({
+            doGenerate: async () => ({
+              warnings: [],
+              usage: {
+                inputTokens: 10,
+                outputTokens: 20,
+                totalTokens: 30,
+              },
+              finishReason: 'tool-calls',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'cityAttractions',
+                  input: `{ "city": "San Francisco" }`,
+                },
+              ],
+            }),
+          }),
+          prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-id',
+            currentDate: () => new Date(0),
+          },
+          tools: {
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+              async *execute({ city }) {
+                yield {
+                  status: 'loading',
+                  text: `Getting weather for ${city}`,
+                };
+
+                yield {
+                  status: 'success',
+                  text: `The weather in ${city} is 72°F`,
+                  temperature: 72,
+                };
+              },
+            }),
+          },
+        });
+      });
+
+      it('should only include final tool result in content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "city": "San Francisco",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": false,
+              "input": {
+                "city": "San Francisco",
+              },
+              "output": {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+
+      it('should only include final tool result in step content', async () => {
+        expect(result.steps).toMatchInlineSnapshot(`
+          [
+            DefaultStepResult {
+              "content": [
+                {
+                  "input": {
+                    "city": "San Francisco",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-call",
+                },
+                {
+                  "dynamic": false,
+                  "input": {
+                    "city": "San Francisco",
+                  },
+                  "output": {
+                    "status": "success",
+                    "temperature": 72,
+                    "text": "The weather in San Francisco is 72°F",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-result",
+                },
+              ],
+              "finishReason": "tool-calls",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "body": undefined,
+                "headers": undefined,
+                "id": "test-id",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "input": {
+                          "city": "San Francisco",
+                        },
+                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
+                        "toolCallId": "call-1",
+                        "toolName": "cityAttractions",
+                        "type": "tool-call",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                  {
+                    "content": [
+                      {
+                        "output": {
+                          "type": "json",
+                          "value": {
+                            "status": "success",
+                            "temperature": 72,
+                            "text": "The weather in San Francisco is 72°F",
+                          },
+                        },
+                        "toolCallId": "call-1",
+                        "toolName": "cityAttractions",
+                        "type": "tool-result",
+                      },
+                    ],
+                    "role": "tool",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "usage": {
+                "inputTokens": 10,
+                "outputTokens": 20,
+                "totalTokens": 30,
+              },
+              "warnings": [],
+            },
+          ]
+        `);
+      });
+    });
+  });
+
+  describe('logWarnings', () => {
+    it('should call logWarnings with warnings from a single step', async () => {
+      const expectedWarnings = [
+        {
+          type: 'other' as const,
+          message: 'Setting is not supported',
+        },
+        {
+          type: 'unsupported-setting' as const,
+          setting: 'temperature',
+          details: 'Temperature parameter not supported',
+        },
+      ];
+
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            warnings: expectedWarnings,
+          },
+        }),
+        prompt: 'Hello',
+      });
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    });
+
+    it('should call logWarnings once for each step with warnings from that step', async () => {
+      const warning1 = {
+        type: 'other' as const,
+        message: 'Warning from step 1',
+      };
+      const warning2 = {
+        type: 'other' as const,
+        message: 'Warning from step 2',
+      };
+
+      let callCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => {
+            switch (callCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'testTool',
+                      input: `{ "value": "test" }`,
+                    },
+                  ],
+                  finishReason: 'tool-calls',
+                  warnings: [warning1],
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Final response' }],
+                  warnings: [warning2],
+                };
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt: 'Hello',
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result',
+          },
+        },
+        stopWhen: stepCountIs(3),
+      });
+
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, [warning1]);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, [warning2]);
+    });
+
+    it('should call logWarnings with empty array when no warnings are present', async () => {
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            warnings: [], // no warnings
+          },
+        }),
+        prompt: 'Hello',
+      });
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith([]);
     });
   });
 });

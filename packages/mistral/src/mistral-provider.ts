@@ -28,13 +28,10 @@ Creates a model for text generation.
   chat(modelId: MistralChatModelId): LanguageModelV2;
 
   /**
-@deprecated Use `textEmbeddingModel()` instead.
+@deprecated Use `textEmbedding()` instead.
    */
   embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV2<string>;
 
-  /**
-@deprecated Use `textEmbeddingModel()` instead.
-   */
   textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV2<string>;
 
   textEmbeddingModel: (
@@ -65,6 +62,8 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
+
+  generateId?: () => string;
 }
 
 /**
@@ -91,6 +90,7 @@ export function createMistral(
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
+      generateId: options.generateId,
     });
 
   const createEmbeddingModel = (modelId: MistralEmbeddingModelId) =>

@@ -1,8 +1,17 @@
 import { z } from 'zod/v4';
-import { MCPClientError } from '../../../src/error/mcp-client-error';
+import { MCPClientError } from '../../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
 import { MockMCPTransport } from './mock-mcp-transport';
 import { CallToolResult } from './types';
+import {
+  beforeEach,
+  afterEach,
+  describe,
+  expect,
+  expectTypeOf,
+  it,
+  vi,
+} from 'vitest';
 
 const createMockTransport = vi.fn(config => new MockMCPTransport(config));
 
@@ -45,6 +54,8 @@ describe('MCPClient', () => {
         },
       },
     });
+    expect(tool).toHaveProperty('type');
+    expect(tool.type).toBe('dynamic');
 
     const toolCall = tool.execute;
     expect(toolCall).toBeDefined();
@@ -69,21 +80,37 @@ describe('MCPClient', () => {
     `);
   });
 
-  it('should return typed AI SDK compatible tool set', async () => {
-    client = await createMCPClient({
-      transport: { type: 'sse', url: 'https://example.com/sse' },
+  it('should return typed AI SDK compatible tool set when schemas are provided', async () => {
+    const mockTransport = new MockMCPTransport({
+      overrideTools: [
+        {
+          name: 'mock-tool-only-input-schema',
+          description: 'A mock tool for testing custom transports',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              foo: { type: 'string' },
+            },
+          },
+        },
+      ],
     });
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
     const tools = await client.tools({
       schemas: {
-        'mock-tool': {
+        'mock-tool-only-input-schema': {
           inputSchema: z.object({
             foo: z.string(),
           }),
         },
       },
     });
-    expect(tools).toHaveProperty('mock-tool');
-    const tool = tools['mock-tool'];
+    expect(tools).toHaveProperty('mock-tool-only-input-schema');
+    const tool = tools['mock-tool-only-input-schema'];
 
     type ToolParams = Parameters<typeof tool.execute>[0];
     expectTypeOf<ToolParams>().toEqualTypeOf<{ foo: string }>();
@@ -96,7 +123,9 @@ describe('MCPClient', () => {
       },
     );
 
-    expectTypeOf<typeof result>().toEqualTypeOf<CallToolResult>();
+    expectTypeOf<
+      Exclude<typeof result, AsyncIterable<any>>
+    >().toEqualTypeOf<CallToolResult>();
   });
 
   it('should not return user-defined tool if it is nonexistent', async () => {
@@ -263,7 +292,9 @@ describe('MCPClient', () => {
       },
     );
 
-    expectTypeOf<typeof result>().toEqualTypeOf<CallToolResult>();
+    expectTypeOf<
+      Exclude<typeof result, AsyncIterable<any>>
+    >().toEqualTypeOf<CallToolResult>();
   });
 
   it('should throw if transport is missing required methods', async () => {

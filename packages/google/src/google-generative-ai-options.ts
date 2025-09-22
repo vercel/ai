@@ -23,6 +23,8 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.0-flash-exp'
   | 'gemini-2.5-pro'
   | 'gemini-2.5-flash'
+  | 'gemini-2.5-flash-lite'
+  | 'gemini-2.5-flash-image-preview'
   // Experimental models
   // https://ai.google.dev/gemini-api/docs/models/experimental-models
   | 'gemini-2.5-pro-exp-03-25'
@@ -102,6 +104,13 @@ Optional. A list of unique safety settings for blocking unsafe content.
    * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding
    */
   audioTimestamp: z.boolean().optional(),
+
+  /**
+   * Optional. Defines labels used in billing reports. Available on Vertex AI only.
+   *
+   * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls
+   */
+  labels: z.record(z.string(), z.string()).optional(),
 });
 
 export type GoogleGenerativeAIProviderOptions = z.infer<

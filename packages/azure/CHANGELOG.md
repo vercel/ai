@@ -1,5 +1,545 @@
 # @ai-sdk/azure
 
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+  - @ai-sdk/openai@2.1.0-beta.1
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/openai@2.1.0-beta.0
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.32
+
+### Patch Changes
+
+- Updated dependencies [1cf857d]
+- Updated dependencies [01de47f]
+  - @ai-sdk/openai@2.0.32
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [bb94467]
+- Updated dependencies [4a2b70e]
+- Updated dependencies [643711d]
+  - @ai-sdk/openai@2.0.31
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/openai@2.0.30
+
+## 2.0.29
+
+### Patch Changes
+
+- Updated dependencies [4235eb3]
+  - @ai-sdk/openai@2.0.29
+
+## 2.0.28
+
+### Patch Changes
+
+- Updated dependencies [4c2bb77]
+- Updated dependencies [561e8b0]
+  - @ai-sdk/openai@2.0.28
+
+## 2.0.27
+
+### Patch Changes
+
+- Updated dependencies [2338c79]
+  - @ai-sdk/openai@2.0.27
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [5819aec]
+- Updated dependencies [af8c6bb]
+  - @ai-sdk/openai@2.0.26
+
+## 2.0.25
+
+### Patch Changes
+
+- Updated dependencies [fb45ade]
+  - @ai-sdk/openai@2.0.25
+
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+- Updated dependencies [ad57512]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/openai@2.0.24
+
+## 2.0.23
+
+### Patch Changes
+
+- Updated dependencies [a9a61b7]
+  - @ai-sdk/openai@2.0.23
+
+## 2.0.22
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+- Updated dependencies [0e272ae]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/openai@2.0.22
+
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+- Updated dependencies [d18856a]
+- Updated dependencies [15271d6]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/openai@2.0.21
+
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [974de40]
+  - @ai-sdk/openai@2.0.20
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+  - @ai-sdk/openai@2.0.19
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [5e47d00]
+  - @ai-sdk/openai@2.0.18
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [70bb696]
+  - @ai-sdk/openai@2.0.17
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - @ai-sdk/openai@2.0.16
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [a4bef93]
+- Updated dependencies [6ed34cb]
+  - @ai-sdk/openai@2.0.15
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [7f47105]
+  - @ai-sdk/openai@2.0.14
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [ddc9d99]
+  - @ai-sdk/openai@2.0.13
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [034e229]
+- Updated dependencies [ec336a1]
+- Updated dependencies [f25040d]
+- Updated dependencies [2935ec7]
+  - @ai-sdk/provider-utils@3.0.3
+  - @ai-sdk/openai@2.0.12
+
+## 2.0.11
+
+### Patch Changes
+
+- 097b452: feat(openai, azure): add configurable file ID prefixes for Responses API
+
+  - Added `fileIdPrefixes` option to OpenAI Responses API configuration
+  - Azure OpenAI now supports `assistant-` prefixed file IDs (replacing previous `file-` prefix support)
+  - OpenAI maintains backward compatibility with default `file-` prefix
+  - File ID detection is disabled when `fileIdPrefixes` is undefined, gracefully falling back to base64 processing
+
+- 0853d6b: fix(provider/azure): add deployment-based URL support for transcription compatibility
+- Updated dependencies [097b452]
+- Updated dependencies [87cf954]
+- Updated dependencies [a3d98a9]
+- Updated dependencies [38ac190]
+- Updated dependencies [110d167]
+- Updated dependencies [8d3c747]
+  - @ai-sdk/openai@2.0.11
+  - @ai-sdk/provider-utils@3.0.2
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [a274b01]
+- Updated dependencies [b48e0ff]
+  - @ai-sdk/openai@2.0.10
+
+## 2.0.9
+
+### Patch Changes
+
+- Updated dependencies [8f8a521]
+  - @ai-sdk/openai@2.0.9
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [57fb959]
+- Updated dependencies [2a3fbe6]
+  - @ai-sdk/openai@2.0.8
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [4738f18]
+- Updated dependencies [013d747]
+- Updated dependencies [35feee8]
+  - @ai-sdk/openai@2.0.7
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [ad2255f]
+- Updated dependencies [64bcb66]
+- Updated dependencies [1d42ff2]
+  - @ai-sdk/openai@2.0.6
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [6753a2e]
+- Updated dependencies [6cba06a]
+  - @ai-sdk/openai@2.0.5
+
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [c9e0f52]
+  - @ai-sdk/openai@2.0.4
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [90d212f]
+  - @ai-sdk/provider-utils@3.0.1
+  - @ai-sdk/openai@2.0.3
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [63e2016]
+  - @ai-sdk/openai@2.0.2
+
+## 2.0.1
+
+### Patch Changes
+
+- Updated dependencies [bc45e29]
+  - @ai-sdk/openai@2.0.1
+
+## 2.0.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+- 516be5b: ### Move Image Model Settings into generate options
+
+  Image Models no longer have settings. Instead, `maxImagesPerCall` can be passed directly to `generateImage()`. All other image settings can be passed to `providerOptions[provider]`.
+
+  Before
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1', {
+      maxImagesPerCall: 5,
+      pollIntervalMillis: 500,
+    }),
+    prompt,
+    n: 10,
+  });
+  ```
+
+  After
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1'),
+    prompt,
+    n: 10,
+    maxImagesPerCall: 5,
+    providerOptions: {
+      luma: { pollIntervalMillis: 5 },
+    },
+  });
+  ```
+
+  Pull Request: https://github.com/vercel/ai/pull/6180
+
+### Patch Changes
+
+- c467b38: feat (provider/azure): add OpenAI responses API support
+- 004fb17: feat(azure): add speech model support and fix transcription
+- 3b13ccf: feat(providers/azure): add transcribe
+- e2aceaf: feat: add raw chunk support
+- eb173f1: chore (providers): remove model shorthand deprecation warnings
+- db72adc: chore(providers/openai): update completion model to use providerOptions
+- 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+- 3db5258: update: Azure OpenAI provider to v1 API format
+- 4617fab: chore(embedding-models): remove remaining settings
+- 52ce942: chore(providers/openai): remove & enable strict compatibility by default
+- 205077b: fix: improve Zod compatibility
+- Updated dependencies [a571d6e]
+- Updated dependencies [742b7be]
+- Updated dependencies [948b755]
+- Updated dependencies [d63bcbc]
+- Updated dependencies [e7fcc86]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [95857aa]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [6f6bb89]
+- Updated dependencies [060370c]
+- Updated dependencies [dc714f3]
+- Updated dependencies [b5da06a]
+- Updated dependencies [d1a1aa1]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [3bd3c0b]
+- Updated dependencies [5d142ab]
+- Updated dependencies [d5f588f]
+- Updated dependencies [e025824]
+- Updated dependencies [cc62234]
+- Updated dependencies [0571b98]
+- Updated dependencies [5d959e7]
+- Updated dependencies [b6b43c7]
+- Updated dependencies [4fef487]
+- Updated dependencies [48d257a]
+- Updated dependencies [0c0c0b3]
+- Updated dependencies [0d2c085]
+- Updated dependencies [0eee6a8]
+- Updated dependencies [177526b]
+- Updated dependencies [2f542fa]
+- Updated dependencies [40acf9b]
+- Updated dependencies [c15dfbf]
+- Updated dependencies [9222aeb]
+- Updated dependencies [3b1ea10]
+- Updated dependencies [e2aceaf]
+- Updated dependencies [d2af019]
+- Updated dependencies [411e483]
+- Updated dependencies [8ba77a7]
+- Updated dependencies [eb173f1]
+- Updated dependencies [209256d]
+- Updated dependencies [faea29f]
+- Updated dependencies [7032dc5]
+- Updated dependencies [870c5c0]
+- Updated dependencies [db72adc]
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [a166433]
+- Updated dependencies [26735b5]
+- Updated dependencies [443d8ec]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [abf9a79]
+- Updated dependencies [14c9410]
+- Updated dependencies [e86be6f]
+- Updated dependencies [8d12da5]
+- Updated dependencies [9bf7291]
+- Updated dependencies [2e13791]
+- Updated dependencies [9f95b35]
+- Updated dependencies [d521cda]
+- Updated dependencies [66962ed]
+- Updated dependencies [0d06df6]
+- Updated dependencies [442be08]
+- Updated dependencies [472524a]
+- Updated dependencies [0059ee2]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [8493141]
+- Updated dependencies [d9c98f4]
+- Updated dependencies [05d2819]
+- Updated dependencies [9301f86]
+- Updated dependencies [0a87932]
+- Updated dependencies [c4a2fec]
+- Updated dependencies [957b739]
+- Updated dependencies [79457bd]
+- Updated dependencies [a3f768e]
+- Updated dependencies [7435eb5]
+- Updated dependencies [8aa9e20]
+- Updated dependencies [4617fab]
+- Updated dependencies [b5a0e32]
+- Updated dependencies [136819b]
+- Updated dependencies [516be5b]
+- Updated dependencies [ac34802]
+- Updated dependencies [0054544]
+- Updated dependencies [cb68df0]
+- Updated dependencies [52ce942]
+- Updated dependencies [db64cbe]
+- Updated dependencies [ad80501]
+- Updated dependencies [b3c3450]
+- Updated dependencies [68ecf2f]
+- Updated dependencies [9e9c809]
+- Updated dependencies [32831c6]
+- Updated dependencies [48249c4]
+- Updated dependencies [c7d3b2e]
+- Updated dependencies [6dc848c]
+- Updated dependencies [6b98118]
+- Updated dependencies [d0f9495]
+- Updated dependencies [63d791d]
+- Updated dependencies [87b828f]
+- Updated dependencies [3f2f00c]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [0ff02bb]
+- Updated dependencies [7979f7f]
+- Updated dependencies [ad2a3d5]
+- Updated dependencies [9943464]
+- Updated dependencies [39a4fab]
+- Updated dependencies [44f4aba]
+- Updated dependencies [0fa7414]
+- Updated dependencies [9bd5ab5]
+- Updated dependencies [57edfcb]
+- Updated dependencies [faf8446]
+- Updated dependencies [efc3a62]
+- Updated dependencies [7ea4132]
+- Updated dependencies [fa758ea]
+- Updated dependencies [d1a034f]
+- Updated dependencies [5c56081]
+- Updated dependencies [fd65bc6]
+- Updated dependencies [023ba40]
+- Updated dependencies [e497698]
+- Updated dependencies [ea7a7c9]
+- Updated dependencies [26535e0]
+- Updated dependencies [928fadf]
+- Updated dependencies [e030615]
+- Updated dependencies [5e57fae]
+- Updated dependencies [0a87932]
+- Updated dependencies [393138b]
+- Updated dependencies [c57e248]
+- Updated dependencies [5147e6e]
+- Updated dependencies [88a8ee5]
+- Updated dependencies [06bac05]
+- Updated dependencies [41fa418]
+- Updated dependencies [205077b]
+- Updated dependencies [71f938d]
+- Updated dependencies [3795467]
+- Updated dependencies [28a5ed5]
+- Updated dependencies [7182d14]
+- Updated dependencies [c1e6647]
+- Updated dependencies [c2b92cc]
+- Updated dependencies [284353f]
+- Updated dependencies [1766ede]
+- Updated dependencies [6f231db]
+- Updated dependencies [811dff3]
+- Updated dependencies [f10304b]
+- Updated dependencies [dd5fd43]
+- Updated dependencies [4af5233]
+- Updated dependencies [33f4a6a]
+- Updated dependencies [383cbfa]
+- Updated dependencies [27deb4d]
+- Updated dependencies [7df7a25]
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider-utils@3.0.0
+  - @ai-sdk/provider@2.0.0
+  - @ai-sdk/openai@2.0.0
+
+## 2.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [88a8ee5]
+  - @ai-sdk/provider-utils@3.0.0-beta.10
+  - @ai-sdk/openai@2.0.0-beta.16
+
+## 2.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [9943464]
+- Updated dependencies [27deb4d]
+  - @ai-sdk/openai@2.0.0-beta.15
+  - @ai-sdk/provider@2.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.9
+
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- 004fb17: feat(azure): add speech model support and fix transcription
+- eb173f1: chore (providers): remove model shorthand deprecation warnings
+- Updated dependencies [eb173f1]
+- Updated dependencies [7032dc5]
+- Updated dependencies [dd5fd43]
+  - @ai-sdk/openai@2.0.0-beta.14
+  - @ai-sdk/provider-utils@3.0.0-beta.8
+
+## 2.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [e7fcc86]
+  - @ai-sdk/provider-utils@3.0.0-beta.7
+  - @ai-sdk/openai@2.0.0-beta.13
+
+## 2.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [d521cda]
+- Updated dependencies [0059ee2]
+- Updated dependencies [ac34802]
+  - @ai-sdk/openai@2.0.0-beta.12
+  - @ai-sdk/provider-utils@3.0.0-beta.6
+
 ## 2.0.0-beta.11
 
 ### Patch Changes

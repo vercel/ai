@@ -1,5 +1,144 @@
 # @ai-sdk/provider
 
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+## 2.0.0
+
+### Major Changes
+
+- 742b7be: feat: forward id, streaming start, streaming end of content blocks
+- 7cddb72: refactoring (provider): collapse provider defined tools into single definition
+- ccce59b: feat (provider): support changing provider, model, supportedUrls in middleware
+- e2b9e4b: feat (provider): add name for provider defined tools for future validation
+- 95857aa: chore: restructure language model supported urls
+- 6f6bb89: chore (provider): cleanup request and rawRequest (language model v2)
+- d1a1aa1: chore (provider): merge rawRequest into request (language model v2)
+- 63f9e9b: chore (provider,ai): tools have input/output instead of args,result
+- d5f588f: AI SDK 5
+- b6b43c7: chore: move warnings into stream-start part (spec)
+- 411e483: chore (provider): refactor usage (language model v2)
+- abf9a79: chore: rename mimeType to mediaType
+- 14c9410: chore: refactor file towards source pattern (spec)
+- e86be6f: chore: remove logprobs
+- 0d06df6: chore (ai): remove v1 providers
+- d9c98f4: chore: refactor reasoning parts (spec)
+- a3f768e: chore: restructure reasoning support
+- 7435eb5: feat: upgrade speech models to v2 specification
+- 0054544: chore: refactor source parts (spec)
+- 9e9c809: chore: refactor tool call and tool call delta parts (spec)
+- 32831c6: chore: refactor text parts (spec)
+- 6dc848c: chore (provider): remove image parts
+- d0f9495: chore: refactor file parts (spec)
+- 7979f7f: feat (provider): support reasoning tokens, cached input tokens, total token in usage information
+- 44f4aba: feat: upgrade transcription models to v2 specification
+- 7ea4132: chore: remove object generation mode
+- 023ba40: feat (provider): support arbitrary media types in tool results
+- e030615: chore (provider): remove prompt type from language model v2 spec
+- 5e57fae: refactoring (provider): restructure tool result output
+- c57e248: chore (provider): remove mode
+- 3795467: chore: return content array from doGenerate (spec)
+- 1766ede: chore: rename maxTokens to maxOutputTokens
+- 33f4a6a: chore (provider): rename providerMetadata inputs to providerOptions
+
+### Patch Changes
+
+- dc714f3: release alpha.4
+- b5da06a: update to LanguageModelV2ProviderDefinedClientTool to add server side tool later on
+- 48d257a: release alpha.15
+- 0d2c085: chore (provider): tweak provider definition
+- 9222aeb: release alpha.8
+- e2aceaf: feat: add raw chunk support
+- 7b3ae3f: chore (provider): change getSupportedUrls to supportedUrls (language model v2)
+- a166433: feat: add transcription with experimental_transcribe
+- 26735b5: chore(embedding-model): add v2 interface
+- 443d8ec: feat(embedding-model-v2): add response body field
+- a8c8bd5: feat(embed-many): respect supportsParallelCalls & concurrency
+- 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
+- 2e13791: feat(anthropic): add server-side web search support
+- 472524a: spec (ai): add provider options to tools
+- dd3ff01: chore: add language setting to speechv2
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+- 0a87932: core (ai): change transcription model mimeType to mediaType
+- c4a2fec: chore (provider): extract shared provider options and metadata (spec)
+- 79457bd: chore (provider): extract LanguageModelV2File
+- 8aa9e20: feat: add speech with experimental_generateSpeech
+- 4617fab: chore(embedding-models): remove remaining settings
+- cb68df0: feat: add transcription and speech model support to provider registry
+- ad80501: chore (provider): allow both binary and base64 file content (spec)
+
+  Before
+
+  ```ts
+  import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+
+  // Had to manually convert binary data to base64
+  const fileData = new Uint8Array([0, 1, 2, 3]);
+  const filePart = {
+    type: 'file',
+    mediaType: 'application/pdf',
+    data: convertUint8ArrayToBase64(fileData), // Required conversion
+  };
+  ```
+
+  After
+
+  ```ts
+  // Can use binary data directly
+  const fileData = new Uint8Array([0, 1, 2, 3]);
+  const filePart = {
+    type: 'file',
+    mediaType: 'application/pdf',
+    data: fileData, // Direct Uint8Array support
+  };
+  ```
+
+- 68ecf2f: release alpha.13
+- 6b98118: release alpha.3
+- 3f2f00c: feat: `ImageModelV2#maxImagesPerCall` can be set to a function that returns a `number` or `undefined`, optionally as a promise
+
+  pull request: https://github.com/vercel/ai/pull/6343
+
+- 9bd5ab5: feat (provider): add providerMetadata to ImageModelV2 interface (#5977)
+
+  The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
+
+  ```js
+  const prompt = 'Santa Claus driving a Cadillac';
+
+  const { providerMetadata } = await experimental_generateImage({
+    model: openai.image('dall-e-3'),
+    prompt,
+  });
+
+  const revisedPrompt = providerMetadata.openai.images[0]?.revisedPrompt;
+
+  console.log({
+    prompt,
+    revisedPrompt,
+  });
+  ```
+
+- 5c56081: release alpha.7
+- fd65bc6: chore(embedding-model-v2): rename rawResponse to response
+- 26535e0: release alpha.2
+- 393138b: feat(embedding-model-v2): add providerOptions
+- 7182d14: Remove `Experimental_LanguageModelV2Middleware` type
+- c1e6647: release alpha.11
+- 811dff3: release alpha.9
+- f10304b: feat(tool-calling): don't require the user to have to pass parameters
+- 27deb4d: feat (provider/gateway): Add providerMetadata to embeddings response
+- c4df419: release alpha.10
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 27deb4d: feat (provider/gateway): Add providerMetadata to embeddings response
+
 ## 2.0.0-beta.1
 
 ### Major Changes

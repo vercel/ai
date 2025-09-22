@@ -1,5 +1,6 @@
 import {
-  APICallError,
+  JSONObject,
+  JSONValue,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -72,6 +73,9 @@ const documentCitationSchema = z.discriminatedUnion('type', [
 
 type Citation = z.infer<typeof citationSchema>;
 export type DocumentCitation = z.infer<typeof documentCitationSchema>;
+export type AnthropicProviderMetadata = SharedV2ProviderMetadata & {
+  usage?: Record<string, JSONValue>;
+};
 
 function processCitation(
   citation: Citation,
@@ -328,8 +332,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         ? {
             tools: [jsonResponseTool],
             toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
+            disableParallelToolUse: true,
           }
-        : { tools: tools ?? [], toolChoice },
+        : {
+            tools: tools ?? [],
+            toolChoice,
+            disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
+          },
     );
 
     return {
@@ -505,7 +514,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           break;
         }
         case 'server_tool_use': {
-          if (part.name === 'web_search') {
+          if (part.name === 'web_search' || part.name === 'code_execution') {
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
@@ -562,6 +571,35 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           }
           break;
         }
+        case 'code_execution_tool_result': {
+          if (part.content.type === 'code_execution_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'code_execution',
+              result: {
+                type: part.content.type,
+                stdout: part.content.stdout,
+                stderr: part.content.stderr,
+                return_code: part.content.return_code,
+              },
+              providerExecuted: true,
+            });
+          } else if (part.content.type === 'code_execution_tool_result_error') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'code_execution',
+              isError: true,
+              result: {
+                type: 'code_execution_tool_result_error',
+                errorCode: part.content.error_code,
+              },
+              providerExecuted: true,
+            });
+          }
+          break;
+        }
       }
     }
 
@@ -587,6 +625,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       warnings,
       providerMetadata: {
         anthropic: {
+          usage: response.usage as JSONObject,
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
         },
@@ -636,7 +675,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | { type: 'text' | 'reasoning' }
     > = {};
 
-    let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
+    let providerMetadata: AnthropicProviderMetadata | undefined = undefined;
 
     let blockType:
       | 'text'
@@ -645,6 +684,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | 'redacted_thinking'
       | 'server_tool_use'
       | 'web_search_tool_result'
+      | 'code_execution_tool_result'
       | undefined = undefined;
 
     const generateId = this.generateId;
@@ -737,7 +777,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   }
 
                   case 'server_tool_use': {
-                    if (value.content_block.name === 'web_search') {
+                    if (
+                      value.content_block.name === 'web_search' ||
+                      value.content_block.name === 'code_execution'
+                    ) {
                       contentBlocks[value.index] = {
                         type: 'tool-call',
                         toolCallId: value.content_block.id,
@@ -801,6 +844,41 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         providerExecuted: true,
                       });
                     }
+                    return;
+                  }
+
+                  case 'code_execution_tool_result': {
+                    const part = value.content_block;
+
+                    if (part.content.type === 'code_execution_result') {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName: 'code_execution',
+                        result: {
+                          type: part.content.type,
+                          stdout: part.content.stdout,
+                          stderr: part.content.stderr,
+                          return_code: part.content.return_code,
+                        },
+                        providerExecuted: true,
+                      });
+                    } else if (
+                      part.content.type === 'code_execution_tool_result_error'
+                    ) {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName: 'code_execution',
+                        isError: true,
+                        result: {
+                          type: 'code_execution_tool_result_error',
+                          errorCode: part.content.error_code,
+                        },
+                        providerExecuted: true,
+                      });
+                    }
+
                     return;
                   }
 
@@ -963,6 +1041,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                 providerMetadata = {
                   anthropic: {
+                    usage: value.message.usage as JSONObject,
                     cacheCreationInputTokens:
                       value.message.usage.cache_creation_input_tokens ?? null,
                   },
@@ -1071,23 +1150,34 @@ const anthropicMessagesResponseSchema = z.object({
           }),
         ]),
       }),
+      z.object({
+        type: z.literal('code_execution_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.object({
+            type: z.literal('code_execution_result'),
+            stdout: z.string(),
+            stderr: z.string(),
+            return_code: z.number(),
+          }),
+          z.object({
+            type: z.literal('code_execution_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
     ]),
   ),
   stop_reason: z.string().nullish(),
-  usage: z.object({
+  usage: z.looseObject({
     input_tokens: z.number(),
     output_tokens: z.number(),
     cache_creation_input_tokens: z.number().nullish(),
     cache_read_input_tokens: z.number().nullish(),
-    server_tool_use: z
-      .object({
-        web_search_requests: z.number(),
-      })
-      .nullish(),
   }),
 });
 
-// limited version of the schema, focussed on what is needed for the implementation
+// limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   z.object({
@@ -1095,7 +1185,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
     message: z.object({
       id: z.string().nullish(),
       model: z.string().nullish(),
-      usage: z.object({
+      usage: z.looseObject({
         input_tokens: z.number(),
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
@@ -1145,6 +1235,22 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
           ),
           z.object({
             type: z.literal('web_search_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
+      z.object({
+        type: z.literal('code_execution_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.object({
+            type: z.literal('code_execution_result'),
+            stdout: z.string(),
+            stderr: z.string(),
+            return_code: z.number(),
+          }),
+          z.object({
+            type: z.literal('code_execution_tool_result_error'),
             error_code: z.string(),
           }),
         ]),

@@ -4,6 +4,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
+  LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
@@ -74,6 +75,14 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
   }) {
     const warnings: LanguageModelV2CallWarning[] = [];
 
+    const groqOptions = await parseProviderOptions({
+      provider: 'groq',
+      providerOptions,
+      schema: groqProviderOptions,
+    });
+
+    const structuredOutputs = groqOptions?.structuredOutputs ?? true;
+
     if (topK != null) {
       warnings.push({
         type: 'unsupported-setting',
@@ -82,28 +91,23 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     }
 
     if (
-      responseFormat != null &&
-      responseFormat.type === 'json' &&
-      responseFormat.schema != null
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !structuredOutputs
     ) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'responseFormat',
-        details: 'JSON response format schema is not supported',
+        details:
+          'JSON response format schema is only supported with structuredOutputs',
       });
     }
-
-    const groqOptions = await parseProviderOptions({
-      provider: 'groq',
-      providerOptions,
-      schema: groqProviderOptions,
-    });
 
     const {
       tools: groqTools,
       toolChoice: groqToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice });
+    } = prepareTools({ tools, toolChoice, modelId: this.modelId });
 
     return {
       args: {
@@ -125,13 +129,23 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
         // response format:
         response_format:
-          // json object response format is not supported for streaming:
-          stream === false && responseFormat?.type === 'json'
-            ? { type: 'json_object' }
+          responseFormat?.type === 'json'
+            ? structuredOutputs && responseFormat.schema != null
+              ? {
+                  type: 'json_schema',
+                  json_schema: {
+                    schema: responseFormat.schema,
+                    name: responseFormat.name ?? 'response',
+                    description: responseFormat.description,
+                  },
+                }
+              : { type: 'json_object' }
             : undefined,
 
         // provider options:
         reasoning_format: groqOptions?.reasoningFormat,
+        reasoning_effort: groqOptions?.reasoningEffort,
+        service_tier: groqOptions?.serviceTier,
 
         // messages:
         messages: convertToGroqChatMessages(prompt),
@@ -210,6 +224,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
         inputTokens: response.usage?.prompt_tokens ?? undefined,
         outputTokens: response.usage?.completion_tokens ?? undefined,
         totalTokens: response.usage?.total_tokens ?? undefined,
+        cachedInputTokens:
+          response.usage?.prompt_tokens_details?.cached_tokens ?? undefined,
       },
       response: {
         ...getResponseMetadata(response),
@@ -260,6 +276,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
+      cachedInputTokens: undefined,
     };
     let isFirstChunk = true;
     let isActiveText = false;
@@ -312,6 +329,9 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
               usage.outputTokens =
                 value.x_groq.usage.completion_tokens ?? undefined;
               usage.totalTokens = value.x_groq.usage.total_tokens ?? undefined;
+              usage.cachedInputTokens =
+                value.x_groq.usage.prompt_tokens_details?.cached_tokens ??
+                undefined;
             }
 
             const choice = value.choices[0];
@@ -532,6 +552,11 @@ const groqChatResponseSchema = z.object({
       prompt_tokens: z.number().nullish(),
       completion_tokens: z.number().nullish(),
       total_tokens: z.number().nullish(),
+      prompt_tokens_details: z
+        .object({
+          cached_tokens: z.number().nullish(),
+        })
+        .nullish(),
     })
     .nullish(),
 });
@@ -575,6 +600,11 @@ const groqChatChunkSchema = z.union([
             prompt_tokens: z.number().nullish(),
             completion_tokens: z.number().nullish(),
             total_tokens: z.number().nullish(),
+            prompt_tokens_details: z
+              .object({
+                cached_tokens: z.number().nullish(),
+              })
+              .nullish(),
           })
           .nullish(),
       })
