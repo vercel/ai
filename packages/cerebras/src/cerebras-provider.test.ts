@@ -15,16 +15,14 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
-  withoutTrailingSlash: vi.fn(url => url),
-  withUserAgentSuffix: vi.fn(
-    (headers: Record<string, string>, ...suffixParts: string[]) => ({
-      ...headers,
-      'user-agent': suffixParts.filter(Boolean).join(' '),
-    }),
-  ),
-}));
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    ...actual,
+    loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
+    withoutTrailingSlash: vi.fn(url => url),
+  };
+});
 
 describe('CerebrasProvider', () => {
   beforeEach(() => {

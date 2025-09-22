@@ -39,16 +39,14 @@ vi.mock('@ai-sdk/openai-compatible', () => {
   };
 });
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
-  withoutTrailingSlash: vi.fn(url => url),
-  withUserAgentSuffix: vi.fn(
-    (headers: Record<string, string>, ...suffixParts: string[]) => ({
-      ...headers,
-      'user-agent': suffixParts.filter(Boolean).join(' '),
-    }),
-  ),
-}));
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    ...actual,
+    loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
+    withoutTrailingSlash: vi.fn(url => url),
+  };
+});
 
 vi.mock('@basetenlabs/performance-client', () => ({
   PerformanceClient: vi.fn().mockImplementation(() => ({
@@ -81,7 +79,7 @@ describe('BasetenProvider', () => {
         environmentVariableName: 'BASETEN_API_KEY',
         description: 'Baseten API key',
       });
-      expect(headers.Authorization).toBe('Bearer mock-api-key');
+      expect(headers.authorization).toBe('Bearer mock-api-key');
       expect(config.provider).toBe('baseten.chat');
     });
 
@@ -104,7 +102,7 @@ describe('BasetenProvider', () => {
         environmentVariableName: 'BASETEN_API_KEY',
         description: 'Baseten API key',
       });
-      expect(headers['Custom-Header']).toBe('value');
+      expect(headers['custom-header']).toBe('value');
     });
 
     it('should support optional modelId parameter', () => {
@@ -362,7 +360,7 @@ describe('BasetenProvider', () => {
       const config = constructorCall[1];
       const headers = config.headers();
 
-      expect(headers.Authorization).toBe('Bearer mock-api-key');
+      expect(headers.authorization).toBe('Bearer mock-api-key');
     });
 
     it('should include custom headers when provided', () => {
@@ -376,8 +374,8 @@ describe('BasetenProvider', () => {
       const config = constructorCall[1];
       const headers = config.headers();
 
-      expect(headers.Authorization).toBe('Bearer mock-api-key');
-      expect(headers['Custom-Header']).toBe('custom-value');
+      expect(headers.authorization).toBe('Bearer mock-api-key');
+      expect(headers['custom-header']).toBe('custom-value');
     });
 
     it('should include user-agent with version', async () => {
