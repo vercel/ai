@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 2.0.15
+
+### Patch Changes
+
+- 3d757f4: Add option for disabling parallel tool call in mistral
+
 ## 2.0.14
 
 ### Patch Changes
