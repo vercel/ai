@@ -29,31 +29,4 @@
 '@ai-sdk/lmnt': patch
 ---
 
-feat(provider/gateway): add version to user-agent header
-feat(provider/openai): add version to user-agent header
-feat(provider/anthropic): add version to user-agent header
-feat(provider/google): add version to user-agent header
-feat(provider/google-vertex): add version to user-agent header
-feat(provider/azure): add version to user-agent header
-feat(provider/amazon-bedrock): add version to user-agent header
-feat(provider/cohere): add version to user-agent header
-feat(provider/mistral): add version to user-agent header
-feat(provider/groq): add version to user-agent header
-feat(provider/cerebras): add version to user-agent header
-feat(provider/deepinfra): add version to user-agent header
-feat(provider/deepseek): add version to user-agent header
-feat(provider/fireworks): add version to user-agent header
-feat(provider/perplexity): add version to user-agent header
-feat(provider/replicate): add version to user-agent header
-feat(provider/togetherai): add version to user-agent header
-feat(provider/xai): add version to user-agent header
-feat(provider/vercel): add version to user-agent header
-feat(provider/elevenlabs): add version to user-agent header
-feat(provider/assemblyai): add version to user-agent header
-feat(provider/deepgram): add version to user-agent header
-feat(provider/gladia): add version to user-agent header
-feat(provider/revai): add version to user-agent header
-feat(provider/luma): add version to user-agent header
-feat(provider/fal): add version to user-agent header
-feat(provider/hume): add version to user-agent header
-feat(provider/lmnt): add version to user-agent header
+feat: add provider version to user-agent header
