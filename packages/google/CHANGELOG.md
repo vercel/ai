@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.15
+
+### Patch Changes
+
+- 967c463: add promptFeedback outputs
+
 ## 2.0.14
 
 ### Patch Changes
