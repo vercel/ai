@@ -97,6 +97,8 @@ export type GatewayModelId =
   | 'xai/grok-3-mini-fast'
   | 'xai/grok-4'
   | 'xai/grok-code-fast-1'
+  | 'xai/grok-4-fast-non-reasoning'
+  | 'xai/grok-4-fast-reasoning'
   | 'zai/glm-4.5'
   | 'zai/glm-4.5-air'
   | 'zai/glm-4.5v'

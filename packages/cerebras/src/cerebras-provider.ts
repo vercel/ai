@@ -93,6 +93,7 @@ export function createCerebras(
       headers: getHeaders,
       fetch: options.fetch,
       errorStructure: cerebrasErrorStructure,
+      supportsStructuredOutputs: true,
     });
   };
 

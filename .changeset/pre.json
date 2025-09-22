@@ -73,13 +73,18 @@
     "@ai-sdk/test-server": "0.0.0"
   },
   "changesets": [
+    "angry-hats-cry",
     "curly-glasses-count",
     "four-candles-buy",
+    "grumpy-actors-sleep",
+    "many-lamps-report",
     "neat-news-visit",
     "old-kiwis-hide",
     "quiet-pens-suffer",
     "red-roses-glow",
     "selfish-beers-mate",
+    "shaggy-emus-try",
+    "two-birds-agree",
     "wise-jobs-knock"
   ]
 }
