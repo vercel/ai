@@ -27,6 +27,7 @@
 '@ai-sdk/fal': patch
 '@ai-sdk/hume': patch
 '@ai-sdk/lmnt': patch
+'@ai-sdk/baseten': patch
 ---
 
 feat: add provider version to user-agent header

@@ -42,6 +42,12 @@ vi.mock('@ai-sdk/openai-compatible', () => {
 vi.mock('@ai-sdk/provider-utils', () => ({
   loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
   withoutTrailingSlash: vi.fn(url => url),
+  withUserAgentSuffix: vi.fn(
+    (headers: Record<string, string>, ...suffixParts: string[]) => ({
+      ...headers,
+      'user-agent': suffixParts.filter(Boolean).join(' '),
+    }),
+  ),
 }));
 
 vi.mock('@basetenlabs/performance-client', () => ({
@@ -49,6 +55,10 @@ vi.mock('@basetenlabs/performance-client', () => ({
     embed: vi.fn(),
     embedBatch: vi.fn(),
   })),
+}));
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
 }));
 
 describe('BasetenProvider', () => {
@@ -368,6 +378,29 @@ describe('BasetenProvider', () => {
 
       expect(headers.Authorization).toBe('Bearer mock-api-key');
       expect(headers['Custom-Header']).toBe('custom-value');
+    });
+
+    it('should include user-agent with version', async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(new Response('{}', { status: 200 }));
+
+      const provider = createBaseten({ fetch: fetchMock });
+      const model = provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const headers = config.headers();
+
+      await fetchMock('https://example.com/test', {
+        method: 'POST',
+        headers,
+      });
+
+      expect(fetchMock.mock.calls[0][1].headers['user-agent']).toContain(
+        'ai-sdk/baseten/0.0.0-test',
+      );
     });
   });
 
