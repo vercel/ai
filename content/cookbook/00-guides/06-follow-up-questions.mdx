@@ -1,0 +1,211 @@
+---
+title: Follow-up questions
+description: Learn how to use the AI SDK to add follow-up questions to your chat app.
+tags: ['agents', 'chatbot']
+---
+
+# Add follow-up questions to your AI chat app
+
+Follow-up questions keep users engaged in your AI app. They provide natural conversation starters when users hit a dead end. This guide shows you how to build them using [AI SDK](https://ai-sdk.dev/)'s streaming data parts feature.
+
+You'll see code that streams suggestions as they're generated, thanks to the partial object streaming feature. The result feels smooth and professional.
+
+![Follow-up questions example](/assets/follow-up_questions.png)
+
+## Set up the backend suggestion generator
+
+Create a function that takes your conversation history and asks the AI model to generate relevant follow-up questions. This function uses structured output to return an array of short, actionable questions.
+
+```typescript
+import { streamObject, type ModelMessage } from 'ai'
+import { z } from 'zod'
+
+const DEFAULT_FOLLOWUP_SUGGESTIONS_MODEL = 'google/gemini-2.5-flash-lite'
+
+function generateFollowupSuggestions(modelMessages: ModelMessage[]) {
+  const maxQuestionCount = 5
+  const minQuestionCount = 3
+  const maxCharactersPerQuestion = 80
+
+  return streamObject({
+    model: DEFAULT_FOLLOWUP_SUGGESTIONS_MODEL,
+    messages: [
+      ...modelMessages,
+      {
+        role: 'user',
+        content: `What question should I ask next? Return an array of suggested questions (minimum ${minQuestionCount}, maximum ${maxQuestionCount}). Each question should be no more than ${maxCharactersPerQuestion} characters.`,
+      },
+    ],
+    schema: z.object({
+      suggestions: z.array(z.string()).min(minQuestionCount).max(maxQuestionCount),
+    }),
+  })
+}
+```
+
+These constraints are important. You want 3-5 questions maximum, each under 80 characters. For model selection, use a fast, inexpensive model here. Suggestions don't need your most powerful model, and users shouldn't have to wait for them.
+
+## Stream suggestions to the frontend
+
+Build a streaming function that sends suggestions to your frontend as they're generated. This uses AI SDK's custom data parts feature to create type-safe parts. By reading from the `partialObjectStream`, we get a smooth user experience where suggestions appear in real-time, not in a batch after completion. By using the same `id` in the data, each time it writes a new chunk, it will replace the previous one.
+
+Here's the streaming function that writes suggestions as they're created:
+
+```typescript
+async function streamFollowupSuggestions({
+  followupSuggestionsResult,
+  writer,
+}: {
+  followupSuggestionsResult: ReturnType<typeof generateFollowupSuggestions>
+  writer: StreamWriter
+}) {
+  const dataPartId = crypto.randomUUID()
+
+  for await (const chunk of followupSuggestionsResult.partialObjectStream) {
+    writer.write({
+      id: dataPartId,
+      type: 'data-followupSuggestions',
+      data: {
+        suggestions: chunk.suggestions?.filter((suggestion) => suggestion !== undefined) ?? [],
+      },
+    })
+  }
+}
+```
+
+You need to define the data type for your suggestions. Add this to the file that has your ChatMessage definition:
+
+```typescript
+type FollowupSuggestions = {
+  suggestions: string[]
+}
+
+export type CustomUIDataTypes = {
+  // ... your existing types
+  followupSuggestions: FollowupSuggestions
+}
+
+export type ChatMessage = UIMessage<MessageMetadata, CustomUIDataTypes, ChatTools>
+```
+
+## Create the UI components
+
+Build React components that display the suggestions and handle user clicks. The components need to integrate with your existing chat state management and trigger new messages when users select a suggestion.
+
+Create a new file `components/followup-suggestions.tsx`:
+
+```tsx
+'use client'
+
+import type { ChatMessage } from '@/lib/ai/types'
+import { useCallback } from 'react'
+import { Button } from './ui/button'
+import { Separator } from './ui/separator'
+
+export function FollowUpSuggestions({
+  message,
+  sendMessage,
+}: {
+  message: ChatMessage
+  sendMessage: UseChatHelpers<ChatMessage>['sendMessage']
+}) {
+  const suggestions = message.parts.find((p) => p.type === 'data-followupSuggestions')?.data
+    .suggestions
+
+  const handleClick = useCallback(
+    (suggestion: string) => {
+      sendMessage({ text: suggestion })
+    },
+    [sendMessage]
+  )
+
+  if (!suggestions || suggestions.length === 0) return null
+
+  return (
+    <div className={'mb-2 mt-3 flex flex-col gap-2'}>
+      <div className="text-base font-medium">Related</div>
+      <div className="flex flex-wrap items-center gap-y-1">
+        {suggestions.map((s, i) => (
+          <div key={s} className="flex w-full flex-col">
+            <button
+              type="button"
+              onClick={() => handleClick(s)}
+              className="w-full cursor-pointer py-2 text-left text-foreground hover:text-primary"
+            >
+              {s}
+            </button>
+            {i < suggestions.length - 1 && <hr className="h-px w-full border-0 bg-border" />}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+This component handles click interactions by creating a new message and sending it through your chat system. It preserves the current model selection and tool settings.
+
+The component works with AI SDK's message parts system. It finds the right part by type and renders the suggestions.
+
+Finally, add the component to your assistant message. This shows follow-up suggestions after each AI response.
+
+```tsx
+import { FollowUpSuggestions } from './followup-suggestions'
+
+const AssistantMessage = ({
+  message,
+  sendMessage,
+}: {
+  message: ChatMessage
+  sendMessage: UseChatHelpers<ChatMessage>['sendMessage']
+}) => {
+  return (
+    <div className="relative flex flex-col gap-2">
+      {/* ... render other parts of the message */}
+
+      <FollowUpSuggestions message={message} sendMessage={sendMessage} />
+    </div>
+  )
+}
+```
+
+## Integrate with your chat API
+
+Connect everything in your chat route handler. After streaming the main AI response, generate and stream follow-up suggestions using the complete conversation context. This happens automatically without blocking the main response.
+
+Update your chat POST handler by adding the `generateFollowupSuggestions` and `streamFollowupSuggestions` functions. The key changes are in the `execute` function:
+
+```typescript
+const stream = createUIMessageStream<ChatMessage>({
+  execute: async ({ writer: dataStream }) => {
+    const result = streamText({
+      model: mainModel,
+      messages: modelMessages,
+    })
+
+    dataStream.merge(result.toUIMessageStream())
+
+    // Wait for the main response to complete
+    await result.consumeStream()
+
+    const response = await result.response
+    const responseMessages = response.messages
+
+    // Generate and stream follow-up suggestions
+    const followupSuggestionsResult = generateFollowupSuggestions([
+      ...contextForLLM,
+      ...responseMessages,
+    ])
+    await streamFollowupSuggestions({
+      followupSuggestionsResult,
+      writer: dataStream,
+    })
+  },
+})
+```
+
+You must await the response first to let the main AI response finish streaming. Then you get the complete response messages and use them as context for generating suggestions.
+
+This means users see the AI response first, then suggestions appear afterward. The suggestions have full context from both the conversation history and the AI's complete response.
+
+That's it. Your follow-up questions will now stream in after each AI response, keeping users engaged and providing natural conversation starters. The entire system works end-to-end with type safety and smooth streaming.
