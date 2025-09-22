@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- 62731a8: Add option for disabling parallel tool call in mistral
+
 ## 2.1.0-beta.1
 
 ### Patch Changes
