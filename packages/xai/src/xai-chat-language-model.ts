@@ -176,7 +176,10 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
                 safe_search: source.safeSearch,
               }),
               ...(source.type === 'x' && {
-                x_handles: source.xHandles,
+                excluded_x_handles: source.excludedXHandles,
+                included_x_handles: source.includedXHandles ?? source.xHandles,
+                post_favorite_count: source.postFavoriteCount,
+                post_view_count: source.postViewCount,
               }),
               ...(source.type === 'news' && {
                 country: source.country,

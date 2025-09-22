@@ -1,5 +1,83 @@
 # @ai-sdk/react
 
+## 2.1.0-beta.4
+
+### Patch Changes
+
+- ai@5.1.0-beta.4
+
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- ai@5.1.0-beta.3
+
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+  - ai@5.1.0-beta.2
+
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [a7f6f81]
+  - ai@5.1.0-beta.1
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - ai@5.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.45
+
+### Patch Changes
+
+- Updated dependencies [76024fc]
+- Updated dependencies [93d8b60]
+- Updated dependencies [d8eb31f]
+  - ai@5.0.45
+
+## 2.0.44
+
+### Patch Changes
+
+- ai@5.0.44
+
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - ai@5.0.43
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [de5c066]
+  - ai@5.0.42
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [cd91e4b]
+  - ai@5.0.41
+
 ## 2.0.40
 
 ### Patch Changes

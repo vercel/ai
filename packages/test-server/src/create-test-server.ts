@@ -1,7 +1,6 @@
 import { http, HttpResponse, JsonBodyType } from 'msw';
 import { setupServer } from 'msw/node';
 import { convertArrayToReadableStream } from './convert-array-to-readable-stream';
-import { beforeAll, beforeEach, afterAll } from 'vitest';
 
 export type UrlResponse =
   | {
@@ -67,8 +66,7 @@ class TestServerCall {
     return this.request!.headers.get('content-type')?.startsWith(
       'multipart/form-data',
     )
-      ? // For multipart/form-data, return the form data entries as an object
-        this.request!.formData().then(formData => {
+      ? this.request!.formData().then(formData => {
           const entries: Record<string, any> = {};
           formData.forEach((value, key) => {
             entries[key] = value;
@@ -85,13 +83,17 @@ class TestServerCall {
   get requestHeaders() {
     const requestHeaders = this.request!.headers;
 
-    // convert headers to object for easier comparison
     const headersObject: Record<string, string> = {};
     requestHeaders.forEach((value, key) => {
+      if (key.toLowerCase() === 'user-agent') return;
       headersObject[key] = value;
     });
 
     return headersObject;
+  }
+
+  get requestUserAgent(): string | undefined {
+    return this.request!.headers.get('user-agent') ?? undefined;
   }
 
   get requestUrlSearchParams() {
@@ -118,8 +120,9 @@ export function createTestServer<
 ): {
   urls: UrlHandlers<URLS>;
   calls: TestServerCall[];
+  server: { start: () => void; stop: () => void; reset: () => void };
 } {
-  const originalRoutes = structuredClone(routes); // deep copy
+  const originalRoutes = structuredClone(routes);
 
   const mswServer = setupServer(
     ...Object.entries(routes).map(([url, handler]) => {
@@ -219,30 +222,30 @@ export function createTestServer<
 
   let calls: TestServerCall[] = [];
 
-  beforeAll(() => {
+  const start = () => {
     mswServer.listen();
-  });
+  };
 
-  beforeEach(() => {
+  const reset = () => {
     mswServer.resetHandlers();
 
-    // set the responses back to the original values
     Object.entries(originalRoutes).forEach(([url, handler]) => {
       routes[url].response = handler.response;
     });
 
     calls = [];
-  });
+  };
 
-  afterAll(() => {
+  const stop = () => {
     mswServer.close();
-  });
+  };
 
   return {
     urls: routes as UrlHandlers<URLS>,
     get calls() {
       return calls;
     },
+    server: { start, stop, reset },
   };
 }
 

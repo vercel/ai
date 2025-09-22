@@ -1,41 +1,42 @@
-import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
+import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { describe, it, expect } from 'vitest';
 
-describe('convertToOpenAIResponsesMessages', () => {
+describe('convertToOpenAIResponsesInput', () => {
   describe('system messages', () => {
     it('should convert system messages to system role', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([{ role: 'system', content: 'Hello' }]);
+      expect(result.input).toEqual([{ role: 'system', content: 'Hello' }]);
     });
 
     it('should convert system messages to developer role', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
         systemMessageMode: 'developer',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
-        { role: 'developer', content: 'Hello' },
-      ]);
+      expect(result.input).toEqual([{ role: 'developer', content: 'Hello' }]);
     });
 
     it('should remove system messages', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
         systemMessageMode: 'remove',
+        store: true,
       });
 
-      expect(result.messages).toEqual([]);
+      expect(result.input).toEqual([]);
     });
   });
 
   describe('user messages', () => {
     it('should convert messages with only a text part to a string content', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'user',
@@ -43,15 +44,16 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
       ]);
     });
 
     it('should convert messages with image parts using URL', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'user',
@@ -66,9 +68,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           role: 'user',
           content: [
@@ -83,7 +86,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert messages with image parts using binary data', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'user',
@@ -97,9 +100,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           role: 'user',
           content: [
@@ -113,7 +117,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert messages with image parts using Uint8Array', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'user',
@@ -127,9 +131,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           role: 'user',
           content: [
@@ -143,7 +148,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert messages with image parts using file_id', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'user',
@@ -158,9 +163,10 @@ describe('convertToOpenAIResponsesMessages', () => {
         ],
         systemMessageMode: 'system',
         fileIdPrefixes: ['file-'],
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           role: 'user',
           content: [
@@ -174,7 +180,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should use default mime type for binary images', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'user',
@@ -188,9 +194,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           role: 'user',
           content: [
@@ -204,7 +211,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should add image detail when specified through extension', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'user',
@@ -223,9 +230,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           role: 'user',
           content: [
@@ -242,7 +250,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     it('should convert messages with PDF file parts', async () => {
       const base64Data = 'AQIDBAU='; // Base64 encoding of pdfData
 
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'user',
@@ -257,9 +265,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           role: 'user',
           content: [
@@ -274,7 +283,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert messages with PDF file parts using file_id', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'user',
@@ -289,9 +298,10 @@ describe('convertToOpenAIResponsesMessages', () => {
         ],
         systemMessageMode: 'system',
         fileIdPrefixes: ['file-'],
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           role: 'user',
           content: [
@@ -307,7 +317,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     it('should use default filename for PDF file parts when not provided', async () => {
       const base64Data = 'AQIDBAU=';
 
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'user',
@@ -321,9 +331,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           role: 'user',
           content: [
@@ -341,7 +352,7 @@ describe('convertToOpenAIResponsesMessages', () => {
       const base64Data = 'AQIDBAU=';
 
       await expect(
-        convertToOpenAIResponsesMessages({
+        convertToOpenAIResponsesInput({
           prompt: [
             {
               role: 'user',
@@ -355,12 +366,13 @@ describe('convertToOpenAIResponsesMessages', () => {
             },
           ],
           systemMessageMode: 'system',
+          store: true,
         }),
       ).rejects.toThrow('file part media type text/plain');
     });
 
     it('should convert PDF file parts with URL to input_file with file_url', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'user',
@@ -374,9 +386,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           role: 'user',
           content: [
@@ -391,7 +404,7 @@ describe('convertToOpenAIResponsesMessages', () => {
 
     describe('Azure OpenAI file ID support', () => {
       it('should convert image parts with assistant- prefix', async () => {
-        const result = await convertToOpenAIResponsesMessages({
+        const result = await convertToOpenAIResponsesInput({
           prompt: [
             {
               role: 'user',
@@ -406,9 +419,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           ],
           systemMessageMode: 'system',
           fileIdPrefixes: ['assistant-'],
+          store: true,
         });
 
-        expect(result.messages).toEqual([
+        expect(result.input).toEqual([
           {
             role: 'user',
             content: [
@@ -422,7 +436,7 @@ describe('convertToOpenAIResponsesMessages', () => {
       });
 
       it('should convert PDF parts with assistant- prefix', async () => {
-        const result = await convertToOpenAIResponsesMessages({
+        const result = await convertToOpenAIResponsesInput({
           prompt: [
             {
               role: 'user',
@@ -437,9 +451,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           ],
           systemMessageMode: 'system',
           fileIdPrefixes: ['assistant-'],
+          store: true,
         });
 
-        expect(result.messages).toEqual([
+        expect(result.input).toEqual([
           {
             role: 'user',
             content: [
@@ -453,7 +468,7 @@ describe('convertToOpenAIResponsesMessages', () => {
       });
 
       it('should support multiple file ID prefixes', async () => {
-        const result = await convertToOpenAIResponsesMessages({
+        const result = await convertToOpenAIResponsesInput({
           prompt: [
             {
               role: 'user',
@@ -473,9 +488,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           ],
           systemMessageMode: 'system',
           fileIdPrefixes: ['assistant-', 'file-'],
+          store: true,
         });
 
-        expect(result.messages).toEqual([
+        expect(result.input).toEqual([
           {
             role: 'user',
             content: [
@@ -495,7 +511,7 @@ describe('convertToOpenAIResponsesMessages', () => {
 
     describe('fileIdPrefixes undefined behavior', () => {
       it('should treat all file data as base64 when fileIdPrefixes is undefined', async () => {
-        const result = await convertToOpenAIResponsesMessages({
+        const result = await convertToOpenAIResponsesInput({
           prompt: [
             {
               role: 'user',
@@ -516,9 +532,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           ],
           systemMessageMode: 'system',
           // fileIdPrefixes intentionally omitted
+          store: true,
         });
 
-        expect(result.messages).toEqual([
+        expect(result.input).toEqual([
           {
             role: 'user',
             content: [
@@ -537,7 +554,7 @@ describe('convertToOpenAIResponsesMessages', () => {
       });
 
       it('should handle empty fileIdPrefixes array', async () => {
-        const result = await convertToOpenAIResponsesMessages({
+        const result = await convertToOpenAIResponsesInput({
           prompt: [
             {
               role: 'user',
@@ -552,9 +569,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           ],
           systemMessageMode: 'system',
           fileIdPrefixes: [], // Empty array should disable file ID detection
+          store: true,
         });
 
-        expect(result.messages).toEqual([
+        expect(result.input).toEqual([
           {
             role: 'user',
             content: [
@@ -571,14 +589,15 @@ describe('convertToOpenAIResponsesMessages', () => {
 
   describe('assistant messages', () => {
     it('should convert messages with only a text part to a string content', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           role: 'assistant',
           content: [{ type: 'output_text', text: 'Hello' }],
@@ -587,7 +606,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert messages with tool call parts', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'assistant',
@@ -603,9 +622,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           role: 'assistant',
           content: [
@@ -625,7 +645,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert messages with tool call parts that have ids', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'assistant',
@@ -654,9 +674,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toMatchInlineSnapshot(`
+      expect(result.input).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -680,7 +701,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert multiple tool call parts in a single message', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'assistant',
@@ -701,9 +722,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           type: 'function_call',
           call_id: 'call_123',
@@ -722,7 +744,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     describe('reasoning messages', () => {
       describe('basic conversion', () => {
         it('should convert single reasoning part with text', async () => {
-          const result = await convertToOpenAIResponsesMessages({
+          const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
                 role: 'assistant',
@@ -740,9 +762,10 @@ describe('convertToOpenAIResponsesMessages', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
-          expect(result.messages).toEqual([
+          expect(result.input).toEqual([
             {
               type: 'reasoning',
               id: 'reasoning_001',
@@ -760,7 +783,7 @@ describe('convertToOpenAIResponsesMessages', () => {
         });
 
         it('should convert single reasoning part with encrypted content', async () => {
-          const result = await convertToOpenAIResponsesMessages({
+          const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
                 role: 'assistant',
@@ -779,9 +802,10 @@ describe('convertToOpenAIResponsesMessages', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
-          expect(result.messages).toEqual([
+          expect(result.input).toEqual([
             {
               type: 'reasoning',
               id: 'reasoning_001',
@@ -799,7 +823,7 @@ describe('convertToOpenAIResponsesMessages', () => {
         });
 
         it('should convert single reasoning part with null encrypted content', async () => {
-          const result = await convertToOpenAIResponsesMessages({
+          const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
                 role: 'assistant',
@@ -818,9 +842,10 @@ describe('convertToOpenAIResponsesMessages', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
-          expect(result.messages).toEqual([
+          expect(result.input).toEqual([
             {
               type: 'reasoning',
               id: 'reasoning_001',
@@ -840,7 +865,7 @@ describe('convertToOpenAIResponsesMessages', () => {
 
       describe('empty text handling', () => {
         it('should create empty summary for initial empty text', async () => {
-          const result = await convertToOpenAIResponsesMessages({
+          const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
                 role: 'assistant',
@@ -858,9 +883,10 @@ describe('convertToOpenAIResponsesMessages', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
-          expect(result.messages).toEqual([
+          expect(result.input).toEqual([
             {
               type: 'reasoning',
               id: 'reasoning_001',
@@ -873,7 +899,7 @@ describe('convertToOpenAIResponsesMessages', () => {
         });
 
         it('should create empty summary for initial empty text with encrypted content', async () => {
-          const result = await convertToOpenAIResponsesMessages({
+          const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
                 role: 'assistant',
@@ -892,9 +918,10 @@ describe('convertToOpenAIResponsesMessages', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
-          expect(result.messages).toEqual([
+          expect(result.input).toEqual([
             {
               type: 'reasoning',
               id: 'reasoning_001',
@@ -907,7 +934,7 @@ describe('convertToOpenAIResponsesMessages', () => {
         });
 
         it('should warn when appending empty text to existing sequence', async () => {
-          const result = await convertToOpenAIResponsesMessages({
+          const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
                 role: 'assistant',
@@ -934,9 +961,10 @@ describe('convertToOpenAIResponsesMessages', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
-          expect(result.messages).toEqual([
+          expect(result.input).toEqual([
             {
               type: 'reasoning',
               id: 'reasoning_001',
@@ -963,7 +991,7 @@ describe('convertToOpenAIResponsesMessages', () => {
 
       describe('merging and sequencing', () => {
         it('should merge consecutive parts with same reasoning ID', async () => {
-          const result = await convertToOpenAIResponsesMessages({
+          const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
                 role: 'assistant',
@@ -990,9 +1018,10 @@ describe('convertToOpenAIResponsesMessages', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
-          expect(result.messages).toEqual([
+          expect(result.input).toEqual([
             {
               type: 'reasoning',
               id: 'reasoning_001',
@@ -1014,7 +1043,7 @@ describe('convertToOpenAIResponsesMessages', () => {
         });
 
         it('should create separate messages for different reasoning IDs', async () => {
-          const result = await convertToOpenAIResponsesMessages({
+          const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
                 role: 'assistant',
@@ -1041,9 +1070,10 @@ describe('convertToOpenAIResponsesMessages', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
-          expect(result.messages).toEqual([
+          expect(result.input).toEqual([
             {
               type: 'reasoning',
               id: 'reasoning_001',
@@ -1072,7 +1102,7 @@ describe('convertToOpenAIResponsesMessages', () => {
         });
 
         it('should handle reasoning across multiple assistant messages', async () => {
-          const result = await convertToOpenAIResponsesMessages({
+          const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
                 role: 'user',
@@ -1123,9 +1153,10 @@ describe('convertToOpenAIResponsesMessages', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
-          expect(result.messages).toEqual([
+          expect(result.input).toEqual([
             {
               role: 'user',
               content: [{ type: 'input_text', text: 'First user question' }],
@@ -1174,7 +1205,7 @@ describe('convertToOpenAIResponsesMessages', () => {
         });
 
         it('should handle complex reasoning sequences with tool interactions', async () => {
-          const result = await convertToOpenAIResponsesMessages({
+          const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
                 role: 'assistant',
@@ -1294,9 +1325,10 @@ describe('convertToOpenAIResponsesMessages', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
-          expect(result.messages).toEqual([
+          expect(result.input).toEqual([
             // First reasoning block (2 parts merged)
             {
               type: 'reasoning',
@@ -1377,7 +1409,7 @@ describe('convertToOpenAIResponsesMessages', () => {
 
       describe('error handling', () => {
         it('should warn when reasoning part has no provider options', async () => {
-          const result = await convertToOpenAIResponsesMessages({
+          const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
                 role: 'assistant',
@@ -1390,9 +1422,10 @@ describe('convertToOpenAIResponsesMessages', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
-          expect(result.messages).toHaveLength(0);
+          expect(result.input).toHaveLength(0);
 
           expect(result.warnings).toMatchInlineSnapshot(`
             [
@@ -1405,7 +1438,7 @@ describe('convertToOpenAIResponsesMessages', () => {
         });
 
         it('should warn when reasoning part lacks OpenAI-specific reasoning ID provider options', async () => {
-          const result = await convertToOpenAIResponsesMessages({
+          const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
                 role: 'assistant',
@@ -1425,9 +1458,10 @@ describe('convertToOpenAIResponsesMessages', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
           });
 
-          expect(result.messages).toHaveLength(0);
+          expect(result.input).toHaveLength(0);
 
           expect(result.warnings).toMatchInlineSnapshot(`
             [
@@ -1444,7 +1478,7 @@ describe('convertToOpenAIResponsesMessages', () => {
 
   describe('tool messages', () => {
     it('should convert tool result parts', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'tool',
@@ -1462,9 +1496,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           type: 'function_call_output',
           call_id: 'call_123',
@@ -1474,7 +1509,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert multiple tool result parts in a single message', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'tool',
@@ -1498,9 +1533,10 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.messages).toEqual([
+      expect(result.input).toEqual([
         {
           type: 'function_call_output',
           call_id: 'call_123',
@@ -1515,9 +1551,52 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
   });
 
-  describe('provider-executed tool calls', () => {
-    it('should exclude provider-executed tool calls and results from prompt', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+  describe('provider-executed tools', () => {
+    it('should convert single provider-executed tool call and result into item reference with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: { code: 'example code', containerId: 'container_123' },
+                providerExecuted: true,
+                toolCallId:
+                  'ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
+                toolName: 'code_interpreter',
+                type: 'tool-call',
+              },
+              {
+                output: {
+                  type: 'json',
+                  value: {
+                    outputs: [{ type: 'logs', logs: 'example logs' }],
+                  },
+                },
+                toolCallId:
+                  'ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
+                toolName: 'code_interpreter',
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should exclude provider-executed tool calls and results from prompt with store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'assistant',
@@ -1529,7 +1608,7 @@ describe('convertToOpenAIResponsesMessages', () => {
               {
                 type: 'tool-call',
                 toolCallId: 'ws_67cf2b3051e88190b006770db6fdb13d',
-                toolName: 'web_search_preview',
+                toolName: 'web_search',
                 input: {
                   query: 'San Francisco major news events June 22 2025',
                 },
@@ -1538,7 +1617,7 @@ describe('convertToOpenAIResponsesMessages', () => {
               {
                 type: 'tool-result',
                 toolCallId: 'ws_67cf2b3051e88190b006770db6fdb13d',
-                toolName: 'web_search_preview',
+                toolName: 'web_search',
                 output: {
                   type: 'json',
                   value: [
@@ -1556,11 +1635,12 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "messages": [
+          "input": [
             {
               "content": [
                 {
@@ -1584,16 +1664,18 @@ describe('convertToOpenAIResponsesMessages', () => {
           ],
           "warnings": [
             {
-              "message": "tool result parts in assistant messages are not supported for OpenAI responses",
+              "message": "Results for OpenAI tool web_search are not sent to the API when store is false",
               "type": "other",
             },
           ],
         }
       `);
     });
+  });
 
+  describe('function tools', () => {
     it('should include client-side tool calls in prompt', async () => {
-      const result = await convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
             role: 'assistant',
@@ -1609,11 +1691,12 @@ describe('convertToOpenAIResponsesMessages', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "messages": [
+          "input": [
             {
               "arguments": "{"a":1,"b":2}",
               "call_id": "call-1",
