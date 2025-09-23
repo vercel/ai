@@ -1,5 +1,5 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
-import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v2';
+import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { createProviderRegistry } from './provider-registry';
