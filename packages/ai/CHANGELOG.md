@@ -1,5 +1,17 @@
 # ai
 
+## 5.1.0-beta.6
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+- Updated dependencies [5d21222]
+- Updated dependencies [0c4822d]
+- Updated dependencies [1cad0ab]
+  - @ai-sdk/gateway@1.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
 ## 5.1.0-beta.5
 
 ### Patch Changes
