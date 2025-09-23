@@ -1,7 +1,11 @@
 import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3, 0.4, 0.5],
@@ -135,5 +139,8 @@ describe('doEmbed', () => {
       'openai-organization': 'test-organization',
       'openai-project': 'test-project',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/openai/0.0.0-test`,
+    );
   });
 });

@@ -3,7 +3,11 @@ import { GroqTranscriptionModel } from './groq-transcription-model';
 import { createGroq } from './groq-provider';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createGroq({ apiKey: 'test-api-key' });
@@ -87,6 +91,9 @@ describe('doGenerate', () => {
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/groq/0.0.0-test`,
+    );
   });
 
   it('should extract the transcription text', async () => {

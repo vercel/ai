@@ -15,7 +15,11 @@ import {
 import { createGoogleGenerativeAI } from './google-provider';
 import { groundingMetadataSchema } from './tool/google-search';
 import { urlContextMetadataSchema } from './tool/url-context';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -675,6 +679,9 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
       'x-goog-api-key': 'test-api-key',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/google/0.0.0-test`,
+    );
   });
 
   it('should pass response format', async () => {
