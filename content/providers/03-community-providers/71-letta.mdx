@@ -12,7 +12,7 @@ With this provider, you can leverage Letta's agents with persistent, long-term m
 - Access to both agent-level and model-level reasoning messages with source attribution
 - Support for agent-configured tools and MCP (Model Context Protocol)
 - Built-in utilities to convert between Letta and AI SDK message formats
-- ... along with [every Letta Send Message API features](https://docs.letta.com/api-reference/agents/messages/create-stream), like [Long-Running Agent Executions](https://docs.letta.com/guides/agents/long-running)
+- ... along with [every Letta Send Message API feature](https://docs.letta.com/api-reference/agents/messages/create-stream), like [Long-Running Agent Executions](https://docs.letta.com/guides/agents/long-running)
 
 
 ## Supported Models
@@ -308,7 +308,6 @@ reasoningParts.forEach(reasoning => {
 Letta provides two types of reasoning that you can distinguish in your UI:
 
 ```typescript
-// Type guard for reasoning parts
 const isReasoningPart = (part: { type: string; [key: string]: unknown }) =>
   part.type === "reasoning" && "text" in part && typeof part.text === "string";
 
