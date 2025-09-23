@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.33
+
+### Patch Changes
+
+- a617948: fix the "incomplete_details" key from nullable to nullish for openai compatibility
+
 ## 2.0.32
 
 ### Patch Changes
