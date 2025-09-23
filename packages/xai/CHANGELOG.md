@@ -1,5 +1,15 @@
 # @ai-sdk/xai
 
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+  - @ai-sdk/openai-compatible@1.1.0-beta.2
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
 ## 2.1.0-beta.2
 
 ### Patch Changes
