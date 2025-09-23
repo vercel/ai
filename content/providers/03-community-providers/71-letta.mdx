@@ -10,7 +10,8 @@ The [Letta AI-SDK provider](https://github.com/letta-ai/vercel-ai-sdk-provider) 
 With this provider, you can leverage Letta's agents with persistent, long-term memory, using a wide variety of supported language and embedding models and tools, through the AI SDK. Features include, and not limited to:
 
 - Access to both agent-level and model-level reasoning messages with source attribution
-- Support for agent-configured tools and MCP (Model Context Protocol)
+- Support for custom agent-configured tools and MCP (Model Context Protocol)
+- Agent-managed filesystem operations with tool-based file access and rendering
 - Built-in utilities to convert between Letta and AI SDK message formats
 - ... along with [every Letta Send Message API feature](https://docs.letta.com/api-reference/agents/messages/create-stream), like [Long-Running Agent Executions](https://docs.letta.com/guides/agents/long-running)
 
@@ -380,7 +381,7 @@ const stream = streamText({
 });
 ```
 
-## Tools and MCP
+## Custom Tools and MCP
 
 Letta agents support custom tools and MCP (Model Context Protocol) servers. Unlike traditional AI SDK usage, tools are configured at the agent level in Letta, not passed to the AI SDK calls.
 
@@ -441,6 +442,16 @@ const generateResult = await generateText({
 The actual tool execution happens in Letta - these configurations are placeholders required by the AI SDK to prevent runtime errors.
 </Note>
 
+
+### Reading files
+
+When agents perform filesystem operations, the results can be **rendered through tool calls**.
+
+The filesystem is **agent-managed**, so you don't need special functions with the AI SDK to access it. Once you attach a folder to an agent, the agent can automatically use filesystem tools (`open_file`, `grep_file`, `search_file`) to browse the files to search for information.
+
+See guide [here](https://docs.letta.com/guides/agents/filesystem).
+
+
 ### Accessing Tool Calls
 
 Tool calls appear in message parts and can be filtered by type:
@@ -465,6 +476,7 @@ toolParts.forEach(part => {
   }
 });
 ```
+
 
 
 ## Using other Letta Client Functions
