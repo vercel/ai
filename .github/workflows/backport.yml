@@ -69,8 +69,6 @@ jobs:
         id: create-pr
         run: |
           # Create the backport PR
-          PR_TITLE="Backport: ${{ github.event.pull_request.title }}"
-          PR_BODY="This is an automated backport of #${{ github.event.pull_request.number }} to the v5.0 branch."
           
           PR_URL=$(gh pr create \
             --title "$PR_TITLE" \
@@ -82,6 +80,8 @@ jobs:
           echo "Created backport PR $PR_URL"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_TITLE: "Backport: ${{ github.event.pull_request.title }}"
+          PR_BODY: "This is an automated backport of #${{ github.event.pull_request.number }} to the v5.0 branch."
 
       - name: Remove backport label from original PR
         if: steps.create-pr.outputs.backport-pr-url
