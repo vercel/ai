@@ -64,7 +64,7 @@
 - 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
 - 0a87932: core (ai): change transcription model mimeType to mediaType
 - c4a2fec: chore (provider): extract shared provider options and metadata (spec)
-- 79457bd: chore (provider): extract LanguageModelV2File
+- 79457bd: chore (provider): extract LanguageModelV3File
 - 8aa9e20: feat: add speech with experimental_generateSpeech
 - 4617fab: chore(embedding-models): remove remaining settings
 - cb68df0: feat: add transcription and speech model support to provider registry
@@ -365,7 +365,7 @@
 
 ### Patch Changes
 
-- 79457bd: chore (provider): extract LanguageModelV2File
+- 79457bd: chore (provider): extract LanguageModelV3File
 - f10304b: feat(tool-calling): don't require the user to have to pass parameters
 
 ## 2.0.0-canary.4

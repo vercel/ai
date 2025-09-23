@@ -1,4 +1,4 @@
-import type { LanguageModelV2StreamPart } from '@ai-sdk/provider';
+import type { LanguageModelV3StreamPart } from '@ai-sdk/provider';
 import { LanguageModelMiddleware } from '../types';
 
 /**
@@ -12,7 +12,7 @@ export function simulateStreamingMiddleware(): LanguageModelMiddleware {
 
       let id = 0;
 
-      const simulatedStream = new ReadableStream<LanguageModelV2StreamPart>({
+      const simulatedStream = new ReadableStream<LanguageModelV3StreamPart>({
         start(controller) {
           controller.enqueue({
             type: 'stream-start',

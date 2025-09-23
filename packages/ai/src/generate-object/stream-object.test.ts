@@ -1,7 +1,7 @@
 import {
   JSONParseError,
-  LanguageModelV2CallWarning,
-  LanguageModelV2StreamPart,
+  LanguageModelV3CallWarning,
+  LanguageModelV3StreamPart,
   TypeValidationError,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
@@ -66,10 +66,10 @@ function createTestModel({
   request = undefined,
   response = undefined,
 }: {
-  stream?: ReadableStream<LanguageModelV2StreamPart>;
+  stream?: ReadableStream<LanguageModelV3StreamPart>;
   request?: { body: string };
   response?: { headers: Record<string, string> };
-  warnings?: LanguageModelV2CallWarning[];
+  warnings?: LanguageModelV3CallWarning[];
 } = {}) {
   return new MockLanguageModelV2({
     doStream: async () => ({ stream, request, response, warnings }),
@@ -1831,7 +1831,7 @@ describe('streamObject', () => {
     });
 
     it('should resolve warnings promise with warnings when warnings are present', async () => {
-      const expectedWarnings: LanguageModelV2CallWarning[] = [
+      const expectedWarnings: LanguageModelV3CallWarning[] = [
         {
           type: 'unsupported-setting',
           setting: 'frequency_penalty',
@@ -1863,7 +1863,7 @@ describe('streamObject', () => {
     });
 
     it('should call logWarnings with the correct warnings', async () => {
-      const expectedWarnings: LanguageModelV2CallWarning[] = [
+      const expectedWarnings: LanguageModelV3CallWarning[] = [
         {
           type: 'other',
           message: 'Setting is not supported',

@@ -1,7 +1,7 @@
 import {
   EmbeddingModelV3,
   ImageModelV2,
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
   ProviderV2,
   SpeechModelV2,
@@ -25,10 +25,10 @@ export interface ProviderRegistryProvider<
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['languageModel']>>[0]>}`
       : never,
-  ): LanguageModelV2;
+  ): LanguageModelV3;
   languageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): LanguageModelV2;
+  ): LanguageModelV3;
 
   textEmbeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
@@ -197,7 +197,7 @@ class DefaultProviderRegistry<
 
   languageModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): LanguageModelV2 {
+  ): LanguageModelV3 {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
     let model = this.getProvider(providerId, 'languageModel').languageModel?.(
       modelId,

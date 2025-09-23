@@ -7,7 +7,7 @@ A tool has a name, a description, and a set of parameters.
 Note: this is **not** the user-facing tool definition. The AI SDK methods will
 map the user-facing tool definitions to this format.
  */
-export type LanguageModelV2FunctionTool = {
+export type LanguageModelV3FunctionTool = {
   /**
 The type of the tool (always 'function').
    */

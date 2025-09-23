@@ -1,7 +1,7 @@
 import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV3CallOptions,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3ProviderDefinedTool,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
@@ -805,7 +805,7 @@ describe('generateText', () => {
     describe('2 steps: initial, tool-result with prepareStep', () => {
       let result: GenerateTextResult<any, any>;
       let onStepFinishResults: StepResult<any>[];
-      let doGenerateCalls: Array<LanguageModelV2CallOptions>;
+      let doGenerateCalls: Array<LanguageModelV3CallOptions>;
       let prepareStepCalls: Array<{
         stepNumber: number;
         steps: Array<StepResult<any>>;
@@ -1776,7 +1776,7 @@ describe('generateText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
+        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool)[]
         | undefined;
 
       await generateText({
@@ -2507,7 +2507,7 @@ describe('generateText', () => {
       });
 
       it('should set responseFormat to text and not change the prompt', async () => {
-        let callOptions: LanguageModelV2CallOptions;
+        let callOptions: LanguageModelV3CallOptions;
 
         await generateText({
           model: new MockLanguageModelV2({
@@ -2579,7 +2579,7 @@ describe('generateText', () => {
       });
 
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
-        let callOptions: LanguageModelV2CallOptions;
+        let callOptions: LanguageModelV3CallOptions;
 
         await generateText({
           model: new MockLanguageModelV2({

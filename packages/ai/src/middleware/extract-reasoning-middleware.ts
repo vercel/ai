@@ -1,6 +1,6 @@
 import type {
-  LanguageModelV2Content,
-  LanguageModelV2StreamPart,
+  LanguageModelV3Content,
+  LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
 import { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
@@ -30,7 +30,7 @@ export function extractReasoningMiddleware({
     wrapGenerate: async ({ doGenerate }) => {
       const { content, ...rest } = await doGenerate();
 
-      const transformedContent: LanguageModelV2Content[] = [];
+      const transformedContent: LanguageModelV3Content[] = [];
       for (const part of content) {
         if (part.type !== 'text') {
           transformedContent.push(part);
@@ -94,13 +94,13 @@ export function extractReasoningMiddleware({
         }
       > = {};
 
-      let delayedTextStart: LanguageModelV2StreamPart | undefined;
+      let delayedTextStart: LanguageModelV3StreamPart | undefined;
 
       return {
         stream: stream.pipeThrough(
           new TransformStream<
-            LanguageModelV2StreamPart,
-            LanguageModelV2StreamPart
+            LanguageModelV3StreamPart,
+            LanguageModelV3StreamPart
           >({
             transform: (chunk, controller) => {
               // do not send `text-start` before `reasoning-start`

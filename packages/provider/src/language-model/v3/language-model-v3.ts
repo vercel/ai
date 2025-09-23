@@ -1,17 +1,17 @@
 import { SharedV2Headers } from '../../shared';
 import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
-import { LanguageModelV2CallOptions } from './language-model-v3-call-options';
-import { LanguageModelV2CallWarning } from './language-model-v3-call-warning';
-import { LanguageModelV2Content } from './language-model-v3-content';
-import { LanguageModelV2FinishReason } from './language-model-v3-finish-reason';
-import { LanguageModelV2ResponseMetadata } from './language-model-v3-response-metadata';
-import { LanguageModelV2StreamPart } from './language-model-v3-stream-part';
-import { LanguageModelV2Usage } from './language-model-v3-usage';
+import { LanguageModelV3CallOptions } from './language-model-v3-call-options';
+import { LanguageModelV3CallWarning } from './language-model-v3-call-warning';
+import { LanguageModelV3Content } from './language-model-v3-content';
+import { LanguageModelV3FinishReason } from './language-model-v3-finish-reason';
+import { LanguageModelV3ResponseMetadata } from './language-model-v3-response-metadata';
+import { LanguageModelV3StreamPart } from './language-model-v3-stream-part';
+import { LanguageModelV3Usage } from './language-model-v3-usage';
 
 /**
 Specification for a language model that implements the language model interface version 2.
  */
-export type LanguageModelV2 = {
+export type LanguageModelV3 = {
   /**
 The language model must specify which language model interface version it implements.
    */
@@ -49,21 +49,21 @@ Generates a language model output (non-streaming).
 Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
-  doGenerate(options: LanguageModelV2CallOptions): PromiseLike<{
+  doGenerate(options: LanguageModelV3CallOptions): PromiseLike<{
     /**
 Ordered content that the model has generated.
      */
-    content: Array<LanguageModelV2Content>;
+    content: Array<LanguageModelV3Content>;
 
     /**
 Finish reason.
      */
-    finishReason: LanguageModelV2FinishReason;
+    finishReason: LanguageModelV3FinishReason;
 
     /**
   Usage information.
      */
-    usage: LanguageModelV2Usage;
+    usage: LanguageModelV3Usage;
 
     /**
 Additional provider-specific metadata. They are passed through
@@ -85,7 +85,7 @@ Request HTTP body that was sent to the provider API.
     /**
 Optional response information for telemetry and debugging purposes.
      */
-    response?: LanguageModelV2ResponseMetadata & {
+    response?: LanguageModelV3ResponseMetadata & {
       /**
 Response headers.
       */
@@ -100,7 +100,7 @@ Response HTTP body.
     /**
 Warnings for the call, e.g. unsupported settings.
      */
-    warnings: Array<LanguageModelV2CallWarning>;
+    warnings: Array<LanguageModelV3CallWarning>;
   }>;
 
   /**
@@ -111,8 +111,8 @@ by the user.
    *
 @return A stream of higher-level language model output parts.
    */
-  doStream(options: LanguageModelV2CallOptions): PromiseLike<{
-    stream: ReadableStream<LanguageModelV2StreamPart>;
+  doStream(options: LanguageModelV3CallOptions): PromiseLike<{
+    stream: ReadableStream<LanguageModelV3StreamPart>;
 
     /**
 Optional request information for telemetry and debugging purposes.

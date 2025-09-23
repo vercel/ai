@@ -1,5 +1,5 @@
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
   ProviderV2,
 } from '@ai-sdk/provider';
@@ -17,16 +17,16 @@ export interface AnthropicProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */
-  (modelId: AnthropicMessagesModelId): LanguageModelV2;
+  (modelId: AnthropicMessagesModelId): LanguageModelV3;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(modelId: AnthropicMessagesModelId): LanguageModelV2;
+  languageModel(modelId: AnthropicMessagesModelId): LanguageModelV3;
 
-  chat(modelId: AnthropicMessagesModelId): LanguageModelV2;
+  chat(modelId: AnthropicMessagesModelId): LanguageModelV3;
 
-  messages(modelId: AnthropicMessagesModelId): LanguageModelV2;
+  messages(modelId: AnthropicMessagesModelId): LanguageModelV3;
 
   /**
 Anthropic-specific computer use tool.

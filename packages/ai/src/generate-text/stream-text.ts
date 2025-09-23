@@ -1,7 +1,7 @@
 import {
   getErrorMessage,
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
+  LanguageModelV3,
+  LanguageModelV3CallWarning,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -605,7 +605,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     experimental_context,
     download,
   }: {
-    model: LanguageModelV2;
+    model: LanguageModelV3;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
@@ -1174,7 +1174,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepRequest = request ?? {};
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
-          let warnings: LanguageModelV2CallWarning[] | undefined;
+          let warnings: LanguageModelV3CallWarning[] | undefined;
 
           const activeToolCallToolNames: Record<string, string> = {};
 

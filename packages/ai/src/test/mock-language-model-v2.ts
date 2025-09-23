@@ -1,19 +1,19 @@
-import { LanguageModelV2 } from '@ai-sdk/provider';
+import { LanguageModelV3 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
-export class MockLanguageModelV2 implements LanguageModelV2 {
+export class MockLanguageModelV2 implements LanguageModelV3 {
   readonly specificationVersion = 'v2';
 
-  private _supportedUrls: () => LanguageModelV2['supportedUrls'];
+  private _supportedUrls: () => LanguageModelV3['supportedUrls'];
 
-  readonly provider: LanguageModelV2['provider'];
-  readonly modelId: LanguageModelV2['modelId'];
+  readonly provider: LanguageModelV3['provider'];
+  readonly modelId: LanguageModelV3['modelId'];
 
-  doGenerate: LanguageModelV2['doGenerate'];
-  doStream: LanguageModelV2['doStream'];
+  doGenerate: LanguageModelV3['doGenerate'];
+  doStream: LanguageModelV3['doStream'];
 
-  doGenerateCalls: Parameters<LanguageModelV2['doGenerate']>[0][] = [];
-  doStreamCalls: Parameters<LanguageModelV2['doStream']>[0][] = [];
+  doGenerateCalls: Parameters<LanguageModelV3['doGenerate']>[0][] = [];
+  doStreamCalls: Parameters<LanguageModelV3['doStream']>[0][] = [];
 
   constructor({
     provider = 'mock-provider',
@@ -22,19 +22,19 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
     doGenerate = notImplemented,
     doStream = notImplemented,
   }: {
-    provider?: LanguageModelV2['provider'];
-    modelId?: LanguageModelV2['modelId'];
+    provider?: LanguageModelV3['provider'];
+    modelId?: LanguageModelV3['modelId'];
     supportedUrls?:
-      | LanguageModelV2['supportedUrls']
-      | (() => LanguageModelV2['supportedUrls']);
+      | LanguageModelV3['supportedUrls']
+      | (() => LanguageModelV3['supportedUrls']);
     doGenerate?:
-      | LanguageModelV2['doGenerate']
-      | Awaited<ReturnType<LanguageModelV2['doGenerate']>>
-      | Awaited<ReturnType<LanguageModelV2['doGenerate']>>[];
+      | LanguageModelV3['doGenerate']
+      | Awaited<ReturnType<LanguageModelV3['doGenerate']>>
+      | Awaited<ReturnType<LanguageModelV3['doGenerate']>>[];
     doStream?:
-      | LanguageModelV2['doStream']
-      | Awaited<ReturnType<LanguageModelV2['doStream']>>
-      | Awaited<ReturnType<LanguageModelV2['doStream']>>[];
+      | LanguageModelV3['doStream']
+      | Awaited<ReturnType<LanguageModelV3['doStream']>>
+      | Awaited<ReturnType<LanguageModelV3['doStream']>>[];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;

@@ -1,12 +1,12 @@
 import {
   APICallError,
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
+  LanguageModelV3,
+  LanguageModelV3CallWarning,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -119,7 +119,7 @@ const LOGPROBS_SCHEMA = z.array(
   }),
 );
 
-export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
+export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v2';
 
   readonly modelId: OpenAIResponsesModelId;
@@ -154,8 +154,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     responseFormat,
-  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const warnings: LanguageModelV2CallWarning[] = [];
+  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+    const warnings: LanguageModelV3CallWarning[] = [];
     const modelConfig = getResponsesModelConfig(this.modelId);
 
     if (topK != null) {
@@ -235,7 +235,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           tool.type === 'provider-defined' &&
           (tool.id === 'openai.web_search' ||
             tool.id === 'openai.web_search_preview'),
-      ) as LanguageModelV2ProviderDefinedTool | undefined
+      ) as LanguageModelV3ProviderDefinedTool | undefined
     )?.name;
 
     if (webSearchToolName) {
@@ -396,8 +396,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    options: Parameters<LanguageModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
     const {
       args: body,
       warnings,
@@ -515,7 +515,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const content: Array<LanguageModelV2Content> = [];
+    const content: Array<LanguageModelV3Content> = [];
     const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
@@ -766,8 +766,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV2['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+    options: Parameters<LanguageModelV3['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
     const {
       args: body,
       warnings,
@@ -794,8 +794,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     const self = this;
 
-    let finishReason: LanguageModelV2FinishReason = 'unknown';
-    const usage: LanguageModelV2Usage = {
+    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    const usage: LanguageModelV3Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
@@ -824,7 +824,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof openaiResponsesChunkSchema>>,
-          LanguageModelV2StreamPart
+          LanguageModelV3StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

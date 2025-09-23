@@ -1,14 +1,14 @@
 import { gateway } from '@ai-sdk/gateway';
 import {
   EmbeddingModelV3,
-  LanguageModelV2,
+  LanguageModelV3,
   ProviderV2,
 } from '@ai-sdk/provider';
 import { UnsupportedModelVersionError } from '../error';
 import { EmbeddingModel } from '../types/embedding-model';
 import { LanguageModel } from '../types/language-model';
 
-export function resolveLanguageModel(model: LanguageModel): LanguageModelV2 {
+export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
   if (typeof model !== 'string') {
     if (model.specificationVersion !== 'v2') {
       throw new UnsupportedModelVersionError({

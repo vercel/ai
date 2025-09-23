@@ -1,7 +1,7 @@
 import {
   EmbeddingModelV3,
   ImageModelV2,
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
   ProviderV2,
   SpeechModelV2,
@@ -22,7 +22,7 @@ export class MockProviderV2 implements ProviderV2 {
     transcriptionModels,
     speechModels,
   }: {
-    languageModels?: Record<string, LanguageModelV2>;
+    languageModels?: Record<string, LanguageModelV3>;
     embeddingModels?: Record<string, EmbeddingModelV3<string>>;
     imageModels?: Record<string, ImageModelV2>;
     transcriptionModels?: Record<string, TranscriptionModelV2>;

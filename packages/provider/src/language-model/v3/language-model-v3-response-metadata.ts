@@ -1,4 +1,4 @@
-export interface LanguageModelV2ResponseMetadata {
+export interface LanguageModelV3ResponseMetadata {
   /**
 ID for the generated response, if the provider sends one.
      */

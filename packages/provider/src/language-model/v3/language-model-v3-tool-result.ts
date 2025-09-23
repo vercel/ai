@@ -3,7 +3,7 @@ import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-met
 /**
 Result of a tool call that has been executed by the provider.
  */
-export type LanguageModelV2ToolResult = {
+export type LanguageModelV3ToolResult = {
   type: 'tool-result';
 
   /**

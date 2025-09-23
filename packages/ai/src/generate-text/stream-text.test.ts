@@ -1,10 +1,10 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
-  LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2StreamPart,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3StreamPart,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -102,11 +102,11 @@ function createTestModel({
   request = undefined,
   response = undefined,
 }: {
-  stream?: ReadableStream<LanguageModelV2StreamPart>;
+  stream?: ReadableStream<LanguageModelV3StreamPart>;
   request?: { body: string };
   response?: { headers: Record<string, string> };
-  warnings?: LanguageModelV2CallWarning[];
-} = {}): LanguageModelV2 {
+  warnings?: LanguageModelV3CallWarning[];
+} = {}): LanguageModelV3 {
   return new MockLanguageModelV2({
     doStream: async () => ({ stream, request, response, warnings }),
   });
@@ -6612,7 +6612,7 @@ describe('streamText', () => {
 
     describe('2 steps: initial, tool-result with prepareStep', () => {
       let result: StreamTextResult<any, any>;
-      let doStreamCalls: Array<LanguageModelV2CallOptions>;
+      let doStreamCalls: Array<LanguageModelV3CallOptions>;
       let prepareStepCalls: Array<{
         stepNumber: number;
         steps: Array<StepResult<any>>;
@@ -11449,7 +11449,7 @@ describe('streamText', () => {
 
     describe('object output', () => {
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
-        let callOptions!: LanguageModelV2CallOptions;
+        let callOptions!: LanguageModelV3CallOptions;
 
         const result = streamText({
           model: new MockLanguageModelV2({
@@ -11805,7 +11805,7 @@ describe('streamText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
+        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool)[]
         | undefined;
 
       const result = streamText({

@@ -1,4 +1,4 @@
-import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import {
   asSchema,
   safeParseJSON,
@@ -17,7 +17,7 @@ import { LanguageModelUsage } from '../types/usage';
 export interface Output<OUTPUT, PARTIAL> {
   readonly type: 'object' | 'text';
 
-  responseFormat: LanguageModelV2CallOptions['responseFormat'];
+  responseFormat: LanguageModelV3CallOptions['responseFormat'];
 
   parsePartial(options: {
     text: string;

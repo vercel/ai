@@ -56,8 +56,8 @@ interface LanguageModelV2 {
   modelId: string;
   supportedUrls: Record<string, RegExp[]>;
 
-  doGenerate(options: LanguageModelV2CallOptions): Promise<GenerateResult>;
-  doStream(options: LanguageModelV2CallOptions): Promise<StreamResult>;
+  doGenerate(options: LanguageModelV3CallOptions): Promise<GenerateResult>;
+  doStream(options: LanguageModelV3CallOptions): Promise<StreamResult>;
 }
 ```
 
@@ -71,10 +71,10 @@ Key aspects:
 
 Before diving into the details, it's important to understand the distinction between two key concepts in the V2 specification:
 
-1. **LanguageModelV2Content**: The specification for what the models generate
-2. **LanguageModelV2Prompt**: The specification for what you send to the model
+1. **LanguageModelV3Content**: The specification for what the models generate
+2. **LanguageModelV3Prompt**: The specification for what you send to the model
 
-### `LanguageModelV2Content`
+### `LanguageModelV3Content`
 
 The V2 specification supports five distinct content types that models can generate, each designed for specific use cases:
 
@@ -83,7 +83,7 @@ The V2 specification supports five distinct content types that models can genera
 The fundamental building block for all text generation:
 
 ```ts
-type LanguageModelV2Text = {
+type LanguageModelV3Text = {
   type: 'text';
   text: string;
 };
@@ -96,7 +96,7 @@ This is used for standard model responses, system messages, and any plain text o
 Enable models to invoke functions with structured arguments:
 
 ```ts
-type LanguageModelV2ToolCall = {
+type LanguageModelV3ToolCall = {
   type: 'tool-call';
   toolCallType: 'function';
   toolCallId: string;
@@ -112,7 +112,7 @@ The `toolCallId` is crucial for correlating tool results back to their calls, es
 Support for multimodal output generation:
 
 ```ts
-type LanguageModelV2File = {
+type LanguageModelV3File = {
   type: 'file';
   mediaType: string; // IANA media type (e.g., 'image/png', 'audio/mp3')
   data: string | Uint8Array; // Generated file data as base64 encoded strings or binary data
@@ -126,7 +126,7 @@ This enables models to generate images, audio, documents, and other file types d
 Dedicated support for chain-of-thought reasoning (essential for models like OpenAI's o1):
 
 ```ts
-type LanguageModelV2Reasoning = {
+type LanguageModelV3Reasoning = {
   type: 'reasoning';
   text: string;
 
@@ -142,7 +142,7 @@ Reasoning content is tracked separately from regular text, allowing for proper t
 #### Sources
 
 ```ts
-type LanguageModelV2Source = {
+type LanguageModelV3Source = {
   type: 'source';
   sourceType: 'url';
   id: string;
@@ -152,9 +152,9 @@ type LanguageModelV2Source = {
 };
 ```
 
-### `LanguageModelV2Prompt`
+### `LanguageModelV3Prompt`
 
-The V2 prompt format (`LanguageModelV2Prompt`) is designed as a flexible message array that supports multimodal inputs:
+The V2 prompt format (`LanguageModelV3Prompt`) is designed as a flexible message array that supports multimodal inputs:
 
 #### Message Roles
 
@@ -169,23 +169,23 @@ Each message has a specific role with allowed content types:
 - **User**: Human inputs supporting text and files
 
   ```ts
-  { role: 'user', content: Array<LanguageModelV2TextPart | LanguageModelV2FilePart> }
+  { role: 'user', content: Array<LanguageModelV3TextPart | LanguageModelV3FilePart> }
   ```
 
 - **Assistant**: Model outputs with full content type support
 
   ```ts
-  { role: 'assistant', content: Array<LanguageModelV2TextPart | LanguageModelV2FilePart | LanguageModelV2ReasoningPart | LanguageModelV2ToolCallPart> }
+  { role: 'assistant', content: Array<LanguageModelV3TextPart | LanguageModelV3FilePart | LanguageModelV3ReasoningPart | LanguageModelV3ToolCallPart> }
   ```
 
 - **Tool**: Results from tool executions
   ```ts
-  { role: 'tool', content: Array<LanguageModelV2ToolResultPart> }
+  { role: 'tool', content: Array<LanguageModelV3ToolResultPart> }
   ```
 
 #### Prompt Parts
 
-Prompt parts are the building blocks of messages in the prompt structure. While `LanguageModelV2Content` represents the model's output content, prompt parts are specifically designed for constructing input messages. Each message role supports different types of prompt parts:
+Prompt parts are the building blocks of messages in the prompt structure. While `LanguageModelV3Content` represents the model's output content, prompt parts are specifically designed for constructing input messages. Each message role supports different types of prompt parts:
 
 - **System messages**: Only support text content
 - **User messages**: Support text and file parts
@@ -199,7 +199,7 @@ Let's explore each prompt part type:
 The most basic prompt part, containing plain text content:
 
 ```ts
-interface LanguageModelV2TextPart {
+interface LanguageModelV3TextPart {
   type: 'text';
   text: string;
   providerOptions?: SharedV2ProviderOptions;
@@ -211,7 +211,7 @@ interface LanguageModelV2TextPart {
 Used in assistant messages to capture the model's reasoning process:
 
 ```ts
-interface LanguageModelV2ReasoningPart {
+interface LanguageModelV3ReasoningPart {
   type: 'reasoning';
   text: string;
   providerOptions?: SharedV2ProviderOptions;
@@ -223,10 +223,10 @@ interface LanguageModelV2ReasoningPart {
 Enable multimodal inputs by including files in prompts:
 
 ```ts
-interface LanguageModelV2FilePart {
+interface LanguageModelV3FilePart {
   type: 'file';
   filename?: string;
-  data: LanguageModelV2DataContent;
+  data: LanguageModelV3DataContent;
   mediaType: string;
   providerOptions?: SharedV2ProviderOptions;
 }
@@ -243,7 +243,7 @@ The `data` field offers flexibility:
 Represent tool calls made by the assistant:
 
 ```ts
-interface LanguageModelV2ToolCallPart {
+interface LanguageModelV3ToolCallPart {
   type: 'tool-call';
   toolCallId: string;
   toolName: string;
@@ -257,7 +257,7 @@ interface LanguageModelV2ToolCallPart {
 Contain the results of executed tool calls:
 
 ```ts
-interface LanguageModelV2ToolResultPart {
+interface LanguageModelV3ToolResultPart {
   type: 'tool-result';
   toolCallId: string;
   toolName: string;
@@ -309,7 +309,7 @@ Example stream sequence:
 Enhanced usage information:
 
 ```ts
-type LanguageModelV2Usage = {
+type LanguageModelV3Usage = {
   inputTokens: number | undefined;
   outputTokens: number | undefined;
   totalTokens: number | undefined;
@@ -327,7 +327,7 @@ The V2 specification supports two types of tools:
 Standard user-defined functions with JSON Schema validation:
 
 ```ts
-type LanguageModelV2FunctionTool = {
+type LanguageModelV3FunctionTool = {
   type: 'function';
   name: string;
   description?: string;
@@ -387,7 +387,7 @@ providerOptions: {
 
 Provider options can be specified at multiple levels:
 
-- **Call level**: In `LanguageModelV2CallOptions`
+- **Call level**: In `LanguageModelV3CallOptions`
 - **Message level**: On individual messages
 - **Part level**: On specific content parts (text, file, etc.)
 
@@ -516,7 +516,7 @@ const custom = createCustom();
 Create a `custom-chat-language-model.ts` file that implements `LanguageModelV2`:
 
 ```ts filename="custom-chat-language-model.ts"
-import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV2, LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { postJsonToApi } from '@ai-sdk/provider-utils';
 
 class CustomChatLanguageModel implements LanguageModelV2 {
@@ -535,8 +535,8 @@ class CustomChatLanguageModel implements LanguageModelV2 {
   }
 
   // Convert AI SDK prompt to provider format
-  private getArgs(options: LanguageModelV2CallOptions) {
-    const warnings: LanguageModelV2CallWarning[] = [];
+  private getArgs(options: LanguageModelV3CallOptions) {
+    const warnings: LanguageModelV3CallWarning[] = [];
 
     // Map messages to provider format
     const messages = this.convertToProviderMessages(options.prompt);
@@ -560,7 +560,7 @@ class CustomChatLanguageModel implements LanguageModelV2 {
     return { args: body, warnings };
   }
 
-  async doGenerate(options: LanguageModelV2CallOptions) {
+  async doGenerate(options: LanguageModelV3CallOptions) {
     const { args, warnings } = this.getArgs(options);
 
     // Make API call
@@ -572,7 +572,7 @@ class CustomChatLanguageModel implements LanguageModelV2 {
     });
 
     // Convert provider response to AI SDK format
-    const content: LanguageModelV2Content[] = [];
+    const content: LanguageModelV3Content[] = [];
 
     // Extract text content
     if (response.choices[0].message.content) {
@@ -609,7 +609,7 @@ class CustomChatLanguageModel implements LanguageModelV2 {
     };
   }
 
-  async doStream(options: LanguageModelV2CallOptions) {
+  async doStream(options: LanguageModelV3CallOptions) {
     const { args, warnings } = this.getArgs(options);
 
     // Create streaming response
@@ -646,7 +646,7 @@ class CustomChatLanguageModel implements LanguageModelV2 {
 Map AI SDK messages to your provider's format:
 
 ```ts filename="custom-chat-language-model.ts#L50-100"
-private convertToProviderMessages(prompt: LanguageModelV2Prompt) {
+private convertToProviderMessages(prompt: LanguageModelV3Prompt) {
   return prompt.map((message) => {
     switch (message.role) {
       case 'system':
@@ -692,10 +692,10 @@ private convertToProviderMessages(prompt: LanguageModelV2Prompt) {
 Create a streaming transformer that converts provider chunks to AI SDK stream parts:
 
 ```ts filename="custom-chat-language-model.ts#L150-200"
-private createTransformer(warnings: LanguageModelV2CallWarning[]) {
+private createTransformer(warnings: LanguageModelV3CallWarning[]) {
   let isFirstChunk = true;
 
-  return new TransformStream<ParsedChunk, LanguageModelV2StreamPart>({
+  return new TransformStream<ParsedChunk, LanguageModelV3StreamPart>({
     async transform(chunk, controller) {
       // Send warnings with first chunk
       if (isFirstChunk) {

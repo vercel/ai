@@ -1,14 +1,14 @@
 import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
-import { LanguageModelV2CallWarning } from './language-model-v3-call-warning';
-import { LanguageModelV2File } from './language-model-v3-file';
-import { LanguageModelV2FinishReason } from './language-model-v3-finish-reason';
-import { LanguageModelV2ResponseMetadata } from './language-model-v3-response-metadata';
-import { LanguageModelV2Source } from './language-model-v3-source';
-import { LanguageModelV2ToolCall } from './language-model-v3-tool-call';
-import { LanguageModelV2ToolResult } from './language-model-v3-tool-result';
-import { LanguageModelV2Usage } from './language-model-v3-usage';
+import { LanguageModelV3CallWarning } from './language-model-v3-call-warning';
+import { LanguageModelV3File } from './language-model-v3-file';
+import { LanguageModelV3FinishReason } from './language-model-v3-finish-reason';
+import { LanguageModelV3ResponseMetadata } from './language-model-v3-response-metadata';
+import { LanguageModelV3Source } from './language-model-v3-source';
+import { LanguageModelV3ToolCall } from './language-model-v3-tool-call';
+import { LanguageModelV3ToolResult } from './language-model-v3-tool-result';
+import { LanguageModelV3Usage } from './language-model-v3-usage';
 
-export type LanguageModelV2StreamPart =
+export type LanguageModelV3StreamPart =
   // Text blocks:
   | {
       type: 'text-start';
@@ -64,28 +64,28 @@ export type LanguageModelV2StreamPart =
       id: string;
       providerMetadata?: SharedV2ProviderMetadata;
     }
-  | LanguageModelV2ToolCall
-  | LanguageModelV2ToolResult
+  | LanguageModelV3ToolCall
+  | LanguageModelV3ToolResult
 
   // Files and sources:
-  | LanguageModelV2File
-  | LanguageModelV2Source
+  | LanguageModelV3File
+  | LanguageModelV3Source
 
   // stream start event with warnings for the call, e.g. unsupported settings:
   | {
       type: 'stream-start';
-      warnings: Array<LanguageModelV2CallWarning>;
+      warnings: Array<LanguageModelV3CallWarning>;
     }
 
   // metadata for the response.
   // separate stream part so it can be sent once it is available.
-  | ({ type: 'response-metadata' } & LanguageModelV2ResponseMetadata)
+  | ({ type: 'response-metadata' } & LanguageModelV3ResponseMetadata)
 
   // metadata that is available after the stream is finished:
   | {
       type: 'finish';
-      usage: LanguageModelV2Usage;
-      finishReason: LanguageModelV2FinishReason;
+      usage: LanguageModelV3Usage;
+      finishReason: LanguageModelV3FinishReason;
       providerMetadata?: SharedV2ProviderMetadata;
     }
 

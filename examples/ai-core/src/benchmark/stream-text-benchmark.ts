@@ -1,9 +1,9 @@
 import { streamText, simulateReadableStream } from 'ai';
 import { MockLanguageModelV2 } from 'ai/test';
-import { LanguageModelV2StreamPart } from '@ai-sdk/provider';
+import { LanguageModelV3StreamPart } from '@ai-sdk/provider';
 
 const generateLongContent = (tokens: number, includeTools = false) => {
-  const chunks: LanguageModelV2StreamPart[] = [
+  const chunks: LanguageModelV3StreamPart[] = [
     { type: 'text-start', id: 'text-1' },
   ];
 

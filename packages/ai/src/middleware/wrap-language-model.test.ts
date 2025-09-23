@@ -1,4 +1,4 @@
-import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV3, LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { describe, it, expect, vi } from 'vitest';
@@ -144,7 +144,7 @@ describe('wrapLanguageModel', () => {
       },
     });
 
-    const params: LanguageModelV2CallOptions = {
+    const params: LanguageModelV3CallOptions = {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     };
 
@@ -178,7 +178,7 @@ describe('wrapLanguageModel', () => {
       },
     });
 
-    const params: LanguageModelV2CallOptions = {
+    const params: LanguageModelV3CallOptions = {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     };
 
@@ -210,7 +210,7 @@ describe('wrapLanguageModel', () => {
       },
     });
 
-    const params: LanguageModelV2CallOptions = {
+    const params: LanguageModelV3CallOptions = {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     };
 
@@ -241,7 +241,7 @@ describe('wrapLanguageModel', () => {
       },
     });
 
-    const params: LanguageModelV2CallOptions = {
+    const params: LanguageModelV3CallOptions = {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     };
 
@@ -258,13 +258,13 @@ describe('wrapLanguageModel', () => {
   it('should support models that use "this" context in supportedUrls', async () => {
     let supportedUrlsCalled = false;
 
-    class MockLanguageModelWithImageSupport implements LanguageModelV2 {
+    class MockLanguageModelWithImageSupport implements LanguageModelV3 {
       readonly specificationVersion = 'v2';
       readonly provider = 'test-provider';
       readonly modelId = 'test-model';
 
-      readonly doGenerate: LanguageModelV2['doGenerate'] = vi.fn();
-      readonly doStream: LanguageModelV2['doStream'] = vi.fn();
+      readonly doGenerate: LanguageModelV3['doGenerate'] = vi.fn();
+      readonly doStream: LanguageModelV3['doStream'] = vi.fn();
 
       readonly value = {
         'image/*': [/^https:\/\/.*$/],
@@ -317,7 +317,7 @@ describe('wrapLanguageModel', () => {
         ],
       });
 
-      const params: LanguageModelV2CallOptions = {
+      const params: LanguageModelV3CallOptions = {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       };
 
@@ -371,7 +371,7 @@ describe('wrapLanguageModel', () => {
         ],
       });
 
-      const params: LanguageModelV2CallOptions = {
+      const params: LanguageModelV3CallOptions = {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       };
 
@@ -427,7 +427,7 @@ describe('wrapLanguageModel', () => {
         ],
       });
 
-      const params: LanguageModelV2CallOptions = {
+      const params: LanguageModelV3CallOptions = {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       };
 
@@ -473,7 +473,7 @@ describe('wrapLanguageModel', () => {
         ],
       });
 
-      const params: LanguageModelV2CallOptions = {
+      const params: LanguageModelV3CallOptions = {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       };
 

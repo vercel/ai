@@ -3,7 +3,7 @@ import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-met
 /**
  * Tool calls that the model has generated.
  */
-export type LanguageModelV2ToolCall = {
+export type LanguageModelV3ToolCall = {
   type: 'tool-call';
 
   /**

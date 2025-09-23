@@ -1,12 +1,12 @@
 import {
   EmbeddingModelV3Embedding,
-  LanguageModelV2Prompt,
+  LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createAzure } from './azure-openai-provider';
 import { describe, it, expect } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -622,7 +622,7 @@ describe('responses', () => {
     it('should handle Azure file IDs with assistant- prefix', async () => {
       prepareJsonResponse({ content: 'I can see the image.' });
 
-      const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV2Prompt = [
+      const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -655,7 +655,7 @@ describe('responses', () => {
     it('should handle PDF files with assistant- prefix', async () => {
       prepareJsonResponse({ content: 'I can analyze the PDF.' });
 
-      const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV2Prompt = [
+      const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -688,7 +688,7 @@ describe('responses', () => {
     it('should fall back to base64 for non-assistant file IDs', async () => {
       prepareJsonResponse({ content: 'I can see the image.' });
 
-      const TEST_PROMPT_WITH_OPENAI_FILE: LanguageModelV2Prompt = [
+      const TEST_PROMPT_WITH_OPENAI_FILE: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [

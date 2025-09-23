@@ -1,11 +1,11 @@
 import { JSONSchema7 } from 'json-schema';
 import { SharedV2ProviderOptions } from '../../shared/v2/shared-v2-provider-options';
-import { LanguageModelV2FunctionTool } from './language-model-v3-function-tool';
-import { LanguageModelV2Prompt } from './language-model-v3-prompt';
-import { LanguageModelV2ProviderDefinedTool } from './language-model-v3-provider-defined-tool';
-import { LanguageModelV2ToolChoice } from './language-model-v3-tool-choice';
+import { LanguageModelV3FunctionTool } from './language-model-v3-function-tool';
+import { LanguageModelV3Prompt } from './language-model-v3-prompt';
+import { LanguageModelV3ProviderDefinedTool } from './language-model-v3-provider-defined-tool';
+import { LanguageModelV3ToolChoice } from './language-model-v3-tool-choice';
 
-export type LanguageModelV2CallOptions = {
+export type LanguageModelV3CallOptions = {
   /**
 A language mode prompt is a standardized prompt type.
 
@@ -14,7 +14,7 @@ user-facing prompt types such as chat or instruction prompts to this format.
 That approach allows us to evolve the user  facing prompts without breaking
 the language model interface.
    */
-  prompt: LanguageModelV2Prompt;
+  prompt: LanguageModelV3Prompt;
 
   /**
 Maximum number of tokens to generate.
@@ -94,13 +94,13 @@ by the model, calls will generate deterministic results.
 The tools that are available for the model.
   */
   tools?: Array<
-    LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool
+    LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool
   >;
 
   /**
 Specifies how the tool should be selected. Defaults to 'auto'.
 */
-  toolChoice?: LanguageModelV2ToolChoice;
+  toolChoice?: LanguageModelV3ToolChoice;
 
   /**
 Include raw chunks in the stream. Only applicable for streaming calls.

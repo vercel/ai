@@ -3,7 +3,7 @@ import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-met
 /**
 Text that the model has generated.
  */
-export type LanguageModelV2Text = {
+export type LanguageModelV3Text = {
   type: 'text';
 
   /**

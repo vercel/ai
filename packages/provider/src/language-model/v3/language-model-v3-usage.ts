@@ -4,7 +4,7 @@ Usage information for a language model call.
 If your API return additional usage information, you can add it to the
 provider metadata under your provider's key.
  */
-export type LanguageModelV2Usage = {
+export type LanguageModelV3Usage = {
   /**
 The number of input (prompt) tokens used.
    */

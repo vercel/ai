@@ -1,7 +1,7 @@
 /**
 The configuration of a tool that is defined by the provider.
  */
-export type LanguageModelV2ProviderDefinedTool = {
+export type LanguageModelV3ProviderDefinedTool = {
   /**
 The type of the tool (always 'provider-defined').
    */

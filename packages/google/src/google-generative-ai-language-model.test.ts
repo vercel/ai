@@ -1,6 +1,6 @@
 import {
-  LanguageModelV2Prompt,
-  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV3Prompt,
+  LanguageModelV3ProviderDefinedTool,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -15,7 +15,7 @@ import { groundingMetadataSchema } from './tool/google-search';
 import { urlContextMetadataSchema } from './tool/url-context';
 import { describe, it, expect } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -1051,7 +1051,7 @@ describe('doGenerate', () => {
     const model = provider.languageModel('gemini-2.0-pro');
     const { content } = await model.doGenerate({
       tools: [
-        provider.tools.codeExecution({}) as LanguageModelV2ProviderDefinedTool,
+        provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
       ],
       prompt: TEST_PROMPT,
     });
@@ -2074,7 +2074,7 @@ describe('doStream', () => {
     const model = provider.languageModel('gemini-2.0-pro');
     const { stream } = await model.doStream({
       tools: [
-        provider.tools.codeExecution({}) as LanguageModelV2ProviderDefinedTool,
+        provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
       ],
       prompt: TEST_PROMPT,
     });
@@ -3004,7 +3004,7 @@ describe('doStream', () => {
 });
 
 describe('GEMMA Model System Instruction Fix', () => {
-  const TEST_PROMPT_WITH_SYSTEM: LanguageModelV2Prompt = [
+  const TEST_PROMPT_WITH_SYSTEM: LanguageModelV3Prompt = [
     { role: 'system', content: 'You are a helpful assistant.' },
     { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
   ];
@@ -3142,7 +3142,7 @@ describe('GEMMA Model System Instruction Fix', () => {
       generateId: () => 'test-id',
     });
 
-    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV2Prompt = [
+    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV3Prompt = [
       { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
     ];
 

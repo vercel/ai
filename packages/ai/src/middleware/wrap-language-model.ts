@@ -1,4 +1,4 @@
-import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV3, LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { LanguageModelMiddleware } from '../types';
 import { asArray } from '../util/as-array';
 
@@ -20,11 +20,11 @@ export const wrapLanguageModel = ({
   modelId,
   providerId,
 }: {
-  model: LanguageModelV2;
+  model: LanguageModelV3;
   middleware: LanguageModelMiddleware | LanguageModelMiddleware[];
   modelId?: string;
   providerId?: string;
-}): LanguageModelV2 => {
+}): LanguageModelV3 => {
   return asArray(middlewareArg)
     .reverse()
     .reduce((wrappedModel, middleware) => {
@@ -45,16 +45,16 @@ const doWrap = ({
   modelId,
   providerId,
 }: {
-  model: LanguageModelV2;
+  model: LanguageModelV3;
   middleware: LanguageModelMiddleware;
   modelId?: string;
   providerId?: string;
-}): LanguageModelV2 => {
+}): LanguageModelV3 => {
   async function doTransform({
     params,
     type,
   }: {
-    params: LanguageModelV2CallOptions;
+    params: LanguageModelV3CallOptions;
     type: 'generate' | 'stream';
   }) {
     return transformParams
@@ -70,8 +70,8 @@ const doWrap = ({
     supportedUrls: overrideSupportedUrls?.({ model }) ?? model.supportedUrls,
 
     async doGenerate(
-      params: LanguageModelV2CallOptions,
-    ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+      params: LanguageModelV3CallOptions,
+    ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
       const transformedParams = await doTransform({ params, type: 'generate' });
       const doGenerate = async () => model.doGenerate(transformedParams);
       const doStream = async () => model.doStream(transformedParams);
@@ -86,8 +86,8 @@ const doWrap = ({
     },
 
     async doStream(
-      params: LanguageModelV2CallOptions,
-    ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+      params: LanguageModelV3CallOptions,
+    ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
       const transformedParams = await doTransform({ params, type: 'stream' });
       const doGenerate = async () => model.doGenerate(transformedParams);
       const doStream = async () => model.doStream(transformedParams);

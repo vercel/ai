@@ -1,14 +1,14 @@
-import { LanguageModelV2File } from './language-model-v3-file';
-import { LanguageModelV2Reasoning } from './language-model-v3-reasoning';
-import { LanguageModelV2Source } from './language-model-v3-source';
-import { LanguageModelV2Text } from './language-model-v3-text';
-import { LanguageModelV2ToolCall } from './language-model-v3-tool-call';
-import { LanguageModelV2ToolResult } from './language-model-v3-tool-result';
+import { LanguageModelV3File } from './language-model-v3-file';
+import { LanguageModelV3Reasoning } from './language-model-v3-reasoning';
+import { LanguageModelV3Source } from './language-model-v3-source';
+import { LanguageModelV3Text } from './language-model-v3-text';
+import { LanguageModelV3ToolCall } from './language-model-v3-tool-call';
+import { LanguageModelV3ToolResult } from './language-model-v3-tool-result';
 
-export type LanguageModelV2Content =
-  | LanguageModelV2Text
-  | LanguageModelV2Reasoning
-  | LanguageModelV2File
-  | LanguageModelV2Source
-  | LanguageModelV2ToolCall
-  | LanguageModelV2ToolResult;
+export type LanguageModelV3Content =
+  | LanguageModelV3Text
+  | LanguageModelV3Reasoning
+  | LanguageModelV3File
+  | LanguageModelV3Source
+  | LanguageModelV3ToolCall
+  | LanguageModelV3ToolResult;

@@ -10,7 +10,7 @@ Can be one of the following:
 - `other`: model stopped for other reasons
 - `unknown`: the model has not transmitted a finish reason
  */
-export type LanguageModelV2FinishReason =
+export type LanguageModelV3FinishReason =
   | 'stop' // model generated stop sequence
   | 'length' // model generated maximum number of tokens
   | 'content-filter' // content filter violation stopped the model

@@ -1,6 +1,6 @@
 import {
-  LanguageModelV2Prompt,
-  LanguageModelV2StreamPart,
+  LanguageModelV3Prompt,
+  LanguageModelV3StreamPart,
   JSONValue,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -13,7 +13,7 @@ import { createAnthropic } from './anthropic-provider';
 import { type DocumentCitation } from './anthropic-messages-language-model';
 import { describe, it, expect, beforeEach } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -1676,7 +1676,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
   describe('doStream', () => {
     describe('json schema response format', () => {
-      let result: Array<LanguageModelV2StreamPart>;
+      let result: Array<LanguageModelV3StreamPart>;
 
       beforeEach(async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {

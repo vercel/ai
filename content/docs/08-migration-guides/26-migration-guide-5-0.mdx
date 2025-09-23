@@ -2603,11 +2603,11 @@ Token usage properties have been renamed for consistency.
 
 #### Stream Part Type Changes
 
-The `LanguageModelV2StreamPart` type has been expanded to support the new streaming architecture with start/delta/end patterns and IDs.
+The `LanguageModelV3StreamPart` type has been expanded to support the new streaming architecture with start/delta/end patterns and IDs.
 
 ```tsx filename="AI SDK 4.0"
 // V4: Simple stream parts
-type LanguageModelV2StreamPart =
+type LanguageModelV3StreamPart =
   | { type: 'text-delta'; textDelta: string }
   | { type: 'reasoning'; text: string }
   | { type: 'tool-call'; toolCallId: string; toolName: string; input: string };
@@ -2615,7 +2615,7 @@ type LanguageModelV2StreamPart =
 
 ```tsx filename="AI SDK 5.0"
 // V5: Enhanced stream parts with IDs and lifecycle events
-type LanguageModelV2StreamPart =
+type LanguageModelV3StreamPart =
   // Text blocks with start/delta/end pattern
   | {
       type: 'text-start';
@@ -2681,11 +2681,11 @@ type LanguageModelV2StreamPart =
     }
 
   // Stream lifecycle events
-  | { type: 'stream-start'; warnings: Array<LanguageModelV2CallWarning> }
+  | { type: 'stream-start'; warnings: Array<LanguageModelV3CallWarning> }
   | {
       type: 'finish';
-      usage: LanguageModelV2Usage;
-      finishReason: LanguageModelV2FinishReason;
+      usage: LanguageModelV3Usage;
+      finishReason: LanguageModelV3FinishReason;
       providerMetadata?: SharedV2ProviderMetadata;
     };
 ```

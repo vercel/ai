@@ -184,7 +184,7 @@ This example shows how to log the parameters and generated text of a language mo
 ```ts
 import type {
   LanguageModelV2Middleware,
-  LanguageModelV2StreamPart,
+  LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
 
 export const yourLogMiddleware: LanguageModelV2Middleware = {
@@ -210,8 +210,8 @@ export const yourLogMiddleware: LanguageModelV2Middleware = {
     const textBlocks = new Map<string, string>();
 
     const transformStream = new TransformStream<
-      LanguageModelV2StreamPart,
-      LanguageModelV2StreamPart
+      LanguageModelV3StreamPart,
+      LanguageModelV3StreamPart
     >({
       transform(chunk, controller) {
         switch (chunk.type) {

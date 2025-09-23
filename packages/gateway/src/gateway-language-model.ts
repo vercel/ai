@@ -1,9 +1,9 @@
 import type {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
-  LanguageModelV2FilePart,
-  LanguageModelV2StreamPart,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
+  LanguageModelV3FilePart,
+  LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -26,7 +26,7 @@ type GatewayChatConfig = GatewayConfig & {
   o11yHeaders: Resolvable<Record<string, string>>;
 };
 
-export class GatewayLanguageModel implements LanguageModelV2 {
+export class GatewayLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v2';
   readonly supportedUrls = { '*/*': [/.*/] };
 
@@ -39,7 +39,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  private async getArgs(options: Parameters<LanguageModelV2['doGenerate']>[0]) {
+  private async getArgs(options: Parameters<LanguageModelV3['doGenerate']>[0]) {
     const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
 
     return {
@@ -49,8 +49,8 @@ export class GatewayLanguageModel implements LanguageModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    options: Parameters<LanguageModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
     const { args, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
@@ -91,8 +91,8 @@ export class GatewayLanguageModel implements LanguageModelV2 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV2['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+    options: Parameters<LanguageModelV3['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
     const { args, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
@@ -120,8 +120,8 @@ export class GatewayLanguageModel implements LanguageModelV2 {
       return {
         stream: response.pipeThrough(
           new TransformStream<
-            ParseResult<LanguageModelV2StreamPart>,
-            LanguageModelV2StreamPart
+            ParseResult<LanguageModelV3StreamPart>,
+            LanguageModelV3StreamPart
           >({
             start(controller) {
               if (warnings.length > 0) {
@@ -175,11 +175,11 @@ export class GatewayLanguageModel implements LanguageModelV2 {
    * @param options - The options to encode.
    * @returns The options with the file parts encoded.
    */
-  private maybeEncodeFileParts(options: LanguageModelV2CallOptions) {
+  private maybeEncodeFileParts(options: LanguageModelV3CallOptions) {
     for (const message of options.prompt) {
       for (const part of message.content) {
         if (this.isFilePart(part)) {
-          const filePart = part as LanguageModelV2FilePart;
+          const filePart = part as LanguageModelV3FilePart;
           // If the file part is a URL it will get cleanly converted to a string.
           // If it's a binary file attachment we convert it to a data url.
           // In either case, server-side we should only ever see URLs as strings.

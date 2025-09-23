@@ -1,6 +1,6 @@
 import {
   JSONParseError,
-  LanguageModelV2CallWarning,
+  LanguageModelV3CallWarning,
   TypeValidationError,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
@@ -180,7 +180,7 @@ describe('generateObject', () => {
     });
 
     it('should call logWarnings with the correct warnings', async () => {
-      const expectedWarnings: LanguageModelV2CallWarning[] = [
+      const expectedWarnings: LanguageModelV3CallWarning[] = [
         {
           type: 'other',
           message: 'Setting is not supported',
