@@ -6,6 +6,7 @@ export {
   dynamicTool,
   generateId,
   jsonSchema,
+  parseJsonEventStream,
   tool,
   zodSchema,
   type IdGenerator,
