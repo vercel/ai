@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.16
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+
 ## 2.0.15
 
 ### Patch Changes

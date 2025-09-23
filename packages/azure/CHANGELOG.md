@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 2.0.34
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+- Updated dependencies [322901b]
+  - @ai-sdk/openai@2.0.34
+
 ## 2.0.33
 
 ### Patch Changes

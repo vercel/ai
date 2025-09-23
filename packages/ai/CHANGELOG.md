@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.51
+
+### Patch Changes
+
+- 27645bb: Export `parseJsonEventStream` and `uiMessageChunkSchema` from "ai" package
+- Updated dependencies [322901b]
+  - @ai-sdk/gateway@1.0.28
+
 ## 5.0.50
 
 ### Patch Changes

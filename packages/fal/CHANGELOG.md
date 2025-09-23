@@ -1,5 +1,11 @@
 # @ai-sdk/fal
 
+## 1.0.14
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+
 ## 1.0.13
 
 ### Patch Changes
