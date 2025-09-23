@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.22
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+
 ## 2.0.21
 
 ### Patch Changes

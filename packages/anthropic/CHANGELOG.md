@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.18
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+
 ## 2.0.17
 
 ### Patch Changes

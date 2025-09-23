@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 1.0.19
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+
 ## 1.0.18
 
 ### Patch Changes

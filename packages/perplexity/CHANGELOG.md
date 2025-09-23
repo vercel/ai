@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 2.0.10
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+
 ## 2.0.9
 
 ### Patch Changes

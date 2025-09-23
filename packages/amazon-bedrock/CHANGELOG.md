@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.23
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+- Updated dependencies [322901b]
+  - @ai-sdk/anthropic@2.0.18
+
 ## 3.0.22
 
 ### Patch Changes

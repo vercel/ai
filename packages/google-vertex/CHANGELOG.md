@@ -1,5 +1,14 @@
 # @ai-sdk/google-vertex
 
+## 3.0.29
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+- Updated dependencies [322901b]
+  - @ai-sdk/anthropic@2.0.18
+  - @ai-sdk/google@2.0.16
+
 ## 3.0.28
 
 ### Patch Changes
