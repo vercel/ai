@@ -1,7 +1,7 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v2';
-import { MockImageModelV3 } from '../test/mock-image-model-v2';
+import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';

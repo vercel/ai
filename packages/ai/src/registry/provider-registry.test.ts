@@ -3,7 +3,7 @@ import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v2';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { createProviderRegistry } from './provider-registry';
-import { MockImageModelV3 } from '../test/mock-image-model-v2';
+import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
 import { MockProviderV2 } from '../test/mock-provider-v2';

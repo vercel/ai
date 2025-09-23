@@ -18,7 +18,7 @@ import {
   vitest,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockImageModelV3 } from '../test/mock-image-model-v2';
+import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { generateImage } from './generate-image';
 
 const prompt = 'sunny day at the beach';
