@@ -1,4 +1,4 @@
-import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
+import { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createMistral } from './mistral-provider';
 import { describe, it, expect } from 'vitest';
@@ -22,7 +22,7 @@ describe('doEmbed', () => {
     usage = { prompt_tokens: 8, total_tokens: 8 },
     headers,
   }: {
-    embeddings?: EmbeddingModelV2Embedding[];
+    embeddings?: EmbeddingModelV3Embedding[];
     usage?: { prompt_tokens: number; total_tokens: number };
     headers?: Record<string, string>;
   } = {}) {

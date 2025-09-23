@@ -1,6 +1,6 @@
 import {
   LanguageModelV2,
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   ProviderV2,
   ImageModelV3,
 } from '@ai-sdk/provider';
@@ -76,7 +76,7 @@ Creates a text embedding model for text generation.
 */
   textEmbeddingModel(
     modelId: DeepInfraEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 }
 
 export function createDeepInfra(

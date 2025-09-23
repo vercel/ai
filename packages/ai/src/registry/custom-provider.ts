@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   ImageModelV3,
   LanguageModelV2,
   NoSuchModelError,
@@ -24,7 +24,7 @@ import {
  */
 export function customProvider<
   LANGUAGE_MODELS extends Record<string, LanguageModelV2>,
-  EMBEDDING_MODELS extends Record<string, EmbeddingModelV2<string>>,
+  EMBEDDING_MODELS extends Record<string, EmbeddingModelV3<string>>,
   IMAGE_MODELS extends Record<string, ImageModelV3>,
   TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV2>,
   SPEECH_MODELS extends Record<string, SpeechModelV2>,
@@ -46,7 +46,7 @@ export function customProvider<
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV2;
   textEmbeddingModel(
     modelId: ExtractModelId<EMBEDDING_MODELS>,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
   imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV3;
   transcriptionModel(
     modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
@@ -68,7 +68,7 @@ export function customProvider<
 
     textEmbeddingModel(
       modelId: ExtractModelId<EMBEDDING_MODELS>,
-    ): EmbeddingModelV2<string> {
+    ): EmbeddingModelV3<string> {
       if (textEmbeddingModels != null && modelId in textEmbeddingModels) {
         return textEmbeddingModels[modelId];
       }

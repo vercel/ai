@@ -21,7 +21,7 @@ import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
   LanguageModelV2,
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   ProviderV2,
 } from '@ai-sdk/provider';
 
@@ -48,7 +48,7 @@ Creates a model for generating text embeddings.
 */
   textEmbeddingModel(
     modelId: GatewayEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 }
 
 export interface GatewayProviderSettings {
