@@ -1,4 +1,4 @@
-import { EmbeddingModelV2 } from '../../embedding-model/v2/embedding-model-v2';
+import { EmbeddingModelV2 } from '../../embedding-model/v3/embedding-model-v3';
 import { ImageModelV2 } from '../../image-model/v2/image-model-v2';
 import { LanguageModelV2 } from '../../language-model/v2/language-model-v2';
 import { SpeechModelV2 } from '../../speech-model/v2/speech-model-v2';
