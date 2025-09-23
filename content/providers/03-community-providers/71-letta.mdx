@@ -5,13 +5,24 @@ description: 'Learn how to use the Letta AI SDK provider for the AI SDK.'
 
 # Letta Provider
 
-<Note type="warning">
-  This community provider is not yet compatible with AI SDK 5. Please wait for
-  the provider to be updated or consider using an [AI SDK 5 compatible
-  provider](/providers/ai-sdk-providers).
+The [Letta AI-SDK provider](https://github.com/letta-ai/vercel-ai-sdk-provider) is an official integration that bridges Letta agents with the Vercel AI SDK ecosystem.
+
+With this provider, you can leverage Letta's agents with persistent, long-term memory, using a wide variety of supported language and embedding models and tools, through the AI SDK. Features include, and not limited to:
+
+- Access to both agent-level and model-level reasoning messages with source attribution
+- Support for agent-configured tools and MCP (Model Context Protocol)
+- Built-in utilities to convert between Letta and AI SDK message formats
+- ... along with [every Letta Send Message API features](https://docs.letta.com/api-reference/agents/messages/create-stream), like [Long-Running Agent Executions](https://docs.letta.com/guides/agents/long-running)
+
+
+## Supported Models
+
+Letta supports a variety of popular models. See the [Letta documentation](https://docs.letta.com/connecting-model-providers/supported-models) for the complete list.
+
+<Note>
+For models not on the list, you can try configuring Letta to use [OpenAI proxy](https://docs.letta.com/guides/server/providers/openai-proxy).
 </Note>
 
-The [Letta AI-SDK provider](https://github.com/letta-ai/vercel-ai-sdk-provider) is the official provider for the [Letta](https://docs.letta.com) platform. It allows you to integrate Letta's AI capabilities into your applications using the Vercel AI SDK.
 
 ## Setup
 
@@ -21,6 +32,10 @@ The Letta provider is available in the `@letta-ai/vercel-ai-sdk-provider` module
   <Tab>
     <Snippet text="pnpm add @letta-ai/vercel-ai-sdk-provider" dark />
   </Tab>
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
   <Tab>
     <Snippet text="npm install @letta-ai/vercel-ai-sdk-provider" dark />
   </Tab>
@@ -32,42 +47,84 @@ The Letta provider is available in the `@letta-ai/vercel-ai-sdk-provider` module
   </Tab>
 </Tabs>
 
-## Provider Instance
+<<<<<<< Updated upstream
+=======
 
-You can import the default provider instance `letta` from `@letta-ai/vercel-ai-sdk-provider`:
+>>>>>>> Stashed changes
+## Provider Instance
+You can import the provider instance `lettaCloud` or `lettaLocal` from `@letta-ai/vercel-ai-sdk-provider`:
 
 ```ts
-import { letta } from '@letta-ai/vercel-ai-sdk-provider';
+// For cloud users
+import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
+
+// For self-hosted users
+import { lettaLocal } from '@letta-ai/vercel-ai-sdk-provider';
 ```
+
+### Custom Setup
+```typescript
+import { createLetta } from '@letta-ai/vercel-ai-sdk-provider';
+
+// This will be your custom Letta provider
+const letta = createLetta({
+  baseUrl: '<your-base-url>',
+  token: '<your-access-token>',
+});
+````
 
 ## Quick Start
 
 ### Using Letta Cloud (https://api.letta.com)
 
-Create a file called `.env.local` and add your [API Key](https://app.letta.com/api-keys)
+**Get your API key:** Sign up at [Letta](https://app.letta.com/) and get your API key from the [dashboard](https://app.letta.com/api-keys).
 
+<<<<<<< Updated upstream
 ```text
 LETTA_API_KEY=<your_api_key>
+=======
+**Note:** If using a `.env` file, you can source it in your shell (`source .env`) or use a package like `dotenv` to load it in your application.
+
+```bash
+# .env
+LETTA_API_KEY=your-letta-api-key
+>>>>>>> Stashed changes
 ```
 
-```ts
+```typescript
 import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
 import { generateText } from 'ai';
 
+<<<<<<< Updated upstream
 const { text } = await generateText({
   model: lettaCloud('your_agent_id'),
+=======
+const result = await generateText({
+  model: lettaCloud(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
+  providerOptions: {
+    agent: { id: 'your-agent-id' }
+  },
+>>>>>>> Stashed changes
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
-### Local instances (http://localhost:8283)
+### Self-hosted instances (http://localhost:8283)
 
-```ts
+```typescript
 import { lettaLocal } from '@letta-ai/vercel-ai-sdk-provider';
 import { generateText } from 'ai';
 
+<<<<<<< Updated upstream
 const { text } = await generateText({
   model: lettaLocal('your_agent_id'),
+=======
+const result = await generateText({
+  model: lettaLocal(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
+  providerOptions: {
+    agent: { id: 'your-agent-id' }
+  },
+>>>>>>> Stashed changes
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -83,13 +140,363 @@ const letta = createLetta({
   token: '<your_access_token>',
 });
 
+<<<<<<< Updated upstream
 const { text } = await generateText({
   model: letta('your_agent_id'),
+=======
+const result = await generateText({
+  model: letta(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
+  providerOptions: {
+    agent: { id: 'your-agent-id' }
+  },
+>>>>>>> Stashed changes
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
-### Using other Letta Client Functions
+## Basic Usage
+
+### generateText
+```typescript
+import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: lettaCloud(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
+  providerOptions: {
+    agent: { id: 'your-agent-id' }
+  },
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+### streamText
+```typescript
+import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: lettaCloud(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
+  providerOptions: {
+    agent: { id: 'your-agent-id' }
+  },
+  messages: [
+    { role: 'user', content: 'Tell me a story about a robot learning to paint.' }
+  ],
+});
+```
+
+### useChat
+```typescript
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, UIMessage } from 'ai';
+import { useState } from 'react';
+
+interface ChatProps {
+  agentId: string;
+  existingMessages?: UIMessage[];
+}
+
+export function StreamingChat({ agentId, existingMessages = [] }: ChatProps) {
+  const [input, setInput] = useState('');
+
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      body: { agentId },
+    }),
+    messages: existingMessages,
+  });
+
+  const isLoading = status === 'streaming' || status === 'submitted';
+
+  return (
+    <div>
+      {/* Messages */}
+      <div>
+        {messages.map((message) => (
+          <div key={message.id}>
+            <strong>{message.role === 'user' ? 'You' : 'Assistant'}:</strong>
+            {/* Handle message parts (for reasoning, tools, etc.) */}
+            {message.parts?.map((part, index) => (
+              <div key={index}>
+                {part.type === 'text' && <div>{part.text}</div>}
+                {part.type === 'reasoning' && (
+                  <div style={{ color: 'blue', fontSize: '0.9em' }}>
+                    💭 {part.text}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Input form */}
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        if (input.trim()) {
+          sendMessage({ text: input });
+          setInput('');
+        }
+      }}>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type your message..."
+          disabled={isLoading}
+        />
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? 'Sending...' : 'Send'}
+        </button>
+      </form>
+    </div>
+  );
+}
+```
+
+## Advanced Usage
+
+**Send Message:**
+Use `providerOptions.agent` to configure non-streaming message creation with Letta agents.
+Documentation: https://docs.letta.com/api-reference/agents/messages/create
+
+**Send Message Streaming:**
+Use `providerOptions.agent` to configure streaming message creation with Letta agents.
+Documentation: https://docs.letta.com/api-reference/agents/messages/create-stream
+
+**Timeout Configuration:**
+Use `providerOptions.timeoutInSeconds` to set the maximum wait time for agent responses. This is especially important for long-running agent operations or when working with complex reasoning chains.
+
+```typescript
+import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: lettaCloud(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
+  providerOptions: {
+    agent: {
+      id: 'your-agent-id',
+      maxSteps: 100,
+      includePings: true,
+      streamTokens: true,
+      // See more available request params here:
+      // https://docs.letta.com/api-reference/agents/messages/create-stream
+    },
+    timeoutInSeconds: 300 // The maximum time to wait for a response in seconds (default: 1000)
+  },
+  messages: [
+    { role: 'user', content: 'Tell me a story about a robot learning to paint.' }
+  ],
+});
+```
+
+## Agent Message Features
+
+### Reasoning Support
+
+Both `streamText` and `generateText` support AI reasoning tokens:
+
+#### Streaming with Reasoning
+
+```typescript
+const result = streamText({
+  model: lettaCloud(),
+  providerOptions: { agent: { id: agentId } },
+  messages: convertToModelMessages(messages),
+});
+
+// Include reasoning in UI message stream
+return result.toUIMessageStreamResponse({
+  sendReasoning: true,
+});
+```
+
+#### Non-Streaming with Reasoning
+
+```typescript
+const result = await generateText({
+  model: lettaCloud(),
+  providerOptions: { agent: { id: agentId } },
+  messages: convertToModelMessages(messages),
+});
+
+// generateText inherently includes `reasoning`
+// https://ai-sdk.dev/docs/ai-sdk-core/generating-text
+const reasoningParts = result.content.filter(part => part.type === 'reasoning');
+reasoningParts.forEach(reasoning => {
+  console.log('AI thinking:', reasoning.text);
+});
+```
+
+#### Distinguishing Agent vs Model Reasoning
+
+Letta provides two types of reasoning that you can distinguish in your UI:
+
+```typescript
+// Type guard for reasoning parts
+const isReasoningPart = (part: { type: string; [key: string]: unknown }) =>
+  part.type === "reasoning" && "text" in part && typeof part.text === "string";
+
+// Helper to determine reasoning source
+const getReasoningSource = (part: {
+  type: string;
+  text: string;
+  source?: string;
+  providerMetadata?: { reasoning?: { source?: string } };
+}) => {
+  const source = part.providerMetadata?.reasoning?.source || part.source;
+
+  if (source === "reasoner_model") {
+    return {
+      source: "model" as const,
+      text: part.text,
+    };
+  }
+
+  if (source === "non_reasoner_model") {
+    return {
+      source: "agent" as const,
+      text: part.text,
+    };
+  }
+
+  // Default to model reasoning if source is unclear
+  return {
+    source: "model" as const,
+    text: part.text,
+  };
+};
+
+// Usage in your UI components
+message.parts?.forEach((part) => {
+  if (isReasoningPart(part)) {
+    const { source, text } = getReasoningSource(part);
+
+    if (source === "model") {
+      console.log("🧠 Model Reasoning (from language model):", text);
+    } else if (source === "agent") {
+      console.log("🤖 Agent Reasoning (from Letta platform):", text);
+    }
+  }
+});
+```
+
+**Reasoning Types:**
+- **Model Reasoning** (`reasoner_model`): Internal thinking from the language model itself
+- **Agent Reasoning** (`non_reasoner_model`): The internal reasoning of the agent signature
+
+
+### Long-Running Executions
+
+For streaming operations that may take longer to complete, you can use the `background` option:
+
+```typescript
+// Streaming with background execution
+const stream = streamText({
+  model: lettaCloud(),
+  messages: [{ role: 'user', content: 'Process this complex task...' }],
+  providerOptions: {
+    agent: {
+      id: 'your-agent-id',
+      background: true
+      // See more available request params here:
+      // https://docs.letta.com/api-reference/agents/messages/create-stream
+    },
+  },
+});
+```
+
+## Tools and MCP
+
+Letta agents support custom tools and MCP (Model Context Protocol) servers. Unlike traditional AI SDK usage, tools are configured at the agent level in Letta, not passed to the AI SDK calls.
+
+Once tools are configured on your agent, they work seamlessly with both streaming and non-streaming. Tool calls are handled automatically by Letta, so you don't need to define or execute tool functions in your AI SDK code.
+
+<Note>
+The Vercel AI SDK requires tool definitions in the configuration to prevent errors. You must provide placeholder tool configurations.
+</Note>
+
+```typescript
+import { z } from 'zod';
+
+// Use with streaming
+const streamResult = streamText({
+  model: lettaCloud(),
+  // Provide placeholder tool configurations to prevent bad AI SDK tool message errors
+  tools: {
+    web_search: {
+      description: "Search the web",
+      inputSchema: z.any(),
+      execute: async () => "Handled by Letta",
+    },
+    memory_replace: {
+      description: "Replace memory content",
+      inputSchema: z.any(),
+      execute: async () => "Handled by Letta",
+    },
+  },
+  providerOptions: {
+    agent: { id: agentId },
+  },
+  messages: messages,
+});
+
+// Use with non-streaming
+const generateResult = await generateText({
+  model: lettaCloud(),
+  tools: {
+    // Provide placeholder tool configurations to prevent bad AI SDK tool message errors
+    web_search: {
+      description: "Search the web",
+      inputSchema: z.any(),
+      execute: async () => "Handled by Letta",
+    },
+    memory_replace: {
+      description: "Replace memory content",
+      inputSchema: z.any(),
+      execute: async () => "Handled by Letta",
+    },
+  },
+  providerOptions: {
+    agent: { id: agentId },
+  },
+  messages: messages,
+});
+```
+<Note>
+The actual tool execution happens in Letta - these configurations are placeholders required by the AI SDK to prevent runtime errors.
+</Note>
+
+### Accessing Tool Calls
+
+Tool calls appear in message parts and can be filtered by type:
+
+```typescript
+const isNamedTool = (part: { type: string; [key: string]: unknown }): boolean =>
+  part.type.startsWith("tool-") && part.type !== "tool-invocation";
+
+// Filter tool parts from message parts
+const toolParts = message.parts?.filter(isNamedTool) || [];
+
+toolParts.forEach(part => {
+  console.log('Tool Type:', part.type); // e.g., "tool-call", "tool-result"
+  console.log('State:', part.state);
+  console.log('Call ID:', part.toolCallId);
+  console.log('Input:', part.input);
+  console.log('Output:', part.output);
+
+  // Handle errors if present
+  if (part.errorText) {
+    console.error('Tool Error:', part.errorText);
+  }
+});
+```
+
+
+## Using other Letta Client Functions
 
 The `vercel-ai-sdk-provider` extends the [@letta-ai/letta-client](https://www.npmjs.com/package/@letta-ai/letta-client), you can access the operations directly by using `lettaCloud.client` or `lettaLocal.client` or your custom generated `letta.client`
 
@@ -107,4 +514,4 @@ lettaLocal.client.agents.list();
 
 ### More Information
 
-For more information on the Letta API, please refer to the [Letta API documentation](https://docs.letta.com/api).
+For more information on the Letta API, please refer to the [Letta API documentation](https://docs.letta.com/api-reference/overview).
