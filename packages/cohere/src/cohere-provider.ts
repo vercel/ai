@@ -3,7 +3,9 @@ import {
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
+  RerankingModelV2,
 } from '@ai-sdk/provider';
+
 import {
   FetchFunction,
   generateId,
@@ -13,6 +15,8 @@ import {
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
 import { CohereChatModelId } from './cohere-chat-options';
 import { CohereEmbeddingModel } from './cohere-embedding-model';
+import { CohereRerankingModelId } from './cohere-reranking-options';
+import { CohereRerankingModel } from './cohere-reranking-model';
 import { CohereEmbeddingModelId } from './cohere-embedding-options';
 
 export interface CohereProvider extends ProviderV2 {
@@ -26,6 +30,8 @@ Creates a model for text generation.
   embedding(modelId: CohereEmbeddingModelId): EmbeddingModelV2<string>;
 
   textEmbeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV2<string>;
+
+  rerankingModel(modelId: CohereRerankingModelId): RerankingModelV2<string>;
 }
 
 export interface CohereProviderSettings {
@@ -93,6 +99,14 @@ export function createCohere(
       fetch: options.fetch,
     });
 
+  const createRerankingModel = (modelId: CohereRerankingModelId) =>
+    new CohereRerankingModel(modelId, {
+      provider: 'cohere.reranking',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: CohereChatModelId) {
     if (new.target) {
       throw new Error(
@@ -106,6 +120,7 @@ export function createCohere(
   provider.languageModel = createChatModel;
   provider.embedding = createTextEmbeddingModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.rerankingModel = createRerankingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });

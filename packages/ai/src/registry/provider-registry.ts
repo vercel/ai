@@ -6,6 +6,7 @@ import {
   ProviderV2,
   SpeechModelV2,
   TranscriptionModelV2,
+  RerankingModelV2,
 } from '@ai-sdk/provider';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { LanguageModelMiddleware } from '../types';
@@ -65,6 +66,15 @@ export interface ProviderRegistryProvider<
   speechModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): SpeechModelV2;
+
+  rerankingModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['rerankingModel']>>[0]>}`
+      : never,
+  ): RerankingModelV2<string>;
+  rerankingModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): RerankingModelV2<string>;
 }
 
 /**
@@ -155,7 +165,8 @@ class DefaultProviderRegistry<
       | 'textEmbeddingModel'
       | 'imageModel'
       | 'transcriptionModel'
-      | 'speechModel',
+      | 'speechModel'
+      | 'rerankingModel',
   ): ProviderV2 {
     const provider = this.providers[id as keyof PROVIDERS];
 
@@ -178,7 +189,8 @@ class DefaultProviderRegistry<
       | 'textEmbeddingModel'
       | 'imageModel'
       | 'transcriptionModel'
-      | 'speechModel',
+      | 'speechModel'
+      | 'rerankingModel',
   ): [string, string] {
     const index = id.indexOf(this.separator);
 
@@ -278,6 +290,21 @@ class DefaultProviderRegistry<
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'speechModel' });
+    }
+
+    return model;
+  }
+
+  rerankingModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): RerankingModelV2<string> {
+    const [providerId, modelId] = this.splitId(id, 'rerankingModel');
+    const provider = this.getProvider(providerId, 'rerankingModel');
+
+    const model = provider.rerankingModel?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'rerankingModel' });
     }
 
     return model;

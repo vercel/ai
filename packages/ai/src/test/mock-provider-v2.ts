@@ -4,6 +4,7 @@ import {
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
+  RerankingModelV2,
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
@@ -14,6 +15,7 @@ export class MockProviderV2 implements ProviderV2 {
   imageModel: ProviderV2['imageModel'];
   transcriptionModel: ProviderV2['transcriptionModel'];
   speechModel: ProviderV2['speechModel'];
+  rerankingModel: ProviderV2['rerankingModel'];
 
   constructor({
     languageModels,
@@ -21,12 +23,14 @@ export class MockProviderV2 implements ProviderV2 {
     imageModels,
     transcriptionModels,
     speechModels,
+    rerankingModels,
   }: {
     languageModels?: Record<string, LanguageModelV2>;
     embeddingModels?: Record<string, EmbeddingModelV2<string>>;
     imageModels?: Record<string, ImageModelV2>;
     transcriptionModels?: Record<string, TranscriptionModelV2>;
     speechModels?: Record<string, SpeechModelV2>;
+    rerankingModels?: Record<string, RerankingModelV2<string>>;
   } = {}) {
     this.languageModel = (modelId: string) => {
       if (!languageModels?.[modelId]) {
@@ -63,6 +67,12 @@ export class MockProviderV2 implements ProviderV2 {
         throw new NoSuchModelError({ modelId, modelType: 'speechModel' });
       }
       return speechModels[modelId];
+    };
+    this.rerankingModel = (modelId: string) => {
+      if (!rerankingModels?.[modelId]) {
+        throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+      }
+      return rerankingModels[modelId];
     };
   }
 }

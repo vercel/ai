@@ -3,6 +3,7 @@ import {
   EmbeddingModelV2,
   ProviderV2,
   ImageModelV2,
+  NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
