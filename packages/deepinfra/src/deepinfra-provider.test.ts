@@ -19,11 +19,14 @@ vi.mock('@ai-sdk/openai-compatible', () => ({
   OpenAICompatibleEmbeddingModel: vi.fn(),
 }));
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
-  withoutTrailingSlash: vi.fn(url => url),
-  withUserAgentSuffix: vi.fn(headers => headers),
-}));
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    ...actual,
+    loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
+    withoutTrailingSlash: vi.fn(url => url),
+  };
+});
 
 vi.mock('./deepinfra-image-model', () => ({
   DeepInfraImageModel: vi.fn(),

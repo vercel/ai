@@ -23,12 +23,19 @@ vi.mock('./xai-image-model', () => ({
   XaiImageModel: vi.fn(),
 }));
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
-  withoutTrailingSlash: vi.fn(url => url),
-  createJsonErrorResponseHandler: vi.fn().mockReturnValue(() => {}),
-  generateId: vi.fn().mockReturnValue('mock-id'),
-  withUserAgentSuffix: vi.fn(headers => headers),
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    ...actual,
+    loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
+    withoutTrailingSlash: vi.fn(url => url),
+    createJsonErrorResponseHandler: vi.fn().mockReturnValue(() => {}),
+    generateId: vi.fn().mockReturnValue('mock-id'),
+  };
+});
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
 }));
 
 describe('xAIProvider', () => {
@@ -151,8 +158,9 @@ describe('xAIProvider', () => {
       const headers = config.headers();
 
       expect(headers).toMatchObject({
-        Authorization: 'Bearer mock-api-key',
-        'Custom-Header': 'test-value',
+        authorization: 'Bearer mock-api-key',
+        'custom-header': 'test-value',
+        'user-agent': 'ai-sdk/xai/0.0.0-test',
       });
     });
   });
