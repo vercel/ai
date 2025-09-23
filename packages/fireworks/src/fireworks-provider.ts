@@ -5,7 +5,7 @@ import {
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   ImageModelV2,
   LanguageModelV2,
   ProviderV2,
@@ -80,7 +80,7 @@ Creates a text embedding model for text generation.
 */
   textEmbeddingModel(
     modelId: FireworksEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 
   /**
 Creates a model for image generation.

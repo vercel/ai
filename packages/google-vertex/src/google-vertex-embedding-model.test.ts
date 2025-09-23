@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2Embedding,
+  EmbeddingModelV3Embedding,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -48,7 +48,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     tokenCounts = [1, 1],
     headers,
   }: {
-    embeddings?: EmbeddingModelV2Embedding[];
+    embeddings?: EmbeddingModelV3Embedding[];
     tokenCounts?: number[];
     headers?: Record<string, string>;
   } = {}) {
