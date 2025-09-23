@@ -1,6 +1,6 @@
 import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { defaultSettingsMiddleware } from './default-settings-middleware';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { describe, it, expect } from 'vitest';
 
 const BASE_PARAMS: LanguageModelV3CallOptions = {
@@ -9,7 +9,7 @@ const BASE_PARAMS: LanguageModelV3CallOptions = {
   ],
 };
 
-const MOCK_MODEL = new MockLanguageModelV2();
+const MOCK_MODEL = new MockLanguageModelV3();
 
 describe('defaultSettingsMiddleware', () => {
   describe('transformParams', () => {

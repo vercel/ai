@@ -1,7 +1,7 @@
 import { LanguageModelV3 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
-export class MockLanguageModelV2 implements LanguageModelV3 {
+export class MockLanguageModelV3 implements LanguageModelV3 {
   readonly specificationVersion = 'v2';
 
   private _supportedUrls: () => LanguageModelV3['supportedUrls'];

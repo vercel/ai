@@ -1,5 +1,5 @@
 import { streamText, simulateReadableStream } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV3 } from 'ai/test';
 import { LanguageModelV3StreamPart } from '@ai-sdk/provider';
 
 const generateLongContent = (tokens: number, includeTools = false) => {
@@ -95,7 +95,7 @@ async function benchmarkSingleStream() {
   const chunks = generateLongContent(tokenCount);
   const totalBytes = calculateTotalBytes(tokenCount);
 
-  const model = new MockLanguageModelV2({
+  const model = new MockLanguageModelV3({
     doStream: async () => ({
       stream: simulateReadableStream({
         chunks,
@@ -135,7 +135,7 @@ async function benchmarkConcurrentStreams() {
   const totalBytes = bytesPerStream * streamCount;
   const totalTokens = tokensPerStream * streamCount;
 
-  const model = new MockLanguageModelV2({
+  const model = new MockLanguageModelV3({
     doStream: async () => ({
       stream: simulateReadableStream({
         chunks,
@@ -179,7 +179,7 @@ async function benchmarkStreamWithToolCalls() {
   const chunks = generateLongContent(tokenCount, includeTools);
   const totalBytes = calculateTotalBytes(tokenCount, includeTools);
 
-  const model = new MockLanguageModelV2({
+  const model = new MockLanguageModelV3({
     doStream: async () => ({
       stream: simulateReadableStream({
         chunks,
