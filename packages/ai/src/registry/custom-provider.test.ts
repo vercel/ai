@@ -1,6 +1,6 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
-import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
+import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v2';
 import { MockImageModelV2 } from '../test/mock-image-model-v2';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
@@ -8,7 +8,7 @@ import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
 import { customProvider } from './custom-provider';
 
 const mockLanguageModel = new MockLanguageModelV2();
-const mockEmbeddingModel = new MockEmbeddingModelV2();
+const mockEmbeddingModel = new MockEmbeddingModelV3();
 const mockFallbackProvider = {
   languageModel: vi.fn(),
   textEmbeddingModel: vi.fn(),

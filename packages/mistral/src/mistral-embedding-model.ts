@@ -20,7 +20,7 @@ type MistralEmbeddingConfig = {
 };
 
 export class MistralEmbeddingModel implements EmbeddingModelV3<string> {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly modelId: MistralEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 32;
   readonly supportsParallelCalls = false;

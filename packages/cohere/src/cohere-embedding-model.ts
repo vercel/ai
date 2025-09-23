@@ -24,7 +24,7 @@ type CohereEmbeddingConfig = {
 };
 
 export class CohereEmbeddingModel implements EmbeddingModelV3<string> {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly modelId: CohereEmbeddingModelId;
 
   readonly maxEmbeddingsPerCall = 96;

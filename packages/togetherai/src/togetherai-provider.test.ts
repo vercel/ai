@@ -39,7 +39,7 @@ describe('TogetherAIProvider', () => {
       // Add any required methods for LanguageModelV2
     } as LanguageModelV2;
     mockEmbeddingModel = {
-      // Add any required methods for EmbeddingModelV2
+      // Add any required methods for EmbeddingModelV3
     } as EmbeddingModelV3<string>;
 
     // Reset mocks

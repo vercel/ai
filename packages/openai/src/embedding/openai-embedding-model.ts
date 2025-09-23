@@ -17,7 +17,7 @@ import {
 } from './openai-embedding-options';
 
 export class OpenAIEmbeddingModel implements EmbeddingModelV3<string> {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly modelId: OpenAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;

@@ -41,7 +41,7 @@ Override the parallelism of embedding calls.
 export class OpenAICompatibleEmbeddingModel
   implements EmbeddingModelV3<string>
 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly modelId: OpenAICompatibleEmbeddingModelId;
 
   private readonly config: OpenAICompatibleEmbeddingConfig;

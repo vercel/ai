@@ -28,7 +28,7 @@ type BedrockEmbeddingConfig = {
 type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>;
 
 export class BedrockEmbeddingModel implements EmbeddingModelV3<string> {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly provider = 'amazon-bedrock';
   readonly maxEmbeddingsPerCall = 1;
   readonly supportsParallelCalls = true;

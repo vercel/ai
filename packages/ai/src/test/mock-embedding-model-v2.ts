@@ -1,8 +1,8 @@
 import { EmbeddingModelV3 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
-export class MockEmbeddingModelV2<VALUE> implements EmbeddingModelV3<VALUE> {
-  readonly specificationVersion = 'v2';
+export class MockEmbeddingModelV3<VALUE> implements EmbeddingModelV3<VALUE> {
+  readonly specificationVersion = 'v3';
 
   readonly provider: EmbeddingModelV3<VALUE>['provider'];
   readonly modelId: EmbeddingModelV3<VALUE>['modelId'];

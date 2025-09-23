@@ -19,7 +19,7 @@ import {
 import { GoogleVertexConfig } from './google-vertex-config';
 
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV3<string> {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly modelId: GoogleVertexEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;

@@ -14,7 +14,7 @@ import { parseAuthMethod } from './errors/parse-auth-method';
 import type { SharedV2ProviderMetadata } from '@ai-sdk/provider';
 
 export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
 
