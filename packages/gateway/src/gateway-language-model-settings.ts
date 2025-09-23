@@ -37,6 +37,7 @@ export type GatewayModelId =
   | 'google/gemma-2-9b'
   | 'inception/mercury-coder-small'
   | 'meituan/longcat-flash-chat'
+  | 'meituan/longcat-flash-thinking'
   | 'meta/llama-3-70b'
   | 'meta/llama-3-8b'
   | 'meta/llama-3.1-70b'
