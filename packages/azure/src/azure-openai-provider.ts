@@ -8,7 +8,7 @@ import {
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   LanguageModelV2,
   ProviderV2,
   ImageModelV2,
@@ -49,7 +49,7 @@ Creates an Azure OpenAI completion model for text generation.
   /**
 @deprecated Use `textEmbedding` instead.
    */
-  embedding(deploymentId: string): EmbeddingModelV2<string>;
+  embedding(deploymentId: string): EmbeddingModelV3<string>;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
@@ -61,12 +61,12 @@ Creates an Azure OpenAI completion model for text generation.
    */
   imageModel(deploymentId: string): ImageModelV2;
 
-  textEmbedding(deploymentId: string): EmbeddingModelV2<string>;
+  textEmbedding(deploymentId: string): EmbeddingModelV3<string>;
 
   /**
 Creates an Azure OpenAI model for text embeddings.
    */
-  textEmbeddingModel(deploymentId: string): EmbeddingModelV2<string>;
+  textEmbeddingModel(deploymentId: string): EmbeddingModelV3<string>;
 
   /**
    * Creates an Azure OpenAI model for audio transcription.

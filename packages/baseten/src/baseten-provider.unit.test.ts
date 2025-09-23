@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createBaseten } from './baseten-provider';
 import {
   LanguageModelV2,
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';

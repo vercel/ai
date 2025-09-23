@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   ImageModelV2,
   LanguageModelV2,
   ProviderV2,
@@ -55,17 +55,17 @@ Creates an OpenAI completion model for text generation.
   /**
 Creates a model for text embeddings.
    */
-  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
+  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3<string>;
 
   /**
 Creates a model for text embeddings.
    */
-  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
+  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3<string>;
 
   /**
 Creates a model for text embeddings.
    */
-  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
+  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3<string>;
 
   /**
 Creates a model for image generation.

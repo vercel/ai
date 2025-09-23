@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   ImageModelV2,
   LanguageModelV2,
   ProviderV2,
@@ -109,7 +109,7 @@ export interface AmazonBedrockProvider extends ProviderV2 {
 
   languageModel(modelId: BedrockChatModelId): LanguageModelV2;
 
-  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV2<string>;
+  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3<string>;
 
   /**
 Creates a model for image generation.
