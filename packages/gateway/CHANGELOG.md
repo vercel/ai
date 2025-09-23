@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.26
+
+### Patch Changes
+
+- e304478: feat(provider/gateway): Add LongCat Thinking model to Gateway autocomplete
+
 ## 1.0.25
 
 ### Patch Changes
