@@ -92,9 +92,16 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
-      - name: Comment on original PR
+      - name: Success Comment on original PR
         if: steps.create-pr.outputs.backport-pr-url
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "✅ Backport PR created: ${{ steps.create-pr.outputs.backport-pr-url }}"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Failure Comment on original PR
+        if: failure()
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "❌ Backport to v5.0 failed. This backport requires manual intervention. [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
