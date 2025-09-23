@@ -3,7 +3,7 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
-import { LanguageModelV2, EmbeddingModelV2 } from '@ai-sdk/provider';
+import { LanguageModelV2, EmbeddingModelV3 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { createTogetherAI } from './togetherai-provider';
@@ -30,7 +30,7 @@ vi.mock('./togetherai-image-model', () => ({
 
 describe('TogetherAIProvider', () => {
   let mockLanguageModel: LanguageModelV2;
-  let mockEmbeddingModel: EmbeddingModelV2<string>;
+  let mockEmbeddingModel: EmbeddingModelV3<string>;
   let createOpenAICompatibleMock: Mock;
 
   beforeEach(() => {
@@ -40,7 +40,7 @@ describe('TogetherAIProvider', () => {
     } as LanguageModelV2;
     mockEmbeddingModel = {
       // Add any required methods for EmbeddingModelV2
-    } as EmbeddingModelV2<string>;
+    } as EmbeddingModelV3<string>;
 
     // Reset mocks
     vi.clearAllMocks();

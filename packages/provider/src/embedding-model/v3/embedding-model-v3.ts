@@ -3,7 +3,7 @@ import {
   SharedV2ProviderOptions,
   SharedV2ProviderMetadata,
 } from '../../shared';
-import { EmbeddingModelV2Embedding } from './embedding-model-v3-embedding';
+import { EmbeddingModelV3Embedding } from './embedding-model-v3-embedding';
 
 /**
 Specification for an embedding model that implements the embedding model
@@ -13,7 +13,7 @@ VALUE is the type of the values that the model can embed.
 This will allow us to go beyond text embeddings in the future,
 e.g. to support image embeddings
  */
-export type EmbeddingModelV2<VALUE> = {
+export type EmbeddingModelV3<VALUE> = {
   /**
 The embedding model must specify which embedding model interface
 version it implements. This will allow us to evolve the embedding
@@ -81,7 +81,7 @@ functionality that can be fully encapsulated in the provider.
     /**
 Generated embeddings. They are in the same order as the input values.
      */
-    embeddings: Array<EmbeddingModelV2Embedding>;
+    embeddings: Array<EmbeddingModelV3Embedding>;
 
     /**
 Token usage. We only have input tokens for embeddings.

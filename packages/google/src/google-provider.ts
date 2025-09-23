@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   LanguageModelV2,
   ProviderV2,
   ImageModelV2,
@@ -47,15 +47,15 @@ Creates a model for image generation.
    */
   embedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 
   textEmbedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 
   tools: typeof googleTools;
 }

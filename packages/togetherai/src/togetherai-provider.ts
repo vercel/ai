@@ -1,6 +1,6 @@
 import {
   LanguageModelV2,
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   ProviderV2,
   ImageModelV2,
 } from '@ai-sdk/provider';
@@ -66,7 +66,7 @@ Creates a text embedding model for text generation.
 */
   textEmbeddingModel(
     modelId: TogetherAIEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 
   /**
 Creates a model for image generation.

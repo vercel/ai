@@ -4,7 +4,7 @@ import {
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
@@ -80,7 +80,7 @@ Creates a text embedding model for text generation.
 */
   textEmbeddingModel(
     modelId?: BasetenEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 }
 
 // by default, we use the Model APIs

@@ -1,4 +1,4 @@
-import { EmbeddingModelV2 } from '@ai-sdk/provider';
+import { EmbeddingModelV3 } from '@ai-sdk/provider';
 import assert from 'node:assert';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
@@ -488,12 +488,12 @@ function mockEmbed<VALUE>(
   embeddings: Array<Embedding>,
   usage?: EmbeddingModelUsage,
   response: Awaited<
-    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+    ReturnType<EmbeddingModelV3<VALUE>['doEmbed']>
   >['response'] = { headers: {}, body: {} },
   providerMetadata?: Awaited<
-    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+    ReturnType<EmbeddingModelV3<VALUE>['doEmbed']>
   >['providerMetadata'],
-): EmbeddingModelV2<VALUE>['doEmbed'] {
+): EmbeddingModelV3<VALUE>['doEmbed'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);
     return { embeddings, usage, response, providerMetadata };

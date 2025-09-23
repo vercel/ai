@@ -1,4 +1,4 @@
-import type { EmbeddingModelV2 } from '@ai-sdk/provider';
+import type { EmbeddingModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -13,7 +13,7 @@ import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { SharedV2ProviderMetadata } from '@ai-sdk/provider';
 
-export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
+export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
   readonly specificationVersion = 'v2';
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
@@ -35,8 +35,8 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
   > {
     const resolvedHeaders = await resolve(this.config.headers());
     try {

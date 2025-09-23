@@ -1,4 +1,4 @@
-import { EmbeddingModelV2 } from '../../embedding-model/v3/embedding-model-v3';
+import { EmbeddingModelV3 } from '../../embedding-model/v3/embedding-model-v3';
 import { ImageModelV2 } from '../../image-model/v2/image-model-v2';
 import { LanguageModelV2 } from '../../language-model/v2/language-model-v2';
 import { SpeechModelV2 } from '../../speech-model/v2/speech-model-v2';
@@ -30,7 +30,7 @@ The model id is then passed to the provider function to get the model.
 
 @throws {NoSuchModelError} If no such model exists.
    */
-  textEmbeddingModel(modelId: string): EmbeddingModelV2<string>;
+  textEmbeddingModel(modelId: string): EmbeddingModelV3<string>;
 
   /**
 Returns the image model with the given id.

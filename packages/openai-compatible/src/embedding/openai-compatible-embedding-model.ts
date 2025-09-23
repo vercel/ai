@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -39,7 +39,7 @@ Override the parallelism of embedding calls.
 };
 
 export class OpenAICompatibleEmbeddingModel
-  implements EmbeddingModelV2<string>
+  implements EmbeddingModelV3<string>
 {
   readonly specificationVersion = 'v2';
   readonly modelId: OpenAICompatibleEmbeddingModelId;
@@ -75,8 +75,8 @@ export class OpenAICompatibleEmbeddingModel
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
   > {
     const compatibleOptions = Object.assign(
       (await parseProviderOptions({
