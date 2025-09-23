@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.27
+
+### Patch Changes
+
+- c5f403a: feat(provider/gateway): Add gpt-5-codex to Gateway model string autocomplete
+
 ## 1.0.26
 
 ### Patch Changes
