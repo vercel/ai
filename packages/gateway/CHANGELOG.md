@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.4
+
+### Patch Changes
+
+- 7ccb36f: feat(provider/gateway): Add LongCat Thinking model to Gateway autocomplete
+- 6c766ef: feat(provider/gateway): Add DeepSeek V3.1 Terminus to Gateway autocomplete
+
 ## 1.1.0-beta.3
 
 ### Patch Changes
