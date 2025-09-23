@@ -1,6 +1,10 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createElevenLabs } from './elevenlabs-provider';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const provider = createElevenLabs({ apiKey: 'test-api-key' });
 const model = provider.speech('eleven_multilingual_v2');
@@ -152,6 +156,19 @@ describe('ElevenLabsSpeechModel', () => {
       // Check output_format is in query params
       expect(server.calls[0].requestUrl).toContain(
         'output_format=mp3_44100_128',
+      );
+    });
+
+    it('should include user-agent header', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+      });
+
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/elevenlabs/0.0.0-test`,
       );
     });
   });

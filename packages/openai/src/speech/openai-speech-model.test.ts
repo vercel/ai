@@ -1,7 +1,11 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
 import { OpenAISpeechModel } from './openai-speech-model';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const provider = createOpenAI({ apiKey: 'test-api-key' });
 const model = provider.speech('tts-1');
@@ -70,6 +74,10 @@ describe('doGenerate', () => {
       'openai-organization': 'test-organization',
       'openai-project': 'test-project',
     });
+
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/openai/0.0.0-test`,
+    );
   });
 
   it('should pass options', async () => {
