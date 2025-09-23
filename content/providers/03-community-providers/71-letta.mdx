@@ -71,32 +71,22 @@ const letta = createLetta({
 
 **Get your API key:** Sign up at [Letta](https://app.letta.com/) and get your API key from the [dashboard](https://app.letta.com/api-keys).
 
-<<<<<<< Updated upstream
-```text
-LETTA_API_KEY=<your_api_key>
-=======
 **Note:** If using a `.env` file, you can source it in your shell (`source .env`) or use a package like `dotenv` to load it in your application.
 
 ```bash
 # .env
 LETTA_API_KEY=your-letta-api-key
->>>>>>> Stashed changes
 ```
 
 ```typescript
 import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
 import { generateText } from 'ai';
 
-<<<<<<< Updated upstream
-const { text } = await generateText({
-  model: lettaCloud('your_agent_id'),
-=======
 const result = await generateText({
   model: lettaCloud(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
   providerOptions: {
     agent: { id: 'your-agent-id' }
   },
->>>>>>> Stashed changes
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -107,16 +97,11 @@ const result = await generateText({
 import { lettaLocal } from '@letta-ai/vercel-ai-sdk-provider';
 import { generateText } from 'ai';
 
-<<<<<<< Updated upstream
-const { text } = await generateText({
-  model: lettaLocal('your_agent_id'),
-=======
 const result = await generateText({
   model: lettaLocal(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
   providerOptions: {
     agent: { id: 'your-agent-id' }
   },
->>>>>>> Stashed changes
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -132,16 +117,11 @@ const letta = createLetta({
   token: '<your_access_token>',
 });
 
-<<<<<<< Updated upstream
-const { text } = await generateText({
-  model: letta('your_agent_id'),
-=======
 const result = await generateText({
   model: letta(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
   providerOptions: {
     agent: { id: 'your-agent-id' }
   },
->>>>>>> Stashed changes
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
