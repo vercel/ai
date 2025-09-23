@@ -1,0 +1,35 @@
+{
+  "name": "@example/next-agent",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "workspace:*",
+    "@ai-sdk/react": "workspace:*",
+    "@vercel/blob": "^0.26.0",
+    "ai": "workspace:*",
+    "next": "latest",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-markdown": "9.0.1",
+    "resumable-stream": "^2.2.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.24",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.14",
+    "eslint": "8.57.1",
+    "eslint-config-next": "14.2.3",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "5.8.3",
+    "@vercel/ai-tsconfig": "workspace:*"
+  }
+}

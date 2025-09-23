@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "2.0.29",
+  "version": "2.1.0-beta.5",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,8 +30,9 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "ai": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
+    "@ai-sdk/test-server": "workspace:*",
+    "ai": "workspace:*",
     "swrv": "^1.0.4"
   },
   "devDependencies": {
@@ -50,10 +51,14 @@
     "vitest": "2.1.4"
   },
   "peerDependencies": {
-    "vue": "^3.3.4"
+    "vue": "^3.3.4",
+    "zod": "^3.25.76 || ^4"
   },
   "peerDependenciesMeta": {
     "vue": {
+      "optional": true
+    },
+    "zod": {
       "optional": true
     }
   },

@@ -26,13 +26,21 @@ You need to update the following packages to the following versions in your `pac
 
 Additionally, you need to update the following peer dependencies:
 
-- `zod` package: `3.25.0` or later
+- `zod` package: `4.1.8` or later (recommended to avoid TypeScript performance issues)
 
 An example upgrade command would be:
 
 ```
-npm install ai @ai-sdk/react @ai-sdk/openai zod@3.25.0
+npm install ai @ai-sdk/react @ai-sdk/openai zod@^4.1.8
 ```
+
+<Note>
+  If you encounter TypeScript performance issues after upgrading, ensure you're
+  using Zod 4.1.8 or later. If the issue persists, update your `tsconfig.json`
+  to use `moduleResolution: "nodenext"`. See the [TypeScript performance
+  troubleshooting guide](/docs/troubleshooting/typescript-performance-zod) for
+  more details.
+</Note>
 
 ## Codemods
 
@@ -576,6 +584,46 @@ for await (const part of result.fullStream) {
   }
 }
 ```
+
+### Tool Execution Error Handling
+
+The `ToolExecutionError` class has been removed. Tool execution errors now appear as `tool-error` content parts in the result steps, enabling automated LLM roundtrips in multi-step scenarios.
+
+```tsx filename="AI SDK 4.0"
+import { ToolExecutionError } from 'ai';
+
+try {
+  const result = await generateText({
+    // ...
+  });
+} catch (error) {
+  if (error instanceof ToolExecutionError) {
+    console.log('Tool execution failed:', error.message);
+    console.log('Tool name:', error.toolName);
+    console.log('Tool input:', error.toolInput);
+  }
+}
+```
+
+```tsx filename="AI SDK 5.0"
+// Tool execution errors now appear in result steps
+const { steps } = await generateText({
+  // ...
+});
+
+// check for tool errors in the steps
+const toolErrors = steps.flatMap(step =>
+  step.content.filter(part => part.type === 'tool-error'),
+);
+
+toolErrors.forEach(toolError => {
+  console.log('Tool error:', toolError.error);
+  console.log('Tool name:', toolError.toolName);
+  console.log('Tool input:', toolError.input);
+});
+```
+
+For streaming scenarios, tool execution errors appear as `tool-error` parts in the stream, while other errors appear as `error` parts.
 
 ### Tool Call Streaming Now Default (toolCallStreaming Removed)
 
@@ -3054,17 +3102,22 @@ import {
 
 ### TypeScript Performance Issues with Zod
 
-If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0, you need to use the Zod v3 import path:
+If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0:
 
-```typescript
-// ❌ Avoid: Standard import causes TypeScript issues
-import { z } from 'zod';
+1. **First, ensure you're using Zod 4.1.8 or later** - this version includes a fix for module resolution issues that cause TypeScript performance problems.
 
-// ✅ Use: v3-specific import for AI SDK 5.0 compatibility
-import { z } from 'zod/v3';
+2. If the issue persists, update your `tsconfig.json` to use `moduleResolution: "nodenext"`:
+
+```json
+{
+  "compilerOptions": {
+    "moduleResolution": "nodenext"
+    // ... other options
+  }
+}
 ```
 
-This is particularly important when using `generateObject`, `tool`, or other AI SDK functions with Zod schemas. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
+This resolves the TypeScript performance issues while allowing you to continue using the standard Zod import. If this doesn't resolve the issue, you can try using a version-specific import path as an alternative solution. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
 
 ## Codemod Table
 

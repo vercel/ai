@@ -10,6 +10,12 @@ export default defineConfig([
     sourcemap: true,
     target: 'es2018',
     platform: 'node',
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
   },
   // Internal APIs
   {
@@ -21,6 +27,12 @@ export default defineConfig([
     sourcemap: true,
     target: 'es2018',
     platform: 'node',
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
   },
   // Test utilities
   {
@@ -43,6 +55,12 @@ export default defineConfig([
     // Allow BigInt in tests
     target: 'es2020',
     platform: 'node',
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
   },
   // MCP stdio
   {
@@ -54,5 +72,11 @@ export default defineConfig([
     sourcemap: true,
     target: 'es2018',
     platform: 'node',
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
   },
 ]);

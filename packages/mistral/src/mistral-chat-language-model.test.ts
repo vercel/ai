@@ -1,7 +1,7 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { createMistral } from './mistral-provider';
@@ -679,6 +679,53 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should pass parallelToolCalls option', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        mistral: {
+          parallelToolCalls: false,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      model: 'mistral-small-latest',
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      ],
+      parallel_tool_calls: false,
+    });
   });
 });
 

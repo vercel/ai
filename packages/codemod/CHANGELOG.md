@@ -1,5 +1,17 @@
 # @ai-sdk/codemod
 
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+## 2.0.10
+
+### Patch Changes
+
+- 4627f55: fix(codemod): remove generate text codemod
+
 ## 2.0.9
 
 ### Patch Changes

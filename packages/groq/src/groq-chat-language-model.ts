@@ -224,6 +224,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
         inputTokens: response.usage?.prompt_tokens ?? undefined,
         outputTokens: response.usage?.completion_tokens ?? undefined,
         totalTokens: response.usage?.total_tokens ?? undefined,
+        cachedInputTokens:
+          response.usage?.prompt_tokens_details?.cached_tokens ?? undefined,
       },
       response: {
         ...getResponseMetadata(response),
@@ -274,6 +276,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
+      cachedInputTokens: undefined,
     };
     let isFirstChunk = true;
     let isActiveText = false;
@@ -326,6 +329,9 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
               usage.outputTokens =
                 value.x_groq.usage.completion_tokens ?? undefined;
               usage.totalTokens = value.x_groq.usage.total_tokens ?? undefined;
+              usage.cachedInputTokens =
+                value.x_groq.usage.prompt_tokens_details?.cached_tokens ??
+                undefined;
             }
 
             const choice = value.choices[0];
@@ -546,6 +552,11 @@ const groqChatResponseSchema = z.object({
       prompt_tokens: z.number().nullish(),
       completion_tokens: z.number().nullish(),
       total_tokens: z.number().nullish(),
+      prompt_tokens_details: z
+        .object({
+          cached_tokens: z.number().nullish(),
+        })
+        .nullish(),
     })
     .nullish(),
 });
@@ -589,6 +600,11 @@ const groqChatChunkSchema = z.union([
             prompt_tokens: z.number().nullish(),
             completion_tokens: z.number().nullish(),
             total_tokens: z.number().nullish(),
+            prompt_tokens_details: z
+              .object({
+                cached_tokens: z.number().nullish(),
+              })
+              .nullish(),
           })
           .nullish(),
       })
