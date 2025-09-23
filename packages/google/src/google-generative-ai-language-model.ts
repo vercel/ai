@@ -52,7 +52,7 @@ type GoogleGenerativeAIConfig = {
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
 
   readonly modelId: GoogleGenerativeAIModelId;
 

@@ -28,7 +28,7 @@ type PerplexityChatConfig = {
 };
 
 export class PerplexityLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly provider = 'perplexity';
 
   readonly modelId: PerplexityLanguageModelId;

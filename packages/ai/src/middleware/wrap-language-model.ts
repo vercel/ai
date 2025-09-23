@@ -63,7 +63,7 @@ const doWrap = ({
   }
 
   return {
-    specificationVersion: 'v2',
+    specificationVersion: 'v3',
 
     provider: providerId ?? overrideProvider?.({ model }) ?? model.provider,
     modelId: modelId ?? overrideModelId?.({ model }) ?? model.modelId,

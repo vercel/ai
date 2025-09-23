@@ -15,7 +15,7 @@ export type LanguageModelV3 = {
   /**
 The language model must specify which language model interface version it implements.
    */
-  readonly specificationVersion: 'v2';
+  readonly specificationVersion: 'v3';
 
   /**
 Name of the provider for logging purposes.

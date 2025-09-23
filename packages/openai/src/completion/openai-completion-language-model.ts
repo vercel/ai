@@ -36,7 +36,7 @@ type OpenAICompletionConfig = {
 };
 
 export class OpenAICompletionLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
 
   readonly modelId: OpenAICompletionModelId;
 

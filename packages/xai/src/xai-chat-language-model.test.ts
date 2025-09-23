@@ -26,7 +26,7 @@ describe('XaiChatLanguageModel', () => {
   it('should be instantiated correctly', () => {
     expect(model.modelId).toBe('grok-beta');
     expect(model.provider).toBe('xai.chat');
-    expect(model.specificationVersion).toBe('v2');
+    expect(model.specificationVersion).toBe('v3');
   });
 
   it('should have supported URLs', () => {

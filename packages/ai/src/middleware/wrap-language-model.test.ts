@@ -259,7 +259,7 @@ describe('wrapLanguageModel', () => {
     let supportedUrlsCalled = false;
 
     class MockLanguageModelWithImageSupport implements LanguageModelV3 {
-      readonly specificationVersion = 'v2';
+      readonly specificationVersion = 'v3';
       readonly provider = 'test-provider';
       readonly modelId = 'test-model';
 

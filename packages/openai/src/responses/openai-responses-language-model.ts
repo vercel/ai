@@ -120,7 +120,7 @@ const LOGPROBS_SCHEMA = z.array(
 );
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
 
   readonly modelId: OpenAIResponsesModelId;
 
