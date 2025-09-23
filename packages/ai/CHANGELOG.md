@@ -1,5 +1,11 @@
 # ai
 
+## 5.1.0-beta.7
+
+### Patch Changes
+
+- 5a4e732: Export `parseJsonEventStream` and `uiMessageChunkSchema` from "ai" package
+
 ## 5.1.0-beta.6
 
 ### Patch Changes
