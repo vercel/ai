@@ -79,11 +79,6 @@ export const uiMessageChunkSchema = z.union([
     dynamic: z.boolean().optional(),
   }),
   z.strictObject({
-    type: z.literal('reasoning'),
-    text: z.string(),
-    providerMetadata: providerMetadataSchema.optional(),
-  }),
-  z.strictObject({
     type: z.literal('reasoning-start'),
     id: z.string(),
     providerMetadata: providerMetadataSchema.optional(),
@@ -98,9 +93,6 @@ export const uiMessageChunkSchema = z.union([
     type: z.literal('reasoning-end'),
     id: z.string(),
     providerMetadata: providerMetadataSchema.optional(),
-  }),
-  z.strictObject({
-    type: z.literal('reasoning-part-finish'),
   }),
   z.strictObject({
     type: z.literal('source-url'),
@@ -201,14 +193,6 @@ export type UIMessageChunk<
       type: 'reasoning-end';
       id: string;
       providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'reasoning';
-      text: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'reasoning-part-finish';
     }
   | {
       type: 'error';
