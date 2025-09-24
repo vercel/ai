@@ -6,7 +6,7 @@ import { createProviderRegistry } from './provider-registry';
 import { MockImageModelV2 } from '../test/mock-image-model-v2';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
-import { MockProviderV2 } from '../test/mock-provider-v2';
+import { MockProviderV3 } from '../test/mock-provider-v3';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('languageModel', () => {
@@ -435,14 +435,14 @@ describe('middleware functionality', () => {
     const model2 = new MockLanguageModelV2({ modelId: 'model-2' });
     const model3 = new MockLanguageModelV2({ modelId: 'model-3' });
 
-    const provider1 = new MockProviderV2({
+    const provider1 = new MockProviderV3({
       languageModels: {
         'model-1': model1,
         'model-2': model2,
       },
     });
 
-    const provider2 = new MockProviderV2({
+    const provider2 = new MockProviderV3({
       languageModels: {
         'model-3': model3,
       },

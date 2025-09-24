@@ -1,4 +1,4 @@
-import { ImageModelV2, NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
+import { ImageModelV2, NoSuchModelError, ProviderV3 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
@@ -30,7 +30,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface LumaProvider extends ProviderV2 {
+export interface LumaProvider extends ProviderV3 {
   /**
 Creates a model for image generation.
   */

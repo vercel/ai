@@ -3,7 +3,7 @@ import {
   ImageModelV2,
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
@@ -41,8 +41,8 @@ export function customProvider<
   imageModels?: IMAGE_MODELS;
   transcriptionModels?: TRANSCRIPTION_MODELS;
   speechModels?: SPEECH_MODELS;
-  fallbackProvider?: ProviderV2;
-}): ProviderV2 & {
+  fallbackProvider?: ProviderV3;
+}): ProviderV3 & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV2;
   textEmbeddingModel(
     modelId: ExtractModelId<EMBEDDING_MODELS>,

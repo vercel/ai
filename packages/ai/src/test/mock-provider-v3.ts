@@ -3,17 +3,17 @@ import {
   ImageModelV2,
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
 
-export class MockProviderV2 implements ProviderV2 {
-  languageModel: ProviderV2['languageModel'];
-  textEmbeddingModel: ProviderV2['textEmbeddingModel'];
-  imageModel: ProviderV2['imageModel'];
-  transcriptionModel: ProviderV2['transcriptionModel'];
-  speechModel: ProviderV2['speechModel'];
+export class MockProviderV3 implements ProviderV3 {
+  languageModel: ProviderV3['languageModel'];
+  textEmbeddingModel: ProviderV3['textEmbeddingModel'];
+  imageModel: ProviderV3['imageModel'];
+  transcriptionModel: ProviderV3['transcriptionModel'];
+  speechModel: ProviderV3['speechModel'];
 
   constructor({
     languageModels,

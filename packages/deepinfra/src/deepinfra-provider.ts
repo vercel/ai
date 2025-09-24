@@ -1,7 +1,7 @@
 import {
   LanguageModelV2,
   EmbeddingModelV3,
-  ProviderV2,
+  ProviderV3,
   ImageModelV2,
 } from '@ai-sdk/provider';
 import {
@@ -42,7 +42,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface DeepInfraProvider extends ProviderV2 {
+export interface DeepInfraProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
