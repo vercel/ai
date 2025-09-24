@@ -4,23 +4,19 @@ import 'dotenv/config';
 
 async function main() {
   const { text, usage } = await generateText({
-    model: openai('gpt-3.5-turbo'),
+    model: openai.chat('gpt-4o'),
     prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {
       openai: {
         logitBias: {},
         logprobs: 1,
-        parallelToolCalls: false,
         user: '<user_id>',
-        reasoningEffort: 'minimal',
         maxCompletionTokens: 100,
         store: false,
-        metadata: {},
-        prediction: {},
         structuredOutputs: false,
         serviceTier: 'auto',
         strictJsonSchema: false,
-        textVerbosity: 'low',
+        textVerbosity: 'medium',
         promptCacheKey: '<prompt_cache_key>',
         safetyIdentifier: '<safety_identifier>',
         // @ts-expect-error

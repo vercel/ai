@@ -9,7 +9,7 @@ import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 await generateText({
-  model: openai('gpt-3.5-turbo'),
+  model: openai.chat('gpt-4o'),
   prompt: 'Invent a new holiday and describe its traditions.',
   providerOptions: {
     openai: {
