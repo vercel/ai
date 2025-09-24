@@ -42,7 +42,6 @@ The model id is then passed to the provider function to get the model.
 */
   imageModel(modelId: string): ImageModelV2;
 
-
   /**
 Returns the transcription model with the given id.
 The model id is then passed to the provider function to get the model.
