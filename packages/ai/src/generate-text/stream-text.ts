@@ -1169,6 +1169,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             repairToolCall,
             abortSignal,
             experimental_context,
+            generateId,
           });
 
           const stepRequest = request ?? {};
@@ -1231,6 +1232,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                   const chunkType = chunk.type;
                   switch (chunkType) {
+                    case 'tool-approval-request':
                     case 'text-start':
                     case 'text-end': {
                       controller.enqueue(chunk);
@@ -2006,6 +2008,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
+            case 'tool-approval-request':
             case 'tool-input-end': {
               break;
             }

@@ -13821,15 +13821,18 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
-              "input": {
-                "value": "value",
+              "approvalId": "id-1",
+              "toolCall": {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
               },
-              "output": "result1",
-              "providerExecuted": undefined,
-              "providerMetadata": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
+              "type": "tool-approval-request",
             },
             {
               "finishReason": "tool-calls",

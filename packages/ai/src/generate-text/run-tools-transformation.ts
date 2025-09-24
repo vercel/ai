@@ -4,8 +4,8 @@ import {
 } from '@ai-sdk/provider';
 import {
   executeTool,
-  generateId,
   getErrorMessage,
+  IdGenerator,
   ModelMessage,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
@@ -22,6 +22,7 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   // Text blocks:
@@ -78,6 +79,9 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       id: string;
       providerMetadata?: ProviderMetadata;
     }
+  | ToolApprovalRequestOutput<TOOLS>
+
+  // Other types:
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
@@ -110,6 +114,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   abortSignal,
   repairToolCall,
   experimental_context,
+  generateId,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV2StreamPart>;
@@ -120,6 +125,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   experimental_context: unknown;
+  generateId: IdGenerator;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -225,7 +231,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             controller.enqueue(toolCall);
 
-            // handle invalid tool calls:
             if (toolCall.invalid) {
               toolResultsStreamController!.enqueue({
                 type: 'tool-error',
@@ -235,11 +240,19 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 error: getErrorMessage(toolCall.error!),
                 dynamic: true,
               });
-
               break;
             }
 
             const tool = tools![toolCall.toolName];
+
+            if (tool.needsApproval) {
+              toolResultsStreamController!.enqueue({
+                type: 'tool-approval-request',
+                approvalId: generateId(),
+                toolCall,
+              });
+              break;
+            }
 
             toolInputs.set(toolCall.toolCallId, toolCall.input);
 

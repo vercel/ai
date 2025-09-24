@@ -28,6 +28,7 @@ import {
   TypedToolResult,
 } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -405,6 +406,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
+  | ToolApprovalRequestOutput<TOOLS>
   | {
       type: 'start-step';
       request: LanguageModelRequestMetadata;

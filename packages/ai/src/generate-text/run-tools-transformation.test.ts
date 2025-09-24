@@ -3,6 +3,7 @@ import { delay } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
+  mockId,
 } from '@ai-sdk/provider-utils/test';
 import { z } from 'zod/v4';
 import { NoSuchToolError } from '../error/no-such-tool-error';
@@ -32,6 +33,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      generateId: mockId({ prefix: 'id' }),
       tools: undefined,
       generatorStream: inputStream,
       tracer: new MockTracer(),
@@ -93,6 +95,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      generateId: mockId({ prefix: 'id' }),
       tools: {
         syncTool: {
           inputSchema: z.object({ value: z.string() }),
@@ -166,6 +169,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      generateId: mockId({ prefix: 'id' }),
       tools: {
         syncTool: {
           inputSchema: z.object({ value: z.string() }),
@@ -239,6 +243,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      generateId: mockId({ prefix: 'id' }),
       tools: {
         delayedTool: {
           inputSchema: z.object({ value: z.string() }),
@@ -316,6 +321,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      generateId: mockId({ prefix: 'id' }),
       generatorStream: inputStream,
       tracer: new MockTracer(),
       telemetry: undefined,
@@ -409,6 +415,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      generateId: mockId({ prefix: 'id' }),
       tools: {
         providerTool: {
           inputSchema: z.object({ value: z.string() }),
