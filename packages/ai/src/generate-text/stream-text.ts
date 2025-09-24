@@ -798,6 +798,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(part);
         }
 
+        if (part.type === 'tool-approval-request') {
+          recordedContent.push(part);
+        }
+
         if (part.type === 'tool-error') {
           recordedContent.push(part);
         }

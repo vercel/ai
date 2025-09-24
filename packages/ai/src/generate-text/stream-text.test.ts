@@ -13798,7 +13798,7 @@ describe('streamText', () => {
         });
       });
 
-      it('should add tool call and result parts to the full stream', async () => {
+      it('should add tool approval requests to the full stream', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
           [
@@ -13862,6 +13862,37 @@ describe('streamText', () => {
                 "totalTokens": 13,
               },
               "type": "finish",
+            },
+          ]
+        `);
+      });
+
+      it('should add tool approval requests to the content', async () => {
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "approvalId": "id-1",
+              "toolCall": {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              "type": "tool-approval-request",
             },
           ]
         `);

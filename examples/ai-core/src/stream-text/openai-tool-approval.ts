@@ -76,11 +76,5 @@ run(async () => {
     }
 
     process.stdout.write('\n\n');
-
-    console.log(
-      (await result.steps)
-        .map(step => JSON.stringify(step.request.body))
-        .join('\n'),
-    );
   }
 });
