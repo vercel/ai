@@ -4,3 +4,4 @@ export type {
   DeepSeekProviderSettings,
 } from './deepseek-provider';
 export type { OpenAICompatibleErrorData as DeepSeekErrorData } from '@ai-sdk/openai-compatible';
+export { VERSION } from './version';

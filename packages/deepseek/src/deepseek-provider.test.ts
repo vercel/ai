@@ -11,9 +11,17 @@ vi.mock('@ai-sdk/openai-compatible', () => ({
   OpenAICompatibleChatLanguageModel: vi.fn(),
 }));
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
-  withoutTrailingSlash: vi.fn(url => url),
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    ...actual,
+    loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
+    withoutTrailingSlash: vi.fn(url => url),
+  };
+});
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
 }));
 
 describe('DeepSeekProvider', () => {
@@ -65,6 +73,29 @@ describe('DeepSeekProvider', () => {
 
       const model = provider(modelId);
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+    });
+
+    it('should include deepseek version in user-agent header', async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(new Response('{}', { status: 200 }));
+
+      const provider = createDeepSeek({ fetch: fetchMock });
+      provider('model-id');
+
+      const constructorCall = vi.mocked(OpenAICompatibleChatLanguageModel).mock
+        .calls[0];
+      const config = constructorCall[1];
+      const headers = config.headers();
+
+      await fetchMock('https://api.deepseek.com/v1/test', {
+        method: 'POST',
+        headers,
+      });
+
+      expect(fetchMock.mock.calls[0][1].headers['user-agent']).toContain(
+        'ai-sdk/deepseek/0.0.0-test',
+      );
     });
   });
 
