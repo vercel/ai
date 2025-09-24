@@ -3,16 +3,16 @@ import { LanguageModelMiddleware } from '../types';
 import { asArray } from '../util/as-array';
 
 /**
- * Wraps a LanguageModelV2 instance with middleware functionality.
+ * Wraps a LanguageModelV3 instance with middleware functionality.
  * This function allows you to apply middleware to transform parameters,
  * wrap generate operations, and wrap stream operations of a language model.
  *
  * @param options - Configuration options for wrapping the language model.
- * @param options.model - The original LanguageModelV2 instance to be wrapped.
+ * @param options.model - The original LanguageModelV3 instance to be wrapped.
  * @param options.middleware - The middleware to be applied to the language model. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
  * @param options.modelId - Optional custom model ID to override the original model's ID.
  * @param options.providerId - Optional custom provider ID to override the original model's provider ID.
- * @returns A new LanguageModelV2 instance with middleware applied.
+ * @returns A new LanguageModelV3 instance with middleware applied.
  */
 export const wrapLanguageModel = ({
   model,

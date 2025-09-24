@@ -34,12 +34,12 @@ See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more informati
     },
     {
       name: 'wrapGenerate',
-      type: '({ doGenerate: DoGenerateFunction, params: LanguageModelV3CallOptions, model: LanguageModelV2 }) => Promise<DoGenerateResult>',
+      type: '({ doGenerate: DoGenerateFunction, params: LanguageModelV3CallOptions, model: LanguageModelV3 }) => Promise<DoGenerateResult>',
       description: 'Wraps the generate operation of the language model.',
     },
     {
       name: 'wrapStream',
-      type: '({ doStream: DoStreamFunction, params: LanguageModelV3CallOptions, model: LanguageModelV2 }) => Promise<DoStreamResult>',
+      type: '({ doStream: DoStreamFunction, params: LanguageModelV3CallOptions, model: LanguageModelV3 }) => Promise<DoStreamResult>',
       description: 'Wraps the stream operation of the language model.',
     },
   ]}

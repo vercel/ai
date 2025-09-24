@@ -55,7 +55,7 @@ describe('FireworksProvider', () => {
   beforeEach(() => {
     // Mock implementations of models
     mockLanguageModel = {
-      // Add any required methods for LanguageModelV2
+      // Add any required methods for LanguageModelV3
     } as LanguageModelV3;
     mockEmbeddingModel = {
       // Add any required methods for EmbeddingModelV3

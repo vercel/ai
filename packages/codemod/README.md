@@ -85,7 +85,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | Codemod                                                               | Description                                                                    |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `v5/flatten-streamtext-file-properties`                               | Transforms v5/flatten streamtext file properties                               |
-| `v5/import-LanguageModelV2-from-provider-package`                     | Transforms v5/import LanguageModelV2 from provider package                     |
+| `v5/import-LanguageModelV3-from-provider-package`                     | Transforms v5/import LanguageModelV3 from provider package                     |
 | `v5/migrate-to-data-stream-protocol-v2`                               | Transforms v5/migrate to data stream protocol v2                               |
 | `v5/move-image-model-maxImagesPerCall`                                | Transforms v5/move image model maxImagesPerCall                                |
 | `v5/move-langchain-adapter`                                           | Transforms v5/move langchain adapter                                           |

@@ -2,9 +2,9 @@ import { LanguageModelV3 } from '../../language-model/v3/language-model-v3';
 import { LanguageModelV3CallOptions } from '../../language-model/v3/language-model-v3-call-options';
 
 /**
- * Experimental middleware for LanguageModelV2.
+ * Experimental middleware for LanguageModelV3.
  * This type defines the structure for middleware that can be used to modify
- * the behavior of LanguageModelV2 operations.
+ * the behavior of LanguageModelV3 operations.
  */
 export type LanguageModelV2Middleware = {
   /**

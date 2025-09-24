@@ -18,7 +18,7 @@ Let's see how you can use language model middleware to cache responses.
 ```ts filename="ai/middleware.ts"
 import { Redis } from '@upstash/redis';
 import {
-  type LanguageModelV2,
+  type LanguageModelV3,
   type LanguageModelV2Middleware,
   type LanguageModelV3StreamPart,
   simulateReadableStream,
@@ -34,7 +34,7 @@ export const cacheMiddleware: LanguageModelV2Middleware = {
     const cacheKey = JSON.stringify(params);
 
     const cached = (await redis.get(cacheKey)) as Awaited<
-      ReturnType<LanguageModelV2['doGenerate']>
+      ReturnType<LanguageModelV3['doGenerate']>
     > | null;
 
     if (cached !== null) {
