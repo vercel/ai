@@ -2,13 +2,13 @@ import { createTransformer } from '../lib/create-transformer';
 
 const ImportMappings: Record<string, string> = {
   LanguageModelV1: 'LanguageModelV2',
-  LanguageModelV2: 'LanguageModelV3',
+  LanguageModelV2: 'LanguageModelV2',
   LanguageModelV1Middleware: 'LanguageModelV2Middleware',
   LanguageModelV2Middleware: 'LanguageModelV2Middleware',
 };
 
 /**
- * Codemod to update imports of LanguageModelV3 and related types from 'ai' to '@ai-sdk/provider'.
+ * Codemod to update imports of LanguageModelV2 and related types from 'ai' to '@ai-sdk/provider'.
  * @see https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#language-model-v2-import
  */
 export default createTransformer((fileInfo, api, options, context) => {
@@ -36,7 +36,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     const remainingSpecifiers =
       node.specifiers?.filter(s => !targetSpecifiers.includes(s)) ?? [];
 
-    // Rename LanguageModelV1 to LanguageModelV3 in target specifiers
+    // Rename LanguageModelV1 to LanguageModelV2 in target specifiers
     for (const specifier of targetSpecifiers) {
       if (
         specifier.type === 'ImportSpecifier' &&
