@@ -40,7 +40,8 @@ The model id is then passed to the provider function to get the model.
 
 @returns {ImageModel} The image model associated with the id
 */
-  imageModel(modelId: string): ImageModelV3;
+  imageModel(modelId: string): ImageModelV2;
+
 
   /**
 Returns the transcription model with the given id.
