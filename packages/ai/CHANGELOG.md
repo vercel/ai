@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.52
+
+### Patch Changes
+
+- c56822d: fix(ai): update `uiMessageChunkSchema` to satisfy the `UIMessageChunk` type
+
 ## 5.0.51
 
 ### Patch Changes
