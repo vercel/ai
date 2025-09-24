@@ -1,5 +1,17 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.1.0-beta.2
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+- Updated dependencies [1cad0ab]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/anthropic@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
 ## 3.1.0-beta.1
 
 ### Patch Changes

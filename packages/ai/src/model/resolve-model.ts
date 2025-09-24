@@ -1,6 +1,6 @@
 import { gateway } from '@ai-sdk/gateway';
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
@@ -26,9 +26,9 @@ export function resolveLanguageModel(model: LanguageModel): LanguageModelV2 {
 
 export function resolveEmbeddingModel<VALUE = string>(
   model: EmbeddingModel<VALUE>,
-): EmbeddingModelV2<VALUE> {
+): EmbeddingModelV3<VALUE> {
   if (typeof model !== 'string') {
-    if (model.specificationVersion !== 'v2') {
+    if (model.specificationVersion !== 'v3') {
       throw new UnsupportedModelVersionError({
         version: model.specificationVersion,
         provider: model.provider,
@@ -42,7 +42,7 @@ export function resolveEmbeddingModel<VALUE = string>(
   // TODO AI SDK 6: figure out how to cleanly support different generic types
   return getGlobalProvider().textEmbeddingModel(
     model,
-  ) as EmbeddingModelV2<VALUE>;
+  ) as EmbeddingModelV3<VALUE>;
 }
 
 function getGlobalProvider(): ProviderV2 {
