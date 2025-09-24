@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { LanguageModelV2 } from '@ai-sdk/provider';
-import { LanguageModelV2 } from '@ai-sdk/provider';
+import { LanguageModelV3 } from '@ai-sdk/provider';
 import { LanguageModelV2Middleware } from '@ai-sdk/provider';
 import { LanguageModelV2Middleware } from '@ai-sdk/provider';
 import { someOtherFunction } from 'ai';
@@ -8,7 +8,7 @@ import { someOtherFunction } from 'ai';
 // Multiple imports in one declaration
 import {
   LanguageModelV2 as LMV1Multi,
-  LanguageModelV2 as LMV2Multi,
+  LanguageModelV3 as LMV2Multi,
   LanguageModelV2Middleware as LMV1MiddlewareMulti,
   LanguageModelV2Middleware as LMV2MiddlewareMulti,
 } from '@ai-sdk/provider';

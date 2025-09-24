@@ -1,8 +1,8 @@
 import { createTransformer } from '../lib/create-transformer';
 
 const ImportMappings: Record<string, string> = {
-  LanguageModelV1: 'LanguageModelV3',
-  LanguageModelV3: 'LanguageModelV3',
+  LanguageModelV1: 'LanguageModelV2',
+  LanguageModelV2: 'LanguageModelV3',
   LanguageModelV1Middleware: 'LanguageModelV2Middleware',
   LanguageModelV2Middleware: 'LanguageModelV2Middleware',
 };
