@@ -43,7 +43,7 @@ export default function Chat() {
               );
             }
 
-            if (part.type === 'tool-web_search') {
+            if (part.type === 'tool-weatherTool') {
               switch (part.state) {
                 // example of pre-rendering streaming tool calls:
                 case 'input-streaming':
@@ -55,13 +55,13 @@ export default function Chat() {
                 case 'input-available':
                   return (
                     <div key={part.toolCallId} className="text-gray-500">
-                      Searching the web...
+                      searching weather...
                     </div>
                   );
                 case 'output-available':
                   return (
                     <div key={part.toolCallId} className="text-gray-500">
-                      Finished searching the web.
+                      Finished searching weather.
                     </div>
                   );
               }

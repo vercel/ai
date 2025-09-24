@@ -1,23 +1,28 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import {
   convertToModelMessages,
   InferUITools,
+  stepCountIs,
   streamText,
+  tool,
   UIDataTypes,
   UIMessage,
 } from 'ai';
+import z from 'zod';
 
-const tools = {
-  web_search: openai.tools.webSearch({
-    searchContextSize: 'high',
-    userLocation: {
-      type: 'approximate',
-      city: 'San Francisco',
-      region: 'California',
-      country: 'US',
-    },
+export const weatherTool = tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string().describe('The location to get the weather for'),
   }),
-} as const;
+  // location below is inferred to be a string:
+  execute: async ({ location }) => ({
+    location,
+    temperature: 72 + Math.floor(Math.random() * 21) - 10,
+  }),
+});
+
+const tools = { weatherTool } as const;
 
 export type ReasoningToolsMessage = UIMessage<
   never, // could define metadata here
@@ -34,14 +39,18 @@ export async function POST(req: Request) {
   console.log(JSON.stringify(messages, null, 2));
 
   const result = streamText({
-    model: openai('gpt-5'),
+    model: anthropic('claude-sonnet-4-20250514'),
     messages: convertToModelMessages(messages),
     tools,
     providerOptions: {
-      openai: {
-        reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
-      } satisfies OpenAIResponsesProviderOptions,
+      anthropic: {
+        thinking: {
+          type: 'enabled',
+          budgetTokens: 12000,
+        },
+      } satisfies AnthropicProviderOptions,
     },
+    stopWhen: stepCountIs(5)
   });
 
   return result.toUIMessageStreamResponse();
