@@ -70,7 +70,8 @@ function ensureLanguageModelV3(model: any): LanguageModelV3 {
 }
 
 function ensureEmbeddingModelV3<VALUE>(model: any): EmbeddingModelV3<VALUE> {
-  if (model?.specificationVersion === 'v3') return model as EmbeddingModelV3<VALUE>;
+  if (model?.specificationVersion === 'v3')
+    return model as EmbeddingModelV3<VALUE>;
   if (model?.specificationVersion === 'v2') {
     const v2 = model as any;
     const adapted: EmbeddingModelV3<VALUE> = {
