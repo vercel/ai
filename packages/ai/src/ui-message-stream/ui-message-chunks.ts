@@ -117,8 +117,8 @@ export const uiMessageChunkSchema = z.union([
   }),
   z.strictObject({
     type: z.custom<`data-${string}`>(
-      (val): val is `data-${string}` =>
-        typeof val === 'string' && val.startsWith('data-'),
+      (value): value is `data-${string}` =>
+        typeof value === 'string' && value.startsWith('data-'),
       { message: 'Type must start with "data-"' },
     ),
     id: z.string().optional(),
