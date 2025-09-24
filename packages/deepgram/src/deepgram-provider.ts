@@ -1,6 +1,6 @@
 import {
   TranscriptionModelV2,
-  ProviderV2,
+  ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -12,7 +12,7 @@ import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
 import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 import { VERSION } from './version';
 
-export interface DeepgramProvider extends ProviderV2 {
+export interface DeepgramProvider extends ProviderV3 {
   (
     modelId: 'nova-3',
     settings?: {},
@@ -80,7 +80,7 @@ export function createDeepgram(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  // Required ProviderV2 methods that are not supported
+  // Required ProviderV3 methods that are not supported
   provider.languageModel = () => {
     throw new NoSuchModelError({
       modelId: 'unknown',

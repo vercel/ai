@@ -10,7 +10,7 @@ import {
 import {
   EmbeddingModelV3,
   LanguageModelV2,
-  ProviderV2,
+  ProviderV3,
   ImageModelV2,
   SpeechModelV2,
   TranscriptionModelV2,
@@ -23,7 +23,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 
-export interface AzureOpenAIProvider extends ProviderV2 {
+export interface AzureOpenAIProvider extends ProviderV3 {
   (deploymentId: string): LanguageModelV2;
 
   /**

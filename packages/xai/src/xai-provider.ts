@@ -6,7 +6,7 @@ import {
   ImageModelV2,
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -26,7 +26,7 @@ const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorToMessage: data => data.error.message,
 };
 
-export interface XaiProvider extends ProviderV2 {
+export interface XaiProvider extends ProviderV3 {
   /**
 Creates an Xai chat model for text generation.
    */

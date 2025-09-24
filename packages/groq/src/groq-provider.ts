@@ -1,7 +1,7 @@
 import {
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
 import {
@@ -17,7 +17,7 @@ import { GroqTranscriptionModel } from './groq-transcription-model';
 
 import { groqTools } from './groq-tools';
 import { VERSION } from './version';
-export interface GroqProvider extends ProviderV2 {
+export interface GroqProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */

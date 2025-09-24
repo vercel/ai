@@ -1,5 +1,5 @@
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { ImageModelV2, LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
+import { ImageModelV2, LanguageModelV2, ProviderV3 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
@@ -18,7 +18,7 @@ import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
 
-export interface GoogleVertexProvider extends ProviderV2 {
+export interface GoogleVertexProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
    */

@@ -1,6 +1,6 @@
 import {
   TranscriptionModelV2,
-  ProviderV2,
+  ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -12,7 +12,7 @@ import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import { VERSION } from './version';
 
-export interface AssemblyAIProvider extends ProviderV2 {
+export interface AssemblyAIProvider extends ProviderV3 {
   (
     modelId: 'best',
     settings?: {},

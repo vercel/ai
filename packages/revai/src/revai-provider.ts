@@ -1,6 +1,6 @@
 import {
   TranscriptionModelV2,
-  ProviderV2,
+  ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -12,7 +12,7 @@ import { RevaiTranscriptionModel } from './revai-transcription-model';
 import { RevaiTranscriptionModelId } from './revai-transcription-options';
 import { VERSION } from './version';
 
-export interface RevaiProvider extends ProviderV2 {
+export interface RevaiProvider extends ProviderV3 {
   (
     modelId: 'machine',
     settings?: {},

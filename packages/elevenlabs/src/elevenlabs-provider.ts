@@ -1,7 +1,7 @@
 import {
   TranscriptionModelV2,
   SpeechModelV2,
-  ProviderV2,
+  ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -15,7 +15,7 @@ import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
 import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
 import { VERSION } from './version';
 
-export interface ElevenLabsProvider extends ProviderV2 {
+export interface ElevenLabsProvider extends ProviderV3 {
   (
     modelId: 'scribe_v1',
     settings?: {},
