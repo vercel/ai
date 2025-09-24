@@ -4,9 +4,12 @@ import {
   FetchFunction,
   generateId,
   loadSetting,
+  resolve,
   Resolvable,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { VERSION } from './version';
 import { GoogleVertexConfig } from './google-vertex-config';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options';
@@ -108,9 +111,18 @@ export function createVertex(
   };
 
   const createConfig = (name: string): GoogleVertexConfig => {
+    // Create a function that adds the user-agent suffix to headers
+    const getHeaders = async () => {
+      const originalHeaders = await resolve(options.headers ?? {});
+      return withUserAgentSuffix(
+        originalHeaders,
+        `ai-sdk/google-vertex/${VERSION}`,
+      );
+    };
+
     return {
       provider: `google.vertex.${name}`,
-      headers: options.headers ?? {},
+      headers: getHeaders,
       fetch: options.fetch,
       baseURL: loadBaseURL(),
     };

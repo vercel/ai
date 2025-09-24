@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+
 ## 2.1.0-beta.0
 
 ### Minor Changes

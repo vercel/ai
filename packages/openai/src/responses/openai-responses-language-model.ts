@@ -495,7 +495,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             ]),
           ),
           service_tier: z.string().nullish(),
-          incomplete_details: z.object({ reason: z.string() }).nullable(),
+          incomplete_details: z.object({ reason: z.string() }).nullish(),
           usage: usageSchema,
         }),
       ),

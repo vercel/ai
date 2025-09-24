@@ -5,7 +5,11 @@ import {
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -678,5 +682,8 @@ describe('doStream', () => {
       'openai-organization': 'test-organization',
       'openai-project': 'test-project',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/openai/0.0.0-test`,
+    );
   });
 });

@@ -5,7 +5,11 @@ import {
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { createGroq } from './groq-provider';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -383,6 +387,9 @@ describe('doGenerate', () => {
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/groq/0.0.0-test`,
+    );
   });
 
   it('should parse tool results', async () => {
