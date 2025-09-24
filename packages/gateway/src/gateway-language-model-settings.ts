@@ -75,6 +75,7 @@ export type GatewayModelId =
   | 'openai/gpt-4o'
   | 'openai/gpt-4o-mini'
   | 'openai/gpt-5'
+  | 'openai/gpt-5-codex'
   | 'openai/gpt-5-mini'
   | 'openai/gpt-5-nano'
   | 'openai/gpt-oss-120b'

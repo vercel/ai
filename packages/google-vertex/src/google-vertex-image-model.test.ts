@@ -1,6 +1,11 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
-import { describe, it, expect } from 'vitest';
+import { createVertex } from './google-vertex-provider';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const prompt = 'A cute baby sea otter';
 
@@ -50,30 +55,25 @@ describe('GoogleVertexImageModel', () => {
       };
     }
 
+    // changed test to go through the provider `createVertex`
     it('should pass headers', async () => {
       prepareJsonResponse();
 
-      const modelWithHeaders = new GoogleVertexImageModel(
-        'imagen-3.0-generate-002',
-        {
-          provider: 'google-vertex',
-          baseURL: 'https://api.example.com',
-          headers: {
-            'Custom-Provider-Header': 'provider-header-value',
-          },
-        },
-      );
+      const provider = createVertex({
+        project: 'test-project',
+        location: 'us-central1',
+        baseURL: 'https://api.example.com',
+        headers: { 'Custom-Provider-Header': 'provider-header-value' },
+      });
 
-      await modelWithHeaders.doGenerate({
+      await provider.imageModel('imagen-3.0-generate-002').doGenerate({
         prompt,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
-        headers: {
-          'Custom-Request-Header': 'request-header-value',
-        },
+        headers: { 'Custom-Request-Header': 'request-header-value' },
       });
 
       expect(server.calls[0].requestHeaders).toStrictEqual({
@@ -81,6 +81,9 @@ describe('GoogleVertexImageModel', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/google-vertex/0.0.0-test`,
+      );
     });
 
     it('should use default maxImagesPerCall when not specified', () => {

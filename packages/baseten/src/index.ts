@@ -5,3 +5,4 @@ export type {
   BasetenProviderSettings,
   BasetenErrorData,
 } from './baseten-provider';
+export { VERSION } from './version';
