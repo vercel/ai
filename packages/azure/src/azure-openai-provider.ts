@@ -10,14 +10,20 @@ import {
 import {
   EmbeddingModelV3,
   LanguageModelV2,
-  ProviderV2,
+  ProviderV3,
   ImageModelV3,
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
-import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  loadSetting,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
+import { VERSION } from './version';
 
-export interface AzureOpenAIProvider extends ProviderV2 {
+export interface AzureOpenAIProvider extends ProviderV3 {
   (deploymentId: string): LanguageModelV2;
 
   /**
@@ -124,14 +130,17 @@ Create an Azure OpenAI provider instance.
 export function createAzure(
   options: AzureOpenAIProviderSettings = {},
 ): AzureOpenAIProvider {
-  const getHeaders = () => ({
-    'api-key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'AZURE_API_KEY',
-      description: 'Azure OpenAI',
-    }),
-    ...options.headers,
-  });
+  const getHeaders = () => {
+    const baseHeaders = {
+      'api-key': loadApiKey({
+        apiKey: options.apiKey,
+        environmentVariableName: 'AZURE_API_KEY',
+        description: 'Azure OpenAI',
+      }),
+      ...options.headers,
+    };
+    return withUserAgentSuffix(baseHeaders, `ai-sdk/azure/${VERSION}`);
+  };
 
   const getResourceName = () =>
     loadSetting({

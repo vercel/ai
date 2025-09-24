@@ -1,12 +1,15 @@
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { ImageModelV3, LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
+import { ImageModelV3, LanguageModelV2, ProviderV3 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
   loadSetting,
+  resolve,
   Resolvable,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { VERSION } from './version';
 import { GoogleVertexConfig } from './google-vertex-config';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options';
@@ -15,7 +18,7 @@ import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
 
-export interface GoogleVertexProvider extends ProviderV2 {
+export interface GoogleVertexProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
    */
@@ -108,9 +111,18 @@ export function createVertex(
   };
 
   const createConfig = (name: string): GoogleVertexConfig => {
+    // Create a function that adds the user-agent suffix to headers
+    const getHeaders = async () => {
+      const originalHeaders = await resolve(options.headers ?? {});
+      return withUserAgentSuffix(
+        originalHeaders,
+        `ai-sdk/google-vertex/${VERSION}`,
+      );
+    };
+
     return {
       provider: `google.vertex.${name}`,
-      headers: options.headers ?? {},
+      headers: getHeaders,
       fetch: options.fetch,
       baseURL: loadBaseURL(),
     };

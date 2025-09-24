@@ -3,7 +3,7 @@ import {
   ImageModelV3,
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
@@ -18,7 +18,7 @@ type ExtractLiteralUnion<T> = T extends string
   : never;
 
 export interface ProviderRegistryProvider<
-  PROVIDERS extends Record<string, ProviderV2> = Record<string, ProviderV2>,
+  PROVIDERS extends Record<string, ProviderV3> = Record<string, ProviderV3>,
   SEPARATOR extends string = ':',
 > {
   languageModel<KEY extends keyof PROVIDERS>(
@@ -80,7 +80,7 @@ export interface ProviderRegistryProvider<
  * @returns A new ProviderRegistryProvider instance that provides access to all registered providers with optional middleware applied to language models.
  */
 export function createProviderRegistry<
-  PROVIDERS extends Record<string, ProviderV2>,
+  PROVIDERS extends Record<string, ProviderV3>,
   SEPARATOR extends string = ':',
 >(
   providers: PROVIDERS,
@@ -115,7 +115,7 @@ export function createProviderRegistry<
 export const experimental_createProviderRegistry = createProviderRegistry;
 
 class DefaultProviderRegistry<
-  PROVIDERS extends Record<string, ProviderV2>,
+  PROVIDERS extends Record<string, ProviderV3>,
   SEPARATOR extends string,
 > implements ProviderRegistryProvider<PROVIDERS, SEPARATOR>
 {
@@ -156,7 +156,7 @@ class DefaultProviderRegistry<
       | 'imageModel'
       | 'transcriptionModel'
       | 'speechModel',
-  ): ProviderV2 {
+  ): ProviderV3 {
     const provider = this.providers[id as keyof PROVIDERS];
 
     if (provider == null) {

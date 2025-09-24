@@ -6,25 +6,27 @@ import {
   ImageModelV3,
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { XaiChatModelId } from './xai-chat-options';
 import { XaiErrorData, xaiErrorDataSchema } from './xai-error';
 import { XaiImageModelId } from './xai-image-settings';
+import { VERSION } from './version';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorSchema: xaiErrorDataSchema,
   errorToMessage: data => data.error.message,
 };
 
-export interface XaiProvider extends ProviderV2 {
+export interface XaiProvider extends ProviderV3 {
   /**
 Creates an Xai chat model for text generation.
    */
@@ -78,14 +80,18 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.x.ai/v1',
   );
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'XAI_API_KEY',
-      description: 'xAI API key',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'XAI_API_KEY',
+          description: 'xAI API key',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/xai/${VERSION}`,
+    );
 
   const createLanguageModel = (modelId: XaiChatModelId) => {
     return new XaiChatLanguageModel(modelId, {

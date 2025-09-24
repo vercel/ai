@@ -2,20 +2,22 @@ import {
   EmbeddingModelV3,
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
 import { CohereChatModelId } from './cohere-chat-options';
 import { CohereEmbeddingModel } from './cohere-embedding-model';
 import { CohereEmbeddingModelId } from './cohere-embedding-options';
+import { VERSION } from './version';
 
-export interface CohereProvider extends ProviderV2 {
+export interface CohereProvider extends ProviderV3 {
   (modelId: CohereChatModelId): LanguageModelV2;
 
   /**
@@ -67,14 +69,18 @@ export function createCohere(
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://api.cohere.com/v2';
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'COHERE_API_KEY',
-      description: 'Cohere',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'COHERE_API_KEY',
+          description: 'Cohere',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/cohere/${VERSION}`,
+    );
 
   const createChatModel = (modelId: CohereChatModelId) =>
     new CohereChatLanguageModel(modelId, {

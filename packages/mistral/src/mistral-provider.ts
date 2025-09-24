@@ -2,19 +2,21 @@ import {
   EmbeddingModelV3,
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import { MistralChatModelId } from './mistral-chat-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
 import { MistralEmbeddingModelId } from './mistral-embedding-options';
+import { VERSION } from './version';
 
-export interface MistralProvider extends ProviderV2 {
+export interface MistralProvider extends ProviderV3 {
   (modelId: MistralChatModelId): LanguageModelV2;
 
   /**
@@ -75,14 +77,18 @@ export function createMistral(
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://api.mistral.ai/v1';
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'MISTRAL_API_KEY',
-      description: 'Mistral',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'MISTRAL_API_KEY',
+          description: 'Mistral',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/mistral/${VERSION}`,
+    );
 
   const createChatModel = (modelId: MistralChatModelId) =>
     new MistralChatLanguageModel(modelId, {

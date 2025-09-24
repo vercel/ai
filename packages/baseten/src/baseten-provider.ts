@@ -7,17 +7,19 @@ import {
   EmbeddingModelV3,
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { BasetenChatModelId } from './baseten-chat-options';
 import { BasetenEmbeddingModelId } from './baseten-embedding-options';
 import { PerformanceClient } from '@basetenlabs/performance-client';
+import { VERSION } from './version';
 
 export type BasetenErrorData = z.infer<typeof basetenErrorSchema>;
 
@@ -59,7 +61,7 @@ export interface BasetenProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface BasetenProvider extends ProviderV2 {
+export interface BasetenProvider extends ProviderV3 {
   /**
 Creates a chat model for text generation. 
 */
@@ -90,14 +92,18 @@ export function createBaseten(
   options: BasetenProviderSettings = {},
 ): BasetenProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'BASETEN_API_KEY',
-      description: 'Baseten API key',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'BASETEN_API_KEY',
+          description: 'Baseten API key',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/baseten/${VERSION}`,
+    );
 
   interface CommonModelConfig {
     provider: string;

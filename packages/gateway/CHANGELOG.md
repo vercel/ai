@@ -1,5 +1,16 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.5
+
+### Patch Changes
+
+- 5d21222: feat(provider/gateway): Add gpt-5-codex to Gateway model string autocomplete
+- 0c4822d: feat: `EmbeddingModelV3`
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
 ## 1.1.0-beta.4
 
 ### Patch Changes
