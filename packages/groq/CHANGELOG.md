@@ -1,5 +1,24 @@
 # @ai-sdk/groq
 
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- 3f464f4: fix(provider/groq): track cached tokens usage
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+
 ## 2.1.0-beta.0
 
 ### Minor Changes

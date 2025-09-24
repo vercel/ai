@@ -1,5 +1,23 @@
 # @ai-sdk/openai-compatible
 
+## 1.1.0-beta.2
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 1.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+
 ## 1.1.0-beta.0
 
 ### Minor Changes

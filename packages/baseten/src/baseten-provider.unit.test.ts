@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createBaseten } from './baseten-provider';
 import {
   LanguageModelV2,
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
@@ -39,16 +39,24 @@ vi.mock('@ai-sdk/openai-compatible', () => {
   };
 });
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
-  withoutTrailingSlash: vi.fn(url => url),
-}));
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    ...actual,
+    loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
+    withoutTrailingSlash: vi.fn(url => url),
+  };
+});
 
 vi.mock('@basetenlabs/performance-client', () => ({
   PerformanceClient: vi.fn().mockImplementation(() => ({
     embed: vi.fn(),
     embedBatch: vi.fn(),
   })),
+}));
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
 }));
 
 describe('BasetenProvider', () => {
@@ -71,7 +79,7 @@ describe('BasetenProvider', () => {
         environmentVariableName: 'BASETEN_API_KEY',
         description: 'Baseten API key',
       });
-      expect(headers.Authorization).toBe('Bearer mock-api-key');
+      expect(headers.authorization).toBe('Bearer mock-api-key');
       expect(config.provider).toBe('baseten.chat');
     });
 
@@ -94,7 +102,7 @@ describe('BasetenProvider', () => {
         environmentVariableName: 'BASETEN_API_KEY',
         description: 'Baseten API key',
       });
-      expect(headers['Custom-Header']).toBe('value');
+      expect(headers['custom-header']).toBe('value');
     });
 
     it('should support optional modelId parameter', () => {
@@ -352,7 +360,7 @@ describe('BasetenProvider', () => {
       const config = constructorCall[1];
       const headers = config.headers();
 
-      expect(headers.Authorization).toBe('Bearer mock-api-key');
+      expect(headers.authorization).toBe('Bearer mock-api-key');
     });
 
     it('should include custom headers when provided', () => {
@@ -366,8 +374,31 @@ describe('BasetenProvider', () => {
       const config = constructorCall[1];
       const headers = config.headers();
 
-      expect(headers.Authorization).toBe('Bearer mock-api-key');
-      expect(headers['Custom-Header']).toBe('custom-value');
+      expect(headers.authorization).toBe('Bearer mock-api-key');
+      expect(headers['custom-header']).toBe('custom-value');
+    });
+
+    it('should include user-agent with version', async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(new Response('{}', { status: 200 }));
+
+      const provider = createBaseten({ fetch: fetchMock });
+      const model = provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const headers = config.headers();
+
+      await fetchMock('https://example.com/test', {
+        method: 'POST',
+        headers,
+      });
+
+      expect(fetchMock.mock.calls[0][1].headers['user-agent']).toContain(
+        'ai-sdk/baseten/0.0.0-test',
+      );
     });
   });
 

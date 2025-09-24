@@ -22,11 +22,10 @@ Please explain how you *manually* verified that the change works end-to-end as e
 Remove the section if it's not needed (e.g. for docs).
 -->
 
-## Tasks
+## Checklist
 
 <!--
-This task list is intended to help you keep track of what you need to do.
-Feel free to add tasks and remove unnecessary tasks or this section as needed.
+Do not edit this list. Leave items unchecked that don't apply. If you need to track subtasks, create a new "## Tasks" section
 
 Please check if the PR fulfills the following requirements:
 -->
