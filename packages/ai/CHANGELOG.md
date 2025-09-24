@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.52
+
+### Patch Changes
+
+- c56822d: fix(ai): update `uiMessageChunkSchema` to satisfy the `UIMessageChunk` type
+- 930399b: fix(ai): download files when intermediate file cannot be downloaded
+- Updated dependencies [7ca78f1]
+  - @ai-sdk/gateway@1.0.29
+
 ## 5.0.51
 
 ### Patch Changes

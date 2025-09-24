@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.29
+
+### Patch Changes
+
+- 7ca78f1: feat(provider/gateway): Add new Qwen models to Gateway model string autocomplete
+
 ## 1.0.28
 
 ### Patch Changes
