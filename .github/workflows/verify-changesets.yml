@@ -9,7 +9,7 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
     branches:
       - main
-      - v5.0
+      - release-v*
     paths:
       - '.changeset/*.md'
 

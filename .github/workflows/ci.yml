@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main, v5.0]
+    branches: 
+      - main
+      - release-v*
   pull_request:
-    branches: [main, v5.0]
+    branches: 
+      - main
+      - release-v*
 
 jobs:
   build-examples:
