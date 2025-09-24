@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { stepCountIs, streamText } from 'ai';
+import { stepCountIs, streamText, TextStreamPart } from 'ai';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -18,6 +18,52 @@ export const weatherTool = tool({
 
 const tools = { weatherTool } as const;
 
+const transfrom = () => {
+  let thinkingStartTime = 0;
+  let hasStartedThinking = false;
+  let accumulatedThinkingContent = '';
+  return new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
+    transform(chunk, controller) {
+      if (chunk.type === 'reasoning-start') {
+        controller.enqueue(chunk);
+        hasStartedThinking = true;
+        thinkingStartTime = performance.now();
+      } else if (chunk.type === 'reasoning-delta') {
+        accumulatedThinkingContent += chunk.text;
+        const newChunk = {
+          ...chunk,
+          providerMetadata: {
+            ...chunk.providerMetadata,
+            metadata: {
+              ...chunk.providerMetadata?.metadata,
+              thinking_millsec: performance.now() - thinkingStartTime,
+              thinking_content: accumulatedThinkingContent,
+            },
+          },
+        };
+        controller.enqueue(newChunk);
+      } else if (chunk.type === 'reasoning-end' && hasStartedThinking) {
+        controller.enqueue({
+          ...chunk,
+          providerMetadata: {
+            ...chunk.providerMetadata,
+            metadata: {
+              ...chunk.providerMetadata?.metadata,
+              thinking_millsec: performance.now() - thinkingStartTime,
+              thinking_content: accumulatedThinkingContent,
+            },
+          },
+        });
+        accumulatedThinkingContent = '';
+        hasStartedThinking = false;
+        thinkingStartTime = 0;
+      } else {
+        controller.enqueue(chunk);
+      }
+    },
+  });
+};
+
 run(async () => {
   const result = streamText({
     model: anthropic('claude-sonnet-4-20250514'),
@@ -31,7 +77,7 @@ run(async () => {
       {
         role: 'user',
         content:
-          'https://github.com/vercel/ai/issues/8865 analyze the issue and give me a summary',
+          'what is the weather in Berlinn?',
       },
     ],
     tools: tools,
@@ -45,7 +91,7 @@ run(async () => {
       },
     },
     stopWhen: stepCountIs(10),
-    // experimental_transform: transfrom
+    experimental_transform: transfrom
   });
 
   for await (const part of result.fullStream) {
