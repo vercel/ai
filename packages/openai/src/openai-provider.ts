@@ -1,6 +1,6 @@
 import {
   EmbeddingModelV3,
-  ImageModelV2,
+  ImageModelV3,
   LanguageModelV2,
   ProviderV3,
   SpeechModelV2,
@@ -70,12 +70,12 @@ Creates a model for text embeddings.
   /**
 Creates a model for image generation.
    */
-  image(modelId: OpenAIImageModelId): ImageModelV2;
+  image(modelId: OpenAIImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(modelId: OpenAIImageModelId): ImageModelV2;
+  imageModel(modelId: OpenAIImageModelId): ImageModelV3;
 
   /**
 Creates a model for transcription.

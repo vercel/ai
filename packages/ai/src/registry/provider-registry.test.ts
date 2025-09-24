@@ -1,9 +1,9 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
-import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v2';
+import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { createProviderRegistry } from './provider-registry';
-import { MockImageModelV2 } from '../test/mock-image-model-v2';
+import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
 import { MockProviderV3 } from '../test/mock-provider-v3';
@@ -256,7 +256,7 @@ describe('textEmbeddingModel', () => {
 
 describe('imageModel', () => {
   it('should return image model from provider', () => {
-    const model = new MockImageModelV2();
+    const model = new MockImageModelV3();
 
     const modelRegistry = createProviderRegistry({
       provider: {
@@ -305,7 +305,7 @@ describe('imageModel', () => {
   });
 
   it('should support custom separator', () => {
-    const model = new MockImageModelV2();
+    const model = new MockImageModelV3();
 
     const modelRegistry = createProviderRegistry(
       {

@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/openai-compatible';
 import {
   EmbeddingModelV3,
-  ImageModelV2,
+  ImageModelV3,
   LanguageModelV2,
   ProviderV3,
 } from '@ai-sdk/provider';
@@ -87,12 +87,12 @@ Creates a text embedding model for text generation.
   /**
 Creates a model for image generation.
 */
-  image(modelId: FireworksImageModelId): ImageModelV2;
+  image(modelId: FireworksImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
 */
-  imageModel(modelId: FireworksImageModelId): ImageModelV2;
+  imageModel(modelId: FireworksImageModelId): ImageModelV3;
 }
 
 const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';
