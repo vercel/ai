@@ -1,0 +1,82 @@
+---
+title: 'Supermemory'
+description: 'Learn how to use the Supermemory AI SDK provider for the Vercel AI SDK.'
+---
+
+The [Supermemory Provider](https://supermemory.ai/docs/ai-sdk/overview) is the official provider for using [Supermemory](https://supermemory.ai) to AI SDK. You can add long-term, self-growing persistent memory to your AI applications, that [works like the human brain](https://supermemory.ai/blog/memory-engine/)
+
+
+There's two ways to add supermemory to your application with AI SDK:
+
+## 1. With tools
+
+```typescript
+import { streamText } from "ai"
+import { createOpenAI } from "@ai-sdk/openai"
+import { supermemoryTools } from "@supermemory/tools/ai-sdk"
+
+const openai = createOpenAI({
+  apiKey: "YOUR_OPENAI_KEY"
+})
+
+const result = await streamText({
+  model: openai("gpt-4-turbo"),
+  prompt: "Remember that my name is Alice",
+  tools: supermemoryTools("YOUR_SUPERMEMORY_KEY")
+})
+```
+
+Supermemory automatically searches and adds memories using a tool call:
+
+```typescript
+const result = await streamText({
+  model: openai("gpt-4"),
+  prompt: "What are my dietary preferences?",
+  tools: supermemoryTools("API_KEY")
+})
+
+// The AI will automatically call searchMemories tool
+// Example tool call:
+// searchMemories({ informationToGet: "dietary preferences and restrictions" })
+// OR
+// addMemory({ memory: "User is allergic to peanuts" })
+```
+
+## 2. Using the Memory Router
+
+You can also use the Memory Router for an even better implementation with memory:
+
+```ts
+import { streamText } from "ai"
+
+const supermemoryRouter = createAnthropic({
+  baseUrl: 'https://api.supermemory.ai/v3/https://api.anthropic.com/v1',
+  apiKey: 'your-provider-api-key',
+  headers: {
+    'x-supermemory-api-key': 'supermemory-api-key',
+    'x-sm-conversation-id': 'conversation-id'
+  }
+})
+
+const result = await streamText({
+  model: supermemoryRouter("claude-3-sonnet"),
+  messages: [
+    { role: "user", content: "Hello! Remember that I love TypeScript." }
+  ]
+})
+```
+
+For more information about the memory router, visit the documentation [here](https://docs.supermemory.ai/)
+
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Documentation" icon="book" href="https://supermemory.ai/docs/?ref=ai-sdk">
+      Supermemory Documentation
+  </Card>
+
+  <Card title="AI SDK Cookbook" icon="code" href="https://supermemory.ai/docs/cookbook/ai-sdk-integration">
+      AI SDK Integration example
+  </Card>
+</CardGroup>
