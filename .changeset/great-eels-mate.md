@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Update `uiMessageChunkSchema` to properly satisfy the `UIMessageChunk` type
+fix(ai): update `uiMessageChunkSchema` to satisfy the `UIMessageChunk` type
