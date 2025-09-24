@@ -1,13 +1,14 @@
 import { openai } from '@ai-sdk/openai';
 import {
-  generateText,
   ModelMessage,
   stepCountIs,
+  streamText,
   tool,
   ToolApprovalResponse,
 } from 'ai';
+import 'dotenv/config';
 import * as readline from 'node:readline/promises';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { run } from '../lib/run';
 
 const terminal = readline.createInterface({
@@ -40,7 +41,7 @@ run(async () => {
 
     approvals = [];
 
-    const result = await generateText({
+    const result = streamText({
       model: openai('gpt-5-mini'),
       // context engineering required to make sure the model does not retry
       // the tool execution if it is not approved:
@@ -50,12 +51,14 @@ run(async () => {
       stopWhen: stepCountIs(5),
     });
 
-    process.stdout.write(`\nAssistant:\n`);
-    for (const part of result.content) {
-      if (part.type === 'text') {
-        process.stdout.write(part.text);
-      }
+    process.stdout.write('\nAssistant: ');
+    for await (const delta of result.textStream) {
+      process.stdout.write(delta);
+    }
 
+    // go through each approval request and ask the user for approval
+    const content = await result.content;
+    for (const part of content) {
       if (part.type === 'tool-approval-request') {
         if (part.toolCall.toolName === 'weather' && !part.toolCall.dynamic) {
           const answer = await terminal.question(
@@ -74,6 +77,10 @@ run(async () => {
 
     process.stdout.write('\n\n');
 
-    messages.push(...result.response.messages);
+    console.log(
+      (await result.steps)
+        .map(step => JSON.stringify(step.request.body))
+        .join('\n'),
+    );
   }
 });
