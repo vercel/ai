@@ -673,6 +673,99 @@ describe('convertToLanguageModelPrompt', () => {
         ]);
       });
     });
+
+    it('should download files when intermediate file cannot be downloaded', async () => {
+      const imageUrlA = `http://example.com/my-image-A.png`; // supported
+      const fileUrl = `http://127.0.0.1:3000/file`; // unsupported
+      const imageUrlB = `http://example.com/my-image-B.png`; // supported
+
+      const mockDownload = vi.fn().mockResolvedValue([
+        {
+          url: new URL(imageUrlA),
+          data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), // empty png
+          mediaType: 'image/png',
+        },
+        null,
+        {
+          url: new URL(imageUrlB),
+          data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), // empty png
+          mediaType: 'image/png',
+        },
+      ]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'image', image: imageUrlA, mediaType: 'image/png' },
+                {
+                  type: 'file',
+                  data: new URL(fileUrl),
+                  mediaType: 'application/octet-stream',
+                },
+                { type: 'image', image: imageUrlB, mediaType: 'image/png' },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {
+          '*': [/^https:\/\/.*$/],
+        },
+        download: mockDownload,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "data": Uint8Array [
+                  137,
+                  80,
+                  78,
+                  71,
+                  13,
+                  10,
+                  26,
+                  10,
+                ],
+                "filename": undefined,
+                "mediaType": "image/png",
+                "providerOptions": undefined,
+                "type": "file",
+              },
+              {
+                "data": "http://127.0.0.1:3000/file",
+                "filename": undefined,
+                "mediaType": "application/octet-stream",
+                "providerOptions": undefined,
+                "type": "file",
+              },
+              {
+                "data": Uint8Array [
+                  137,
+                  80,
+                  78,
+                  71,
+                  13,
+                  10,
+                  26,
+                  10,
+                ],
+                "filename": undefined,
+                "mediaType": "image/png",
+                "providerOptions": undefined,
+                "type": "file",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+    });
   });
 
   describe('custom download function', () => {
