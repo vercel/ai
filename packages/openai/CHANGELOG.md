@@ -1,5 +1,26 @@
 # @ai-sdk/openai
 
+## 2.0.35
+
+### Patch Changes
+
+- 1cfc209: feat(provider/openai): `OpenAIChatLanguageModelOptions` type
+
+  ```ts
+  import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+  import { generateText } from 'ai';
+
+  await generateText({
+    model: openai.chat('gpt-4o'),
+    prompt: 'Invent a new holiday and describe its traditions.',
+    providerOptions: {
+      openai: {
+        user: 'user-123',
+      } satisfies OpenAIChatLanguageModelOptions,
+    },
+  });
+  ```
+
 ## 2.0.34
 
 ### Patch Changes
