@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     branches:
-      - v4
+      - release-v4
     paths:
       - '.changeset/**'
       - '.github/workflows/release.yml'

@@ -2,9 +2,9 @@ name: Quality
 
 on:
   push:
-    branches: [v4]
+    branches: [release-v4]
   pull_request:
-    branches: [v4]
+    branches: [release-v4]
 
 jobs:
   prettier:
