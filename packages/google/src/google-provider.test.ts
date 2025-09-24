@@ -267,4 +267,92 @@ describe('google-provider', () => {
       }
     `);
   });
+
+  it('should use default Google API URL for file validation even with custom baseURL', () => {
+    const customBaseURL = 'https://custom-endpoint.example.com/v1beta';
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      baseURL: customBaseURL,
+    });
+    provider('gemini-pro');
+
+    // Verify that the model is created with the custom baseURL
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'gemini-pro',
+      expect.objectContaining({
+        baseURL: customBaseURL,
+      }),
+    );
+
+    // Get the supportedUrls function from the call
+    const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
+    const supportedUrlsFunction = call[1].supportedUrls;
+
+    expect(supportedUrlsFunction).toBeDefined();
+
+    const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
+    const patterns = supportedUrls['*'];
+
+    expect(patterns).toBeDefined();
+    expect(Array.isArray(patterns)).toBe(true);
+
+    const testResults = {
+      googleDefaultFileUrls: [
+        'https://generativelanguage.googleapis.com/v1beta/files/test123',
+        'https://generativelanguage.googleapis.com/v1beta/files/abc/def',
+      ].map(url => ({
+        url,
+        isSupported: patterns.some((pattern: RegExp) => pattern.test(url)),
+      })),
+      customEndpointFileUrls: [
+        'https://custom-endpoint.example.com/v1beta/files/test123',
+        'https://custom-endpoint.example.com/v1beta/files/abc/def',
+      ].map(url => ({
+        url,
+        isSupported: patterns.some((pattern: RegExp) => pattern.test(url)),
+      })),
+      youtubeUrls: [
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        'https://youtu.be/dQw4w9WgXcQ',
+      ].map(url => ({
+        url,
+        isSupported: patterns.some((pattern: RegExp) => pattern.test(url)),
+      })),
+    };
+
+    expect(testResults).toMatchInlineSnapshot(`
+      {
+        "customEndpointFileUrls": [
+          {
+            "isSupported": false,
+            "url": "https://custom-endpoint.example.com/v1beta/files/test123",
+          },
+          {
+            "isSupported": false,
+            "url": "https://custom-endpoint.example.com/v1beta/files/abc/def",
+          },
+        ],
+        "googleDefaultFileUrls": [
+          {
+            "isSupported": true,
+            "url": "https://generativelanguage.googleapis.com/v1beta/files/test123",
+          },
+          {
+            "isSupported": true,
+            "url": "https://generativelanguage.googleapis.com/v1beta/files/abc/def",
+          },
+        ],
+        "youtubeUrls": [
+          {
+            "isSupported": true,
+            "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+          },
+          {
+            "isSupported": true,
+            "url": "https://youtu.be/dQw4w9WgXcQ",
+          },
+        ],
+      }
+    `);
+  });
 });
