@@ -79,11 +79,6 @@ export const uiMessageChunkSchema = z.union([
     dynamic: z.boolean().optional(),
   }),
   z.strictObject({
-    type: z.literal('reasoning'),
-    text: z.string(),
-    providerMetadata: providerMetadataSchema.optional(),
-  }),
-  z.strictObject({
     type: z.literal('reasoning-start'),
     id: z.string(),
     providerMetadata: providerMetadataSchema.optional(),
@@ -98,9 +93,6 @@ export const uiMessageChunkSchema = z.union([
     type: z.literal('reasoning-end'),
     id: z.string(),
     providerMetadata: providerMetadataSchema.optional(),
-  }),
-  z.strictObject({
-    type: z.literal('reasoning-part-finish'),
   }),
   z.strictObject({
     type: z.literal('source-url'),
@@ -124,7 +116,11 @@ export const uiMessageChunkSchema = z.union([
     providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
-    type: z.string().startsWith('data-'),
+    type: z.custom<`data-${string}`>(
+      (value): value is `data-${string}` =>
+        typeof value === 'string' && value.startsWith('data-'),
+      { message: 'Type must start with "data-"' },
+    ),
     id: z.string().optional(),
     data: z.unknown(),
     transient: z.boolean().optional(),
@@ -267,6 +263,7 @@ export type UIMessageChunk<
       type: 'file';
       url: string;
       mediaType: string;
+      providerMetadata?: ProviderMetadata;
     }
   | DataUIMessageChunk<DATA_TYPES>
   | {
