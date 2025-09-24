@@ -40,4 +40,3 @@ We use [changesets](https://github.com/changesets/action) for automated releases
   ```bash
   pnpm changeset pre exit
   ```
-
