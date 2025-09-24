@@ -986,7 +986,7 @@ describe('convertToLanguageModelMessage', () => {
 
   describe('assistant message', () => {
     describe('text parts', () => {
-      it('should ignore empty text parts', async () => {
+      it('should ignore empty text parts when there are no provider options', async () => {
         const result = convertToLanguageModelMessage({
           message: {
             role: 'assistant',
@@ -1017,6 +1017,58 @@ describe('convertToLanguageModelMessage', () => {
             },
           ],
         });
+      });
+
+      it('should include empty text parts when there are provider options', async () => {
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                input: {},
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                  },
+                },
+                "text": "",
+                "type": "text",
+              },
+              {
+                "input": {},
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-call",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          }
+        `);
       });
     });
 

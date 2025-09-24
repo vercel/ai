@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/xai",
-  "version": "2.0.18",
+  "version": "2.1.0-beta.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -34,7 +34,8 @@
   "dependencies": {
     "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "@ai-sdk/test-server": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

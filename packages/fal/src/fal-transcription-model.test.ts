@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createFal } from './fal-provider';
 import { FalTranscriptionModel } from './fal-transcription-model';
 import { readFile } from 'node:fs/promises';

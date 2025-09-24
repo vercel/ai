@@ -2277,7 +2277,7 @@ describe('generateText', () => {
   });
 
   describe('provider-executed tools', () => {
-    describe('single provider-executed tool call and result', () => {
+    describe('two provider-executed tool calls and results', () => {
       let result: GenerateTextResult<any, any>;
 
       beforeEach(async () => {
@@ -2376,6 +2376,51 @@ describe('generateText', () => {
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-error",
+            },
+          ]
+        `);
+      });
+
+      it('should include provider-executed tool calls in staticToolCalls', async () => {
+        expect(result.staticToolCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should include provider-executed results in staticToolResults (errors excluded)', async () => {
+        expect(result.staticToolResults).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": undefined,
+              "input": {
+                "value": "value",
+              },
+              "output": "{ "value": "result1" }",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-result",
             },
           ]
         `);

@@ -1,5 +1,29 @@
 # @ai-sdk/provider-utils
 
+## 3.1.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+
+## 3.1.0-beta.1
+
+### Patch Changes
+
+- cbb1d35: Update for provider-util changeset after change in PR #8588
+
+## 3.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+
 ## 3.0.9
 
 ### Patch Changes

@@ -3,7 +3,10 @@
   "compilerOptions": {
     "composite": true,
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "paths": {
+      "@ai-sdk/test-server": ["../test-server/src"]
+    }
   },
   "exclude": ["dist", "build", "node_modules", "tsup.config.ts"],
   "references": [
@@ -12,6 +15,9 @@
     },
     {
       "path": "../provider-utils"
+    },
+    {
+      "path": "../test-server"
     }
   ]
 }
