@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import {
   generateText,
   ModelMessage,
@@ -42,6 +42,9 @@ run(async () => {
 
     const result = await generateText({
       model: openai('gpt-5-mini'),
+      // context engineering required to make sure the model does not retry
+      // the tool execution if it is not approved:
+      system: 'When a tool execution is not approved, do not retry it.',
       tools: { weather: weatherTool },
       messages,
       stopWhen: stepCountIs(5),
