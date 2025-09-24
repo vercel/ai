@@ -3,8 +3,10 @@ import {
   LanguageModelV2Message,
   LanguageModelV2Prompt,
   LanguageModelV2TextPart,
+  LanguageModelV2ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
+  convertToBase64,
   DataContent,
   FilePart,
   ImagePart,
@@ -159,7 +161,10 @@ export function convertToLanguageModelMessage({
                   type: 'tool-result' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  output: part.output,
+                  output: convertOutputToLanguageModelOutput(
+                    part.output,
+                    downloadedAssets,
+                  ),
                   providerOptions,
                 };
               }
@@ -176,7 +181,10 @@ export function convertToLanguageModelMessage({
           type: 'tool-result' as const,
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          output: part.output,
+          output: convertOutputToLanguageModelOutput(
+            part.output,
+            downloadedAssets,
+          ),
           providerOptions: part.providerOptions,
         })),
         providerOptions: message.providerOptions,
@@ -240,8 +248,49 @@ async function downloadAssets(
         }),
     }));
 
+  const toolUrls = messages
+    .filter(message => message.role === 'tool')
+    .map(message => message.content)
+    .flat()
+    .filter(item => item.type === 'tool-result')
+    .flatMap(item => {
+      if (item.output.type === 'content') {
+        const results = item.output.value;
+        return results
+          .map(result => {
+            if (result.type === 'media' && result.data && result.mediaType) {
+              const url =
+                typeof result.data === 'string' ? new URL(result.data) : null;
+              if (url instanceof URL) {
+                return { ...result, data: url };
+              }
+            }
+            return null;
+          })
+          .filter(url => url !== null);
+      }
+      return null;
+    })
+    .filter(
+      item =>
+        item &&
+        !isUrlSupported({
+          url: item.data.toString(),
+          mediaType: item.mediaType,
+          supportedUrls,
+        }),
+    )
+    .map(item => item!.data);
+
+  const allUrls = [...urls, ...toolUrls];
+
   // download in parallel:
-  const downloadedFiles = await download(plannedDownloads);
+  const downloadedFiles = await Promise.all(
+    allUrls.map(async url => ({
+      url,
+      data: await downloadImplementation({ url }),
+    })),
+  );
 
   return Object.fromEntries(
     downloadedFiles
@@ -346,4 +395,39 @@ function convertPartToLanguageModelPart(
       };
     }
   }
+}
+
+function convertOutputToLanguageModelOutput(
+  output: LanguageModelV2ToolResultOutput,
+  downloadedAssets: Record<
+    string,
+    { mediaType: string | undefined; data: Uint8Array }
+  >,
+): LanguageModelV2ToolResultOutput {
+  if (output.type === 'content') {
+    return {
+      type: 'content' as const,
+      value: output.value.map(result => {
+        if (result.type === 'media' && result.data && result.mediaType) {
+          const { data: convertedData, mediaType: convertedMediaType } =
+            convertToLanguageModelV2DataContent(result.data);
+          if (convertedData instanceof URL) {
+            const downloadedFile = downloadedAssets[convertedData.toString()];
+            if (downloadedFile) {
+              return {
+                type: 'media' as const,
+                data: convertToBase64(downloadedFile.data),
+                mediaType:
+                  downloadedFile.mediaType ??
+                  convertedMediaType ??
+                  result.mediaType,
+              };
+            }
+          }
+        }
+        return result;
+      }),
+    };
+  }
+  return output;
 }

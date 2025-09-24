@@ -1573,5 +1573,70 @@ describe('convertToLanguageModelMessage', () => {
         }
       `);
     });
+
+    it('should convert URL in tool result content to base64', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'screenshot',
+                  toolCallId: 'call-123',
+                  output: {
+                    type: 'content',
+                    value: [
+                      { type: 'text', text: 'Screenshot captured' },
+                      {
+                        type: 'media',
+                        data: 'https://example.com/screenshot.png',
+                        mediaType: 'image/png',
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        downloadImplementation: async ({ url }) => {
+          expect(url).toEqual(new URL('https://example.com/screenshot.png'));
+          return {
+            data: new Uint8Array([137, 80, 78, 71]), // PNG magic bytes
+            mediaType: 'image/png',
+          };
+        },
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-123',
+              toolName: 'screenshot',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'Screenshot captured' },
+                  {
+                    type: 'media',
+                    data: 'iVBORw==', // base64 of [137, 80, 78, 71]
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
   });
 });
