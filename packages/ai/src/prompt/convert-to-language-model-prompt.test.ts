@@ -682,13 +682,13 @@ describe('convertToLanguageModelPrompt', () => {
       const mockDownload = vi.fn().mockResolvedValue([
         {
           url: new URL(imageUrlA),
-          data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), // empty png
+          data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0]), // empty png and 0
           mediaType: 'image/png',
         },
         null,
         {
           url: new URL(imageUrlB),
-          data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), // empty png
+          data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1]), // empty png and 1
           mediaType: 'image/png',
         },
       ]);
@@ -730,6 +730,7 @@ describe('convertToLanguageModelPrompt', () => {
                   10,
                   26,
                   10,
+                  0,
                 ],
                 "filename": undefined,
                 "mediaType": "image/png",
@@ -753,6 +754,7 @@ describe('convertToLanguageModelPrompt', () => {
                   10,
                   26,
                   10,
+                  1,
                 ],
                 "filename": undefined,
                 "mediaType": "image/png",
