@@ -4,7 +4,7 @@
 
 When we start working on a pre-release like v5.1 or v6.0, we do a few things
 
-1. switch `main` branch to pre-release mode by running [`npm run changeset pre enter next`](https://changesets-docs.vercel.app/en/prereleases) locally which results in a pull request like [#8710](https://github.com/vercel/ai/pull/8710/files)
+1. switch `main` branch to pre-release mode by running [`npm run changeset pre enter beta`](https://changesets-docs.vercel.app/en/prereleases) locally which results in a pull request like [#8710](https://github.com/vercel/ai/pull/8710/files)
 2. We create a new branch for the curren stable release. For example, if the latest version of `ai` is 5.0.45, then the new branch for stable releases is `v5.0`
    - Create the branch
    - Create branch protections
