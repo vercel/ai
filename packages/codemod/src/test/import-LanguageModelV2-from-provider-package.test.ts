@@ -7,5 +7,3 @@ describe('import-LanguageModelV2-from-provider-package', () => {
     testTransform(transformer, 'import-LanguageModelV2-from-provider-package');
   });
 });
-
-
