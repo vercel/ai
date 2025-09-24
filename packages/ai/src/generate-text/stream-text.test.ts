@@ -13759,4 +13759,110 @@ describe('streamText', () => {
       expect(logWarningsSpy).toHaveBeenCalledWith([]);
     });
   });
+
+  describe('tool execution approval', () => {
+    describe('when a single tool needs approval', () => {
+      let result: StreamTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'tool-calls',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            currentDate: () => new Date(0),
+          },
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+              needsApproval: true,
+            }),
+          },
+        });
+      });
+
+      it('should add tool call and result parts to the full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "output": "result1",
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+            {
+              "finishReason": "tool-calls",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "tool-calls",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
+      });
+    });
+  });
 });
