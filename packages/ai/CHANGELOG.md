@@ -1,5 +1,11 @@
 # ai
 
+## 5.1.0-beta.8
+
+### Patch Changes
+
+- 7eca093: fix(ai): update `uiMessageChunkSchema` to satisfy the `UIMessageChunk` type
+
 ## 5.1.0-beta.7
 
 ### Patch Changes
