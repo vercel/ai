@@ -5,7 +5,7 @@ import {
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   ImageModelV2,
   LanguageModelV2,
   ProviderV2,
@@ -14,6 +14,7 @@ import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { FireworksChatModelId } from './fireworks-chat-options';
@@ -21,6 +22,7 @@ import { FireworksCompletionModelId } from './fireworks-completion-options';
 import { FireworksEmbeddingModelId } from './fireworks-embedding-options';
 import { FireworksImageModel } from './fireworks-image-model';
 import { FireworksImageModelId } from './fireworks-image-options';
+import { VERSION } from './version';
 
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
@@ -80,7 +82,7 @@ Creates a text embedding model for text generation.
 */
   textEmbeddingModel(
     modelId: FireworksEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 
   /**
 Creates a model for image generation.
@@ -99,14 +101,18 @@ export function createFireworks(
   options: FireworksProviderSettings = {},
 ): FireworksProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'FIREWORKS_API_KEY',
-      description: 'Fireworks API key',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'FIREWORKS_API_KEY',
+          description: 'Fireworks API key',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/fireworks/${VERSION}`,
+    );
 
   interface CommonModelConfig {
     provider: string;

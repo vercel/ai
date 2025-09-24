@@ -1,42 +1,49 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  InferUITool,
+  InferUITools,
   streamText,
+  ToolSet,
   UIDataTypes,
   UIMessage,
+  validateUIMessages,
 } from 'ai';
 
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
+const tools = {
+  web_search: openai.tools.webSearch({
+    searchContextSize: 'low',
+    userLocation: {
+      type: 'approximate',
+      city: 'San Francisco',
+      region: 'California',
+      country: 'US',
+    },
+  }),
+} satisfies ToolSet;
 
 export type OpenAIWebSearchMessage = UIMessage<
   never,
   UIDataTypes,
-  {
-    web_search_preview: InferUITool<
-      ReturnType<typeof openai.tools.webSearchPreview>
-    >;
-  }
+  InferUITools<typeof tools>
 >;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
+  const uiMessages = await validateUIMessages({ messages });
 
   const result = streamText({
-    model: openai.responses('gpt-4o-mini'),
-    tools: {
-      web_search_preview: openai.tools.webSearchPreview({
-        searchContextSize: 'high',
-        userLocation: {
-          type: 'approximate',
-          city: 'San Francisco',
-          region: 'California',
-          country: 'US',
-        },
-      }),
+    model: openai('gpt-5-nano'),
+    tools,
+    messages: convertToModelMessages(uiMessages),
+    onStepFinish: ({ request }) => {
+      console.log(JSON.stringify(request.body, null, 2));
     },
-    messages: convertToModelMessages(messages),
+    providerOptions: {
+      openai: {
+        store: false,
+        include: ['reasoning.encrypted_content'],
+      } satisfies OpenAIResponsesProviderOptions,
+    },
   });
 
   return result.toUIMessageStreamResponse({

@@ -10,3 +10,4 @@ export type {
   FireworksProviderSettings,
   FireworksErrorData,
 } from './fireworks-provider';
+export { VERSION } from './version';

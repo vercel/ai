@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   ImageModelV2,
   LanguageModelV2,
   ProviderV2,
@@ -10,7 +10,9 @@ import {
   loadOptionalSetting,
   loadSetting,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { VERSION } from './version';
 import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockChatModelId } from './bedrock-chat-options';
@@ -107,7 +109,7 @@ export interface AmazonBedrockProvider extends ProviderV2 {
 
   languageModel(modelId: BedrockChatModelId): LanguageModelV2;
 
-  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV2<string>;
+  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3<string>;
 
   /**
 Creates a model for image generation.
@@ -236,10 +238,15 @@ export function createAmazonBedrock(
         })}.amazonaws.com`,
     ) ?? `https://bedrock-runtime.us-east-1.amazonaws.com`;
 
+  const getHeaders = () => {
+    const baseHeaders = options.headers ?? {};
+    return withUserAgentSuffix(baseHeaders, `ai-sdk/amazon-bedrock/${VERSION}`);
+  };
+
   const createChatModel = (modelId: BedrockChatModelId) =>
     new BedrockChatLanguageModel(modelId, {
       baseUrl: getBaseUrl,
-      headers: options.headers ?? {},
+      headers: getHeaders,
       fetch: fetchFunction,
       generateId,
     });
@@ -257,14 +264,14 @@ export function createAmazonBedrock(
   const createEmbeddingModel = (modelId: BedrockEmbeddingModelId) =>
     new BedrockEmbeddingModel(modelId, {
       baseUrl: getBaseUrl,
-      headers: options.headers ?? {},
+      headers: getHeaders,
       fetch: fetchFunction,
     });
 
   const createImageModel = (modelId: BedrockImageModelId) =>
     new BedrockImageModel(modelId, {
       baseUrl: getBaseUrl,
-      headers: options.headers ?? {},
+      headers: getHeaders,
       fetch: fetchFunction,
     });
 
