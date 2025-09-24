@@ -2,7 +2,7 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { UIMessageChunk, uiMessageChunkSchema } from './ui-message-chunks';
 
 describe('UI message chunks type', () => {
-  it('should work with fixed inputSchema', () => {
+  it('parsed UI message chunk should have UIMessageChunk type', () => {
     const chunk = uiMessageChunkSchema.parse({
       type: 'text-delta',
       delta: 'Hello, world!',
