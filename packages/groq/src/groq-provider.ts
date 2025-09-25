@@ -1,13 +1,14 @@
 import {
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { GroqChatLanguageModel } from './groq-chat-language-model';
 import { GroqChatModelId } from './groq-chat-options';
@@ -15,7 +16,8 @@ import { GroqTranscriptionModelId } from './groq-transcription-options';
 import { GroqTranscriptionModel } from './groq-transcription-model';
 
 import { groqTools } from './groq-tools';
-export interface GroqProvider extends ProviderV2 {
+import { VERSION } from './version';
+export interface GroqProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
@@ -67,14 +69,18 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://api.groq.com/openai/v1';
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'GROQ_API_KEY',
-      description: 'Groq',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'GROQ_API_KEY',
+          description: 'Groq',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/groq/${VERSION}`,
+    );
 
   const createChatModel = (modelId: GroqChatModelId) =>
     new GroqChatLanguageModel(modelId, {

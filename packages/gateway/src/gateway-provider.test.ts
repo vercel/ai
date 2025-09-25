@@ -23,6 +23,7 @@ vi.mock('./gateway-language-model', () => ({
 // Mock the gateway fetch metadata to prevent actual network calls
 // We'll create a more flexible mock that can simulate auth failures
 const mockGetAvailableModels = vi.fn();
+const mockGetCredits = vi.fn();
 vi.mock('./gateway-fetch-metadata', () => ({
   GatewayFetchMetadata: vi.fn().mockImplementation((config: any) => ({
     getAvailableModels: async () => {
@@ -32,6 +33,13 @@ vi.mock('./gateway-fetch-metadata', () => ({
       }
       return mockGetAvailableModels();
     },
+    getCredits: async () => {
+      // Call the headers function to trigger authentication logic
+      if (config.headers && typeof config.headers === 'function') {
+        await config.headers();
+      }
+      return mockGetCredits();
+    },
   })),
 }));
 
@@ -40,13 +48,18 @@ vi.mock('./vercel-environment', () => ({
   getVercelRequestId: vi.fn(),
 }));
 
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
 describe('GatewayProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getVercelOidcToken).mockResolvedValue('mock-oidc-token');
     vi.mocked(getVercelRequestId).mockResolvedValue('mock-request-id');
-    // Set up default mock behavior for getAvailableModels
+    // Set up default mock behavior for getAvailableModels and getCredits
     mockGetAvailableModels.mockReturnValue({ models: [] });
+    mockGetCredits.mockReturnValue({ balance: '100.00', total_used: '50.00' });
     if ('AI_GATEWAY_API_KEY' in process.env) {
       Reflect.deleteProperty(process.env, 'AI_GATEWAY_API_KEY');
     }
@@ -79,10 +92,11 @@ describe('GatewayProvider', () => {
       const headers = await config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer test-api-key',
-        'Custom-Header': 'value',
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
       });
     });
 
@@ -100,10 +114,11 @@ describe('GatewayProvider', () => {
       const headers = await config.headers();
 
       expect(headers).toEqual({
-        Authorization: 'Bearer mock-oidc-token',
-        'Custom-Header': 'value',
+        authorization: 'Bearer mock-oidc-token',
+        'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'oidc',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
       });
     });
 
@@ -379,8 +394,9 @@ describe('GatewayProvider', () => {
       const headers = await resolve(config.headers());
 
       // Verify that the API key was used in the Authorization header
-      expect(headers.Authorization).toBe(`Bearer ${testApiKey}`);
+      expect(headers['authorization']).toBe(`Bearer ${testApiKey}`);
       expect(headers['ai-gateway-auth-method']).toBe('api-key');
+      expect(headers['user-agent']).toBe('ai-sdk/gateway/0.0.0-test');
 
       // Verify getVercelOidcToken was never called
       expect(getVercelOidcToken).not.toHaveBeenCalled();
@@ -808,6 +824,100 @@ describe('GatewayProvider', () => {
         expect(models).toBeDefined();
         expect(getVercelOidcToken).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('getCredits method', () => {
+    it('should fetch credits successfully', async () => {
+      const mockCredits = { balance: '150.50', total_used: '75.25' };
+      mockGetCredits.mockReturnValue(mockCredits);
+
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+      });
+
+      const credits = await provider.getCredits();
+
+      expect(credits).toEqual({ balance: '150.50', total_used: '75.25' });
+      expect(GatewayFetchMetadata).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: 'https://ai-gateway.vercel.sh/v1/ai',
+          headers: expect.any(Function),
+          fetch: undefined,
+        }),
+      );
+    });
+
+    it('should handle authentication errors in getCredits', async () => {
+      const provider = createGatewayProvider();
+
+      const result = await provider.getCredits();
+      expect(result).toEqual({ balance: '100.00', total_used: '50.00' });
+    });
+
+    it('should work with custom baseURL', async () => {
+      const customBaseURL = 'https://custom-gateway.example.com/v1/ai';
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+        baseURL: customBaseURL,
+      });
+
+      await provider.getCredits();
+
+      expect(GatewayFetchMetadata).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: customBaseURL,
+        }),
+      );
+    });
+
+    it('should work with OIDC authentication', async () => {
+      vi.mocked(getVercelOidcToken).mockResolvedValue('oidc-token');
+
+      const provider = createGatewayProvider();
+
+      const credits = await provider.getCredits();
+
+      expect(credits).toBeDefined();
+      expect(getVercelOidcToken).toHaveBeenCalled();
+    });
+
+    it('should handle errors from the credits endpoint', async () => {
+      const testError = new Error('Credits service unavailable');
+      mockGetCredits.mockRejectedValue(testError);
+
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+      });
+
+      await expect(provider.getCredits()).rejects.toThrow(
+        'Credits service unavailable',
+      );
+    });
+
+    it('should include proper headers for credits request', async () => {
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+        headers: { 'custom-header': 'custom-value' },
+      });
+
+      await provider.getCredits();
+
+      const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
+      const headers = await config.headers();
+
+      expect(headers).toEqual({
+        authorization: 'Bearer test-key',
+        'ai-gateway-protocol-version': '0.0.1',
+        'ai-gateway-auth-method': 'api-key',
+        'custom-header': 'custom-value',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+      });
+    });
+
+    it('should be available on the provider interface', () => {
+      const provider = createGatewayProvider({ apiKey: 'test-key' });
+      expect(typeof provider.getCredits).toBe('function');
     });
   });
 

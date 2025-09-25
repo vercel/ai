@@ -5,7 +5,7 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
-import { LanguageModelV2, EmbeddingModelV2 } from '@ai-sdk/provider';
+import { LanguageModelV2, EmbeddingModelV3 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 
@@ -19,10 +19,14 @@ vi.mock('@ai-sdk/openai-compatible', () => ({
   OpenAICompatibleEmbeddingModel: vi.fn(),
 }));
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
-  withoutTrailingSlash: vi.fn(url => url),
-}));
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    ...actual,
+    loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
+    withoutTrailingSlash: vi.fn(url => url),
+  };
+});
 
 vi.mock('./deepinfra-image-model', () => ({
   DeepInfraImageModel: vi.fn(),
@@ -30,7 +34,7 @@ vi.mock('./deepinfra-image-model', () => ({
 
 describe('DeepInfraProvider', () => {
   let mockLanguageModel: LanguageModelV2;
-  let mockEmbeddingModel: EmbeddingModelV2<string>;
+  let mockEmbeddingModel: EmbeddingModelV3<string>;
 
   beforeEach(() => {
     // Mock implementations of models
@@ -38,8 +42,8 @@ describe('DeepInfraProvider', () => {
       // Add any required methods for LanguageModelV2
     } as LanguageModelV2;
     mockEmbeddingModel = {
-      // Add any required methods for EmbeddingModelV2
-    } as EmbeddingModelV2<string>;
+      // Add any required methods for EmbeddingModelV3
+    } as EmbeddingModelV3<string>;
 
     // Reset mocks
     vi.clearAllMocks();
