@@ -52,6 +52,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     }),
     tracer,
     fn: async span => {
+      let output: unknown;
+
       try {
         const stream = executeTool({
           execute: tool.execute!.bind(tool),
@@ -64,38 +66,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           },
         });
 
-        let output: unknown;
         for await (const part of stream) {
           if (part.type === 'final') {
             output = part.output;
           }
         }
-        try {
-          span.setAttributes(
-            selectTelemetryAttributes({
-              telemetry,
-              attributes: {
-                'ai.toolCall.result': {
-                  output: () => JSON.stringify(output),
-                },
-              },
-            }),
-          );
-        } catch (ignored) {
-          // JSON stringify might fail if the result is not serializable,
-          // in which case we just ignore it. In the future we might want to
-          // add an optional serialize method to the tool interface and warn
-          // if the result is not serializable.
-        }
-
-        return {
-          type: 'tool-result',
-          toolCallId,
-          toolName,
-          input,
-          output,
-          dynamic: tool.type === 'dynamic',
-        } as TypedToolResult<TOOLS>;
       } catch (error) {
         recordErrorOnSpan(span, error);
         return {
@@ -107,6 +82,33 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           dynamic: tool.type === 'dynamic',
         } as TypedToolError<TOOLS>;
       }
+
+      try {
+        span.setAttributes(
+          selectTelemetryAttributes({
+            telemetry,
+            attributes: {
+              'ai.toolCall.result': {
+                output: () => JSON.stringify(output),
+              },
+            },
+          }),
+        );
+      } catch (ignored) {
+        // JSON stringify might fail if the result is not serializable,
+        // in which case we just ignore it. In the future we might want to
+        // add an optional serialize method to the tool interface and warn
+        // if the result is not serializable.
+      }
+
+      return {
+        type: 'tool-result',
+        toolCallId,
+        toolName,
+        input,
+        output,
+        dynamic: tool.type === 'dynamic',
+      } as TypedToolResult<TOOLS>;
     },
   });
 }

@@ -333,9 +333,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     return;
                   }
 
-                  outstandingToolResults.delete(toolExecutionId);
-                  attemptClose();
-
                   // record telemetry
                   try {
                     span.setAttributes(
@@ -354,6 +351,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     // add an optional serialize method to the tool interface and warn
                     // if the result is not serializable.
                   }
+
+                  outstandingToolResults.delete(toolExecutionId);
+                  attemptClose();
                 },
               });
             }
