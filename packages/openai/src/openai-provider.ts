@@ -1,8 +1,8 @@
 import {
   EmbeddingModelV3,
-  ImageModelV2,
+  ImageModelV3,
   LanguageModelV2,
-  ProviderV2,
+  ProviderV3,
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
@@ -29,7 +29,7 @@ import { OpenAITranscriptionModel } from './transcription/openai-transcription-m
 import { OpenAITranscriptionModelId } from './transcription/openai-transcription-options';
 import { VERSION } from './version';
 
-export interface OpenAIProvider extends ProviderV2 {
+export interface OpenAIProvider extends ProviderV3 {
   (modelId: OpenAIResponsesModelId): LanguageModelV2;
 
   /**
@@ -70,12 +70,12 @@ Creates a model for text embeddings.
   /**
 Creates a model for image generation.
    */
-  image(modelId: OpenAIImageModelId): ImageModelV2;
+  image(modelId: OpenAIImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(modelId: OpenAIImageModelId): ImageModelV2;
+  imageModel(modelId: OpenAIImageModelId): ImageModelV3;
 
   /**
 Creates a model for transcription.

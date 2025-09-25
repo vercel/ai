@@ -1,4 +1,4 @@
-import { NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
+import { NoSuchModelError, ProviderV3 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { ReplicateImageModel } from './replicate-image-model';
@@ -30,7 +30,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface ReplicateProvider extends ProviderV2 {
+export interface ReplicateProvider extends ProviderV3 {
   /**
    * Creates a Replicate image generation model.
    */
