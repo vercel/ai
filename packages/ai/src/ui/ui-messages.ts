@@ -216,7 +216,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       providerExecuted?: boolean;
       output?: never;
       errorText?: never;
-      approvalId?: never;
+      approval?: never;
     }
   | {
       state: 'input-available';
@@ -225,7 +225,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
-      approvalId?: never;
+      approval?: never;
     }
   | {
       state: 'approval-requested';
@@ -236,6 +236,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       callProviderMetadata?: ProviderMetadata;
       approval: {
         id: string;
+        approved?: never;
+        reason?: never;
       };
     }
   | {
