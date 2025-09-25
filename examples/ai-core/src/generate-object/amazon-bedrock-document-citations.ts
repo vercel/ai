@@ -21,7 +21,7 @@ async function main() {
           },
           {
             type: 'file',
-            data: fs.readFileSync('./document.pdf'),
+            data: fs.readFileSync('./data/ai.pdf'),
             mediaType: 'application/pdf',
             providerOptions: {
               bedrock: {
