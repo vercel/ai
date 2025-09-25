@@ -87,6 +87,7 @@ import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
+import { collectToolApprovals } from './collect-tool-approvals';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1043,6 +1044,24 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       fn: async rootSpanArg => {
         rootSpan = rootSpanArg;
 
+        const initialPrompt = await standardizePrompt({
+          system,
+          prompt,
+          messages,
+        } as Prompt);
+
+        const initialMessages = initialPrompt.messages;
+        const initialResponseMessages: Array<ResponseMessage> = [];
+
+        // create tool outputs (either execute or reject) for tool approval responses:
+        const toolApprovals = collectToolApprovals<TOOLS>({
+          messages: initialMessages,
+        });
+
+        if (toolApprovals.length > 0) {
+          console.log('streaming tool execution here via addStream');
+        }
+
         async function streamStep({
           currentStep,
           responseMessages,
@@ -1056,16 +1075,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           stepFinish = new DelayedPromise<void>();
 
-          const initialPrompt = await standardizePrompt({
-            system,
-            prompt,
-            messages,
-          } as Prompt);
-
-          const stepInputMessages = [
-            ...initialPrompt.messages,
-            ...responseMessages,
-          ];
+          const stepInputMessages = [...initialMessages, ...responseMessages];
 
           const prepareStepResult = await prepareStep?.({
             model,
@@ -1524,7 +1534,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         // add the initial stream to the stitchable stream
         await streamStep({
           currentStep: 0,
-          responseMessages: [],
+          responseMessages: initialResponseMessages,
           usage: {
             inputTokens: undefined,
             outputTokens: undefined,

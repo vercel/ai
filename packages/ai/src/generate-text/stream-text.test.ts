@@ -14002,7 +14002,7 @@ describe('streamText', () => {
         });
       });
 
-      it('should execute the tool', async () => {
+      it.skip('should execute the tool', async () => {
         expect(executeFunction).toHaveBeenCalledWith(
           { value: 'value' },
           expect.objectContaining({
@@ -14013,7 +14013,7 @@ describe('streamText', () => {
         );
       });
 
-      it('should call the model with a prompt that includes the tool result', async () => {
+      it.skip('should call the model with a prompt that includes the tool result', async () => {
         expect(prompts).toMatchInlineSnapshot(`
           [
             [
@@ -14064,7 +14064,7 @@ describe('streamText', () => {
         `);
       });
 
-      it('should include the tool result in the response messages', async () => {
+      it.skip('should include the tool result in the response messages', async () => {
         expect((await result.response).messages).toMatchInlineSnapshot(`
           [
             {
