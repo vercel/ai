@@ -3,7 +3,6 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import fs from 'fs';
 import 'dotenv/config';
-import { BedrockFilePartProviderOptions } from '../../../../packages/amazon-bedrock/src/bedrock-chat-options';
 
 async function main() {
   const result = await generateObject({
@@ -27,7 +26,7 @@ async function main() {
             providerOptions: {
               bedrock: {
                 citations: { enabled: true },
-              } satisfies BedrockFilePartProviderOptions,
+              },
             },
           },
         ],
