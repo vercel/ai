@@ -311,7 +311,37 @@ Parameters:
 
 The Text Editor Tool provides functionality for viewing and editing text files.
 
-**For Claude 4 models (Opus & Sonnet):**
+<Note>
+  Different versions of the text editor tool are available depending on your Claude model:
+  - **textEditor_20250728**: Latest version for Claude 4 models with optional `maxCharacters` parameter
+  - **textEditor_20250429**: Previous version for Claude 4 models  
+  - **textEditor_20250124**: For Claude Sonnet 3.7
+  - **textEditor_20241022**: For Claude Sonnet 3.5 (deprecated)
+  
+  Claude 4 models do not support the `undo_edit` command.
+</Note>
+
+**For Claude 4 models (Opus & Sonnet) - Latest Version:**
+
+```ts
+const textEditorTool = anthropic.tools.textEditor_20250728({
+  maxCharacters: 10000, // Optional: control file truncation when viewing large files
+  execute: async ({
+    command,
+    path,
+    file_text,
+    insert_line,
+    new_str,
+    old_str,
+    view_range,
+  }) => {
+    // Implement your text editing logic here
+    // Return the result of the text editing operation
+  },
+});
+```
+
+**For Claude 4 models (Opus & Sonnet) - Previous Version:**
 
 ```ts
 const textEditorTool = anthropic.tools.textEditor_20250429({
@@ -351,7 +381,7 @@ const textEditorTool = anthropic.tools.textEditor_20241022({
 
 Parameters:
 
-- `command` ('view' | 'create' | 'str_replace' | 'insert' | 'undo_edit'): The command to run. Note: `undo_edit` is only available in Claude 3.5 Sonnet and earlier models.
+- `command` ('view' | 'create' | 'str_replace' | 'insert' | 'undo_edit'): The command to run. Note: `undo_edit` is only available in Claude 3.5 Sonnet and earlier models, not in Claude 4 models.
 - `path` (string): Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
 - `file_text` (string, optional): Required for `create` command, with the content of the file to be created.
 - `insert_line` (number, optional): Required for `insert` command. The line number after which to insert the new string.
@@ -359,29 +389,76 @@ Parameters:
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
 
+**Configuration Options (textEditor_20250728 only):**
+
+- `maxCharacters` (number, optional): Controls truncation when viewing large files. Only available in `textEditor_20250728` and later versions.
+
+**Example with maxCharacters:**
+
+```ts
+import { promises as fs } from 'fs';
+
+const textEditorTool = anthropic.tools.textEditor_20250728({
+  maxCharacters: 5000, // Limit file viewing to 5000 characters
+  execute: async ({ command, path, view_range, ...params }) => {
+    switch (command) {
+      case 'view':
+        const content = await fs.readFile(path, 'utf-8');
+        // The maxCharacters truncation is handled automatically by the tool
+        return content;
+      case 'create':
+        await fs.writeFile(path, params.file_text);
+        return `File created: ${path}`;
+      // ... handle other commands
+    }
+  },
+});
+
+const response = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: "Please examine the large log file at /var/log/application.log and summarize any errors",
+  tools: {
+    str_replace_based_edit_tool: textEditorTool,
+  },
+});
+```
+
 When using the Text Editor Tool, make sure to name the key in the tools object correctly:
 
 - **Claude 4 models**: Use `str_replace_based_edit_tool`
 - **Claude 3.5 Sonnet and earlier**: Use `str_replace_editor`
 
 ```ts
-// For Claude 4 models
+// For Claude 4 models with latest text editor (recommended)
+const textEditorTool = anthropic.tools.textEditor_20250728({
+  maxCharacters: 10000, // Optional: limit file viewing to 10k characters
+  execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
+    // Your implementation here
+  },
+});
+
 const response = await generateText({
   model: anthropic('claude-opus-4-20250514'),
   prompt:
-    "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
+    "Create a new file called example.txt, write 'Hello World' to it, and then view the file contents",
   tools: {
     str_replace_based_edit_tool: textEditorTool, // Claude 4 tool name
   },
 });
 
 // For Claude 3.5 Sonnet and earlier
-const response = await generateText({
+const legacyTextEditorTool = anthropic.tools.textEditor_20241022({
+  execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
+    // Your implementation here
+  },
+});
+
+const legacyResponse = await generateText({
   model: anthropic('claude-3-5-sonnet-20241022'),
   prompt:
-    "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
+    "Create a new file called example.txt, write 'Hello World' to it, and then view the file contents",
   tools: {
-    str_replace_editor: textEditorTool, // Earlier models tool name
+    str_replace_editor: legacyTextEditorTool, // Earlier models tool name
   },
 });
 ```
