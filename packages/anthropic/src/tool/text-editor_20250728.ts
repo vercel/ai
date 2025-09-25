@@ -1,7 +1,7 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const textEditor_20250728 = createProviderDefinedToolFactory<
+const factory = createProviderDefinedToolFactory<
   {
     /**
      * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`.
@@ -58,3 +58,9 @@ export const textEditor_20250728 = createProviderDefinedToolFactory<
     view_range: z.array(z.number().int()).optional(),
   }),
 });
+
+export const textEditor_20250728 = (
+  args: Parameters<typeof factory>[0] = {}, // default
+) => {
+  return factory(args);
+};

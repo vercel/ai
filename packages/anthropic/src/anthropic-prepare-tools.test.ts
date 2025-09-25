@@ -95,7 +95,7 @@ describe('prepareTools', () => {
           type: 'provider-defined',
           id: 'anthropic.text_editor_20250728',
           name: 'str_replace_based_edit_tool',
-          args: { maxCharacters: 10000 },
+          args: { max_characters: 10000 },
         },
       ],
     });

@@ -325,7 +325,7 @@ The Text Editor Tool provides functionality for viewing and editing text files.
 
 ```ts
 const textEditorTool = anthropic.tools.textEditor_20250728({
-  maxCharacters: 10000, // Optional: control file truncation when viewing large files
+  max_characters: 10000, // Optional: control file truncation when viewing large files
   execute: async ({
     command,
     path,
@@ -391,7 +391,7 @@ Parameters:
 
 **Configuration Options (textEditor_20250728 only):**
 
-- `maxCharacters` (number, optional): Controls truncation when viewing large files. Only available in `textEditor_20250728` and later versions.
+- `max_characters` (number, optional): Controls truncation when viewing large files. Only available in `textEditor_20250728` and later versions.
 
 **Example with maxCharacters:**
 
@@ -399,12 +399,12 @@ Parameters:
 import { promises as fs } from 'fs';
 
 const textEditorTool = anthropic.tools.textEditor_20250728({
-  maxCharacters: 5000, // Limit file viewing to 5000 characters
+  max_characters: 5000, // Limit file viewing to 5000 characters
   execute: async ({ command, path, view_range, ...params }) => {
     switch (command) {
       case 'view':
         const content = await fs.readFile(path, 'utf-8');
-        // The maxCharacters truncation is handled automatically by the tool
+        // The max_characters truncation is handled automatically by the tool
         return content;
       case 'create':
         await fs.writeFile(path, params.file_text);
@@ -438,7 +438,7 @@ async function createStoryWithSonnet4() {
   await fs.mkdir(storyDir, { recursive: true });
 
   const textEditorTool = anthropic.tools.textEditor_20250728({
-    maxCharacters: 5000,
+    max_characters: 5000,
     execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
       const fullPath = join(storyDir, path);
       
@@ -482,7 +482,7 @@ When using the Text Editor Tool, make sure to name the key in the tools object c
 ```ts
 // For Claude 4 models with latest text editor (recommended)
 const textEditorTool = anthropic.tools.textEditor_20250728({
-  maxCharacters: 10000, // Optional: limit file viewing to 10k characters
+  max_characters: 10000, // Optional: limit file viewing to 10k characters
   execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
     // Your implementation here
   },

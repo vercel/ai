@@ -109,7 +109,7 @@ export function prepareTools({
             anthropicTools.push({
               name: 'str_replace_based_edit_tool',
               type: 'text_editor_20250728',
-              max_characters: tool.args.maxCharacters as number | undefined,
+              max_characters: tool.args.max_characters as number | undefined,
             });
             break;
           case 'anthropic.bash_20250124':

@@ -9,9 +9,9 @@ async function main() {
   const storyDir = join(process.cwd(), 'temp-stories');
   await fs.mkdir(storyDir, { recursive: true });
 
-  // Create the text editor tool with maxCharacters limit
+  // Create the text editor tool with max_characters limit
   const textEditorTool = anthropic.tools.textEditor_20250728({
-    maxCharacters: 5000, // Limit file viewing to 5000 characters
+    max_characters: 5000, // Limit file viewing to 5000 characters
     execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
       const fullPath = join(storyDir, path);
       
