@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.53
+
+### Patch Changes
+
+- d335191: Extend addToolResult to support error results
+
 ## 5.0.52
 
 ### Patch Changes
