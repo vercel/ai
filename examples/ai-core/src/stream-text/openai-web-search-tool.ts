@@ -4,7 +4,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-5-mini'),
+    model: openai('gpt-5-mini'),
     prompt: 'What happened in tech news today?',
     tools: {
       web_search: openai.tools.webSearch({
@@ -40,13 +40,6 @@ run(async () => {
             `\n\n\x1b[36mSource: ${chunk.title} (${chunk.url})\x1b[0m\n\n`,
           );
         }
-        break;
-      }
-
-      case 'finish': {
-        console.log('\n\nFINISH');
-        console.log('Finish reason:', chunk.finishReason);
-        console.log('Total Usage:', chunk.totalUsage);
         break;
       }
 

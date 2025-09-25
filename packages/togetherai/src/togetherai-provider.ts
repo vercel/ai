@@ -1,8 +1,8 @@
 import {
   LanguageModelV2,
-  EmbeddingModelV2,
-  ProviderV2,
-  ImageModelV2,
+  EmbeddingModelV3,
+  ProviderV3,
+  ImageModelV3,
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -13,12 +13,14 @@ import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { TogetherAIChatModelId } from './togetherai-chat-options';
 import { TogetherAIEmbeddingModelId } from './togetherai-embedding-options';
 import { TogetherAICompletionModelId } from './togetherai-completion-options';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { TogetherAIImageModelId } from './togetherai-image-settings';
+import { VERSION } from './version';
 
 export interface TogetherAIProviderSettings {
   /**
@@ -40,7 +42,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface TogetherAIProvider extends ProviderV2 {
+export interface TogetherAIProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
@@ -66,17 +68,17 @@ Creates a text embedding model for text generation.
 */
   textEmbeddingModel(
     modelId: TogetherAIEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 
   /**
 Creates a model for image generation.
 */
-  image(modelId: TogetherAIImageModelId): ImageModelV2;
+  image(modelId: TogetherAIImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
 */
-  imageModel(modelId: TogetherAIImageModelId): ImageModelV2;
+  imageModel(modelId: TogetherAIImageModelId): ImageModelV3;
 }
 
 export function createTogetherAI(
@@ -85,14 +87,18 @@ export function createTogetherAI(
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.together.xyz/v1/',
   );
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'TOGETHER_AI_API_KEY',
-      description: 'TogetherAI',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'TOGETHER_AI_API_KEY',
+          description: 'TogetherAI',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/togetherai/${VERSION}`,
+    );
 
   interface CommonModelConfig {
     provider: string;

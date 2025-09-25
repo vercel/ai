@@ -1,0 +1,107 @@
+name: Backport
+
+on:
+  pull_request_target:
+    types: [closed, labeled]
+
+concurrency: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+
+jobs:
+  backport:
+    name: Backport to release-v5.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only run on merged PRs with backport label in the main repository
+    if: |
+      github.repository_owner == 'vercel' &&
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'backport') &&
+      github.event.pull_request.base.ref == 'main'
+    
+    steps:
+      - name: Create access token for GitHub App
+        uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
+          private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
+
+      - name: Get GitHub App User ID
+        id: app-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Configure git user for GitHub App
+        run: |
+          git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config --global user.email '${{ steps.app-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+          ref: release-v5.0
+
+      - name: Create backport branch
+        run: |
+          # Create a new branch from release-v5.0 for the backport
+          git checkout -b backport-pr-${{ github.event.pull_request.number }}-to-release-v5.0 origin/release-v5.0
+
+      - name: Cherry-pick commits
+        run: |
+          # Get the merge commit hash
+          MERGE_COMMIT="${{ github.event.pull_request.merge_commit_sha }}"
+          
+          # Cherry-pick the merge commit
+          if ! git cherry-pick -m 1 "$MERGE_COMMIT"; then
+            echo "Cherry-pick failed. This backport requires manual intervention."
+            echo "::error::Failed to cherry-pick merge commit $MERGE_COMMIT to release-v5.0 branch"
+            exit 1
+          fi
+
+      - name: Push backport branch
+        run: |
+          git push origin backport-pr-${{ github.event.pull_request.number }}-to-release-v5.0
+
+      - name: Create backport pull request
+        id: create-pr
+        run: |
+          # Create the backport PR
+          
+          PR_URL=$(gh pr create \
+            --title "$PR_TITLE" \
+            --body "$PR_BODY" \
+            --base release-v5.0 \
+            --head backport-pr-${{ github.event.pull_request.number }}-to-release-v5.0)
+          
+          echo "backport-pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "Created backport PR $PR_URL"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_TITLE: "Backport: ${{ github.event.pull_request.title }}"
+          PR_BODY: "This is an automated backport of #${{ github.event.pull_request.number }} to the release-v5.0 branch."
+
+      - name: Remove backport label from original PR
+        if: steps.create-pr.outputs.backport-pr-url
+        run: |
+          # Remove the backport label from the original PR
+          gh pr edit ${{ github.event.pull_request.number }} --remove-label backport
+          echo "Removed backport label from original PR #${{ github.event.pull_request.number }}"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Success Comment on original PR
+        if: steps.create-pr.outputs.backport-pr-url
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "✅ Backport PR created: ${{ steps.create-pr.outputs.backport-pr-url }}"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Failure Comment on original PR
+        if: failure()
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "❌ Backport to release-v5.0 failed. This backport requires manual intervention. [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}

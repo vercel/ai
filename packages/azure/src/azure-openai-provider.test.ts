@@ -1,10 +1,14 @@
 import {
-  EmbeddingModelV2Embedding,
+  EmbeddingModelV3Embedding,
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createAzure } from './azure-openai-provider';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -113,6 +117,9 @@ describe('chat', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
     });
 
     it('should use the baseURL correctly', async () => {
@@ -208,6 +215,9 @@ describe('completion', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
     });
   });
 });
@@ -302,7 +312,7 @@ describe('embedding', () => {
     function prepareJsonResponse({
       embeddings = dummyEmbeddings,
     }: {
-      embeddings?: EmbeddingModelV2Embedding[];
+      embeddings?: EmbeddingModelV3Embedding[];
     } = {}) {
       server.urls[
         'https://test-resource.openai.azure.com/openai/v1/embeddings'
@@ -356,6 +366,9 @@ describe('embedding', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
     });
   });
 });
@@ -450,6 +463,9 @@ describe('image', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
     });
 
     it('should use the baseURL correctly', async () => {
@@ -600,6 +616,9 @@ describe('responses', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
     });
 
     it('should use the baseURL correctly', async () => {

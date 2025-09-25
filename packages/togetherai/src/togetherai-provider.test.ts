@@ -3,8 +3,8 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
-import { LanguageModelV2, EmbeddingModelV2 } from '@ai-sdk/provider';
-import { loadApiKey } from '@ai-sdk/provider-utils';
+import { LanguageModelV2, EmbeddingModelV3 } from '@ai-sdk/provider';
+import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { createTogetherAI } from './togetherai-provider';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
@@ -19,10 +19,14 @@ vi.mock('@ai-sdk/openai-compatible', () => ({
   OpenAICompatibleEmbeddingModel: vi.fn(),
 }));
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
-  withoutTrailingSlash: vi.fn(url => url),
-}));
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    ...actual,
+    loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
+    withoutTrailingSlash: vi.fn(url => url),
+  };
+});
 
 vi.mock('./togetherai-image-model', () => ({
   TogetherAIImageModel: vi.fn(),
@@ -30,7 +34,7 @@ vi.mock('./togetherai-image-model', () => ({
 
 describe('TogetherAIProvider', () => {
   let mockLanguageModel: LanguageModelV2;
-  let mockEmbeddingModel: EmbeddingModelV2<string>;
+  let mockEmbeddingModel: EmbeddingModelV3<string>;
   let createOpenAICompatibleMock: Mock;
 
   beforeEach(() => {
@@ -39,8 +43,8 @@ describe('TogetherAIProvider', () => {
       // Add any required methods for LanguageModelV2
     } as LanguageModelV2;
     mockEmbeddingModel = {
-      // Add any required methods for EmbeddingModelV2
-    } as EmbeddingModelV2<string>;
+      // Add any required methods for EmbeddingModelV3
+    } as EmbeddingModelV3<string>;
 
     // Reset mocks
     vi.clearAllMocks();
