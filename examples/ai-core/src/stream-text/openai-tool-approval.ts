@@ -45,7 +45,9 @@ run(async () => {
       model: openai('gpt-5-mini'),
       // context engineering required to make sure the model does not retry
       // the tool execution if it is not approved:
-      system: 'When a tool execution is not approved, do not retry it.',
+      system:
+        'When a tool execution is not approved by the user, do not retry it.' +
+        'Just say that the tool execution was not approved.',
       tools: { weather: weatherTool },
       messages,
       stopWhen: stepCountIs(5),
@@ -76,5 +78,7 @@ run(async () => {
     }
 
     process.stdout.write('\n\n');
+
+    messages.push(...(await result.response).messages);
   }
 });
