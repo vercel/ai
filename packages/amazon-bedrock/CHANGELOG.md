@@ -1,5 +1,14 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.1.0-beta.4
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - @ai-sdk/anthropic@2.1.0-beta.4
+
 ## 3.1.0-beta.3
 
 ### Patch Changes

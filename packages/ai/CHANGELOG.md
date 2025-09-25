@@ -1,5 +1,20 @@
 # ai
 
+## 5.1.0-beta.11
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - @ai-sdk/gateway@1.1.0-beta.7
+
+## 5.1.0-beta.10
+
+### Patch Changes
+
+- 8c98371: Extend addToolResult to support error results
+
 ## 5.1.0-beta.9
 
 ### Patch Changes
