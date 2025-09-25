@@ -430,29 +430,26 @@ Here's a comprehensive example that demonstrates using Claude Sonnet 4 with the 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import { promises as fs } from 'fs';
-import { join } from 'path';
 
 async function createStoryWithSonnet4() {
-  const storyDir = join(process.cwd(), 'stories');
-  await fs.mkdir(storyDir, { recursive: true });
+  // In-memory file system for demonstration
+  const fileSystem = new Map<string, string>();
 
   const textEditorTool = anthropic.tools.textEditor_20250728({
     max_characters: 5000,
     execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
-      const fullPath = join(storyDir, path);
-      
       switch (command) {
         case 'view':
-          const content = await fs.readFile(fullPath, 'utf-8');
-          return content;
+          const content = fileSystem.get(path);
+          return content || `Error: File "${path}" not found`;
         case 'create':
-          await fs.writeFile(fullPath, file_text || '', 'utf-8');
+          fileSystem.set(path, file_text || '');
           return `File created: ${path}`;
         case 'str_replace':
-          const fileContent = await fs.readFile(fullPath, 'utf-8');
-          const newContent = fileContent.replace(old_str, new_str || '');
-          await fs.writeFile(fullPath, newContent, 'utf-8');
+          const existingContent = fileSystem.get(path);
+          if (!existingContent) return `Error: File "${path}" not found`;
+          const newContent = existingContent.replace(old_str || '', new_str || '');
+          fileSystem.set(path, newContent);
           return `Text replaced in ${path}`;
         // ... handle other commands
       }
@@ -470,6 +467,7 @@ async function createStoryWithSonnet4() {
   });
 
   console.log(result.text);
+  console.log('Files created:', Array.from(fileSystem.keys()));
 }
 ```
 

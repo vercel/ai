@@ -1,72 +1,65 @@
 import 'dotenv/config';
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import { promises as fs } from 'fs';
-import { join } from 'path';
 
 async function main() {
-  // Create a temporary directory for our story files
-  const storyDir = join(process.cwd(), 'temp-stories');
-  await fs.mkdir(storyDir, { recursive: true });
+  // In-memory file system to store our story files
+  const fileSystem = new Map<string, string>();
 
   // Create the text editor tool with max_characters limit
   const textEditorTool = anthropic.tools.textEditor_20250728({
     max_characters: 5000, // Limit file viewing to 5000 characters
     execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
-      const fullPath = join(storyDir, path);
-      
       switch (command) {
         case 'view':
-          try {
-            const content = await fs.readFile(fullPath, 'utf-8');
-            if (view_range && view_range.length === 2) {
-              const lines = content.split('\n');
-              const [start, end] = view_range;
-              const endLine = end === -1 ? lines.length : end;
-              const selectedLines = lines.slice(start - 1, endLine);
-              return selectedLines.join('\n');
-            }
-            return content;
-          } catch (error) {
-            return `Error reading file: ${error.message}`;
+          const content = fileSystem.get(path);
+          if (!content) {
+            return `Error: File "${path}" not found`;
           }
+          
+          if (view_range && view_range.length === 2) {
+            const lines = content.split('\n');
+            const [start, end] = view_range;
+            const endLine = end === -1 ? lines.length : end;
+            const selectedLines = lines.slice(start - 1, endLine);
+            return selectedLines.join('\n');
+          }
+          return content;
 
         case 'create':
-          try {
-            await fs.writeFile(fullPath, file_text || '', 'utf-8');
-            return `File created successfully: ${path}`;
-          } catch (error) {
-            return `Error creating file: ${error.message}`;
-          }
+          fileSystem.set(path, file_text || '');
+          return `File created successfully: ${path}`;
 
         case 'str_replace':
-          try {
-            const content = await fs.readFile(fullPath, 'utf-8');
-            if (!content.includes(old_str)) {
-              return `Error: Text "${old_str}" not found in file`;
-            }
-            const occurrences = (content.match(new RegExp(old_str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
-            if (occurrences > 1) {
-              return `Error: Found ${occurrences} matches for "${old_str}". Please be more specific.`;
-            }
-            const newContent = content.replace(old_str, new_str || '');
-            await fs.writeFile(fullPath, newContent, 'utf-8');
-            return `Successfully replaced text in ${path}`;
-          } catch (error) {
-            return `Error replacing text: ${error.message}`;
+          const existingContent = fileSystem.get(path);
+          if (!existingContent) {
+            return `Error: File "${path}" not found`;
           }
+          
+          if (!existingContent.includes(old_str || '')) {
+            return `Error: Text "${old_str}" not found in file`;
+          }
+          
+          const occurrences = (existingContent.match(new RegExp((old_str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+          if (occurrences > 1) {
+            return `Error: Found ${occurrences} matches for "${old_str}". Please be more specific.`;
+          }
+          
+          const newContent = existingContent.replace(old_str || '', new_str || '');
+          fileSystem.set(path, newContent);
+          return `Successfully replaced text in ${path}`;
 
         case 'insert':
-          try {
-            const content = await fs.readFile(fullPath, 'utf-8');
-            const lines = content.split('\n');
-            lines.splice(insert_line, 0, new_str || '');
-            const newContent = lines.join('\n');
-            await fs.writeFile(fullPath, newContent, 'utf-8');
-            return `Successfully inserted text at line ${insert_line} in ${path}`;
-          } catch (error) {
-            return `Error inserting text: ${error.message}`;
+          const fileContent = fileSystem.get(path);
+          if (!fileContent) {
+            return `Error: File "${path}" not found`;
           }
+          
+          const lines = fileContent.split('\n');
+          lines.splice(insert_line || 0, 0, new_str || '');
+          const updatedContent = lines.join('\n');
+          fileSystem.set(path, updatedContent);
+          return `Successfully inserted text at line ${insert_line} in ${path}`;
 
         default:
           return `Unknown command: ${command}`;
@@ -157,22 +150,17 @@ async function main() {
   console.log(summaryResult.text);
   console.log('\n' + '='.repeat(50) + '\n');
 
-  // Display final file contents
-  console.log('📁 Final story files created:');
-  try {
-    const files = await fs.readdir(storyDir);
-    for (const file of files) {
-      if (file.endsWith('.txt')) {
-        console.log(`\n--- ${file} ---`);
-        const content = await fs.readFile(join(storyDir, file), 'utf-8');
-        console.log(content.substring(0, 200) + (content.length > 200 ? '...' : ''));
-      }
-    }
-  } catch (error) {
-    console.error('Error reading story files:', error);
-  }
+  // Display final file contents from in-memory storage
+  console.log('📁 Final story files created in memory:');
+  fileSystem.forEach((content, filename) => {
+    console.log(`\n--- ${filename} ---`);
+    console.log(content.substring(0, 200) + (content.length > 200 ? '...' : ''));
+  });
 
-  console.log(`\n✅ Story creation complete! Files saved in: ${storyDir}`);
+  console.log(`\n✅ Story creation complete! ${fileSystem.size} files created in memory.`);
+  
+  // Optional: Log all file names
+  console.log('📋 Files created:', Array.from(fileSystem.keys()).join(', '));
 }
 
 main().catch(console.error);
