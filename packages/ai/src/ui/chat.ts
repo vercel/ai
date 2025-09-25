@@ -445,6 +445,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                   state: 'output-available',
                   output,
                   errorText: undefined,
+                  approval: undefined,
                 }
               : part,
           );

@@ -98,6 +98,11 @@ Use descriptions to make the input understandable for the language model.
   inputSchema: FlexibleSchema<INPUT>;
 
   /**
+Whether the tool needs approval before it can be executed.
+   */
+  needsApproval?: boolean;
+
+  /**
    * Optional function that is called when the argument streaming starts.
    * Only called when the tool is used in a streaming context.
    */

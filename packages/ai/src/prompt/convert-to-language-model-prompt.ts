@@ -10,7 +10,10 @@ import {
   ImagePart,
   isUrlSupported,
   ModelMessage,
+  ReasoningPart,
   TextPart,
+  ToolCallPart,
+  ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import {
   detectMediaType,
@@ -39,7 +42,7 @@ export async function convertToLanguageModelPrompt({
     supportedUrls,
   );
 
-  return [
+  const messages = [
     ...(prompt.system != null
       ? [{ role: 'system' as const, content: prompt.system }]
       : []),
@@ -47,6 +50,24 @@ export async function convertToLanguageModelPrompt({
       convertToLanguageModelMessage({ message, downloadedAssets }),
     ),
   ];
+
+  // combine consecutive tool messages into a single tool message
+  const combinedMessages = [];
+  for (const message of messages) {
+    if (message.role !== 'tool') {
+      combinedMessages.push(message);
+      continue;
+    }
+
+    const lastCombinedMessage = combinedMessages.at(-1);
+    if (lastCombinedMessage?.role === 'tool') {
+      lastCombinedMessage.content.push(...message.content);
+    } else {
+      combinedMessages.push(message);
+    }
+  }
+
+  return combinedMessages;
 }
 
 /**
@@ -114,6 +135,16 @@ export function convertToLanguageModelMessage({
               part.text !== '' ||
               part.providerOptions != null,
           )
+          .filter(
+            (
+              part,
+            ): part is
+              | TextPart
+              | FilePart
+              | ReasoningPart
+              | ToolCallPart
+              | ToolResultPart => part.type !== 'tool-approval-request',
+          )
           .map(part => {
             const providerOptions = part.providerOptions;
 
@@ -172,13 +203,15 @@ export function convertToLanguageModelMessage({
     case 'tool': {
       return {
         role: 'tool',
-        content: message.content.map(part => ({
-          type: 'tool-result' as const,
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          output: part.output,
-          providerOptions: part.providerOptions,
-        })),
+        content: message.content
+          .filter(part => part.type !== 'tool-approval-response')
+          .map(part => ({
+            type: 'tool-result' as const,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output: part.output,
+            providerOptions: part.providerOptions,
+          })),
         providerOptions: message.providerOptions,
       };
     }
