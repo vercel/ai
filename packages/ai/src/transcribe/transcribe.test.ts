@@ -1,5 +1,5 @@
 import {
-  JSONValue,
+  JSONObject,
   TranscriptionModelV2,
   TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
@@ -56,7 +56,7 @@ const createMockResponse = (options: {
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
-  providerMetadata?: Record<string, Record<string, JSONValue>>;
+  providerMetadata?: Record<string, JSONObject>;
 }) => ({
   text: options.text,
   segments: options.segments,

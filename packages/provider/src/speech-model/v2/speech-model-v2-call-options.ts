@@ -1,6 +1,6 @@
-import { JSONValue } from '../../json-value/json-value';
+import { JSONObject } from '../../json-value/json-value';
 
-type SpeechModelV2ProviderOptions = Record<string, Record<string, JSONValue>>;
+type SpeechModelV2ProviderOptions = Record<string, JSONObject>;
 
 export type SpeechModelV2CallOptions = {
   /**

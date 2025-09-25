@@ -1,4 +1,4 @@
-import { JSONValue } from '../../json-value';
+import { JSONObject } from '../../json-value';
 import { SharedV2Headers } from '../../shared';
 import { TranscriptionModelV2CallOptions } from './transcription-model-v2-call-options';
 import { TranscriptionModelV2CallWarning } from './transcription-model-v2-call-warning';
@@ -112,6 +112,6 @@ Additional provider-specific metadata. They are passed through
 from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
      */
-    providerMetadata?: Record<string, Record<string, JSONValue>>;
+    providerMetadata?: Record<string, JSONObject>;
   }>;
 };

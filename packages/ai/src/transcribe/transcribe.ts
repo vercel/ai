@@ -1,4 +1,4 @@
-import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
+import { JSONObject, TranscriptionModelV2 } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
@@ -145,7 +145,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
   readonly durationInSeconds: number | undefined;
   readonly warnings: Array<TranscriptionWarning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
-  readonly providerMetadata: Record<string, Record<string, JSONValue>>;
+  readonly providerMetadata: Record<string, JSONObject>;
 
   constructor(options: {
     text: string;
@@ -158,7 +158,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     durationInSeconds: number | undefined;
     warnings: Array<TranscriptionWarning>;
     responses: Array<TranscriptionModelResponseMetadata>;
-    providerMetadata: Record<string, Record<string, JSONValue>> | undefined;
+    providerMetadata: Record<string, JSONObject> | undefined;
   }) {
     this.text = options.text;
     this.segments = options.segments;
