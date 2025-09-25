@@ -60,6 +60,7 @@ import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 import { collectToolApprovals } from './collect-tool-approvals';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -333,10 +334,14 @@ A function that attempts to repair a tool call that failed to parse.
                 toolCallId: output.toolCallId,
                 toolName: output.toolName,
                 input: output.input,
-                output: {
-                  type: 'json' as const,
-                  value: (output as any).output,
-                },
+                output: createToolModelOutput({
+                  tool: tools?.[output.toolName],
+                  output:
+                    output.type === 'tool-result'
+                      ? output.output
+                      : output.error,
+                  errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                }),
               })),
               // add tool errors for rejected tool calls:
               ...toolApprovals

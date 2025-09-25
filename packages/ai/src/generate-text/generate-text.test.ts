@@ -3572,7 +3572,7 @@ describe('generateText', () => {
                 "content": [
                   {
                     "output": {
-                      "type": "json",
+                      "type": "text",
                       "value": "result1",
                     },
                     "providerOptions": undefined,
@@ -3599,7 +3599,7 @@ describe('generateText', () => {
                     "value": "value",
                   },
                   "output": {
-                    "type": "json",
+                    "type": "text",
                     "value": "result1",
                   },
                   "toolCallId": "call-1",
@@ -3919,7 +3919,7 @@ describe('generateText', () => {
                 "content": [
                   {
                     "output": {
-                      "type": "json",
+                      "type": "text",
                       "value": "result1",
                     },
                     "providerOptions": undefined,
@@ -3929,7 +3929,7 @@ describe('generateText', () => {
                   },
                   {
                     "output": {
-                      "type": "json",
+                      "type": "text",
                       "value": "result1",
                     },
                     "providerOptions": undefined,
@@ -3956,7 +3956,7 @@ describe('generateText', () => {
                     "value": "value1",
                   },
                   "output": {
-                    "type": "json",
+                    "type": "text",
                     "value": "result1",
                   },
                   "toolCallId": "call-1",
@@ -3968,7 +3968,7 @@ describe('generateText', () => {
                     "value": "value2",
                   },
                   "output": {
-                    "type": "json",
+                    "type": "text",
                     "value": "result1",
                   },
                   "toolCallId": "call-2",
