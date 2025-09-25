@@ -15,4 +15,3 @@ tsconfig.vitest-temp.json
 *.log
 *.local
 *.tsbuildinfo
-.pnpm-store
