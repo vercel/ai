@@ -1,9 +1,9 @@
 import {
   LanguageModelV3Content,
-  LanguageModelV2Middleware,
+  LanguageModelV3Middleware,
 } from '@ai-sdk/provider';
 
-export const yourGuardrailMiddleware: LanguageModelV2Middleware = {
+export const yourGuardrailMiddleware: LanguageModelV3Middleware = {
   wrapGenerate: async ({ doGenerate }) => {
     const { content, ...rest } = await doGenerate();
 

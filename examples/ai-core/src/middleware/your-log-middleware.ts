@@ -1,9 +1,9 @@
 import {
-  LanguageModelV2Middleware,
+  LanguageModelV3Middleware,
   LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
 
-export const yourLogMiddleware: LanguageModelV2Middleware = {
+export const yourLogMiddleware: LanguageModelV3Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     console.log('doGenerate called');
     console.log(`params: ${JSON.stringify(params, null, 2)}`);

@@ -25,7 +25,7 @@ export function defaultSettingsMiddleware({
   }>;
 }): LanguageModelMiddleware {
   return {
-    middlewareVersion: 'v2',
+    middlewareVersion: 'v3',
     transformParams: async ({ params }) => {
       return mergeObjects(settings, params) as LanguageModelV3CallOptions;
     },

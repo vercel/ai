@@ -14,7 +14,6 @@
 '@ai-sdk/provider': patch
 '@example/ai-core': patch
 '@ai-sdk/baseten': patch
-'@ai-sdk/codemod': patch
 '@ai-sdk/gateway': patch
 '@ai-sdk/mistral': patch
 '@ai-sdk/cohere': patch

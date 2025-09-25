@@ -1,35 +1,35 @@
-import { LanguageModelV2 } from '../../language-model/v2/language-model-v2';
-import { LanguageModelV2CallOptions } from '../../language-model/v2/language-model-v2-call-options';
+import { LanguageModelV3 } from '../../language-model/v3/language-model-v3';
+import { LanguageModelV3CallOptions } from '../../language-model/v3/language-model-v3-call-options';
 
 /**
- * Experimental middleware for LanguageModelV2.
+ * Experimental middleware for LanguageModelV3.
  * This type defines the structure for middleware that can be used to modify
- * the behavior of LanguageModelV2 operations.
+ * the behavior of LanguageModelV3 operations.
  */
-export type LanguageModelV2Middleware = {
+export type LanguageModelV3Middleware = {
   /**
-   * Middleware specification version. Use `v2` for the current version.
+   * Middleware specification version. Use `v3` for the current version.
    */
-  middlewareVersion?: 'v2' | undefined; // backwards compatibility
+  middlewareVersion?: 'v3' | undefined; // backwards compatibility
 
   /**
    * Override the provider name if desired.
    * @param options.model - The language model instance.
    */
-  overrideProvider?: (options: { model: LanguageModelV2 }) => string;
+  overrideProvider?: (options: { model: LanguageModelV3 }) => string;
 
   /**
    * Override the model ID if desired.
    * @param options.model - The language model instance.
    */
-  overrideModelId?: (options: { model: LanguageModelV2 }) => string;
+  overrideModelId?: (options: { model: LanguageModelV3 }) => string;
 
   /**
    * Override the supported URLs if desired.
    * @param options.model - The language model instance.
    */
   overrideSupportedUrls?: (options: {
-    model: LanguageModelV2;
+    model: LanguageModelV3;
   }) => PromiseLike<Record<string, RegExp[]>> | Record<string, RegExp[]>;
 
   /**
@@ -41,9 +41,9 @@ export type LanguageModelV2Middleware = {
    */
   transformParams?: (options: {
     type: 'generate' | 'stream';
-    params: LanguageModelV2CallOptions;
-    model: LanguageModelV2;
-  }) => PromiseLike<LanguageModelV2CallOptions>;
+    params: LanguageModelV3CallOptions;
+    model: LanguageModelV3;
+  }) => PromiseLike<LanguageModelV3CallOptions>;
 
   /**
    * Wraps the generate operation of the language model.
@@ -56,11 +56,11 @@ export type LanguageModelV2Middleware = {
    * @returns A promise that resolves to the result of the generate operation.
    */
   wrapGenerate?: (options: {
-    doGenerate: () => ReturnType<LanguageModelV2['doGenerate']>;
-    doStream: () => ReturnType<LanguageModelV2['doStream']>;
-    params: LanguageModelV2CallOptions;
-    model: LanguageModelV2;
-  }) => Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>>;
+    doGenerate: () => ReturnType<LanguageModelV3['doGenerate']>;
+    doStream: () => ReturnType<LanguageModelV3['doStream']>;
+    params: LanguageModelV3CallOptions;
+    model: LanguageModelV3;
+  }) => Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>>;
 
   /**
    * Wraps the stream operation of the language model.
@@ -74,9 +74,9 @@ export type LanguageModelV2Middleware = {
    * @returns A promise that resolves to the result of the stream operation.
    */
   wrapStream?: (options: {
-    doGenerate: () => ReturnType<LanguageModelV2['doGenerate']>;
-    doStream: () => ReturnType<LanguageModelV2['doStream']>;
-    params: LanguageModelV2CallOptions;
-    model: LanguageModelV2;
-  }) => PromiseLike<Awaited<ReturnType<LanguageModelV2['doStream']>>>;
+    doGenerate: () => ReturnType<LanguageModelV3['doGenerate']>;
+    doStream: () => ReturnType<LanguageModelV3['doStream']>;
+    params: LanguageModelV3CallOptions;
+    model: LanguageModelV3;
+  }) => PromiseLike<Awaited<ReturnType<LanguageModelV3['doStream']>>>;
 };
