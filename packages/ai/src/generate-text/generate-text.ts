@@ -5,11 +5,9 @@ import {
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
-  executeTool,
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
-  ToolModelMessage,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
@@ -19,6 +17,7 @@ import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
@@ -27,7 +26,7 @@ import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
-import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
+import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
@@ -37,7 +36,9 @@ import { asArray } from '../util/as-array';
 import { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
+import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
+import { executeToolCall } from './execute-tool-call';
 import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
@@ -59,8 +60,6 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
-import { collectToolApprovals } from './collect-tool-approvals';
-import { createToolModelOutput } from '../prompt/create-tool-model-output';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -710,89 +709,17 @@ async function executeTools<TOOLS extends ToolSet>({
   experimental_context: unknown;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
-    toolCalls.map(async ({ toolCallId, toolName, input }) => {
-      const tool = tools[toolName];
-
-      if (tool?.execute == null) {
-        return undefined;
-      }
-
-      return recordSpan({
-        name: 'ai.toolCall',
-        attributes: selectTelemetryAttributes({
-          telemetry,
-          attributes: {
-            ...assembleOperationName({
-              operationId: 'ai.toolCall',
-              telemetry,
-            }),
-            'ai.toolCall.name': toolName,
-            'ai.toolCall.id': toolCallId,
-            'ai.toolCall.args': {
-              output: () => JSON.stringify(input),
-            },
-          },
-        }),
+    toolCalls.map(async toolCall =>
+      executeToolCall({
+        toolCall,
+        tools,
         tracer,
-        fn: async span => {
-          try {
-            const stream = executeTool({
-              execute: tool.execute!.bind(tool),
-              input,
-              options: {
-                toolCallId,
-                messages,
-                abortSignal,
-                experimental_context,
-              },
-            });
-
-            let output: unknown;
-            for await (const part of stream) {
-              if (part.type === 'final') {
-                output = part.output;
-              }
-            }
-            try {
-              span.setAttributes(
-                selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    'ai.toolCall.result': {
-                      output: () => JSON.stringify(output),
-                    },
-                  },
-                }),
-              );
-            } catch (ignored) {
-              // JSON stringify might fail if the result is not serializable,
-              // in which case we just ignore it. In the future we might want to
-              // add an optional serialize method to the tool interface and warn
-              // if the result is not serializable.
-            }
-
-            return {
-              type: 'tool-result',
-              toolCallId,
-              toolName,
-              input,
-              output,
-              dynamic: tool.type === 'dynamic',
-            } as TypedToolResult<TOOLS>;
-          } catch (error) {
-            recordErrorOnSpan(span, error);
-            return {
-              type: 'tool-error',
-              toolCallId,
-              toolName,
-              input,
-              error,
-              dynamic: tool.type === 'dynamic',
-            } as TypedToolError<TOOLS>;
-          }
-        },
-      });
-    }),
+        telemetry,
+        messages,
+        abortSignal,
+        experimental_context,
+      }),
+    ),
   );
 
   return toolOutputs.filter(
