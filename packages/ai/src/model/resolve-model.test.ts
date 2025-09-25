@@ -6,35 +6,6 @@ import { resolveEmbeddingModel, resolveLanguageModel } from './resolve-model';
 import { beforeEach, afterEach, describe, expect, it } from 'vitest';
 
 describe('resolveLanguageModel', () => {
-  describe('when a language model v2 is provided', () => {
-    it('should adapt and change v2 language model object to v3', () => {
-      // didn't create a separate mock v2 language model for this test
-      const v2Model = {
-        specificationVersion: 'v2',
-        provider: 'test-provider',
-        modelId: 'test-model-id',
-        supportedUrls: {},
-        async doGenerate() {
-          return {
-            content: [],
-            finishReason: 'stop',
-            usage: {},
-            warnings: [],
-          } as any;
-        },
-        async doStream() {
-          return { stream: {} } as any;
-        },
-      } as any;
-
-      const resolvedModel = resolveLanguageModel(v2Model);
-
-      expect(resolvedModel.specificationVersion).toBe('v3');
-      expect(resolvedModel.provider).toBe('test-provider');
-      expect(resolvedModel.modelId).toBe('test-model-id');
-    });
-  });
-
   describe('when a language model v3 is provided', () => {
     it('should return the language model v3', () => {
       const resolvedModel = resolveLanguageModel(

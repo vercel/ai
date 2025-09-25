@@ -1,5 +1,4 @@
 import {
-  LanguageModelV2,
   LanguageModelV3,
   LanguageModelV3CallWarning,
   LanguageModelV3FinishReason,
@@ -9,7 +8,7 @@ import {
 /**
 Language model that is used by the AI SDK Core functions.
 */
-export type LanguageModel = string | LanguageModelV3 | LanguageModelV2;
+export type LanguageModel = string | LanguageModelV3;
 
 /**
 Reason why a language model finished generating a response.
