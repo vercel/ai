@@ -312,13 +312,13 @@ Parameters:
 The Text Editor Tool provides functionality for viewing and editing text files.
 
 <Note>
-  Different versions of the text editor tool are available depending on your Claude model:
-  - **textEditor_20250728**: Latest version for Claude 4 models (Sonnet 4, Opus 4, Opus 4.1) with optional `maxCharacters` parameter
-  - **textEditor_20250429**: Previous version for Claude 4 models  
-  - **textEditor_20250124**: For Claude Sonnet 3.7
-  - **textEditor_20241022**: For Claude Sonnet 3.5 (deprecated)
-  
-  Claude 4 models do not support the `undo_edit` command.
+  Different versions of the text editor tool are available depending on your
+  Claude model: - **textEditor_20250728**: Latest version for Claude 4 models
+  (Sonnet 4, Opus 4, Opus 4.1) with optional `maxCharacters` parameter -
+  **textEditor_20250429**: Previous version for Claude 4 models -
+  **textEditor_20250124**: For Claude Sonnet 3.7 - **textEditor_20241022**: For
+  Claude Sonnet 3.5 (deprecated) Claude 4 models do not support the `undo_edit`
+  command.
 </Note>
 
 **For Claude 4 models (Sonnet 4, Opus 4, Opus 4.1) - Latest Version:**
@@ -416,7 +416,8 @@ const textEditorTool = anthropic.tools.textEditor_20250728({
 
 const response = await generateText({
   model: anthropic('claude-opus-4-20250514'),
-  prompt: "Please examine the large log file at /var/log/application.log and summarize any errors",
+  prompt:
+    'Please examine the large log file at /var/log/application.log and summarize any errors',
   tools: {
     str_replace_based_edit_tool: textEditorTool,
   },
@@ -437,7 +438,15 @@ async function createStoryWithSonnet4() {
 
   const textEditorTool = anthropic.tools.textEditor_20250728({
     max_characters: 5000,
-    execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
+    execute: async ({
+      command,
+      path,
+      file_text,
+      insert_line,
+      new_str,
+      old_str,
+      view_range,
+    }) => {
       switch (command) {
         case 'view':
           const content = fileSystem.get(path);
@@ -448,7 +457,10 @@ async function createStoryWithSonnet4() {
         case 'str_replace':
           const existingContent = fileSystem.get(path);
           if (!existingContent) return `Error: File "${path}" not found`;
-          const newContent = existingContent.replace(old_str || '', new_str || '');
+          const newContent = existingContent.replace(
+            old_str || '',
+            new_str || '',
+          );
           fileSystem.set(path, newContent);
           return `Text replaced in ${path}`;
         // ... handle other commands
@@ -481,7 +493,15 @@ When using the Text Editor Tool, make sure to name the key in the tools object c
 // For Claude 4 models with latest text editor (recommended)
 const textEditorTool = anthropic.tools.textEditor_20250728({
   max_characters: 10000, // Optional: limit file viewing to 10k characters
-  execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
+  execute: async ({
+    command,
+    path,
+    file_text,
+    insert_line,
+    new_str,
+    old_str,
+    view_range,
+  }) => {
     // Your implementation here
   },
 });
@@ -497,7 +517,15 @@ const response = await generateText({
 
 // For Claude Sonnet 3.7
 const sonnet37TextEditorTool = anthropic.tools.textEditor_20250124({
-  execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
+  execute: async ({
+    command,
+    path,
+    file_text,
+    insert_line,
+    new_str,
+    old_str,
+    view_range,
+  }) => {
     // Your implementation here
   },
 });
@@ -513,7 +541,15 @@ const sonnet37Response = await generateText({
 
 // For Claude Sonnet 3.5 (deprecated)
 const legacyTextEditorTool = anthropic.tools.textEditor_20241022({
-  execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
+  execute: async ({
+    command,
+    path,
+    file_text,
+    insert_line,
+    new_str,
+    old_str,
+    view_range,
+  }) => {
     // Your implementation here
   },
 });

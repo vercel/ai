@@ -9,14 +9,22 @@ async function main() {
   // Create the text editor tool with max_characters limit
   const textEditorTool = anthropic.tools.textEditor_20250728({
     max_characters: 5000, // Limit file viewing to 5000 characters
-    execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
+    execute: async ({
+      command,
+      path,
+      file_text,
+      insert_line,
+      new_str,
+      old_str,
+      view_range,
+    }) => {
       switch (command) {
         case 'view':
           const content = fileSystem.get(path);
           if (!content) {
             return `Error: File "${path}" not found`;
           }
-          
+
           if (view_range && view_range.length === 2) {
             const lines = content.split('\n');
             const [start, end] = view_range;
@@ -35,17 +43,27 @@ async function main() {
           if (!existingContent) {
             return `Error: File "${path}" not found`;
           }
-          
+
           if (!existingContent.includes(old_str || '')) {
             return `Error: Text "${old_str}" not found in file`;
           }
-          
-          const occurrences = (existingContent.match(new RegExp((old_str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+
+          const occurrences = (
+            existingContent.match(
+              new RegExp(
+                (old_str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+                'g',
+              ),
+            ) || []
+          ).length;
           if (occurrences > 1) {
             return `Error: Found ${occurrences} matches for "${old_str}". Please be more specific.`;
           }
-          
-          const newContent = existingContent.replace(old_str || '', new_str || '');
+
+          const newContent = existingContent.replace(
+            old_str || '',
+            new_str || '',
+          );
           fileSystem.set(path, newContent);
           return `Successfully replaced text in ${path}`;
 
@@ -54,7 +72,7 @@ async function main() {
           if (!fileContent) {
             return `Error: File "${path}" not found`;
           }
-          
+
           const lines = fileContent.split('\n');
           lines.splice(insert_line || 0, 0, new_str || '');
           const updatedContent = lines.join('\n');
@@ -154,11 +172,15 @@ async function main() {
   console.log('📁 Final story files created in memory:');
   fileSystem.forEach((content, filename) => {
     console.log(`\n--- ${filename} ---`);
-    console.log(content.substring(0, 200) + (content.length > 200 ? '...' : ''));
+    console.log(
+      content.substring(0, 200) + (content.length > 200 ? '...' : ''),
+    );
   });
 
-  console.log(`\n✅ Story creation complete! ${fileSystem.size} files created in memory.`);
-  
+  console.log(
+    `\n✅ Story creation complete! ${fileSystem.size} files created in memory.`,
+  );
+
   // Optional: Log all file names
   console.log('📋 Files created:', Array.from(fileSystem.keys()).join(', '));
 }
