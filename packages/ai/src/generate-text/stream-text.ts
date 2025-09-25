@@ -1077,7 +1077,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           self.addStream(toolExecutionStepStream);
 
           try {
-            // TODO send rejections into full stream? no but needed in response messages
+            // TODO send tool outputs in full stream
 
             const toolOutputs = await executeTools({
               // run only approved tool calls:
@@ -1132,6 +1132,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             toolExecutionStepStreamController?.close();
           }
         }
+
+        recordedResponseMessages.push(...initialResponseMessages);
 
         async function streamStep({
           currentStep,

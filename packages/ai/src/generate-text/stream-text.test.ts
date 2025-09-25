@@ -14030,7 +14030,7 @@ describe('streamText', () => {
         `);
       });
 
-      it.skip('should include the tool result in the response messages', async () => {
+      it('should include the tool result in the response messages', async () => {
         expect((await result.response).messages).toMatchInlineSnapshot(`
           [
             {
