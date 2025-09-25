@@ -88,10 +88,29 @@ export interface ChatState<UI_MESSAGE extends UIMessage> {
 
 export type ChatOnErrorCallback = (error: Error) => void;
 
-export type ChatOnToolCallCallback<UI_MESSAGE extends UIMessage = UIMessage> =
-  (options: {
-    toolCall: InferUIMessageToolCall<UI_MESSAGE>;
-  }) => void | PromiseLike<void>;
+type ChatAddToolResult<
+  UI_MESSAGE extends UIMessage = UIMessage,
+  TOOL extends
+    keyof InferUIMessageTools<UI_MESSAGE> = keyof InferUIMessageTools<UI_MESSAGE>,
+> = ({
+  tool,
+  toolCallId,
+  output,
+}: {
+  tool: TOOL;
+  toolCallId: string;
+  output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+}) => Promise<void>;
+
+export type ChatOnToolCallCallback<
+  UI_MESSAGE extends UIMessage = UIMessage,
+  TOOL extends
+    keyof InferUIMessageTools<UI_MESSAGE> = keyof InferUIMessageTools<UI_MESSAGE>,
+> = (options: {
+  toolCall: InferUIMessageToolCall<UI_MESSAGE>;
+  addToolResult: ChatAddToolResult<UI_MESSAGE, TOOL>;
+  signal: AbortSignal;
+}) => void | PromiseLike<void>;
 
 export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
   dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
@@ -146,8 +165,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   Optional callback function that is invoked when a tool call is received.
   Intended for automatic client-side tool execution.
 
-  You can optionally return a result for the tool call,
-  either synchronously or asynchronously.
+  Intended to be used with the addToolResult handler
      */
   onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
 
@@ -413,16 +431,23 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
-  addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
+  addToolResult: ChatAddToolResult<UI_MESSAGE> = async ({
     tool,
     toolCallId,
     output,
-  }: {
-    tool: TOOL;
-    toolCallId: string;
-    output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
-  }) =>
+  }) => {
+    await this.performAddToolResult({ tool, toolCallId, output });
+  };
+
+  private async performAddToolResult(
+    { toolCallId, output }: Parameters<ChatAddToolResult<UI_MESSAGE>>[0],
+    { signal }: { signal?: AbortSignal } = {},
+  ): Promise<void> {
     this.jobExecutor.run(async () => {
+      if (signal?.aborted) {
+        return;
+      }
+
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
 
@@ -463,9 +488,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         });
       }
     });
+  }
 
-  /**
-   * Abort the current request immediately, keep the generated tokens if any.
+  /**	 * Abort the current request immediately, keep the generated tokens if any.
    */
   stop = async () => {
     if (this.status !== 'streaming' && this.status !== 'submitted') return;
@@ -569,7 +594,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       await consumeStream({
         stream: processUIMessageStream({
           stream,
-          onToolCall: this.onToolCall,
+          onToolCall: async ({ toolCall }) => {
+            await this.onToolCall?.({
+              toolCall,
+              addToolResult: async options =>
+                this.performAddToolResult(options, {
+                  signal: activeResponse.abortController.signal,
+                }),
+              signal: activeResponse.abortController.signal,
+            });
+          },
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
