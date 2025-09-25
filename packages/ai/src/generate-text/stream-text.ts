@@ -7,9 +7,10 @@ import {
   createIdGenerator,
   IdGenerator,
   isAbortError,
+  ModelMessage,
   ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { Span } from '@opentelemetry/api';
+import { Span, Tracer } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
@@ -17,6 +18,7 @@ import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
@@ -62,7 +64,9 @@ import { DelayedPromise } from '../util/delayed-promise';
 import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
+import { executeToolCall } from './execute-tool-call';
 import { Output } from './output';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
@@ -87,7 +91,6 @@ import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
-import { collectToolApprovals } from './collect-tool-approvals';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1058,8 +1061,76 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           messages: initialMessages,
         });
 
+        // initial tool execution step stream
         if (toolApprovals.length > 0) {
-          console.log('streaming tool execution here via addStream');
+          let toolExecutionStepStreamController:
+            | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
+            | undefined;
+          const toolExecutionStepStream = new ReadableStream<
+            TextStreamPart<TOOLS>
+          >({
+            start(controller) {
+              toolExecutionStepStreamController = controller;
+            },
+          });
+
+          self.addStream(toolExecutionStepStream);
+
+          try {
+            // TODO send rejections into full stream? no but needed in response messages
+
+            const toolOutputs = await executeTools({
+              // run only approved tool calls:
+              toolCalls: toolApprovals
+                .filter(toolApproval => toolApproval.approvalResponse.approved)
+                .map(toolApproval => toolApproval.toolCall),
+              tools: tools as TOOLS,
+              tracer,
+              telemetry,
+              messages: initialMessages,
+              abortSignal,
+              experimental_context,
+            });
+
+            initialResponseMessages.push({
+              role: 'tool',
+              content: [
+                // add tool results for approved tool calls:
+                ...toolOutputs.map(output => ({
+                  type: 'tool-result' as const,
+                  toolCallId: output.toolCallId,
+                  toolName: output.toolName,
+                  input: output.input,
+                  output: createToolModelOutput({
+                    tool: tools?.[output.toolName],
+                    output:
+                      output.type === 'tool-result'
+                        ? output.output
+                        : output.error,
+                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                  }),
+                })),
+                // add tool errors for rejected tool calls:
+                ...toolApprovals
+                  .filter(
+                    toolApproval => !toolApproval.approvalResponse.approved,
+                  )
+                  .map(toolApproval => ({
+                    type: 'tool-result' as const,
+                    toolCallId: toolApproval.toolCall.toolCallId,
+                    toolName: toolApproval.toolCall.toolName,
+                    output: {
+                      type: 'error-text' as const,
+                      value:
+                        toolApproval.approvalResponse.reason ??
+                        'Tool execution not approved.',
+                    },
+                  })),
+              ],
+            });
+          } finally {
+            toolExecutionStepStreamController?.close();
+          }
         }
 
         async function streamStep({
@@ -1153,23 +1224,21 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               }),
               tracer,
               endWhenDone: false,
-              fn: async doStreamSpan => {
-                return {
-                  startTimestampMs: now(), // get before the call
-                  doStreamSpan,
-                  result: await stepModel.doStream({
-                    ...callSettings,
-                    tools: stepTools,
-                    toolChoice: stepToolChoice,
-                    responseFormat: output?.responseFormat,
-                    prompt: promptMessages,
-                    providerOptions,
-                    abortSignal,
-                    headers,
-                    includeRawChunks,
-                  }),
-                };
-              },
+              fn: async doStreamSpan => ({
+                startTimestampMs: now(), // get before the call
+                doStreamSpan,
+                result: await stepModel.doStream({
+                  ...callSettings,
+                  tools: stepTools,
+                  toolChoice: stepToolChoice,
+                  responseFormat: output?.responseFormat,
+                  prompt: promptMessages,
+                  providerOptions,
+                  abortSignal,
+                  headers,
+                  includeRawChunks,
+                }),
+              }),
             }),
           );
 
@@ -2141,4 +2210,40 @@ However, the LLM results are expected to be small enough to not cause issues.
       ...init,
     });
   }
+}
+
+async function executeTools<TOOLS extends ToolSet>({
+  toolCalls,
+  tools,
+  tracer,
+  telemetry,
+  messages,
+  abortSignal,
+  experimental_context,
+}: {
+  toolCalls: Array<TypedToolCall<TOOLS>>;
+  tools: TOOLS;
+  tracer: Tracer;
+  telemetry: TelemetrySettings | undefined;
+  messages: ModelMessage[];
+  abortSignal: AbortSignal | undefined;
+  experimental_context: unknown;
+}): Promise<Array<ToolOutput<TOOLS>>> {
+  const toolOutputs = await Promise.all(
+    toolCalls.map(async toolCall =>
+      executeToolCall({
+        toolCall,
+        tools,
+        tracer,
+        telemetry,
+        messages,
+        abortSignal,
+        experimental_context,
+      }),
+    ),
+  );
+
+  return toolOutputs.filter(
+    (output): output is NonNullable<typeof output> => output != null,
+  );
 }

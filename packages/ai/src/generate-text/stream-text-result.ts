@@ -349,6 +349,7 @@ If an error occurs, it is passed to the optional `onError` callback.
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
+// TODO AI SDK 5.1 rename
 export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'text-start';

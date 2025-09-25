@@ -13896,22 +13896,27 @@ describe('streamText', () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
         result = streamText({
-          model: createTestModel({
-            stream: convertArrayToReadableStream([
-              { type: 'stream-start', warnings: [] },
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                input: `{ "value": "value" }`,
-              },
-              {
-                type: 'finish',
-                finishReason: 'tool-calls',
-                usage: testUsage,
-              },
-            ]),
+          model: new MockLanguageModelV2({
+            doStream: async ({ prompt }) => {
+              prompts.push(prompt);
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  { type: 'text-start', id: '1' },
+                  {
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Hello, world!',
+                  },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: 'stop',
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
           }),
           tools: {
             tool1: tool({
@@ -13959,9 +13964,11 @@ describe('streamText', () => {
             },
           ],
         });
+
+        await result.consumeStream();
       });
 
-      it.skip('should execute the tool', async () => {
+      it('should execute the tool', async () => {
         expect(executeFunction).toHaveBeenCalledWith(
           { value: 'value' },
           expect.objectContaining({
@@ -13972,7 +13979,7 @@ describe('streamText', () => {
         );
       });
 
-      it.skip('should call the model with a prompt that includes the tool result', async () => {
+      it('should call the model with a prompt that includes the tool result', async () => {
         expect(prompts).toMatchInlineSnapshot(`
           [
             [
@@ -14052,6 +14059,65 @@ describe('streamText', () => {
                 },
               ],
               "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should include the tool result in the full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello, world!",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
             },
           ]
         `);
