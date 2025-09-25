@@ -23,7 +23,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 
-
 export interface AzureOpenAIProvider extends ProviderV3 {
   (deploymentId: string): LanguageModelV3;
 
