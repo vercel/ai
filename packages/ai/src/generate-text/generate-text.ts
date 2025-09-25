@@ -600,7 +600,7 @@ A function that attempts to repair a tool call that failed to parse.
 
         const lastStep = steps[steps.length - 1];
 
-        // tool-calls does not requier structured output parsing.
+        // tool-calls does not require structured output parsing.
         let resolvedOutput;
         if (lastStep.finishReason !== 'tool-calls') {
           resolvedOutput = await output?.parseOutput(
