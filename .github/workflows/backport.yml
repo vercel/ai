@@ -8,7 +8,7 @@ concurrency: ${{ github.workflow }}-${{ github.event.pull_request.number }}
 
 jobs:
   backport:
-    name: Backport to v5.0
+    name: Backport to release-v5.0
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Only run on merged PRs with backport label in the main repository
@@ -42,12 +42,12 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
-          ref: v5.0
+          ref: release-v5.0
 
       - name: Create backport branch
         run: |
-          # Create a new branch from v5.0 for the backport
-          git checkout -b backport-pr-${{ github.event.pull_request.number }}-to-v5.0 origin/v5.0
+          # Create a new branch from release-v5.0 for the backport
+          git checkout -b backport-pr-${{ github.event.pull_request.number }}-to-release-v5.0 origin/release-v5.0
 
       - name: Cherry-pick commits
         run: |
@@ -57,13 +57,13 @@ jobs:
           # Cherry-pick the merge commit
           if ! git cherry-pick -m 1 "$MERGE_COMMIT"; then
             echo "Cherry-pick failed. This backport requires manual intervention."
-            echo "::error::Failed to cherry-pick merge commit $MERGE_COMMIT to v5.0 branch"
+            echo "::error::Failed to cherry-pick merge commit $MERGE_COMMIT to release-v5.0 branch"
             exit 1
           fi
 
       - name: Push backport branch
         run: |
-          git push origin backport-pr-${{ github.event.pull_request.number }}-to-v5.0
+          git push origin backport-pr-${{ github.event.pull_request.number }}-to-release-v5.0
 
       - name: Create backport pull request
         id: create-pr
@@ -73,15 +73,15 @@ jobs:
           PR_URL=$(gh pr create \
             --title "$PR_TITLE" \
             --body "$PR_BODY" \
-            --base v5.0 \
-            --head backport-pr-${{ github.event.pull_request.number }}-to-v5.0)
+            --base release-v5.0 \
+            --head backport-pr-${{ github.event.pull_request.number }}-to-release-v5.0)
           
           echo "backport-pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
           echo "Created backport PR $PR_URL"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_TITLE: "Backport: ${{ github.event.pull_request.title }}"
-          PR_BODY: "This is an automated backport of #${{ github.event.pull_request.number }} to the v5.0 branch."
+          PR_BODY: "This is an automated backport of #${{ github.event.pull_request.number }} to the release-v5.0 branch."
 
       - name: Remove backport label from original PR
         if: steps.create-pr.outputs.backport-pr-url
@@ -102,6 +102,6 @@ jobs:
       - name: Failure Comment on original PR
         if: failure()
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "❌ Backport to v5.0 failed. This backport requires manual intervention. [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          gh pr comment ${{ github.event.pull_request.number }} --body "❌ Backport to release-v5.0 failed. This backport requires manual intervention. [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}

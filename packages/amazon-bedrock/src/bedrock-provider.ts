@@ -1,8 +1,8 @@
 import {
   EmbeddingModelV3,
-  ImageModelV2,
+  ImageModelV3,
   LanguageModelV3,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -104,7 +104,7 @@ and `sessionToken` settings.
   generateId?: () => string;
 }
 
-export interface AmazonBedrockProvider extends ProviderV2 {
+export interface AmazonBedrockProvider extends ProviderV3 {
   (modelId: BedrockChatModelId): LanguageModelV3;
 
   languageModel(modelId: BedrockChatModelId): LanguageModelV3;
@@ -114,12 +114,12 @@ export interface AmazonBedrockProvider extends ProviderV2 {
   /**
 Creates a model for image generation.
    */
-  image(modelId: BedrockImageModelId): ImageModelV2;
+  image(modelId: BedrockImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(modelId: BedrockImageModelId): ImageModelV2;
+  imageModel(modelId: BedrockImageModelId): ImageModelV3;
 
   /**
 Anthropic-specific tools that can be used with Anthropic models on Bedrock.

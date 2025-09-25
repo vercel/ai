@@ -2,7 +2,7 @@ import {
   EmbeddingModelV3,
   LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -17,7 +17,7 @@ import { CohereEmbeddingModel } from './cohere-embedding-model';
 import { CohereEmbeddingModelId } from './cohere-embedding-options';
 import { VERSION } from './version';
 
-export interface CohereProvider extends ProviderV2 {
+export interface CohereProvider extends ProviderV3 {
   (modelId: CohereChatModelId): LanguageModelV3;
 
   /**

@@ -1,5 +1,5 @@
 import { GoogleErrorData, google as provider } from '@ai-sdk/google';
-import { APICallError, ImageModelV2, LanguageModelV3 } from '@ai-sdk/provider';
+import { APICallError, ImageModelV3, LanguageModelV3 } from '@ai-sdk/provider';
 import 'dotenv/config';
 import { expect } from 'vitest';
 import {
@@ -20,7 +20,7 @@ const createChatModel = (
 
 const createImageModel = (
   modelId: string,
-): ModelWithCapabilities<ImageModelV2> =>
+): ModelWithCapabilities<ImageModelV3> =>
   createImageModelWithCapabilities(provider.image(modelId));
 
 const createSearchGroundedModel = (

@@ -7,7 +7,7 @@ import {
 } from './log-warnings';
 import type {
   LanguageModelV3CallWarning,
-  ImageModelV2CallWarning,
+  ImageModelV3CallWarning,
   SpeechModelV2CallWarning,
   TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
@@ -55,7 +55,7 @@ describe('logWarnings', () => {
         {
           type: 'other',
           message: 'Test warning 2',
-        } as ImageModelV2CallWarning,
+        } as ImageModelV3CallWarning,
       ];
 
       logWarnings(warnings);
@@ -96,7 +96,7 @@ describe('logWarnings', () => {
         {
           type: 'other',
           message: 'Another warning',
-        } as ImageModelV2CallWarning,
+        } as ImageModelV3CallWarning,
       ];
 
       logWarnings(warnings);
@@ -141,7 +141,7 @@ describe('logWarnings', () => {
         type: 'other',
         message: 'First warning',
       };
-      const warning2: ImageModelV2CallWarning = {
+      const warning2: ImageModelV3CallWarning = {
         type: 'unsupported-setting',
         setting: 'size',
         details: 'Size parameter not supported',
@@ -210,8 +210,8 @@ describe('logWarnings', () => {
         );
       });
 
-      it('should log ImageModelV2CallWarning', () => {
-        const warning: ImageModelV2CallWarning = {
+      it('should log image model call warning', () => {
+        const warning: ImageModelV3CallWarning = {
           type: 'unsupported-setting',
           setting: 'size',
           details: 'Image size setting not supported',
@@ -266,7 +266,7 @@ describe('logWarnings', () => {
           type: 'other',
           message: 'Language model warning',
         };
-        const imageWarning: ImageModelV2CallWarning = {
+        const imageWarning: ImageModelV3CallWarning = {
           type: 'other',
           message: 'Image model warning',
         };

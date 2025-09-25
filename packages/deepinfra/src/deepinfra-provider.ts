@@ -1,8 +1,8 @@
 import {
   LanguageModelV3,
   EmbeddingModelV3,
-  ProviderV2,
-  ImageModelV2,
+  ProviderV3,
+  ImageModelV3,
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -42,7 +42,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface DeepInfraProvider extends ProviderV2 {
+export interface DeepInfraProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
@@ -56,12 +56,12 @@ Creates a chat model for text generation.
   /**
 Creates a model for image generation.
   */
-  image(modelId: DeepInfraImageModelId): ImageModelV2;
+  image(modelId: DeepInfraImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
   */
-  imageModel(modelId: DeepInfraImageModelId): ImageModelV2;
+  imageModel(modelId: DeepInfraImageModelId): ImageModelV3;
 
   /**
 Creates a chat model for text generation.

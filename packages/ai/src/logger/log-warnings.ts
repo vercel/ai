@@ -1,5 +1,5 @@
 import {
-  ImageModelV2CallWarning,
+  ImageModelV3CallWarning,
   LanguageModelV3CallWarning,
   SpeechModelV2CallWarning,
   TranscriptionModelV2CallWarning,
@@ -7,7 +7,7 @@ import {
 
 export type Warning =
   | LanguageModelV3CallWarning
-  | ImageModelV2CallWarning
+  | ImageModelV3CallWarning
   | SpeechModelV2CallWarning
   | TranscriptionModelV2CallWarning;
 
