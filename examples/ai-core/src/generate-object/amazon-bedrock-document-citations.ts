@@ -6,7 +6,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateObject({
-    model: bedrock('apac.anthropic.claude-sonnet-4-20250514-v1:0'),
+    model: bedrock('us.anthropic.claude-sonnet-4-20250514-v1:0'),
     schema: z.object({
       summary: z.string().describe('Summary of the PDF document'),
       keyPoints: z.array(z.string()).describe('Key points from the PDF'),
