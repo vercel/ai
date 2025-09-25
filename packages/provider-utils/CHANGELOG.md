@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.1.0-beta.4
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+
 ## 3.1.0-beta.3
 
 ### Patch Changes
