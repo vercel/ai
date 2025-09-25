@@ -1483,7 +1483,7 @@ importers:
         specifier: workspace:*
         version: link:../ai
       zod:
-        specifier: ^3.25.76 || ^4.1.6
+        specifier: ^3.25.76 || ^4.1.8
         version: 3.25.76
     devDependencies:
       '@types/node':
@@ -2748,7 +2748,7 @@ importers:
         specifier: ^3.3.4
         version: 3.5.13(typescript@5.8.3)
       zod:
-        specifier: ^3.25.76 || ^4.1.6
+        specifier: ^3.25.76 || ^4.1.8
         version: 3.25.76
     devDependencies:
       '@testing-library/jest-dom':
