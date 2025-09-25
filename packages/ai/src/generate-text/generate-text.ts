@@ -615,7 +615,7 @@ A function that attempts to repair a tool call that failed to parse.
 
         return new DefaultGenerateTextResult({
           steps,
-          resolvedOutput: resolvedOutput,
+          resolvedOutput,
         });
       },
     });
