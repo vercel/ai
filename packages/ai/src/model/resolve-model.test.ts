@@ -1,4 +1,5 @@
 import { customProvider } from '../registry/custom-provider';
+import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { resolveEmbeddingModel, resolveLanguageModel } from './resolve-model';
