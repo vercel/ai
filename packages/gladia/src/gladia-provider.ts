@@ -1,6 +1,6 @@
 import {
   TranscriptionModelV2,
-  ProviderV2,
+  ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -11,7 +11,7 @@ import {
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
 import { VERSION } from './version';
 
-export interface GladiaProvider extends ProviderV2 {
+export interface GladiaProvider extends ProviderV3 {
   (): {
     transcription: GladiaTranscriptionModel;
   };
@@ -76,7 +76,7 @@ export function createGladia(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  // Required ProviderV2 methods that are not supported
+  // Required ProviderV3 methods that are not supported
   provider.languageModel = () => {
     throw new NoSuchModelError({
       modelId: 'unknown',

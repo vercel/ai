@@ -278,18 +278,15 @@ async function downloadAssets(
 
   return Object.fromEntries(
     downloadedFiles
-      .filter(
-        (
-          downloadedFile,
-        ): downloadedFile is {
-          mediaType: string | undefined;
-          data: Uint8Array;
-        } => downloadedFile?.data != null,
+      .map((file, index) =>
+        file == null
+          ? null
+          : [
+              plannedDownloads[index].url.toString(),
+              { data: file.data, mediaType: file.mediaType },
+            ],
       )
-      .map(({ data, mediaType }, index) => [
-        plannedDownloads[index].url.toString(),
-        { data, mediaType },
-      ]),
+      .filter(file => file != null),
   );
 }
 
