@@ -20,6 +20,7 @@ export { MCPClientError } from './mcp-client-error';
 export { NoImageGeneratedError } from './no-image-generated-error';
 export { NoObjectGeneratedError } from './no-object-generated-error';
 export { NoOutputGeneratedError } from './no-output-generated-error';
+export { NoVideoGeneratedError } from './no-video-generated-error';
 export { NoOutputSpecifiedError } from './no-output-specified-error';
 export { NoSuchToolError } from './no-such-tool-error';
 export { ToolCallRepairError } from './tool-call-repair-error';
