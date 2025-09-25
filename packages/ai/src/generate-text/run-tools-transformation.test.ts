@@ -126,12 +126,11 @@ describe('runToolsTransformation', () => {
             "type": "tool-call",
           },
           {
+            "dynamic": false,
             "input": {
               "value": "test",
             },
             "output": "test-sync-result",
-            "providerExecuted": undefined,
-            "providerMetadata": undefined,
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-result",
@@ -200,12 +199,11 @@ describe('runToolsTransformation', () => {
             "type": "tool-call",
           },
           {
+            "dynamic": false,
             "input": {
               "value": "test",
             },
             "output": "test-sync-result",
-            "providerExecuted": undefined,
-            "providerMetadata": undefined,
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-result",
@@ -278,12 +276,11 @@ describe('runToolsTransformation', () => {
           "type": "tool-call",
         },
         {
+          "dynamic": false,
           "input": {
             "value": "test",
           },
           "output": "test-delayed-result",
-          "providerExecuted": undefined,
-          "providerMetadata": undefined,
           "toolCallId": "call-1",
           "toolName": "delayedTool",
           "type": "tool-result",
@@ -362,12 +359,11 @@ describe('runToolsTransformation', () => {
             "type": "tool-call",
           },
           {
+            "dynamic": false,
             "input": {
               "value": "test",
             },
             "output": "test-result",
-            "providerExecuted": undefined,
-            "providerMetadata": undefined,
             "toolCallId": "call-1",
             "toolName": "correctTool",
             "type": "tool-result",

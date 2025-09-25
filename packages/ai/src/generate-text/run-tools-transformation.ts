@@ -23,6 +23,7 @@ import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import { executeToolCall } from './execute-tool-call';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   // Text blocks:
@@ -274,87 +275,21 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
               // because we want to process the next chunk as soon as possible.
               // This is important for the case where the tool execution takes a long time.
-              recordSpan({
-                name: 'ai.toolCall',
-                attributes: selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    ...assembleOperationName({
-                      operationId: 'ai.toolCall',
-                      telemetry,
-                    }),
-                    'ai.toolCall.name': toolCall.toolName,
-                    'ai.toolCall.id': toolCall.toolCallId,
-                    'ai.toolCall.args': {
-                      output: () => JSON.stringify(toolCall.input),
-                    },
-                  },
-                }),
+              executeToolCall({
+                toolCall,
+                tools,
                 tracer,
-                fn: async span => {
-                  let output: unknown;
-
-                  try {
-                    const stream = executeTool({
-                      execute: tool.execute!.bind(tool),
-                      input: toolCall.input,
-                      options: {
-                        toolCallId: toolCall.toolCallId,
-                        messages,
-                        abortSignal,
-                        experimental_context,
-                      },
-                    });
-
-                    for await (const part of stream) {
-                      toolResultsStreamController!.enqueue({
-                        ...toolCall,
-                        type: 'tool-result',
-                        output: part.output,
-                        ...(part.type === 'preliminary' && {
-                          preliminary: true,
-                        }),
-                      });
-
-                      if (part.type === 'final') {
-                        output = part.output;
-                      }
-                    }
-                  } catch (error) {
-                    recordErrorOnSpan(span, error);
-                    toolResultsStreamController!.enqueue({
-                      ...toolCall,
-                      type: 'tool-error',
-                      error,
-                    } satisfies TypedToolError<TOOLS>);
-
-                    outstandingToolResults.delete(toolExecutionId);
-                    attemptClose();
-                    return;
-                  }
-
-                  // record telemetry
-                  try {
-                    span.setAttributes(
-                      selectTelemetryAttributes({
-                        telemetry,
-                        attributes: {
-                          'ai.toolCall.result': {
-                            output: () => JSON.stringify(output),
-                          },
-                        },
-                      }),
-                    );
-                  } catch (ignored) {
-                    // JSON stringify might fail if the result is not serializable,
-                    // in which case we just ignore it. In the future we might want to
-                    // add an optional serialize method to the tool interface and warn
-                    // if the result is not serializable.
-                  }
-
-                  outstandingToolResults.delete(toolExecutionId);
-                  attemptClose();
+                telemetry,
+                messages,
+                abortSignal,
+                experimental_context,
+                onPreliminaryToolResult: result => {
+                  toolResultsStreamController!.enqueue(result);
                 },
+              }).then(result => {
+                toolResultsStreamController!.enqueue(result);
+                outstandingToolResults.delete(toolExecutionId);
+                attemptClose();
               });
             }
           } catch (error) {

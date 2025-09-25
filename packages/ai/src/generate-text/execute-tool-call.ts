@@ -18,17 +18,19 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  onPreliminaryToolResult,
 }: {
   toolCall: TypedToolCall<TOOLS>;
-  tools: TOOLS;
+  tools: TOOLS | undefined;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
+  onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
-  const tool = tools[toolName];
+  const tool = tools?.[toolName];
 
   if (tool?.execute == null) {
     return undefined;
@@ -67,7 +69,14 @@ export async function executeToolCall<TOOLS extends ToolSet>({
         });
 
         for await (const part of stream) {
-          if (part.type === 'final') {
+          if (part.type === 'preliminary') {
+            onPreliminaryToolResult?.({
+              ...toolCall,
+              type: 'tool-result',
+              output: part.output,
+              preliminary: true,
+            });
+          } else {
             output = part.output;
           }
         }
