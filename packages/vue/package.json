@@ -52,7 +52,7 @@
   },
   "peerDependencies": {
     "vue": "^3.3.4",
-    "zod": "^3.25.76 || ^4"
+    "zod": "^3.25.76 || ^4.1.6"
   },
   "peerDependenciesMeta": {
     "vue": {
