@@ -1,8 +1,9 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { bedrock, BedrockProviderOptions } from '@ai-sdk/amazon-bedrock';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import fs from 'fs';
 import 'dotenv/config';
+import { BedrockFilePartProviderOptions } from '../../../../packages/amazon-bedrock/src/bedrock-chat-options';
 
 async function main() {
   const result = await generateObject({
@@ -26,7 +27,7 @@ async function main() {
             providerOptions: {
               bedrock: {
                 citations: { enabled: true },
-              },
+              } satisfies BedrockFilePartProviderOptions,
             },
           },
         ],
@@ -34,7 +35,7 @@ async function main() {
     ],
   });
 
-  console.log('Response:', result.object);
+  console.log('Response:', JSON.stringify(result, null, 2));
 }
 
 main().catch(console.error);
