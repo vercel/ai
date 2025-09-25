@@ -1,18 +1,20 @@
 import {
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 import { PerplexityLanguageModelId } from './perplexity-language-model-options';
+import { VERSION } from './version';
 
-export interface PerplexityProvider extends ProviderV2 {
+export interface PerplexityProvider extends ProviderV3 {
   /**
 Creates an Perplexity chat model for text generation.
    */
@@ -50,14 +52,18 @@ or to provide a custom fetch implementation for e.g. testing.
 export function createPerplexity(
   options: PerplexityProviderSettings = {},
 ): PerplexityProvider {
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'PERPLEXITY_API_KEY',
-      description: 'Perplexity',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'PERPLEXITY_API_KEY',
+          description: 'Perplexity',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/perplexity/${VERSION}`,
+    );
 
   const createLanguageModel = (modelId: PerplexityLanguageModelId) => {
     return new PerplexityLanguageModel(modelId, {

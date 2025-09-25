@@ -1,4 +1,4 @@
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -25,8 +25,8 @@ interface GoogleGenerativeAIImageModelConfig {
   };
 }
 
-export class GoogleGenerativeAIImageModel implements ImageModelV2 {
-  readonly specificationVersion = 'v2';
+export class GoogleGenerativeAIImageModel implements ImageModelV3 {
+  readonly specificationVersion = 'v3';
 
   get maxImagesPerCall(): number {
     // https://ai.google.dev/gemini-api/docs/imagen#imagen-model
@@ -44,8 +44,8 @@ export class GoogleGenerativeAIImageModel implements ImageModelV2 {
   ) {}
 
   async doGenerate(
-    options: Parameters<ImageModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV2['doGenerate']>>> {
+    options: Parameters<ImageModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
     const {
       prompt,
       n = 1,
@@ -56,7 +56,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV2 {
       headers,
       abortSignal,
     } = options;
-    const warnings: Array<ImageModelV2CallWarning> = [];
+    const warnings: Array<ImageModelV3CallWarning> = [];
 
     if (size != null) {
       warnings.push({

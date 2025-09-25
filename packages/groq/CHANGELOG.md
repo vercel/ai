@@ -1,5 +1,24 @@
 # @ai-sdk/groq
 
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
 ## 2.1.0-beta.1
 
 ### Patch Changes

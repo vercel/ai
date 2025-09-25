@@ -1,13 +1,18 @@
 import {
   TranscriptionModelV2,
-  ProviderV2,
+  ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
-import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
 import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import { VERSION } from './version';
 
-export interface DeepgramProvider extends ProviderV2 {
+export interface DeepgramProvider extends ProviderV3 {
   (
     modelId: 'nova-3',
     settings?: {},
@@ -45,14 +50,18 @@ Create an Deepgram provider instance.
 export function createDeepgram(
   options: DeepgramProviderSettings = {},
 ): DeepgramProvider {
-  const getHeaders = () => ({
-    authorization: `Token ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'DEEPGRAM_API_KEY',
-      description: 'Deepgram',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        authorization: `Token ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'DEEPGRAM_API_KEY',
+          description: 'Deepgram',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/deepgram/${VERSION}`,
+    );
 
   const createTranscriptionModel = (modelId: DeepgramTranscriptionModelId) =>
     new DeepgramTranscriptionModel(modelId, {
@@ -71,7 +80,7 @@ export function createDeepgram(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  // Required ProviderV2 methods that are not supported
+  // Required ProviderV3 methods that are not supported
   provider.languageModel = () => {
     throw new NoSuchModelError({
       modelId: 'unknown',

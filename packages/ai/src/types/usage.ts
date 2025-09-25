@@ -8,7 +8,7 @@ export type LanguageModelUsage = LanguageModelV2Usage;
 /**
 Represents the number of tokens used in an embedding.
  */
-// TODO replace with EmbeddingModelV2Usage
+// TODO replace with EmbeddingModelV3Usage
 export type EmbeddingModelUsage = {
   /**
 The number of tokens used in the embedding.

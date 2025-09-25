@@ -1,8 +1,8 @@
 import {
-  EmbeddingModelV2,
-  ImageModelV2,
+  EmbeddingModelV3,
+  ImageModelV3,
   LanguageModelV2,
-  ProviderV2,
+  ProviderV3,
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
@@ -10,6 +10,7 @@ import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import { OpenAIChatModelId } from './chat/openai-chat-options';
@@ -26,8 +27,9 @@ import { OpenAISpeechModel } from './speech/openai-speech-model';
 import { OpenAISpeechModelId } from './speech/openai-speech-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
 import { OpenAITranscriptionModelId } from './transcription/openai-transcription-options';
+import { VERSION } from './version';
 
-export interface OpenAIProvider extends ProviderV2 {
+export interface OpenAIProvider extends ProviderV3 {
   (modelId: OpenAIResponsesModelId): LanguageModelV2;
 
   /**
@@ -53,27 +55,27 @@ Creates an OpenAI completion model for text generation.
   /**
 Creates a model for text embeddings.
    */
-  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
+  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3<string>;
 
   /**
 Creates a model for text embeddings.
    */
-  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
+  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3<string>;
 
   /**
 Creates a model for text embeddings.
    */
-  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
+  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3<string>;
 
   /**
 Creates a model for image generation.
    */
-  image(modelId: OpenAIImageModelId): ImageModelV2;
+  image(modelId: OpenAIImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(modelId: OpenAIImageModelId): ImageModelV2;
+  imageModel(modelId: OpenAIImageModelId): ImageModelV3;
 
   /**
 Creates a model for transcription.
@@ -140,16 +142,20 @@ export function createOpenAI(
 
   const providerName = options.name ?? 'openai';
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'OPENAI_API_KEY',
-      description: 'OpenAI',
-    })}`,
-    'OpenAI-Organization': options.organization,
-    'OpenAI-Project': options.project,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'OPENAI_API_KEY',
+          description: 'OpenAI',
+        })}`,
+        'OpenAI-Organization': options.organization,
+        'OpenAI-Project': options.project,
+        ...options.headers,
+      },
+      `ai-sdk/openai/${VERSION}`,
+    );
 
   const createChatModel = (modelId: OpenAIChatModelId) =>
     new OpenAIChatLanguageModel(modelId, {

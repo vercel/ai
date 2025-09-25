@@ -1,5 +1,51 @@
 # ai
 
+## 5.1.0-beta.9
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 177b475: fix(ai): download files when intermediate file cannot be downloaded
+- 522f6b8: feat: `ImageModelV3`
+- Updated dependencies [aaf5ebf]
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/gateway@1.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 5.1.0-beta.8
+
+### Patch Changes
+
+- 7eca093: fix(ai): update `uiMessageChunkSchema` to satisfy the `UIMessageChunk` type
+
+## 5.1.0-beta.7
+
+### Patch Changes
+
+- 5a4e732: Export `parseJsonEventStream` and `uiMessageChunkSchema` from "ai" package
+
+## 5.1.0-beta.6
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+- Updated dependencies [5d21222]
+- Updated dependencies [0c4822d]
+- Updated dependencies [1cad0ab]
+  - @ai-sdk/gateway@1.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 5.1.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [7ccb36f]
+- Updated dependencies [6c766ef]
+  - @ai-sdk/gateway@1.1.0-beta.4
+
 ## 5.1.0-beta.4
 
 ### Patch Changes
