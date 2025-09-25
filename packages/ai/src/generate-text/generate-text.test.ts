@@ -3475,7 +3475,7 @@ describe('generateText', () => {
                     text: 'Hello, world!',
                   },
                 ],
-                finishReason: 'tool-calls',
+                finishReason: 'stop',
               };
             },
           }),
