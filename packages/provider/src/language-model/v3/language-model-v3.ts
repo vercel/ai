@@ -9,7 +9,7 @@ import { LanguageModelV3StreamPart } from './language-model-v3-stream-part';
 import { LanguageModelV3Usage } from './language-model-v3-usage';
 
 /**
-Specification for a language model that implements the language model interface version 2.
+Specification for a language model that implements the language model interface version 3.
  */
 export type LanguageModelV3 = {
   /**
