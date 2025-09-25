@@ -105,6 +105,13 @@ export function prepareTools({
               type: 'text_editor_20250429',
             });
             break;
+          case 'anthropic.text_editor_20250728':
+            anthropicTools.push({
+              name: 'str_replace_based_edit_tool',
+              type: 'text_editor_20250728',
+              max_characters: tool.args.maxCharacters as number | undefined,
+            });
+            break;
           case 'anthropic.bash_20250124':
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({

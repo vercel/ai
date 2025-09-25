@@ -5,6 +5,7 @@ import { computer_20250124 } from './tool/computer_20250124';
 import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
 import { textEditor_20250429 } from './tool/text-editor_20250429';
+import { textEditor_20250728 } from './tool/text-editor_20250728';
 import { webSearch_20250305 } from './tool/web-search_20250305';
 import { codeExecution_20250522 } from './tool/code-execution_20250522';
 
@@ -97,6 +98,17 @@ export const anthropicTools = {
    * Tool name must be `str_replace_based_edit_tool`.
    */
   textEditor_20250429,
+
+  /**
+   * Claude can use an Anthropic-defined text editor tool to view and modify text files,
+   * helping you debug, fix, and improve your code or other text documents. This allows Claude
+   * to directly interact with your files, providing hands-on assistance rather than just suggesting changes.
+   *
+   * Note: This version does not support the "undo_edit" command and adds optional max_characters parameter.
+   *
+   * Tool name must be `str_replace_based_edit_tool`.
+   */
+  textEditor_20250728,
 
   /**
    * Creates a web search tool that gives Claude direct access to real-time web content.
