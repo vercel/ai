@@ -313,7 +313,7 @@ The Text Editor Tool provides functionality for viewing and editing text files.
 
 <Note>
   Different versions of the text editor tool are available depending on your Claude model:
-  - **textEditor_20250728**: Latest version for Claude 4 models with optional `maxCharacters` parameter
+  - **textEditor_20250728**: Latest version for Claude 4 models (Sonnet 4, Opus 4, Opus 4.1) with optional `maxCharacters` parameter
   - **textEditor_20250429**: Previous version for Claude 4 models  
   - **textEditor_20250124**: For Claude Sonnet 3.7
   - **textEditor_20241022**: For Claude Sonnet 3.5 (deprecated)
@@ -321,7 +321,7 @@ The Text Editor Tool provides functionality for viewing and editing text files.
   Claude 4 models do not support the `undo_edit` command.
 </Note>
 
-**For Claude 4 models (Opus & Sonnet) - Latest Version:**
+**For Claude 4 models (Sonnet 4, Opus 4, Opus 4.1) - Latest Version:**
 
 ```ts
 const textEditorTool = anthropic.tools.textEditor_20250728({
@@ -341,7 +341,7 @@ const textEditorTool = anthropic.tools.textEditor_20250728({
 });
 ```
 
-**For Claude 4 models (Opus & Sonnet) - Previous Version:**
+**For Claude 4 models (Sonnet 4, Opus 4, Opus 4.1) - Previous Version:**
 
 ```ts
 const textEditorTool = anthropic.tools.textEditor_20250429({
@@ -360,7 +360,7 @@ const textEditorTool = anthropic.tools.textEditor_20250429({
 });
 ```
 
-**For Claude 3.5 Sonnet and earlier models:**
+**For Claude Sonnet 3.5 (deprecated):**
 
 ```ts
 const textEditorTool = anthropic.tools.textEditor_20241022({
@@ -423,10 +423,61 @@ const response = await generateText({
 });
 ```
 
+**Complete Example: Story Creation with Claude Sonnet 4**
+
+Here's a comprehensive example that demonstrates using Claude Sonnet 4 with the text editor tool to create, edit, and improve a story:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+import { promises as fs } from 'fs';
+import { join } from 'path';
+
+async function createStoryWithSonnet4() {
+  const storyDir = join(process.cwd(), 'stories');
+  await fs.mkdir(storyDir, { recursive: true });
+
+  const textEditorTool = anthropic.tools.textEditor_20250728({
+    maxCharacters: 5000,
+    execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
+      const fullPath = join(storyDir, path);
+      
+      switch (command) {
+        case 'view':
+          const content = await fs.readFile(fullPath, 'utf-8');
+          return content;
+        case 'create':
+          await fs.writeFile(fullPath, file_text || '', 'utf-8');
+          return `File created: ${path}`;
+        case 'str_replace':
+          const fileContent = await fs.readFile(fullPath, 'utf-8');
+          const newContent = fileContent.replace(old_str, new_str || '');
+          await fs.writeFile(fullPath, newContent, 'utf-8');
+          return `Text replaced in ${path}`;
+        // ... handle other commands
+      }
+    },
+  });
+
+  // Create initial story
+  const result = await generateText({
+    model: anthropic('claude-sonnet-4-20250514'),
+    prompt: `Create a short story about a robot discovering emotions. 
+             Save it as "robot_story.txt" and then improve it by adding more details.`,
+    tools: {
+      str_replace_based_edit_tool: textEditorTool,
+    },
+  });
+
+  console.log(result.text);
+}
+```
+
 When using the Text Editor Tool, make sure to name the key in the tools object correctly:
 
-- **Claude 4 models**: Use `str_replace_based_edit_tool`
-- **Claude 3.5 Sonnet and earlier**: Use `str_replace_editor`
+- **Claude 4 models (Sonnet 4, Opus 4, Opus 4.1)**: Use `str_replace_based_edit_tool`
+- **Claude Sonnet 3.7**: Use `str_replace_editor`
+- **Claude Sonnet 3.5 (deprecated)**: Use `str_replace_editor`
 
 ```ts
 // For Claude 4 models with latest text editor (recommended)
@@ -446,7 +497,23 @@ const response = await generateText({
   },
 });
 
-// For Claude 3.5 Sonnet and earlier
+// For Claude Sonnet 3.7
+const sonnet37TextEditorTool = anthropic.tools.textEditor_20250124({
+  execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
+    // Your implementation here
+  },
+});
+
+const sonnet37Response = await generateText({
+  model: anthropic('claude-3-7-sonnet-20250219'),
+  prompt:
+    "Create a new file called example.txt, write 'Hello World' to it, and then view the file contents",
+  tools: {
+    str_replace_editor: sonnet37TextEditorTool, // Sonnet 3.7 tool name
+  },
+});
+
+// For Claude Sonnet 3.5 (deprecated)
 const legacyTextEditorTool = anthropic.tools.textEditor_20241022({
   execute: async ({ command, path, file_text, insert_line, new_str, old_str, view_range }) => {
     // Your implementation here
@@ -458,7 +525,7 @@ const legacyResponse = await generateText({
   prompt:
     "Create a new file called example.txt, write 'Hello World' to it, and then view the file contents",
   tools: {
-    str_replace_editor: legacyTextEditorTool, // Earlier models tool name
+    str_replace_editor: legacyTextEditorTool, // Sonnet 3.5 tool name
   },
 });
 ```
