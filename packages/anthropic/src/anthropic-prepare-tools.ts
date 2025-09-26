@@ -9,17 +9,6 @@ import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 
-function isWebSearchTool(
-  tool: unknown,
-): tool is Extract<AnthropicTool, { type: 'web_search_20250305' }> {
-  return (
-    typeof tool === 'object' &&
-    tool !== null &&
-    'type' in tool &&
-    tool.type === 'web_search_20250305'
-  );
-}
-
 export function prepareTools({
   tools,
   toolChoice,
@@ -47,12 +36,6 @@ export function prepareTools({
   const anthropicTools: AnthropicTool[] = [];
 
   for (const tool of tools) {
-    // handle direct web search tool objects passed from provider options
-    if (isWebSearchTool(tool)) {
-      anthropicTools.push(tool);
-      continue;
-    }
-
     switch (tool.type) {
       case 'function':
         const cacheControl = getCacheControl(tool.providerOptions);

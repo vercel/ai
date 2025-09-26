@@ -196,6 +196,45 @@ describe('prepareTools', () => {
       `);
     });
 
+    it('should correctly prepare web_search_20250305', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'anthropic.web_search_20250305',
+            name: 'web_search',
+            args: {
+              maxUses: 10,
+              allowedDomains: ['https://www.google.com'],
+              userLocation: { type: 'approximate', city: 'New York' },
+            },
+          },
+        ],
+      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "allowed_domains": [
+                "https://www.google.com",
+              ],
+              "blocked_domains": undefined,
+              "max_uses": 10,
+              "name": "web_search",
+              "type": "web_search_20250305",
+              "user_location": {
+                "city": "New York",
+                "type": "approximate",
+              },
+            },
+          ],
+        }
+      `);
+    });
+
     it('should correctly prepare web_fetch_20250910', () => {
       const result = prepareTools({
         tools: [
