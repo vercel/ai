@@ -919,7 +919,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_fetch tool call and result parts', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {

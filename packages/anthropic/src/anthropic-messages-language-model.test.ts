@@ -1513,7 +1513,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web fetch tool', () => {
       describe('txt response', () => {
-        let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.1');
@@ -1564,7 +1564,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('unavailable error', () => {
-        let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.error');
@@ -3083,7 +3083,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       describe('web fetch tool', () => {
         describe('txt response', () => {
-          let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+          let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
           beforeEach(async () => {
             prepareChunksFixtureResponse('anthropic-web-fetch-tool.1');
