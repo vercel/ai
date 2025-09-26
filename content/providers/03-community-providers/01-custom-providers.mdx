@@ -29,19 +29,19 @@ The Language Model Specification V2 creates a robust abstraction layer that work
 
 At its heart, the V2 specification defines three main interfaces:
 
-1. **ProviderV2**: The top-level interface that serves as a factory for different model types
+1. **ProviderV3**: The top-level interface that serves as a factory for different model types
 2. **LanguageModelV2**: The primary interface for text generation models
-3. **EmbeddingModelV2** and **ImageModelV2**: Interfaces for embeddings and image generation
+3. **EmbeddingModelV3** and **ImageModelV3**: Interfaces for embeddings and image generation
 
-### `ProviderV2`
+### `ProviderV3`
 
-The `ProviderV2` interface acts as the entry point:
+The `ProviderV3` interface acts as the entry point:
 
 ```ts
-interface ProviderV2 {
+interface ProviderV3 {
   languageModel(modelId: string): LanguageModelV2;
-  textEmbeddingModel(modelId: string): EmbeddingModelV2<string>;
-  imageModel(modelId: string): ImageModelV2;
+  textEmbeddingModel(modelId: string): EmbeddingModelV3<string>;
+  imageModel(modelId: string): ImageModelV3;
 }
 ```
 
@@ -439,11 +439,11 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { ProviderV2 } from '@ai-sdk/provider';
+import { ProviderV3 } from '@ai-sdk/provider';
 import { CustomChatLanguageModel } from './custom-chat-language-model';
 
-// Define your provider interface extending ProviderV2
-interface CustomProvider extends ProviderV2 {
+// Define your provider interface extending ProviderV3
+interface CustomProvider extends ProviderV3 {
   (modelId: string, settings?: CustomChatSettings): CustomChatLanguageModel;
 
   // Add specific methods for different model types

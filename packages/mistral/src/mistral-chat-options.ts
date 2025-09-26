@@ -48,6 +48,14 @@ Defaults to `false`.
    * @default false
    */
   strictJsonSchema: z.boolean().optional(),
+
+  /**
+   * Whether to enable parallel function calling during tool use.
+   * When set to false, the model will use at most one tool per response.
+   *
+   * @default true
+   */
+  parallelToolCalls: z.boolean().optional(),
 });
 
 export type MistralLanguageModelOptions = z.infer<
