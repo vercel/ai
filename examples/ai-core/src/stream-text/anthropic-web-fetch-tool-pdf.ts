@@ -34,6 +34,13 @@ run(async () => {
         break;
       }
 
+      case 'tool-error': {
+        console.log(
+          `\x1b[32m\x1b[1mTool error:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
+        );
+        break;
+      }
+
       case 'source': {
         if (chunk.sourceType === 'url') {
           process.stdout.write(
