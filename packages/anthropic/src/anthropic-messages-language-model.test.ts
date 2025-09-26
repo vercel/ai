@@ -3400,8 +3400,11 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+<<<<<<< HEAD
                   "container": null,
                   "stopSequence": null,
+=======
+>>>>>>> f6603b7a7 (fix(provider/anthropic): correct raw usage information (#8945))
                   "usage": {
                     "input_tokens": 17,
                     "output_tokens": 227,
@@ -3418,6 +3421,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           ]
         `);
+<<<<<<< HEAD
     });
 
     it('should include stop_sequence in provider metadata', async () => {
@@ -3466,6 +3470,8 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           ]
         `);
+=======
+>>>>>>> f6603b7a7 (fix(provider/anthropic): correct raw usage information (#8945))
     });
 
     describe('raw chunks', () => {

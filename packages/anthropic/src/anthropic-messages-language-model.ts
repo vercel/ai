@@ -43,7 +43,51 @@ import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 
+<<<<<<< HEAD
 function createCitationSource(
+=======
+const citationSchemas = {
+  webSearchResult: z.object({
+    type: z.literal('web_search_result_location'),
+    cited_text: z.string(),
+    url: z.string(),
+    title: z.string(),
+    encrypted_index: z.string(),
+  }),
+  pageLocation: z.object({
+    type: z.literal('page_location'),
+    cited_text: z.string(),
+    document_index: z.number(),
+    document_title: z.string().nullable(),
+    start_page_number: z.number(),
+    end_page_number: z.number(),
+  }),
+  charLocation: z.object({
+    type: z.literal('char_location'),
+    cited_text: z.string(),
+    document_index: z.number(),
+    document_title: z.string().nullable(),
+    start_char_index: z.number(),
+    end_char_index: z.number(),
+  }),
+};
+
+const citationSchema = z.discriminatedUnion('type', [
+  citationSchemas.webSearchResult,
+  citationSchemas.pageLocation,
+  citationSchemas.charLocation,
+]);
+
+const documentCitationSchema = z.discriminatedUnion('type', [
+  citationSchemas.pageLocation,
+  citationSchemas.charLocation,
+]);
+
+type Citation = z.infer<typeof citationSchema>;
+export type DocumentCitation = z.infer<typeof documentCitationSchema>;
+
+function processCitation(
+>>>>>>> f6603b7a7 (fix(provider/anthropic): correct raw usage information (#8945))
   citation: Citation,
   citationDocuments: Array<{
     title: string;
@@ -773,8 +817,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
+<<<<<<< HEAD
     let stopSequence: string | null = null;
     let container: AnthropicMessageMetadata['container'] | null = null;
+=======
+>>>>>>> f6603b7a7 (fix(provider/anthropic): correct raw usage information (#8945))
 
     let blockType:
       | 'text'
@@ -1279,6 +1326,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   isJsonResponseFromTool: usesJsonResponseTool,
                 });
 
+<<<<<<< HEAD
                 stopSequence = value.delta.stop_sequence ?? null;
                 container =
                   value.delta.container != null
@@ -1294,6 +1342,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       }
                     : null;
 
+=======
+>>>>>>> f6603b7a7 (fix(provider/anthropic): correct raw usage information (#8945))
                 rawUsage = {
                   ...rawUsage,
                   ...(value.usage as JSONObject),
@@ -1309,11 +1359,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   usage,
                   providerMetadata: {
                     anthropic: {
+<<<<<<< HEAD
                       usage: (rawUsage as JSONObject) ?? null,
                       cacheCreationInputTokens,
                       stopSequence,
                       container,
                     } satisfies AnthropicMessageMetadata,
+=======
+                      usage: rawUsage ?? null,
+                      cacheCreationInputTokens,
+                    },
+>>>>>>> f6603b7a7 (fix(provider/anthropic): correct raw usage information (#8945))
                   },
                 });
                 return;
@@ -1338,6 +1394,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   }
 }
 
+<<<<<<< HEAD
 // see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
 function getMaxOutputTokensForModel(modelId: string): {
   maxOutputTokens: number;
@@ -1359,3 +1416,225 @@ function getMaxOutputTokensForModel(modelId: string): {
     return { maxOutputTokens: 4096, knownModel: false };
   }
 }
+=======
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const anthropicMessagesResponseSchema = z.object({
+  type: z.literal('message'),
+  id: z.string().nullish(),
+  model: z.string().nullish(),
+  content: z.array(
+    z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('text'),
+        text: z.string(),
+        citations: z.array(citationSchema).optional(),
+      }),
+      z.object({
+        type: z.literal('thinking'),
+        thinking: z.string(),
+        signature: z.string(),
+      }),
+      z.object({
+        type: z.literal('redacted_thinking'),
+        data: z.string(),
+      }),
+      z.object({
+        type: z.literal('tool_use'),
+        id: z.string(),
+        name: z.string(),
+        input: z.unknown(),
+      }),
+      z.object({
+        type: z.literal('server_tool_use'),
+        id: z.string(),
+        name: z.string(),
+        input: z.record(z.string(), z.unknown()).nullish(),
+      }),
+      z.object({
+        type: z.literal('web_search_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.array(
+            z.object({
+              type: z.literal('web_search_result'),
+              url: z.string(),
+              title: z.string(),
+              encrypted_content: z.string(),
+              page_age: z.string().nullish(),
+            }),
+          ),
+          z.object({
+            type: z.literal('web_search_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
+      z.object({
+        type: z.literal('code_execution_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.object({
+            type: z.literal('code_execution_result'),
+            stdout: z.string(),
+            stderr: z.string(),
+            return_code: z.number(),
+          }),
+          z.object({
+            type: z.literal('code_execution_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
+    ]),
+  ),
+  stop_reason: z.string().nullish(),
+  usage: z.looseObject({
+    input_tokens: z.number(),
+    output_tokens: z.number(),
+    cache_creation_input_tokens: z.number().nullish(),
+    cache_read_input_tokens: z.number().nullish(),
+  }),
+});
+
+// limited version of the schema, focused on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('message_start'),
+    message: z.object({
+      id: z.string().nullish(),
+      model: z.string().nullish(),
+      usage: z.looseObject({
+        input_tokens: z.number(),
+        cache_creation_input_tokens: z.number().nullish(),
+        cache_read_input_tokens: z.number().nullish(),
+      }),
+    }),
+  }),
+  z.object({
+    type: z.literal('content_block_start'),
+    index: z.number(),
+    content_block: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('text'),
+        text: z.string(),
+      }),
+      z.object({
+        type: z.literal('thinking'),
+        thinking: z.string(),
+      }),
+      z.object({
+        type: z.literal('tool_use'),
+        id: z.string(),
+        name: z.string(),
+      }),
+      z.object({
+        type: z.literal('redacted_thinking'),
+        data: z.string(),
+      }),
+      z.object({
+        type: z.literal('server_tool_use'),
+        id: z.string(),
+        name: z.string(),
+        input: z.record(z.string(), z.unknown()).nullish(),
+      }),
+      z.object({
+        type: z.literal('web_search_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.array(
+            z.object({
+              type: z.literal('web_search_result'),
+              url: z.string(),
+              title: z.string(),
+              encrypted_content: z.string(),
+              page_age: z.string().nullish(),
+            }),
+          ),
+          z.object({
+            type: z.literal('web_search_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
+      z.object({
+        type: z.literal('code_execution_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.object({
+            type: z.literal('code_execution_result'),
+            stdout: z.string(),
+            stderr: z.string(),
+            return_code: z.number(),
+          }),
+          z.object({
+            type: z.literal('code_execution_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
+    ]),
+  }),
+  z.object({
+    type: z.literal('content_block_delta'),
+    index: z.number(),
+    delta: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('input_json_delta'),
+        partial_json: z.string(),
+      }),
+      z.object({
+        type: z.literal('text_delta'),
+        text: z.string(),
+      }),
+      z.object({
+        type: z.literal('thinking_delta'),
+        thinking: z.string(),
+      }),
+      z.object({
+        type: z.literal('signature_delta'),
+        signature: z.string(),
+      }),
+      z.object({
+        type: z.literal('citations_delta'),
+        citation: citationSchema,
+      }),
+    ]),
+  }),
+  z.object({
+    type: z.literal('content_block_stop'),
+    index: z.number(),
+  }),
+  z.object({
+    type: z.literal('error'),
+    error: z.object({
+      type: z.string(),
+      message: z.string(),
+    }),
+  }),
+  z.object({
+    type: z.literal('message_delta'),
+    delta: z.object({ stop_reason: z.string().nullish() }),
+    usage: z.looseObject({
+      output_tokens: z.number(),
+      cache_creation_input_tokens: z.number().nullish(),
+    }),
+  }),
+  z.object({
+    type: z.literal('message_stop'),
+  }),
+  z.object({
+    type: z.literal('ping'),
+  }),
+]);
+
+export const anthropicReasoningMetadataSchema = z.object({
+  signature: z.string().optional(),
+  redactedData: z.string().optional(),
+});
+
+export type AnthropicReasoningMetadata = z.infer<
+  typeof anthropicReasoningMetadataSchema
+>;
+>>>>>>> f6603b7a7 (fix(provider/anthropic): correct raw usage information (#8945))
