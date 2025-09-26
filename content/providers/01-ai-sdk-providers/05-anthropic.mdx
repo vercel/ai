@@ -279,17 +279,7 @@ For more on prompt caching with Anthropic, see [Anthropic's Cache Control docume
   [here](/docs/foundations/prompts#provider-options).
 </Note>
 
-### Computer Use
-
-Anthropic provides three provider-defined tools that can be used to interact with external systems:
-
-1. **Bash Tool**: Allows running bash commands.
-2. **Text Editor Tool**: Provides functionality for viewing and editing text files.
-3. **Computer Tool**: Enables control of keyboard and mouse actions on a computer.
-
-They are available via the `tools` property of the provider instance.
-
-#### Bash Tool
+### Bash Tool
 
 The Bash Tool allows running bash commands. Here's how to create and use it:
 
@@ -307,47 +297,26 @@ Parameters:
 - `command` (string): The bash command to run. Required unless the tool is being restarted.
 - `restart` (boolean, optional): Specifying true will restart this tool.
 
-#### Text Editor Tool
+### Text Editor Tool
 
 The Text Editor Tool provides functionality for viewing and editing text files.
 
-**For Claude 4 models (Opus & Sonnet):**
-
 ```ts
-const textEditorTool = anthropic.tools.textEditor_20250429({
-  execute: async ({
-    command,
-    path,
-    file_text,
-    insert_line,
-    new_str,
-    old_str,
-    view_range,
-  }) => {
-    // Implement your text editing logic here
-    // Return the result of the text editing operation
-  },
-});
+const tools = {
+  // tool name must be str_replace_based_edit_tool
+  str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
+    maxCharacters: 10000, // optional
+    async execute({ command, path, old_str, new_str }) {
+      // ...
+    },
+  }),
+} satisfies ToolSet;
 ```
 
-**For Claude 3.5 Sonnet and earlier models:**
-
-```ts
-const textEditorTool = anthropic.tools.textEditor_20241022({
-  execute: async ({
-    command,
-    path,
-    file_text,
-    insert_line,
-    new_str,
-    old_str,
-    view_range,
-  }) => {
-    // Implement your text editing logic here
-    // Return the result of the text editing operation
-  },
-});
-```
+<Note>
+  Different models support different versions of the tool. For Claude Sonnet 3.5
+  and 3.7 you need to use older tool versions and tool names.
+</Note>
 
 Parameters:
 
@@ -359,34 +328,7 @@ Parameters:
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
 
-When using the Text Editor Tool, make sure to name the key in the tools object correctly:
-
-- **Claude 4 models**: Use `str_replace_based_edit_tool`
-- **Claude 3.5 Sonnet and earlier**: Use `str_replace_editor`
-
-```ts
-// For Claude 4 models
-const response = await generateText({
-  model: anthropic('claude-opus-4-20250514'),
-  prompt:
-    "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
-  tools: {
-    str_replace_based_edit_tool: textEditorTool, // Claude 4 tool name
-  },
-});
-
-// For Claude 3.5 Sonnet and earlier
-const response = await generateText({
-  model: anthropic('claude-3-5-sonnet-20241022'),
-  prompt:
-    "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
-  tools: {
-    str_replace_editor: textEditorTool, // Earlier models tool name
-  },
-});
-```
-
-#### Computer Tool
+### Computer Tool
 
 The Computer Tool enables control of keyboard and mouse actions on a computer:
 
@@ -437,7 +379,7 @@ Parameters:
 
 These tools can be used in conjunction with the `sonnet-3-5-sonnet-20240620` model to enable more complex interactions and tasks.
 
-### Web Search
+### Web Search Tool
 
 Anthropic provides a provider-defined web search tool that gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff.
 
