@@ -88,9 +88,6 @@ export default function ChatComponent({
           fetch(`/api/chat/${chatData.id}/stream`, {
             method: 'DELETE',
           });
-
-          // also call stop on chat to immediately stop ui stream
-          stop();
         }}
         onSubmit={text => {
           sendMessage({ text, metadata: { createdAt: Date.now() } });
