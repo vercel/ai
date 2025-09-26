@@ -509,7 +509,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           break;
         }
         case 'server_tool_use': {
-          if (part.name === 'web_search' || part.name === 'code_execution') {
+          if (
+            part.name === 'web_search' ||
+            part.name === 'code_execution' ||
+            part.name === 'web_fetch'
+          ) {
             content.push({
               type: 'tool-call',
               toolCallId: part.id,

@@ -7,6 +7,13 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > unavaila
     "type": "text",
   },
   {
+    "input": "{"url":"https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_013gia34XNKyTfwHxaPCKEVd",
+    "toolName": "web_fetch",
+    "type": "tool-call",
+  },
+  {
     "isError": true,
     "providerExecuted": true,
     "result": {
