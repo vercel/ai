@@ -87,7 +87,9 @@ import { generateText } from 'ai';
 const result = await generateText({
   model: lettaCloud(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
   providerOptions: {
-    agent: { id: 'your-agent-id' },
+    letta: {
+      agent: { id: 'your-agent-id' },
+    },
   },
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
@@ -102,7 +104,9 @@ import { generateText } from 'ai';
 const result = await generateText({
   model: lettaLocal(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
   providerOptions: {
-    agent: { id: 'your-agent-id' },
+    letta: {
+      agent: { id: 'your-agent-id' },
+    },
   },
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
@@ -122,7 +126,9 @@ const letta = createLetta({
 const result = await generateText({
   model: letta(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
   providerOptions: {
-    agent: { id: 'your-agent-id' },
+    letta: {
+      agent: { id: 'your-agent-id' },
+    },
   },
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
@@ -139,7 +145,9 @@ import { generateText } from 'ai';
 const result = await generateText({
   model: lettaCloud(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
   providerOptions: {
-    agent: { id: 'your-agent-id' },
+    letta: {
+      agent: { id: 'your-agent-id' },
+    },
   },
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
@@ -154,7 +162,9 @@ import { streamText } from 'ai';
 const result = streamText({
   model: lettaCloud(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
   providerOptions: {
-    agent: { id: 'your-agent-id' },
+    letta: {
+      agent: { id: 'your-agent-id' },
+    },
   },
   messages: [
     {
@@ -240,15 +250,15 @@ export function StreamingChat({ agentId, existingMessages = [] }: ChatProps) {
 ## Advanced Usage
 
 **Send Message:**
-Use `providerOptions.agent` to configure non-streaming message creation with Letta agents.
+Use `providerOptions.letta.agent` to configure non-streaming message creation with Letta agents.
 Documentation: https://docs.letta.com/api-reference/agents/messages/create
 
 **Send Message Streaming:**
-Use `providerOptions.agent` to configure streaming message creation with Letta agents.
+Use `providerOptions.letta.agent` to configure streaming message creation with Letta agents.
 Documentation: https://docs.letta.com/api-reference/agents/messages/create-stream
 
 **Timeout Configuration:**
-Use `providerOptions.timeoutInSeconds` to set the maximum wait time for agent responses. This is especially important for long-running agent operations or when working with complex reasoning chains.
+Use `providerOptions.letta.timeoutInSeconds` to set the maximum wait time for agent responses. This is especially important for long-running agent operations or when working with complex reasoning chains.
 
 ```typescript
 import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
@@ -257,15 +267,17 @@ import { streamText } from 'ai';
 const result = streamText({
   model: lettaCloud(), // Model configuration (LLM, temperature, etc.) is managed through your Letta agent
   providerOptions: {
-    agent: {
-      id: 'your-agent-id',
-      maxSteps: 100,
-      includePings: true,
-      streamTokens: true,
-      // See more available request params here:
-      // https://docs.letta.com/api-reference/agents/messages/create-stream
+    letta: {
+      agent: {
+        id: 'your-agent-id',
+        maxSteps: 100,
+        includePings: true,
+        streamTokens: true,
+        // See more available request params here:
+        // https://docs.letta.com/api-reference/agents/messages/create-stream
+      },
+      timeoutInSeconds: 300, // The maximum time to wait for a response in seconds (default: 1000)
     },
-    timeoutInSeconds: 300, // The maximum time to wait for a response in seconds (default: 1000)
   },
   messages: [
     {
@@ -287,7 +299,11 @@ Both `streamText` and `generateText` support AI reasoning tokens:
 ```typescript
 const result = streamText({
   model: lettaCloud(),
-  providerOptions: { agent: { id: agentId } },
+  providerOptions: { 
+    letta: {
+      agent: { id: 'your-agent-id' },
+    },
+  },
   messages: convertToModelMessages(messages),
 });
 
@@ -302,7 +318,11 @@ return result.toUIMessageStreamResponse({
 ```typescript
 const result = await generateText({
   model: lettaCloud(),
-  providerOptions: { agent: { id: agentId } },
+  providerOptions: {
+    letta: {
+      agent: { id: 'your-agent-id' },
+    },
+  },
   messages: convertToModelMessages(messages),
 });
 
@@ -381,11 +401,13 @@ const stream = streamText({
   model: lettaCloud(),
   messages: [{ role: 'user', content: 'Process this complex task...' }],
   providerOptions: {
-    agent: {
-      id: 'your-agent-id',
-      background: true,
-      // See more available request params here:
-      // https://docs.letta.com/api-reference/agents/messages/create-stream
+    letta: {
+      agent: {
+        id: 'your-agent-id',
+        background: true,
+        // See more available request params here:
+        // https://docs.letta.com/api-reference/agents/messages/create-stream
+      },
     },
   },
 });
@@ -422,7 +444,9 @@ const streamResult = streamText({
     },
   },
   providerOptions: {
-    agent: { id: agentId },
+    letta: {
+      agent: { id: 'your-agent-id' },
+    },
   },
   messages: messages,
 });
@@ -444,7 +468,9 @@ const generateResult = await generateText({
     },
   },
   providerOptions: {
-    agent: { id: agentId },
+    letta: {
+      agent: { id: 'your-agent-id' },
+    },
   },
   messages: messages,
 });
