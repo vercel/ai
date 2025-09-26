@@ -1,5 +1,5 @@
 import { customProvider } from '../registry/custom-provider';
-import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
+import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { resolveEmbeddingModel, resolveLanguageModel } from './resolve-model';
 import { beforeEach, afterEach, describe, expect, it } from 'vitest';
@@ -57,7 +57,7 @@ describe('resolveEmbeddingModel', () => {
   describe('when a embedding model v2 is provided', () => {
     it('should return the embedding model v2', () => {
       const resolvedModel = resolveEmbeddingModel(
-        new MockEmbeddingModelV2({
+        new MockEmbeddingModelV3({
           provider: 'test-provider',
           modelId: 'test-model-id',
         }),
@@ -81,7 +81,7 @@ describe('resolveEmbeddingModel', () => {
     beforeEach(() => {
       globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
         textEmbeddingModels: {
-          'test-model-id': new MockEmbeddingModelV2({
+          'test-model-id': new MockEmbeddingModelV3({
             provider: 'global-test-provider',
             modelId: 'actual-test-model-id',
           }),

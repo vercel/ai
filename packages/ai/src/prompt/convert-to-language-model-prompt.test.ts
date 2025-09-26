@@ -673,6 +673,101 @@ describe('convertToLanguageModelPrompt', () => {
         ]);
       });
     });
+
+    it('should download files when intermediate file cannot be downloaded', async () => {
+      const imageUrlA = `http://example.com/my-image-A.png`; // supported
+      const fileUrl = `http://127.0.0.1:3000/file`; // unsupported
+      const imageUrlB = `http://example.com/my-image-B.png`; // supported
+
+      const mockDownload = vi.fn().mockResolvedValue([
+        {
+          url: new URL(imageUrlA),
+          data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0]), // empty png and 0
+          mediaType: 'image/png',
+        },
+        null,
+        {
+          url: new URL(imageUrlB),
+          data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1]), // empty png and 1
+          mediaType: 'image/png',
+        },
+      ]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'image', image: imageUrlA, mediaType: 'image/png' },
+                {
+                  type: 'file',
+                  data: new URL(fileUrl),
+                  mediaType: 'application/octet-stream',
+                },
+                { type: 'image', image: imageUrlB, mediaType: 'image/png' },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {
+          '*': [/^https:\/\/.*$/],
+        },
+        download: mockDownload,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "data": Uint8Array [
+                  137,
+                  80,
+                  78,
+                  71,
+                  13,
+                  10,
+                  26,
+                  10,
+                  0,
+                ],
+                "filename": undefined,
+                "mediaType": "image/png",
+                "providerOptions": undefined,
+                "type": "file",
+              },
+              {
+                "data": "http://127.0.0.1:3000/file",
+                "filename": undefined,
+                "mediaType": "application/octet-stream",
+                "providerOptions": undefined,
+                "type": "file",
+              },
+              {
+                "data": Uint8Array [
+                  137,
+                  80,
+                  78,
+                  71,
+                  13,
+                  10,
+                  26,
+                  10,
+                  1,
+                ],
+                "filename": undefined,
+                "mediaType": "image/png",
+                "providerOptions": undefined,
+                "type": "file",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+    });
   });
 
   describe('custom download function', () => {
@@ -899,7 +994,7 @@ describe('convertToLanguageModelMessage', () => {
 
   describe('assistant message', () => {
     describe('text parts', () => {
-      it('should ignore empty text parts', async () => {
+      it('should ignore empty text parts when there are no provider options', async () => {
         const result = convertToLanguageModelMessage({
           message: {
             role: 'assistant',
@@ -930,6 +1025,58 @@ describe('convertToLanguageModelMessage', () => {
             },
           ],
         });
+      });
+
+      it('should include empty text parts when there are provider options', async () => {
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                input: {},
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                  },
+                },
+                "text": "",
+                "type": "text",
+              },
+              {
+                "input": {},
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-call",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          }
+        `);
       });
     });
 

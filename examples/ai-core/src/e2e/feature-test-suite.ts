@@ -1,7 +1,7 @@
 import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import type {
-  EmbeddingModelV2,
-  ImageModelV2,
+  EmbeddingModelV3,
+  ImageModelV3,
   LanguageModelV2,
 } from '@ai-sdk/provider';
 import {
@@ -17,7 +17,7 @@ import {
 } from 'ai';
 import fs from 'fs';
 import { describe, expect, it, vi } from 'vitest';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 export type Capability =
   | 'audioInput'
@@ -58,17 +58,17 @@ export const createLanguageModelWithCapabilities = (
 });
 
 export const createEmbeddingModelWithCapabilities = (
-  model: EmbeddingModelV2<string>,
+  model: EmbeddingModelV3<string>,
   capabilities: ModelCapabilities = ['embedding'],
-): ModelWithCapabilities<EmbeddingModelV2<string>> => ({
+): ModelWithCapabilities<EmbeddingModelV3<string>> => ({
   model,
   capabilities,
 });
 
 export const createImageModelWithCapabilities = (
-  model: ImageModelV2,
+  model: ImageModelV3,
   capabilities: ModelCapabilities = ['imageGeneration'],
-): ModelWithCapabilities<ImageModelV2> => ({
+): ModelWithCapabilities<ImageModelV3> => ({
   model,
   capabilities,
 });
@@ -76,9 +76,9 @@ export const createImageModelWithCapabilities = (
 export interface ModelVariants {
   invalidModel?: LanguageModelV2;
   languageModels?: ModelWithCapabilities<LanguageModelV2>[];
-  embeddingModels?: ModelWithCapabilities<EmbeddingModelV2<string>>[];
-  invalidImageModel?: ImageModelV2;
-  imageModels?: ModelWithCapabilities<ImageModelV2>[];
+  embeddingModels?: ModelWithCapabilities<EmbeddingModelV3<string>>[];
+  invalidImageModel?: ImageModelV3;
+  imageModels?: ModelWithCapabilities<ImageModelV3>[];
 }
 
 export interface TestSuiteOptions {

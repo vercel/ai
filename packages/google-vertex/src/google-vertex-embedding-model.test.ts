@@ -1,10 +1,15 @@
 import {
-  EmbeddingModelV2Embedding,
+  EmbeddingModelV3Embedding,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { describe, it, expect, vi } from 'vitest';
+import { createVertex } from './google-vertex-provider';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3],
@@ -28,6 +33,7 @@ describe('GoogleVertexEmbeddingModel', () => {
   const mockProviderOptions = {
     outputDimensionality: 768,
     taskType: 'SEMANTIC_SIMILARITY',
+    title: 'test title',
     autoTruncate: false,
   };
 
@@ -47,7 +53,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     tokenCounts = [1, 1],
     headers,
   }: {
-    embeddings?: EmbeddingModelV2Embedding[];
+    embeddings?: EmbeddingModelV3Embedding[];
     tokenCounts?: number[];
     headers?: Record<string, string>;
   } = {}) {
@@ -123,6 +129,7 @@ describe('GoogleVertexEmbeddingModel', () => {
       instances: testValues.map(value => ({
         content: value,
         task_type: mockProviderOptions.taskType,
+        title: mockProviderOptions.title,
       })),
       parameters: {
         outputDimensionality: mockProviderOptions.outputDimensionality,
@@ -148,21 +155,37 @@ describe('GoogleVertexEmbeddingModel', () => {
     });
   });
 
-  it('should pass headers correctly', async () => {
+  it('should pass the title setting in instances', async () => {
     prepareJsonResponse();
-
-    const model = new GoogleVertexEmbeddingModel(mockModelId, {
-      ...mockConfig,
-      headers: () => ({
-        'X-Custom-Header': 'custom-value',
-      }),
-    });
 
     await model.doEmbed({
       values: testValues,
-      headers: {
-        'X-Request-Header': 'request-value',
-      },
+      providerOptions: { google: { title: mockProviderOptions.title } },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      instances: testValues.map(value => ({
+        content: value,
+        title: mockProviderOptions.title,
+      })),
+      parameters: {},
+    });
+  });
+
+  // changed test to go through the provider `createVertex`
+  it('should pass headers correctly', async () => {
+    prepareJsonResponse();
+
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'us-central1',
+      headers: { 'X-Custom-Header': 'custom-value' },
+    });
+
+    await provider.textEmbeddingModel(mockModelId).doEmbed({
+      values: testValues,
+      headers: { 'X-Request-Header': 'request-value' },
+      providerOptions: { google: mockProviderOptions },
     });
 
     expect(server.calls[0].requestHeaders).toStrictEqual({
@@ -170,6 +193,9 @@ describe('GoogleVertexEmbeddingModel', () => {
       'x-custom-header': 'custom-value',
       'x-request-header': 'request-value',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/google-vertex/0.0.0-test`,
+    );
   });
 
   it('should throw TooManyEmbeddingValuesForCallError when too many values provided', async () => {

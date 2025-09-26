@@ -4,6 +4,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
+  LanguageModelV2ProviderDefinedTool,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
@@ -20,8 +21,18 @@ import {
 import { z } from 'zod/v4';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
+import {
+  codeInterpreterInputSchema,
+  codeInterpreterOutputSchema,
+} from '../tool/code-interpreter';
+import { fileSearchOutputSchema } from '../tool/file-search';
+import { imageGenerationOutputSchema } from '../tool/image-generation';
+import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
+import {
+  OpenAIResponsesIncludeOptions,
+  OpenAIResponsesIncludeValue,
+} from './openai-responses-api-types';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
 
@@ -46,6 +57,44 @@ const webSearchCallItem = z.object({
       }),
     ])
     .nullish(),
+});
+
+const fileSearchCallItem = z.object({
+  type: z.literal('file_search_call'),
+  id: z.string(),
+  queries: z.array(z.string()),
+  results: z
+    .array(
+      z.object({
+        attributes: z.record(z.string(), z.unknown()),
+        file_id: z.string(),
+        filename: z.string(),
+        score: z.number(),
+        text: z.string(),
+      }),
+    )
+    .nullish(),
+});
+
+const codeInterpreterCallItem = z.object({
+  type: z.literal('code_interpreter_call'),
+  id: z.string(),
+  code: z.string().nullable(),
+  container_id: z.string(),
+  outputs: z
+    .array(
+      z.discriminatedUnion('type', [
+        z.object({ type: z.literal('logs'), logs: z.string() }),
+        z.object({ type: z.literal('image'), url: z.string() }),
+      ]),
+    )
+    .nullable(),
+});
+
+const imageGenerationCallItem = z.object({
+  type: z.literal('image_generation_call'),
+  id: z.string(),
+  result: z.string(),
 });
 
 /**
@@ -135,38 +184,72 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       warnings.push({ type: 'unsupported-setting', setting: 'stopSequences' });
     }
 
-    const { messages, warnings: messageWarnings } =
-      await convertToOpenAIResponsesMessages({
-        prompt,
-        systemMessageMode: modelConfig.systemMessageMode,
-        fileIdPrefixes: this.config.fileIdPrefixes,
-      });
-
-    warnings.push(...messageWarnings);
-
     const openaiOptions = await parseProviderOptions({
       provider: 'openai',
       providerOptions,
       schema: openaiResponsesProviderOptionsSchema,
     });
 
+    const { input, warnings: inputWarnings } =
+      await convertToOpenAIResponsesInput({
+        prompt,
+        systemMessageMode: modelConfig.systemMessageMode,
+        fileIdPrefixes: this.config.fileIdPrefixes,
+        store: openaiOptions?.store ?? true,
+      });
+
+    warnings.push(...inputWarnings);
+
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
 
+    let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
+
+    function addInclude(key: OpenAIResponsesIncludeValue) {
+      include = include != null ? [...include, key] : [key];
+    }
+
+    function hasOpenAITool(id: string) {
+      return (
+        tools?.find(
+          tool => tool.type === 'provider-defined' && tool.id === id,
+        ) != null
+      );
+    }
+
+    // when logprobs are requested, automatically include them:
     const topLogprobs =
       typeof openaiOptions?.logprobs === 'number'
         ? openaiOptions?.logprobs
         : openaiOptions?.logprobs === true
           ? TOP_LOGPROBS_MAX
           : undefined;
-    const openaiOptionsInclude = topLogprobs
-      ? Array.isArray(openaiOptions?.include)
-        ? [...openaiOptions?.include, 'message.output_text.logprobs']
-        : ['message.output_text.logprobs']
-      : openaiOptions?.include;
+
+    if (topLogprobs) {
+      addInclude('message.output_text.logprobs');
+    }
+
+    // when a web search tool is present, automatically include the sources:
+    const webSearchToolName = (
+      tools?.find(
+        tool =>
+          tool.type === 'provider-defined' &&
+          (tool.id === 'openai.web_search' ||
+            tool.id === 'openai.web_search_preview'),
+      ) as LanguageModelV2ProviderDefinedTool | undefined
+    )?.name;
+
+    if (webSearchToolName) {
+      addInclude('web_search_call.action.sources');
+    }
+
+    // when a code interpreter tool is present, automatically include the outputs:
+    if (hasOpenAITool('openai.code_interpreter')) {
+      addInclude('code_interpreter_call.outputs');
+    }
 
     const baseArgs = {
       model: this.modelId,
-      input: messages,
+      input,
       temperature,
       top_p: topP,
       max_output_tokens: maxOutputTokens,
@@ -192,6 +275,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }),
 
       // provider options:
+      max_tool_calls: openaiOptions?.maxToolCalls,
       metadata: openaiOptions?.metadata,
       parallel_tool_calls: openaiOptions?.parallelToolCalls,
       previous_response_id: openaiOptions?.previousResponseId,
@@ -199,7 +283,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
-      include: openaiOptionsInclude,
+      include,
       prompt_cache_key: openaiOptions?.promptCacheKey,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
@@ -301,6 +385,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     });
 
     return {
+      webSearchToolName,
       args: {
         ...baseArgs,
         tools: openaiTools,
@@ -313,7 +398,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args: body, warnings } = await this.getArgs(options);
+    const {
+      args: body,
+      warnings,
+      webSearchToolName,
+    } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
       modelId: this.modelId,
@@ -368,11 +457,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                           end_index: z.number().nullish(),
                           quote: z.string().nullish(),
                         }),
+                        z.object({
+                          type: z.literal('container_file_citation'),
+                        }),
                       ]),
                     ),
                   }),
                 ),
               }),
+              webSearchCallItem,
+              fileSearchCallItem,
+              codeInterpreterCallItem,
+              imageGenerationCallItem,
               z.object({
                 type: z.literal('function_call'),
                 call_id: z.string(),
@@ -380,29 +476,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 arguments: z.string(),
                 id: z.string(),
               }),
-              webSearchCallItem,
               z.object({
                 type: z.literal('computer_call'),
                 id: z.string(),
                 status: z.string().optional(),
-              }),
-              z.object({
-                type: z.literal('file_search_call'),
-                id: z.string(),
-                status: z.string().optional(),
-                queries: z.array(z.string()).nullish(),
-                results: z
-                  .array(
-                    z.object({
-                      attributes: z.object({
-                        file_id: z.string(),
-                        filename: z.string(),
-                        score: z.number(),
-                        text: z.string(),
-                      }),
-                    }),
-                  )
-                  .nullish(),
               }),
               z.object({
                 type: z.literal('reasoning'),
@@ -418,7 +495,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             ]),
           ),
           service_tier: z.string().nullish(),
-          incomplete_details: z.object({ reason: z.string() }).nullable(),
+          incomplete_details: z.object({ reason: z.string() }).nullish(),
           usage: usageSchema,
         }),
       ),
@@ -441,6 +518,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     const content: Array<LanguageModelV2Content> = [];
     const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
 
+    // flag that checks if there have been client-side tool calls (not executed by openai)
+    let hasFunctionCall = false;
+
     // map response content to content array
     for (const part of response.output) {
       switch (part.type) {
@@ -462,6 +542,28 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               },
             });
           }
+          break;
+        }
+
+        case 'image_generation_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'image_generation',
+            input: '{}',
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'image_generation',
+            result: {
+              result: part.result,
+            } satisfies z.infer<typeof imageGenerationOutputSchema>,
+            providerExecuted: true,
+          });
+
           break;
         }
 
@@ -510,6 +612,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }
 
         case 'function_call': {
+          hasFunctionCall = true;
+
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
@@ -528,7 +632,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: 'web_search_preview',
+            toolName: webSearchToolName ?? 'web_search',
             input: JSON.stringify({ action: part.action }),
             providerExecuted: true,
           });
@@ -536,10 +640,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'web_search_preview',
+            toolName: webSearchToolName ?? 'web_search',
             result: { status: part.status },
             providerExecuted: true,
           });
+
           break;
         }
 
@@ -570,7 +675,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: 'file_search',
-            input: '',
+            input: '{}',
             providerExecuted: true,
           });
 
@@ -579,11 +684,40 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolCallId: part.id,
             toolName: 'file_search',
             result: {
-              type: 'file_search_tool_result',
-              status: part.status || 'completed',
-              ...(part.queries && { queries: part.queries }),
-              ...(part.results && { results: part.results }),
-            },
+              queries: part.queries,
+              results:
+                part.results?.map(result => ({
+                  attributes: result.attributes,
+                  fileId: result.file_id,
+                  filename: result.filename,
+                  score: result.score,
+                  text: result.text,
+                })) ?? null,
+            } satisfies z.infer<typeof fileSearchOutputSchema>,
+            providerExecuted: true,
+          });
+          break;
+        }
+
+        case 'code_interpreter_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'code_interpreter',
+            input: JSON.stringify({
+              code: part.code,
+              containerId: part.container_id,
+            } satisfies z.infer<typeof codeInterpreterInputSchema>),
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'code_interpreter',
+            result: {
+              outputs: part.outputs,
+            } satisfies z.infer<typeof codeInterpreterOutputSchema>,
             providerExecuted: true,
           });
           break;
@@ -607,7 +741,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       content,
       finishReason: mapOpenAIResponseFinishReason({
         finishReason: response.incomplete_details?.reason,
-        hasToolCalls: content.some(part => part.type === 'tool-call'),
+        hasFunctionCall,
       }),
       usage: {
         inputTokens: response.usage.input_tokens,
@@ -634,7 +768,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args: body, warnings } = await this.getArgs(options);
+    const {
+      args: body,
+      warnings,
+      webSearchToolName,
+    } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -668,7 +806,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       number,
       { toolName: string; toolCallId: string } | undefined
     > = {};
-    let hasToolCalls = false;
+
+    // flag that checks if there have been client-side tool calls (not executed by openai)
+    let hasFunctionCall = false;
 
     const activeReasoning: Record<
       string,
@@ -718,14 +858,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {
-                  toolName: 'web_search_preview',
+                  toolName: webSearchToolName ?? 'web_search',
                   toolCallId: value.item.id,
                 };
 
                 controller.enqueue({
                   type: 'tool-input-start',
                   id: value.item.id,
-                  toolName: 'web_search_preview',
+                  toolName: webSearchToolName ?? 'web_search',
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -739,15 +879,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolName: 'computer_use',
                 });
               } else if (value.item.type === 'file_search_call') {
-                ongoingToolCalls[value.output_index] = {
-                  toolName: 'file_search',
-                  toolCallId: value.item.id,
-                };
-
                 controller.enqueue({
-                  type: 'tool-input-start',
-                  id: value.item.id,
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
                   toolName: 'file_search',
+                  input: '{}',
+                  providerExecuted: true,
+                });
+              } else if (value.item.type === 'image_generation_call') {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'image_generation',
+                  input: '{}',
+                  providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
@@ -780,7 +925,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = undefined;
-                hasToolCalls = true;
+                hasFunctionCall = true;
 
                 controller.enqueue({
                   type: 'tool-input-end',
@@ -800,7 +945,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = undefined;
-                hasToolCalls = true;
 
                 controller.enqueue({
                   type: 'tool-input-end',
@@ -810,7 +954,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: 'web_search_preview',
+                  toolName: 'web_search',
                   input: JSON.stringify({ action: value.item.action }),
                   providerExecuted: true,
                 });
@@ -818,13 +962,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'web_search_preview',
+                  toolName: 'web_search',
                   result: { status: value.item.status },
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
-                hasToolCalls = true;
 
                 controller.enqueue({
                   type: 'tool-input-end',
@@ -851,31 +994,53 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               } else if (value.item.type === 'file_search_call') {
                 ongoingToolCalls[value.output_index] = undefined;
-                hasToolCalls = true;
-
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: value.item.id,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName: 'file_search',
-                  input: '',
-                  providerExecuted: true,
-                });
 
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: 'file_search',
                   result: {
-                    type: 'file_search_tool_result',
-                    status: value.item.status || 'completed',
-                    ...(value.item.queries && { queries: value.item.queries }),
-                    ...(value.item.results && { results: value.item.results }),
-                  },
+                    queries: value.item.queries,
+                    results:
+                      value.item.results?.map(result => ({
+                        attributes: result.attributes,
+                        fileId: result.file_id,
+                        filename: result.filename,
+                        score: result.score,
+                        text: result.text,
+                      })) ?? null,
+                  } satisfies z.infer<typeof fileSearchOutputSchema>,
+                  providerExecuted: true,
+                });
+              } else if (value.item.type === 'code_interpreter_call') {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'code_interpreter',
+                  input: JSON.stringify({
+                    code: value.item.code,
+                    containerId: value.item.container_id,
+                  } satisfies z.infer<typeof codeInterpreterInputSchema>),
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'code_interpreter',
+                  result: {
+                    outputs: value.item.outputs,
+                  } satisfies z.infer<typeof codeInterpreterOutputSchema>,
+                  providerExecuted: true,
+                });
+              } else if (value.item.type === 'image_generation_call') {
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'image_generation',
+                  result: {
+                    result: value.item.result,
+                  } satisfies z.infer<typeof imageGenerationOutputSchema>,
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
@@ -964,7 +1129,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
-                hasToolCalls,
+                hasFunctionCall,
               });
               usage.inputTokens = value.response.usage.input_tokens;
               usage.outputTokens = value.response.usage.output_tokens;
@@ -1122,20 +1287,10 @@ const responseOutputItemAddedSchema = z.object({
     z.object({
       type: z.literal('file_search_call'),
       id: z.string(),
-      status: z.string(),
-      queries: z.array(z.string()).nullish(),
-      results: z
-        .array(
-          z.object({
-            attributes: z.object({
-              file_id: z.string(),
-              filename: z.string(),
-              score: z.number(),
-              text: z.string(),
-            }),
-          }),
-        )
-        .optional(),
+    }),
+    z.object({
+      type: z.literal('image_generation_call'),
+      id: z.string(),
     }),
   ]),
 });
@@ -1161,29 +1316,14 @@ const responseOutputItemDoneSchema = z.object({
       arguments: z.string(),
       status: z.literal('completed'),
     }),
+    codeInterpreterCallItem,
+    imageGenerationCallItem,
     webSearchCallItem,
+    fileSearchCallItem,
     z.object({
       type: z.literal('computer_call'),
       id: z.string(),
       status: z.literal('completed'),
-    }),
-    z.object({
-      type: z.literal('file_search_call'),
-      id: z.string(),
-      status: z.literal('completed'),
-      queries: z.array(z.string()).nullish(),
-      results: z
-        .array(
-          z.object({
-            attributes: z.object({
-              file_id: z.string(),
-              filename: z.string(),
-              score: z.number(),
-              text: z.string(),
-            }),
-          }),
-        )
-        .nullish(),
     }),
   ]),
 });
@@ -1402,16 +1542,6 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
 
 // TODO AI SDK 6: use optional here instead of nullish
 const openaiResponsesProviderOptionsSchema = z.object({
-  metadata: z.any().nullish(),
-  parallelToolCalls: z.boolean().nullish(),
-  previousResponseId: z.string().nullish(),
-  store: z.boolean().nullish(),
-  user: z.string().nullish(),
-  reasoningEffort: z.string().nullish(),
-  strictJsonSchema: z.boolean().nullish(),
-  instructions: z.string().nullish(),
-  reasoningSummary: z.string().nullish(),
-  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
   include: z
     .array(
       z.enum([
@@ -1421,9 +1551,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
       ]),
     )
     .nullish(),
-  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
-  promptCacheKey: z.string().nullish(),
-  safetyIdentifier: z.string().nullish(),
+  instructions: z.string().nullish(),
 
   /**
    * Return the log probabilities of the tokens.
@@ -1440,6 +1568,26 @@ const openaiResponsesProviderOptionsSchema = z.object({
   logprobs: z
     .union([z.boolean(), z.number().min(1).max(TOP_LOGPROBS_MAX)])
     .optional(),
+
+  /**
+   * The maximum number of total calls to built-in tools that can be processed in a response.
+   * This maximum number applies across all built-in tool calls, not per individual tool.
+   * Any further attempts to call a tool by the model will be ignored.
+   */
+  maxToolCalls: z.number().nullish(),
+
+  metadata: z.any().nullish(),
+  parallelToolCalls: z.boolean().nullish(),
+  previousResponseId: z.string().nullish(),
+  promptCacheKey: z.string().nullish(),
+  reasoningEffort: z.string().nullish(),
+  reasoningSummary: z.string().nullish(),
+  safetyIdentifier: z.string().nullish(),
+  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
+  store: z.boolean().nullish(),
+  strictJsonSchema: z.boolean().nullish(),
+  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
+  user: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<
