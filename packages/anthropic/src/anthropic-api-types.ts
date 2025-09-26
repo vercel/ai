@@ -29,8 +29,9 @@ export interface AnthropicAssistantMessage {
     | AnthropicRedactedThinkingContent
     | AnthropicToolCallContent
     | AnthropicServerToolUseContent
-    | AnthropicWebSearchToolResultContent
     | AnthropicCodeExecutionToolResultContent
+    | AnthropicWebFetchToolResultContent
+    | AnthropicWebSearchToolResultContent
   >;
 }
 
@@ -95,7 +96,7 @@ export interface AnthropicToolCallContent {
 export interface AnthropicServerToolUseContent {
   type: 'server_tool_use';
   id: string;
-  name: 'web_search' | 'code_execution';
+  name: 'code_execution' | 'web_fetch' | 'web_search';
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -129,6 +130,25 @@ export interface AnthropicCodeExecutionToolResultContent {
     stdout: string;
     stderr: string;
     return_code: number;
+  };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicWebFetchToolResultContent {
+  type: 'web_fetch_tool_result';
+  tool_use_id: string;
+  content: {
+    type: 'web_fetch_result';
+    url: string;
+    retrieved_at: string | null;
+    content: {
+      type: 'document';
+      title: string | null;
+      citations: { enabled: boolean };
+      source:
+        | { type: 'base64'; media_type: 'application/pdf'; data: string }
+        | { type: 'text'; media_type: 'text/plain'; data: string };
+    };
   };
   cache_control: AnthropicCacheControl | undefined;
 }

@@ -19,8 +19,8 @@ export const webFetch_20250910OutputSchema = z.object({
   content: z.object({
     type: z.literal('document'),
     title: z.string(),
-    citation: z.object({ enabled: z.boolean() }),
-    sources: z.union([
+    citations: z.object({ enabled: z.boolean() }),
+    source: z.union([
       z.object({
         type: z.literal('base64'),
         mediaType: z.literal('application/pdf'),
@@ -65,9 +65,9 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
       /**
        * Citation configuration for the document
        */
-      citation: { enabled: boolean };
+      citations: { enabled: boolean };
 
-      sources:
+      source:
         | {
             type: 'base64';
             mediaType: 'application/pdf';
