@@ -2,7 +2,7 @@ import { xai } from '@ai-sdk/xai';
 import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const terminal = readline.createInterface({
   input: process.stdin,

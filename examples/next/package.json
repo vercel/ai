@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/react": "workspace:*",
     "@vercel/blob": "^0.26.0",
     "ai": "workspace:*",

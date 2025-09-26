@@ -1,12 +1,13 @@
 import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
+import { imageGenerationArgsSchema } from '../tool/image-generation';
 import { OpenAIResponsesTool } from './openai-responses-api-types';
 
 export function prepareResponsesTools({
@@ -14,8 +15,8 @@ export function prepareResponsesTools({
   toolChoice,
   strictJsonSchema,
 }: {
-  tools: LanguageModelV2CallOptions['tools'];
-  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  tools: LanguageModelV3CallOptions['tools'];
+  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   strictJsonSchema: boolean;
 }): {
   tools?: Array<OpenAIResponsesTool>;
@@ -27,13 +28,14 @@ export function prepareResponsesTools({
     | { type: 'web_search_preview' }
     | { type: 'web_search' }
     | { type: 'function'; name: string }
-    | { type: 'code_interpreter' };
-  toolWarnings: LanguageModelV2CallWarning[];
+    | { type: 'code_interpreter' }
+    | { type: 'image_generation' };
+  toolWarnings: LanguageModelV3CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV2CallWarning[] = [];
+  const toolWarnings: LanguageModelV3CallWarning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
@@ -56,15 +58,20 @@ export function prepareResponsesTools({
         switch (tool.id) {
           case 'openai.file_search': {
             const args = fileSearchArgsSchema.parse(tool.args);
+
             openaiTools.push({
               type: 'file_search',
               vector_store_ids: args.vectorStoreIds,
               max_num_results: args.maxNumResults,
               ranking_options: args.ranking
-                ? { ranker: args.ranking.ranker }
+                ? {
+                    ranker: args.ranking.ranker,
+                    score_threshold: args.ranking.scoreThreshold,
+                  }
                 : undefined,
               filters: args.filters,
             });
+
             break;
           }
           case 'openai.web_search_preview': {
@@ -102,8 +109,25 @@ export function prepareResponsesTools({
             });
             break;
           }
-          default: {
-            toolWarnings.push({ type: 'unsupported-tool', tool });
+          case 'openai.image_generation': {
+            const args = imageGenerationArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'image_generation',
+              background: args.background,
+              input_fidelity: args.inputFidelity,
+              input_image_mask: args.inputImageMask
+                ? {
+                    file_id: args.inputImageMask.fileId,
+                    image_url: args.inputImageMask.imageUrl,
+                  }
+                : undefined,
+              model: args.model,
+              size: args.size,
+              quality: args.quality,
+              moderation: args.moderation,
+              output_format: args.outputFormat,
+              output_compression: args.outputCompression,
+            });
             break;
           }
         }
@@ -132,6 +156,7 @@ export function prepareResponsesTools({
         toolChoice:
           toolChoice.toolName === 'code_interpreter' ||
           toolChoice.toolName === 'file_search' ||
+          toolChoice.toolName === 'image_generation' ||
           toolChoice.toolName === 'web_search_preview' ||
           toolChoice.toolName === 'web_search'
             ? { type: toolChoice.toolName }

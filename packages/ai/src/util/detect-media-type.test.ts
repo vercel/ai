@@ -74,8 +74,26 @@ describe('detectMediaType', () => {
   });
 
   describe('WebP', () => {
-    it('should detect WebP from bytes', () => {
-      const webpBytes = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0xff, 0xff]);
+    it('should detect WebP from bytes (positive webp image uint8)', () => {
+      // WebP format: RIFF + 4 bytes file size + WEBP
+      const webpBytes = new Uint8Array([
+        0x52,
+        0x49,
+        0x46,
+        0x46, // "RIFF"
+        0x24,
+        0x00,
+        0x00,
+        0x00, // file size (example: 36 bytes)
+        0x57,
+        0x45,
+        0x42,
+        0x50, // "WEBP"
+        0x56,
+        0x50,
+        0x38,
+        0x20, // VP8 chunk (additional WebP data)
+      ]);
       expect(
         detectMediaType({
           data: webpBytes,
@@ -84,14 +102,90 @@ describe('detectMediaType', () => {
       ).toBe('image/webp');
     });
 
-    it('should detect WebP from base64', () => {
-      const webpBase64 = 'UklGRgabc123'; // Base64 string starting with WebP signature
+    it('should detect WebP from base64 (positive webp image base64)', () => {
+      // WebP: RIFF + file size + WEBP encoded to base64
+      const webpBytes = new Uint8Array([
+        0x52,
+        0x49,
+        0x46,
+        0x46, // "RIFF"
+        0x24,
+        0x00,
+        0x00,
+        0x00, // file size
+        0x57,
+        0x45,
+        0x42,
+        0x50, // "WEBP"
+        0x56,
+        0x50,
+        0x38,
+        0x20, // VP8 chunk
+      ]);
+      const webpBase64 = convertUint8ArrayToBase64(webpBytes);
       expect(
         detectMediaType({
           data: webpBase64,
           signatures: imageMediaTypeSignatures,
         }),
       ).toBe('image/webp');
+    });
+
+    it('should NOT detect RIFF audio as WebP from bytes (negative riff audio uint8)', () => {
+      // WAV format: RIFF + file size + WAVE (not WEBP)
+      const wavBytes = new Uint8Array([
+        0x52,
+        0x49,
+        0x46,
+        0x46, // "RIFF"
+        0x24,
+        0x00,
+        0x00,
+        0x00, // file size
+        0x57,
+        0x41,
+        0x56,
+        0x45, // "WAVE" (not "WEBP")
+        0x66,
+        0x6d,
+        0x74,
+        0x20, // fmt chunk
+      ]);
+      expect(
+        detectMediaType({
+          data: wavBytes,
+          signatures: imageMediaTypeSignatures,
+        }),
+      ).toBeUndefined(); // Should not detect as WebP
+    });
+
+    it('should NOT detect RIFF audio as WebP from base64 (negative riff audio base64)', () => {
+      // WAV format encoded to base64
+      const wavBytes = new Uint8Array([
+        0x52,
+        0x49,
+        0x46,
+        0x46, // "RIFF"
+        0x24,
+        0x00,
+        0x00,
+        0x00, // file size
+        0x57,
+        0x41,
+        0x56,
+        0x45, // "WAVE" (not "WEBP")
+        0x66,
+        0x6d,
+        0x74,
+        0x20, // fmt chunk
+      ]);
+      const wavBase64 = convertUint8ArrayToBase64(wavBytes);
+      expect(
+        detectMediaType({
+          data: wavBase64,
+          signatures: imageMediaTypeSignatures,
+        }),
+      ).toBeUndefined(); // Should not detect as WebP
     });
   });
 
@@ -107,10 +201,10 @@ describe('detectMediaType', () => {
     });
 
     it('should detect BMP from base64', () => {
-      const bmpBase64 = 'Qkabc123'; // Base64 string starting with BMP signature
+      const bmpBytes = new Uint8Array([0x42, 0x4d, 0xff, 0xff]);
       expect(
         detectMediaType({
-          data: bmpBase64,
+          data: convertUint8ArrayToBase64(bmpBytes),
           signatures: imageMediaTypeSignatures,
         }),
       ).toBe('image/bmp');
@@ -306,8 +400,46 @@ describe('detectMediaType', () => {
   });
 
   describe('WAV', () => {
+    // WebP format: RIFF + 4 bytes file size + WEBP
+    const webpBytes = new Uint8Array([
+      0x52,
+      0x49,
+      0x46,
+      0x46, // "RIFF"
+      0x24,
+      0x00,
+      0x00,
+      0x00, // file size (example: 36 bytes)
+      0x57,
+      0x45,
+      0x42,
+      0x50, // "WEBP"
+      0x56,
+      0x50,
+      0x38,
+      0x20, // VP8 chunk (additional WebP data)
+    ]);
+
+    const wavBytes = new Uint8Array([
+      0x52,
+      0x49,
+      0x46,
+      0x46, // "RIFF"
+      0x24,
+      0x00,
+      0x00,
+      0x00, // file size (example: 36 bytes)
+      0x57,
+      0x41,
+      0x56,
+      0x45, // "WAVE" (not "WEBP")
+      0x66,
+      0x6d,
+      0x74,
+      0x20, // fmt chunk
+    ]);
+
     it('should detect WAV from bytes', () => {
-      const wavBytes = new Uint8Array([0x52, 0x49, 0x46, 0x46]);
       expect(
         detectMediaType({
           data: wavBytes,
@@ -317,13 +449,30 @@ describe('detectMediaType', () => {
     });
 
     it('should detect WAV from base64', () => {
-      const wavBase64 = 'UklGRiQ='; // Base64 string starting with WAV signature
       expect(
         detectMediaType({
-          data: wavBase64,
+          data: convertUint8ArrayToBase64(wavBytes),
           signatures: audioMediaTypeSignatures,
         }),
       ).toBe('audio/wav');
+    });
+
+    it('should NOT detect WebP as WAV from bytes (negative webp image uint8)', () => {
+      expect(
+        detectMediaType({
+          data: webpBytes,
+          signatures: audioMediaTypeSignatures,
+        }),
+      ).toBeUndefined(); // Should not detect as WAV
+    });
+
+    it('should NOT detect WebP as WAV from base64 (negative webp image base64)', () => {
+      expect(
+        detectMediaType({
+          data: convertUint8ArrayToBase64(webpBytes),
+          signatures: audioMediaTypeSignatures,
+        }),
+      ).toBeUndefined(); // Should not detect as WAV
     });
   });
 
@@ -383,10 +532,10 @@ describe('detectMediaType', () => {
     });
 
     it('should detect AAC from base64', () => {
-      const aacBase64 = 'QBUA'; // Base64 string starting with AAC signature
+      const aacBytes = new Uint8Array([0x40, 0x15, 0x00, 0x00]);
       expect(
         detectMediaType({
-          data: aacBase64,
+          data: convertUint8ArrayToBase64(aacBytes),
           signatures: audioMediaTypeSignatures,
         }),
       ).toBe('audio/aac');

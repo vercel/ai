@@ -1,5 +1,24 @@
 # @ai-sdk/provider
 
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 522f6b8: feat: `ImageModelV3`
+
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
 ## 2.0.0
 
 ### Major Changes

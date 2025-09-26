@@ -1,5 +1,150 @@
 # @ai-sdk/react
 
+## 2.1.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [1c2a4c1]
+  - ai@5.1.0-beta.13
+
+## 2.1.0-beta.12
+
+### Patch Changes
+
+- ai@5.1.0-beta.12
+
+## 2.1.0-beta.11
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - ai@5.1.0-beta.11
+
+## 2.1.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [8c98371]
+  - ai@5.1.0-beta.10
+
+## 2.1.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [ed329cb]
+- Updated dependencies [177b475]
+- Updated dependencies [522f6b8]
+  - ai@5.1.0-beta.9
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 2.1.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [7eca093]
+  - ai@5.1.0-beta.8
+
+## 2.1.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [5a4e732]
+  - ai@5.1.0-beta.7
+
+## 2.1.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [0c4822d]
+  - ai@5.1.0-beta.6
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- ai@5.1.0-beta.5
+
+## 2.1.0-beta.4
+
+### Patch Changes
+
+- ai@5.1.0-beta.4
+
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- ai@5.1.0-beta.3
+
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+  - ai@5.1.0-beta.2
+
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [a7f6f81]
+  - ai@5.1.0-beta.1
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - ai@5.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.45
+
+### Patch Changes
+
+- Updated dependencies [76024fc]
+- Updated dependencies [93d8b60]
+- Updated dependencies [d8eb31f]
+  - ai@5.0.45
+
+## 2.0.44
+
+### Patch Changes
+
+- ai@5.0.44
+
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - ai@5.0.43
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [de5c066]
+  - ai@5.0.42
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [cd91e4b]
+  - ai@5.0.41
+
 ## 2.0.40
 
 ### Patch Changes

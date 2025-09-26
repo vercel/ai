@@ -1,5 +1,108 @@
 # @ai-sdk/google-vertex
 
+## 3.1.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [11e4abe]
+- Updated dependencies [afb00e3]
+- Updated dependencies [f6603b7]
+- Updated dependencies [fa35e95]
+- Updated dependencies [c5440c5]
+  - @ai-sdk/anthropic@2.1.0-beta.5
+
+## 3.1.0-beta.6
+
+### Patch Changes
+
+- e833473: chore (provider/google): Add preview modelIds for gemini 2.5 flash and lite
+- Updated dependencies [e833473]
+  - @ai-sdk/google@2.1.0-beta.6
+
+## 3.1.0-beta.5
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - @ai-sdk/anthropic@2.1.0-beta.4
+  - @ai-sdk/google@2.1.0-beta.5
+
+## 3.1.0-beta.4
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 522f6b8: feat: `ImageModelV3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/anthropic@2.1.0-beta.3
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/google@2.1.0-beta.4
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 3.1.0-beta.3
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+- Updated dependencies [1cad0ab]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/google@2.1.0-beta.3
+  - @ai-sdk/anthropic@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 3.1.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [7dea60e]
+  - @ai-sdk/google@2.1.0-beta.2
+
+## 3.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+  - @ai-sdk/anthropic@2.1.0-beta.1
+  - @ai-sdk/google@2.1.0-beta.1
+
+## 3.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/anthropic@2.1.0-beta.0
+  - @ai-sdk/google@2.1.0-beta.0
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [da92132]
+  - @ai-sdk/anthropic@2.0.17
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/anthropic@2.0.16
+  - @ai-sdk/google@2.0.14
+
 ## 3.0.25
 
 ### Patch Changes

@@ -663,7 +663,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_repairToolCall',
-      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV2ToolCall | null>',
+      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV3ToolCall | null>',
       isOptional: true,
       description:
         'A function that attempts to repair a tool call that failed to parse. Return either a repaired tool call or null if the tool call cannot be repaired.',
@@ -683,7 +683,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolCall',
-              type: 'LanguageModelV2ToolCall',
+              type: 'LanguageModelV3ToolCall',
               description: 'The tool call that failed to parse.',
             },
             {
@@ -1540,22 +1540,28 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'reasoning',
-      type: 'Promise<Array<ReasoningPart>>',
+      type: 'Promise<Array<ReasoningOutput>>',
       description:
         'The full reasoning that the model has generated in the last step. Automatically consumes the stream.',
       properties: [
         {
-          type: 'ReasoningPart',
+          type: 'ReasoningOutput',
           parameters: [
             {
               name: 'type',
               type: "'reasoning'",
-              description: 'The type of the reasoning part.',
+              description: 'The type of the message part.',
             },
             {
               name: 'text',
               type: 'string',
               description: 'The reasoning text.',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'SharedV2ProviderMetadata',
+              isOptional: true,
+              description: 'Additional provider metadata for the source.',
             },
           ],
         },

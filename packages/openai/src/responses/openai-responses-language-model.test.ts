@@ -1,10 +1,11 @@
 import {
-  LanguageModelV2FunctionTool,
-  LanguageModelV2Prompt,
+  LanguageModelV3,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
@@ -15,11 +16,11 @@ import {
   openaiResponsesReasoningModelIds,
 } from './openai-responses-settings';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
+const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
   {
     type: 'function',
     name: 'weather',
@@ -42,15 +43,6 @@ const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
   },
 ];
 
-function loadOpenAIChunks(filename: string) {
-  const lines = fs
-    .readFileSync(filename, 'utf8')
-    .split('\n')
-    .map(line => `data: ${line}\n\n`);
-  lines.push('data: [DONE]\n\n');
-  return lines;
-}
-
 const nonReasoningModelIds = openaiResponsesModelIds.filter(
   modelId =>
     !openaiResponsesReasoningModelIds.includes(
@@ -72,6 +64,29 @@ describe('OpenAIResponsesLanguageModel', () => {
   const server = createTestServer({
     'https://api.openai.com/v1/responses': {},
   });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/responses/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+    return;
+  }
+
+  function prepareChunksFixtureResponse(filename: string) {
+    const chunks = fs
+      .readFileSync(`src/responses/__fixtures__/${filename}.chunks.txt`, 'utf8')
+      .split('\n')
+      .map(line => `data: ${line}\n\n`);
+    chunks.push('data: [DONE]\n\n');
+
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'stream-chunks',
+      chunks,
+    };
+  }
 
   describe('doGenerate', () => {
     function prepareJsonResponse(body: any) {
@@ -198,17 +213,36 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
           temperature: 0.5,
           topP: 0.3,
+          providerOptions: {
+            openai: {
+              maxToolCalls: 10,
+            },
+          },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          temperature: 0.5,
-          top_p: 0.3,
-          input: [
-            { role: 'system', content: 'You are a helpful assistant.' },
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": "You are a helpful assistant.",
+                "role": "system",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "max_tool_calls": 10,
+            "model": "gpt-4o",
+            "temperature": 0.5,
+            "top_p": 0.3,
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -606,27 +640,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send include provider option for file search results', async () => {
-        const { warnings } = await createModel('gpt-4o-mini').doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: {
-            openai: {
-              include: ['file_search_call.results'],
-            },
-          },
-        });
-
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o-mini',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          include: ['file_search_call.results'],
-        });
-
-        expect(warnings).toStrictEqual([]);
-      });
-
       it('should send include provider option with multiple values', async () => {
         const { warnings } = await createModel('o3-mini').doGenerate({
           prompt: TEST_PROMPT,
@@ -935,203 +948,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ],
         });
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send file_search tool', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_123', 'vs_456'],
-                maxNumResults: 10,
-                ranking: {
-                  ranker: 'auto',
-                },
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tools": [
-              {
-                "max_num_results": 10,
-                "ranking_options": {
-                  "ranker": "auto",
-                },
-                "type": "file_search",
-                "vector_store_ids": [
-                  "vs_123",
-                  "vs_456",
-                ],
-              },
-            ],
-          }
-        `);
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send file_search tool as tool_choice', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          toolChoice: {
-            type: 'tool',
-            toolName: 'file_search',
-          },
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_789'],
-                maxNumResults: 5,
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tool_choice": {
-              "type": "file_search",
-            },
-            "tools": [
-              {
-                "max_num_results": 5,
-                "type": "file_search",
-                "vector_store_ids": [
-                  "vs_789",
-                ],
-              },
-            ],
-          }
-        `);
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send file_search tool with filters', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_123'],
-                maxNumResults: 5,
-                filters: {
-                  key: 'author',
-                  type: 'eq',
-                  value: 'Jane Smith',
-                },
-              },
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tools": [
-              {
-                "filters": {
-                  "key": "author",
-                  "type": "eq",
-                  "value": "Jane Smith",
-                },
-                "max_num_results": 5,
-                "type": "file_search",
-                "vector_store_ids": [
-                  "vs_123",
-                ],
-              },
-            ],
-          }
-        `);
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send file_search tool with minimal args', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {},
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "gpt-4o",
-            "tools": [
-              {
-                "type": "file_search",
-              },
-            ],
-          }
-        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -2091,217 +1907,116 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
-    describe('code interpreter', () => {
-      beforeEach(() => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: {
-            id: 'resp_68c12b837ca881a0a062ebb60494ae7700553426a98f13ca',
-            object: 'response',
-            created_at: 1757490051,
-            status: 'completed',
-            background: false,
-            error: null,
-            incomplete_details: null,
-            instructions: null,
-            max_output_tokens: null,
-            max_tool_calls: null,
-            model: 'gpt-5-nano-2025-08-07',
-            output: [
-              {
-                id: 'rs_68c12b868cd081a09ec2d83759a43b9e00553426a98f13ca',
-                type: 'reasoning',
-                summary: [],
-              },
-              {
-                id: 'ci_68c12b8a4e6481a0bd969d4488e6809700553426a98f13ca',
-                type: 'code_interpreter_call',
-                status: 'completed',
-                code: 'import random\nrandom.seed(0)\nn = 10000\nsums = []\nfor _ in range(n):\n    a = random.randint(1,6)\n    b = random.randint(1,6)\n    sums.append(a+b)\ntotal = sum(sums)\nmean = total / n\nfrom collections import Counter\ncounts = Counter(sums)\ndist = {s: counts.get(s,0) for s in range(2,13)}\ntotal, mean, dist, sums[:20]',
-                container_id:
-                  'cntr_68c12b85cd34819190332dbb00ec850c0f117a6c6bf754ed',
-                outputs: null,
-              },
-              {
-                id: 'rs_68c12b8cf96081a08764e212603bb16600553426a98f13ca',
-                type: 'reasoning',
-                summary: [],
-              },
-              {
-                id: 'ci_68c12b8dfa3881a084c474e6fbd0220500553426a98f13ca',
-                type: 'code_interpreter_call',
-                status: 'completed',
-                code: "# Write sums to CSV\nimport csv\nwith open('/mnt/data/dice_sums_10000.csv','w', newline='') as f:\n    writer = csv.writer(f)\n    writer.writerow(['sum'])\n    for s in sums:\n        writer.writerow([s])\n# Write summary\nsummary = {\n    'n_trials': n,\n    'total_sum': total,\n    'mean_sum_per_trial': mean,\n    'distribution': {str(k): v for k,v in dist.items()}\n}\nimport json\nwith open('/mnt/data/dice_sums_summary.json','w') as f:\n    json.dump(summary, f, indent=2)\n('/mnt/data/dice_sums_10000.csv', '/mnt/data/dice_sums_summary.json')",
-                container_id:
-                  'cntr_68c12b85cd34819190332dbb00ec850c0f117a6c6bf754ed',
-                outputs: null,
-              },
-              {
-                id: 'rs_68c12b90775c81a0bdcb8c306da10e7700553426a98f13ca',
-                type: 'reasoning',
-                summary: [],
-              },
-              {
-                id: 'msg_68c12b93d98481a0b8696d68b6c5968100553426a98f13ca',
-                type: 'message',
-                status: 'completed',
-                content: [
-                  {
-                    type: 'output_text',
-                    annotations: [
-                      {
-                        type: 'container_file_citation',
-                        container_id:
-                          'cntr_68c12b85cd34819190332dbb00ec850c0f117a6c6bf754ed',
-                        end_index: 744,
-                        file_id: 'cfile_68c12b969ca881919d2ad197c7790751',
-                        filename: 'dice_sums_10000.csv',
-                        start_index: 707,
-                      },
-                      {
-                        type: 'container_file_citation',
-                        container_id:
-                          'cntr_68c12b85cd34819190332dbb00ec850c0f117a6c6bf754ed',
-                        end_index: 818,
-                        file_id: 'cfile_68c12b969cc88191846a76aa26a47fe8',
-                        filename: 'dice_sums_summary.json',
-                        start_index: 778,
-                      },
-                    ],
-                    logprobs: [],
-                    text: 'I ran a simulation of rolling two fair dice 10,000 times and computed the sums for each trial.\n\nKey results\n- Total sum of all 10,000 trial sums: 69953\n- Average sum per trial: 6.9953\n- Distribution of sums (counts for sums 2 through 12):\n  - 2: 285\n  - 3: 552\n  - 4: 818\n  - 5: 1134\n  - 6: 1359\n  - 7: 1721\n  - 8: 1378\n  - 9: 1108\n  - 10: 797\n  - 11: 558\n  - 12: 290\n\nSample of the first 20 trial sums\n[8, 4, 9, 7, 7, 7, 7, 5, 6, 8, 11, 5, 7, 7, 7, 6, 7, 8, 8, 9]\n\nFiles created\n- dice_sums_10000.csv: each row contains the sum of a trial (one column: "sum")\n- dice_sums_summary.json: a summary with n_trials, total_sum, mean_sum_per_trial, and the distribution\n\nDownload links\n- [Download the sums (CSV)](sandbox:/mnt/data/dice_sums_10000.csv)\n- [Download the summary (JSON)](sandbox:/mnt/data/dice_sums_summary.json)\n\nIf you want me to run again with a different seed, or to provide a fuller distribution table or a plotted histogram, tell me how you\u2019d like the results formatted.',
-                  },
-                ],
-                role: 'assistant',
-              },
-            ],
-            parallel_tool_calls: true,
-            previous_response_id: null,
-            prompt_cache_key: null,
-            reasoning: {
-              effort: 'medium',
-              summary: null,
+    describe('code interpreter tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-code-interpreter-tool.1');
+
+        result = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.code_interpreter',
+              name: 'code_interpreter',
+              args: {},
             },
-            safety_identifier: null,
-            service_tier: 'default',
-            store: true,
-            temperature: 1.0,
-            text: {
-              format: {
-                type: 'text',
-              },
-              verbosity: 'medium',
-            },
-            tool_choice: 'auto',
-            tools: [
-              {
-                type: 'code_interpreter',
-                container: {
-                  type: 'auto',
-                },
-              },
-            ],
-            top_logprobs: 0,
-            top_p: 1.0,
-            truncation: 'disabled',
-            usage: {
-              input_tokens: 4621,
-              input_tokens_details: {
-                cached_tokens: 3584,
-              },
-              output_tokens: 2094,
-              output_tokens_details: {
-                reasoning_tokens: 1728,
-              },
-              total_tokens: 6715,
-            },
-            user: null,
-            metadata: {},
-          },
-        };
+          ],
+        });
       });
 
-      it('should generate text response', async () => {
-        const result = await createModel('gpt-5-nano').doGenerate({
-          prompt: TEST_PROMPT,
-        });
-
-        expect(result.content).toMatchInlineSnapshot(`
-          [
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "rs_68c12b868cd081a09ec2d83759a43b9e00553426a98f13ca",
-                  "reasoningEncryptedContent": null,
-                },
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "code_interpreter_call.outputs",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
               },
-              "text": "",
-              "type": "reasoning",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "rs_68c12b8cf96081a08764e212603bb16600553426a98f13ca",
-                  "reasoningEncryptedContent": null,
+            ],
+            "model": "gpt-5-nano",
+            "tools": [
+              {
+                "container": {
+                  "type": "auto",
                 },
+                "type": "code_interpreter",
               },
-              "text": "",
-              "type": "reasoning",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "rs_68c12b90775c81a0bdcb8c306da10e7700553426a98f13ca",
-                  "reasoningEncryptedContent": null,
-                },
-              },
-              "text": "",
-              "type": "reasoning",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "msg_68c12b93d98481a0b8696d68b6c5968100553426a98f13ca",
-                },
-              },
-              "text": "I ran a simulation of rolling two fair dice 10,000 times and computed the sums for each trial.
-
-          Key results
-          - Total sum of all 10,000 trial sums: 69953
-          - Average sum per trial: 6.9953
-          - Distribution of sums (counts for sums 2 through 12):
-            - 2: 285
-            - 3: 552
-            - 4: 818
-            - 5: 1134
-            - 6: 1359
-            - 7: 1721
-            - 8: 1378
-            - 9: 1108
-            - 10: 797
-            - 11: 558
-            - 12: 290
-
-          Sample of the first 20 trial sums
-          [8, 4, 9, 7, 7, 7, 7, 5, 6, 8, 11, 5, 7, 7, 7, 6, 7, 8, 8, 9]
-
-          Files created
-          - dice_sums_10000.csv: each row contains the sum of a trial (one column: "sum")
-          - dice_sums_summary.json: a summary with n_trials, total_sum, mean_sum_per_trial, and the distribution
-
-          Download links
-          - [Download the sums (CSV)](sandbox:/mnt/data/dice_sums_10000.csv)
-          - [Download the summary (JSON)](sandbox:/mnt/data/dice_sums_summary.json)
-
-          If you want me to run again with a different seed, or to provide a fuller distribution table or a plotted histogram, tell me how you’d like the results formatted.",
-              "type": "text",
-            },
-          ]
+            ],
+          }
         `);
+      });
+
+      it('should include code interpreter tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
       });
     });
 
-    describe('web search', () => {
+    describe('image generation tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-image-generation-tool.1');
+
+        result = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: {
+                outputFormat: 'webp',
+                quality: 'low',
+                size: '1024x1024',
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-nano",
+            "tools": [
+              {
+                "output_format": "webp",
+                "quality": "low",
+                "size": "1024x1024",
+                "type": "image_generation",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include generate image tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('web search tool', () => {
       beforeEach(() => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
@@ -2659,135 +2374,158 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
-    it('should handle file_search tool calls in generate', async () => {
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'json-value',
-        body: {
-          id: 'resp_67cf3390786881908b27489d7e8cfb6b',
-          object: 'response',
-          created_at: 1741632400,
-          status: 'completed',
-          error: null,
-          incomplete_details: null,
-          input: [],
-          instructions: null,
-          max_output_tokens: null,
-          model: 'gpt-4o-mini-2024-07-18',
-          output: [
-            {
-              type: 'file_search_call',
-              id: 'fs_67cf3390e9608190869b5d45698a7067',
-              status: 'completed',
-              queries: ['AI information'],
-              results: [
-                {
-                  attributes: {
-                    file_id: 'file-123',
-                    filename: 'ai_guide.pdf',
-                    score: 0.95,
-                    text: 'AI is a field of computer science',
+    describe('file search tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      describe('without results include', () => {
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('openai-file-search-tool.1');
+
+          result = await createModel('gpt-5-nano').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                  maxNumResults: 5,
+                  filters: {
+                    key: 'author',
+                    type: 'eq',
+                    value: 'Jane Smith',
+                  },
+                  ranking: {
+                    ranker: 'auto',
+                    scoreThreshold: 0.5,
                   },
                 },
-              ],
-            },
-            {
-              id: 'msg_67cf33924ea88190b8c12bf68c1f6416',
-              type: 'message',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'Based on the search results, here is the information you requested.',
-                  annotations: [],
-                },
-              ],
-            },
-          ],
-          parallel_tool_calls: true,
-          previous_response_id: null,
-          reasoning: {
-            effort: null,
-            summary: null,
-          },
-          store: true,
-          temperature: 0,
-          text: {
-            format: {
-              type: 'text',
-            },
-          },
-          tool_choice: 'auto',
-          tools: [
-            {
-              type: 'file_search',
-            },
-          ],
-          top_p: 1,
-          truncation: 'disabled',
-          usage: {
-            input_tokens: 327,
-            input_tokens_details: {
-              cached_tokens: 0,
-            },
-            output_tokens: 834,
-            output_tokens_details: {
-              reasoning_tokens: 0,
-            },
-            total_tokens: 1161,
-          },
-          user: null,
-          metadata: {},
-        },
-      };
+              },
+            ],
+          });
+        });
 
-      const result = await createModel('gpt-4o-mini').doGenerate({
-        prompt: TEST_PROMPT,
+        it('should send request body with tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-nano",
+            "tools": [
+              {
+                "filters": {
+                  "key": "author",
+                  "type": "eq",
+                  "value": "Jane Smith",
+                },
+                "max_num_results": 5,
+                "ranking_options": {
+                  "ranker": "auto",
+                  "score_threshold": 0.5,
+                },
+                "type": "file_search",
+                "vector_store_ids": [
+                  "vs_68caad8bd5d88191ab766cf043d89a18",
+                ],
+              },
+            ],
+          }
+        `);
+        });
+
+        it('should include file search tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
       });
 
-      expect(result.content).toMatchInlineSnapshot(`
-        [
-          {
-            "input": "",
-            "providerExecuted": true,
-            "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
-            "toolName": "file_search",
-            "type": "tool-call",
-          },
-          {
-            "providerExecuted": true,
-            "result": {
-              "queries": [
-                "AI information",
-              ],
-              "results": [
-                {
-                  "attributes": {
-                    "file_id": "file-123",
-                    "filename": "ai_guide.pdf",
-                    "score": 0.95,
-                    "text": "AI is a field of computer science",
+      describe('with results include', () => {
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('openai-file-search-tool.2');
+
+          result = await createModel('gpt-5-nano').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                  maxNumResults: 5,
+                  filters: {
+                    key: 'author',
+                    type: 'eq',
+                    value: 'Jane Smith',
+                  },
+                  ranking: {
+                    ranker: 'auto',
+                    scoreThreshold: 0.5,
                   },
                 },
-              ],
-              "status": "completed",
-              "type": "file_search_tool_result",
-            },
-            "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
-            "toolName": "file_search",
-            "type": "tool-result",
-          },
-          {
-            "providerMetadata": {
-              "openai": {
-                "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
+              },
+            ],
+            providerOptions: {
+              openai: {
+                include: ['file_search_call.results'],
               },
             },
-            "text": "Based on the search results, here is the information you requested.",
-            "type": "text",
-          },
-        ]
-      `);
+          });
+        });
+
+        it('should send request body with tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "include": [
+                "file_search_call.results",
+              ],
+              "input": [
+                {
+                  "content": [
+                    {
+                      "text": "Hello",
+                      "type": "input_text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "gpt-5-nano",
+              "tools": [
+                {
+                  "filters": {
+                    "key": "author",
+                    "type": "eq",
+                    "value": "Jane Smith",
+                  },
+                  "max_num_results": 5,
+                  "ranking_options": {
+                    "ranker": "auto",
+                    "score_threshold": 0.5,
+                  },
+                  "type": "file_search",
+                  "vector_store_ids": [
+                    "vs_68caad8bd5d88191ab766cf043d89a18",
+                  ],
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should include file search tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
     });
 
     it('should handle computer use tool calls', async () => {
@@ -3807,12 +3545,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should stream web search results (sources, tool calls, tool results)', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'stream-chunks',
-          chunks: loadOpenAIChunks(
-            'src/responses/test-fixtures/openai-web-search-tool.chunks.txt',
-          ),
-        };
+        prepareChunksFixtureResponse('openai-web-search-tool');
 
         const { stream } = await createModel('gpt-5-nano').doStream({
           tools: [
@@ -4190,6 +3923,119 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('file search tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+
+      describe('without results include', () => {
+        beforeEach(async () => {
+          prepareChunksFixtureResponse('openai-file-search-tool.1');
+
+          result = await createModel('gpt-5-nano').doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                },
+              },
+            ],
+          });
+        });
+
+        it('should stream file search results', async () => {
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+
+      describe('with results include', () => {
+        beforeEach(async () => {
+          prepareChunksFixtureResponse('openai-file-search-tool.2');
+
+          result = await createModel('gpt-5-nano').doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                },
+              },
+            ],
+            providerOptions: {
+              openai: {
+                include: ['file_search_call.results'],
+              },
+            },
+          });
+        });
+
+        it('should stream file search results', async () => {
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+    });
+
+    describe('code interpreter tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('openai-code-interpreter-tool.1');
+
+        result = await createModel('gpt-5-nano').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.code_interpreter',
+              name: 'code_interpreter',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should stream code interpreter results', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('image generation tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('openai-image-generation-tool.1');
+
+        result = await createModel('gpt-5-nano').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should stream code image generation results', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
     describe('errors', () => {
       it('should stream error parts', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
@@ -4244,211 +4090,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ]
         `);
-      });
-
-      it('should handle file_search tool calls', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"in_progress"}}\n\n`,
-            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed"}}\n\n`,
-            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"Based on the search results, here is the information you requested."}\n\n`,
-            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}}\n\n`,
-            `data:{"type":"response.completed","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed"},{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":327,"input_tokens_details":{"cached_tokens":0},"output_tokens":834,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":1161},"user":null,"metadata":{}}}\n\n`,
-          ],
-        };
-
-        const { stream } = await createModel('gpt-4o-mini').doStream({
-          prompt: TEST_PROMPT,
-          includeRawChunks: false,
-        });
-
-        expect(await convertReadableStreamToArray(stream))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "stream-start",
-                "warnings": [],
-              },
-              {
-                "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-                "modelId": "gpt-4o-mini-2024-07-18",
-                "timestamp": 2025-03-10T18:46:40.000Z,
-                "type": "response-metadata",
-              },
-              {
-                "id": "fs_67cf3390e9608190869b5d45698a7067",
-                "toolName": "file_search",
-                "type": "tool-input-start",
-              },
-              {
-                "id": "fs_67cf3390e9608190869b5d45698a7067",
-                "type": "tool-input-end",
-              },
-              {
-                "input": "",
-                "providerExecuted": true,
-                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
-                "toolName": "file_search",
-                "type": "tool-call",
-              },
-              {
-                "providerExecuted": true,
-                "result": {
-                  "status": "completed",
-                  "type": "file_search_tool_result",
-                },
-                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
-                "toolName": "file_search",
-                "type": "tool-result",
-              },
-              {
-                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                  },
-                },
-                "type": "text-start",
-              },
-              {
-                "delta": "Based on the search results, here is the information you requested.",
-                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                "type": "text-delta",
-              },
-              {
-                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                "type": "text-end",
-              },
-              {
-                "finishReason": "stop",
-                "providerMetadata": {
-                  "openai": {
-                    "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
-                  },
-                },
-                "type": "finish",
-                "usage": {
-                  "cachedInputTokens": 0,
-                  "inputTokens": 327,
-                  "outputTokens": 834,
-                  "reasoningTokens": 0,
-                  "totalTokens": 1161,
-                },
-              },
-            ]
-          `);
-      });
-
-      it('should handle file_search tool calls with results', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"in_progress"}}\n\n`,
-            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed","queries":["AI information"],"results":[{"attributes":{"file_id":"file-123","filename":"ai_guide.pdf","score":0.95,"text":"AI is a field of computer science"}}]}}\n\n`,
-            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-            `data:{"type":"response.output_text.delta","item_id":"msg_67cf33924ea88190b8c12bf68c1f6416","output_index":1,"content_index":0,"delta":"Based on the search results, here is the information you requested."}\n\n`,
-            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}}\n\n`,
-            `data:{"type":"response.completed","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"file_search_call","id":"fs_67cf3390e9608190869b5d45698a7067","status":"completed","queries":["AI information"],"results":[{"attributes":{"file_id":"file-123","filename":"ai_guide.pdf","score":0.95,"text":"AI is a field of computer science"}}]},{"type":"message","id":"msg_67cf33924ea88190b8c12bf68c1f6416","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here is the information you requested.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"file_search"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":327,"input_tokens_details":{"cached_tokens":0},"output_tokens":834,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":1161},"user":null,"metadata":{}}}\n\n`,
-          ],
-        };
-
-        const { stream } = await createModel('gpt-4o-mini').doStream({
-          prompt: TEST_PROMPT,
-          includeRawChunks: false,
-        });
-
-        expect(await convertReadableStreamToArray(stream))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "stream-start",
-                "warnings": [],
-              },
-              {
-                "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-                "modelId": "gpt-4o-mini-2024-07-18",
-                "timestamp": 2025-03-10T18:46:40.000Z,
-                "type": "response-metadata",
-              },
-              {
-                "id": "fs_67cf3390e9608190869b5d45698a7067",
-                "toolName": "file_search",
-                "type": "tool-input-start",
-              },
-              {
-                "id": "fs_67cf3390e9608190869b5d45698a7067",
-                "type": "tool-input-end",
-              },
-              {
-                "input": "",
-                "providerExecuted": true,
-                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
-                "toolName": "file_search",
-                "type": "tool-call",
-              },
-              {
-                "providerExecuted": true,
-                "result": {
-                  "queries": [
-                    "AI information",
-                  ],
-                  "results": [
-                    {
-                      "attributes": {
-                        "file_id": "file-123",
-                        "filename": "ai_guide.pdf",
-                        "score": 0.95,
-                        "text": "AI is a field of computer science",
-                      },
-                    },
-                  ],
-                  "status": "completed",
-                  "type": "file_search_tool_result",
-                },
-                "toolCallId": "fs_67cf3390e9608190869b5d45698a7067",
-                "toolName": "file_search",
-                "type": "tool-result",
-              },
-              {
-                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                  },
-                },
-                "type": "text-start",
-              },
-              {
-                "delta": "Based on the search results, here is the information you requested.",
-                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                "type": "text-delta",
-              },
-              {
-                "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
-                "type": "text-end",
-              },
-              {
-                "finishReason": "stop",
-                "providerMetadata": {
-                  "openai": {
-                    "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
-                  },
-                },
-                "type": "finish",
-                "usage": {
-                  "cachedInputTokens": 0,
-                  "inputTokens": 327,
-                  "outputTokens": 834,
-                  "reasoningTokens": 0,
-                  "totalTokens": 1161,
-                },
-              },
-            ]
-          `);
       });
     });
 
@@ -5306,7 +4947,7 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('fileIdPrefixes configuration', () => {
-    const TEST_PROMPT_WITH_FILE: LanguageModelV2Prompt = [
+    const TEST_PROMPT_WITH_FILE: LanguageModelV3Prompt = [
       {
         role: 'user',
         content: [
