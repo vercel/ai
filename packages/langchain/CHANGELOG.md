@@ -1,5 +1,25 @@
 # @ai-sdk/langchain
 
+## 1.1.0-beta.12
+
+### Patch Changes
+
+- ai@5.1.0-beta.12
+
+## 1.1.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [4616b86]
+  - ai@5.1.0-beta.11
+
+## 1.1.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [8c98371]
+  - ai@5.1.0-beta.10
+
 ## 1.1.0-beta.9
 
 ### Patch Changes
