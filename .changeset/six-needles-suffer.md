@@ -15,7 +15,6 @@
 '@ai-sdk/deepgram': patch
 '@ai-sdk/deepseek': patch
 '@ai-sdk/angular': patch
-'@ai-sdk/baseten': patch
 '@ai-sdk/gateway': patch
 '@ai-sdk/mistral': patch
 '@ai-sdk/cohere': patch
