@@ -1,5 +1,14 @@
 # @ai-sdk/assemblyai
 
+## 1.1.0-beta.5
+
+### Patch Changes
+
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
 ## 1.1.0-beta.4
 
 ### Patch Changes

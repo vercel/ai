@@ -1,5 +1,17 @@
 # @ai-sdk/react
 
+## 2.1.0-beta.14
+
+### Patch Changes
+
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [7c3c216]
+- Updated dependencies [8dac895]
+- Updated dependencies [e0d1ea9]
+- Updated dependencies [10c1322]
+  - ai@5.1.0-beta.14
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+
 ## 2.1.0-beta.13
 
 ### Patch Changes
