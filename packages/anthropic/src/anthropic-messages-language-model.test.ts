@@ -3,15 +3,19 @@ import {
   LanguageModelV2StreamPart,
   JSONValue,
 } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
 import { type DocumentCitation } from './anthropic-messages-language-model';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -395,6 +399,9 @@ describe('AnthropicMessagesLanguageModel', () => {
         // custom header
         'test-header': 'test-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/anthropic/0.0.0-test`,
+      );
     });
 
     it('should send the model id and settings', async () => {

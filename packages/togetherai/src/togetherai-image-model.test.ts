@@ -1,5 +1,5 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { TogetherAIImageModel } from './togetherai-image-model';
 
@@ -238,7 +238,7 @@ describe('constructor', () => {
 
     expect(model.provider).toBe('togetherai');
     expect(model.modelId).toBe('stabilityai/stable-diffusion-xl');
-    expect(model.specificationVersion).toBe('v2');
+    expect(model.specificationVersion).toBe('v3');
     expect(model.maxImagesPerCall).toBe(1);
   });
 });

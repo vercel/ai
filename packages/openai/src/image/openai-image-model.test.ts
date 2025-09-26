@@ -1,7 +1,11 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAI } from '../openai-provider';
 import { OpenAIImageModel } from './openai-image-model';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const prompt = 'A cute baby sea otter';
 
@@ -91,6 +95,9 @@ describe('doGenerate', () => {
       'openai-organization': 'test-organization',
       'openai-project': 'test-project',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/openai/0.0.0-test`,
+    );
   });
 
   it('should extract the generated images', async () => {

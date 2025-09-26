@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
-  "version": "3.0.22",
+  "version": "3.1.0-beta.4",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -35,6 +35,7 @@
     "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
+    "@ai-sdk/test-server": "workspace:*",
     "@smithy/eventstream-codec": "^4.0.1",
     "@smithy/util-utf8": "^4.0.0",
     "aws4fetch": "^1.0.20"
@@ -47,7 +48,7 @@
     "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.25.76 || ^4"
+    "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {
     "node": ">=18"

@@ -10,10 +10,6 @@ import {
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api-types';
-import {
-  codeInterpreterInputSchema,
-  codeInterpreterOutputSchema,
-} from '../tool/code-interpreter';
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -28,10 +24,12 @@ export async function convertToOpenAIResponsesInput({
   prompt,
   systemMessageMode,
   fileIdPrefixes,
+  store,
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
   fileIdPrefixes?: readonly string[];
+  store: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<LanguageModelV2CallWarning>;
@@ -158,11 +156,18 @@ export async function convertToOpenAIResponsesInput({
               break;
             }
 
+            // assistant tool result parts are from provider-executed tools:
             case 'tool-result': {
-              warnings.push({
-                type: 'other',
-                message: `tool result parts in assistant messages are not supported for OpenAI responses`,
-              });
+              if (store) {
+                // use item references to refer to tool results from built-in tools
+                input.push({ type: 'item_reference', id: part.toolCallId });
+              } else {
+                warnings.push({
+                  type: 'other',
+                  message: `Results for OpenAI tool ${part.toolName} are not sent to the API when store is false`,
+                });
+              }
+
               break;
             }
 
