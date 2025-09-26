@@ -1,5 +1,13 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.19
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/provider-utils@3.0.10
+
 ## 1.0.18
 
 ### Patch Changes

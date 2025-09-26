@@ -1,5 +1,14 @@
 # @ai-sdk/fireworks
 
+## 1.0.20
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/openai-compatible@1.0.19
+  - @ai-sdk/provider-utils@3.0.10
+
 ## 1.0.19
 
 ### Patch Changes
