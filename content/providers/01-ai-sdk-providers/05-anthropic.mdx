@@ -383,11 +383,6 @@ These tools can be used in conjunction with the `sonnet-3-5-sonnet-20240620` mod
 
 Anthropic provides a provider-defined web search tool that gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff.
 
-<Note>
-  Web search must be enabled in your organization's [Console
-  settings](https://console.anthropic.com/settings/privacy).
-</Note>
-
 You can enable web search using the provider-defined web search tool:
 
 ```ts
@@ -406,6 +401,11 @@ const result = await generateText({
   },
 });
 ```
+
+<Note>
+  Web search must be enabled in your organization's [Console
+  settings](https://console.anthropic.com/settings/privacy).
+</Note>
 
 #### Configuration Options
 
