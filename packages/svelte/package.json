@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "3.1.0-beta.9",
+  "version": "3.1.0-beta.13",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
@@ -44,7 +44,7 @@
   },
   "peerDependencies": {
     "svelte": "^5.31.0",
-    "zod": "^3.25.76 || ^4"
+    "zod": "^3.25.76 || ^4.1.8"
   },
   "peerDependenciesMeta": {
     "zod": {

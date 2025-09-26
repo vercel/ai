@@ -1,5 +1,13 @@
 # @ai-sdk/hume
 
+## 1.1.0-beta.4
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
 ## 1.1.0-beta.3
 
 ### Patch Changes

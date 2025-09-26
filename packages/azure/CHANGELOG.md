@@ -1,5 +1,21 @@
 # @ai-sdk/azure
 
+## 2.1.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [fe49278]
+  - @ai-sdk/openai@2.1.0-beta.6
+
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - @ai-sdk/openai@2.1.0-beta.5
+
 ## 2.1.0-beta.4
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.8
+
+### Patch Changes
+
+- c823faf: feat(provider/gateway): Add new Gemini preview models to Gateway model string autocomplete
+
+## 1.1.0-beta.7
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
 ## 1.1.0-beta.6
 
 ### Patch Changes

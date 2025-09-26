@@ -1,5 +1,19 @@
 # @ai-sdk/openai
 
+## 2.1.0-beta.6
+
+### Patch Changes
+
+- fe49278: feat(provider/openai): only send item references for reasoning when store: true
+
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
 ## 2.1.0-beta.4
 
 ### Patch Changes
