@@ -35,7 +35,7 @@ export async function DELETE(
 
   const chat = await readChat(id);
 
-  console.log('canceling stream for chat', id)
+  console.log('canceling stream for chat', id);
 
   await saveChat({ ...chat, canceledAt: Date.now() });
 
