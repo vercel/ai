@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useChat } from '@ai-sdk/react';
+import { useChat } from 'ai/react';
 
 export function ChatWithApiString() {
   const { messages, sendMessage } = useChat({
@@ -50,5 +50,15 @@ export function ChatWithComplexApi() {
 
 export function EmptyUseChat() {
   const { messages } = useChat();
+  return messages;
+}
+
+// Test with new import syntax
+import { useChat as useChatNew } from '@ai-sdk/react';
+
+export function ChatWithNewImportSyntax() {
+  const { messages, sendMessage } = useChatNew({
+    api: '/api/new-chat',
+  });
   return messages;
 }

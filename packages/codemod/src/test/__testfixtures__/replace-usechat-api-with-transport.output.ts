@@ -63,3 +63,15 @@ export function EmptyUseChat() {
   const { messages } = useChat();
   return messages;
 }
+
+// Test with new import syntax
+import { useChat as useChatNew } from '@ai-sdk/react';
+
+export function ChatWithNewImportSyntax() {
+  const { messages, sendMessage } = useChatNew({
+    transport: new DefaultChatTransport({
+      api: '/api/new-chat'
+    })
+  });
+  return messages;
+}

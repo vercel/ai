@@ -3,9 +3,45 @@ import { createTransformer } from '../lib/create-transformer';
 export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
 
+  // Track all useChat import names (including aliases)
+  const useChatNames = new Set<string>();
+
+  // Replace old import path with new one and collect useChat import names
+  root.find(j.ImportDeclaration, {
+    source: { value: 'ai/react' },
+  }).forEach(path => {
+    const importDeclaration = path.node;
+    importDeclaration.source.value = '@ai-sdk/react';
+    
+    // Collect useChat import names
+    importDeclaration.specifiers?.forEach(spec => {
+      if (spec.type === 'ImportSpecifier' && spec.imported.type === 'Identifier' && spec.imported.name === 'useChat') {
+        useChatNames.add(spec.local?.name || 'useChat');
+      }
+    });
+    
+    context.hasChanges = true;
+  });
+
+  // Also collect useChat names from existing @ai-sdk/react imports
+  root.find(j.ImportDeclaration, {
+    source: { value: '@ai-sdk/react' },
+  }).forEach(path => {
+    const importDeclaration = path.node;
+    
+    // Collect useChat import names
+    importDeclaration.specifiers?.forEach(spec => {
+      if (spec.type === 'ImportSpecifier' && spec.imported.type === 'Identifier' && spec.imported.name === 'useChat') {
+        useChatNames.add(spec.local?.name || 'useChat');
+      }
+    });
+  });
+
   let needsDefaultChatTransportImport = false;
 
-  root.find(j.CallExpression, { callee: { name: 'useChat' } }).forEach(path => {
+  root.find(j.CallExpression).filter(path => {
+    return path.node.callee.type === 'Identifier' && useChatNames.has(path.node.callee.name);
+  }).forEach(path => {
     const args = path.node.arguments;
     if (args.length === 0) return;
 
