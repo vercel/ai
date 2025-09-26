@@ -26,13 +26,21 @@ You need to update the following packages to the following versions in your `pac
 
 Additionally, you need to update the following peer dependencies:
 
-- `zod` package: `3.25.0` or later
+- `zod` package: `4.1.8` or later (recommended to avoid TypeScript performance issues)
 
 An example upgrade command would be:
 
 ```
-npm install ai @ai-sdk/react @ai-sdk/openai zod@3.25.0
+npm install ai @ai-sdk/react @ai-sdk/openai zod@^4.1.8
 ```
+
+<Note>
+  If you encounter TypeScript performance issues after upgrading, ensure you're
+  using Zod 4.1.8 or later. If the issue persists, update your `tsconfig.json`
+  to use `moduleResolution: "nodenext"`. See the [TypeScript performance
+  troubleshooting guide](/docs/troubleshooting/typescript-performance-zod) for
+  more details.
+</Note>
 
 ## Codemods
 
@@ -407,15 +415,13 @@ export async function POST(req: Request) {
   const stream = createUIMessageStream({
     execute: ({ writer }) => {
       const statusId = generateId();
+
       // Write general data (transient - not added to message history)
       writer.write({
         type: 'data-status',
         id: statusId,
         data: { status: 'call started' },
       });
-
-      // Generate shared IDs for data parts
-      const completionId = generateId();
 
       const result = streamText({
         model: openai('gpt-4o'),
@@ -578,6 +584,46 @@ for await (const part of result.fullStream) {
   }
 }
 ```
+
+### Tool Execution Error Handling
+
+The `ToolExecutionError` class has been removed. Tool execution errors now appear as `tool-error` content parts in the result steps, enabling automated LLM roundtrips in multi-step scenarios.
+
+```tsx filename="AI SDK 4.0"
+import { ToolExecutionError } from 'ai';
+
+try {
+  const result = await generateText({
+    // ...
+  });
+} catch (error) {
+  if (error instanceof ToolExecutionError) {
+    console.log('Tool execution failed:', error.message);
+    console.log('Tool name:', error.toolName);
+    console.log('Tool input:', error.toolInput);
+  }
+}
+```
+
+```tsx filename="AI SDK 5.0"
+// Tool execution errors now appear in result steps
+const { steps } = await generateText({
+  // ...
+});
+
+// check for tool errors in the steps
+const toolErrors = steps.flatMap(step =>
+  step.content.filter(part => part.type === 'tool-error'),
+);
+
+toolErrors.forEach(toolError => {
+  console.log('Tool error:', toolError.error);
+  console.log('Tool name:', toolError.toolName);
+  console.log('Tool input:', toolError.input);
+});
+```
+
+For streaming scenarios, tool execution errors appear as `tool-error` parts in the stream, while other errors appear as `error` parts.
 
 ### Tool Call Streaming Now Default (toolCallStreaming Removed)
 
@@ -1211,6 +1257,46 @@ function ChatComponent({ initialMessages }: { initialMessages: UIMessage[] }) {
 }
 ```
 
+#### Sharing Chat Instances
+
+In v4, you could share chat state between components by using the same `id` parameter in multiple `useChat` hooks.
+
+```tsx filename="AI SDK 4.0"
+// Component A
+const { messages } = useChat({
+  id: 'shared-chat',
+  api: '/api/chat',
+});
+
+// Component B - would share the same chat state
+const { messages } = useChat({
+  id: 'shared-chat',
+  api: '/api/chat',
+});
+```
+
+In v5, you need to explicitly share chat instances by passing a shared `Chat` instance.
+
+```tsx filename="AI SDK 5.0"
+// e.g. Store Chat instance in React Context and create a custom hook
+
+// Component A
+const { chat } = useSharedChat(); // Custom hook that accesses shared Chat from context
+
+const { messages, sendMessage } = useChat({
+  chat, // Pass the shared chat instance
+});
+
+// Component B - shares the same chat instance
+const { chat } = useSharedChat(); // Same hook to access shared Chat from context
+
+const { messages } = useChat({
+  chat, // Same shared chat instance
+});
+```
+
+For a complete example of sharing chat state across components, see the [Share Chat State Across Components](/docs/cookbook/use-shared-chat-context) recipe.
+
 #### Chat Transport Architecture
 
 Configuration is now handled through transport objects instead of direct API options.
@@ -1586,6 +1672,148 @@ const { messages } = useChat({
 ```
 
 For more details on request configuration, see the [Chatbot guide](/docs/ai-sdk-ui/chatbot#request-configuration).
+
+#### Usage Information
+
+In v4, usage information was directly accessible through the `onFinish` callback's options parameter. In v5, usage data is attached as metadata to individual messages using the `messageMetadata` function in `toUIMessageStreamResponse`.
+
+```tsx filename="AI SDK 4.0"
+const { messages } = useChat({
+  onFinish(message, options) {
+    const usage = options.usage;
+    console.log('Usage:', usage);
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+import {
+  convertToModelMessages,
+  streamText,
+  UIMessage,
+  type LanguageModelUsage,
+} from 'ai';
+
+// Create a new metadata type (optional for type-safety)
+type MyMetadata = {
+  totalUsage: LanguageModelUsage;
+};
+
+// Create a new custom message type with your own metadata
+export type MyUIMessage = UIMessage<MyMetadata>;
+
+export async function POST(req: Request) {
+  const { messages }: { messages: MyUIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
+  });
+
+  return result.toUIMessageStreamResponse({
+    originalMessages: messages,
+    messageMetadata: ({ part }) => {
+      // Send total usage when generation is finished
+      if (part.type === 'finish') {
+        return { totalUsage: part.totalUsage };
+      }
+    },
+  });
+}
+```
+
+Then, on the client, you can access the message-level metadata.
+
+```tsx filename="AI SDK 5.0 - Client"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import type { MyUIMessage } from './api/chat/route';
+import { DefaultChatTransport } from 'ai';
+
+export default function Chat() {
+  // Use custom message type defined on the server (optional for type-safety)
+  const { messages } = useChat<MyUIMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
+
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(m => (
+        <div key={m.id} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.parts.map(part => {
+            if (part.type === 'text') {
+              return part.text;
+            }
+          })}
+          {/* Render usage via metadata */}
+          {m.metadata?.totalUsage && (
+            <div>Total usage: {m.metadata?.totalUsage.totalTokens} tokens</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+You can also access your metadata from the `onFinish` callback of `useChat`:
+
+```tsx filename="AI SDK 5.0 - onFinish"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import type { MyUIMessage } from './api/chat/route';
+import { DefaultChatTransport } from 'ai';
+
+export default function Chat() {
+  // Use custom message type defined on the server (optional for type-safety)
+  const { messages } = useChat<MyUIMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+    onFinish: ({ message }) => {
+      // Access message metadata via onFinish callback
+      console.log(message.metadata?.totalUsage);
+    },
+  });
+}
+```
+
+#### Request Body Preparation: experimental_prepareRequestBody → prepareSendMessagesRequest
+
+The `experimental_prepareRequestBody` option has been replaced with `prepareSendMessagesRequest` in the transport configuration.
+
+```tsx filename="AI SDK 4.0"
+import { useChat } from '@ai-sdk/react';
+
+const { messages } = useChat({
+  api: '/api/chat',
+  // Only send the last message to the server:
+  experimental_prepareRequestBody({ messages, id }) {
+    return { message: messages[messages.length - 1], id };
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+
+const { messages } = useChat({
+  transport: new DefaultChatTransport({
+    api: '/api/chat',
+    // Only send the last message to the server:
+    prepareSendMessagesRequest({ messages, id }) {
+      return { body: { message: messages[messages.length - 1], id } };
+    },
+  }),
+});
+```
 
 ### `@ai-sdk/vue` Changes
 
@@ -2031,7 +2259,7 @@ const result = streamText({
   prompt: 'Write a story',
   onChunk({ chunk }) {
     switch (chunk.type) {
-      case 'text': {
+      case 'text-delta': {
         // Text chunks now use single 'text' type
         console.log('Text chunk:', chunk.text);
         break;
@@ -2326,14 +2554,14 @@ import { IdGenerator } from 'ai';
 
 #### Language Model V2 Import
 
-`LanguageModelV2` must now be imported from `@ai-sdk/provider`.
+`LanguageModelV3` must now be imported from `@ai-sdk/provider`.
 
 ```tsx filename="AI SDK 4.0"
-import { LanguageModelV2 } from 'ai';
+import { LanguageModelV3 } from 'ai';
 ```
 
 ```tsx filename="AI SDK 5.0"
-import { LanguageModelV2 } from '@ai-sdk/provider';
+import { LanguageModelV3 } from '@ai-sdk/provider';
 ```
 
 #### Middleware Rename
@@ -2345,7 +2573,7 @@ import { LanguageModelV1Middleware } from 'ai';
 ```
 
 ```tsx filename="AI SDK 5.0"
-import { LanguageModelV2Middleware } from '@ai-sdk/provider';
+import { LanguageModelV3Middleware } from '@ai-sdk/provider';
 ```
 
 #### Usage Token Properties
@@ -2375,11 +2603,11 @@ Token usage properties have been renamed for consistency.
 
 #### Stream Part Type Changes
 
-The `LanguageModelV2StreamPart` type has been expanded to support the new streaming architecture with start/delta/end patterns and IDs.
+The `LanguageModelV3StreamPart` type has been expanded to support the new streaming architecture with start/delta/end patterns and IDs.
 
 ```tsx filename="AI SDK 4.0"
 // V4: Simple stream parts
-type LanguageModelV2StreamPart =
+type LanguageModelV3StreamPart =
   | { type: 'text-delta'; textDelta: string }
   | { type: 'reasoning'; text: string }
   | { type: 'tool-call'; toolCallId: string; toolName: string; input: string };
@@ -2387,7 +2615,7 @@ type LanguageModelV2StreamPart =
 
 ```tsx filename="AI SDK 5.0"
 // V5: Enhanced stream parts with IDs and lifecycle events
-type LanguageModelV2StreamPart =
+type LanguageModelV3StreamPart =
   // Text blocks with start/delta/end pattern
   | {
       type: 'text-start';
@@ -2453,11 +2681,11 @@ type LanguageModelV2StreamPart =
     }
 
   // Stream lifecycle events
-  | { type: 'stream-start'; warnings: Array<LanguageModelV2CallWarning> }
+  | { type: 'stream-start'; warnings: Array<LanguageModelV3CallWarning> }
   | {
       type: 'finish';
-      usage: LanguageModelV2Usage;
-      finishReason: LanguageModelV2FinishReason;
+      usage: LanguageModelV3Usage;
+      finishReason: LanguageModelV3FinishReason;
       providerMetadata?: SharedV2ProviderMetadata;
     };
 ```
@@ -2870,6 +3098,27 @@ import {
 } from '@ai-sdk/provider-utils';
 ```
 
+## Troubleshooting
+
+### TypeScript Performance Issues with Zod
+
+If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0:
+
+1. **First, ensure you're using Zod 4.1.8 or later** - this version includes a fix for module resolution issues that cause TypeScript performance problems.
+
+2. If the issue persists, update your `tsconfig.json` to use `moduleResolution: "nodenext"`:
+
+```json
+{
+  "compilerOptions": {
+    "moduleResolution": "nodenext"
+    // ... other options
+  }
+}
+```
+
+This resolves the TypeScript performance issues while allowing you to continue using the standard Zod import. If this doesn't resolve the issue, you can try using a version-specific import path as an alternative solution. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
+
 ## Codemod Table
 
 The following table lists available codemods for the AI SDK 5.0 upgrade
@@ -2882,7 +3131,7 @@ For more information, see the [Codemods](#codemods) section.
 | Flatten streamText file properties               | `v5/flatten-streamtext-file-properties`               |
 | ID Generation Changes                            | `v5/require-createIdGenerator-size-argument`          |
 | IDGenerator → IdGenerator                        | `v5/rename-IDGenerator-to-IdGenerator`                |
-| Import LanguageModelV2 from provider package     | `v5/import-LanguageModelV2-from-provider-package`     |
+| Import LanguageModelV3 from provider package     | `v5/import-LanguageModelV3-from-provider-package`     |
 | Migrate to data stream protocol v2               | `v5/migrate-to-data-stream-protocol-v2`               |
 | Move image model maxImagesPerCall                | `v5/move-image-model-maxImagesPerCall`                |
 | Move LangChain adapter                           | `v5/move-langchain-adapter`                           |
@@ -2945,7 +3194,7 @@ The chunk types in `fullStream` have been renamed for consistency with UI stream
 ```tsx filename="AI SDK 5.0 (before beta.26)"
 for await (const chunk of result.fullStream) {
   switch (chunk.type) {
-    case 'text': {
+    case 'text-delta': {
       process.stdout.write(chunk.text);
       break;
     }

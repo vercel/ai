@@ -1,5 +1,143 @@
 # @ai-sdk/mistral
 
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
+## 2.1.0-beta.4
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- 62731a8: Add option for disabling parallel tool call in mistral
+
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.11
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 2.0.10
+
+### Patch Changes
+
+- e214cb3: feat(provider/mistral): `response_format.type === 'json_schema'`
+
+## 2.0.9
+
+### Patch Changes
+
+- 3429644: feat(provider/mistral): `MistralLanguageModelOptions` type
+
+  ```ts
+  import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+  import { generateText } from 'ai';
+
+  await generateText({
+    model: mistral('open-mistral-7b'),
+    prompt: 'Invent a new holiday and describe its traditions.',
+    providerOptions: {
+      mistral: {
+        safePrompt: true,
+        documentImageLimit: 5,
+        documentPageLimit: 10,
+      } satisfies MistralLanguageModelOptions,
+    },
+  });
+  ```
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 2.0.6
+
+### Patch Changes
+
+- f8d99df: fix(provider/mistral): inject JSON generation instruction when response format is JSON
+
+## 2.0.5
+
+### Patch Changes
+
+- 266ef91: fix(provider/mistral): add support for magistral reasoning models with thinking content type
+
 ## 2.0.4
 
 ### Patch Changes

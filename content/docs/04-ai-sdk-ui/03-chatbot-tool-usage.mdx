@@ -106,6 +106,13 @@ There are three things worth mentioning:
    In this example, the `getLocation` tool is a client-side tool that returns a random city.
    You call `addToolResult` to provide the result (without `await` to avoid potential deadlocks).
 
+   <Note>
+     Always check `if (toolCall.dynamic)` first in your `onToolCall` handler.
+     Without this check, TypeScript will throw an error like: `Type 'string' is
+     not assignable to type '"toolName1" | "toolName2"'` when you try to use
+     `toolCall.toolName` in `addToolResult`.
+   </Note>
+
 2. The [`sendAutomaticallyWhen`](/docs/reference/ai-sdk-ui/use-chat#send-automatically-when) option with `lastAssistantMessageIsCompleteWithToolCalls` helper automatically submits when all tool results are available.
 
 3. The `parts` array of assistant messages contains tool parts with typed names like `tool-askForConfirmation`.
@@ -133,6 +140,11 @@ export default function Chat() {
 
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {
+      // Check if it's a dynamic tool first for proper type narrowing
+      if (toolCall.dynamic) {
+        return;
+      }
+
       if (toolCall.toolName === 'getLocation') {
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
 
@@ -281,6 +293,59 @@ export default function Chat() {
       </form>
     </>
   );
+}
+```
+
+### Error handling
+
+Sometimes an error may occur during client-side tool execution. Use the `addToolResult` method with a `state` of `output-error` and `errorText` value instead of `output` record the error.
+
+```tsx filename='app/page.tsx' highlight="19,36-41"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+import { useState } from 'react';
+
+export default function Chat() {
+  const { messages, sendMessage, addToolResult } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+    // run client-side tools that are automatically executed:
+    async onToolCall({ toolCall }) {
+      // Check if it's a dynamic tool first for proper type narrowing
+      if (toolCall.dynamic) {
+        return;
+      }
+
+      if (toolCall.toolName === 'getWeatherInformation') {
+        try {
+          const weather = await getWeatherInformation(toolCall.input);
+
+          // No await - avoids potential deadlocks
+          addToolResult({
+            tool: 'getWeatherInformation',
+            toolCallId: toolCall.toolCallId,
+            output: weather,
+          });
+        } catch (err) {
+          addToolResult({
+            tool: 'getWeatherInformation',
+            toolCallId: toolCall.toolCallId,
+            state: 'output-error',
+            errorText: 'Unable to get the weather information',
+          });
+        }
+      }
+    },
+  });
 }
 ```
 

@@ -4,6 +4,7 @@ import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import { parseToolCall } from './parse-tool-call';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('parseToolCall', () => {
   it('should successfully parse a valid tool call', async () => {
@@ -165,7 +166,7 @@ describe('parseToolCall', () => {
       {
         "dynamic": true,
         "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'testTool'. No tools are available.],
-        "input": "{}",
+        "input": {},
         "invalid": true,
         "toolCallId": "123",
         "toolName": "testTool",
@@ -199,7 +200,7 @@ describe('parseToolCall', () => {
       {
         "dynamic": true,
         "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'nonExistentTool'. Available tools: testTool.],
-        "input": "{}",
+        "input": {},
         "invalid": true,
         "toolCallId": "123",
         "toolName": "nonExistentTool",
@@ -208,7 +209,7 @@ describe('parseToolCall', () => {
     `);
   });
 
-  it('should throw InvalidToolArgumentsError when args are invalid', async () => {
+  it('should throw InvalidToolInputError when args are invalid', async () => {
     const result = await parseToolCall({
       toolCall: {
         type: 'tool-call',
@@ -243,7 +244,9 @@ describe('parseToolCall', () => {
           "message": "Invalid input: expected number, received undefined"
         }
       ]],
-        "input": "{"param1": "test"}",
+        "input": {
+          "param1": "test",
+        },
         "invalid": true,
         "toolCallId": "123",
         "toolName": "testTool",

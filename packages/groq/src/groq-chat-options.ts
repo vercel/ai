@@ -15,7 +15,6 @@ export type GroqChatModelId =
   | 'meta-llama/llama-4-scout-17b-16e-instruct'
   | 'meta-llama/llama-prompt-guard-2-22m'
   | 'meta-llama/llama-prompt-guard-2-86m'
-  | 'mistral-saba-24b'
   | 'moonshotai/kimi-k2-instruct'
   | 'qwen/qwen3-32b'
   | 'llama-guard-3-8b'
@@ -48,6 +47,16 @@ export const groqProviderOptions = z.object({
    * @default true
    */
   structuredOutputs: z.boolean().optional(),
+
+  /**
+   * Service tier for the request.
+   * - 'on_demand': Default tier with consistent performance and fairness
+   * - 'flex': Higher throughput tier optimized for workloads that can handle occasional request failures
+   * - 'auto': Uses on_demand rate limits, then falls back to flex tier if exceeded
+   *
+   * @default 'on_demand'
+   */
+  serviceTier: z.enum(['on_demand', 'flex', 'auto']).optional(),
 });
 
 export type GroqProviderOptions = z.infer<typeof groqProviderOptions>;

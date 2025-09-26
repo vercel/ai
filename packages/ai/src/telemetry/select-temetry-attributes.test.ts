@@ -1,4 +1,5 @@
 import { selectTelemetryAttributes } from './select-telemetry-attributes';
+import { it, expect } from 'vitest';
 
 it('should return an empty object when telemetry is disabled', () => {
   const result = selectTelemetryAttributes({

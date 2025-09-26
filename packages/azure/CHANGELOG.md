@@ -1,5 +1,218 @@
 # @ai-sdk/azure
 
+## 2.1.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [fe49278]
+  - @ai-sdk/openai@2.1.0-beta.6
+
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - @ai-sdk/openai@2.1.0-beta.5
+
+## 2.1.0-beta.4
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 522f6b8: feat: `ImageModelV3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/openai@2.1.0-beta.4
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [2e86082]
+  - @ai-sdk/openai@2.1.0-beta.3
+
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [4920119]
+- Updated dependencies [0c4822d]
+- Updated dependencies [1cad0ab]
+  - @ai-sdk/openai@2.1.0-beta.2
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+  - @ai-sdk/openai@2.1.0-beta.1
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/openai@2.1.0-beta.0
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.32
+
+### Patch Changes
+
+- Updated dependencies [1cf857d]
+- Updated dependencies [01de47f]
+  - @ai-sdk/openai@2.0.32
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [bb94467]
+- Updated dependencies [4a2b70e]
+- Updated dependencies [643711d]
+  - @ai-sdk/openai@2.0.31
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/openai@2.0.30
+
+## 2.0.29
+
+### Patch Changes
+
+- Updated dependencies [4235eb3]
+  - @ai-sdk/openai@2.0.29
+
+## 2.0.28
+
+### Patch Changes
+
+- Updated dependencies [4c2bb77]
+- Updated dependencies [561e8b0]
+  - @ai-sdk/openai@2.0.28
+
+## 2.0.27
+
+### Patch Changes
+
+- Updated dependencies [2338c79]
+  - @ai-sdk/openai@2.0.27
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [5819aec]
+- Updated dependencies [af8c6bb]
+  - @ai-sdk/openai@2.0.26
+
+## 2.0.25
+
+### Patch Changes
+
+- Updated dependencies [fb45ade]
+  - @ai-sdk/openai@2.0.25
+
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+- Updated dependencies [ad57512]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/openai@2.0.24
+
+## 2.0.23
+
+### Patch Changes
+
+- Updated dependencies [a9a61b7]
+  - @ai-sdk/openai@2.0.23
+
+## 2.0.22
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+- Updated dependencies [0e272ae]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/openai@2.0.22
+
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+- Updated dependencies [d18856a]
+- Updated dependencies [15271d6]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/openai@2.0.21
+
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [974de40]
+  - @ai-sdk/openai@2.0.20
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+  - @ai-sdk/openai@2.0.19
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [5e47d00]
+  - @ai-sdk/openai@2.0.18
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [70bb696]
+  - @ai-sdk/openai@2.0.17
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - @ai-sdk/openai@2.0.16
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [a4bef93]
+- Updated dependencies [6ed34cb]
+  - @ai-sdk/openai@2.0.15
+
 ## 2.0.14
 
 ### Patch Changes

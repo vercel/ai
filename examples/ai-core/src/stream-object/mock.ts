@@ -1,11 +1,11 @@
 import { streamObject } from 'ai';
-import { convertArrayToReadableStream, MockLanguageModelV2 } from 'ai/test';
+import { convertArrayToReadableStream, MockLanguageModelV3 } from 'ai/test';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const result = streamObject({
-    model: new MockLanguageModelV2({
+    model: new MockLanguageModelV3({
       doStream: async () => ({
         stream: convertArrayToReadableStream([
           { type: 'text-start', id: '0' },

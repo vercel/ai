@@ -2,9 +2,9 @@
 /* eslint-disable @next/next/no-img-element */
 import {
   createTestServer,
-  mockId,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
+import { mockId } from '@ai-sdk/provider-utils/test';
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -19,6 +19,7 @@ import React, { act, useRef, useState } from 'react';
 import { Chat } from './chat.react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -345,6 +346,9 @@ describe('data protocol stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "isAbort": false,
+          "isDisconnect": false,
+          "isError": false,
           "message": {
             "id": "id-1",
             "metadata": {
@@ -360,6 +364,34 @@ describe('data protocol stream', () => {
             ],
             "role": "assistant",
           },
+          "messages": [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": {
+                "example": "metadata",
+              },
+              "parts": [
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
         },
       ]
     `);
@@ -505,6 +537,9 @@ describe('text stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "isAbort": false,
+          "isDisconnect": false,
+          "isError": false,
           "message": {
             "id": "id-2",
             "metadata": undefined,
@@ -521,6 +556,35 @@ describe('text stream', () => {
             ],
             "role": "assistant",
           },
+          "messages": [
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-2",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
         },
       ]
     `);

@@ -1,12 +1,17 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
+import { describe, it, expect, vi } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+vi.mock('../version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -612,6 +617,9 @@ describe('doGenerate', () => {
       'openai-organization': 'test-organization',
       'openai-project': 'test-project',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/openai/0.0.0-test`,
+    );
   });
 
   it('should parse tool results', async () => {

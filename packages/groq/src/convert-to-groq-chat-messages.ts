@@ -1,12 +1,12 @@
 import {
-  LanguageModelV2Prompt,
+  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { GroqChatPrompt } from './groq-api-types';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGroqChatMessages(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): GroqChatPrompt {
   const messages: GroqChatPrompt = [];
 
@@ -97,8 +97,8 @@ export function convertToGroqChatMessages(
         messages.push({
           role: 'assistant',
           content: text,
-          reasoning,
-          tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+          ...(reasoning.length > 0 ? { reasoning } : null),
+          ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : null),
         });
 
         break;

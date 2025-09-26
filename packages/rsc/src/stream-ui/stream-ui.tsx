@@ -1,4 +1,4 @@
-import { LanguageModelV2, LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import { LanguageModelV3, LanguageModelV3CallWarning } from '@ai-sdk/provider';
 import {
   InferSchema,
   ProviderOptions,
@@ -79,7 +79,7 @@ type RenderText = Renderer<
 
 type RenderResult = {
   value: ReactNode;
-} & Awaited<ReturnType<LanguageModelV2['doStream']>>;
+} & Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
 const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
   content;
@@ -109,7 +109,7 @@ export async function streamUI<
     /**
      * The language model to use.
      */
-    model: LanguageModelV2;
+    model: LanguageModelV3;
 
     /**
      * The tools that the model can call. The model needs to support calling tools.
@@ -263,7 +263,7 @@ functionality that can be fully encapsulated in the provider.
     system,
     prompt,
     messages,
-  });
+  } as Prompt);
   const result = await retry(async () =>
     model.doStream({
       ...prepareCallSettings(settings),
@@ -275,6 +275,7 @@ functionality that can be fully encapsulated in the provider.
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         supportedUrls: await model.supportedUrls,
+        download: undefined,
       }),
       providerOptions,
       abortSignal,
@@ -289,7 +290,7 @@ functionality that can be fully encapsulated in the provider.
     try {
       let content = '';
       let hasToolCall = false;
-      let warnings: LanguageModelV2CallWarning[] | undefined;
+      let warnings: LanguageModelV3CallWarning[] | undefined;
 
       const reader = forkedStream.getReader();
       while (true) {

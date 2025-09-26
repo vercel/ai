@@ -1,5 +1,193 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.8
+
+### Patch Changes
+
+- c823faf: feat(provider/gateway): Add new Gemini preview models to Gateway model string autocomplete
+
+## 1.1.0-beta.7
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
+## 1.1.0-beta.6
+
+### Patch Changes
+
+- aaf5ebf: feat(provider/gateway): Add new Qwen models to Gateway model string autocomplete
+- ed329cb: feat: `Provider-V3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 1.1.0-beta.5
+
+### Patch Changes
+
+- 5d21222: feat(provider/gateway): Add gpt-5-codex to Gateway model string autocomplete
+- 0c4822d: feat: `EmbeddingModelV3`
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 1.1.0-beta.4
+
+### Patch Changes
+
+- 7ccb36f: feat(provider/gateway): Add LongCat Thinking model to Gateway autocomplete
+- 6c766ef: feat(provider/gateway): Add DeepSeek V3.1 Terminus to Gateway autocomplete
+
+## 1.1.0-beta.3
+
+### Patch Changes
+
+- ea9ca31: feat(provider/gateway): Add new xAI models
+
+## 1.1.0-beta.2
+
+### Patch Changes
+
+- 3e83633: add getCredits() gateway method
+- f83903d: getCredits style improvements
+
+## 1.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+
+## 1.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 1.0.23
+
+### Patch Changes
+
+- f49f924: feat (provider/gateway): add qwen3 next model ids
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 1.0.21
+
+### Patch Changes
+
+- 4ee3719: feat(provider/gateway): Add Meituan LongCat Flash Chat to autocomplete
+
+## 1.0.20
+
+### Patch Changes
+
+- 350a328: feat(provider/gateway): Add stealth models to Gateway autocomplete
+
+## 1.0.19
+
+### Patch Changes
+
+- 034287f: feat (provider/gateway): add qwen3-max model id
+- dee1afe: feat(provider/gateway): Fix embeddings `providerOptions`
+
+## 1.0.18
+
+### Patch Changes
+
+- 5d59a8c: feat (provider/gateway): add moonshotai/kimi-k2-0905 model id
+
+## 1.0.17
+
+### Patch Changes
+
+- b6005cd: feat(provider/gateway): Add Voyage embedding models
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 1.0.15
+
+### Patch Changes
+
+- 980633d: feat(provider/gateway): Add xAI Grok Code Fast 1
+- 1c5b88d: feat (provider/gateway): add new model ids
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 1.0.13
+
+### Patch Changes
+
+- c9994f9: feat(provider/gateway): Add cache pricing fields to model metadata
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 1.0.12
+
+### Patch Changes
+
+- 50e2029: feat (provider/gateway): add deepseek v3.1 thinking model id
+- b8478f0: feat (provider/gateway): add mistral medium model id
+
+## 1.0.11
+
+### Patch Changes
+
+- 926259f: feat(provider/gateway): Expose model type in model spec
+- c000f96: feat(provider/gateway): Add DeepSeek V3.1
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 1.0.9
+
+### Patch Changes
+
+- 8b96f99: feat(provider/gateway): Add DeepSeek v3.1 Base
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 1.0.7
+
+### Patch Changes
+
+- 28a4006: feat (provider/gateway): add gemini-2.5-flash-lite model id
+
 ## 1.0.6
 
 ### Patch Changes

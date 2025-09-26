@@ -1,5 +1,126 @@
 # @ai-sdk/openai-compatible
 
+## 1.1.0-beta.4
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
+## 1.1.0-beta.3
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 522f6b8: feat: `ImageModelV3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 1.1.0-beta.2
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 1.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+
+## 1.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 1.0.18
+
+### Patch Changes
+
+- 28363da: feat(openai-compatible): add `supportsStructuredOutputs` to provider settings
+
+## 1.0.17
+
+### Patch Changes
+
+- 3aed04c: feat(provider/openai-compatible): set `user-agent` header for `createOpenAICompatible`
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 1.0.14
+
+### Patch Changes
+
+- 818f021: Prevent redundant reasoningEffort field in request body (in favor of reasoning_effort)
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 1.0.10
+
+### Patch Changes
+
+- 7ca3aee: refactoring(provider/openai-compatible): move models into folders
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
+## 1.0.8
+
+### Patch Changes
+
+- 515c891: fix duplicated tool-input-start in certain cases
+
 ## 1.0.7
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/codemod",
-  "version": "2.0.5",
+  "version": "2.1.0-beta.0",
   "license": "Apache-2.0",
   "sideEffects": false,
   "files": [
@@ -16,6 +16,7 @@
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "vitest --config vitest.config.ts --run",
     "test:watch": "vitest",
+    "test:update": "UPDATE_SNAPSHOT=true vitest -u --run",
     "scaffold": "tsx scripts/scaffold-codemod.ts",
     "generate-readme": "tsx scripts/generate-readme.ts"
   },

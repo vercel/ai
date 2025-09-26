@@ -5,7 +5,7 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { streamObject } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const sdk = new NodeSDK({
   traceExporter: new ConsoleSpanExporter(),

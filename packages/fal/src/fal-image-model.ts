@@ -1,6 +1,6 @@
 import type {
-  ImageModelV2,
-  ImageModelV2CallWarning,
+  ImageModelV3,
+  ImageModelV3CallWarning,
   JSONObject,
 } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
@@ -28,8 +28,8 @@ interface FalImageModelConfig {
   };
 }
 
-export class FalImageModel implements ImageModelV2 {
-  readonly specificationVersion = 'v2';
+export class FalImageModel implements ImageModelV3 {
+  readonly specificationVersion = 'v3';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
@@ -50,10 +50,10 @@ export class FalImageModel implements ImageModelV2 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV2['doGenerate']>>
+  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV2CallWarning> = [];
+    const warnings: Array<ImageModelV3CallWarning> = [];
 
     let imageSize: FalImageSize | undefined;
     if (size) {
@@ -214,14 +214,14 @@ const falErrorSchema = z.union([falValidationErrorSchema, falHttpErrorSchema]);
 
 const falImageSchema = z.object({
   url: z.string(),
-  width: z.number().optional(),
-  height: z.number().optional(),
+  width: z.number().nullish(),
+  height: z.number().nullish(),
   // e.g. https://fal.ai/models/fal-ai/fashn/tryon/v1.6/api#schema-output
-  content_type: z.string().nullable().optional(),
+  content_type: z.string().nullish(),
   // e.g. https://fal.ai/models/fal-ai/flowedit/api#schema-output
-  file_name: z.string().nullable().optional(),
+  file_name: z.string().nullish(),
   file_data: z.string().optional(),
-  file_size: z.number().nullable().optional(),
+  file_size: z.number().nullish(),
 });
 
 // https://fal.ai/models/fal-ai/lora/api#type-File

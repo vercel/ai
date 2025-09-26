@@ -1,8 +1,13 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createOpenAI } from '../openai-provider';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const audioData = await readFile(
   path.join(__dirname, 'transcription-test.mp3'),
@@ -113,6 +118,10 @@ describe('doGenerate', () => {
       'openai-organization': 'test-organization',
       'openai-project': 'test-project',
     });
+
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/openai/0.0.0-test`,
+    );
   });
 
   it('should extract the transcription text', async () => {
@@ -182,7 +191,7 @@ describe('doGenerate', () => {
     expect(result.response.modelId).toBe('whisper-1');
   });
 
-  it('should pass response_format when specified', async () => {
+  it('should pass response_format when `providerOptions.openai.timestampGranularities` is set', async () => {
     prepareJsonResponse();
 
     await model.doGenerate({
@@ -205,7 +214,36 @@ describe('doGenerate', () => {
         "model": "whisper-1",
         "response_format": "verbose_json",
         "temperature": "0",
-        "timestamp_granularities": "word",
+        "timestamp_granularities[]": "word",
+      }
+    `);
+  });
+
+  it('should not set pass response_format to "verbose_json" when model is "gpt-4o-transcribe"', async () => {
+    prepareJsonResponse();
+
+    const model = provider.transcription('gpt-4o-transcribe');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          timestampGranularities: ['word'],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+      {
+        "file": File {
+          Symbol(kHandle): Blob {},
+          Symbol(kLength): 40169,
+          Symbol(kType): "audio/wav",
+        },
+        "model": "gpt-4o-transcribe",
+        "response_format": "json",
+        "temperature": "0",
+        "timestamp_granularities[]": "word",
       }
     `);
   });
@@ -233,7 +271,7 @@ describe('doGenerate', () => {
         "model": "whisper-1",
         "response_format": "verbose_json",
         "temperature": "0",
-        "timestamp_granularities": "segment",
+        "timestamp_granularities[]": "segment",
       }
     `);
   });

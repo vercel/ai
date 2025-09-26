@@ -1,9 +1,10 @@
 import {
   createTestServer,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
 import { MCPClientError } from '../../error/mcp-client-error';
 import { SseMCPTransport } from './mcp-sse-transport';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('SseMCPTransport', () => {
   const server = createTestServer({
@@ -268,12 +269,14 @@ describe('SseMCPTransport', () => {
       accept: 'text/event-stream',
       ...customHeaders,
     });
+    expect(server.calls[0].requestUserAgent).toContain('ai-sdk/');
 
     // Verify POST request headers
     expect(server.calls[1].requestHeaders).toEqual({
       'content-type': 'application/json',
       ...customHeaders,
     });
+    expect(server.calls[1].requestUserAgent).toContain('ai-sdk/');
 
     await transport.close();
   });

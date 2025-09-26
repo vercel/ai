@@ -1,11 +1,11 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2Prompt,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
+  LanguageModelV3,
+  LanguageModelV3CallWarning,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3Prompt,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -15,10 +15,14 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { CohereChatModelId } from './cohere-chat-options';
+import {
+  CohereChatModelId,
+  cohereChatModelOptions,
+} from './cohere-chat-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
@@ -32,8 +36,8 @@ type CohereChatConfig = {
   generateId: () => string;
 };
 
-export class CohereChatLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v2';
+export class CohereChatLanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = 'v3';
 
   readonly modelId: CohereChatModelId;
 
@@ -52,7 +56,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  private getArgs({
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -65,7 +69,16 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     seed,
     tools,
     toolChoice,
-  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
+    providerOptions,
+  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+    // Parse provider options
+    const cohereOptions =
+      (await parseProviderOptions({
+        provider: 'cohere',
+        providerOptions,
+        schema: cohereChatModelOptions,
+      })) ?? {};
+
     const {
       messages: chatPrompt,
       documents: cohereDocuments,
@@ -108,15 +121,23 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
         // documents for RAG:
         ...(cohereDocuments.length > 0 && { documents: cohereDocuments }),
+
+        // reasoning
+        ...(cohereOptions.thinking && {
+          thinking: {
+            type: cohereOptions.thinking.type ?? 'enabled',
+            token_budget: cohereOptions.thinking.tokenBudget,
+          },
+        }),
       },
       warnings: [...toolWarnings, ...promptWarnings],
     };
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    options: Parameters<LanguageModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    const { args, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -134,14 +155,18 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const content: Array<LanguageModelV2Content> = [];
+    const content: Array<LanguageModelV3Content> = [];
 
-    // text content:
-    if (
-      response.message.content?.[0]?.text != null &&
-      response.message.content?.[0]?.text.length > 0
-    ) {
-      content.push({ type: 'text', text: response.message.content[0].text });
+    for (const item of response.message.content ?? []) {
+      if (item.type === 'text' && item.text.length > 0) {
+        content.push({ type: 'text', text: item.text });
+        continue;
+      }
+
+      if (item.type === 'thinking' && item.thinking.length > 0) {
+        content.push({ type: 'reasoning', text: item.thinking });
+        continue;
+      }
     }
 
     // citations:
@@ -198,9 +223,9 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV2['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    options: Parameters<LanguageModelV3['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
@@ -214,8 +239,8 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV2FinishReason = 'unknown';
-    const usage: LanguageModelV2Usage = {
+    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    const usage: LanguageModelV3Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
@@ -228,11 +253,13 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       hasFinished: boolean;
     } | null = null;
 
+    let isActiveReasoning = false;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof cohereChatChunkSchema>>,
-          LanguageModelV2StreamPart
+          LanguageModelV3StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -255,6 +282,15 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
             switch (type) {
               case 'content-start': {
+                if (value.delta.message.content.type === 'thinking') {
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(value.index),
+                  });
+                  isActiveReasoning = true;
+                  return;
+                }
+
                 controller.enqueue({
                   type: 'text-start',
                   id: String(value.index),
@@ -263,6 +299,15 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
               }
 
               case 'content-delta': {
+                if ('thinking' in value.delta.message.content) {
+                  controller.enqueue({
+                    type: 'reasoning-delta',
+                    id: String(value.index),
+                    delta: value.delta.message.content.thinking,
+                  });
+                  return;
+                }
+
                 controller.enqueue({
                   type: 'text-delta',
                   id: String(value.index),
@@ -272,10 +317,20 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
               }
 
               case 'content-end': {
+                if (isActiveReasoning) {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: String(value.index),
+                  });
+                  isActiveReasoning = false;
+                  return;
+                }
+
                 controller.enqueue({
                   type: 'text-end',
                   id: String(value.index),
                 });
+
                 return;
               }
 
@@ -390,10 +445,16 @@ const cohereChatResponseSchema = z.object({
     role: z.string(),
     content: z
       .array(
-        z.object({
-          type: z.string(),
-          text: z.string(),
-        }),
+        z.union([
+          z.object({
+            type: z.literal('text'),
+            text: z.string(),
+          }),
+          z.object({
+            type: z.literal('thinking'),
+            thinking: z.string(),
+          }),
+        ]),
       )
       .nullish(),
     tool_plan: z.string().nullish(),
@@ -456,15 +517,34 @@ const cohereChatChunkSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('content-start'),
     index: z.number(),
+    delta: z.object({
+      message: z.object({
+        content: z.union([
+          z.object({
+            type: z.literal('text'),
+            text: z.string(),
+          }),
+          z.object({
+            type: z.literal('thinking'),
+            thinking: z.string(),
+          }),
+        ]),
+      }),
+    }),
   }),
   z.object({
     type: z.literal('content-delta'),
     index: z.number(),
     delta: z.object({
       message: z.object({
-        content: z.object({
-          text: z.string(),
-        }),
+        content: z.union([
+          z.object({
+            text: z.string(),
+          }),
+          z.object({
+            thinking: z.string(),
+          }),
+        ]),
       }),
     }),
   }),

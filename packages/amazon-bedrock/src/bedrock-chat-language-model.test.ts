@@ -1,10 +1,8 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
-import {
-  createTestServer,
-  convertReadableStreamToArray,
-} from '@ai-sdk/provider-utils/test';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
-import { vi } from 'vitest';
+import { beforeEach, describe, expect, vi, it } from 'vitest';
 import { injectFetchHeaders } from './inject-fetch-headers';
 import {
   BedrockReasoningContentBlock,
@@ -37,7 +35,7 @@ vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
   };
 });
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'system', content: 'System Prompt' },
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
@@ -2221,7 +2219,7 @@ describe('doGenerate', () => {
   it('should omit toolConfig and filter tool content when conversation has tool calls but no active tools', async () => {
     prepareJsonResponse({});
 
-    const conversationWithToolCalls: LanguageModelV2Prompt = [
+    const conversationWithToolCalls: LanguageModelV3Prompt = [
       {
         role: 'user',
         content: [{ type: 'text', text: 'What is the weather in Toronto?' }],
@@ -2408,7 +2406,7 @@ describe('doGenerate', () => {
   it('should omit toolConfig when conversation has tool calls but toolChoice is none', async () => {
     prepareJsonResponse({});
 
-    const conversationWithToolCalls: LanguageModelV2Prompt = [
+    const conversationWithToolCalls: LanguageModelV3Prompt = [
       {
         role: 'user',
         content: [{ type: 'text', text: 'What is the weather in Toronto?' }],

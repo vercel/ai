@@ -1,5 +1,5 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { FalImageModel } from './fal-image-model';
 
@@ -305,7 +305,7 @@ describe('FalImageModel', () => {
 
       expect(model.provider).toBe('fal.image');
       expect(model.modelId).toBe('fal-ai/qwen-image');
-      expect(model.specificationVersion).toBe('v2');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });
@@ -470,6 +470,50 @@ describe('FalImageModel', () => {
         ],
         timings: {},
         seed: 235205040,
+      });
+    });
+
+    it('should handle null width and height values with images array only', async () => {
+      server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
+        type: 'json-value',
+        body: {
+          images: [
+            {
+              url: 'https://api.example.com/image.png',
+              content_type: 'image/png',
+              file_name: 'output.png',
+              file_size: 663399,
+              width: null,
+              height: null,
+            },
+          ],
+          description: 'here is an image with null width and height',
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        providerOptions: {},
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(result.images[0]).toBeInstanceOf(Uint8Array);
+      expect(result.providerMetadata?.fal).toMatchObject({
+        images: [
+          {
+            width: null,
+            height: null,
+            contentType: 'image/png',
+            fileName: 'output.png',
+            fileSize: 663399,
+          },
+        ],
+        description: 'here is an image with null width and height',
       });
     });
   });

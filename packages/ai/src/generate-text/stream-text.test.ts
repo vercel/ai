@@ -1,10 +1,10 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
-  LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2StreamPart,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3StreamPart,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -23,8 +23,18 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
 import { z } from 'zod/v4';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import * as logWarningsModule from '../logger/log-warnings';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
@@ -92,17 +102,17 @@ function createTestModel({
   request = undefined,
   response = undefined,
 }: {
-  stream?: ReadableStream<LanguageModelV2StreamPart>;
+  stream?: ReadableStream<LanguageModelV3StreamPart>;
   request?: { body: string };
   response?: { headers: Record<string, string> };
-  warnings?: LanguageModelV2CallWarning[];
-} = {}): LanguageModelV2 {
-  return new MockLanguageModelV2({
+  warnings?: LanguageModelV3CallWarning[];
+} = {}): LanguageModelV3 {
+  return new MockLanguageModelV3({
     doStream: async () => ({ stream, request, response, warnings }),
   });
 }
 
-const modelWithSources = new MockLanguageModelV2({
+const modelWithSources = new MockLanguageModelV3({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -133,7 +143,7 @@ const modelWithSources = new MockLanguageModelV2({
   }),
 });
 
-const modelWithDocumentSources = new MockLanguageModelV2({
+const modelWithDocumentSources = new MockLanguageModelV3({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -165,7 +175,7 @@ const modelWithDocumentSources = new MockLanguageModelV2({
   }),
 });
 
-const modelWithFiles = new MockLanguageModelV2({
+const modelWithFiles = new MockLanguageModelV3({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -190,7 +200,7 @@ const modelWithFiles = new MockLanguageModelV2({
   }),
 });
 
-const modelWithReasoning = new MockLanguageModelV2({
+const modelWithReasoning = new MockLanguageModelV3({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -301,7 +311,13 @@ const modelWithReasoning = new MockLanguageModelV2({
       { type: 'text-start', id: '1' },
       { type: 'text-delta', id: '1', delta: 'Hi' },
       { type: 'text-delta', id: '1', delta: ' there!' },
-      { type: 'text-end', id: '1' },
+      {
+        type: 'text-end',
+        id: '1',
+        providerMetadata: {
+          testProvider: { signature: '0987654321' },
+        } as SharedV2ProviderMetadata,
+      },
       {
         type: 'finish',
         finishReason: 'stop',
@@ -312,10 +328,22 @@ const modelWithReasoning = new MockLanguageModelV2({
 });
 
 describe('streamText', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   describe('result.textStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -392,7 +420,7 @@ describe('streamText', () => {
   describe('result.fullStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -666,6 +694,11 @@ describe('streamText', () => {
             },
             {
               "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "0987654321",
+                },
+              },
               "type": "text-end",
             },
             {
@@ -873,7 +906,7 @@ describe('streamText', () => {
 
     it('should use fallback response metadata when response metadata is not provided', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -978,7 +1011,7 @@ describe('streamText', () => {
 
     it('should send tool calls', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -1409,7 +1442,7 @@ describe('streamText', () => {
   describe('errors', () => {
     it('should swallow error to prevent server crash', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1425,7 +1458,7 @@ describe('streamText', () => {
 
     it('should forward error in doStream as error stream part', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1451,7 +1484,7 @@ describe('streamText', () => {
       const onError = vi.fn();
 
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1467,12 +1500,58 @@ describe('streamText', () => {
       });
     });
 
+    it('should call onFinish even when error chunk occurs mid-stream', async () => {
+      const onFinish = vi.fn();
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'error', error: new Error('chunk error') },
+            // Note: finish-step and finish are still added after error
+            {
+              type: 'finish',
+              finishReason: 'error',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError,
+        onFinish,
+      });
+
+      await result.consumeStream();
+
+      // Verify onError was called
+      expect(onError).toHaveBeenCalledWith({
+        error: new Error('chunk error'),
+      });
+
+      // Verify onFinish was still called after the error
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finishReason: 'error',
+          text: 'Hello',
+          usage: testUsage,
+        }),
+      );
+    });
+
     it('should invoke onError callback when error is thrown in 2nd step', async () => {
       const onError = vi.fn();
       let responseCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt, tools, toolChoice }) => {
             if (responseCount++ === 0) {
               return {
@@ -1522,7 +1601,7 @@ describe('streamText', () => {
 
     it('should reject text promise when error is thrown', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1869,7 +1948,7 @@ describe('streamText', () => {
           "data: {"type":"text-delta","id":"1","delta":" there!"}
 
         ",
-          "data: {"type":"text-end","id":"1"}
+          "data: {"type":"text-end","id":"1","providerMetadata":{"testProvider":{"signature":"0987654321"}}}
 
         ",
           "data: {"type":"finish-step"}
@@ -2703,6 +2782,11 @@ describe('streamText', () => {
             },
             {
               "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "0987654321",
+                },
+              },
               "type": "text-end",
             },
             {
@@ -2994,6 +3078,314 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    it('should call onFinish when reader.cancel() is called', async () => {
+      const onFinishCallback = vi.fn();
+
+      const model = new MockLanguageModelV3({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'msg-2',
+              modelId: 'test-model',
+              timestamp: new Date(),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Streaming' },
+            { type: 'text-delta', id: '1', delta: ' content' },
+            { type: 'text-delta', id: '1', delta: ' that' },
+            { type: 'text-delta', id: '1', delta: ' will' },
+            { type: 'text-delta', id: '1', delta: ' be' },
+            { type: 'text-delta', id: '1', delta: ' cancelled' },
+          ]),
+        }),
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'Generate content',
+      });
+
+      const uiStream = result.toUIMessageStream({
+        onFinish: onFinishCallback,
+      });
+
+      const reader = uiStream.getReader();
+      const chunks = [];
+      for (let i = 0; i < 4; i++) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+
+      await reader.cancel();
+      reader.releaseLock();
+
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.responseMessage).toBeDefined();
+      expect(callArgs.responseMessage.role).toBe('assistant');
+      const textPart = callArgs.responseMessage.parts.find(
+        (p: any) => p.type === 'text',
+      );
+      expect(textPart).toBeDefined();
+      expect(textPart.text).toContain('Streaming'); // Partial content
+      expect(textPart.state).toBe('streaming');
+      expect(callArgs.isAborted).toBe(false); // Stream was cancelled, not aborted
+    });
+
+    it('should call onFinish when async iteration stops mid-stream', async () => {
+      const onFinishCallback = vi.fn();
+
+      const model = new MockLanguageModelV3({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'msg-4',
+              modelId: 'test-model',
+              timestamp: new Date(),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'First' },
+            { type: 'text-delta', id: '1', delta: ' chunk' },
+            { type: 'text-delta', id: '1', delta: ' of' },
+            { type: 'text-delta', id: '1', delta: ' text' },
+            { type: 'text-delta', id: '1', delta: ' that' },
+            { type: 'text-delta', id: '1', delta: ' will' },
+            { type: 'text-delta', id: '1', delta: ' be' },
+            { type: 'text-delta', id: '1', delta: ' interrupted' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+            },
+          ]),
+        }),
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'Generate text',
+      });
+
+      const uiStream = result.toUIMessageStream({
+        onFinish: onFinishCallback,
+        generateMessageId: () => 'msg-async-iter',
+      });
+
+      let chunkCount = 0;
+      const collectedChunks: any[] = [];
+
+      for await (const chunk of uiStream) {
+        collectedChunks.push(chunk);
+        chunkCount++;
+
+        if (chunkCount >= 5) {
+          break;
+        }
+      }
+
+      expect(chunkCount).toBe(5);
+      expect(collectedChunks).toHaveLength(5);
+
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.responseMessage.id).toBe('msg-async-iter');
+      expect(callArgs.responseMessage.role).toBe('assistant');
+
+      const textPart = callArgs.responseMessage.parts.find(
+        (p: any) => p.type === 'text',
+      );
+      expect(textPart).toBeDefined();
+      expect(textPart.text).toContain('First chunk'); // Should have at least the first parts
+      expect(textPart.state).toBe('streaming');
+      expect(callArgs.isAborted).toBe(false); // No explicit abort, just stopped iteration
+    });
+
+    it('should call onFinish when stream is aborted via AbortController', async () => {
+      const onFinishCallback = vi.fn();
+      const abortController = new AbortController();
+
+      const model = new MockLanguageModelV3({
+        doStream: async ({ abortSignal }) => {
+          const stream = new ReadableStream({
+            async start(controller) {
+              const onAbort = () => {
+                controller.error(new DOMException('Aborted', 'AbortError'));
+              };
+              abortSignal?.addEventListener('abort', onAbort, { once: true });
+
+              controller.enqueue({
+                type: 'response-metadata',
+                id: 'msg-1',
+                modelId: 'test-model',
+                timestamp: new Date(),
+              });
+              controller.enqueue({ type: 'text-start', id: '1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: 'Hello',
+              });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: ' world',
+              });
+
+              await new Promise(resolve => setTimeout(resolve, 10));
+
+              if (!abortSignal?.aborted) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: '1',
+                  delta: ' from AI',
+                });
+                controller.enqueue({ type: 'text-end', id: '1' });
+                controller.enqueue({
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                });
+                controller.close();
+              }
+            },
+          });
+
+          return { stream };
+        },
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'Say hello',
+        abortSignal: abortController.signal,
+      });
+
+      const uiStream = result.toUIMessageStream({
+        onFinish: onFinishCallback,
+      });
+
+      const reader = uiStream.getReader();
+      const chunks = [];
+
+      for (let i = 0; i < 3; i++) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+
+      abortController.abort();
+      const { value: abortChunk } = await reader.read();
+      expect(abortChunk?.type).toBe('abort');
+
+      while (true) {
+        const { done } = await reader.read();
+        if (done) break;
+      }
+
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+      const callArgs = onFinishCallback.mock.calls[0][0];
+      expect(callArgs.responseMessage).toBeDefined();
+      expect(callArgs.responseMessage.role).toBe('assistant');
+      const textPart = callArgs.responseMessage.parts.find(
+        (p: any) => p.type === 'text',
+      );
+      expect(textPart).toBeDefined();
+      expect(textPart.text).toBe(''); // Text was not streamed yet when aborted
+      expect(callArgs.isAborted).toBe(true); // Stream was aborted
+
+      reader.releaseLock();
+    });
+
+    it('should NOT call onFinish when for-await loop breaks early', async () => {
+      const onFinish = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ' World' },
+            { type: 'text-delta', id: '1', delta: '!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onFinish,
+      });
+
+      // Get the UI message stream and break after third chunk
+      const stream = result.toUIMessageStream();
+      let chunkCount = 0;
+
+      for await (const chunk of stream) {
+        chunkCount++;
+        if (chunkCount === 3) {
+          break; // Break the iteration early, simulating cancellation
+        }
+      }
+
+      // Verify that onFinish was NOT called when stream was cancelled
+      expect(onFinish).not.toHaveBeenCalled();
+    });
+
+    it('should NOT call onFinish when reader.cancel() is called', async () => {
+      const onFinishCallback = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ' World' },
+            { type: 'text-delta', id: '1', delta: '!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onFinish: onFinishCallback,
+      });
+
+      const uiStream = result.toUIMessageStream();
+
+      const reader = uiStream.getReader();
+      const chunks = [];
+      for (let i = 0; i < 4; i++) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+
+      await reader.cancel();
+      reader.releaseLock();
+
+      // Verify that onFinish was NOT called when stream was cancelled
+      expect(onFinishCallback).not.toHaveBeenCalled();
     });
   });
 
@@ -3593,7 +3985,11 @@ describe('streamText', () => {
                 "type": "reasoning",
               },
               {
-                "providerOptions": undefined,
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "0987654321",
+                  },
+                },
                 "text": "Hi there!",
                 "type": "text",
               },
@@ -3798,7 +4194,11 @@ describe('streamText', () => {
                 "type": "reasoning",
               },
               {
-                "providerMetadata": undefined,
+                "providerMetadata": {
+                  "testProvider": {
+                    "signature": "0987654321",
+                  },
+                },
                 "text": "Hi there!",
                 "type": "text",
               },
@@ -3858,7 +4258,11 @@ describe('streamText', () => {
                       "type": "reasoning",
                     },
                     {
-                      "providerOptions": undefined,
+                      "providerOptions": {
+                        "testProvider": {
+                          "signature": "0987654321",
+                        },
+                      },
                       "text": "Hi there!",
                       "type": "text",
                     },
@@ -4293,7 +4697,7 @@ describe('streamText', () => {
       const result: Array<{ error: unknown }> = [];
 
       const resultObject = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -4448,8 +4852,31 @@ describe('streamText', () => {
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
           "sources": [],
-          "staticToolCalls": [],
-          "staticToolResults": [],
+          "staticToolCalls": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "staticToolResults": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "output": "value-result",
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
           "steps": [
             DefaultStepResult {
               "content": [
@@ -4964,7 +5391,7 @@ describe('streamText', () => {
 
     it('should not prevent error from being forwarded', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -5116,7 +5543,7 @@ describe('streamText', () => {
 
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async ({ prompt, tools, toolChoice }) => {
               stepInputs.push({ prompt, tools, toolChoice });
 
@@ -6213,7 +6640,7 @@ describe('streamText', () => {
 
     describe('2 steps: initial, tool-result with prepareStep', () => {
       let result: StreamTextResult<any, any>;
-      let doStreamCalls: Array<LanguageModelV2CallOptions>;
+      let doStreamCalls: Array<LanguageModelV3CallOptions>;
       let prepareStepCalls: Array<{
         stepNumber: number;
         steps: Array<StepResult<any>>;
@@ -6225,7 +6652,7 @@ describe('streamText', () => {
         prepareStepCalls = [];
 
         result = streamText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async options => {
               doStreamCalls.push(options);
               switch (doStreamCalls.length) {
@@ -6822,7 +7249,7 @@ describe('streamText', () => {
 
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async ({ prompt, tools, toolChoice }) => {
               switch (responseCount++) {
                 case 0: {
@@ -7935,7 +8362,7 @@ describe('streamText', () => {
 
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => {
               switch (responseCount++) {
                 case 0: {
@@ -8204,7 +8631,7 @@ describe('streamText', () => {
   describe('options.headers', () => {
     it('should set headers', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ headers }) => {
             expect(headers).toStrictEqual({
               'custom-request-header': 'request-header-value',
@@ -8743,7 +9170,7 @@ describe('streamText', () => {
   describe('options.providerMetadata', () => {
     it('should pass provider metadata to model', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ providerOptions }) => {
             expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
@@ -9272,7 +9699,7 @@ describe('streamText', () => {
   describe('tools with custom schema', () => {
     it('should send tool calls', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -9347,7 +9774,7 @@ describe('streamText', () => {
   describe('options.messages', () => {
     it('should support models that use "this" context in supportedUrls', async () => {
       let supportedUrlsCalled = false;
-      class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV3 {
         constructor() {
           super({
             supportedUrls() {
@@ -10247,8 +10674,31 @@ describe('streamText', () => {
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
             "sources": [],
-            "staticToolCalls": [],
-            "staticToolResults": [],
+            "staticToolCalls": [
+              {
+                "input": {
+                  "value": "VALUE",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "staticToolResults": [
+              {
+                "input": {
+                  "value": "VALUE",
+                },
+                "output": "VALUE-RESULT",
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
             "steps": [
               DefaultStepResult {
                 "content": [
@@ -11027,10 +11477,10 @@ describe('streamText', () => {
 
     describe('object output', () => {
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
-        let callOptions!: LanguageModelV2CallOptions;
+        let callOptions!: LanguageModelV3CallOptions;
 
         const result = streamText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async args => {
               callOptions = args;
               return {
@@ -11383,11 +11833,11 @@ describe('streamText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
+        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool)[]
         | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ tools: toolsArg }) => {
             tools = toolsArg;
 
@@ -11542,7 +11992,7 @@ describe('streamText', () => {
     it('should pass through the includeRawChunks flag correctly to the model', async () => {
       let capturedOptions: any;
 
-      const model = new MockLanguageModelV2({
+      const model = new MockLanguageModelV3({
         doStream: async options => {
           capturedOptions = options;
 
@@ -11673,7 +12123,7 @@ describe('streamText', () => {
     it('should pass includeRawChunks flag correctly to the model', async () => {
       let capturedOptions: any;
 
-      const model = new MockLanguageModelV2({
+      const model = new MockLanguageModelV3({
         doStream: async options => {
           capturedOptions = options;
           return {
@@ -12027,7 +12477,7 @@ describe('streamText', () => {
           onAbort: event => {
             onAbortCalls.push(event);
           },
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: new ReadableStream({
                 pull(controller) {
@@ -12088,30 +12538,20 @@ describe('streamText', () => {
       it('should only stream initial chunks in full stream', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
-              },
-              {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
-              },
-              {
-                "id": "1",
-                "type": "text-start",
-              },
-              {
-                "id": "1",
-                "providerMetadata": undefined,
-                "text": "Hello",
-                "type": "text-delta",
-              },
-              {
-                "type": "abort",
-              },
-            ]
-          `);
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "type": "abort",
+            },
+          ]
+        `);
       });
 
       it('should sent an abort chunk in the ui message stream', async () => {
@@ -12123,15 +12563,6 @@ describe('streamText', () => {
             },
             {
               "type": "start-step",
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "delta": "Hello",
-              "id": "1",
-              "type": "text-delta",
             },
             {
               "type": "abort",
@@ -12159,7 +12590,7 @@ describe('streamText', () => {
           onAbort: event => {
             onAbortCalls.push(event);
           },
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: new ReadableStream({
                 start(controller) {
@@ -12334,74 +12765,64 @@ describe('streamText', () => {
       it('should only stream initial chunks in full stream', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": undefined,
-                "providerMetadata": undefined,
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-call",
+              "output": "result1",
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+            {
+              "finishReason": "tool-calls",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "output": "result1",
-                "providerExecuted": undefined,
-                "providerMetadata": undefined,
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-result",
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
               },
-              {
-                "finishReason": "tool-calls",
-                "providerMetadata": undefined,
-                "response": {
-                  "headers": undefined,
-                  "id": "id-0",
-                  "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
-                },
-                "type": "finish-step",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokens": 3,
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
-              },
-              {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
-              },
-              {
-                "id": "1",
-                "type": "text-start",
-              },
-              {
-                "id": "1",
-                "providerMetadata": undefined,
-                "text": "Hello",
-                "type": "text-delta",
-              },
-              {
-                "type": "abort",
-              },
-            ]
-          `);
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "type": "abort",
+            },
+          ]
+        `);
       });
 
       it('should sent an abort chunk in the ui message stream', async () => {
@@ -12434,13 +12855,141 @@ describe('streamText', () => {
               "type": "start-step",
             },
             {
-              "id": "1",
-              "type": "text-start",
+              "type": "abort",
             },
+          ]
+        `);
+      });
+    });
+
+    describe('abort during tool call', () => {
+      let result: StreamTextResult<any, TextStreamPart<any>>;
+      let onErrorCalls: Array<{ error: unknown }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+
+      beforeEach(() => {
+        onErrorCalls = [];
+        onAbortCalls = [];
+
+        const abortController = new AbortController();
+        let pullCalls = 0;
+        let streamCalls = 0;
+
+        result = streamText({
+          ...defaultSettings(),
+          abortSignal: abortController.signal,
+          onError: error => {
+            onErrorCalls.push({ error });
+          },
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV3({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start(controller) {
+                  streamCalls++;
+                  pullCalls = 0;
+                },
+                pull(controller) {
+                  if (streamCalls === 1) {
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({
+                          type: 'tool-call',
+                          toolCallId: 'call-1',
+                          toolName: 'tool1',
+                          input: `{ "value": "value" }`,
+                        });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'finish',
+                          finishReason: 'tool-calls',
+                          usage: testUsage,
+                        });
+                        controller.close();
+                        break;
+                    }
+                  } else
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({
+                          type: 'text-start',
+                          id: '1',
+                        });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: '1',
+                          delta: 'Hello',
+                        });
+                        break;
+                      case 3:
+                        controller.enqueue({
+                          type: 'text-end',
+                          id: '1',
+                        });
+                        controller.enqueue({
+                          type: 'finish',
+                          finishReason: 'tool-calls',
+                          usage: testUsage,
+                        });
+                        controller.close();
+                        break;
+                    }
+                },
+              }),
+            }),
+          }),
+          tools: {
+            tool1: {
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => {
+                abortController.abort();
+                return 'result1';
+              },
+            },
+          },
+          stopWhen: stepCountIs(3),
+        });
+      });
+
+      it('should not call onError for abort errors', async () => {
+        await result.consumeStream();
+        expect(onErrorCalls).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should call onAbort when the abort signal is triggered during tool call', async () => {
+        await result.consumeStream();
+        expect(onAbortCalls).toMatchInlineSnapshot(`
+          [
             {
-              "delta": "Hello",
-              "id": "1",
-              "type": "text-delta",
+              "steps": [],
+            },
+          ]
+        `);
+      });
+
+      it('should end full stream with abort part', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
             },
             {
               "type": "abort",
@@ -12577,7 +13126,9 @@ describe('streamText', () => {
               "message": "Invalid input: expected string, received undefined"
             }
           ]],
-              "input": "{ "cities": "San Francisco" }",
+              "input": {
+                "cities": "San Francisco",
+              },
               "invalid": true,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
@@ -12596,7 +13147,9 @@ describe('streamText', () => {
               "message": "Invalid input: expected string, received undefined"
             }
           ]",
-              "input": "{ "cities": "San Francisco" }",
+              "input": {
+                "cities": "San Francisco",
+              },
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-error",
@@ -12645,7 +13198,9 @@ describe('streamText', () => {
                 "message": "Invalid input: expected string, received undefined"
               }
             ]],
-                "input": "{ "cities": "San Francisco" }",
+                "input": {
+                  "cities": "San Francisco",
+                },
                 "invalid": true,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
@@ -12664,7 +13219,9 @@ describe('streamText', () => {
                 "message": "Invalid input: expected string, received undefined"
               }
             ]",
-                "input": "{ "cities": "San Francisco" }",
+                "input": {
+                  "cities": "San Francisco",
+                },
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-error",
@@ -12734,7 +13291,9 @@ describe('streamText', () => {
                 "message": "Invalid input: expected string, received undefined"
               }
             ]",
-                "input": "{ "cities": "San Francisco" }",
+                "input": {
+                  "cities": "San Francisco",
+                },
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-input-error",
@@ -13090,6 +13649,142 @@ describe('streamText', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('logWarnings', () => {
+    it('should call logWarnings with warnings from a single step', async () => {
+      const expectedWarnings = [
+        {
+          type: 'other' as const,
+          message: 'Setting is not supported',
+        },
+        {
+          type: 'unsupported-setting' as const,
+          setting: 'temperature',
+          details: 'Temperature parameter not supported',
+        },
+      ];
+
+      const result = streamText({
+        model: createTestModel({
+          warnings: expectedWarnings,
+        }),
+        ...defaultSettings(),
+      });
+
+      // Consume the stream to trigger the warning logging
+      await result.finishReason;
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    });
+
+    it('should call logWarnings once for each step with warnings from that step', async () => {
+      const warning1 = {
+        type: 'other' as const,
+        message: 'Warning from step 1',
+      };
+      const warning2 = {
+        type: 'other' as const,
+        message: 'Warning from step 2',
+      };
+
+      let callCount = 0;
+      const model = new MockLanguageModelV3({
+        doStream: async _options => {
+          switch (callCount++) {
+            case 0:
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'stream-start',
+                    warnings: [warning1],
+                  },
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: `{ "value": "test" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: 'tool-calls',
+                    usage: testUsage,
+                  },
+                ]),
+                response: {},
+              };
+            case 1:
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'stream-start',
+                    warnings: [warning2],
+                  },
+                  {
+                    type: 'response-metadata',
+                    id: 'id-1',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(10000),
+                  },
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'Final response' },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: 'stop',
+                    usage: testUsage,
+                  },
+                ]),
+                response: {},
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      });
+
+      const result = streamText({
+        model,
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result',
+          },
+        },
+        stopWhen: stepCountIs(3),
+        ...defaultSettings(),
+      });
+
+      // Consume the stream to trigger the warning logging
+      await result.finishReason;
+
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, [warning1]);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, [warning2]);
+    });
+
+    it('should call logWarnings with empty array when no warnings are present', async () => {
+      const result = streamText({
+        model: createTestModel({
+          warnings: [], // no warnings
+        }),
+        ...defaultSettings(),
+      });
+
+      // Consume the stream to trigger the warning logging
+      await result.finishReason;
+
+      expect(logWarningsSpy).toHaveBeenCalledOnce();
+      expect(logWarningsSpy).toHaveBeenCalledWith([]);
     });
   });
 });

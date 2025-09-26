@@ -1,4 +1,5 @@
-import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import { describe, it, expect } from 'vitest';
+import { LanguageModelV3CallWarning } from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 
 describe('system messages', () => {
@@ -636,7 +637,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert assistant message reasoning parts with signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -688,7 +689,7 @@ describe('assistant messages', () => {
   });
 
   it('should ignore reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -740,7 +741,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit assistant message reasoning parts with signature when sendReasoning is false', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -791,7 +792,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit reasoning parts without signature when sendReasoning is false', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -837,7 +838,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_search tool call and result parts', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -861,7 +862,7 @@ describe('assistant messages', () => {
                     title: 'San Francisco Calendar',
                     pageAge: null,
                     encryptedContent: 'encrypted-content',
-                    type: 'event',
+                    type: 'web_search_result',
                   },
                 ],
               },
@@ -899,7 +900,7 @@ describe('assistant messages', () => {
                       "encrypted_content": "encrypted-content",
                       "page_age": null,
                       "title": "San Francisco Calendar",
-                      "type": "event",
+                      "type": "web_search_result",
                       "url": "https://patch.com/california/san-francisco/calendar",
                     },
                   ],
@@ -917,8 +918,103 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
+  it('should convert anthropic web_fetch tool call and result parts', async () => {
+    const warnings: LanguageModelV3CallWarning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf',
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
+              toolName: 'web_fetch',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'json',
+                value: {
+                  type: 'web_fetch_result',
+                  url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf',
+                  retrievedAt: '2025-01-01T00:00:00.000Z',
+                  content: {
+                    type: 'document',
+                    title: 'AI.pdf',
+                    citations: { enabled: true },
+                    source: {
+                      type: 'text',
+                      mediaType: 'text/plain',
+                      data: 'The PDF says about AI.',
+                    },
+                  },
+                },
+              },
+              toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
+              toolName: 'web_fetch',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
+                  "input": {
+                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf",
+                  },
+                  "name": "web_fetch",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "content": {
+                      "citations": {
+                        "enabled": true,
+                      },
+                      "source": {
+                        "data": "The PDF says about AI.",
+                        "media_type": "text/plain",
+                        "type": "text",
+                      },
+                      "title": "AI.pdf",
+                      "type": "document",
+                    },
+                    "retrieved_at": "2025-01-01T00:00:00.000Z",
+                    "type": "web_fetch_result",
+                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf",
+                  },
+                  "tool_use_id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
+                  "type": "web_fetch_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
   it('should convert anthropic code_execution tool call and result parts', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {

@@ -1,5 +1,5 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { LumaImageModel } from './luma-image-model';
 import { InvalidResponseDataError } from '@ai-sdk/provider';
@@ -294,7 +294,7 @@ describe('LumaImageModel', () => {
 
       expect(model.provider).toBe('luma');
       expect(model.modelId).toBe('test-model');
-      expect(model.specificationVersion).toBe('v2');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

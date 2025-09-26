@@ -1,5 +1,152 @@
 # @ai-sdk/anthropic
 
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 11e4abe: feat(provider/anthropic): web search tool updates
+- afb00e3: feat(provider/anthropic): add text_editor_20250728 tool support
+
+  Add text_editor_20250728 tool for Claude 4 models (Sonnet 4, Opus 4, Opus 4.1) with optional max_characters parameter and no undo_edit command support.
+
+- f6603b7: fix(provider/anthropic): correct raw usage information
+- fa35e95: feat(provider/anthropic): add web fetch tool
+- c5440c5: chore(provider/anthropic): update anthropic model ids
+
+## 2.1.0-beta.4
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.17
+
+### Patch Changes
+
+- da92132: fix(provider/anthorpic): add cacheControl to AnthropicProviderOptions
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.15
+
+### Patch Changes
+
+- c8aab0a: fix (provider/anthropic): revert cd458a8c1667df86e6987a1f2e06159823453864
+
+## 2.0.14
+
+### Patch Changes
+
+- 2338c79: feat (provider/anthropic): update jsdoc of anthropic tools
+
+## 2.0.13
+
+### Patch Changes
+
+- cd458a8: fix(anthropic): reorder tool_result parts to front of combined user messages
+
+  Reorders tool_result content to appear before user text within combined user messages, ensuring Claude API validation requirements are met while preserving the intentional message combining behavior that prevents role alternation errors. Fixes #8318.
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 2.0.11
+
+### Patch Changes
+
+- c7fee29: feat(anthropic): handle `pause_turn` as value for `stop_reason`
+
+## 2.0.10
+
+### Patch Changes
+
+- c152ef7: feat(providers/anthropic): map 'refusal' stop reason to 'content-filter' finishReason
+
+## 2.0.9
+
+### Patch Changes
+
+- cdc6b7a: fix(provider/anthropic): disable parallel tool use when using json output tool for structured responses
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+
 ## 2.0.4
 
 ### Patch Changes

@@ -1,13 +1,21 @@
 import {
   TranscriptionModelV2,
-  ProviderV2,
+  SpeechModelV2,
+  ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
-import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
+import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
+import { VERSION } from './version';
 
-export interface ElevenLabsProvider extends ProviderV2 {
+export interface ElevenLabsProvider extends ProviderV3 {
   (
     modelId: 'scribe_v1',
     settings?: {},
@@ -19,6 +27,11 @@ export interface ElevenLabsProvider extends ProviderV2 {
 Creates a model for transcription.
    */
   transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV2;
+
+  /**
+Creates a model for speech generation.
+   */
+  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV2;
 }
 
 export interface ElevenLabsProviderSettings {
@@ -45,18 +58,30 @@ Create an ElevenLabs provider instance.
 export function createElevenLabs(
   options: ElevenLabsProviderSettings = {},
 ): ElevenLabsProvider {
-  const getHeaders = () => ({
-    'xi-api-key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'ELEVENLABS_API_KEY',
-      description: 'ElevenLabs',
-    }),
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        'xi-api-key': loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'ELEVENLABS_API_KEY',
+          description: 'ElevenLabs',
+        }),
+        ...options.headers,
+      },
+      `ai-sdk/elevenlabs/${VERSION}`,
+    );
 
   const createTranscriptionModel = (modelId: ElevenLabsTranscriptionModelId) =>
     new ElevenLabsTranscriptionModel(modelId, {
       provider: `elevenlabs.transcription`,
+      url: ({ path }) => `https://api.elevenlabs.io${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const createSpeechModel = (modelId: ElevenLabsSpeechModelId) =>
+    new ElevenLabsSpeechModel(modelId, {
+      provider: `elevenlabs.speech`,
       url: ({ path }) => `https://api.elevenlabs.io${path}`,
       headers: getHeaders,
       fetch: options.fetch,
@@ -70,6 +95,8 @@ export function createElevenLabs(
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
 
   provider.languageModel = () => {
     throw new NoSuchModelError({

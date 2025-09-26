@@ -1,7 +1,7 @@
 import {
   JSONObject,
-  LanguageModelV2Message,
-  LanguageModelV2Prompt,
+  LanguageModelV3Message,
+  LanguageModelV3Prompt,
   SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -29,7 +29,7 @@ function getCachePoint(
 }
 
 export async function convertToBedrockChatMessages(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): Promise<{
   system: BedrockSystemMessages;
   messages: BedrockMessages;
@@ -349,19 +349,19 @@ function trimIfLast(
 
 type SystemBlock = {
   type: 'system';
-  messages: Array<LanguageModelV2Message & { role: 'system' }>;
+  messages: Array<LanguageModelV3Message & { role: 'system' }>;
 };
 type AssistantBlock = {
   type: 'assistant';
-  messages: Array<LanguageModelV2Message & { role: 'assistant' }>;
+  messages: Array<LanguageModelV3Message & { role: 'assistant' }>;
 };
 type UserBlock = {
   type: 'user';
-  messages: Array<LanguageModelV2Message & { role: 'user' | 'tool' }>;
+  messages: Array<LanguageModelV3Message & { role: 'user' | 'tool' }>;
 };
 
 function groupIntoBlocks(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =

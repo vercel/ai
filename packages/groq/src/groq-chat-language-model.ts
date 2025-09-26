@@ -1,12 +1,12 @@
 import {
   InvalidResponseDataError,
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2Prompt,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
+  LanguageModelV3,
+  LanguageModelV3CallWarning,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3Prompt,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -35,8 +35,8 @@ type GroqChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class GroqChatLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v2';
+export class GroqChatLanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = 'v3';
 
   readonly modelId: GroqChatModelId;
 
@@ -70,10 +70,10 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV2['doGenerate']>[0] & {
+  }: Parameters<LanguageModelV3['doGenerate']>[0] & {
     stream: boolean;
   }) {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
 
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
@@ -145,6 +145,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
         // provider options:
         reasoning_format: groqOptions?.reasoningFormat,
         reasoning_effort: groqOptions?.reasoningEffort,
+        service_tier: groqOptions?.serviceTier,
 
         // messages:
         messages: convertToGroqChatMessages(prompt),
@@ -158,8 +159,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    options: Parameters<LanguageModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
     const { args, warnings } = await this.getArgs({
       ...options,
       stream: false,
@@ -187,7 +188,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV2Content> = [];
+    const content: Array<LanguageModelV3Content> = [];
 
     // text content:
     const text = choice.message.content;
@@ -223,6 +224,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
         inputTokens: response.usage?.prompt_tokens ?? undefined,
         outputTokens: response.usage?.completion_tokens ?? undefined,
         totalTokens: response.usage?.total_tokens ?? undefined,
+        cachedInputTokens:
+          response.usage?.prompt_tokens_details?.cached_tokens ?? undefined,
       },
       response: {
         ...getResponseMetadata(response),
@@ -235,8 +238,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV2['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+    options: Parameters<LanguageModelV3['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
     const { args, warnings } = await this.getArgs({ ...options, stream: true });
 
     const body = JSON.stringify({ ...args, stream: true });
@@ -268,11 +271,12 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV2FinishReason = 'unknown';
-    const usage: LanguageModelV2Usage = {
+    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    const usage: LanguageModelV3Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
+      cachedInputTokens: undefined,
     };
     let isFirstChunk = true;
     let isActiveText = false;
@@ -283,7 +287,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof groqChatChunkSchema>>,
-          LanguageModelV2StreamPart
+          LanguageModelV3StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -325,6 +329,9 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
               usage.outputTokens =
                 value.x_groq.usage.completion_tokens ?? undefined;
               usage.totalTokens = value.x_groq.usage.total_tokens ?? undefined;
+              usage.cachedInputTokens =
+                value.x_groq.usage.prompt_tokens_details?.cached_tokens ??
+                undefined;
             }
 
             const choice = value.choices[0];
@@ -545,6 +552,11 @@ const groqChatResponseSchema = z.object({
       prompt_tokens: z.number().nullish(),
       completion_tokens: z.number().nullish(),
       total_tokens: z.number().nullish(),
+      prompt_tokens_details: z
+        .object({
+          cached_tokens: z.number().nullish(),
+        })
+        .nullish(),
     })
     .nullish(),
 });
@@ -588,6 +600,11 @@ const groqChatChunkSchema = z.union([
             prompt_tokens: z.number().nullish(),
             completion_tokens: z.number().nullish(),
             total_tokens: z.number().nullish(),
+            prompt_tokens_details: z
+              .object({
+                cached_tokens: z.number().nullish(),
+              })
+              .nullish(),
           })
           .nullish(),
       })

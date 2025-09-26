@@ -1,5 +1,353 @@
 # ai
 
+## 5.1.0-beta.13
+
+### Patch Changes
+
+- 1c2a4c1: fix(ai): remove outdated jsdoc param descriptions
+
+## 5.1.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [c823faf]
+  - @ai-sdk/gateway@1.1.0-beta.8
+
+## 5.1.0-beta.11
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - @ai-sdk/gateway@1.1.0-beta.7
+
+## 5.1.0-beta.10
+
+### Patch Changes
+
+- 8c98371: Extend addToolResult to support error results
+
+## 5.1.0-beta.9
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 177b475: fix(ai): download files when intermediate file cannot be downloaded
+- 522f6b8: feat: `ImageModelV3`
+- Updated dependencies [aaf5ebf]
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/gateway@1.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 5.1.0-beta.8
+
+### Patch Changes
+
+- 7eca093: fix(ai): update `uiMessageChunkSchema` to satisfy the `UIMessageChunk` type
+
+## 5.1.0-beta.7
+
+### Patch Changes
+
+- 5a4e732: Export `parseJsonEventStream` and `uiMessageChunkSchema` from "ai" package
+
+## 5.1.0-beta.6
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+- Updated dependencies [5d21222]
+- Updated dependencies [0c4822d]
+- Updated dependencies [1cad0ab]
+  - @ai-sdk/gateway@1.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 5.1.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [7ccb36f]
+- Updated dependencies [6c766ef]
+  - @ai-sdk/gateway@1.1.0-beta.4
+
+## 5.1.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [ea9ca31]
+  - @ai-sdk/gateway@1.1.0-beta.3
+
+## 5.1.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [3e83633]
+- Updated dependencies [f83903d]
+  - @ai-sdk/gateway@1.1.0-beta.2
+
+## 5.1.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+  - @ai-sdk/gateway@1.1.0-beta.1
+
+## 5.1.0-beta.1
+
+### Patch Changes
+
+- a7f6f81: Add safeValidateUIMessages utility to validate UI messages without throwing, returning a success/failure result object like Zod’s safeParse
+
+## 5.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/gateway@1.1.0-beta.0
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 5.0.45
+
+### Patch Changes
+
+- 76024fc: fix(ai): fix static tool call and result detection when dynamic is undefined
+- 93d8b60: fix(ai): do not filter zero-length text parts that have provider options
+- d8eb31f: fix(ai): fix webp image detection from base64
+
+## 5.0.44
+
+### Patch Changes
+
+- Updated dependencies [f49f924]
+  - @ai-sdk/gateway@1.0.23
+
+## 5.0.43
+
+### Patch Changes
+
+- 0294b58: feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/gateway@1.0.22
+
+## 5.0.42
+
+### Patch Changes
+
+- de5c066: fix(ai): forwarded providerExecuted flag in validateUIMessages
+
+## 5.0.41
+
+### Patch Changes
+
+- cd91e4b: fix(ai): use correct type for reasoning outputs
+
+## 5.0.40
+
+### Patch Changes
+
+- Updated dependencies [4ee3719]
+  - @ai-sdk/gateway@1.0.21
+
+## 5.0.39
+
+### Patch Changes
+
+- a0a725f: feat (ai): export createGateway
+
+## 5.0.38
+
+### Patch Changes
+
+- Updated dependencies [350a328]
+  - @ai-sdk/gateway@1.0.20
+
+## 5.0.37
+
+### Patch Changes
+
+- d6785d7: feat (ai): add tool and agent helpers
+
+## 5.0.36
+
+### Patch Changes
+
+- ccc2ded: feat (ai): export gateway provider
+
+## 5.0.35
+
+### Patch Changes
+
+- 99c946a: export missing type
+
+## 5.0.34
+
+### Patch Changes
+
+- Updated dependencies [034287f]
+- Updated dependencies [dee1afe]
+  - @ai-sdk/gateway@1.0.19
+
+## 5.0.33
+
+### Patch Changes
+
+- Updated dependencies [5d59a8c]
+  - @ai-sdk/gateway@1.0.18
+
+## 5.0.32
+
+### Patch Changes
+
+- Updated dependencies [b6005cd]
+  - @ai-sdk/gateway@1.0.17
+
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/gateway@1.0.16
+
+## 5.0.30
+
+### Patch Changes
+
+- 7fcc6be: feat(ai): throw InvalidArgumentError when messages is not provided
+
+## 5.0.29
+
+### Patch Changes
+
+- e0e9449: feat(ui): sent isAbort, isDisconnect, isError in useChat onFinish callback
+
+## 5.0.28
+
+### Patch Changes
+
+- 4b81e7d: fix(ai): remove vitest dependency from test exports
+- d68a4f2: feat(ai): log warnings
+
+## 5.0.27
+
+### Patch Changes
+
+- ca40fac: feat(ai): support custom download functions (experimental)
+
+## 5.0.26
+
+### Patch Changes
+
+- 33cf848: feat(ai): pass messages to `useChat({ onFinish })`
+- Updated dependencies [980633d]
+- Updated dependencies [1c5b88d]
+  - @ai-sdk/gateway@1.0.15
+
+## 5.0.25
+
+### Patch Changes
+
+- ca65923: fix(ai): remove use of `expect()` from production code
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/gateway@1.0.14
+
+## 5.0.24
+
+### Patch Changes
+
+- f8f3682: fix: call onFinish when stream is cancelled in toUIMessageStream
+
+  Previously, onFinish was only called on normal stream completion. Now it's also called when the reader is cancelled (e.g., browser close, navigation), ensuring partial messages are persisted.
+
+- Updated dependencies [1b5a3d3]
+- Updated dependencies [c9994f9]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/gateway@1.0.13
+
+## 5.0.23
+
+### Patch Changes
+
+- 5099b3d: fix(ai): make `chat.addToolResult()` compatible with dynamic tool calls
+- 7a2bf8d: fix(ai): support loop breaking behavior in async iterable stream
+- Updated dependencies [50e2029]
+- Updated dependencies [b8478f0]
+  - @ai-sdk/gateway@1.0.12
+
+## 5.0.22
+
+### Patch Changes
+
+- Updated dependencies [926259f]
+- Updated dependencies [c000f96]
+  - @ai-sdk/gateway@1.0.11
+
+## 5.0.21
+
+### Patch Changes
+
+- 581abea: fix(ai): call abort callback when stream is aborted during tool execution
+- 3c178ec: feat(ai): improved type checking for prompt/messages input
+- Updated dependencies [0857788]
+  - @ai-sdk/provider-utils@3.0.5
+  - @ai-sdk/gateway@1.0.10
+
+## 5.0.20
+
+### Patch Changes
+
+- 8a87693: fix(ai) Make sure warnings promise in streamObject is resolved and properly collects and passes warnings
+
+## 5.0.19
+
+### Patch Changes
+
+- 8da6e9c: fix(ai): use parsed tool input if possible when validation fails
+
+## 5.0.18
+
+### Patch Changes
+
+- Updated dependencies [8b96f99]
+  - @ai-sdk/gateway@1.0.9
+
+## 5.0.17
+
+### Patch Changes
+
+- 4176ecb: feat(ai): add reasoning text to generateObject result
+- 20f23f9: feat(ai): export LanguageModelMiddleware type
+
+## 5.0.16
+
+### Patch Changes
+
+- Updated dependencies [68751f9]
+  - @ai-sdk/provider-utils@3.0.4
+  - @ai-sdk/gateway@1.0.8
+
+## 5.0.15
+
+### Patch Changes
+
+- ca4f68f: feat(ai): add validateUIMessages function
+- Updated dependencies [28a4006]
+  - @ai-sdk/gateway@1.0.7
+
 ## 5.0.14
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { stepCountIs, streamText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const retrieveInformation = tool({
   description: 'Retrieve information from the database',

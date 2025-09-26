@@ -1,5 +1,79 @@
 # @ai-sdk/provider-utils
 
+## 3.1.0-beta.4
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+
+## 3.1.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+
+## 3.1.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+
+## 3.1.0-beta.1
+
+### Patch Changes
+
+- cbb1d35: Update for provider-util changeset after change in PR #8588
+
+## 3.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+
+## 3.0.9
+
+### Patch Changes
+
+- 0294b58: feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
+
+## 3.0.8
+
+### Patch Changes
+
+- 99964ed: fix(provider-utils): fix type inference for toModelOutput
+
+## 3.0.7
+
+### Patch Changes
+
+- 886e7cd: chore(provider-utils): upgrade event-source parser to 3.0.5
+
+## 3.0.6
+
+### Patch Changes
+
+- 1b5a3d3: chore(provider-util): integrate zod-to-json-schema
+
+## 3.0.5
+
+### Patch Changes
+
+- 0857788: fix(provider/groq): `experimental_transcribe` fails with valid Buffer
+
+## 3.0.4
+
+### Patch Changes
+
+- 68751f9: fix(provider-utils): add inject json utility function
+
 ## 3.0.3
 
 ### Patch Changes

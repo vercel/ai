@@ -1,12 +1,17 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { createGroq } from './groq-provider';
+import { describe, it, expect, vi } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -52,6 +57,9 @@ describe('doGenerate', () => {
       prompt_tokens?: number;
       total_tokens?: number;
       completion_tokens?: number;
+      prompt_tokens_details?: {
+        cached_tokens?: number;
+      };
     };
     finish_reason?: string;
     created?: number;
@@ -133,6 +141,7 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
+        "cachedInputTokens": undefined,
         "inputTokens": 20,
         "outputTokens": 5,
         "totalTokens": 25,
@@ -172,12 +181,40 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
+        "cachedInputTokens": undefined,
         "inputTokens": 20,
         "outputTokens": undefined,
         "totalTokens": 20,
       }
     `);
   });
+
+  it('should extract cached input tokens', async () => {
+    prepareJsonResponse({
+      usage: {
+        prompt_tokens: 20,
+        total_tokens: 25,
+        completion_tokens: 5,
+        prompt_tokens_details: {
+          cached_tokens: 15,
+        },
+      },
+    });
+
+    const { usage } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": 15,
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "totalTokens": 25,
+      }
+    `);
+  });
+
   it('should extract finish reason', async () => {
     prepareJsonResponse({
       finish_reason: 'stop',
@@ -259,6 +296,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass serviceTier provider option', async () => {
+    prepareJsonResponse();
+
+    await provider('gemma2-9b-it').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        groq: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      service_tier: 'flex',
+    });
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -331,6 +387,9 @@ describe('doGenerate', () => {
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/groq/0.0.0-test`,
+    );
   });
 
   it('should parse tool results', async () => {
@@ -792,6 +851,7 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
             "totalTokens": 457,
@@ -875,6 +935,7 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
             "totalTokens": 457,
@@ -1005,6 +1066,7 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
             "totalTokens": 457,
@@ -1140,6 +1202,7 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
             "totalTokens": 457,
@@ -1266,6 +1329,7 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": undefined,
             "outputTokens": undefined,
             "totalTokens": undefined,
@@ -1345,6 +1409,7 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
             "totalTokens": 457,
@@ -1385,6 +1450,7 @@ describe('doStream', () => {
           "finishReason": "error",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": undefined,
             "outputTokens": undefined,
             "totalTokens": undefined,
@@ -1423,6 +1489,7 @@ describe('doStream', () => {
             "finishReason": "error",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": undefined,
               "outputTokens": undefined,
               "totalTokens": undefined,
@@ -1623,6 +1690,7 @@ describe('doStream with raw chunks', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 10,
             "outputTokens": 5,
             "totalTokens": 15,

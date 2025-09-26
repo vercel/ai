@@ -1,9 +1,10 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { LanguageModelUsage } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV3 } from 'ai/test';
 import { z } from 'zod/v4';
 import { streamUI } from './stream-ui';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 async function recursiveResolve(val: any): Promise<any> {
   if (val && typeof val === 'object' && typeof val.then === 'function') {
@@ -57,7 +58,7 @@ const testUsage: LanguageModelUsage = {
   totalTokens: 13,
 };
 
-const mockTextModel = new MockLanguageModelV2({
+const mockTextModel = new MockLanguageModelV3({
   doStream: async () => {
     return {
       stream: convertArrayToReadableStream([
@@ -79,7 +80,7 @@ const mockTextModel = new MockLanguageModelV2({
   },
 });
 
-const mockToolModel = new MockLanguageModelV2({
+const mockToolModel = new MockLanguageModelV3({
   doStream: async () => {
     return {
       stream: convertArrayToReadableStream([
@@ -235,7 +236,7 @@ describe('rsc - streamUI() onFinish callback', () => {
 describe('options.headers', () => {
   it('should pass headers to model', async () => {
     const result = await streamUI({
-      model: new MockLanguageModelV2({
+      model: new MockLanguageModelV3({
         doStream: async ({ headers }) => {
           expect(headers).toStrictEqual({
             'custom-request-header': 'request-header-value',
@@ -270,7 +271,7 @@ describe('options.headers', () => {
 describe('options.providerMetadata', () => {
   it('should pass provider metadata to model', async () => {
     const result = await streamUI({
-      model: new MockLanguageModelV2({
+      model: new MockLanguageModelV3({
         doStream: async ({ providerOptions }) => {
           expect(providerOptions).toStrictEqual({
             aProvider: { someKey: 'someValue' },

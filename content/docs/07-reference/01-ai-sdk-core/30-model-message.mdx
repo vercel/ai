@@ -187,32 +187,50 @@ export interface ToolResultPart {
   /**
    * Result of the tool call. This is a JSON-serializable object.
    */
-  result: unknown;
+  output: LanguageModelV3ToolResultOutput;
 
   /**
-   * Multi-part content of the tool result. Only for tools that support multipart results.
-   */
-  experimental_content?: ToolResultContent;
-
-  /**
-   * Optional flag if the result is an error or an error message.
-   */
-  isError?: boolean;
+  Additional provider-specific metadata. They are passed through
+  to the provider from the AI SDK and enable provider-specific
+  functionality that can be fully encapsulated in the provider.
+  */
+  providerOptions?: ProviderOptions;
 }
 ```
 
-### `ToolResultContent`
+### `LanguageModelV3ToolResultOutput`
 
 ```ts
-export type ToolResultContent = Array<
+export type LanguageModelV3ToolResultOutput =
+  | { type: 'text'; value: string }
+  | { type: 'json'; value: JSONValue }
+  | { type: 'error-text'; value: string }
+  | { type: 'error-json'; value: JSONValue }
   | {
-      type: 'text';
-      text: string;
-    }
-  | {
-      type: 'image';
-      data: string; // base64 encoded png image, e.g. screenshot
-      mediaType?: string; // e.g. 'image/png';
-    }
->;
+      type: 'content';
+      value: Array<
+        | {
+            type: 'text';
+
+            /**
+          Text content.
+            */
+            text: string;
+          }
+        | {
+            type: 'media';
+
+            /**
+          Base-64 encoded media data.
+            */
+            data: string;
+
+            /**
+          IANA media type.
+          @see https://www.iana.org/assignments/media-types/media-types.xhtml
+            */
+            mediaType: string;
+          }
+      >;
+    };
 ```

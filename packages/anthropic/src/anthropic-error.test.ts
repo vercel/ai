@@ -1,4 +1,5 @@
 import { anthropicErrorDataSchema } from './anthropic-error';
+import { describe, it, expect } from 'vitest';
 
 describe('anthropicError', () => {
   describe('anthropicErrorDataSchema', () => {

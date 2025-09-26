@@ -1,16 +1,24 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
+  mockId,
 } from '@ai-sdk/provider-utils/test';
 import { createMistral } from './mistral-provider';
-import { vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const provider = createMistral({ apiKey: 'test-api-key' });
+const provider = createMistral({
+  apiKey: 'test-api-key',
+  generateId: mockId(),
+});
 const model = provider.chat('mistral-small-latest');
 
 const server = createTestServer({
@@ -99,7 +107,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "text": "and more content",
+          "text": "prefix and more content",
           "type": "text",
         },
       ]
@@ -148,6 +156,170 @@ describe('doGenerate', () => {
           "toolCallId": "gSIMJiOkT",
           "toolName": "weatherTool",
           "type": "tool-call",
+        },
+      ]
+    `);
+  });
+
+  it('should extract thinking content as reasoning', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'test-thinking-id',
+        object: 'chat.completion',
+        created: 1722349660,
+        model: 'magistral-medium-2507',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'thinking',
+                  thinking: [
+                    {
+                      type: 'text',
+                      text: 'Let me think about this problem step by step.',
+                    },
+                  ],
+                },
+                {
+                  type: 'text',
+                  text: 'Here is my answer.',
+                },
+              ],
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 10, total_tokens: 30, completion_tokens: 20 },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Let me think about this problem step by step.",
+          "type": "reasoning",
+        },
+        {
+          "text": "Here is my answer.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should preserve ordering of mixed thinking and text content', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'mixed-content-test',
+        object: 'chat.completion',
+        created: 1722349660,
+        model: 'magistral-medium-2507',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'thinking',
+                  thinking: [{ type: 'text', text: 'First thought.' }],
+                },
+                {
+                  type: 'text',
+                  text: 'Partial answer.',
+                },
+                {
+                  type: 'thinking',
+                  thinking: [{ type: 'text', text: 'Second thought.' }],
+                },
+                {
+                  type: 'text',
+                  text: 'Final answer.',
+                },
+              ],
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 10, total_tokens: 30, completion_tokens: 20 },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "First thought.",
+          "type": "reasoning",
+        },
+        {
+          "text": "Partial answer.",
+          "type": "text",
+        },
+        {
+          "text": "Second thought.",
+          "type": "reasoning",
+        },
+        {
+          "text": "Final answer.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should handle empty thinking content', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'empty-thinking-test',
+        object: 'chat.completion',
+        created: 1722349660,
+        model: 'magistral-medium-2507',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'thinking',
+                  thinking: [],
+                },
+                {
+                  type: 'text',
+                  text: 'Just the answer.',
+                },
+              ],
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 10, total_tokens: 30, completion_tokens: 20 },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Just the answer.",
+          "type": "text",
         },
       ]
     `);
@@ -296,6 +468,9 @@ describe('doGenerate', () => {
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/mistral/0.0.0-test`,
+    );
   });
 
   it('should send request body', async () => {
@@ -325,6 +500,113 @@ describe('doGenerate', () => {
           "model": "mistral-small-latest",
           "random_seed": undefined,
           "response_format": undefined,
+          "safe_prompt": undefined,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+          "top_p": undefined,
+        },
+      }
+    `);
+  });
+
+  it('should inject JSON instruction for JSON response format', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const { request } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+      },
+    });
+
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "document_image_limit": undefined,
+          "document_page_limit": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": "You MUST answer with JSON.",
+              "role": "system",
+            },
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "mistral-small-latest",
+          "random_seed": undefined,
+          "response_format": {
+            "type": "json_object",
+          },
+          "safe_prompt": undefined,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+          "top_p": undefined,
+        },
+      }
+    `);
+  });
+
+  it('should inject JSON instruction for JSON response format with schema', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const { request } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+        },
+      },
+    });
+
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "document_image_limit": undefined,
+          "document_page_limit": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "mistral-small-latest",
+          "random_seed": undefined,
+          "response_format": {
+            "json_schema": {
+              "description": undefined,
+              "name": "response",
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "json_schema",
+          },
           "safe_prompt": undefined,
           "temperature": undefined,
           "tool_choice": undefined,
@@ -404,6 +686,53 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should pass parallelToolCalls option', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        mistral: {
+          parallelToolCalls: false,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      model: 'mistral-small-latest',
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      ],
+      parallel_tool_calls: false,
+    });
   });
 });
 
@@ -698,6 +1027,9 @@ describe('doStream', () => {
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/mistral/0.0.0-test`,
+    );
   });
 
   it('should send request body', async () => {
@@ -794,6 +1126,168 @@ describe('doStream', () => {
             "inputTokens": 4,
             "outputTokens": 32,
             "totalTokens": 36,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should stream thinking content as reasoning deltas', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"thinking-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"thinking","thinking":[{"type":"text","text":"Let me think..."}]}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"thinking-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"text","text":"The answer is 4."}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"thinking-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"content":""},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"total_tokens":25,"completion_tokens":20}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "thinking-test",
+          "modelId": "magistral-small-2507",
+          "timestamp": 2025-06-21T20:33:20.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "id-0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Let me think...",
+          "id": "id-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "id-0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "The answer is 4.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 5,
+            "outputTokens": 20,
+            "totalTokens": 25,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should handle interleaved thinking and text content in streaming', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"interleaved-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"thinking","thinking":[{"type":"text","text":"First thought."}]}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"interleaved-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"text","text":"Partial answer."}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"interleaved-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"thinking","thinking":[{"type":"text","text":"Second thought."}]}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"interleaved-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"text","text":"Final answer."}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"interleaved-test","object":"chat.completion.chunk","created":1750538000,"model":"magistral-small-2507","choices":[{"index":0,"delta":{"content":""},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"total_tokens":40,"completion_tokens":30}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "interleaved-test",
+          "modelId": "magistral-small-2507",
+          "timestamp": 2025-06-21T20:33:20.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "id-1",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "First thought.",
+          "id": "id-1",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "id-1",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Partial answer.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "id": "id-2",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Second thought.",
+          "id": "id-2",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "id-2",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Final answer.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 10,
+            "outputTokens": 30,
+            "totalTokens": 40,
           },
         },
       ]
@@ -924,7 +1418,7 @@ describe('doStream with raw chunks', () => {
 });
 
 describe('tool result format support', () => {
-  it('should handle new LanguageModelV2ToolResultOutput format', async () => {
+  it('should handle new LanguageModelV3ToolResultOutput format', async () => {
     server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
       type: 'json-value',
       body: {
