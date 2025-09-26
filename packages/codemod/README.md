@@ -92,7 +92,6 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/move-maxsteps-to-stopwhen`                                        | Transforms v5/move maxsteps to stopwhen                                        |
 | `v5/move-provider-options`                                            | Transforms v5/move provider options                                            |
 | `v5/move-react-to-ai-sdk`                                             | Transforms v5/move react to ai sdk                                             |
-| `v5/move-tool-invocations-to-parts`                                   | Transforms v5/move tool invocations to parts                                   |
 | `v5/move-ui-utils-to-ai`                                              | Transforms v5/move ui utils to ai                                              |
 | `v5/remove-experimental-wrap-language-model`                          | Transforms v5/remove experimental wrap language model                          |
 | `v5/remove-get-ui-text`                                               | Transforms v5/remove get ui text                                               |

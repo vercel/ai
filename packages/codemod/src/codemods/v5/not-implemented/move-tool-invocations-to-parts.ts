@@ -1,8 +1,8 @@
-import { createTransformer } from '../lib/create-transformer';
+import { createTransformer } from '../../lib/create-transformer';
 import {
   AI_SDK_CODEMOD_ERROR_PREFIX,
   insertCommentOnce,
-} from '../lib/add-comment';
+} from '../../lib/add-comment';
 import type { ASTPath } from 'jscodeshift';
 
 function isStatementOrVarDecl(node: { type: string }) {
