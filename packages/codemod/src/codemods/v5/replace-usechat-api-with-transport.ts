@@ -83,29 +83,9 @@ export default createTransformer((fileInfo, api, options, context) => {
       source: { value: '@ai-sdk/react' },
     });
 
-    const aiImports = root.find(j.ImportDeclaration, {
-      source: { value: 'ai' },
-    });
-
     if (reactImports.length > 0) {
       const firstReactImport = reactImports.at(0);
       const specifiers = firstReactImport.get().node.specifiers || [];
-
-      const hasDefaultChatTransport = specifiers.some(
-        (spec: any) =>
-          spec.type === 'ImportSpecifier' &&
-          spec.imported.type === 'Identifier' &&
-          spec.imported.name === 'DefaultChatTransport',
-      );
-
-      if (!hasDefaultChatTransport) {
-        specifiers.push(
-          j.importSpecifier(j.identifier('DefaultChatTransport')),
-        );
-      }
-    } else if (aiImports.length > 0) {
-      const firstAiImport = aiImports.at(0);
-      const specifiers = firstAiImport.get().node.specifiers || [];
 
       const hasDefaultChatTransport = specifiers.some(
         (spec: any) =>
