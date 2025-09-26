@@ -8,7 +8,7 @@ run(async () => {
     prompt:
       'What is this page about? https://en.wikipedia.org/wiki/Maglemosian_culture',
     tools: {
-      web_fetch: anthropic.tools.webFetch_20250910({ maxUses: 1 }),
+      web_fetch: anthropic.tools.webFetch_20250910(),
     },
   });
 

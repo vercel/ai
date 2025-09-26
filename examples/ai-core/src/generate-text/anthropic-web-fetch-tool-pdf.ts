@@ -9,9 +9,7 @@ run(async () => {
       'What does this pdf say about AI?\n' +
       'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf',
     tools: {
-      web_fetch: anthropic.tools.webFetch_20250910({
-        maxUses: 1,
-      }),
+      web_fetch: anthropic.tools.webFetch_20250910(),
     },
   });
 
