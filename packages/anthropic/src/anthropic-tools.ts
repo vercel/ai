@@ -115,6 +115,8 @@ export const anthropicTools = {
    * Support models: Claude Sonnet 4, Opus 4, and Opus 4.1
    *
    * Tool name must be `str_replace_based_edit_tool`.
+   *
+   * @param maxCharacters - Optional maximum number of characters to view in the file
    */
   textEditor_20250728,
 
