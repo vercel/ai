@@ -17,6 +17,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > txt resp
     "providerExecuted": true,
     "result": {
       "content": {
+        "citations": undefined,
         "source": {
           "data": "This article needs additional citations for
 |
@@ -48,9 +49,10 @@ Danish-language texts
 - Peter Vang Petersen: "Bjørnejagt", Skalk nr. 5, 1991, s. 3ff
 - Poul og Kristian Krabbe: "Vest for Valhal", Skalk nr. 6, 1995, s. 11ff
 - Axel Degn Johansen: "Ikke en sky og ikke en vind!", Skalk nr 2, 2008, s. 8ff",
-          "media_type": "text/plain",
+          "mediaType": "text/plain",
           "type": "text",
         },
+        "title": "Maglemosian culture",
         "type": "document",
       },
       "retrievedAt": "2025-07-17T21:38:38.606000+00:00",
@@ -500,6 +502,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch tool
   {
     "result": {
       "content": {
+        "citations": undefined,
         "source": {
           "data": "This article needs additional citations for
 |
@@ -531,9 +534,10 @@ Danish-language texts
 - Peter Vang Petersen: "Bjørnejagt", Skalk nr. 5, 1991, s. 3ff
 - Poul og Kristian Krabbe: "Vest for Valhal", Skalk nr. 6, 1995, s. 11ff
 - Axel Degn Johansen: "Ikke en sky og ikke en vind!", Skalk nr 2, 2008, s. 8ff",
-          "media_type": "text/plain",
+          "mediaType": "text/plain",
           "type": "text",
         },
+        "title": "Maglemosian culture",
         "type": "document",
       },
       "retrievedAt": "2025-07-17T21:38:38.606000+00:00",

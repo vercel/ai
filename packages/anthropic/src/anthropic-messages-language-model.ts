@@ -535,7 +535,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 type: 'web_fetch_result',
                 url: part.content.url,
                 retrievedAt: part.content.retrieved_at,
-                content: part.content.content,
+                content: {
+                  type: part.content.content.type,
+                  title: part.content.content.title,
+                  citations: part.content.content.citations,
+                  source: {
+                    type: part.content.content.source.type,
+                    mediaType: part.content.content.source.media_type,
+                    data: part.content.content.source.data,
+                  },
+                },
               },
               providerExecuted: true,
             });
@@ -842,7 +851,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           type: 'web_fetch_result',
                           url: part.content.url,
                           retrievedAt: part.content.retrieved_at,
-                          content: part.content.content,
+                          content: {
+                            type: part.content.content.type,
+                            title: part.content.content.title,
+                            citations: part.content.content.citations,
+                            source: {
+                              type: part.content.content.source.type,
+                              mediaType: part.content.content.source.media_type,
+                              data: part.content.content.source.data,
+                            },
+                          },
                         },
                       });
                     } else if (
@@ -1216,6 +1234,8 @@ const anthropicMessagesResponseSchema = z.object({
             retrieved_at: z.string(),
             content: z.object({
               type: z.literal('document'),
+              title: z.string(),
+              citations: z.object({ enabled: z.boolean() }).optional(),
               source: z.object({
                 type: z.literal('text'),
                 media_type: z.string(),
@@ -1327,6 +1347,8 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
             retrieved_at: z.string(),
             content: z.object({
               type: z.literal('document'),
+              title: z.string(),
+              citations: z.object({ enabled: z.boolean() }).optional(),
               source: z.object({
                 type: z.literal('text'),
                 media_type: z.string(),
