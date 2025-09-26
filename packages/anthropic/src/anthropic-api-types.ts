@@ -144,7 +144,7 @@ export interface AnthropicWebFetchToolResultContent {
     content: {
       type: 'document';
       title: string | null;
-      citations: { enabled: boolean };
+      citations?: { enabled: boolean };
       source:
         | { type: 'base64'; media_type: 'application/pdf'; data: string }
         | { type: 'text'; media_type: 'text/plain'; data: string };

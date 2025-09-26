@@ -5,11 +5,7 @@ export const webFetch_20250910ArgsSchema = z.object({
   maxUses: z.number().optional(),
   allowedDomains: z.array(z.string()).optional(),
   blockedDomains: z.array(z.string()).optional(),
-  citations: z
-    .object({
-      enabled: z.boolean(),
-    })
-    .optional(),
+  citations: z.object({ enabled: z.boolean() }).optional(),
   maxContentTokens: z.number().optional(),
 });
 
@@ -19,7 +15,7 @@ export const webFetch_20250910OutputSchema = z.object({
   content: z.object({
     type: z.literal('document'),
     title: z.string(),
-    citations: z.object({ enabled: z.boolean() }),
+    citations: z.object({ enabled: z.boolean() }).optional(),
     source: z.union([
       z.object({
         type: z.literal('base64'),
@@ -65,7 +61,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
       /**
        * Citation configuration for the document
        */
-      citations: { enabled: boolean };
+      citations?: { enabled: boolean };
 
       source:
         | {
