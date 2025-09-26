@@ -87,7 +87,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
   },
   {
     /**
-     * The max_uses parameter limits the number of web fetches performed
+     * The maxUses parameter limits the number of web fetches performed
      */
     maxUses?: number;
 
@@ -111,7 +111,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
     };
 
     /**
-     * The max_content_tokens parameter limits the amount of content that will be included in the context.
+     * The maxContentTokens parameter limits the amount of content that will be included in the context.
      */
     maxContentTokens?: number;
   }

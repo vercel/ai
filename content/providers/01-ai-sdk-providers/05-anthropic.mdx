@@ -450,6 +450,50 @@ const result = await generateText({
 });
 ```
 
+## Web Fetch
+
+Anthropic provides a provider-defined web fetch tool that allows Claude to retrieve content from specific URLs. This is useful when you want Claude to analyze or reference content from a particular webpage or document.
+
+You can enable web fetch using the provider-defined web fetch tool:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-0'),
+  prompt:
+    'What is this page about? https://en.wikipedia.org/wiki/Maglemosian_culture',
+  tools: {
+    web_fetch: anthropic.tools.webFetch_20250910({ maxUses: 1 }),
+  },
+});
+```
+
+#### Configuration Options
+
+The web fetch tool supports several configuration options:
+
+- **maxUses** _number_
+
+  The maxUses parameter limits the number of web fetches performed.
+
+- **allowedDomains** _string[]_
+
+  Only fetch from these domains.
+
+- **blockedDomains** _string[]_
+
+  Never fetch from these domains.
+
+- **citations** _object_
+
+  Unlike web search where citations are always enabled, citations are optional for web fetch. Set "citations": {"enabled": true} to enable Claude to cite specific passages from fetched documents.
+
+- **maxContentTokens** _number_
+
+  The maxContentTokens parameter limits the amount of content that will be included in the context.
+
 #### Error Handling
 
 Web search errors are handled differently depending on whether you're using streaming or non-streaming:
