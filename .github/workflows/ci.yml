@@ -107,7 +107,7 @@ jobs:
       - name: Run TypeScript type check
         run: pnpm run type-check:full
 
-  test:
+  test_matrix:
     name: 'Test'
     runs-on: ubuntu-latest
     env:
@@ -139,3 +139,17 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+  # separate "test" job to set as required in branch protections,
+  # as the matrix build names above change each time Node versions change
+  test:
+    runs-on: ubuntu-latest
+    needs: test_matrix
+    if: ${{ !cancelled() }}
+    steps:
+      - name: All matrix versions passed
+        if: ${{ !(contains(needs.*.result, 'failure')) }}
+        run: exit 0
+      - name: Some matrix version failed
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: exit 1
