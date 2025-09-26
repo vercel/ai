@@ -1,6 +1,5 @@
 import {
   JSONObject,
-  JSONValue,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -9,7 +8,6 @@ import {
   LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
