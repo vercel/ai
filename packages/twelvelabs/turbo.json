@@ -1,0 +1,12 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test:edge": {
+      "env": ["TWELVELABS_API_KEY", "TWELVELABS_PEGASUS_INDEX_NAME", "TWELVELABS_MARENGO_INDEX_NAME"]
+    },
+    "test:node": {
+      "env": ["TWELVELABS_API_KEY", "TWELVELABS_PEGASUS_INDEX_NAME", "TWELVELABS_MARENGO_INDEX_NAME"]
+    }
+  }
+}
