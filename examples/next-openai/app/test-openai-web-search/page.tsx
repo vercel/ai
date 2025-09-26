@@ -15,9 +15,7 @@ export default function TestOpenAIWebSearch() {
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
-      <h1 className="mb-4 text-xl font-bold">
-        OpenAI Web Search Block-Based Streaming Test
-      </h1>
+      <h1 className="mb-4 text-xl font-bold">OpenAI Web Search Test</h1>
 
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
