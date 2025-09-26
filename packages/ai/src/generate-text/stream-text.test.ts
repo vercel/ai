@@ -1,10 +1,10 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
-  LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2StreamPart,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3StreamPart,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -34,7 +34,7 @@ import {
 } from 'vitest';
 import { z } from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
@@ -102,17 +102,17 @@ function createTestModel({
   request = undefined,
   response = undefined,
 }: {
-  stream?: ReadableStream<LanguageModelV2StreamPart>;
+  stream?: ReadableStream<LanguageModelV3StreamPart>;
   request?: { body: string };
   response?: { headers: Record<string, string> };
-  warnings?: LanguageModelV2CallWarning[];
-} = {}): LanguageModelV2 {
-  return new MockLanguageModelV2({
+  warnings?: LanguageModelV3CallWarning[];
+} = {}): LanguageModelV3 {
+  return new MockLanguageModelV3({
     doStream: async () => ({ stream, request, response, warnings }),
   });
 }
 
-const modelWithSources = new MockLanguageModelV2({
+const modelWithSources = new MockLanguageModelV3({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -143,7 +143,7 @@ const modelWithSources = new MockLanguageModelV2({
   }),
 });
 
-const modelWithDocumentSources = new MockLanguageModelV2({
+const modelWithDocumentSources = new MockLanguageModelV3({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -175,7 +175,7 @@ const modelWithDocumentSources = new MockLanguageModelV2({
   }),
 });
 
-const modelWithFiles = new MockLanguageModelV2({
+const modelWithFiles = new MockLanguageModelV3({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -200,7 +200,7 @@ const modelWithFiles = new MockLanguageModelV2({
   }),
 });
 
-const modelWithReasoning = new MockLanguageModelV2({
+const modelWithReasoning = new MockLanguageModelV3({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -343,7 +343,7 @@ describe('streamText', () => {
   describe('result.textStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -420,7 +420,7 @@ describe('streamText', () => {
   describe('result.fullStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -906,7 +906,7 @@ describe('streamText', () => {
 
     it('should use fallback response metadata when response metadata is not provided', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -1011,7 +1011,7 @@ describe('streamText', () => {
 
     it('should send tool calls', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -1442,7 +1442,7 @@ describe('streamText', () => {
   describe('errors', () => {
     it('should swallow error to prevent server crash', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1458,7 +1458,7 @@ describe('streamText', () => {
 
     it('should forward error in doStream as error stream part', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1484,7 +1484,7 @@ describe('streamText', () => {
       const onError = vi.fn();
 
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1551,7 +1551,7 @@ describe('streamText', () => {
       let responseCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt, tools, toolChoice }) => {
             if (responseCount++ === 0) {
               return {
@@ -1601,7 +1601,7 @@ describe('streamText', () => {
 
     it('should reject text promise when error is thrown', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -3083,7 +3083,7 @@ describe('streamText', () => {
     it('should call onFinish when reader.cancel() is called', async () => {
       const onFinishCallback = vi.fn();
 
-      const model = new MockLanguageModelV2({
+      const model = new MockLanguageModelV3({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
             {
@@ -3139,7 +3139,7 @@ describe('streamText', () => {
     it('should call onFinish when async iteration stops mid-stream', async () => {
       const onFinishCallback = vi.fn();
 
-      const model = new MockLanguageModelV2({
+      const model = new MockLanguageModelV3({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
             {
@@ -3210,7 +3210,7 @@ describe('streamText', () => {
       const onFinishCallback = vi.fn();
       const abortController = new AbortController();
 
-      const model = new MockLanguageModelV2({
+      const model = new MockLanguageModelV3({
         doStream: async ({ abortSignal }) => {
           const stream = new ReadableStream({
             async start(controller) {
@@ -4697,7 +4697,7 @@ describe('streamText', () => {
       const result: Array<{ error: unknown }> = [];
 
       const resultObject = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -5391,7 +5391,7 @@ describe('streamText', () => {
 
     it('should not prevent error from being forwarded', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -5543,7 +5543,7 @@ describe('streamText', () => {
 
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async ({ prompt, tools, toolChoice }) => {
               stepInputs.push({ prompt, tools, toolChoice });
 
@@ -6640,7 +6640,7 @@ describe('streamText', () => {
 
     describe('2 steps: initial, tool-result with prepareStep', () => {
       let result: StreamTextResult<any, any>;
-      let doStreamCalls: Array<LanguageModelV2CallOptions>;
+      let doStreamCalls: Array<LanguageModelV3CallOptions>;
       let prepareStepCalls: Array<{
         stepNumber: number;
         steps: Array<StepResult<any>>;
@@ -6652,7 +6652,7 @@ describe('streamText', () => {
         prepareStepCalls = [];
 
         result = streamText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async options => {
               doStreamCalls.push(options);
               switch (doStreamCalls.length) {
@@ -7249,7 +7249,7 @@ describe('streamText', () => {
 
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async ({ prompt, tools, toolChoice }) => {
               switch (responseCount++) {
                 case 0: {
@@ -8362,7 +8362,7 @@ describe('streamText', () => {
 
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => {
               switch (responseCount++) {
                 case 0: {
@@ -8631,7 +8631,7 @@ describe('streamText', () => {
   describe('options.headers', () => {
     it('should set headers', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ headers }) => {
             expect(headers).toStrictEqual({
               'custom-request-header': 'request-header-value',
@@ -9170,7 +9170,7 @@ describe('streamText', () => {
   describe('options.providerMetadata', () => {
     it('should pass provider metadata to model', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ providerOptions }) => {
             expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
@@ -9699,7 +9699,7 @@ describe('streamText', () => {
   describe('tools with custom schema', () => {
     it('should send tool calls', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -9774,7 +9774,7 @@ describe('streamText', () => {
   describe('options.messages', () => {
     it('should support models that use "this" context in supportedUrls', async () => {
       let supportedUrlsCalled = false;
-      class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV3 {
         constructor() {
           super({
             supportedUrls() {
@@ -11477,10 +11477,10 @@ describe('streamText', () => {
 
     describe('object output', () => {
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
-        let callOptions!: LanguageModelV2CallOptions;
+        let callOptions!: LanguageModelV3CallOptions;
 
         const result = streamText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async args => {
               callOptions = args;
               return {
@@ -11833,11 +11833,11 @@ describe('streamText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
+        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool)[]
         | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async ({ tools: toolsArg }) => {
             tools = toolsArg;
 
@@ -11992,7 +11992,7 @@ describe('streamText', () => {
     it('should pass through the includeRawChunks flag correctly to the model', async () => {
       let capturedOptions: any;
 
-      const model = new MockLanguageModelV2({
+      const model = new MockLanguageModelV3({
         doStream: async options => {
           capturedOptions = options;
 
@@ -12123,7 +12123,7 @@ describe('streamText', () => {
     it('should pass includeRawChunks flag correctly to the model', async () => {
       let capturedOptions: any;
 
-      const model = new MockLanguageModelV2({
+      const model = new MockLanguageModelV3({
         doStream: async options => {
           capturedOptions = options;
           return {
@@ -12477,7 +12477,7 @@ describe('streamText', () => {
           onAbort: event => {
             onAbortCalls.push(event);
           },
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: new ReadableStream({
                 pull(controller) {
@@ -12590,7 +12590,7 @@ describe('streamText', () => {
           onAbort: event => {
             onAbortCalls.push(event);
           },
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: new ReadableStream({
                 start(controller) {
@@ -12884,7 +12884,7 @@ describe('streamText', () => {
           onAbort: event => {
             onAbortCalls.push(event);
           },
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: new ReadableStream({
                 start(controller) {
@@ -13691,7 +13691,7 @@ describe('streamText', () => {
       };
 
       let callCount = 0;
-      const model = new MockLanguageModelV2({
+      const model = new MockLanguageModelV3({
         doStream: async _options => {
           switch (callCount++) {
             case 0:

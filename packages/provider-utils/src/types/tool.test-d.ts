@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { tool } from './tool';
 import { describe, it, expectTypeOf } from 'vitest';
-import { LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
+import { LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
 
 describe('tool type', () => {
   describe('input type', () => {
@@ -84,7 +84,7 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        ((output: any) => LanguageModelV2ToolResultPart['output']) | undefined
+        ((output: any) => LanguageModelV3ToolResultPart['output']) | undefined
       >();
     });
 
@@ -99,7 +99,7 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        | ((output: 'test') => LanguageModelV2ToolResultPart['output'])
+        | ((output: 'test') => LanguageModelV3ToolResultPart['output'])
         | undefined
       >();
     });
@@ -115,7 +115,7 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        | ((output: 'test') => LanguageModelV2ToolResultPart['output'])
+        | ((output: 'test') => LanguageModelV3ToolResultPart['output'])
         | undefined
       >();
     });

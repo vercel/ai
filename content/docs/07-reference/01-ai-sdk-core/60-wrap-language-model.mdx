@@ -30,12 +30,12 @@ const wrappedLanguageModel = wrapLanguageModel({
   content={[
     {
       name: 'model',
-      type: 'LanguageModelV2',
-      description: 'The original LanguageModelV2 instance to be wrapped.',
+      type: 'LanguageModelV3',
+      description: 'The original LanguageModelV3 instance to be wrapped.',
     },
     {
       name: 'middleware',
-      type: 'LanguageModelV2Middleware | LanguageModelV2Middleware[]',
+      type: 'LanguageModelV3Middleware | LanguageModelV3Middleware[]',
       description:
         'The middleware to be applied to the language model. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.',
     },
@@ -56,4 +56,4 @@ const wrappedLanguageModel = wrapLanguageModel({
 
 ### Returns
 
-A new `LanguageModelV2` instance with middleware applied.
+A new `LanguageModelV3` instance with middleware applied.

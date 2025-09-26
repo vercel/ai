@@ -9,7 +9,7 @@ import {
 } from '@ai-sdk/openai/internal';
 import {
   EmbeddingModelV3,
-  LanguageModelV2,
+  LanguageModelV3,
   ProviderV3,
   ImageModelV3,
   SpeechModelV2,
@@ -25,27 +25,27 @@ import { azureOpenaiTools } from './azure-openai-tools';
 import { VERSION } from './version';
 
 export interface AzureOpenAIProvider extends ProviderV3 {
-  (deploymentId: string): LanguageModelV2;
+  (deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  languageModel(deploymentId: string): LanguageModelV2;
+  languageModel(deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  chat(deploymentId: string): LanguageModelV2;
+  chat(deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI responses API model for text generation.
    */
-  responses(deploymentId: string): LanguageModelV2;
+  responses(deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI completion model for text generation.
    */
-  completion(deploymentId: string): LanguageModelV2;
+  completion(deploymentId: string): LanguageModelV3;
 
   /**
 @deprecated Use `textEmbedding` instead.
