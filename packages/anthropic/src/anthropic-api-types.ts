@@ -18,6 +18,7 @@ export interface AnthropicUserMessage {
     | AnthropicImageContent
     | AnthropicDocumentContent
     | AnthropicToolResultContent
+    | AnthropicContainerUploadContent
   >;
 }
 
@@ -38,6 +39,11 @@ export interface AnthropicTextContent {
   type: 'text';
   text: string;
   cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicContainerUploadContent {
+  type: 'container_upload';
+  file_id: string;
 }
 
 export interface AnthropicThinkingContent {
