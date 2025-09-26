@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 3.1.0-beta.5
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider@2.1.0-beta.3
+
 ## 3.1.0-beta.4
 
 ### Patch Changes
