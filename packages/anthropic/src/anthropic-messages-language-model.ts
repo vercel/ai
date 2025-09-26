@@ -1041,13 +1041,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   ...(value.message.usage as JSONObject),
                 };
 
-                (cacheCreationInputTokens =
-                  value.message.usage.cache_creation_input_tokens ?? null),
-                  controller.enqueue({
-                    type: 'response-metadata',
-                    id: value.message.id ?? undefined,
-                    modelId: value.message.model ?? undefined,
-                  });
+                cacheCreationInputTokens =
+                  value.message.usage.cache_creation_input_tokens ?? null;
+
+                controller.enqueue({
+                  type: 'response-metadata',
+                  id: value.message.id ?? undefined,
+                  modelId: value.message.model ?? undefined,
+                });
 
                 return;
               }
