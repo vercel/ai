@@ -37,7 +37,7 @@ export function prepareTools({
 
   for (const tool of tools) {
     switch (tool.type) {
-      case 'function':
+      case 'function': {
         const cacheControl = getCacheControl(tool.providerOptions);
 
         anthropicTools.push({
@@ -47,7 +47,9 @@ export function prepareTools({
           cache_control: cacheControl,
         });
         break;
-      case 'provider-defined':
+      }
+
+      case 'provider-defined': {
         switch (tool.id) {
           case 'anthropic.code_execution_20250522': {
             betas.add('code-execution-2025-05-22');
@@ -155,14 +157,18 @@ export function prepareTools({
             break;
           }
 
-          default:
+          default: {
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
+          }
         }
         break;
-      default:
+      }
+
+      default: {
         toolWarnings.push({ type: 'unsupported-tool', tool });
         break;
+      }
     }
   }
 
