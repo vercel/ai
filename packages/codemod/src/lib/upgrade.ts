@@ -46,6 +46,7 @@ const bundle = [
   'v5/rename-datastream-methods-to-uimessage',
   'v5/rename-datastream-transform-stream',
   'v5/rename-IDGenerator-to-IdGenerator',
+  'v5/replace-datastream-to-uimessagestream',
   'v5/rename-languagemodelv1providermetadata',
   'v5/rename-max-tokens-to-max-output-tokens',
   'v5/rename-message-to-ui-message',
