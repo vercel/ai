@@ -38,6 +38,7 @@ import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
+import { LanguageModelUsage } from '../types/usage';
 import { object, text } from './output';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
@@ -12460,7 +12461,11 @@ describe('streamText', () => {
     describe('basic abort', () => {
       let result: StreamTextResult<ToolSet, TextStreamPart<ToolSet>>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<ToolSet>[] }> = [];
+      let onAbortCalls: Array<{
+        steps: StepResult<ToolSet>[];
+        usage: LanguageModelUsage;
+        totalUsage: LanguageModelUsage;
+      }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -12526,12 +12531,27 @@ describe('streamText', () => {
 
       it('should call onAbort when the abort signal is triggered', async () => {
         await result.consumeStream();
-        expect(onAbortCalls).toMatchInlineSnapshot(`
-          [
-            {
-              "steps": [],
+        expect(onAbortCalls).toHaveLength(1);
+        const abortEvent = onAbortCalls[0];
+
+        expect(abortEvent).toMatchInlineSnapshot(`
+          {
+            "steps": [],
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 3,
+              "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 3,
             },
-          ]
+            "totalUsage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 3,
+              "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 3,
+            },
+          }
         `);
       });
 
@@ -12575,7 +12595,11 @@ describe('streamText', () => {
     describe('abort in 2nd step', () => {
       let result: StreamTextResult<any, TextStreamPart<any>>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+      let onAbortCalls: Array<{
+        steps: StepResult<any>[];
+        usage: LanguageModelUsage;
+        totalUsage: LanguageModelUsage;
+      }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -12679,87 +12703,27 @@ describe('streamText', () => {
 
       it('should call onAbort when the abort signal is triggered', async () => {
         await result.consumeStream();
-        expect(onAbortCalls).toMatchInlineSnapshot(`
-          [
-            {
-              "steps": [
-                DefaultStepResult {
-                  "content": [
-                    {
-                      "input": {
-                        "value": "value",
-                      },
-                      "providerExecuted": undefined,
-                      "providerMetadata": undefined,
-                      "toolCallId": "call-1",
-                      "toolName": "tool1",
-                      "type": "tool-call",
-                    },
-                    {
-                      "input": {
-                        "value": "value",
-                      },
-                      "output": "result1",
-                      "providerExecuted": undefined,
-                      "providerMetadata": undefined,
-                      "toolCallId": "call-1",
-                      "toolName": "tool1",
-                      "type": "tool-result",
-                    },
-                  ],
-                  "finishReason": "tool-calls",
-                  "providerMetadata": undefined,
-                  "request": {},
-                  "response": {
-                    "headers": undefined,
-                    "id": "id-0",
-                    "messages": [
-                      {
-                        "content": [
-                          {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
-                    ],
-                    "modelId": "mock-model-id",
-                    "timestamp": 1970-01-01T00:00:00.000Z,
-                  },
-                  "usage": {
-                    "cachedInputTokens": undefined,
-                    "inputTokens": 3,
-                    "outputTokens": 10,
-                    "reasoningTokens": undefined,
-                    "totalTokens": 13,
-                  },
-                  "warnings": [],
-                },
-              ],
-            },
-          ]
-        `);
+        expect(onAbortCalls).toHaveLength(1);
+        const abortEvent = onAbortCalls[0];
+
+        expect(abortEvent.steps).toHaveLength(1);
+        expect(abortEvent.steps[0].usage).toStrictEqual(testUsage);
+
+        expect(abortEvent.usage).toStrictEqual({
+          inputTokens: 14,
+          outputTokens: 0,
+          totalTokens: 14,
+          reasoningTokens: 0,
+          cachedInputTokens: 0,
+        });
+
+        expect(abortEvent.totalUsage).toStrictEqual({
+          inputTokens: 17,
+          outputTokens: 10,
+          totalTokens: 27,
+          reasoningTokens: 0,
+          cachedInputTokens: 0,
+        });
       });
 
       it('should only stream initial chunks in full stream', async () => {
@@ -12865,7 +12829,11 @@ describe('streamText', () => {
     describe('abort during tool call', () => {
       let result: StreamTextResult<any, TextStreamPart<any>>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+      let onAbortCalls: Array<{
+        steps: StepResult<any>[];
+        usage: LanguageModelUsage;
+        totalUsage: LanguageModelUsage;
+      }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -12975,13 +12943,18 @@ describe('streamText', () => {
 
       it('should call onAbort when the abort signal is triggered during tool call', async () => {
         await result.consumeStream();
-        expect(onAbortCalls).toMatchInlineSnapshot(`
-          [
-            {
-              "steps": [],
-            },
-          ]
-        `);
+        expect(onAbortCalls).toHaveLength(1);
+        const abortEvent = onAbortCalls[0];
+
+        expect(abortEvent.steps).toEqual([]);
+        expect(abortEvent.usage).toStrictEqual({
+          inputTokens: 2,
+          outputTokens: 0,
+          totalTokens: 2,
+          reasoningTokens: 0,
+          cachedInputTokens: 0,
+        });
+        expect(abortEvent.totalUsage).toStrictEqual(abortEvent.usage);
       });
 
       it('should end full stream with abort part', async () => {
@@ -12996,6 +12969,85 @@ describe('streamText', () => {
             },
           ]
         `);
+      });
+    });
+
+    describe('abort usage estimation', () => {
+      it('should approximate partial usage including reasoning tokens', async () => {
+        const abortController = new AbortController();
+        const onAbortCalls: Array<{
+          steps: StepResult<ToolSet>[];
+          usage: LanguageModelUsage;
+          totalUsage: LanguageModelUsage;
+        }> = [];
+
+        const result = streamText({
+          ...defaultSettings(),
+          abortSignal: abortController.signal,
+          prompt: 'prompt',
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV2({
+            doStream: async () => {
+              let pullCalls = 0;
+
+              return {
+                stream: new ReadableStream({
+                  start() {
+                    pullCalls = 0;
+                  },
+                  pull(controller) {
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({
+                          type: 'reasoning-start',
+                          id: 'r1',
+                        });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'reasoning-delta',
+                          id: 'r1',
+                          delta: 'analysis',
+                        });
+                        break;
+                      default:
+                        abortController.abort();
+                        controller.error(
+                          new DOMException(
+                            'The user aborted a request.',
+                            'AbortError',
+                          ),
+                        );
+                        break;
+                    }
+                  },
+                }),
+              };
+            },
+          }),
+        });
+
+        await result.consumeStream();
+
+        expect(onAbortCalls).toHaveLength(1);
+        const abortEvent = onAbortCalls[0];
+
+        expect(abortEvent.usage).toStrictEqual({
+          inputTokens: 2,
+          outputTokens: 0,
+          totalTokens: 2,
+          reasoningTokens: 0,
+          cachedInputTokens: 0,
+        });
+        expect(abortEvent.totalUsage).toStrictEqual(abortEvent.usage);
       });
     });
   });

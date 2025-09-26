@@ -445,6 +445,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     };
     let isFirstChunk = true;
     let isActiveText = false;
+    let finishSent = false;
 
     const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
 
@@ -488,6 +489,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
               });
             }
 
+            let shouldSendFinishChunk = false;
+
             if (value.usage != null) {
               usage.inputTokens = value.usage.prompt_tokens ?? undefined;
               usage.outputTokens = value.usage.completion_tokens ?? undefined;
@@ -497,6 +500,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                 undefined;
               usage.cachedInputTokens =
                 value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
+
+              shouldSendFinishChunk = true;
 
               if (
                 value.usage.completion_tokens_details
@@ -524,7 +529,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
               providerMetadata.openai.logprobs = choice.logprobs.content;
             }
 
+            const maybeSendFinishChunk = () => {
+              if (shouldSendFinishChunk && !finishSent) {
+                controller.enqueue({
+                  type: 'finish',
+                  finishReason: finishReason || 'unknown',
+                  usage: { ...usage },
+                  ...(providerMetadata != null ? { providerMetadata } : {}),
+                });
+                finishSent = true;
+              }
+            };
+
             if (choice?.delta == null) {
+              maybeSendFinishChunk();
               return;
             }
 
@@ -675,6 +693,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                 });
               }
             }
+
+            maybeSendFinishChunk();
           },
 
           flush(controller) {
@@ -682,12 +702,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
 
-            controller.enqueue({
-              type: 'finish',
-              finishReason,
-              usage,
-              ...(providerMetadata != null ? { providerMetadata } : {}),
-            });
+            if (!finishSent) {
+              controller.enqueue({
+                type: 'finish',
+                finishReason,
+                usage,
+                ...(providerMetadata != null ? { providerMetadata } : {}),
+              });
+              finishSent = true;
+            }
           },
         }),
       ),

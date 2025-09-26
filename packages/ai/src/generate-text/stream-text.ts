@@ -2,6 +2,7 @@ import {
   getErrorMessage,
   LanguageModelV2,
   LanguageModelV2CallWarning,
+  LanguageModelV2Message,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -93,6 +94,240 @@ const originalGenerateId = createIdGenerator({
   size: 24,
 });
 
+const APPROX_CHARS_PER_TOKEN = 4;
+
+function approximateTokenCount(length: number | undefined): number | undefined {
+  if (length == null) {
+    return undefined;
+  }
+
+  if (length <= 0) {
+    return 0;
+  }
+
+  return Math.ceil(length / APPROX_CHARS_PER_TOKEN);
+}
+
+function sumOptionalTokenCounts(
+  ...counts: Array<number | undefined>
+): number | undefined {
+  let total = 0;
+  let hasValue = false;
+
+  for (const count of counts) {
+    if (count != null) {
+      total += count;
+      hasValue = true;
+    }
+  }
+
+  return hasValue ? total : undefined;
+}
+
+function approximateMessageContentLength(content: unknown): number {
+  if (typeof content === 'string') {
+    return content.length;
+  }
+
+  if (!Array.isArray(content)) {
+    return 0;
+  }
+
+  let total = 0;
+
+  for (const part of content) {
+    if (part == null || typeof part !== 'object') {
+      continue;
+    }
+
+    const typedPart = part as { type?: string; [key: string]: unknown };
+
+    switch (typedPart.type) {
+      case 'text':
+      case 'reasoning': {
+        const text = typedPart.text;
+        if (typeof text === 'string') {
+          total += text.length;
+        }
+        break;
+      }
+
+      case 'tool-call': {
+        total += JSON.stringify(typedPart.input ?? '').length;
+        break;
+      }
+
+      case 'tool-result': {
+        total += JSON.stringify(typedPart.output ?? '').length;
+        break;
+      }
+
+      case 'file': {
+        const file = typedPart.file as { data?: unknown } | undefined;
+        if (file != null && typeof file.data === 'string') {
+          total += file.data.length;
+        }
+        break;
+      }
+
+      default: {
+        break;
+      }
+    }
+  }
+
+  return total;
+}
+
+function approximatePromptTokenCount(
+  messages: LanguageModelV2Message[],
+): number | undefined {
+  let totalLength = 0;
+
+  for (const message of messages) {
+    const content = (message as { content?: unknown }).content;
+    totalLength += approximateMessageContentLength(content);
+  }
+
+  return approximateTokenCount(totalLength);
+}
+
+function approximateUnknownValueLength(value: unknown): number {
+  if (value == null) {
+    return 0;
+  }
+
+  if (typeof value === 'string') {
+    return value.length;
+  }
+
+  if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
+    return String(value).length;
+  }
+
+  try {
+    const json = JSON.stringify(value);
+    return json == null ? 0 : json.length;
+  } catch (error) {
+    return String(value).length;
+  }
+}
+
+function approximateUsageFromContent<TOOLS extends ToolSet>({
+  content,
+  fallbackInputTokens,
+  fallbackCachedInputTokens,
+  existingUsage,
+}: {
+  content: Array<ContentPart<TOOLS>>;
+  fallbackInputTokens?: number | undefined;
+  fallbackCachedInputTokens?: number | undefined;
+  existingUsage?: LanguageModelUsage | undefined;
+}): LanguageModelUsage | undefined {
+  if (
+    content.length === 0 &&
+    existingUsage == null &&
+    fallbackInputTokens == null
+  ) {
+    return undefined;
+  }
+
+  let textLength = 0;
+  let reasoningLength = 0;
+
+  for (const part of content) {
+    switch (part.type) {
+      case 'text': {
+        textLength += part.text.length;
+        break;
+      }
+
+      case 'reasoning': {
+        reasoningLength += part.text.length;
+        break;
+      }
+
+      case 'tool-call': {
+        textLength += approximateUnknownValueLength(part.input);
+        break;
+      }
+
+      case 'tool-result': {
+        textLength += approximateUnknownValueLength(part.output);
+        break;
+      }
+
+      case 'tool-error': {
+        textLength += approximateUnknownValueLength(part.error);
+        break;
+      }
+
+      case 'file': {
+        textLength += part.file.base64.length;
+        break;
+      }
+
+      case 'source': {
+        const sourceDetails = {
+          id: part.id,
+          sourceType: part.sourceType,
+          ...(part.title != null ? { title: part.title } : undefined),
+          ...('url' in part && part.url != null
+            ? { url: part.url }
+            : undefined),
+          ...('filename' in part && part.filename != null
+            ? { filename: part.filename }
+            : undefined),
+          ...('mediaType' in part && part.mediaType != null
+            ? { mediaType: part.mediaType }
+            : undefined),
+          ...('start' in part && part.start != null
+            ? { start: part.start }
+            : undefined),
+          ...('end' in part && part.end != null
+            ? { end: part.end }
+            : undefined),
+          ...('metadata' in part && part.metadata != null
+            ? { metadata: part.metadata }
+            : undefined),
+        } as const;
+        textLength += approximateUnknownValueLength(sourceDetails);
+        break;
+      }
+
+      default: {
+        break;
+      }
+    }
+  }
+
+  const inputTokens =
+    existingUsage?.inputTokens ?? fallbackInputTokens ?? undefined;
+  const outputTokens =
+    existingUsage?.outputTokens ?? approximateTokenCount(textLength);
+  const reasoningTokens =
+    existingUsage?.reasoningTokens ?? approximateTokenCount(reasoningLength);
+  const cachedInputTokens =
+    existingUsage?.cachedInputTokens ??
+    fallbackCachedInputTokens ??
+    (inputTokens != null ? 0 : undefined);
+  const totalTokens =
+    existingUsage?.totalTokens ??
+    sumOptionalTokenCounts(inputTokens, outputTokens, reasoningTokens);
+
+  return {
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    reasoningTokens,
+    cachedInputTokens,
+  };
+}
+
 /**
 A transformation that is applied to the stream.
 
@@ -173,6 +408,16 @@ export type StreamTextOnAbortCallback<TOOLS extends ToolSet> = (event: {
 Details for all previously finished steps.
    */
   readonly steps: StepResult<TOOLS>[];
+
+  /**
+Token usage of the last finished step, if any.
+   */
+  readonly usage: LanguageModelUsage;
+
+  /**
+Total token usage across all finished steps.
+   */
+  readonly totalUsage: LanguageModelUsage;
 }) => PromiseLike<void> | void;
 
 /**
@@ -650,6 +895,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     const recordedResponseMessages: Array<ResponseMessage> = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
+    let currentStepUsage: LanguageModelUsage | undefined = undefined;
+    let currentStepInputTokenEstimate: number | undefined = undefined;
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS>[] = [];
@@ -858,6 +1105,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // resolve the promise to signal that the step has been fully processed
           // by the event processor:
           stepFinish.resolve();
+
+          currentStepInputTokenEstimate = undefined;
         }
 
         if (part.type === 'finish') {
@@ -969,7 +1218,81 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       async pull(controller) {
         // abort handling:
         function abort() {
-          onAbort?.({ steps: recordedSteps });
+          const createEmptyUsage = (): LanguageModelUsage => ({
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+            reasoningTokens: 0,
+            cachedInputTokens: 0,
+          });
+
+          const fallbackCachedInputTokens =
+            currentStepUsage?.cachedInputTokens ?? 0;
+
+          const partialStepUsage =
+            approximateUsageFromContent({
+              content: recordedContent,
+              fallbackInputTokens: currentStepInputTokenEstimate,
+              fallbackCachedInputTokens,
+              existingUsage: currentStepUsage,
+            }) ?? createEmptyUsage();
+
+          const usageFromSteps =
+            recordedSteps.reduce<LanguageModelUsage | undefined>(
+              (accumulator, step) =>
+                accumulator == null
+                  ? step.usage
+                  : addLanguageModelUsage(accumulator, step.usage),
+              undefined,
+            ) ?? createEmptyUsage();
+
+          const isCurrentStepAlreadyRecorded =
+            currentStepUsage != null &&
+            recordedSteps.length > 0 &&
+            recordedSteps[recordedSteps.length - 1].usage === currentStepUsage;
+
+          const hasPartialStep =
+            !isCurrentStepAlreadyRecorded &&
+            (currentStepUsage != null ||
+              recordedContent.length > 0 ||
+              currentStepInputTokenEstimate != null);
+
+          const usageFromStepsWithCurrent = hasPartialStep
+            ? addLanguageModelUsage(usageFromSteps, partialStepUsage)
+            : usageFromSteps;
+
+          const aggregatedUsage =
+            recordedTotalUsage == null
+              ? usageFromStepsWithCurrent
+              : {
+                  inputTokens:
+                    recordedTotalUsage.inputTokens ??
+                    usageFromStepsWithCurrent.inputTokens,
+                  outputTokens:
+                    recordedTotalUsage.outputTokens ??
+                    usageFromStepsWithCurrent.outputTokens,
+                  totalTokens:
+                    recordedTotalUsage.totalTokens ??
+                    usageFromStepsWithCurrent.totalTokens,
+                  reasoningTokens:
+                    recordedTotalUsage.reasoningTokens ??
+                    usageFromStepsWithCurrent.reasoningTokens,
+                  cachedInputTokens:
+                    recordedTotalUsage.cachedInputTokens ??
+                    usageFromStepsWithCurrent.cachedInputTokens,
+                };
+
+          const lastStepUsage = hasPartialStep
+            ? partialStepUsage
+            : recordedSteps.length > 0
+              ? recordedSteps[recordedSteps.length - 1].usage
+              : partialStepUsage;
+
+          onAbort?.({
+            steps: recordedSteps,
+            usage: lastStepUsage,
+            totalUsage: aggregatedUsage,
+          });
           controller.enqueue({ type: 'abort' });
           controller.close();
         }
@@ -1094,6 +1417,58 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             supportedUrls: await model.supportedUrls,
             download,
           });
+
+          const approximateInputTokens =
+            approximatePromptTokenCount(promptMessages);
+          currentStepInputTokenEstimate = approximateInputTokens ?? undefined;
+          let approximatedUsage: LanguageModelUsage | undefined =
+            approximateInputTokens != null
+              ? {
+                  inputTokens: approximateInputTokens,
+                  outputTokens: 0,
+                  totalTokens: approximateInputTokens,
+                  reasoningTokens: 0,
+                  cachedInputTokens: 0,
+                }
+              : undefined;
+
+          const activeApproxReasoningLengths: Record<string, number> = {};
+          let completedReasoningLength = 0;
+
+          const updateApproximatedUsage = () => {
+            if (approximatedUsage == null) {
+              const baseInputTokens = approximateInputTokens ?? undefined;
+              approximatedUsage = {
+                inputTokens: baseInputTokens,
+                outputTokens: undefined,
+                totalTokens: baseInputTokens,
+                reasoningTokens: undefined,
+                cachedInputTokens: 0,
+              };
+            }
+
+            const activeReasoningLength = Object.values(
+              activeApproxReasoningLengths,
+            ).reduce((sum, length) => sum + length, 0);
+
+            const outputTokens = approximateTokenCount(activeText.length);
+            const reasoningTokens = approximateTokenCount(
+              completedReasoningLength + activeReasoningLength,
+            );
+
+            approximatedUsage.outputTokens = outputTokens;
+            approximatedUsage.reasoningTokens = reasoningTokens;
+            approximatedUsage.totalTokens = sumOptionalTokenCounts(
+              approximatedUsage.inputTokens,
+              outputTokens,
+              reasoningTokens,
+            );
+            currentStepUsage = approximatedUsage;
+          };
+
+          if (approximatedUsage != null) {
+            currentStepUsage = approximatedUsage;
+          }
 
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
@@ -1250,6 +1625,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'text-start':
                     case 'text-end': {
                       controller.enqueue(chunk);
+                      if (chunkType === 'text-end') {
+                        updateApproximatedUsage();
+                      }
                       break;
                     }
 
@@ -1262,6 +1640,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           providerMetadata: chunk.providerMetadata,
                         });
                         activeText += chunk.delta;
+                        updateApproximatedUsage();
                       }
                       break;
                     }
@@ -1269,6 +1648,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'reasoning-start':
                     case 'reasoning-end': {
                       controller.enqueue(chunk);
+                      if (chunkType === 'reasoning-start') {
+                        activeApproxReasoningLengths[chunk.id] = 0;
+                      } else {
+                        const length = activeApproxReasoningLengths[chunk.id];
+                        if (length != null) {
+                          completedReasoningLength += length;
+                          delete activeApproxReasoningLengths[chunk.id];
+                          updateApproximatedUsage();
+                        }
+                      }
                       break;
                     }
 
@@ -1279,6 +1668,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                         text: chunk.delta,
                         providerMetadata: chunk.providerMetadata,
                       });
+                      if (chunk.delta.length > 0) {
+                        activeApproxReasoningLengths[chunk.id] =
+                          (activeApproxReasoningLengths[chunk.id] ?? 0) +
+                          chunk.delta.length;
+                        updateApproximatedUsage();
+                      }
                       break;
                     }
 
@@ -1318,6 +1713,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       // Note: tool executions might not be finished yet when the finish event is emitted.
                       // store usage and finish reason for promises and onFinish callback:
                       stepUsage = chunk.usage;
+                      currentStepUsage = chunk.usage;
+                      approximatedUsage = undefined;
                       stepFinishReason = chunk.finishReason;
                       stepProviderMetadata = chunk.providerMetadata;
 

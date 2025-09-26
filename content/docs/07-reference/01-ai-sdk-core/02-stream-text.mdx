@@ -1422,6 +1422,18 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'Array<StepResult>',
               description: 'Details for all previously finished steps.',
             },
+            {
+              name: 'usage',
+              type: 'LanguageModelUsage',
+              description:
+                'Token usage of the last finished step. Fields are set to `undefined` when no step was completed.',
+            },
+            {
+              name: 'totalUsage',
+              type: 'LanguageModelUsage',
+              description:
+                'Combined token usage across all finished steps. Fields are `undefined` when usage information is unavailable.',
+            },
           ],
         },
       ],
