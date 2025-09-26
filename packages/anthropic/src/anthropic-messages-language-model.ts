@@ -521,6 +521,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
           break;
         }
+        case 'web_fetch_tool_result': {
+          if (part.content.type === 'web_fetch_tool_result_error') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_fetch',
+              isError: true,
+              result: {
+                type: 'web_fetch_tool_result_error',
+                errorCode: part.content.error_code,
+              },
+              providerExecuted: true,
+            });
+          }
+          break;
+        }
         case 'web_search_tool_result': {
           if (Array.isArray(part.content)) {
             content.push({
@@ -1152,6 +1168,16 @@ const anthropicMessagesResponseSchema = z.object({
           ),
           z.object({
             type: z.literal('web_search_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
+      z.object({
+        type: z.literal('web_fetch_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.object({
+            type: z.literal('web_fetch_tool_result_error'),
             error_code: z.string(),
           }),
         ]),

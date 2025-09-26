@@ -1,5 +1,29 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > unavailable error > should include web fetch tool call and result in content 1`] = `
+[
+  {
+    "text": "I'll fetch the PDF document from the URL you provided to see what it says about AI.",
+    "type": "text",
+  },
+  {
+    "isError": true,
+    "providerExecuted": true,
+    "result": {
+      "errorCode": "unavailable",
+      "type": "web_fetch_tool_result_error",
+    },
+    "toolCallId": "srvtoolu_013gia34XNKyTfwHxaPCKEVd",
+    "toolName": "web_fetch",
+    "type": "tool-result",
+  },
+  {
+    "text": "I'm unable to access the PDF document at that URL as the web_fetch tool is currently unavailable. To help you understand what the document says about AI, I would need the tool to be working or you could:\\n\\n1. Try the URL again later when the tool might be available\\n2. Share the content of the PDF directly if you have access to it\\n3. Provide a different accessible URL where the same content might be hosted\\n\\nIs there another way you'd like to proceed, or would you like to try again later?",
+    "type": "text",
+  },
+]
+`;
+
 exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fixture > should include web search tool call and result in content 1`] = `
 [
   {
