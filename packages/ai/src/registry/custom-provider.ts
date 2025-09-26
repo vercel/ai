@@ -1,9 +1,9 @@
 import {
-  EmbeddingModelV2,
-  ImageModelV2,
-  LanguageModelV2,
+  EmbeddingModelV3,
+  ImageModelV3,
+  LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
@@ -23,9 +23,9 @@ import {
  * @throws {NoSuchModelError} Throws when a requested model is not found and no fallback provider is available.
  */
 export function customProvider<
-  LANGUAGE_MODELS extends Record<string, LanguageModelV2>,
-  EMBEDDING_MODELS extends Record<string, EmbeddingModelV2<string>>,
-  IMAGE_MODELS extends Record<string, ImageModelV2>,
+  LANGUAGE_MODELS extends Record<string, LanguageModelV3>,
+  EMBEDDING_MODELS extends Record<string, EmbeddingModelV3<string>>,
+  IMAGE_MODELS extends Record<string, ImageModelV3>,
   TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV2>,
   SPEECH_MODELS extends Record<string, SpeechModelV2>,
 >({
@@ -41,20 +41,20 @@ export function customProvider<
   imageModels?: IMAGE_MODELS;
   transcriptionModels?: TRANSCRIPTION_MODELS;
   speechModels?: SPEECH_MODELS;
-  fallbackProvider?: ProviderV2;
-}): ProviderV2 & {
-  languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV2;
+  fallbackProvider?: ProviderV3;
+}): ProviderV3 & {
+  languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3;
   textEmbeddingModel(
     modelId: ExtractModelId<EMBEDDING_MODELS>,
-  ): EmbeddingModelV2<string>;
-  imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV2;
+  ): EmbeddingModelV3<string>;
+  imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV3;
   transcriptionModel(
     modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
   ): TranscriptionModelV2;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV2;
 } {
   return {
-    languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV2 {
+    languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3 {
       if (languageModels != null && modelId in languageModels) {
         return languageModels[modelId];
       }
@@ -68,7 +68,7 @@ export function customProvider<
 
     textEmbeddingModel(
       modelId: ExtractModelId<EMBEDDING_MODELS>,
-    ): EmbeddingModelV2<string> {
+    ): EmbeddingModelV3<string> {
       if (textEmbeddingModels != null && modelId in textEmbeddingModels) {
         return textEmbeddingModels[modelId];
       }
@@ -80,7 +80,7 @@ export function customProvider<
       throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
     },
 
-    imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV2 {
+    imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV3 {
       if (imageModels != null && modelId in imageModels) {
         return imageModels[modelId];
       }

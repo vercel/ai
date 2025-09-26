@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/gladia",
-  "version": "1.1.0-beta.0",
+  "version": "1.1.0-beta.4",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -18,6 +18,7 @@
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
+    "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
     "test:node": "vitest --config vitest.node.config.js --run",
     "test:node:watch": "vitest --config vitest.node.config.js --watch"
@@ -32,10 +33,10 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*",
-    "@ai-sdk/test-server": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
@@ -43,7 +44,7 @@
     "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.25.76 || ^4"
+    "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {
     "node": ">=18"

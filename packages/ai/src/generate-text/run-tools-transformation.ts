@@ -1,6 +1,6 @@
 import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2StreamPart,
+  LanguageModelV3CallWarning,
+  LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
 import {
   executeTool,
@@ -84,7 +84,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | { type: 'stream-start'; warnings: LanguageModelV2CallWarning[] }
+  | { type: 'stream-start'; warnings: LanguageModelV3CallWarning[] }
   | {
       type: 'response-metadata';
       id?: string;
@@ -112,7 +112,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   experimental_context,
 }: {
   tools: TOOLS | undefined;
-  generatorStream: ReadableStream<LanguageModelV2StreamPart>;
+  generatorStream: ReadableStream<LanguageModelV3StreamPart>;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
   system: string | undefined;
@@ -160,11 +160,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
   // forward stream
   const forwardStream = new TransformStream<
-    LanguageModelV2StreamPart,
+    LanguageModelV3StreamPart,
     SingleRequestTextStreamPart<TOOLS>
   >({
     async transform(
-      chunk: LanguageModelV2StreamPart,
+      chunk: LanguageModelV3StreamPart,
       controller: TransformStreamDefaultController<
         SingleRequestTextStreamPart<TOOLS>
       >,
