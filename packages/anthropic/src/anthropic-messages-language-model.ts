@@ -526,7 +526,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           break;
         }
         case 'web_fetch_tool_result': {
-          if (part.content.type === 'web_fetch_tool_result_error') {
+          if (part.content.type === 'web_fetch_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_fetch',
+              result: {
+                type: 'web_fetch_result',
+                url: part.content.url,
+                retrievedAt: part.content.retrieved_at,
+                content: part.content.content,
+              },
+              providerExecuted: true,
+            });
+          } else if (part.content.type === 'web_fetch_tool_result_error') {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
@@ -1158,6 +1171,29 @@ const anthropicMessagesResponseSchema = z.object({
         input: z.record(z.string(), z.unknown()).nullish(),
       }),
       z.object({
+        type: z.literal('web_fetch_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.object({
+            type: z.literal('web_fetch_result'),
+            url: z.string(),
+            retrieved_at: z.string(),
+            content: z.object({
+              type: z.literal('document'),
+              source: z.object({
+                type: z.literal('text'),
+                media_type: z.string(),
+                data: z.string(),
+              }),
+            }),
+          }),
+          z.object({
+            type: z.literal('web_fetch_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
+      z.object({
         type: z.literal('web_search_tool_result'),
         tool_use_id: z.string(),
         content: z.union([
@@ -1172,16 +1208,6 @@ const anthropicMessagesResponseSchema = z.object({
           ),
           z.object({
             type: z.literal('web_search_tool_result_error'),
-            error_code: z.string(),
-          }),
-        ]),
-      }),
-      z.object({
-        type: z.literal('web_fetch_tool_result'),
-        tool_use_id: z.string(),
-        content: z.union([
-          z.object({
-            type: z.literal('web_fetch_tool_result_error'),
             error_code: z.string(),
           }),
         ]),
