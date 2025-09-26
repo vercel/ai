@@ -234,18 +234,13 @@ const result = await generateText({
 
 #### Longer cache TTL
 
-Anthropic also supports a longer 1-hour cache duration. At time of writing,
-[this is currently in beta](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching#1-hour-cache-duration),
-so you must pass a `'anthropic-beta'` header set to `'extended-cache-ttl-2025-04-11'`.
+Anthropic also supports a longer 1-hour cache duration.
 
 Here's an example:
 
 ```ts
 const result = await generateText({
   model: anthropic('claude-3-5-haiku-latest'),
-  headers: {
-    'anthropic-beta': 'extended-cache-ttl-2025-04-11',
-  },
   messages: [
     {
       role: 'user',
@@ -284,17 +279,7 @@ For more on prompt caching with Anthropic, see [Anthropic's Cache Control docume
   [here](/docs/foundations/prompts#provider-options).
 </Note>
 
-### Computer Use
-
-Anthropic provides three provider-defined tools that can be used to interact with external systems:
-
-1. **Bash Tool**: Allows running bash commands.
-2. **Text Editor Tool**: Provides functionality for viewing and editing text files.
-3. **Computer Tool**: Enables control of keyboard and mouse actions on a computer.
-
-They are available via the `tools` property of the provider instance.
-
-#### Bash Tool
+### Bash Tool
 
 The Bash Tool allows running bash commands. Here's how to create and use it:
 
@@ -312,47 +297,26 @@ Parameters:
 - `command` (string): The bash command to run. Required unless the tool is being restarted.
 - `restart` (boolean, optional): Specifying true will restart this tool.
 
-#### Text Editor Tool
+### Text Editor Tool
 
 The Text Editor Tool provides functionality for viewing and editing text files.
 
-**For Claude 4 models (Opus & Sonnet):**
-
 ```ts
-const textEditorTool = anthropic.tools.textEditor_20250429({
-  execute: async ({
-    command,
-    path,
-    file_text,
-    insert_line,
-    new_str,
-    old_str,
-    view_range,
-  }) => {
-    // Implement your text editing logic here
-    // Return the result of the text editing operation
-  },
-});
+const tools = {
+  // tool name must be str_replace_based_edit_tool
+  str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
+    maxCharacters: 10000, // optional
+    async execute({ command, path, old_str, new_str }) {
+      // ...
+    },
+  }),
+} satisfies ToolSet;
 ```
 
-**For Claude 3.5 Sonnet and earlier models:**
-
-```ts
-const textEditorTool = anthropic.tools.textEditor_20241022({
-  execute: async ({
-    command,
-    path,
-    file_text,
-    insert_line,
-    new_str,
-    old_str,
-    view_range,
-  }) => {
-    // Implement your text editing logic here
-    // Return the result of the text editing operation
-  },
-});
-```
+<Note>
+  Different models support different versions of the tool. For Claude Sonnet 3.5
+  and 3.7 you need to use older tool versions and tool names.
+</Note>
 
 Parameters:
 
@@ -364,34 +328,7 @@ Parameters:
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
 
-When using the Text Editor Tool, make sure to name the key in the tools object correctly:
-
-- **Claude 4 models**: Use `str_replace_based_edit_tool`
-- **Claude 3.5 Sonnet and earlier**: Use `str_replace_editor`
-
-```ts
-// For Claude 4 models
-const response = await generateText({
-  model: anthropic('claude-opus-4-20250514'),
-  prompt:
-    "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
-  tools: {
-    str_replace_based_edit_tool: textEditorTool, // Claude 4 tool name
-  },
-});
-
-// For Claude 3.5 Sonnet and earlier
-const response = await generateText({
-  model: anthropic('claude-3-5-sonnet-20241022'),
-  prompt:
-    "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
-  tools: {
-    str_replace_editor: textEditorTool, // Earlier models tool name
-  },
-});
-```
-
-#### Computer Tool
+### Computer Tool
 
 The Computer Tool enables control of keyboard and mouse actions on a computer:
 
@@ -442,14 +379,9 @@ Parameters:
 
 These tools can be used in conjunction with the `sonnet-3-5-sonnet-20240620` model to enable more complex interactions and tasks.
 
-### Web Search
+### Web Search Tool
 
 Anthropic provides a provider-defined web search tool that gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff.
-
-<Note>
-  Web search must be enabled in your organization's [Console
-  settings](https://console.anthropic.com/settings/privacy).
-</Note>
 
 You can enable web search using the provider-defined web search tool:
 
@@ -469,6 +401,11 @@ const result = await generateText({
   },
 });
 ```
+
+<Note>
+  Web search must be enabled in your organization's [Console
+  settings](https://console.anthropic.com/settings/privacy).
+</Note>
 
 #### Configuration Options
 
@@ -512,6 +449,50 @@ const result = await generateText({
   },
 });
 ```
+
+### Web Fetch Tool
+
+Anthropic provides a provider-defined web fetch tool that allows Claude to retrieve content from specific URLs. This is useful when you want Claude to analyze or reference content from a particular webpage or document.
+
+You can enable web fetch using the provider-defined web fetch tool:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-0'),
+  prompt:
+    'What is this page about? https://en.wikipedia.org/wiki/Maglemosian_culture',
+  tools: {
+    web_fetch: anthropic.tools.webFetch_20250910({ maxUses: 1 }),
+  },
+});
+```
+
+#### Configuration Options
+
+The web fetch tool supports several configuration options:
+
+- **maxUses** _number_
+
+  The maxUses parameter limits the number of web fetches performed.
+
+- **allowedDomains** _string[]_
+
+  Only fetch from these domains.
+
+- **blockedDomains** _string[]_
+
+  Never fetch from these domains.
+
+- **citations** _object_
+
+  Unlike web search where citations are always enabled, citations are optional for web fetch. Set "citations": {"enabled": true} to enable Claude to cite specific passages from fetched documents.
+
+- **maxContentTokens** _number_
+
+  The maxContentTokens parameter limits the amount of content that will be included in the context.
 
 #### Error Handling
 
@@ -687,17 +668,13 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
-| Model                        | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
-| ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-opus-4-20250514`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-sonnet-4-20250514`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-7-sonnet-20250219` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-5-sonnet-20241022` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-5-sonnet-20240620` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> |
-| `claude-3-5-haiku-20241022`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> |
-| `claude-3-opus-20240229`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `claude-3-sonnet-20240229`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `claude-3-haiku-20240307`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
+| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

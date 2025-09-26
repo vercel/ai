@@ -1,5 +1,5 @@
 import {
-  LanguageModelV2Prompt,
+  LanguageModelV3Prompt,
   SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -13,7 +13,7 @@ function getOpenAIMetadata(message: {
 }
 
 export function convertToOpenAICompatibleChatMessages(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): OpenAICompatibleChatPrompt {
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {

@@ -1,7 +1,7 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2Content,
-  LanguageModelV2ToolCall,
+  LanguageModelV3,
+  LanguageModelV3Content,
+  LanguageModelV3ToolCall,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -9,6 +9,7 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
@@ -55,6 +56,7 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
+import { VERSION } from '../version';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -255,10 +257,15 @@ A function that attempts to repair a tool call that failed to parse.
 
   const callSettings = prepareCallSettings(settings);
 
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers,
+    headers: headersWithUserAgent,
     settings: { ...callSettings, maxRetries },
   });
 
@@ -295,7 +302,7 @@ A function that attempts to repair a tool call that failed to parse.
         const callSettings = prepareCallSettings(settings);
 
         let currentModelResponse: Awaited<
-          ReturnType<LanguageModelV2['doGenerate']>
+          ReturnType<LanguageModelV3['doGenerate']>
         > & { response: { id: string; timestamp: Date; modelId: string } };
         let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
         let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
@@ -387,7 +394,7 @@ A function that attempts to repair a tool call that failed to parse.
                   prompt: promptMessages,
                   providerOptions,
                   abortSignal,
-                  headers,
+                  headers: headersWithUserAgent,
                 });
 
                 // Fill in default values:
@@ -447,7 +454,7 @@ A function that attempts to repair a tool call that failed to parse.
           const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
             currentModelResponse.content
               .filter(
-                (part): part is LanguageModelV2ToolCall =>
+                (part): part is LanguageModelV3ToolCall =>
                   part.type === 'tool-call',
               )
               .map(toolCall =>
@@ -834,9 +841,9 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 }
 
-function asToolCalls(content: Array<LanguageModelV2Content>) {
+function asToolCalls(content: Array<LanguageModelV3Content>) {
   const parts = content.filter(
-    (part): part is LanguageModelV2ToolCall => part.type === 'tool-call',
+    (part): part is LanguageModelV3ToolCall => part.type === 'tool-call',
   );
 
   if (parts.length === 0) {
@@ -855,7 +862,7 @@ function asContent<TOOLS extends ToolSet>({
   toolCalls,
   toolOutputs,
 }: {
-  content: Array<LanguageModelV2Content>;
+  content: Array<LanguageModelV3Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
 }): Array<ContentPart<TOOLS>> {

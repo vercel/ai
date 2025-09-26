@@ -6,6 +6,16 @@ import {
   createStatusCodeErrorResponseHandler,
 } from './response-handler';
 import { z } from 'zod/v4';
+import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
+import { withUserAgentSuffix } from './with-user-agent-suffix';
+
+vi.mock('./get-runtime-environment-user-agent', async () => {
+  const actual = await vi.importActual('./get-runtime-environment-user-agent');
+  return {
+    ...actual,
+    getRuntimeEnvironmentUserAgent: () => 'runtime/test-env',
+  };
+});
 
 describe('getFromApi', () => {
   const mockSuccessResponse = {
@@ -21,13 +31,17 @@ describe('getFromApi', () => {
   const mockHeaders = {
     'Content-Type': 'application/json',
     Authorization: 'Bearer test',
+    'user-agent': 'runtime/test-env',
   };
 
   it('should successfully fetch and parse data', async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(mockSuccessResponse), {
         status: 200,
-        headers: mockHeaders,
+        headers: withUserAgentSuffix(
+          mockHeaders,
+          getRuntimeEnvironmentUserAgent(),
+        ),
       }),
     );
 
@@ -44,7 +58,10 @@ describe('getFromApi', () => {
       'https://api.test.com/data',
       expect.objectContaining({
         method: 'GET',
-        headers: { Authorization: 'Bearer test' },
+        headers: {
+          authorization: 'Bearer test',
+          'user-agent': 'ai-sdk/provider-utils/0.0.0-test runtime/test-env',
+        },
       }),
     );
   });
@@ -130,7 +147,8 @@ describe('getFromApi', () => {
       'https://api.test.com/data',
       expect.objectContaining({
         headers: {
-          Authorization: 'Bearer test',
+          authorization: 'Bearer test',
+          'user-agent': 'ai-sdk/provider-utils/0.0.0-test runtime/test-env',
         },
       }),
     );

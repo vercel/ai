@@ -13,6 +13,11 @@ vi.mock('@ai-sdk/provider-utils', () => ({
 
 vi.mock('@ai-sdk/google/internal', () => ({
   GoogleGenerativeAILanguageModel: vi.fn(),
+  googleTools: {
+    googleSearch: vi.fn(),
+    urlContext: vi.fn(),
+    codeExecution: vi.fn(),
+  },
 }));
 
 vi.mock('./google-vertex-embedding-model', () => ({
@@ -41,7 +46,7 @@ describe('google-vertex-provider', () => {
         provider: 'google.vertex.chat',
         baseURL:
           'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
-        headers: expect.any(Object),
+        headers: expect.any(Function),
         generateId: expect.any(Function),
       }),
     );
@@ -66,7 +71,7 @@ describe('google-vertex-provider', () => {
       'test-embedding-model',
       expect.objectContaining({
         provider: 'google.vertex.embedding',
-        headers: expect.any(Object),
+        headers: expect.any(Function),
         baseURL:
           'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
       }),
@@ -85,7 +90,7 @@ describe('google-vertex-provider', () => {
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        headers: customHeaders,
+        headers: expect.any(Function),
       }),
     );
   });
@@ -150,7 +155,7 @@ describe('google-vertex-provider', () => {
         provider: 'google.vertex.image',
         baseURL:
           'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
-        headers: expect.any(Object),
+        headers: expect.any(Function),
       }),
     );
   });
@@ -168,7 +173,7 @@ describe('google-vertex-provider', () => {
         provider: 'google.vertex.chat',
         baseURL:
           'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
-        headers: expect.any(Object),
+        headers: expect.any(Function),
         generateId: expect.any(Function),
       }),
     );
@@ -185,7 +190,7 @@ describe('google-vertex-provider', () => {
       'test-embedding-model',
       expect.objectContaining({
         provider: 'google.vertex.embedding',
-        headers: expect.any(Object),
+        headers: expect.any(Function),
         baseURL:
           'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
       }),
@@ -205,9 +210,21 @@ describe('google-vertex-provider', () => {
         provider: 'google.vertex.image',
         baseURL:
           'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
-        headers: expect.any(Object),
+        headers: expect.any(Function),
       }),
     );
+  });
+
+  it('should expose tools', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+
+    expect(provider.tools).toBeDefined();
+    expect(provider.tools.googleSearch).toBeDefined();
+    expect(provider.tools.urlContext).toBeDefined();
+    expect(provider.tools.codeExecution).toBeDefined();
   });
 
   it('should use region-prefixed URL for non-global regions', () => {
@@ -223,7 +240,7 @@ describe('google-vertex-provider', () => {
         provider: 'google.vertex.chat',
         baseURL:
           'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google',
-        headers: expect.any(Object),
+        headers: expect.any(Function),
         generateId: expect.any(Function),
       }),
     );

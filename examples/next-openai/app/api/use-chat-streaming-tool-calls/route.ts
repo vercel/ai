@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIDataTypes, UIMessage } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
           };
         },
       },
-      // client-side tool that displays whether information to the user:
+      // client-side tool that displays weather information to the user:
       showWeatherInformation: {
         description:
           'Show the weather information to the user. Always use this tool to tell weather information to the user.',

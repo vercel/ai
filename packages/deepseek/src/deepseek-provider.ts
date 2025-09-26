@@ -1,16 +1,18 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { DeepSeekChatModelId } from './deepseek-chat-options';
 import { deepSeekMetadataExtractor } from './deepseek-metadata-extractor';
+import { VERSION } from './version';
 
 export interface DeepSeekProviderSettings {
   /**
@@ -32,21 +34,21 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface DeepSeekProvider extends ProviderV2 {
+export interface DeepSeekProvider extends ProviderV3 {
   /**
 Creates a DeepSeek model for text generation.
 */
-  (modelId: DeepSeekChatModelId): LanguageModelV2;
+  (modelId: DeepSeekChatModelId): LanguageModelV3;
 
   /**
 Creates a DeepSeek model for text generation.
 */
-  languageModel(modelId: DeepSeekChatModelId): LanguageModelV2;
+  languageModel(modelId: DeepSeekChatModelId): LanguageModelV3;
 
   /**
 Creates a DeepSeek chat model for text generation.
 */
-  chat(modelId: DeepSeekChatModelId): LanguageModelV2;
+  chat(modelId: DeepSeekChatModelId): LanguageModelV3;
 }
 
 export function createDeepSeek(
@@ -55,14 +57,18 @@ export function createDeepSeek(
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.deepseek.com/v1',
   );
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'DEEPSEEK_API_KEY',
-      description: 'DeepSeek API key',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'DEEPSEEK_API_KEY',
+          description: 'DeepSeek API key',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/deepseek/${VERSION}`,
+    );
 
   const createLanguageModel = (modelId: DeepSeekChatModelId) => {
     return new OpenAICompatibleChatLanguageModel(modelId, {

@@ -1,18 +1,17 @@
 import { z } from 'zod/v4';
 
-// https://docs.anthropic.com/claude/docs/models-overview
+// https://docs.claude.com/en/docs/about-claude/models/overview
 export type AnthropicMessagesModelId =
+  | 'claude-opus-4-1'
+  | 'claude-opus-4-0'
+  | 'claude-sonnet-4-0'
+  | 'claude-opus-4-1-20250805'
   | 'claude-opus-4-20250514'
   | 'claude-sonnet-4-20250514'
+  | 'claude-3-7-sonnet-latest'
   | 'claude-3-7-sonnet-20250219'
-  | 'claude-3-5-sonnet-latest'
-  | 'claude-3-5-sonnet-20241022'
-  | 'claude-3-5-sonnet-20240620'
   | 'claude-3-5-haiku-latest'
   | 'claude-3-5-haiku-20241022'
-  | 'claude-3-opus-latest'
-  | 'claude-3-opus-20240229'
-  | 'claude-3-sonnet-20240229'
   | 'claude-3-haiku-20240307'
   | (string & {});
 
@@ -67,6 +66,17 @@ export const anthropicProviderOptions = z.object({
    * When set to true, Claude will use at most one tool per response.
    */
   disableParallelToolUse: z.boolean().optional(),
+
+  /**
+   * Cache control settings for this message.
+   * See https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
+   */
+  cacheControl: z
+    .object({
+      type: z.literal('ephemeral'),
+      ttl: z.union([z.literal('5m'), z.literal('1h')]).optional(),
+    })
+    .optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;

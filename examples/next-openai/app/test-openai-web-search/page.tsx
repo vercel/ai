@@ -14,10 +14,8 @@ export default function TestOpenAIWebSearch() {
     });
 
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      <h1 className="mb-4 text-xl font-bold">
-        OpenAI Web Search Block-Based Streaming Test
-      </h1>
+    <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
+      <h1 className="mb-4 text-xl font-bold">OpenAI Web Search Test</h1>
 
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
@@ -27,7 +25,7 @@ export default function TestOpenAIWebSearch() {
               return <div key={index}>{part.text}</div>;
             }
 
-            if (part.type === 'tool-web_search_preview') {
+            if (part.type === 'tool-web_search') {
               if (part.state === 'input-available') {
                 return (
                   <pre
@@ -78,7 +76,7 @@ export default function TestOpenAIWebSearch() {
           {status === 'submitted' && <div>Loading...</div>}
           <button
             type="button"
-            className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+            className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"
             onClick={stop}
           >
             Stop
@@ -91,7 +89,7 @@ export default function TestOpenAIWebSearch() {
           <div className="text-red-500">An error occurred.</div>
           <button
             type="button"
-            className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+            className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"
             onClick={() => regenerate()}
           >
             Retry

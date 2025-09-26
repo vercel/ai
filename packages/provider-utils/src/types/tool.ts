@@ -1,4 +1,4 @@
-import { JSONValue, LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
+import { JSONValue, LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
 import { FlexibleSchema } from '../schema';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
@@ -44,6 +44,27 @@ type NeverOptional<N, T> = 0 extends 1 & N
   : [N] extends [never]
     ? Partial<Record<keyof T, undefined>>
     : T;
+
+type ToolOutputProperties<INPUT, OUTPUT> = NeverOptional<
+  OUTPUT,
+  | {
+      /**
+An async function that is called with the arguments from the tool call and produces a result.
+If not provided, the tool will not be executed automatically.
+
+@args is the input of the tool call.
+@options.abortSignal is a signal that can be used to abort the tool call.
+    */
+      execute: ToolExecuteFunction<INPUT, OUTPUT>;
+
+      outputSchema?: FlexibleSchema<OUTPUT>;
+    }
+  | {
+      outputSchema: FlexibleSchema<OUTPUT>;
+
+      execute?: never;
+    }
+>;
 
 /**
 A tool contains the description and the schema of the input that the tool expects.
@@ -99,36 +120,20 @@ Use descriptions to make the input understandable for the language model.
       input: [INPUT] extends [never] ? undefined : INPUT;
     } & ToolCallOptions,
   ) => void | PromiseLike<void>;
-} & NeverOptional<
-  OUTPUT,
-  {
+} & ToolOutputProperties<INPUT, OUTPUT> & {
     /**
 Optional conversion function that maps the tool result to an output that can be used by the language model.
 
 If not provided, the tool result will be sent as a JSON object.
-      */
-    toModelOutput?: (output: OUTPUT) => LanguageModelV2ToolResultPart['output'];
+  */
+    toModelOutput?: (
+      output: 0 extends 1 & OUTPUT
+        ? any
+        : [OUTPUT] extends [never]
+          ? any
+          : NoInfer<OUTPUT>,
+    ) => LanguageModelV3ToolResultPart['output'];
   } & (
-    | {
-        /**
-An async function that is called with the arguments from the tool call and produces a result.
-If not provided, the tool will not be executed automatically.
-
-@args is the input of the tool call.
-@options.abortSignal is a signal that can be used to abort the tool call.
-      */
-        execute: ToolExecuteFunction<INPUT, OUTPUT>;
-
-        outputSchema?: FlexibleSchema<OUTPUT>;
-      }
-    | {
-        outputSchema: FlexibleSchema<OUTPUT>;
-
-        execute?: never;
-      }
-  )
-> &
-  (
     | {
         /**
 Tool with user-defined input and output schemas.
@@ -199,7 +204,7 @@ export function dynamicTool(tool: {
   providerOptions?: ProviderOptions;
   inputSchema: FlexibleSchema<unknown>;
   execute: ToolExecuteFunction<unknown, unknown>;
-  toModelOutput?: (output: unknown) => LanguageModelV2ToolResultPart['output'];
+  toModelOutput?: (output: unknown) => LanguageModelV3ToolResultPart['output'];
 }): Tool<unknown, unknown> & {
   type: 'dynamic';
 } {
