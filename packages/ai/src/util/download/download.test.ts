@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { download } from './download';
 import { DownloadError } from './download-error';
 import { describe, it, expect } from 'vitest';
@@ -26,6 +26,9 @@ describe('download', () => {
     expect(result).not.toBeNull();
     expect(result!.data).toEqual(expectedBytes);
     expect(result!.mediaType).toBe('application/octet-stream');
+
+    // UA header assertion
+    expect(server.calls[0].requestUserAgent).toContain('ai-sdk/');
   });
 
   it('should throw DownloadError when response is not ok', async () => {

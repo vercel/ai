@@ -108,8 +108,11 @@ export function convertToLanguageModelMessage({
         role: 'assistant',
         content: message.content
           .filter(
-            // remove empty text parts:
-            part => part.type !== 'text' || part.text !== '',
+            // remove empty text parts (no text, and no provider options):
+            part =>
+              part.type !== 'text' ||
+              part.text !== '' ||
+              part.providerOptions != null,
           )
           .map(part => {
             const providerOptions = part.providerOptions;
@@ -242,18 +245,15 @@ async function downloadAssets(
 
   return Object.fromEntries(
     downloadedFiles
-      .filter(
-        (
-          downloadedFile,
-        ): downloadedFile is {
-          mediaType: string | undefined;
-          data: Uint8Array;
-        } => downloadedFile?.data != null,
+      .map((file, index) =>
+        file == null
+          ? null
+          : [
+              plannedDownloads[index].url.toString(),
+              { data: file.data, mediaType: file.mediaType },
+            ],
       )
-      .map(({ data, mediaType }, index) => [
-        plannedDownloads[index].url.toString(),
-        { data, mediaType },
-      ]),
+      .filter(file => file != null),
   );
 }
 

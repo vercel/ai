@@ -1,6 +1,5 @@
 import {
   JSONObject,
-  JSONValue,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -9,7 +8,6 @@ import {
   LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -73,9 +71,6 @@ const documentCitationSchema = z.discriminatedUnion('type', [
 
 type Citation = z.infer<typeof citationSchema>;
 export type DocumentCitation = z.infer<typeof documentCitationSchema>;
-export type AnthropicProviderMetadata = SharedV2ProviderMetadata & {
-  usage?: Record<string, JSONValue>;
-};
 
 function processCitation(
   citation: Citation,
@@ -514,7 +509,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           break;
         }
         case 'server_tool_use': {
-          if (part.name === 'web_search' || part.name === 'code_execution') {
+          if (
+            part.name === 'web_search' ||
+            part.name === 'code_execution' ||
+            part.name === 'web_fetch'
+          ) {
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
@@ -524,6 +523,44 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             });
           }
 
+          break;
+        }
+        case 'web_fetch_tool_result': {
+          if (part.content.type === 'web_fetch_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_fetch',
+              result: {
+                type: 'web_fetch_result',
+                url: part.content.url,
+                retrievedAt: part.content.retrieved_at,
+                content: {
+                  type: part.content.content.type,
+                  title: part.content.content.title,
+                  citations: part.content.content.citations,
+                  source: {
+                    type: part.content.content.source.type,
+                    mediaType: part.content.content.source.media_type,
+                    data: part.content.content.source.data,
+                  },
+                },
+              },
+              providerExecuted: true,
+            });
+          } else if (part.content.type === 'web_fetch_tool_result_error') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_fetch',
+              isError: true,
+              result: {
+                type: 'web_fetch_tool_result_error',
+                errorCode: part.content.error_code,
+              },
+              providerExecuted: true,
+            });
+          }
           break;
         }
         case 'web_search_tool_result': {
@@ -675,7 +712,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | { type: 'text' | 'reasoning' }
     > = {};
 
-    let providerMetadata: AnthropicProviderMetadata | undefined = undefined;
+    let rawUsage: JSONObject | undefined = undefined;
+    let cacheCreationInputTokens: number | null = null;
 
     let blockType:
       | 'text'
@@ -683,6 +721,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | 'tool_use'
       | 'redacted_thinking'
       | 'server_tool_use'
+      | 'web_fetch_tool_result'
       | 'web_search_tool_result'
       | 'code_execution_tool_result'
       | undefined = undefined;
@@ -778,6 +817,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                   case 'server_tool_use': {
                     if (
+                      value.content_block.name === 'web_fetch' ||
                       value.content_block.name === 'web_search' ||
                       value.content_block.name === 'code_execution'
                     ) {
@@ -792,6 +832,49 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         type: 'tool-input-start',
                         id: value.content_block.id,
                         toolName: value.content_block.name,
+                        providerExecuted: true,
+                      });
+                    }
+
+                    return;
+                  }
+
+                  case 'web_fetch_tool_result': {
+                    const part = value.content_block;
+
+                    if (part.content.type === 'web_fetch_result') {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName: 'web_fetch',
+                        result: {
+                          type: 'web_fetch_result',
+                          url: part.content.url,
+                          retrievedAt: part.content.retrieved_at,
+                          content: {
+                            type: part.content.content.type,
+                            title: part.content.content.title,
+                            citations: part.content.content.citations,
+                            source: {
+                              type: part.content.content.source.type,
+                              mediaType: part.content.content.source.media_type,
+                              data: part.content.content.source.data,
+                            },
+                          },
+                        },
+                      });
+                    } else if (
+                      part.content.type === 'web_fetch_tool_result_error'
+                    ) {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName: 'web_fetch',
+                        isError: true,
+                        result: {
+                          type: 'web_fetch_tool_result_error',
+                          errorCode: part.content.error_code,
+                        },
                         providerExecuted: true,
                       });
                     }
@@ -1039,13 +1122,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 usage.cachedInputTokens =
                   value.message.usage.cache_read_input_tokens ?? undefined;
 
-                providerMetadata = {
-                  anthropic: {
-                    usage: value.message.usage as JSONObject,
-                    cacheCreationInputTokens:
-                      value.message.usage.cache_creation_input_tokens ?? null,
-                  },
+                rawUsage = {
+                  ...(value.message.usage as JSONObject),
                 };
+
+                cacheCreationInputTokens =
+                  value.message.usage.cache_creation_input_tokens ?? null;
 
                 controller.enqueue({
                   type: 'response-metadata',
@@ -1065,6 +1147,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   finishReason: value.delta.stop_reason,
                   isJsonResponseFromTool: usesJsonResponseTool,
                 });
+
+                rawUsage = {
+                  ...rawUsage,
+                  ...(value.usage as JSONObject),
+                };
+
                 return;
               }
 
@@ -1073,7 +1161,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   type: 'finish',
                   finishReason,
                   usage,
-                  providerMetadata,
+                  providerMetadata: {
+                    anthropic: {
+                      usage: rawUsage ?? null,
+                      cacheCreationInputTokens,
+                    },
+                  },
                 });
                 return;
               }
@@ -1132,6 +1225,31 @@ const anthropicMessagesResponseSchema = z.object({
         input: z.record(z.string(), z.unknown()).nullish(),
       }),
       z.object({
+        type: z.literal('web_fetch_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.object({
+            type: z.literal('web_fetch_result'),
+            url: z.string(),
+            retrieved_at: z.string(),
+            content: z.object({
+              type: z.literal('document'),
+              title: z.string(),
+              citations: z.object({ enabled: z.boolean() }).optional(),
+              source: z.object({
+                type: z.literal('text'),
+                media_type: z.string(),
+                data: z.string(),
+              }),
+            }),
+          }),
+          z.object({
+            type: z.literal('web_fetch_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
+      z.object({
         type: z.literal('web_search_tool_result'),
         tool_use_id: z.string(),
         content: z.union([
@@ -1187,7 +1305,6 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
       model: z.string().nullish(),
       usage: z.looseObject({
         input_tokens: z.number(),
-        output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
       }),
@@ -1219,6 +1336,31 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         id: z.string(),
         name: z.string(),
         input: z.record(z.string(), z.unknown()).nullish(),
+      }),
+      z.object({
+        type: z.literal('web_fetch_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.object({
+            type: z.literal('web_fetch_result'),
+            url: z.string(),
+            retrieved_at: z.string(),
+            content: z.object({
+              type: z.literal('document'),
+              title: z.string(),
+              citations: z.object({ enabled: z.boolean() }).optional(),
+              source: z.object({
+                type: z.literal('text'),
+                media_type: z.string(),
+                data: z.string(),
+              }),
+            }),
+          }),
+          z.object({
+            type: z.literal('web_fetch_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
       }),
       z.object({
         type: z.literal('web_search_tool_result'),
@@ -1297,7 +1439,10 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('message_delta'),
     delta: z.object({ stop_reason: z.string().nullish() }),
-    usage: z.object({ output_tokens: z.number() }),
+    usage: z.looseObject({
+      output_tokens: z.number(),
+      cache_creation_input_tokens: z.number().nullish(),
+    }),
   }),
   z.object({
     type: z.literal('message_stop'),

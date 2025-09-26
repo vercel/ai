@@ -3,3 +3,4 @@ export type {
   ReplicateProvider,
   ReplicateProviderSettings,
 } from './replicate-provider';
+export { VERSION } from './version';
