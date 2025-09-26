@@ -3081,6 +3081,34 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
+      describe('web fetch tool', () => {
+        describe('txt response', () => {
+          let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+
+          beforeEach(async () => {
+            prepareChunksFixtureResponse('anthropic-web-fetch-tool.1');
+
+            result = await model.doStream({
+              prompt: TEST_PROMPT,
+              tools: [
+                {
+                  type: 'provider-defined',
+                  id: 'anthropic.web_fetch_20250910',
+                  name: 'web_fetch',
+                  args: { maxUses: 1 },
+                },
+              ],
+            });
+          });
+
+          it('should stream web search tool results', async () => {
+            expect(
+              await convertReadableStreamToArray(result.stream),
+            ).toMatchSnapshot();
+          });
+        });
+      });
+
       describe('web search tool', () => {
         let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
 
