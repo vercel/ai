@@ -730,6 +730,22 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'text-end') {
+          const activeText = activeTextContent[part.id];
+
+          if (activeText == null) {
+            controller.enqueue({
+              part: {
+                type: 'error',
+                error: `text part ${part.id} not found`,
+              },
+              partialOutput: undefined,
+            });
+            return;
+          }
+
+          activeText.providerMetadata =
+            part.providerMetadata ?? activeText.providerMetadata;
+
           delete activeTextContent[part.id];
         }
 

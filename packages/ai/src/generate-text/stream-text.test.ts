@@ -311,7 +311,13 @@ const modelWithReasoning = new MockLanguageModelV2({
       { type: 'text-start', id: '1' },
       { type: 'text-delta', id: '1', delta: 'Hi' },
       { type: 'text-delta', id: '1', delta: ' there!' },
-      { type: 'text-end', id: '1' },
+      {
+        type: 'text-end',
+        id: '1',
+        providerMetadata: {
+          testProvider: { signature: '0987654321' },
+        } as SharedV2ProviderMetadata,
+      },
       {
         type: 'finish',
         finishReason: 'stop',
@@ -688,6 +694,11 @@ describe('streamText', () => {
             },
             {
               "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "0987654321",
+                },
+              },
               "type": "text-end",
             },
             {
@@ -1937,7 +1948,7 @@ describe('streamText', () => {
           "data: {"type":"text-delta","id":"1","delta":" there!"}
 
         ",
-          "data: {"type":"text-end","id":"1"}
+          "data: {"type":"text-end","id":"1","providerMetadata":{"testProvider":{"signature":"0987654321"}}}
 
         ",
           "data: {"type":"finish-step"}
@@ -2771,6 +2782,11 @@ describe('streamText', () => {
             },
             {
               "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "0987654321",
+                },
+              },
               "type": "text-end",
             },
             {
@@ -3969,7 +3985,11 @@ describe('streamText', () => {
                 "type": "reasoning",
               },
               {
-                "providerOptions": undefined,
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "0987654321",
+                  },
+                },
                 "text": "Hi there!",
                 "type": "text",
               },
@@ -4174,7 +4194,11 @@ describe('streamText', () => {
                 "type": "reasoning",
               },
               {
-                "providerMetadata": undefined,
+                "providerMetadata": {
+                  "testProvider": {
+                    "signature": "0987654321",
+                  },
+                },
                 "text": "Hi there!",
                 "type": "text",
               },
@@ -4234,7 +4258,11 @@ describe('streamText', () => {
                       "type": "reasoning",
                     },
                     {
-                      "providerOptions": undefined,
+                      "providerOptions": {
+                        "testProvider": {
+                          "signature": "0987654321",
+                        },
+                      },
                       "text": "Hi there!",
                       "type": "text",
                     },
