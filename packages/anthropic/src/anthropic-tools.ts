@@ -75,7 +75,7 @@ export const anthropicTools = {
    * helping you debug, fix, and improve your code or other text documents. This allows Claude
    * to directly interact with your files, providing hands-on assistance rather than just suggesting changes.
    *
-   * Support models: Claude Sonnet 3.5
+   * Supported models: Claude Sonnet 3.5
    *
    * Tool name must be `str_replace_editor`.
    */
@@ -86,7 +86,7 @@ export const anthropicTools = {
    * helping you debug, fix, and improve your code or other text documents. This allows Claude
    * to directly interact with your files, providing hands-on assistance rather than just suggesting changes.
    *
-   * Support models: Claude Sonnet 3.7
+   * Supported models: Claude Sonnet 3.7
    *
    * Tool name must be `str_replace_editor`.
    */
@@ -112,7 +112,7 @@ export const anthropicTools = {
    *
    * Note: This version does not support the "undo_edit" command and adds optional max_characters parameter.
    *
-   * Support models: Claude Sonnet 4, Opus 4, and Opus 4.1
+   * Supported models: Claude Sonnet 4, Opus 4, and Opus 4.1
    *
    * Tool name must be `str_replace_based_edit_tool`.
    *
