@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -16,8 +16,8 @@ import {
   openaiEmbeddingProviderOptions,
 } from './openai-embedding-options';
 
-export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
-  readonly specificationVersion = 'v2';
+export class OpenAIEmbeddingModel implements EmbeddingModelV3<string> {
+  readonly specificationVersion = 'v3';
   readonly modelId: OpenAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
@@ -38,8 +38,8 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
   > {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({

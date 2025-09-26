@@ -1,8 +1,8 @@
 import {
-  EmbeddingModelV2,
-  ImageModelV2,
+  EmbeddingModelV3,
+  ImageModelV3,
   LanguageModelV2,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -24,7 +24,7 @@ export interface OpenAICompatibleProvider<
   COMPLETION_MODEL_IDS extends string = string,
   EMBEDDING_MODEL_IDS extends string = string,
   IMAGE_MODEL_IDS extends string = string,
-> extends Omit<ProviderV2, 'imageModel'> {
+> extends Omit<ProviderV3, 'imageModel'> {
   (modelId: CHAT_MODEL_IDS): LanguageModelV2;
 
   languageModel(
@@ -36,9 +36,9 @@ export interface OpenAICompatibleProvider<
 
   completionModel(modelId: COMPLETION_MODEL_IDS): LanguageModelV2;
 
-  textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV2<string>;
+  textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3<string>;
 
-  imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV2;
+  imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV3;
 }
 
 export interface OpenAICompatibleProviderSettings {

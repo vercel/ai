@@ -1,16 +1,21 @@
 import {
   TranscriptionModelV2,
   SpeechModelV2,
-  ProviderV2,
+  ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
-import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
 import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
+import { VERSION } from './version';
 
-export interface ElevenLabsProvider extends ProviderV2 {
+export interface ElevenLabsProvider extends ProviderV3 {
   (
     modelId: 'scribe_v1',
     settings?: {},
@@ -53,14 +58,18 @@ Create an ElevenLabs provider instance.
 export function createElevenLabs(
   options: ElevenLabsProviderSettings = {},
 ): ElevenLabsProvider {
-  const getHeaders = () => ({
-    'xi-api-key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'ELEVENLABS_API_KEY',
-      description: 'ElevenLabs',
-    }),
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        'xi-api-key': loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'ELEVENLABS_API_KEY',
+          description: 'ElevenLabs',
+        }),
+        ...options.headers,
+      },
+      `ai-sdk/elevenlabs/${VERSION}`,
+    );
 
   const createTranscriptionModel = (modelId: ElevenLabsTranscriptionModelId) =>
     new ElevenLabsTranscriptionModel(modelId, {

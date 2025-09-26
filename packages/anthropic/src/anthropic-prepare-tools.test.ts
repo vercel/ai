@@ -88,6 +88,50 @@ describe('prepareTools', () => {
     expect(result.toolWarnings).toEqual([]);
   });
 
+  it('should correctly prepare text_editor_20250728 with max_characters', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'anthropic.text_editor_20250728',
+          name: 'str_replace_based_edit_tool',
+          args: { maxCharacters: 10000 },
+        },
+      ],
+    });
+    expect(result.tools).toEqual([
+      {
+        name: 'str_replace_based_edit_tool',
+        type: 'text_editor_20250728',
+        max_characters: 10000,
+      },
+    ]);
+    expect(result.toolChoice).toBeUndefined();
+    expect(result.toolWarnings).toEqual([]);
+  });
+
+  it('should correctly prepare text_editor_20250728 without max_characters', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'anthropic.text_editor_20250728',
+          name: 'str_replace_based_edit_tool',
+          args: {},
+        },
+      ],
+    });
+    expect(result.tools).toEqual([
+      {
+        name: 'str_replace_based_edit_tool',
+        type: 'text_editor_20250728',
+        max_characters: undefined,
+      },
+    ]);
+    expect(result.toolChoice).toBeUndefined();
+    expect(result.toolWarnings).toEqual([]);
+  });
+
   it('should add warnings for unsupported tools', () => {
     const result = prepareTools({
       tools: [

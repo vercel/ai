@@ -1,5 +1,56 @@
 # @ai-sdk/openai
 
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
+## 2.1.0-beta.4
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 522f6b8: feat: `ImageModelV3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- 2e86082: feat(provider/openai): `OpenAIChatLanguageModelOptions` type
+
+  ```ts
+  import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+  import { generateText } from 'ai';
+
+  await generateText({
+    model: openai.chat('gpt-4o'),
+    prompt: 'Invent a new holiday and describe its traditions.',
+    providerOptions: {
+      openai: {
+        user: 'user-123',
+      } satisfies OpenAIChatLanguageModelOptions,
+    },
+  });
+  ```
+
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- 4920119: fix the "incomplete_details" key from nullable to nullish for openai compatibility
+- 0c4822d: feat: `EmbeddingModelV3`
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
 ## 2.1.0-beta.1
 
 ### Patch Changes

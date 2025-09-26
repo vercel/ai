@@ -1,15 +1,17 @@
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   LanguageModelV2,
-  ProviderV2,
-  ImageModelV2,
+  ProviderV3,
+  ImageModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { VERSION } from './version';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
@@ -22,7 +24,7 @@ import {
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 
-export interface GoogleGenerativeAIProvider extends ProviderV2 {
+export interface GoogleGenerativeAIProvider extends ProviderV3 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
   languageModel(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
@@ -35,7 +37,7 @@ Creates a model for image generation.
   image(
     modelId: GoogleGenerativeAIImageModelId,
     settings?: GoogleGenerativeAIImageSettings,
-  ): ImageModelV2;
+  ): ImageModelV3;
 
   /**
    * @deprecated Use `chat()` instead.
@@ -47,15 +49,15 @@ Creates a model for image generation.
    */
   embedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 
   textEmbedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 
   tools: typeof googleTools;
 }
@@ -100,14 +102,18 @@ export function createGoogleGenerativeAI(
     withoutTrailingSlash(options.baseURL) ??
     'https://generativelanguage.googleapis.com/v1beta';
 
-  const getHeaders = () => ({
-    'x-goog-api-key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'GOOGLE_GENERATIVE_AI_API_KEY',
-      description: 'Google Generative AI',
-    }),
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        'x-goog-api-key': loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'GOOGLE_GENERATIVE_AI_API_KEY',
+          description: 'Google Generative AI',
+        }),
+        ...options.headers,
+      },
+      `ai-sdk/google/${VERSION}`,
+    );
 
   const createChatModel = (modelId: GoogleGenerativeAIModelId) =>
     new GoogleGenerativeAILanguageModel(modelId, {
