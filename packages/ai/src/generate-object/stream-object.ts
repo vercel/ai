@@ -504,8 +504,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           messages,
         } as Prompt);
 
-        const adjustedPrompt = standardizedPrompt;
-
         const callOptions = {
           responseFormat: {
             type: 'json' as const,
@@ -515,7 +513,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           },
           ...prepareCallSettings(settings),
           prompt: await convertToLanguageModelPrompt({
-            prompt: adjustedPrompt,
+            prompt: standardizedPrompt,
             supportedUrls: await model.supportedUrls,
             download,
           }),
