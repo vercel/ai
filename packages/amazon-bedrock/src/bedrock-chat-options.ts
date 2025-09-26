@@ -65,6 +65,29 @@ export type BedrockChatModelId =
   | 'us.meta.llama4-maverick-17b-instruct-v1:0'
   | (string & {});
 
+/**
+ * Bedrock file part provider options for document-specific features.
+ * These options apply to individual file parts (documents).
+ */
+export const bedrockFilePartProviderOptions = z.object({
+  /**
+   * Citation configuration for this document.
+   * When enabled, this document will generate citations in the response.
+   */
+  citations: z
+    .object({
+      /**
+       * Enable citations for this document
+       */
+      enabled: z.boolean(),
+    })
+    .optional(),
+});
+
+export type BedrockFilePartProviderOptions = z.infer<
+  typeof bedrockFilePartProviderOptions
+>;
+
 export const bedrockProviderOptions = z.object({
   /**
    * Additional inference parameters that the model supports,
