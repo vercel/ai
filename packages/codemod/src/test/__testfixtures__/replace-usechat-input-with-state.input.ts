@@ -46,3 +46,11 @@ export function OnlyHandleInputChange() {
   const { messages, handleInputChange } = useChat();
   return handleInputChange;
 }
+
+// Test with new import syntax
+import { useChat as useChatNew } from '@ai-sdk/react';
+
+export function WithNewImportSyntax() {
+  const { input } = useChatNew();
+  return input;
+}

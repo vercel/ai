@@ -3,14 +3,51 @@ import { createTransformer } from '../lib/create-transformer';
 export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
 
-  // Replace old import path with new one
-  root.find(j.ImportDeclaration, {
-    source: { value: 'ai/react' },
-  }).forEach(path => {
-    const importDeclaration = path.node;
-    importDeclaration.source.value = '@ai-sdk/react';
-    context.hasChanges = true;
-  });
+  // Track all useChat import names (including aliases)
+  const useChatNames = new Set<string>();
+
+  // Replace old import path with new one and collect useChat import names
+  root
+    .find(j.ImportDeclaration, {
+      source: { value: 'ai/react' },
+    })
+    .forEach(path => {
+      const importDeclaration = path.node;
+      importDeclaration.source.value = '@ai-sdk/react';
+
+      // Collect useChat import names
+      importDeclaration.specifiers?.forEach(spec => {
+        if (
+          spec.type === 'ImportSpecifier' &&
+          spec.imported.type === 'Identifier' &&
+          spec.imported.name === 'useChat'
+        ) {
+          useChatNames.add(spec.local?.name || 'useChat');
+        }
+      });
+
+      context.hasChanges = true;
+    });
+
+  // Also collect useChat names from existing @ai-sdk/react imports
+  root
+    .find(j.ImportDeclaration, {
+      source: { value: '@ai-sdk/react' },
+    })
+    .forEach(path => {
+      const importDeclaration = path.node;
+
+      // Collect useChat import names
+      importDeclaration.specifiers?.forEach(spec => {
+        if (
+          spec.type === 'ImportSpecifier' &&
+          spec.imported.type === 'Identifier' &&
+          spec.imported.name === 'useChat'
+        ) {
+          useChatNames.add(spec.local?.name || 'useChat');
+        }
+      });
+    });
 
   let needsUseStateImport = false;
   const inputStates: Array<{
@@ -27,7 +64,7 @@ export default createTransformer((fileInfo, api, options, context) => {
       !init ||
       init.type !== 'CallExpression' ||
       init.callee.type !== 'Identifier' ||
-      init.callee.name !== 'useChat' ||
+      !useChatNames.has(init.callee.name) ||
       id.type !== 'ObjectPattern'
     ) {
       return;

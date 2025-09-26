@@ -62,3 +62,12 @@ export function OnlyHandleInputChange() {
   } = useChat();
   return e => setInput(e.target.value);
 }
+
+// Test with new import syntax
+import { useChat as useChatNew } from '@ai-sdk/react';
+
+export function WithNewImportSyntax() {
+  const [input, setInput] = useState('');
+  const {} = useChatNew();
+  return input;
+}
