@@ -141,6 +141,10 @@ export type AnthropicTool =
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
+      type: 'code_execution_20250522';
+      name: string;
+    }
+  | {
       name: string;
       type: 'computer_20250124' | 'computer_20241022';
       display_width_px: number;
@@ -164,6 +168,15 @@ export type AnthropicTool =
       type: 'bash_20250124' | 'bash_20241022';
     }
   | {
+      type: 'web_fetch_20250910';
+      name: string;
+      max_uses?: number;
+      allowed_domains?: string[];
+      blocked_domains?: string[];
+      citations?: { enabled: boolean };
+      max_content_tokens?: number;
+    }
+  | {
       type: 'web_search_20250305';
       name: string;
       max_uses?: number;
@@ -176,10 +189,6 @@ export type AnthropicTool =
         country?: string;
         timezone?: string;
       };
-    }
-  | {
-      type: 'code_execution_20250522';
-      name: string;
     };
 
 export type AnthropicToolChoice =

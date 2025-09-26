@@ -7,6 +7,7 @@ import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
 import { getCacheControl } from './get-cache-control';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
+import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 
 function isWebSearchTool(
   tool: unknown,
@@ -65,7 +66,15 @@ export function prepareTools({
         break;
       case 'provider-defined':
         switch (tool.id) {
-          case 'anthropic.computer_20250124':
+          case 'anthropic.code_execution_20250522': {
+            betas.add('code-execution-2025-05-22');
+            anthropicTools.push({
+              type: 'code_execution_20250522',
+              name: 'code_execution',
+            });
+            break;
+          }
+          case 'anthropic.computer_20250124': {
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
               name: 'computer',
@@ -75,7 +84,8 @@ export function prepareTools({
               display_number: tool.args.displayNumber as number,
             });
             break;
-          case 'anthropic.computer_20241022':
+          }
+          case 'anthropic.computer_20241022': {
             betas.add('computer-use-2024-10-22');
             anthropicTools.push({
               name: 'computer',
@@ -85,28 +95,32 @@ export function prepareTools({
               display_number: tool.args.displayNumber as number,
             });
             break;
-          case 'anthropic.text_editor_20250124':
+          }
+          case 'anthropic.text_editor_20250124': {
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
               name: 'str_replace_editor',
               type: 'text_editor_20250124',
             });
             break;
-          case 'anthropic.text_editor_20241022':
+          }
+          case 'anthropic.text_editor_20241022': {
             betas.add('computer-use-2024-10-22');
             anthropicTools.push({
               name: 'str_replace_editor',
               type: 'text_editor_20241022',
             });
             break;
-          case 'anthropic.text_editor_20250429':
+          }
+          case 'anthropic.text_editor_20250429': {
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
               name: 'str_replace_based_edit_tool',
               type: 'text_editor_20250429',
             });
             break;
-          case 'anthropic.text_editor_20250728':
+          }
+          case 'anthropic.text_editor_20250728': {
             const args = textEditor_20250728ArgsSchema.parse(tool.args);
             anthropicTools.push({
               name: 'str_replace_based_edit_tool',
@@ -114,20 +128,37 @@ export function prepareTools({
               max_characters: args.maxCharacters,
             });
             break;
-          case 'anthropic.bash_20250124':
+          }
+          case 'anthropic.bash_20250124': {
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
               name: 'bash',
               type: 'bash_20250124',
             });
             break;
-          case 'anthropic.bash_20241022':
+          }
+          case 'anthropic.bash_20241022': {
             betas.add('computer-use-2024-10-22');
             anthropicTools.push({
               name: 'bash',
               type: 'bash_20241022',
             });
             break;
+          }
+          case 'anthropic.web_fetch_20250910': {
+            betas.add('web-fetch-2025-09-10');
+            const args = webFetch_20250910ArgsSchema.parse(tool.args);
+            anthropicTools.push({
+              type: 'web_fetch_20250910',
+              name: 'web_fetch',
+              max_uses: args.maxUses,
+              allowed_domains: args.allowedDomains,
+              blocked_domains: args.blockedDomains,
+              citations: args.citations,
+              max_content_tokens: args.maxContentTokens,
+            });
+            break;
+          }
           case 'anthropic.web_search_20250305': {
             const args = webSearch_20250305ArgsSchema.parse(tool.args);
             anthropicTools.push({
@@ -140,14 +171,7 @@ export function prepareTools({
             });
             break;
           }
-          case 'anthropic.code_execution_20250522': {
-            betas.add('code-execution-2025-05-22');
-            anthropicTools.push({
-              type: 'code_execution_20250522',
-              name: 'code_execution',
-            });
-            break;
-          }
+
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
