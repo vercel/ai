@@ -27,9 +27,9 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-5-nano'),
     tools,
-    messages: convertToModelMessages(uiMessages),
+    messages: convertToModelMessages(uiMessages, { tools }),
     onStepFinish: ({ request }) => {
-      console.log(JSON.stringify(request.body, null, 2));
+      console.dir(request.body, { depth: 3 });
     },
   });
 
