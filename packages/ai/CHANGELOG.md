@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.55
+
+### Patch Changes
+
+- 85da29e: fix(ai): remove outdated jsdoc param descriptions
+
 ## 5.0.54
 
 ### Patch Changes

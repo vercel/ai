@@ -1,5 +1,18 @@
 # @ai-sdk/anthropic
 
+## 2.0.20
+
+### Patch Changes
+
+- 8e08229: feat(provider/anthropic): web search tool updates
+- f77cc8c: feat(provider/anthropic): add text_editor_20250728 tool support
+
+  Add text_editor_20250728 tool for Claude 4 models (Sonnet 4, Opus 4, Opus 4.1) with optional max_characters parameter and no undo_edit command support.
+
+- 9398a72: fix(provider/anthropic): correct raw usage information
+- a80ea09: feat(provider/anthropic): add web fetch tool
+- 53afb19: chore(provider/anthropic): update anthropic model ids
+
 ## 2.0.19
 
 ### Patch Changes
