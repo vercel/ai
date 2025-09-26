@@ -1,5 +1,11 @@
 # ai
 
+## 5.1.0-beta.13
+
+### Patch Changes
+
+- 1c2a4c1: fix(ai): remove outdated jsdoc param descriptions
+
 ## 5.1.0-beta.12
 
 ### Patch Changes
