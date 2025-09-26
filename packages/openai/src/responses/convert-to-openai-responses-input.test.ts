@@ -1695,7 +1695,50 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
-    // TODO test case for multipart with image
+    it('should convert single tool result part with multipart that contains image', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'media',
+                      mediaType: 'image/png',
+                      data: 'base64_data',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
     // TODO test case for multipart with file (pdf)
     // TODO test case for multipart with mixed content (text, image, file)
 

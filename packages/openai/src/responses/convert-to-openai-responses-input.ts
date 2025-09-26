@@ -258,14 +258,20 @@ export async function convertToOpenAIResponsesInput({
             case 'content':
               contentValue = output.value.map(item => {
                 switch (item.type) {
-                  case 'text':
+                  case 'text': {
                     return { type: 'input_text' as const, text: item.text };
-                  case 'media':
-                    // TODO identify images via mediaType and return different value
-                    return {
-                      type: 'input_file' as const,
-                      file_data: item.data,
-                    };
+                  }
+                  case 'media': {
+                    return item.mediaType.startsWith('image/')
+                      ? {
+                          type: 'input_image' as const,
+                          image_url: `data:${item.mediaType};base64,${item.data}`,
+                        }
+                      : {
+                          type: 'input_file' as const,
+                          file_data: item.data,
+                        };
+                  }
                 }
               });
               break;
