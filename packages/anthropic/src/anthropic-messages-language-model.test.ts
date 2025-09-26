@@ -6,9 +6,9 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
+  createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DocumentCitation } from './anthropic-messages-language-model';
