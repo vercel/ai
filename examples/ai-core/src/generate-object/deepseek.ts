@@ -4,12 +4,12 @@ import { z } from 'zod';
 import { run } from '../lib/run';
 
 run(async () => {
-    const result = await generateObject({
-    model: deepseek("deepseek-chat"),
+  const result = await generateObject({
+    model: deepseek('deepseek-chat'),
     prompt: `Generate a random person`,
     schema: z.object({
-      name: z.string().describe("The name of the person"),
-      age: z.number().describe("The age of the person")
+      name: z.string().describe('The name of the person'),
+      age: z.number().describe('The age of the person'),
     }),
   });
 
