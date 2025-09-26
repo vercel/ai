@@ -81,7 +81,13 @@ async function getChatFile(id: string): Promise<string> {
   const chatFile = path.join(chatDir, `${id}.json`);
 
   if (!existsSync(chatFile)) {
-    const blankChat: ChatData = { id, messages: [], createdAt: Date.now(), activeStreamId: null, canceledAt: null };
+    const blankChat: ChatData = {
+      id,
+      messages: [],
+      createdAt: Date.now(),
+      activeStreamId: null,
+      canceledAt: null,
+    };
     await writeFile(chatFile, JSON.stringify(blankChat, null, 2));
   }
 
