@@ -1,17 +1,18 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, stepCountIs } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   let editorContent = `
 ## README
 This is a test file.
   `;
 
   const result = await generateText({
-    model: anthropic('claude-3-5-sonnet-20241022'),
+    model: anthropic('claude-sonnet-4-20250514'),
     tools: {
-      str_replace_editor: anthropic.tools.textEditor_20250124({
+      str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
+        maxCharacters: 10000,
         async execute({ command, path, old_str, new_str }) {
           switch (command) {
             case 'view': {
@@ -43,6 +44,4 @@ This is a test file.
   console.log('TEXT', result.text);
   console.log();
   console.log('EDITOR CONTENT', editorContent);
-}
-
-main().catch(console.error);
+});
