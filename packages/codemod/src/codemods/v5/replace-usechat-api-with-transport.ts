@@ -7,76 +7,94 @@ export default createTransformer((fileInfo, api, options, context) => {
   const useChatNames = new Set<string>();
 
   // Replace old import path with new one and collect useChat import names
-  root.find(j.ImportDeclaration, {
-    source: { value: 'ai/react' },
-  }).forEach(path => {
-    const importDeclaration = path.node;
-    importDeclaration.source.value = '@ai-sdk/react';
-    
-    // Collect useChat import names
-    importDeclaration.specifiers?.forEach(spec => {
-      if (spec.type === 'ImportSpecifier' && spec.imported.type === 'Identifier' && spec.imported.name === 'useChat') {
-        useChatNames.add(spec.local?.name || 'useChat');
-      }
+  root
+    .find(j.ImportDeclaration, {
+      source: { value: 'ai/react' },
+    })
+    .forEach(path => {
+      const importDeclaration = path.node;
+      importDeclaration.source.value = '@ai-sdk/react';
+
+      // Collect useChat import names
+      importDeclaration.specifiers?.forEach(spec => {
+        if (
+          spec.type === 'ImportSpecifier' &&
+          spec.imported.type === 'Identifier' &&
+          spec.imported.name === 'useChat'
+        ) {
+          useChatNames.add(spec.local?.name || 'useChat');
+        }
+      });
+
+      context.hasChanges = true;
     });
-    
-    context.hasChanges = true;
-  });
 
   // Also collect useChat names from existing @ai-sdk/react imports
-  root.find(j.ImportDeclaration, {
-    source: { value: '@ai-sdk/react' },
-  }).forEach(path => {
-    const importDeclaration = path.node;
-    
-    // Collect useChat import names
-    importDeclaration.specifiers?.forEach(spec => {
-      if (spec.type === 'ImportSpecifier' && spec.imported.type === 'Identifier' && spec.imported.name === 'useChat') {
-        useChatNames.add(spec.local?.name || 'useChat');
-      }
+  root
+    .find(j.ImportDeclaration, {
+      source: { value: '@ai-sdk/react' },
+    })
+    .forEach(path => {
+      const importDeclaration = path.node;
+
+      // Collect useChat import names
+      importDeclaration.specifiers?.forEach(spec => {
+        if (
+          spec.type === 'ImportSpecifier' &&
+          spec.imported.type === 'Identifier' &&
+          spec.imported.name === 'useChat'
+        ) {
+          useChatNames.add(spec.local?.name || 'useChat');
+        }
+      });
     });
-  });
 
   let needsDefaultChatTransportImport = false;
 
-  root.find(j.CallExpression).filter(path => {
-    return path.node.callee.type === 'Identifier' && useChatNames.has(path.node.callee.name);
-  }).forEach(path => {
-    const args = path.node.arguments;
-    if (args.length === 0) return;
+  root
+    .find(j.CallExpression)
+    .filter(path => {
+      return (
+        path.node.callee.type === 'Identifier' &&
+        useChatNames.has(path.node.callee.name)
+      );
+    })
+    .forEach(path => {
+      const args = path.node.arguments;
+      if (args.length === 0) return;
 
-    const firstArg = args[0];
-    if (firstArg.type !== 'ObjectExpression') return;
+      const firstArg = args[0];
+      if (firstArg.type !== 'ObjectExpression') return;
 
-    const apiProperty = firstArg.properties.find(
-      (prop: any) =>
-        (prop.type === 'Property' || prop.type === 'ObjectProperty') &&
-        prop.key.type === 'Identifier' &&
-        prop.key.name === 'api',
-    );
+      const apiProperty = firstArg.properties.find(
+        (prop: any) =>
+          (prop.type === 'Property' || prop.type === 'ObjectProperty') &&
+          prop.key.type === 'Identifier' &&
+          prop.key.name === 'api',
+      );
 
-    if (!apiProperty) return;
+      if (!apiProperty) return;
 
-    needsDefaultChatTransportImport = true;
-    context.hasChanges = true;
+      needsDefaultChatTransportImport = true;
+      context.hasChanges = true;
 
-    const newProperties = firstArg.properties.filter(
-      (prop: any) => prop !== apiProperty,
-    );
+      const newProperties = firstArg.properties.filter(
+        (prop: any) => prop !== apiProperty,
+      );
 
-    const transportProperty = j.property(
-      'init',
-      j.identifier('transport'),
-      j.newExpression(j.identifier('DefaultChatTransport'), [
-        j.objectExpression([
-          j.property('init', j.identifier('api'), (apiProperty as any).value),
+      const transportProperty = j.property(
+        'init',
+        j.identifier('transport'),
+        j.newExpression(j.identifier('DefaultChatTransport'), [
+          j.objectExpression([
+            j.property('init', j.identifier('api'), (apiProperty as any).value),
+          ]),
         ]),
-      ]),
-    );
+      );
 
-    newProperties.push(transportProperty);
-    firstArg.properties = newProperties;
-  });
+      newProperties.push(transportProperty);
+      firstArg.properties = newProperties;
+    });
 
   if (needsDefaultChatTransportImport) {
     const reactImports = root.find(j.ImportDeclaration, {
