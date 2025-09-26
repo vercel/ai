@@ -1,5 +1,5 @@
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
   TranscriptionModelV2,
@@ -21,12 +21,12 @@ export interface GroqProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
-  (modelId: GroqChatModelId): LanguageModelV2;
+  (modelId: GroqChatModelId): LanguageModelV3;
 
   /**
 Creates an Groq chat model for text generation.
    */
-  languageModel(modelId: GroqChatModelId): LanguageModelV2;
+  languageModel(modelId: GroqChatModelId): LanguageModelV3;
 
   /**
 Creates a model for transcription.

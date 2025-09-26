@@ -20,7 +20,7 @@ import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
-  LanguageModelV2,
+  LanguageModelV3,
   EmbeddingModelV3,
   ProviderV3,
 } from '@ai-sdk/provider';
@@ -28,12 +28,12 @@ import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 
 export interface GatewayProvider extends ProviderV3 {
-  (modelId: GatewayModelId): LanguageModelV2;
+  (modelId: GatewayModelId): LanguageModelV3;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(modelId: GatewayModelId): LanguageModelV2;
+  languageModel(modelId: GatewayModelId): LanguageModelV3;
 
   /**
 Returns available providers and models for use with the remote provider.

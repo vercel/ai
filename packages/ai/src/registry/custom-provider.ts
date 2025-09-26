@@ -1,7 +1,7 @@
 import {
   EmbeddingModelV3,
   ImageModelV3,
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
   SpeechModelV2,
@@ -23,7 +23,7 @@ import {
  * @throws {NoSuchModelError} Throws when a requested model is not found and no fallback provider is available.
  */
 export function customProvider<
-  LANGUAGE_MODELS extends Record<string, LanguageModelV2>,
+  LANGUAGE_MODELS extends Record<string, LanguageModelV3>,
   EMBEDDING_MODELS extends Record<string, EmbeddingModelV3<string>>,
   IMAGE_MODELS extends Record<string, ImageModelV3>,
   TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV2>,
@@ -43,7 +43,7 @@ export function customProvider<
   speechModels?: SPEECH_MODELS;
   fallbackProvider?: ProviderV3;
 }): ProviderV3 & {
-  languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV2;
+  languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3;
   textEmbeddingModel(
     modelId: ExtractModelId<EMBEDDING_MODELS>,
   ): EmbeddingModelV3<string>;
@@ -54,7 +54,7 @@ export function customProvider<
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV2;
 } {
   return {
-    languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV2 {
+    languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3 {
       if (languageModels != null && modelId in languageModels) {
         return languageModels[modelId];
       }

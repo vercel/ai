@@ -7,7 +7,7 @@ import {
   createVertexAnthropic as createVertexAnthropicEdge,
   vertexAnthropic as vertexAnthropicEdge,
 } from '@ai-sdk/google-vertex/anthropic/edge';
-import { LanguageModelV2 } from '@ai-sdk/provider';
+import { LanguageModelV3 } from '@ai-sdk/provider';
 import { APICallError, generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
@@ -32,8 +32,8 @@ const RUNTIME_VARIANTS = {
 } as const;
 
 const createModelObject = (
-  model: LanguageModelV2,
-): { model: LanguageModelV2; modelId: string } => ({
+  model: LanguageModelV3,
+): { model: LanguageModelV3; modelId: string } => ({
   model: model,
   modelId: model.modelId,
 });
@@ -43,8 +43,8 @@ const createLanguageModel = (
     | typeof createVertexAnthropicNode
     | typeof createVertexAnthropicEdge,
   modelId: string,
-  additionalTests: ((model: LanguageModelV2) => void)[] = [],
-): ModelWithCapabilities<LanguageModelV2> => {
+  additionalTests: ((model: LanguageModelV3) => void)[] = [],
+): ModelWithCapabilities<LanguageModelV3> => {
   const model = createVertexAnthropic({
     project: process.env.GOOGLE_VERTEX_PROJECT!,
     // Anthropic models are typically only available in us-east5 region.
@@ -68,7 +68,7 @@ const createModelVariants = (
     | typeof createVertexAnthropicNode
     | typeof createVertexAnthropicEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV2>[] => [
+): ModelWithCapabilities<LanguageModelV3>[] => [
   createLanguageModel(createVertexAnthropic, modelId, [toolTests]),
 ];
 
@@ -113,7 +113,7 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
   },
 );
 
-const toolTests = (model: LanguageModelV2) => {
+const toolTests = (model: LanguageModelV3) => {
   it.skipIf(!['claude-3-5-sonnet-v2@20241022'].includes(model.modelId))(
     'should execute computer tool commands',
     async () => {

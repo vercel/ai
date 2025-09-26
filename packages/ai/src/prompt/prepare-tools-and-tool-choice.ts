@@ -1,7 +1,7 @@
 import {
-  LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2ToolChoice,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ToolChoice,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
@@ -18,9 +18,9 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   activeTools: Array<keyof TOOLS> | undefined;
 }): {
   tools:
-    | Array<LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool>
+    | Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool>
     | undefined;
-  toolChoice: LanguageModelV2ToolChoice | undefined;
+  toolChoice: LanguageModelV3ToolChoice | undefined;
 } {
   if (!isNonEmptyObject(tools)) {
     return {

@@ -1,8 +1,8 @@
 import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2DataContent,
-  LanguageModelV2Message,
-  LanguageModelV2Prompt,
+  LanguageModelV3CallWarning,
+  LanguageModelV3DataContent,
+  LanguageModelV3Message,
+  LanguageModelV3Prompt,
   SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -21,7 +21,7 @@ import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 
-function convertToString(data: LanguageModelV2DataContent): string {
+function convertToString(data: LanguageModelV3DataContent): string {
   if (typeof data === 'string') {
     return Buffer.from(data, 'base64').toString('utf-8');
   }
@@ -46,9 +46,9 @@ export async function convertToAnthropicMessagesPrompt({
   sendReasoning,
   warnings,
 }: {
-  prompt: LanguageModelV2Prompt;
+  prompt: LanguageModelV3Prompt;
   sendReasoning: boolean;
-  warnings: LanguageModelV2CallWarning[];
+  warnings: LanguageModelV3CallWarning[];
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -569,19 +569,19 @@ export async function convertToAnthropicMessagesPrompt({
 
 type SystemBlock = {
   type: 'system';
-  messages: Array<LanguageModelV2Message & { role: 'system' }>;
+  messages: Array<LanguageModelV3Message & { role: 'system' }>;
 };
 type AssistantBlock = {
   type: 'assistant';
-  messages: Array<LanguageModelV2Message & { role: 'assistant' }>;
+  messages: Array<LanguageModelV3Message & { role: 'assistant' }>;
 };
 type UserBlock = {
   type: 'user';
-  messages: Array<LanguageModelV2Message & { role: 'user' | 'tool' }>;
+  messages: Array<LanguageModelV3Message & { role: 'user' | 'tool' }>;
 };
 
 function groupIntoBlocks(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =

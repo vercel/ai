@@ -1,8 +1,8 @@
 import {
-  LanguageModelV2FilePart,
-  LanguageModelV2Message,
-  LanguageModelV2Prompt,
-  LanguageModelV2TextPart,
+  LanguageModelV3FilePart,
+  LanguageModelV3Message,
+  LanguageModelV3Prompt,
+  LanguageModelV3TextPart,
 } from '@ai-sdk/provider';
 import {
   DataContent,
@@ -20,7 +20,7 @@ import {
   createDefaultDownloadFunction,
   DownloadFunction,
 } from '../util/download/download-function';
-import { convertToLanguageModelV2DataContent } from './data-content';
+import { convertToLanguageModelV3DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
 
@@ -32,7 +32,7 @@ export async function convertToLanguageModelPrompt({
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
-}): Promise<LanguageModelV2Prompt> {
+}): Promise<LanguageModelV3Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
     download,
@@ -50,7 +50,7 @@ export async function convertToLanguageModelPrompt({
 }
 
 /**
- * Convert a ModelMessage to a LanguageModelV2Message.
+ * Convert a ModelMessage to a LanguageModelV3Message.
  *
  * @param message The ModelMessage to convert.
  * @param downloadedAssets A map of URLs to their downloaded data. Only
@@ -65,7 +65,7 @@ export function convertToLanguageModelMessage({
     string,
     { mediaType: string | undefined; data: Uint8Array }
   >;
-}): LanguageModelV2Message {
+}): LanguageModelV3Message {
   const role = message.role;
   switch (role) {
     case 'system': {
@@ -119,7 +119,7 @@ export function convertToLanguageModelMessage({
 
             switch (part.type) {
               case 'file': {
-                const { data, mediaType } = convertToLanguageModelV2DataContent(
+                const { data, mediaType } = convertToLanguageModelV3DataContent(
                   part.data,
                 );
                 return {
@@ -258,7 +258,7 @@ async function downloadAssets(
 }
 
 /**
- * Convert part of a message to a LanguageModelV2Part.
+ * Convert part of a message to a LanguageModelV3Part.
  * @param part The part to convert.
  * @param downloadedAssets A map of URLs to their downloaded data. Only
  *  available if the model does not support URLs, null otherwise.
@@ -271,7 +271,7 @@ function convertPartToLanguageModelPart(
     string,
     { mediaType: string | undefined; data: Uint8Array }
   >,
-): LanguageModelV2TextPart | LanguageModelV2FilePart {
+): LanguageModelV3TextPart | LanguageModelV3FilePart {
   if (part.type === 'text') {
     return {
       type: 'text',
@@ -295,7 +295,7 @@ function convertPartToLanguageModelPart(
   }
 
   const { data: convertedData, mediaType: convertedMediaType } =
-    convertToLanguageModelV2DataContent(originalData);
+    convertToLanguageModelV3DataContent(originalData);
 
   let mediaType: string | undefined = convertedMediaType ?? part.mediaType;
   let data: Uint8Array | string | URL = convertedData; // binary | base64 | url
@@ -310,7 +310,7 @@ function convertPartToLanguageModelPart(
   }
 
   // Now that we have the normalized data either as a URL or a Uint8Array,
-  // we can create the LanguageModelV2Part.
+  // we can create the LanguageModelV3Part.
   switch (type) {
     case 'image': {
       // When possible, try to detect the media type automatically

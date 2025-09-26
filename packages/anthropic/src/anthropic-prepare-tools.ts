@@ -1,6 +1,6 @@
 import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
@@ -14,19 +14,19 @@ export function prepareTools({
   toolChoice,
   disableParallelToolUse,
 }: {
-  tools: LanguageModelV2CallOptions['tools'];
-  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  tools: LanguageModelV3CallOptions['tools'];
+  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   disableParallelToolUse?: boolean;
 }): {
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
-  toolWarnings: LanguageModelV2CallWarning[];
+  toolWarnings: LanguageModelV3CallWarning[];
   betas: Set<string>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV2CallWarning[] = [];
+  const toolWarnings: LanguageModelV3CallWarning[] = [];
   const betas = new Set<string>();
 
   if (tools == null) {
