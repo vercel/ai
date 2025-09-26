@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.56
+
+### Patch Changes
+
+- b1d8458: fix(ai): align logic of text-end with reasoning-end
+
 ## 5.0.55
 
 ### Patch Changes
