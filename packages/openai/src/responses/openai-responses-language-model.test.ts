@@ -1,11 +1,11 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2FunctionTool,
-  LanguageModelV2Prompt,
+  LanguageModelV3,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
@@ -16,11 +16,11 @@ import {
   openaiResponsesReasoningModelIds,
 } from './openai-responses-settings';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
+const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
   {
     type: 'function',
     name: 'weather',
@@ -1908,7 +1908,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-code-interpreter-tool.1');
@@ -1962,7 +1962,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('image generation tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-image-generation-tool.1');
@@ -2375,7 +2375,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -3924,7 +3924,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -3985,7 +3985,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('openai-code-interpreter-tool.1');
@@ -4011,7 +4011,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('image generation tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('openai-image-generation-tool.1');
@@ -4947,7 +4947,7 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('fileIdPrefixes configuration', () => {
-    const TEST_PROMPT_WITH_FILE: LanguageModelV2Prompt = [
+    const TEST_PROMPT_WITH_FILE: LanguageModelV3Prompt = [
       {
         role: 'user',
         content: [
