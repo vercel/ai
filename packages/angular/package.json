@@ -31,10 +31,10 @@
   ],
   "dependencies": {
     "@ai-sdk/provider-utils": "workspace:*",
-    "@ai-sdk/test-server": "workspace:*",
     "ai": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "eslint": "8.57.1",

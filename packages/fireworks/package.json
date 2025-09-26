@@ -34,10 +34,10 @@
   "dependencies": {
     "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*",
-    "@ai-sdk/test-server": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
