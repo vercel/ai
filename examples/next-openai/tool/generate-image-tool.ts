@@ -6,7 +6,7 @@ import {
 } from 'ai';
 import { z } from 'zod';
 
-export const imageGeneratorTool = tool({
+export const generateImageTool = tool({
   description: 'Generate an image',
   inputSchema: z.object({}),
   async execute() {
@@ -26,6 +26,6 @@ export const imageGeneratorTool = tool({
   }),
 });
 
-export type ImageGeneratorUIToolInvocation = UIToolInvocation<
-  typeof imageGeneratorTool
+export type GenerateImageUIToolInvocation = UIToolInvocation<
+  typeof generateImageTool
 >;
