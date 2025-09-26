@@ -156,6 +156,11 @@ export type AnthropicTool =
     }
   | {
       name: string;
+      type: 'text_editor_20250728';
+      max_characters?: number;
+    }
+  | {
+      name: string;
       type: 'bash_20250124' | 'bash_20241022';
     }
   | {

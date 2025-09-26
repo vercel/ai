@@ -181,33 +181,50 @@ export async function convertToOpenAIResponsesInput({
               const reasoningId = providerOptions?.itemId;
 
               if (reasoningId != null) {
-                const existingReasoningMessage = reasoningMessages[reasoningId];
+                const reasoningMessage = reasoningMessages[reasoningId];
 
-                const summaryParts: Array<{
-                  type: 'summary_text';
-                  text: string;
-                }> = [];
+                if (store) {
+                  if (reasoningMessage === undefined) {
+                    // use item references to refer to reasoning (single reference)
+                    input.push({ type: 'item_reference', id: reasoningId });
 
-                if (part.text.length > 0) {
-                  summaryParts.push({ type: 'summary_text', text: part.text });
-                } else if (existingReasoningMessage !== undefined) {
-                  warnings.push({
-                    type: 'other',
-                    message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
-                  });
-                }
-
-                if (existingReasoningMessage === undefined) {
-                  reasoningMessages[reasoningId] = {
-                    type: 'reasoning',
-                    id: reasoningId,
-                    encrypted_content:
-                      providerOptions?.reasoningEncryptedContent,
-                    summary: summaryParts,
-                  };
-                  input.push(reasoningMessages[reasoningId]);
+                    // store unused reasoning message to mark id as used
+                    reasoningMessages[reasoningId] = {
+                      type: 'reasoning',
+                      id: reasoningId,
+                      summary: [],
+                    };
+                  }
                 } else {
-                  existingReasoningMessage.summary.push(...summaryParts);
+                  const summaryParts: Array<{
+                    type: 'summary_text';
+                    text: string;
+                  }> = [];
+
+                  if (part.text.length > 0) {
+                    summaryParts.push({
+                      type: 'summary_text',
+                      text: part.text,
+                    });
+                  } else if (reasoningMessage !== undefined) {
+                    warnings.push({
+                      type: 'other',
+                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                    });
+                  }
+
+                  if (reasoningMessage === undefined) {
+                    reasoningMessages[reasoningId] = {
+                      type: 'reasoning',
+                      id: reasoningId,
+                      encrypted_content:
+                        providerOptions?.reasoningEncryptedContent,
+                      summary: summaryParts,
+                    };
+                    input.push(reasoningMessages[reasoningId]);
+                  } else {
+                    reasoningMessage.summary.push(...summaryParts);
+                  }
                 }
               } else {
                 warnings.push({
