@@ -1,7 +1,7 @@
 import {
-  ImageModelV2,
+  ImageModelV3,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
@@ -43,16 +43,16 @@ requests, or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface FalProvider extends ProviderV2 {
+export interface FalProvider extends ProviderV3 {
   /**
 Creates a model for image generation.
    */
-  image(modelId: FalImageModelId): ImageModelV2;
+  image(modelId: FalImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(modelId: FalImageModelId): ImageModelV2;
+  imageModel(modelId: FalImageModelId): ImageModelV3;
 
   /**
 Creates a model for transcription.

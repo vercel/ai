@@ -2,7 +2,7 @@ import { gateway } from '@ai-sdk/gateway';
 import {
   EmbeddingModelV3,
   LanguageModelV2,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import { UnsupportedModelVersionError } from '../error';
 import { EmbeddingModel } from '../types/embedding-model';
@@ -45,6 +45,6 @@ export function resolveEmbeddingModel<VALUE = string>(
   ) as EmbeddingModelV3<VALUE>;
 }
 
-function getGlobalProvider(): ProviderV2 {
+function getGlobalProvider(): ProviderV3 {
   return globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
 }

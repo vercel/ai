@@ -1,4 +1,4 @@
-import { SpeechModelV2, ProviderV2 } from '@ai-sdk/provider';
+import { SpeechModelV2, ProviderV3 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
@@ -8,7 +8,7 @@ import { LMNTSpeechModel } from './lmnt-speech-model';
 import { LMNTSpeechModelId } from './lmnt-speech-options';
 import { VERSION } from './version';
 
-export interface LMNTProvider extends Pick<ProviderV2, 'speechModel'> {
+export interface LMNTProvider extends Pick<ProviderV3, 'speechModel'> {
   (
     modelId: 'aurora',
     settings?: {},

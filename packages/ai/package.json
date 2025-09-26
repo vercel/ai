@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "5.1.0-beta.8",
+  "version": "5.1.0-beta.13",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -72,7 +72,7 @@
     "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.25.76 || ^4"
+    "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {
     "node": ">=18"

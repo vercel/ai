@@ -10,8 +10,8 @@ import {
 import {
   EmbeddingModelV3,
   LanguageModelV2,
-  ProviderV2,
-  ImageModelV2,
+  ProviderV3,
+  ImageModelV3,
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
@@ -23,7 +23,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 
-export interface AzureOpenAIProvider extends ProviderV2 {
+export interface AzureOpenAIProvider extends ProviderV3 {
   (deploymentId: string): LanguageModelV2;
 
   /**
@@ -54,12 +54,12 @@ Creates an Azure OpenAI completion model for text generation.
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  image(deploymentId: string): ImageModelV2;
+  image(deploymentId: string): ImageModelV3;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  imageModel(deploymentId: string): ImageModelV2;
+  imageModel(deploymentId: string): ImageModelV3;
 
   textEmbedding(deploymentId: string): EmbeddingModelV3<string>;
 
