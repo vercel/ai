@@ -8,6 +8,7 @@ export {
   LoadAPIKeyError,
   NoContentGeneratedError,
   NoSuchModelError,
+  TooManyEmbeddingValuesForCallError,
   TypeValidationError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';

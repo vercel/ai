@@ -153,23 +153,22 @@ const { text: detailedText } = await generateText({
 });
 ```
 
-### Web Search Integration
+### Web Search
 
-GPT-5 can access real-time information through the integrated web search tool when accessed via the [Responses API](/providers/openai#responses-models):
+GPT-5 can access real-time information through the integrated web search tool:
 
 ```ts
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: openai.responses('gpt-5'),
+  model: openai('gpt-5'),
   prompt: 'What are the latest developments in AI this week?',
   tools: {
-    web_search_preview: openai.tools.webSearchPreview({
+    web_search: openai.tools.webSearch({
       searchContextSize: 'high',
     }),
   },
-  toolChoice: { type: 'tool', toolName: 'web_search_preview' },
 });
 
 // Access URL sources

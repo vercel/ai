@@ -46,12 +46,12 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'prompt',
-      type: 'string',
+      type: 'string | Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage>',
       description: 'The input prompt to generate the text from.',
     },
     {
       name: 'messages',
-      type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage> | Array<UIMessage>',
+      type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage>',
       description:
         'A list of messages that represent a conversation. Automatically converts UI messages from the useChat hook.',
       properties: [
@@ -847,12 +847,12 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'reasoning',
-      type: 'Array<ReasoningPart>',
+      type: 'Array<ReasoningOutput>',
       description:
         'The full reasoning that the model has generated in the last step.',
       properties: [
         {
-          type: 'ReasoningPart',
+          type: 'ReasoningOutput',
           parameters: [
             {
               name: 'type',
@@ -863,6 +863,12 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'text',
               type: 'string',
               description: 'The reasoning text.',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'SharedV2ProviderMetadata',
+              isOptional: true,
+              description: 'Additional provider metadata for the source.',
             },
           ],
         },

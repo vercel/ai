@@ -1,10 +1,12 @@
 // re-exports:
+export { gateway, createGateway } from '@ai-sdk/gateway';
 export {
   asSchema,
   createIdGenerator,
   dynamicTool,
   generateId,
   jsonSchema,
+  parseJsonEventStream,
   tool,
   zodSchema,
   type IdGenerator,
