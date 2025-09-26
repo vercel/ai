@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.8
+
+### Patch Changes
+
+- c823faf: feat(provider/gateway): Add new Gemini preview models to Gateway model string autocomplete
+
 ## 1.1.0-beta.7
 
 ### Patch Changes

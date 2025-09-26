@@ -258,7 +258,7 @@ async function downloadAssets(
 }
 
 /**
- * Convert part of a message to a LanguageModelV2Part.
+ * Convert part of a message to a LanguageModelV3Part.
  * @param part The part to convert.
  * @param downloadedAssets A map of URLs to their downloaded data. Only
  *  available if the model does not support URLs, null otherwise.
@@ -310,7 +310,7 @@ function convertPartToLanguageModelPart(
   }
 
   // Now that we have the normalized data either as a URL or a Uint8Array,
-  // we can create the LanguageModelV2Part.
+  // we can create the LanguageModelV3Part.
   switch (type) {
     case 'image': {
       // When possible, try to detect the media type automatically

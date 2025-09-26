@@ -73,9 +73,6 @@ const documentCitationSchema = z.discriminatedUnion('type', [
 
 type Citation = z.infer<typeof citationSchema>;
 export type DocumentCitation = z.infer<typeof documentCitationSchema>;
-export type AnthropicProviderMetadata = SharedV2ProviderMetadata & {
-  usage?: Record<string, JSONValue>;
-};
 
 function processCitation(
   citation: Citation,
@@ -675,7 +672,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       | { type: 'text' | 'reasoning' }
     > = {};
 
-    let providerMetadata: AnthropicProviderMetadata | undefined = undefined;
+    let rawUsage: JSONObject | undefined = undefined;
+    let cacheCreationInputTokens: number | null = null;
 
     let blockType:
       | 'text'
@@ -1039,13 +1037,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 usage.cachedInputTokens =
                   value.message.usage.cache_read_input_tokens ?? undefined;
 
-                providerMetadata = {
-                  anthropic: {
-                    usage: value.message.usage as JSONObject,
-                    cacheCreationInputTokens:
-                      value.message.usage.cache_creation_input_tokens ?? null,
-                  },
+                rawUsage = {
+                  ...(value.message.usage as JSONObject),
                 };
+
+                cacheCreationInputTokens =
+                  value.message.usage.cache_creation_input_tokens ?? null;
 
                 controller.enqueue({
                   type: 'response-metadata',
@@ -1065,6 +1062,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   finishReason: value.delta.stop_reason,
                   isJsonResponseFromTool: usesJsonResponseTool,
                 });
+
+                rawUsage = {
+                  ...rawUsage,
+                  ...(value.usage as JSONObject),
+                };
+
                 return;
               }
 
@@ -1073,7 +1076,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   type: 'finish',
                   finishReason,
                   usage,
-                  providerMetadata,
+                  providerMetadata: {
+                    anthropic: {
+                      usage: rawUsage ?? null,
+                      cacheCreationInputTokens,
+                    },
+                  },
                 });
                 return;
               }
@@ -1187,7 +1195,6 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
       model: z.string().nullish(),
       usage: z.looseObject({
         input_tokens: z.number(),
-        output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
       }),
@@ -1297,7 +1304,10 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('message_delta'),
     delta: z.object({ stop_reason: z.string().nullish() }),
-    usage: z.object({ output_tokens: z.number() }),
+    usage: z.looseObject({
+      output_tokens: z.number(),
+      cache_creation_input_tokens: z.number().nullish(),
+    }),
   }),
   z.object({
     type: z.literal('message_stop'),

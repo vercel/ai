@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
 import { getCacheControl } from './get-cache-control';
+import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 
 function isWebSearchTool(
@@ -103,6 +104,14 @@ export function prepareTools({
             anthropicTools.push({
               name: 'str_replace_based_edit_tool',
               type: 'text_editor_20250429',
+            });
+            break;
+          case 'anthropic.text_editor_20250728':
+            const args = textEditor_20250728ArgsSchema.parse(tool.args);
+            anthropicTools.push({
+              name: 'str_replace_based_edit_tool',
+              type: 'text_editor_20250728',
+              max_characters: args.maxCharacters,
             });
             break;
           case 'anthropic.bash_20250124':

@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.1.0-beta.6
+
+### Patch Changes
+
+- e833473: chore (provider/google): Add preview modelIds for gemini 2.5 flash and lite
+
 ## 2.1.0-beta.5
 
 ### Patch Changes
