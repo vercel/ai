@@ -29,8 +29,9 @@ export interface AnthropicAssistantMessage {
     | AnthropicRedactedThinkingContent
     | AnthropicToolCallContent
     | AnthropicServerToolUseContent
-    | AnthropicWebSearchToolResultContent
     | AnthropicCodeExecutionToolResultContent
+    | AnthropicWebFetchToolResultContent
+    | AnthropicWebSearchToolResultContent
   >;
 }
 
@@ -95,7 +96,7 @@ export interface AnthropicToolCallContent {
 export interface AnthropicServerToolUseContent {
   type: 'server_tool_use';
   id: string;
-  name: 'web_search' | 'code_execution';
+  name: 'code_execution' | 'web_fetch' | 'web_search';
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -133,12 +134,35 @@ export interface AnthropicCodeExecutionToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+export interface AnthropicWebFetchToolResultContent {
+  type: 'web_fetch_tool_result';
+  tool_use_id: string;
+  content: {
+    type: 'web_fetch_result';
+    url: string;
+    retrieved_at: string | null;
+    content: {
+      type: 'document';
+      title: string | null;
+      citations?: { enabled: boolean };
+      source:
+        | { type: 'base64'; media_type: 'application/pdf'; data: string }
+        | { type: 'text'; media_type: 'text/plain'; data: string };
+    };
+  };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
 export type AnthropicTool =
   | {
       name: string;
       description: string | undefined;
       input_schema: JSONSchema7;
       cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      type: 'code_execution_20250522';
+      name: string;
     }
   | {
       name: string;
@@ -164,6 +188,15 @@ export type AnthropicTool =
       type: 'bash_20250124' | 'bash_20241022';
     }
   | {
+      type: 'web_fetch_20250910';
+      name: string;
+      max_uses?: number;
+      allowed_domains?: string[];
+      blocked_domains?: string[];
+      citations?: { enabled: boolean };
+      max_content_tokens?: number;
+    }
+  | {
       type: 'web_search_20250305';
       name: string;
       max_uses?: number;
@@ -176,10 +209,6 @@ export type AnthropicTool =
         country?: string;
         timezone?: string;
       };
-    }
-  | {
-      type: 'code_execution_20250522';
-      name: string;
     };
 
 export type AnthropicToolChoice =
