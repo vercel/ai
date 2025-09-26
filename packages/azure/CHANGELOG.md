@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 2.0.38
+
+### Patch Changes
+
+- 0bda600: enables code_interpreter and file_search capabilities in the Azure provider through the Responses API
+- Updated dependencies [0bda600]
+  - @ai-sdk/openai@2.0.38
+
 ## 2.0.37
 
 ### Patch Changes
