@@ -1854,7 +1854,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
-      it('should return the json response', async () => {
+      it('should stream the response', async () => {
         expect(result).toMatchInlineSnapshot(`
           [
             {
@@ -1919,7 +1919,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cacheCreationInputTokens": null,
                   "usage": {
                     "input_tokens": 441,
-                    "output_tokens": 2,
+                    "output_tokens": 65,
                   },
                 },
               },
@@ -1996,7 +1996,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": null,
                 "usage": {
                   "input_tokens": 17,
-                  "output_tokens": 1,
+                  "output_tokens": 227,
                 },
               },
             },
@@ -2093,7 +2093,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": null,
                 "usage": {
                   "input_tokens": 17,
-                  "output_tokens": 1,
+                  "output_tokens": 227,
                 },
               },
             },
@@ -2172,7 +2172,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": null,
                 "usage": {
                   "input_tokens": 17,
-                  "output_tokens": 1,
+                  "output_tokens": 227,
                 },
               },
             },
@@ -2237,7 +2237,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": null,
                 "usage": {
                   "input_tokens": 17,
-                  "output_tokens": 1,
+                  "output_tokens": 227,
                 },
               },
             },
@@ -2374,7 +2374,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": null,
                 "usage": {
                   "input_tokens": 441,
-                  "output_tokens": 2,
+                  "output_tokens": 65,
                 },
               },
             },
@@ -2583,7 +2583,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cache_creation_input_tokens": 10,
                   "cache_read_input_tokens": 5,
                   "input_tokens": 17,
-                  "output_tokens": 1,
+                  "output_tokens": 227,
                 },
               },
             },
@@ -2659,7 +2659,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cache_creation_input_tokens": 10,
                   "cache_read_input_tokens": 5,
                   "input_tokens": 17,
-                  "output_tokens": 1,
+                  "output_tokens": 227,
                 },
               },
             },
@@ -2747,28 +2747,28 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(chunks.filter(chunk => chunk.type === 'finish'))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "finishReason": "stop",
-            "providerMetadata": {
-              "anthropic": {
-                "cacheCreationInputTokens": null,
-                "usage": {
-                  "input_tokens": 17,
-                  "output_tokens": 1,
+          [
+            {
+              "finishReason": "stop",
+              "providerMetadata": {
+                "anthropic": {
+                  "cacheCreationInputTokens": null,
+                  "usage": {
+                    "input_tokens": 17,
+                    "output_tokens": 227,
+                  },
                 },
               },
+              "type": "finish",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 17,
+                "outputTokens": 227,
+                "totalTokens": 244,
+              },
             },
-            "type": "finish",
-            "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 17,
-              "outputTokens": 227,
-              "totalTokens": 244,
-            },
-          },
-        ]
-      `);
+          ]
+        `);
     });
 
     describe('raw chunks', () => {
@@ -2988,7 +2988,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cacheCreationInputTokens": null,
                   "usage": {
                     "input_tokens": 17,
-                    "output_tokens": 1,
+                    "output_tokens": 227,
                   },
                 },
               },
