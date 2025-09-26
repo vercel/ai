@@ -12,7 +12,7 @@ This is a test file.
     model: anthropic('claude-sonnet-4-20250514'),
     tools: {
       str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
-        maxCharacters: 10000,
+        maxCharacters: 10000, // optional
         async execute({ command, path, old_str, new_str }) {
           switch (command) {
             case 'view': {
