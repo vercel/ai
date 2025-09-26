@@ -1,6 +1,6 @@
 import { vertex as vertexNode } from '@ai-sdk/google-vertex';
 import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
-import { ImageModelV3, LanguageModelV2 } from '@ai-sdk/provider';
+import { ImageModelV3, LanguageModelV3 } from '@ai-sdk/provider';
 import { APICallError, experimental_generateImage as generateImage } from 'ai';
 import 'dotenv/config';
 import { describe, expect, it, vi } from 'vitest';
@@ -29,7 +29,7 @@ const RUNTIME_VARIANTS = {
 const createBaseModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV2> =>
+): ModelWithCapabilities<LanguageModelV3> =>
   createLanguageModelWithCapabilities(vertex(modelId), [
     ...defaultChatModelCapabilities,
     'audioInput',
@@ -38,7 +38,7 @@ const createBaseModel = (
 const createSearchGroundedModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV2> => ({
+): ModelWithCapabilities<LanguageModelV3> => ({
   model: wrapLanguageModel({
     model: vertex(modelId),
     middleware: defaultSettingsMiddleware({
@@ -82,7 +82,7 @@ const createImageModel = (
 const createModelVariants = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV2>[] => [
+): ModelWithCapabilities<LanguageModelV3>[] => [
   createBaseModel(vertex, modelId),
   createSearchGroundedModel(vertex, modelId),
 ];

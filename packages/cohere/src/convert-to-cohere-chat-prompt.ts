@@ -1,20 +1,20 @@
 import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2Prompt,
+  LanguageModelV3CallWarning,
+  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { CohereAssistantMessage, CohereChatPrompt } from './cohere-chat-prompt';
 
-export function convertToCohereChatPrompt(prompt: LanguageModelV2Prompt): {
+export function convertToCohereChatPrompt(prompt: LanguageModelV3Prompt): {
   messages: CohereChatPrompt;
   documents: Array<{
     data: { text: string; title?: string };
   }>;
-  warnings: LanguageModelV2CallWarning[];
+  warnings: LanguageModelV3CallWarning[];
 } {
   const messages: CohereChatPrompt = [];
   const documents: Array<{ data: { text: string; title?: string } }> = [];
-  const warnings: LanguageModelV2CallWarning[] = [];
+  const warnings: LanguageModelV3CallWarning[] = [];
 
   for (const { role, content } of prompt) {
     switch (role) {

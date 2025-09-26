@@ -1,7 +1,7 @@
 import {
   EmbeddingModelV3,
   ImageModelV3,
-  LanguageModelV2,
+  LanguageModelV3,
   ProviderV3,
   SpeechModelV2,
   TranscriptionModelV2,
@@ -30,27 +30,27 @@ import { OpenAITranscriptionModelId } from './transcription/openai-transcription
 import { VERSION } from './version';
 
 export interface OpenAIProvider extends ProviderV3 {
-  (modelId: OpenAIResponsesModelId): LanguageModelV2;
+  (modelId: OpenAIResponsesModelId): LanguageModelV3;
 
   /**
 Creates an OpenAI model for text generation.
    */
-  languageModel(modelId: OpenAIResponsesModelId): LanguageModelV2;
+  languageModel(modelId: OpenAIResponsesModelId): LanguageModelV3;
 
   /**
 Creates an OpenAI chat model for text generation.
    */
-  chat(modelId: OpenAIChatModelId): LanguageModelV2;
+  chat(modelId: OpenAIChatModelId): LanguageModelV3;
 
   /**
 Creates an OpenAI responses API model for text generation.
    */
-  responses(modelId: OpenAIResponsesModelId): LanguageModelV2;
+  responses(modelId: OpenAIResponsesModelId): LanguageModelV3;
 
   /**
 Creates an OpenAI completion model for text generation.
    */
-  completion(modelId: OpenAICompletionModelId): LanguageModelV2;
+  completion(modelId: OpenAICompletionModelId): LanguageModelV3;
 
   /**
 Creates a model for text embeddings.

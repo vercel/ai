@@ -1,9 +1,9 @@
 ---
-title: LanguageModelV2Middleware
+title: LanguageModelV3Middleware
 description: Middleware for enhancing language model behavior (API Reference)
 ---
 
-# `LanguageModelV2Middleware`
+# `LanguageModelV3Middleware`
 
 <Note type="warning">
   Language model middleware is an experimental feature.
@@ -18,7 +18,7 @@ See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more informati
 ## Import
 
 <Snippet
-  text={`import { LanguageModelV2Middleware } from "ai"`}
+  text={`import { LanguageModelV3Middleware } from "ai"`}
   prompt={false}
 />
 
@@ -28,18 +28,18 @@ See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more informati
   content={[
     {
       name: 'transformParams',
-      type: '({ type: "generate" | "stream", params: LanguageModelV2CallOptions }) => Promise<LanguageModelV2CallOptions>',
+      type: '({ type: "generate" | "stream", params: LanguageModelV3CallOptions }) => Promise<LanguageModelV3CallOptions>',
       description:
         'Transforms the parameters before they are passed to the language model.',
     },
     {
       name: 'wrapGenerate',
-      type: '({ doGenerate: DoGenerateFunction, params: LanguageModelV2CallOptions, model: LanguageModelV2 }) => Promise<DoGenerateResult>',
+      type: '({ doGenerate: DoGenerateFunction, params: LanguageModelV3CallOptions, model: LanguageModelV3 }) => Promise<DoGenerateResult>',
       description: 'Wraps the generate operation of the language model.',
     },
     {
       name: 'wrapStream',
-      type: '({ doStream: DoStreamFunction, params: LanguageModelV2CallOptions, model: LanguageModelV2 }) => Promise<DoStreamResult>',
+      type: '({ doStream: DoStreamFunction, params: LanguageModelV3CallOptions, model: LanguageModelV3 }) => Promise<DoStreamResult>',
       description: 'Wraps the stream operation of the language model.',
     },
   ]}

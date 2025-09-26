@@ -73,6 +73,7 @@ const bundle = [
   'v5/restructure-file-stream-parts',
   'v5/restructure-source-stream-parts',
   'v5/rsc-package',
+  'v5/move-tool-invocations-to-parts',
   'v5/not-implemented/pattern',
 ];
 
