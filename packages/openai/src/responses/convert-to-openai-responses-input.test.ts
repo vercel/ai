@@ -1739,9 +1739,113 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
-    // TODO test case for multipart with file (pdf)
-    // TODO test case for multipart with mixed content (text, image, file)
+    it('should convert single tool result part with multipart that contains file (PDF)', async () => {
+      const base64Data = 'AQIDBAU=';
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'media',
+                      mediaType: 'application/pdf',
+                      data: base64Data,
+                    },
+                  ],
+                },
+              },  
+            ]
+          }
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
 
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "file_data": "AQIDBAU=",
+                "type": "input_file",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert single tool result part with multipart with mixed content (text, image, file)', async () => {
+      const base64Data = 'AQIDBAU=';
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'The weather in San Francisco is 72°F',
+                    },
+                    {
+                      type: 'media',
+                      mediaType: 'image/png',
+                      data: 'base64_data',
+                    },
+                    {
+                      type: 'media',
+                      mediaType: 'application/pdf',
+                      data: base64Data,
+                    }
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "text": "The weather in San Francisco is 72°F",
+                "type": "input_text",
+              },
+              {
+                "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+              {
+                "file_data": "AQIDBAU=",
+                "type": "input_file",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+    
     it('should convert multiple tool result parts in a single message', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
