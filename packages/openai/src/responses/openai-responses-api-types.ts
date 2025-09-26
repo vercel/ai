@@ -185,7 +185,7 @@ export type OpenAIResponsesReasoning = {
   type: 'reasoning';
   id: string;
   encrypted_content?: string | null;
-  summary: Array<{
+  summary?: Array<{
     type: 'summary_text';
     text: string;
   }>;
