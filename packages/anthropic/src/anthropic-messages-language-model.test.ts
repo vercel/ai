@@ -1,17 +1,19 @@
 import {
+  JSONValue,
+  LanguageModelV2,
   LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
-  JSONValue,
 } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { type DocumentCitation } from './anthropic-messages-language-model';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
-import { type DocumentCitation } from './anthropic-messages-language-model';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -21,13 +23,39 @@ const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const provider = createAnthropic({ apiKey: 'test-api-key' });
+const provider = createAnthropic({
+  apiKey: 'test-api-key',
+  generateId: mockId({ prefix: 'id' }),
+});
 const model = provider('claude-3-haiku-20240307');
 
 describe('AnthropicMessagesLanguageModel', () => {
   const server = createTestServer({
     'https://api.anthropic.com/v1/messages': {},
   });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+    return;
+  }
+
+  function prepareChunksFixtureResponse(filename: string) {
+    const chunks = fs
+      .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+      .split('\n')
+      .map(line => `data: ${line}\n\n`);
+    chunks.push('data: [DONE]\n\n');
+
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'stream-chunks',
+      chunks,
+    };
+  }
 
   describe('doGenerate', () => {
     function prepareJsonResponse({
@@ -848,13 +876,6 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should process PDF citation responses', async () => {
-      // Create a model with a predictable generateId function
-      const mockProvider = createAnthropic({
-        apiKey: 'test-api-key',
-        generateId: () => 'test-citation-id',
-      });
-      const modelWithMockId = mockProvider('claude-3-haiku-20240307');
-
       // Mock response with PDF citations
       prepareJsonResponse({
         content: [
@@ -875,7 +896,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         ],
       });
 
-      const result = await modelWithMockId.doGenerate({
+      const result = await model.doGenerate({
         prompt: [
           {
             role: 'user',
@@ -908,7 +929,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           {
             "filename": "financial-report.pdf",
-            "id": "test-citation-id",
+            "id": "id-0",
             "mediaType": "application/pdf",
             "providerMetadata": {
               "anthropic": {
@@ -1001,7 +1022,68 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
-    describe('web search', () => {
+    describe('web search tool', () => {
+      describe('with fixture', () => {
+        let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-web-search-tool.1');
+
+          result = await model.doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'anthropic.web_search_20250305',
+                name: 'web_search',
+                args: {
+                  maxUses: 1,
+                  userLocation: {
+                    type: 'approximate',
+                    country: 'US',
+                  },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should send request body with include and tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "max_tokens": 4096,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "text": "What is the latest news?",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-3-haiku-20240307",
+              "tools": [
+                {
+                  "max_uses": 1,
+                  "name": "web_search",
+                  "type": "web_search_20250305",
+                  "user_location": {
+                    "country": "US",
+                    "type": "approximate",
+                  },
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should include web search tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+
       const TEST_PROMPT = [
         {
           role: 'user' as const,

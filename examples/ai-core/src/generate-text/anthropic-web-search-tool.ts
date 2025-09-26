@@ -19,9 +19,5 @@ run(async () => {
     },
   });
 
-  console.dir(result.response.body, { depth: Infinity });
-  console.dir(result.toolCalls, { depth: Infinity });
-  console.dir(result.toolResults, { depth: Infinity });
-  console.dir(result.sources, { depth: Infinity });
-  console.log(result.text);
+  console.log(JSON.stringify(result.response.body, null, 2));
 });
