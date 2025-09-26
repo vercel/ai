@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.37
+
+### Patch Changes
+
+- 6075c91: feat(provider/openai): only send item references for reasoning when store: true
+
 ## 2.0.36
 
 ### Patch Changes
