@@ -3,6 +3,15 @@ import { createTransformer } from '../lib/create-transformer';
 export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
 
+  // Replace old import path with new one
+  root.find(j.ImportDeclaration, {
+    source: { value: 'ai/react' },
+  }).forEach(path => {
+    const importDeclaration = path.node;
+    importDeclaration.source.value = '@ai-sdk/react';
+    context.hasChanges = true;
+  });
+
   let needsUseStateImport = false;
   const inputStates: Array<{
     inputName: string;

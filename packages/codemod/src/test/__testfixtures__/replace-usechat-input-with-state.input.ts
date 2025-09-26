@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useChat } from '@ai-sdk/react';
+import { useChat } from 'ai/react';
 
 export function ChatComponent() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
