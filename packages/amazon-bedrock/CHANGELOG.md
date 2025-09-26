@@ -1,5 +1,14 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.24
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/provider-utils@3.0.10
+  - @ai-sdk/anthropic@2.0.19
+
 ## 3.0.23
 
 ### Patch Changes

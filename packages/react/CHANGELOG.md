@@ -1,5 +1,14 @@
 # @ai-sdk/react
 
+## 2.0.54
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/provider-utils@3.0.10
+  - ai@5.0.54
+
 ## 2.0.53
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 2.0.17
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- 356c1f2: chore (provider/google): Add preview modelIds for gemini 2.5 flash and lite
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/provider-utils@3.0.10
+
 ## 2.0.16
 
 ### Patch Changes
