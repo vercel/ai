@@ -1,6 +1,10 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
+export const textEditor_20250728ArgsSchema = z.object({
+  maxCharacters: z.number().optional(),
+});
+
 const factory = createProviderDefinedToolFactory<
   {
     /**
@@ -43,7 +47,7 @@ const factory = createProviderDefinedToolFactory<
     /**
      * Optional parameter to control truncation when viewing large files. Only compatible with text_editor_20250728 and later versions.
      */
-    max_characters?: number;
+    maxCharacters?: number;
   }
 >({
   id: 'anthropic.text_editor_20250728',
