@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/huggingface': patch
+'@ai-sdk/huggingface': major
 ---
 
 feat(huggingface): add responses api support
