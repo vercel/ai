@@ -185,11 +185,15 @@ export async function convertToOpenAIResponsesInput({
 
                 if (store) {
                   if (reasoningMessage === undefined) {
+                    // use item references to refer to reasoning (single reference)
+                    input.push({ type: 'item_reference', id: reasoningId });
+
+                    // store unused reasoning message to mark id as used
                     reasoningMessages[reasoningId] = {
                       type: 'reasoning',
                       id: reasoningId,
+                      summary: [],
                     };
-                    input.push(reasoningMessages[reasoningId]);
                   }
                 } else {
                   const summaryParts: Array<{
@@ -219,7 +223,7 @@ export async function convertToOpenAIResponsesInput({
                     };
                     input.push(reasoningMessages[reasoningId]);
                   } else {
-                    reasoningMessage.summary?.push(...summaryParts);
+                    reasoningMessage.summary.push(...summaryParts);
                   }
                 }
               } else {

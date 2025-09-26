@@ -1169,7 +1169,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
               {
                 "id": "reasoning_001",
-                "type": "reasoning",
+                "type": "item_reference",
               },
               {
                 "content": [
@@ -1192,7 +1192,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
               {
                 "id": "reasoning_002",
-                "type": "reasoning",
+                "type": "item_reference",
               },
               {
                 "content": [
