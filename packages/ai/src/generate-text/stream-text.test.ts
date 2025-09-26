@@ -12506,15 +12506,25 @@ describe('streamText', () => {
         expect(onAbortCalls).toHaveLength(1);
         const abortEvent = onAbortCalls[0];
 
-        expect(abortEvent.steps).toEqual([]);
-        expect(abortEvent.usage).toStrictEqual({
-          inputTokens: 3,
-          outputTokens: 0,
-          totalTokens: 3,
-          reasoningTokens: 0,
-          cachedInputTokens: 0,
-        });
-        expect(abortEvent.totalUsage).toStrictEqual(abortEvent.usage);
+        expect(abortEvent).toMatchInlineSnapshot(`
+          {
+            "steps": [],
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 3,
+              "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 3,
+            },
+            "totalUsage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 3,
+              "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 3,
+            },
+          }
+        `);
       });
 
       it('should only stream initial chunks in full stream', async () => {
