@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -25,9 +25,9 @@ type GoogleGenerativeAIEmbeddingConfig = {
 };
 
 export class GoogleGenerativeAIEmbeddingModel
-  implements EmbeddingModelV2<string>
+  implements EmbeddingModelV3<string>
 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly modelId: GoogleGenerativeAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
@@ -50,8 +50,8 @@ export class GoogleGenerativeAIEmbeddingModel
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
   > {
     // Parse provider options
     const googleOptions = await parseProviderOptions({

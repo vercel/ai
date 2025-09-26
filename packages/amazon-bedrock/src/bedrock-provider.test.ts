@@ -60,6 +60,10 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
   };
 });
 
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
 // Import mocked modules to get references
 import {
   createSigV4FetchFunction,
@@ -89,14 +93,17 @@ describe('AmazonBedrockProvider', () => {
 
       const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe('anthropic.claude-v2');
-      expect(constructorCall[1].headers).toEqual({});
+      expect(constructorCall[1].headers()).toMatchObject({});
+      expect(constructorCall[1].headers()['user-agent']).toContain(
+        'ai-sdk/amazon-bedrock/0.0.0-test',
+      );
       expect(constructorCall[1].baseUrl()).toBe(
         'https://bedrock-runtime.us-east-1.amazonaws.com',
       );
     });
 
     it('should create a provider instance with custom options', () => {
-      const customHeaders = { 'Custom-Header': 'value' };
+      const customHeaders = { 'custom-header': 'value' };
       const options = {
         region: 'eu-west-1',
         baseURL: 'https://custom.url',
@@ -107,7 +114,10 @@ describe('AmazonBedrockProvider', () => {
       provider('anthropic.claude-v2');
 
       const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
-      expect(constructorCall[1].headers).toEqual(customHeaders);
+      expect(constructorCall[1].headers()).toMatchObject(customHeaders);
+      expect(constructorCall[1].headers()['user-agent']).toContain(
+        'ai-sdk/amazon-bedrock/0.0.0-test',
+      );
       expect(constructorCall[1].baseUrl()).toBe('https://custom.url');
     });
 
@@ -126,7 +136,10 @@ describe('AmazonBedrockProvider', () => {
 
       const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe('anthropic.claude-v2');
-      expect(constructorCall[1].headers).toEqual({});
+      expect(constructorCall[1].headers()).toMatchObject({});
+      expect(constructorCall[1].headers()['user-agent']).toContain(
+        'ai-sdk/amazon-bedrock/0.0.0-test',
+      );
       expect(constructorCall[1].baseUrl()).toBe(
         'https://bedrock-runtime.us-east-1.amazonaws.com',
       );
@@ -152,7 +165,7 @@ describe('AmazonBedrockProvider', () => {
     });
 
     it('should pass headers to embedding model', () => {
-      const customHeaders = { 'Custom-Header': 'value' };
+      const customHeaders = { 'custom-header': 'value' };
       const provider = createAmazonBedrock({
         headers: customHeaders,
       });
@@ -160,7 +173,10 @@ describe('AmazonBedrockProvider', () => {
       provider.embedding('amazon.titan-embed-text-v1');
 
       const constructorCall = BedrockEmbeddingModelMock.mock.calls[0];
-      expect(constructorCall[1].headers).toEqual(customHeaders);
+      expect(constructorCall[1].headers()).toMatchObject(customHeaders);
+      expect(constructorCall[1].headers()['user-agent']).toContain(
+        'ai-sdk/amazon-bedrock/0.0.0-test',
+      );
     });
 
     it('should throw error when called with new keyword', () => {
@@ -190,7 +206,10 @@ describe('AmazonBedrockProvider', () => {
 
         const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
         expect(constructorCall[0]).toBe('anthropic.claude-v2');
-        expect(constructorCall[1].headers).toEqual({});
+        expect(constructorCall[1].headers()).toMatchObject({});
+        expect(constructorCall[1].headers()['user-agent']).toContain(
+          'ai-sdk/amazon-bedrock/',
+        );
         expect(constructorCall[1].baseUrl()).toBe(
           'https://bedrock-runtime.us-east-1.amazonaws.com',
         );
@@ -306,16 +325,19 @@ describe('AmazonBedrockProvider', () => {
         const provider = createAmazonBedrock({
           apiKey: 'test-api-key',
           region: 'us-east-1',
-          headers: { 'Custom-Header': 'value' },
+          headers: { 'custom-header': 'value' },
         });
 
         provider.embedding('amazon.titan-embed-text-v1');
 
         const constructorCall = BedrockEmbeddingModelMock.mock.calls[0];
         expect(constructorCall[0]).toBe('amazon.titan-embed-text-v1');
-        expect(constructorCall[1].headers).toEqual({
-          'Custom-Header': 'value',
+        expect(constructorCall[1].headers()).toMatchObject({
+          'custom-header': 'value',
         });
+        expect(constructorCall[1].headers()['user-agent']).toContain(
+          'ai-sdk/amazon-bedrock/0.0.0-test',
+        );
         expect(mockCreateApiKeyFetchFunction).toHaveBeenCalledWith(
           'test-api-key',
           undefined,
@@ -326,16 +348,19 @@ describe('AmazonBedrockProvider', () => {
         const provider = createAmazonBedrock({
           apiKey: 'test-api-key',
           region: 'us-east-1',
-          headers: { 'Custom-Header': 'value' },
+          headers: { 'custom-header': 'value' },
         });
 
         provider.image('amazon.titan-image-generator');
 
         const constructorCall = BedrockImageModelMock.mock.calls[0];
         expect(constructorCall[0]).toBe('amazon.titan-image-generator');
-        expect(constructorCall[1].headers).toEqual({
-          'Custom-Header': 'value',
+        expect(constructorCall[1].headers()).toMatchObject({
+          'custom-header': 'value',
         });
+        expect(constructorCall[1].headers()['user-agent']).toContain(
+          'ai-sdk/amazon-bedrock/0.0.0-test',
+        );
         expect(mockCreateApiKeyFetchFunction).toHaveBeenCalledWith(
           'test-api-key',
           undefined,

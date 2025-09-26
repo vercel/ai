@@ -4,3 +4,4 @@ export type {
   AnthropicProvider,
   AnthropicProviderSettings,
 } from './anthropic-provider';
+export { VERSION } from './version';

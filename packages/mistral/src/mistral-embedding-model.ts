@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -19,8 +19,8 @@ type MistralEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class MistralEmbeddingModel implements EmbeddingModelV2<string> {
-  readonly specificationVersion = 'v2';
+export class MistralEmbeddingModel implements EmbeddingModelV3<string> {
+  readonly specificationVersion = 'v3';
   readonly modelId: MistralEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 32;
   readonly supportsParallelCalls = false;
@@ -43,8 +43,8 @@ export class MistralEmbeddingModel implements EmbeddingModelV2<string> {
     values,
     abortSignal,
     headers,
-  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
   > {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({

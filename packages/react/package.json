@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "2.1.0-beta.0",
+  "version": "2.1.0-beta.13",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,12 +30,13 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "ai": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
+    "ai": "workspace:*",
     "swr": "^2.2.5",
     "throttleit": "2.1.0"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/user-event": "^14.5.2",
     "@testing-library/react": "^16.0.1",
@@ -47,14 +48,14 @@
     "eslint-config-vercel-ai": "workspace:*",
     "jsdom": "^24.0.0",
     "msw": "2.6.4",
-    "react-dom": "^18",
+    "react-dom": "^18 || ^19 || ^19.0.0-rc",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {
     "react": "^18 || ^19 || ^19.0.0-rc",
-    "zod": "^3.25.76 || ^4"
+    "zod": "^3.25.76 || ^4.1.8"
   },
   "peerDependenciesMeta": {
     "zod": {

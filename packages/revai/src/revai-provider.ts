@@ -1,13 +1,18 @@
 import {
   TranscriptionModelV2,
-  ProviderV2,
+  ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
-import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { RevaiTranscriptionModel } from './revai-transcription-model';
 import { RevaiTranscriptionModelId } from './revai-transcription-options';
+import { VERSION } from './version';
 
-export interface RevaiProvider extends ProviderV2 {
+export interface RevaiProvider extends ProviderV3 {
   (
     modelId: 'machine',
     settings?: {},
@@ -45,14 +50,18 @@ Create a Rev.ai provider instance.
 export function createRevai(
   options: RevaiProviderSettings = {},
 ): RevaiProvider {
-  const getHeaders = () => ({
-    authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'REVAI_API_KEY',
-      description: 'Rev.ai',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'REVAI_API_KEY',
+          description: 'Rev.ai',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/revai/${VERSION}`,
+    );
 
   const createTranscriptionModel = (modelId: RevaiTranscriptionModelId) =>
     new RevaiTranscriptionModel(modelId, {
