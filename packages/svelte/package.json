@@ -53,10 +53,10 @@
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "workspace:*",
-    "@ai-sdk/test-server": "workspace:*",
     "ai": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@eslint/compat": "^1.2.5",
     "@eslint/js": "^9.18.0",
     "@sveltejs/package": "^2.0.0",

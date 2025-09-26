@@ -54,13 +54,13 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/test-server": "workspace:*",
     "@ai-sdk/gateway": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@opentelemetry/api": "1.9.0"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@edge-runtime/vm": "^5.0.0",
     "@types/json-schema": "7.0.15",
     "@types/node": "20.17.24",

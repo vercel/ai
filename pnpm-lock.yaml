@@ -1396,13 +1396,13 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
-      '@ai-sdk/test-server':
-        specifier: workspace:*
-        version: link:../test-server
       '@opentelemetry/api':
         specifier: 1.9.0
         version: 1.9.0
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@edge-runtime/vm':
         specifier: ^5.0.0
         version: 5.0.0
@@ -1442,9 +1442,6 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
-      '@ai-sdk/test-server':
-        specifier: workspace:*
-        version: link:../test-server
       '@smithy/eventstream-codec':
         specifier: ^4.0.1
         version: 4.0.1
@@ -1455,6 +1452,9 @@ importers:
         specifier: ^1.0.20
         version: 1.0.20
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1476,9 +1476,6 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
-      '@ai-sdk/test-server':
-        specifier: workspace:*
-        version: link:../test-server
       '@angular/core':
         specifier: '>=16.0.0'
         version: 19.2.14(rxjs@7.8.1)(zone.js@0.15.1)
@@ -1489,6 +1486,9 @@ importers:
         specifier: ^3.25.76 || ^4.1.8
         version: 3.25.76
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1522,10 +1522,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1550,10 +1550,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1581,10 +1581,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1720,10 +1720,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1748,10 +1748,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1779,10 +1779,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1835,10 +1835,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1863,10 +1863,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1894,10 +1894,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1950,10 +1950,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1978,10 +1978,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2012,13 +2012,13 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
-      '@ai-sdk/test-server':
-        specifier: workspace:*
-        version: link:../test-server
       google-auth-library:
         specifier: ^9.15.0
         version: 9.15.0(encoding@0.1.13)
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2043,10 +2043,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2102,10 +2102,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2168,10 +2168,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2196,10 +2196,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2224,10 +2224,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2252,10 +2252,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2280,10 +2280,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2308,10 +2308,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2386,9 +2386,6 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
-      '@ai-sdk/test-server':
-        specifier: workspace:*
-        version: link:../test-server
       ai:
         specifier: workspace:*
         version: link:../ai
@@ -2402,6 +2399,9 @@ importers:
         specifier: 2.1.0
         version: 2.1.0
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@testing-library/jest-dom':
         specifier: ^6.6.3
         version: 6.6.3
@@ -2456,10 +2456,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2484,10 +2484,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2594,13 +2594,13 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
-      '@ai-sdk/test-server':
-        specifier: workspace:*
-        version: link:../test-server
       ai:
         specifier: workspace:*
         version: link:../ai
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@eslint/compat':
         specifier: ^1.2.5
         version: 1.2.7(eslint@9.21.0(jiti@2.4.0))
@@ -2691,10 +2691,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2769,9 +2769,6 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
-      '@ai-sdk/test-server':
-        specifier: workspace:*
-        version: link:../test-server
       ai:
         specifier: workspace:*
         version: link:../ai
@@ -2785,6 +2782,9 @@ importers:
         specifier: ^3.25.76 || ^4.1.8
         version: 3.25.76
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@testing-library/jest-dom':
         specifier: ^6.6.3
         version: 6.6.3
@@ -2836,10 +2836,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
-    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -28207,7 +28207,7 @@ snapshots:
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.57.1)
       eslint-plugin-react: 7.34.1(eslint@8.57.1)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
@@ -28295,8 +28295,8 @@ snapshots:
       debug: 4.4.1(supports-color@9.4.0)
       enhanced-resolve: 5.17.1
       eslint: 8.57.1
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       fast-glob: 3.3.3
       get-tsconfig: 4.8.1
       is-core-module: 2.16.1
@@ -28346,7 +28346,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -28422,7 +28422,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
@@ -28432,7 +28432,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
