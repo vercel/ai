@@ -7,6 +7,7 @@ import {
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api-types';
@@ -244,16 +245,29 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           const output = part.output;
 
-          let contentValue: string;
+          let contentValue: OpenAIResponsesFunctionCallOutput['output'];
           switch (output.type) {
             case 'text':
             case 'error-text':
               contentValue = output.value;
               break;
-            case 'content':
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);
+              break;
+            case 'content':
+              contentValue = output.value.map(item => {
+                switch (item.type) {
+                  case 'text':
+                    return { type: 'input_text' as const, text: item.text };
+                  case 'media':
+                    // TODO identify images via mediaType and return different value
+                    return {
+                      type: 'input_file' as const,
+                      file_data: item.data,
+                    };
+                }
+              });
               break;
           }
 

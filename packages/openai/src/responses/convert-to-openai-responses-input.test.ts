@@ -1683,7 +1683,12 @@ describe('convertToOpenAIResponsesInput', () => {
         [
           {
             "call_id": "call_123",
-            "output": "[{"type":"text","text":"The weather in San Francisco is 72°F"}]",
+            "output": [
+              {
+                "text": "The weather in San Francisco is 72°F",
+                "type": "input_text",
+              },
+            ],
             "type": "function_call_output",
           },
         ]
