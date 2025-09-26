@@ -1,6 +1,7 @@
 export * from './embedding-model/index';
 export * from './errors/index';
 export * from './image-model/index';
+export * from './video-model/index';
 export * from './json-value/index';
 export * from './language-model-middleware/index';
 export * from './language-model/index';

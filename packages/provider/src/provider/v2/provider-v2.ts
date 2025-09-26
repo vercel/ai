@@ -2,6 +2,7 @@ import { EmbeddingModelV2 } from '../../embedding-model/v2/embedding-model-v2';
 import { ImageModelV2 } from '../../image-model/v2/image-model-v2';
 import { LanguageModelV2 } from '../../language-model/v2/language-model-v2';
 import { SpeechModelV2 } from '../../speech-model/v2/speech-model-v2';
+import { VideoModelV2 } from '../../video-model/v2/video-model-v2';
 import { TranscriptionModelV2 } from '../../transcription-model/v2/transcription-model-v2';
 
 /**
@@ -41,6 +42,16 @@ The model id is then passed to the provider function to get the model.
 @returns {ImageModel} The image model associated with the id
 */
   imageModel(modelId: string): ImageModelV2;
+
+  /**
+Returns the video model with the given id.
+The model id is then passed to the provider function to get the model.
+
+@param {string} modelId - The id of the model to return.
+
+@returns {VideoModel} The video model associated with the id
+*/
+  videoModel?(modelId: string): VideoModelV2;
 
   /**
 Returns the transcription model with the given id.

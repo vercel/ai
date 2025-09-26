@@ -1,5 +1,6 @@
 import {
   ImageModelV3CallWarning,
+  VideoModelV2CallWarning,
   LanguageModelV2CallWarning,
   SpeechModelV2CallWarning,
   TranscriptionModelV2CallWarning,
@@ -9,7 +10,8 @@ export type Warning =
   | LanguageModelV2CallWarning
   | ImageModelV3CallWarning
   | SpeechModelV2CallWarning
-  | TranscriptionModelV2CallWarning;
+  | TranscriptionModelV2CallWarning
+  | VideoModelV2CallWarning;
 
 export type LogWarningsFunction = (warnings: Warning[]) => void;
 

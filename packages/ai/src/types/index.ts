@@ -6,6 +6,12 @@ export type {
   ImageModelProviderMetadata,
 } from './image-model';
 export type { ImageModelResponseMetadata } from './image-model-response-metadata';
+export type {
+  VideoModel,
+  VideoGenerationWarning as VideoModelCallWarning,
+  VideoModelProviderMetadata,
+} from './video-model';
+export type { VideoModelResponseMetadata } from './video-model-response-metadata';
 export type { JSONValue } from './json-value';
 export type {
   CallWarning,
