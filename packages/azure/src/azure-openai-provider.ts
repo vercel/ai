@@ -21,6 +21,7 @@ import {
   loadSetting,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { azureOpenaiTools } from './azure-openai-tools';
 import { VERSION } from './version';
 
 export interface AzureOpenAIProvider extends ProviderV2 {
@@ -77,6 +78,11 @@ Creates an Azure OpenAI model for text embeddings.
    * Creates an Azure OpenAI model for speech generation.
    */
   speech(deploymentId: string): SpeechModelV2;
+
+  /**
+   * AzureOpenAI-specific tools.
+   */
+  tools: typeof azureOpenaiTools;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -247,6 +253,7 @@ export function createAzure(
   provider.responses = createResponsesModel;
   provider.transcription = createTranscriptionModel;
   provider.speech = createSpeechModel;
+  provider.tools = azureOpenaiTools;
   return provider;
 }
 
