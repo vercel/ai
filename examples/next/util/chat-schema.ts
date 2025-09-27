@@ -14,4 +14,5 @@ export type ChatData = {
   messages: MyUIMessage[];
   createdAt: number;
   activeStreamId: string | null;
+  canceledAt: number | null;
 };
