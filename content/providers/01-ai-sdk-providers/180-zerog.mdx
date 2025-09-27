@@ -1,0 +1,208 @@
+---
+title: 0G Compute
+description: Learn how to use 0G Compute Network's decentralized AI inference with the AI SDK.
+---
+
+# 0G Compute Provider
+
+The [0G Compute Network](https://0g.ai) provider enables access to decentralized AI inference services through the 0G Compute Network, offering verifiable AI computations with competitive pricing and high availability.
+
+The 0G Compute Network features:
+- **Decentralized Infrastructure**: AI inference powered by a distributed network of GPU providers
+- **Verifiable Computations**: TEE (Trusted Execution Environment) verification for select models
+- **Competitive Pricing**: Market-driven pricing with micropayments
+- **High Availability**: Multiple providers ensure service reliability
+
+## Setup
+
+The 0G Compute provider is available via the `@ai-sdk/zerog` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/zerog @0glabs/0g-serving-broker ethers crypto-js" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/zerog @0glabs/0g-serving-broker ethers crypto-js" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/zerog @0glabs/0g-serving-broker ethers crypto-js" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/zerog @0glabs/0g-serving-broker ethers crypto-js" dark />
+  </Tab>
+</Tabs>
+
+### Prerequisites
+
+To use 0G Compute, you need:
+
+1. **Private Key**: An Ethereum private key for your wallet
+2. **OG Tokens**: Fund your account with OG tokens for inference payments
+3. **0G Testnet Access**: Currently operates on 0G testnet
+
+## Provider Instance
+
+You need to initialize the 0G Compute broker and create a provider instance:
+
+```ts
+import { zerog } from '@ai-sdk/zerog';
+import { ethers } from 'ethers';
+import { createZGComputeNetworkBroker } from '@0glabs/0g-serving-broker';
+
+// Initialize the broker
+const provider = new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai');
+const wallet = new ethers.Wallet(process.env.ZEROG_PRIVATE_KEY!, provider);
+const broker = await createZGComputeNetworkBroker(wallet);
+
+// Fund your account (0.1 OG tokens ≈ 10,000 requests)
+await broker.ledger.addLedger("0.1");
+
+// Get service metadata
+const providerAddress = '0xf07240Efa67755B5311bc75784a061eDB47165Dd';
+const { endpoint } = await broker.inference.getServiceMetadata(providerAddress);
+
+// Acknowledge provider (required before first use)
+await broker.inference.acknowledgeProviderSigner(providerAddress);
+
+// Create provider instance
+const zeroGProvider = zerog({
+  broker,
+  providerAddress,
+  baseURL: endpoint,
+});
+```
+
+You can use the following settings to customize the 0G Compute provider instance:
+
+- **broker** _ZGComputeNetworkBroker_ (required)
+
+  The 0G Compute broker instance for authentication and service discovery.
+
+- **providerAddress** _string_
+
+  The provider address for the specific model service. Can be obtained from service discovery.
+
+- **baseURL** _string_
+
+  Base URL for the API calls. Obtained from broker service metadata.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+You can create language models using a provider instance:
+
+```ts
+import { zerog } from '@ai-sdk/zerog';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: zeroGProvider('llama-3.3-70b-instruct'),
+  prompt: 'Explain the benefits of decentralized AI inference.',
+});
+```
+
+You can also use the `.chat()` or `.languageModel()` factory methods:
+
+```ts
+const model = zeroGProvider.chat('llama-3.3-70b-instruct');
+// or
+const model = zeroGProvider.languageModel('llama-3.3-70b-instruct');
+```
+
+0G Compute language models can be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Streaming
+
+0G Compute supports streaming responses:
+
+```ts
+import { streamText } from 'ai';
+
+const { textStream } = await streamText({
+  model: zeroGProvider('deepseek-r1-70b'),
+  prompt: 'Solve this step by step: What is the derivative of x^3 + 2x^2 - 5x + 3?',
+});
+
+for await (const textPart of textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Account Management
+
+Monitor your account balance and manage funds:
+
+```ts
+// Check balance
+const account = await broker.ledger.getLedger();
+console.log(`Balance: ${ethers.formatEther(account.balance)} OG`);
+
+// Add more funds
+await broker.ledger.depositFund("0.5");
+
+// Request refund
+await broker.ledger.retrieveFund("inference", "0.1");
+```
+
+## Available Models
+
+The 0G Compute Network hosts multiple AI service providers:
+
+| Model ID | Provider Address | Description | Verification |
+| -------- | ---------------- | ----------- | ------------ |
+| `llama-3.3-70b-instruct` | `0xf07240Efa67755B5311bc75784a061eDB47165Dd` | State-of-the-art 70B parameter model for general AI tasks | TEE (TeeML) |
+| `deepseek-r1-70b` | `0x3feE5a4dd5FDb8a32dDA97Bed899830605dBD9D3` | Advanced reasoning model optimized for complex problem solving | TEE (TeeML) |
+
+## Model Capabilities
+
+| Model | Text Generation | Object Generation | Image Input | Tool Usage | Tool Streaming |
+| ----- | --------------- | ----------------- | ----------- | ---------- | -------------- |
+| `llama-3.3-70b-instruct` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `deepseek-r1-70b` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+<Note>
+  0G Compute currently supports text generation only. Object generation, image input, and tool usage are not yet supported but may be added in future releases.
+</Note>
+
+## Verification
+
+Models marked with TEE (TeeML) verification run in Trusted Execution Environments, providing cryptographic proof of computation integrity:
+
+```ts
+// Process and verify response (for verifiable services)
+const valid = await broker.inference.processResponse(
+  providerAddress,
+  content,
+  chatID // Optional: Only for verifiable services
+);
+
+console.log('Response verified:', valid);
+```
+
+## Service Discovery
+
+Discover available services dynamically:
+
+```ts
+const services = await broker.inference.listService();
+
+services.forEach(service => {
+  console.log(`Model: ${service.model}`);
+  console.log(`Provider: ${service.provider}`);
+  console.log(`Verification: ${service.verifiability || 'None'}`);
+  console.log(`Input Price: ${service.inputPrice}`);
+  console.log(`Output Price: ${service.outputPrice}`);
+});
+```
+
+<Note>
+  For the latest information about available models and providers, visit the [0G Compute documentation](https://docs.0g.ai/0g-compute).
+</Note>
