@@ -32,6 +32,13 @@
       "require": "./dist/index.js"
     }
   },
+  "imports": {
+    "#oidc": {
+      "types": "./src/oidc/index.d.ts",
+      "node": "./src/oidc/index.js",
+      "default": "./src/oidc/not-node.js"
+    }
+  },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*"
