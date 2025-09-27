@@ -27,18 +27,9 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "browser": "./dist/default/index.mjs",
-      "types": "./dist/node/index.d.ts",
-      "import": "./dist/node/index.mjs",
-      "require": "./dist/node/index.js",
-      "default": "./dist/default/index.js"
-    }
-  },
-  "imports": {
-    "#oidc": {
-      "types": "./src/oidc/index.d.ts",
-      "just-node-workaround": "./src/oidc/index.js",
-      "default": "./src/oidc/not-node.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     }
   },
   "dependencies": {
