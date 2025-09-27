@@ -3,10 +3,6 @@ import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 
 const SYMBOL_FOR_REQ_CONTEXT = Symbol.for('@vercel/request-context');
 
-function setRequestContext(context: any) {
-  (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = context;
-}
-
 describe('getVercelRequestId', () => {
   const originalSymbolValue = (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT];
 
