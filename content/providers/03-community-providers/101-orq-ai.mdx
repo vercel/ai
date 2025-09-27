@@ -134,11 +134,6 @@ import { experimental_generateImage as generateImage } from 'ai';
 const { image } = await generateImage({
     model: orq.imageModel('openai/dall-e-3'),
     prompt: 'A futuristic city with flying cars at sunset',
-});
-
-// Or use the model directly for more control
-const { images } = await orq.imageModel("openai/dall-e-3").doGenerate({
-    prompt: "A serene mountain landscape",
     size: "1024x1024",
     n: 1,
     aspectRatio: "1:1",
@@ -167,27 +162,6 @@ const orq = createOrqAiProvider({
   },
 });
 ```
-
-## Platform Features
-
-Orq AI provides additional platform features beyond model access:
-
-### Automatic Model Routing
-Orq AI intelligently routes requests to the best available model based on real-time performance metrics, ensuring optimal response times and reliability.
-
-### Performance Monitoring
-Track detailed metrics including:
-- Request latency and throughput
-- Token usage and costs
-- Model performance comparisons
-- Error rates and availability
-
-### A/B Testing
-Test different models and configurations simultaneously to find the optimal setup for your use case.
-
-### Cost Optimization
-Orq AI automatically balances performance and cost, helping you achieve the best results within your budget constraints.
-
 
 ## Provider Options
 
