@@ -27,15 +27,16 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.mjs",
+      "require": "./dist/node/index.js",
+      "default": "./dist/default/index.mjs"
     }
   },
   "imports": {
     "#oidc": {
       "types": "./src/oidc/index.d.ts",
-      "node": "./src/oidc/index.js",
+      "just-node-workaround": "./src/oidc/index.js",
       "default": "./src/oidc/not-node.js"
     }
   },
