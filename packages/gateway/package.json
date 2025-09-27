@@ -27,10 +27,11 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "browser": "./dist/default/index.mjs",
       "types": "./dist/node/index.d.ts",
       "import": "./dist/node/index.mjs",
       "require": "./dist/node/index.js",
-      "default": "./dist/default/index.mjs"
+      "default": "./dist/default/index.js"
     }
   },
   "imports": {
