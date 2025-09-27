@@ -17,6 +17,7 @@ import {
 } from './process-ui-message-stream';
 import {
   InferUIMessageToolCall,
+  InferUIMessageToolOutputs,
   isToolOrDynamicToolUIPart,
   ToolUIPart,
   type DataUIPart,
@@ -94,6 +95,11 @@ export type ChatOnToolCallCallback<UI_MESSAGE extends UIMessage = UIMessage> =
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
   }) => void | PromiseLike<void>;
 
+export type ChatOnToolOutputCallback<UI_MESSAGE extends UIMessage = UIMessage> =
+  (options: {
+    toolOutput: InferUIMessageToolOutputs<UI_MESSAGE>;
+  }) => void | PromiseLike<void>;
+
 export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
   dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
 ) => void;
@@ -153,6 +159,15 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
 
   /**
+  Optional callback function that is invoked when a tool output is received.
+  Intended for handling tool execution outputs.
+
+  You can optionally process the tool output,
+  either synchronously or asynchronously.
+     */
+  onToolOutput?: ChatOnToolOutputCallback<UI_MESSAGE>;
+
+  /**
    * Function that is called when the assistant response has finished streaming.
    */
   onFinish?: ChatOnFinishCallback<UI_MESSAGE>;
@@ -189,6 +204,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private readonly transport: ChatTransport<UI_MESSAGE>;
   private onError?: ChatInit<UI_MESSAGE>['onError'];
   private onToolCall?: ChatInit<UI_MESSAGE>['onToolCall'];
+  private onToolOutput?: ChatInit<UI_MESSAGE>['onToolOutput'];
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
   private onData?: ChatInit<UI_MESSAGE>['onData'];
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
@@ -205,6 +221,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     state,
     onError,
     onToolCall,
+    onToolOutput,
     onFinish,
     onData,
     sendAutomaticallyWhen,
@@ -219,6 +236,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.state = state;
     this.onError = onError;
     this.onToolCall = onToolCall;
+    this.onToolOutput = onToolOutput;
     this.onFinish = onFinish;
     this.onData = onData;
     this.sendAutomaticallyWhen = sendAutomaticallyWhen;
@@ -583,6 +601,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         stream: processUIMessageStream({
           stream,
           onToolCall: this.onToolCall,
+          onToolOutput: this.onToolOutput,
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
