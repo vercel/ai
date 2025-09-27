@@ -1,11 +1,11 @@
 import { generateObject } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV3 } from 'ai/test';
 import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
   const { object, usage } = await generateObject({
-    model: new MockLanguageModelV2({
+    model: new MockLanguageModelV3({
       doGenerate: async () => ({
         content: [{ type: 'text', text: `{"content":"Hello, world!"}` }],
         finishReason: 'stop',

@@ -1,17 +1,19 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { CerebrasChatModelId } from './cerebras-chat-options';
 import { z } from 'zod/v4';
 import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
+import { VERSION } from './version';
 
 // Add error schema and structure
 const cerebrasErrorSchema = z.object({
@@ -48,21 +50,21 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface CerebrasProvider extends ProviderV2 {
+export interface CerebrasProvider extends ProviderV3 {
   /**
 Creates a Cerebras model for text generation.
 */
-  (modelId: CerebrasChatModelId): LanguageModelV2;
+  (modelId: CerebrasChatModelId): LanguageModelV3;
 
   /**
 Creates a Cerebras model for text generation.
 */
-  languageModel(modelId: CerebrasChatModelId): LanguageModelV2;
+  languageModel(modelId: CerebrasChatModelId): LanguageModelV3;
 
   /**
 Creates a Cerebras chat model for text generation.
 */
-  chat(modelId: CerebrasChatModelId): LanguageModelV2;
+  chat(modelId: CerebrasChatModelId): LanguageModelV3;
 }
 
 export function createCerebras(
@@ -71,14 +73,18 @@ export function createCerebras(
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.cerebras.ai/v1',
   );
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'CEREBRAS_API_KEY',
-      description: 'Cerebras API key',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'CEREBRAS_API_KEY',
+          description: 'Cerebras API key',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/cerebras/${VERSION}`,
+    );
 
   const createLanguageModel = (modelId: CerebrasChatModelId) => {
     return new OpenAICompatibleChatLanguageModel(modelId, {

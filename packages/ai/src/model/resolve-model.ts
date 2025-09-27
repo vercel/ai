@@ -1,23 +1,25 @@
 import { gateway } from '@ai-sdk/gateway';
 import {
-  EmbeddingModelV2,
-  LanguageModelV2,
-  ProviderV2,
+  EmbeddingModelV3,
+  LanguageModelV3,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import { UnsupportedModelVersionError } from '../error';
 import { EmbeddingModel } from '../types/embedding-model';
 import { LanguageModel } from '../types/language-model';
 
-export function resolveLanguageModel(model: LanguageModel): LanguageModelV2 {
+export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
   if (typeof model !== 'string') {
-    if (model.specificationVersion !== 'v2') {
+    if (
+      model.specificationVersion !== 'v3' &&
+      model.specificationVersion !== 'v2'
+    ) {
       throw new UnsupportedModelVersionError({
         version: model.specificationVersion,
         provider: model.provider,
         modelId: model.modelId,
       });
     }
-
     return model;
   }
 
@@ -26,9 +28,12 @@ export function resolveLanguageModel(model: LanguageModel): LanguageModelV2 {
 
 export function resolveEmbeddingModel<VALUE = string>(
   model: EmbeddingModel<VALUE>,
-): EmbeddingModelV2<VALUE> {
+): EmbeddingModelV3<VALUE> {
   if (typeof model !== 'string') {
-    if (model.specificationVersion !== 'v2') {
+    if (
+      model.specificationVersion !== 'v3' &&
+      model.specificationVersion !== 'v2'
+    ) {
       throw new UnsupportedModelVersionError({
         version: model.specificationVersion,
         provider: model.provider,
@@ -42,9 +47,9 @@ export function resolveEmbeddingModel<VALUE = string>(
   // TODO AI SDK 6: figure out how to cleanly support different generic types
   return getGlobalProvider().textEmbeddingModel(
     model,
-  ) as EmbeddingModelV2<VALUE>;
+  ) as EmbeddingModelV3<VALUE>;
 }
 
-function getGlobalProvider(): ProviderV2 {
+function getGlobalProvider(): ProviderV3 {
   return globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
 }

@@ -1,12 +1,14 @@
 import { bash_20241022 } from './tool/bash_20241022';
 import { bash_20250124 } from './tool/bash_20250124';
+import { codeExecution_20250522 } from './tool/code-execution_20250522';
 import { computer_20241022 } from './tool/computer_20241022';
 import { computer_20250124 } from './tool/computer_20250124';
 import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
 import { textEditor_20250429 } from './tool/text-editor_20250429';
+import { textEditor_20250728 } from './tool/text-editor_20250728';
+import { webFetch_20250910 } from './tool/web-fetch-20250910';
 import { webSearch_20250305 } from './tool/web-search_20250305';
-import { codeExecution_20250522 } from './tool/code-execution_20250522';
 
 export const anthropicTools = {
   /**
@@ -74,6 +76,8 @@ export const anthropicTools = {
    * helping you debug, fix, and improve your code or other text documents. This allows Claude
    * to directly interact with your files, providing hands-on assistance rather than just suggesting changes.
    *
+   * Supported models: Claude Sonnet 3.5
+   *
    * Tool name must be `str_replace_editor`.
    */
   textEditor_20241022,
@@ -82,6 +86,8 @@ export const anthropicTools = {
    * Claude can use an Anthropic-defined text editor tool to view and modify text files,
    * helping you debug, fix, and improve your code or other text documents. This allows Claude
    * to directly interact with your files, providing hands-on assistance rather than just suggesting changes.
+   *
+   * Supported models: Claude Sonnet 3.7
    *
    * Tool name must be `str_replace_editor`.
    */
@@ -95,8 +101,38 @@ export const anthropicTools = {
    * Note: This version does not support the "undo_edit" command.
    *
    * Tool name must be `str_replace_based_edit_tool`.
+   *
+   * @deprecated Use textEditor_20250728 instead
    */
   textEditor_20250429,
+
+  /**
+   * Claude can use an Anthropic-defined text editor tool to view and modify text files,
+   * helping you debug, fix, and improve your code or other text documents. This allows Claude
+   * to directly interact with your files, providing hands-on assistance rather than just suggesting changes.
+   *
+   * Note: This version does not support the "undo_edit" command and adds optional max_characters parameter.
+   *
+   * Supported models: Claude Sonnet 4, Opus 4, and Opus 4.1
+   *
+   * Tool name must be `str_replace_based_edit_tool`.
+   *
+   * @param maxCharacters - Optional maximum number of characters to view in the file
+   */
+  textEditor_20250728,
+
+  /**
+   * Creates a web fetch tool that gives Claude direct access to real-time web content.
+   *
+   * Tool name must be `web_fetch`.
+   *
+   * @param maxUses - The max_uses parameter limits the number of web fetches performed
+   * @param allowedDomains - Only fetch from these domains
+   * @param blockedDomains - Never fetch from these domains
+   * @param citations - Unlike web search where citations are always enabled, citations are optional for web fetch. Set "citations": {"enabled": true} to enable Claude to cite specific passages from fetched documents.
+   * @param maxContentTokens - The max_content_tokens parameter limits the amount of content that will be included in the context.
+   */
+  webFetch_20250910,
 
   /**
    * Creates a web search tool that gives Claude direct access to real-time web content.
