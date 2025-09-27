@@ -43,7 +43,8 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "@vercel/oidc": "npm:@gr2m/vercel-oidc@3.0.0-gr2m.1"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
