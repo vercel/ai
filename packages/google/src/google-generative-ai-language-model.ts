@@ -162,6 +162,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           // provider options:
           responseModalities: googleOptions?.responseModalities,
           thinkingConfig: googleOptions?.thinkingConfig,
+          ...(googleOptions?.mediaResolution && {
+            mediaResolution: googleOptions.mediaResolution,
+          }),
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
