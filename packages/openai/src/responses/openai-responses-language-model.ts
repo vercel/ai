@@ -1030,6 +1030,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'code_interpreter_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+                
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
