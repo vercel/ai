@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "concurrently 'ng serve --proxy-config proxy.conf.json' 'tsx src/server.ts'",
-    "build:app": "ng build",
+    "build:app": "ng build --conditions browser",
     "build:server": "tsc -p tsconfig.server.json",
     "build": "pnpm run build:app && pnpm run build:server",
     "watch": "ng build --watch --configuration development",
