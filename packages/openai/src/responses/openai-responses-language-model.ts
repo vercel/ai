@@ -1111,7 +1111,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-input-delta',
                   id: toolCall.toolCallId,
-                  delta: "\"}",
+                  delta: '"}',
                 });
 
                 controller.enqueue({
@@ -1339,10 +1339,14 @@ const responseOutputItemAddedSchema = z.object({
       id: z.string(),
       container_id: z.string(),
       code: z.string().nullable(),
-      outputs: z.array(z.discriminatedUnion('type', [
-        z.object({ type: z.literal('logs'), logs: z.string() }),
-        z.object({ type: z.literal('image'), url: z.string() }),
-      ])).nullable(),
+      outputs: z
+        .array(
+          z.discriminatedUnion('type', [
+            z.object({ type: z.literal('logs'), logs: z.string() }),
+            z.object({ type: z.literal('image'), url: z.string() }),
+          ]),
+        )
+        .nullable(),
       status: z.string(),
     }),
   ]),
