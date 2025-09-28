@@ -2,6 +2,7 @@
 
 import ChatInput from '@/component/chat-input';
 import FileSearchPDFView from '@/component/openai-file-search-pdf-view';
+import FileSearchView from '@/component/openai-file-search-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { OpenAIFileGeneratePDFMessage } from '@/app/api/chat-openai-file-generation-pdf/route';
@@ -26,6 +27,8 @@ export default function TestOpenAIFileGenerationPDF() {
                 return <div key={index}>{part.text}</div>;
               case 'tool-file_search_pdf':
                 return <FileSearchPDFView key={index} invocation={part} />;
+              case 'tool-file_search':
+                return <FileSearchView key={index} invocation={part} />;
             }
           })}
         </div>

@@ -14,6 +14,9 @@ export const maxDuration = 30;
 
 const tools = {
   file_search_pdf: generatePdfTool,
+  file_search: openai.tools.fileSearch({
+    vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+  }),
 } satisfies ToolSet;
 
 export type OpenAIFileGeneratePDFMessage = UIMessage<
@@ -35,6 +38,8 @@ export async function POST(req: Request) {
     },
     providerOptions: {
       openai: {
+        instructions:
+        'First call the file_search_pdf tool to produce a PDF using the default base64 input. Then use the file_search tool to search that PDF and answer the user\'s question using citations.',
         include: ['file_search_call.results'],
       } satisfies OpenAIResponsesProviderOptions,
     },
