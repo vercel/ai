@@ -285,55 +285,36 @@ If an error occurs, it is passed to the optional `onError` callback.
   consumeStream(options?: ConsumeStreamOptions): Promise<void>;
 
   /**
-  Converts the result to a UI message stream.
+Converts the result to a UI message stream.
 
-  @param options.getErrorMessage an optional function that converts an error to an error message.
-  @param options.sendUsage whether to send the usage information to the client. Defaults to true.
-  @param options.sendReasoning whether to send the reasoning information to the client. Defaults to false.
-  @param options.sendSources whether to send the sources information to the client. Defaults to false.
-  @param options.experimental_sendFinish whether to send the finish information to the client. Defaults to true.
-  @param options.experimental_sendStart whether to send the start information to the client. Defaults to true.
-
-  @return A UI message stream.
+@return A UI message stream.
      */
   toUIMessageStream<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamOptions<UI_MESSAGE>,
   ): AsyncIterableStream<InferUIMessageChunk<UI_MESSAGE>>;
 
   /**
-  Writes UI message stream output to a Node.js response-like object.
-  @param response A Node.js response-like object (ServerResponse).
-  @param options.status The status code.
-  @param options.statusText The status text.
-  @param options.headers The headers.
-  @param options.getErrorMessage An optional function that converts an error to an error message.
-  @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
-  @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
-     */
+   *Writes UI message stream output to a Node.js response-like object.
+   */
   pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
     options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
   ): void;
 
   /**
-  Writes text delta output to a Node.js response-like object.
-  It sets a `Content-Type` header to `text/plain; charset=utf-8` and
-  writes each text delta as a separate chunk.
-  @param response A Node.js response-like object (ServerResponse).
-  @param init Optional headers, status code, and status text.
+Writes text delta output to a Node.js response-like object.
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and
+writes each text delta as a separate chunk.
+
+@param response A Node.js response-like object (ServerResponse).
+@param init Optional headers, status code, and status text.
      */
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
 
   /**
-  Converts the result to a streamed response object with a stream data part stream.
+Converts the result to a streamed response object with a stream data part stream.
 
-  @param options.status The status code.
-  @param options.statusText The status text.
-  @param options.headers The headers.
-  @param options.getErrorMessage An optional function that converts an error to an error message.
-  @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
-  @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
-  @return A response object.
+@return A response object.
      */
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,

@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/openai-compatible';
 import {
   ImageModelV3,
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
 } from '@ai-sdk/provider';
@@ -30,17 +30,17 @@ export interface XaiProvider extends ProviderV3 {
   /**
 Creates an Xai chat model for text generation.
    */
-  (modelId: XaiChatModelId): LanguageModelV2;
+  (modelId: XaiChatModelId): LanguageModelV3;
 
   /**
 Creates an Xai language model for text generation.
    */
-  languageModel(modelId: XaiChatModelId): LanguageModelV2;
+  languageModel(modelId: XaiChatModelId): LanguageModelV3;
 
   /**
 Creates an Xai chat model for text generation.
    */
-  chat: (modelId: XaiChatModelId) => LanguageModelV2;
+  chat: (modelId: XaiChatModelId) => LanguageModelV3;
 
   /**
 Creates an Xai image model for image generation.

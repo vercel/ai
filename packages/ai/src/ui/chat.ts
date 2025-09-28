@@ -458,7 +458,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                   state,
                   output,
                   errorText,
-                } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>)
+                } as typeof part)
               : part,
           );
       }

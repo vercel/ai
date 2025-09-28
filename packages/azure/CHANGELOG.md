@@ -1,5 +1,35 @@
 # @ai-sdk/azure
 
+## 2.1.0-beta.7
+
+### Patch Changes
+
+- 77f2b20: enables code_interpreter and file_search capabilities in the Azure provider through the Responses API
+- 8dac895: feat: `LanguageModelV3`
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [77f2b20]
+- Updated dependencies [8dac895]
+- Updated dependencies [10c1322]
+  - @ai-sdk/openai@2.1.0-beta.7
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
+## 2.1.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [fe49278]
+  - @ai-sdk/openai@2.1.0-beta.6
+
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - @ai-sdk/openai@2.1.0-beta.5
+
 ## 2.1.0-beta.4
 
 ### Patch Changes
