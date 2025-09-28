@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/test-server/with-vitest';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import '@testing-library/jest-dom/vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
@@ -803,6 +803,56 @@ describe('onToolCall', () => {
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
       });
     });
+  });
+
+  it('should call the latest onToolCall after prop change (no stale closure)', async () => {
+    const onToolCallA = vi.fn(async () => {});
+    const onToolCallB = vi.fn(async () => {});
+
+    const Test = () => {
+      const [useB, setUseB] = React.useState(false);
+      const { sendMessage } = useChat({
+        onToolCall: useB ? onToolCallB : onToolCallA,
+      });
+
+      return (
+        <div>
+          <button data-testid="toggle" onClick={() => setUseB(true)} />
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({
+                parts: [{ text: 'hi', type: 'text' }],
+              });
+            }}
+          />
+        </div>
+      );
+    };
+
+    render(<Test />);
+
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        }),
+      ],
+    };
+
+    await userEvent.click(screen.getByTestId('toggle'));
+    await userEvent.click(screen.getByTestId('do-send'));
+
+    await vi.waitUntil(() => onToolCallB.mock.calls.length > 0, {
+      timeout: 2000,
+    });
+
+    expect(onToolCallA).toHaveBeenCalledTimes(0);
+    expect(onToolCallB).toHaveBeenCalledTimes(1);
   });
 });
 

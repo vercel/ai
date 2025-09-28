@@ -225,6 +225,43 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }
 
   /**
+   * Update the error callback at runtime.
+   */
+  setOnError(callback: ChatInit<UI_MESSAGE>['onError']): void {
+    this.onError = callback;
+  }
+
+  /**
+   * Update the tool call callback at runtime.
+   */
+  setOnToolCall(callback: ChatInit<UI_MESSAGE>['onToolCall']): void {
+    this.onToolCall = callback;
+  }
+
+  /**
+   * Update the finish callback at runtime.
+   */
+  setOnFinish(callback: ChatInit<UI_MESSAGE>['onFinish']): void {
+    this.onFinish = callback;
+  }
+
+  /**
+   * Update the data callback at runtime.
+   */
+  setOnData(callback: ChatInit<UI_MESSAGE>['onData']): void {
+    this.onData = callback;
+  }
+
+  /**
+   * Update the automatic send predicate at runtime.
+   */
+  setSendAutomaticallyWhen(
+    callback: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'],
+  ): void {
+    this.sendAutomaticallyWhen = callback;
+  }
+
+  /**
    * Hook status:
    *
    * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
