@@ -355,6 +355,59 @@ const result = await generateText({
   cannot be customized.
 </Note>
 
+#### Image Generation Tool
+
+Azure OpenAI's Responses API supports multi-modal image generation as a provider-defined tool.
+Availability is restricted to specific models (for example, `gpt-5` variants).
+
+You can use the image tool with `generateText`.
+
+<Note type="warning">
+  [Azure OpenAI Responses API image generation
+  tool](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses?tabs=python-secure#image-generation-preview)
+  does not currently support streaming mode. You can not use the image tool with
+  `streamText` currently.
+</Note>
+
+```ts
+import { createAzure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const azure = createAzure({
+  headers: {
+    'x-ms-oai-image-generation-deployment': 'gpt-image-1', // use your own image model deployment
+  },
+});
+
+const result = await generateText({
+  model: azure.responses('gpt-5'),
+  prompt:
+    'Generate an image of an echidna swimming across the Mozambique channel.',
+  tools: {
+    image_generation: azure.tools.imageGeneration({ outputFormat: 'png' }),
+  },
+});
+
+for (const toolResult of result.staticToolResults) {
+  if (toolResult.toolName === 'image_generation') {
+    const base64Image = toolResult.output.result;
+  }
+}
+```
+
+<Note>
+  To use image_generation, you must first create an image generation model. You
+  must add a deployment specification to the header
+  `x-ms-oai-image-generation-deployment`. Please note that the Responses API
+  model and the image generation model must be in the same resource.
+</Note>
+
+<Note>
+  When you set `store: false`, then previously generated images will not be
+  accessible by the model. We recommend using the image generation tool without
+  setting `store: false`.
+</Note>
+
 #### Code Interpreter Tool
 
 The Azure OpenAI responses API supports the code interpreter tool through the `azure.tools.codeInterpreter` tool. This allows models to write and execute Python code.
