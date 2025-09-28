@@ -1,10 +1,10 @@
 import { generateText } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV3 } from 'ai/test';
 import 'dotenv/config';
 
 async function main() {
   const { text, usage } = await generateText({
-    model: new MockLanguageModelV2({
+    model: new MockLanguageModelV3({
       doGenerate: async () => ({
         content: [{ type: 'text', text: `Hello, world!` }],
         finishReason: 'stop',

@@ -187,7 +187,7 @@ export interface ToolResultPart {
   /**
    * Result of the tool call. This is a JSON-serializable object.
    */
-  output: LanguageModelV2ToolResultOutput;
+  output: LanguageModelV3ToolResultOutput;
 
   /**
   Additional provider-specific metadata. They are passed through
@@ -198,10 +198,10 @@ export interface ToolResultPart {
 }
 ```
 
-### `LanguageModelV2ToolResultOutput`
+### `LanguageModelV3ToolResultOutput`
 
 ```ts
-export type LanguageModelV2ToolResultOutput =
+export type LanguageModelV3ToolResultOutput =
   | { type: 'text'; value: string }
   | { type: 'json'; value: JSONValue }
   | { type: 'error-text'; value: string }

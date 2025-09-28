@@ -1,8 +1,8 @@
 import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import type {
   EmbeddingModelV3,
-  ImageModelV2,
-  LanguageModelV2,
+  ImageModelV3,
+  LanguageModelV3,
 } from '@ai-sdk/provider';
 import {
   APICallError,
@@ -50,9 +50,9 @@ export const defaultChatModelCapabilities: ModelCapabilities = [
 ];
 
 export const createLanguageModelWithCapabilities = (
-  model: LanguageModelV2,
+  model: LanguageModelV3,
   capabilities: ModelCapabilities = defaultChatModelCapabilities,
-): ModelWithCapabilities<LanguageModelV2> => ({
+): ModelWithCapabilities<LanguageModelV3> => ({
   model,
   capabilities,
 });
@@ -66,19 +66,19 @@ export const createEmbeddingModelWithCapabilities = (
 });
 
 export const createImageModelWithCapabilities = (
-  model: ImageModelV2,
+  model: ImageModelV3,
   capabilities: ModelCapabilities = ['imageGeneration'],
-): ModelWithCapabilities<ImageModelV2> => ({
+): ModelWithCapabilities<ImageModelV3> => ({
   model,
   capabilities,
 });
 
 export interface ModelVariants {
-  invalidModel?: LanguageModelV2;
-  languageModels?: ModelWithCapabilities<LanguageModelV2>[];
+  invalidModel?: LanguageModelV3;
+  languageModels?: ModelWithCapabilities<LanguageModelV3>[];
   embeddingModels?: ModelWithCapabilities<EmbeddingModelV3<string>>[];
-  invalidImageModel?: ImageModelV2;
-  imageModels?: ModelWithCapabilities<ImageModelV2>[];
+  invalidImageModel?: ImageModelV3;
+  imageModels?: ModelWithCapabilities<ImageModelV3>[];
 }
 
 export interface TestSuiteOptions {

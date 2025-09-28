@@ -9,9 +9,9 @@ import {
 } from '@ai-sdk/openai/internal';
 import {
   EmbeddingModelV3,
-  LanguageModelV2,
-  ProviderV2,
-  ImageModelV2,
+  LanguageModelV3,
+  ProviderV3,
+  ImageModelV3,
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
@@ -21,30 +21,31 @@ import {
   loadSetting,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { azureOpenaiTools } from './azure-openai-tools';
 import { VERSION } from './version';
 
-export interface AzureOpenAIProvider extends ProviderV2 {
-  (deploymentId: string): LanguageModelV2;
+export interface AzureOpenAIProvider extends ProviderV3 {
+  (deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  languageModel(deploymentId: string): LanguageModelV2;
+  languageModel(deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  chat(deploymentId: string): LanguageModelV2;
+  chat(deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI responses API model for text generation.
    */
-  responses(deploymentId: string): LanguageModelV2;
+  responses(deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI completion model for text generation.
    */
-  completion(deploymentId: string): LanguageModelV2;
+  completion(deploymentId: string): LanguageModelV3;
 
   /**
 @deprecated Use `textEmbedding` instead.
@@ -54,12 +55,12 @@ Creates an Azure OpenAI completion model for text generation.
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  image(deploymentId: string): ImageModelV2;
+  image(deploymentId: string): ImageModelV3;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  imageModel(deploymentId: string): ImageModelV2;
+  imageModel(deploymentId: string): ImageModelV3;
 
   textEmbedding(deploymentId: string): EmbeddingModelV3<string>;
 
@@ -77,6 +78,11 @@ Creates an Azure OpenAI model for text embeddings.
    * Creates an Azure OpenAI model for speech generation.
    */
   speech(deploymentId: string): SpeechModelV2;
+
+  /**
+   * AzureOpenAI-specific tools.
+   */
+  tools: typeof azureOpenaiTools;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -247,6 +253,7 @@ export function createAzure(
   provider.responses = createResponsesModel;
   provider.transcription = createTranscriptionModel;
   provider.speech = createSpeechModel;
+  provider.tools = azureOpenaiTools;
   return provider;
 }
 

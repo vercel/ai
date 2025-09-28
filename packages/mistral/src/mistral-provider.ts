@@ -1,8 +1,8 @@
 import {
   EmbeddingModelV3,
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -16,18 +16,18 @@ import { MistralEmbeddingModel } from './mistral-embedding-model';
 import { MistralEmbeddingModelId } from './mistral-embedding-options';
 import { VERSION } from './version';
 
-export interface MistralProvider extends ProviderV2 {
-  (modelId: MistralChatModelId): LanguageModelV2;
+export interface MistralProvider extends ProviderV3 {
+  (modelId: MistralChatModelId): LanguageModelV3;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(modelId: MistralChatModelId): LanguageModelV2;
+  languageModel(modelId: MistralChatModelId): LanguageModelV3;
 
   /**
 Creates a model for text generation.
 */
-  chat(modelId: MistralChatModelId): LanguageModelV2;
+  chat(modelId: MistralChatModelId): LanguageModelV3;
 
   /**
 @deprecated Use `textEmbedding()` instead.

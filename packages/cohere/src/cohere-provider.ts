@@ -1,8 +1,8 @@
 import {
   EmbeddingModelV3,
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -17,13 +17,13 @@ import { CohereEmbeddingModel } from './cohere-embedding-model';
 import { CohereEmbeddingModelId } from './cohere-embedding-options';
 import { VERSION } from './version';
 
-export interface CohereProvider extends ProviderV2 {
-  (modelId: CohereChatModelId): LanguageModelV2;
+export interface CohereProvider extends ProviderV3 {
+  (modelId: CohereChatModelId): LanguageModelV3;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(modelId: CohereChatModelId): LanguageModelV2;
+  languageModel(modelId: CohereChatModelId): LanguageModelV3;
 
   embedding(modelId: CohereEmbeddingModelId): EmbeddingModelV3<string>;
 

@@ -1,5 +1,66 @@
 # ai
 
+## 5.1.0-beta.14
+
+### Patch Changes
+
+- 7c3c216: fixed docs and exported NoSpeechGeneratedError
+- 8dac895: feat: `LanguageModelV3`
+- e0d1ea9: fix(ai): align logic of text-end with reasoning-end
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+  - @ai-sdk/gateway@1.1.0-beta.9
+
+## 5.1.0-beta.13
+
+### Patch Changes
+
+- 1c2a4c1: fix(ai): remove outdated jsdoc param descriptions
+
+## 5.1.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [c823faf]
+  - @ai-sdk/gateway@1.1.0-beta.8
+
+## 5.1.0-beta.11
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - @ai-sdk/gateway@1.1.0-beta.7
+
+## 5.1.0-beta.10
+
+### Patch Changes
+
+- 8c98371: Extend addToolResult to support error results
+
+## 5.1.0-beta.9
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 177b475: fix(ai): download files when intermediate file cannot be downloaded
+- 522f6b8: feat: `ImageModelV3`
+- Updated dependencies [aaf5ebf]
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/gateway@1.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 5.1.0-beta.8
+
+### Patch Changes
+
+- 7eca093: fix(ai): update `uiMessageChunkSchema` to satisfy the `UIMessageChunk` type
+
 ## 5.1.0-beta.7
 
 ### Patch Changes
