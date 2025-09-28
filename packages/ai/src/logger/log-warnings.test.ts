@@ -6,7 +6,7 @@ import {
   type Warning,
 } from './log-warnings';
 import type {
-  LanguageModelV2CallWarning,
+  LanguageModelV3CallWarning,
   ImageModelV3CallWarning,
   SpeechModelV2CallWarning,
   TranscriptionModelV2CallWarning,
@@ -38,7 +38,7 @@ describe('logWarnings', () => {
         {
           type: 'other',
           message: 'Test warning',
-        } as LanguageModelV2CallWarning,
+        } as LanguageModelV3CallWarning,
       ];
 
       logWarnings(warnings);
@@ -51,7 +51,7 @@ describe('logWarnings', () => {
         {
           type: 'other',
           message: 'Test warning 1',
-        } as LanguageModelV2CallWarning,
+        } as LanguageModelV3CallWarning,
         {
           type: 'other',
           message: 'Test warning 2',
@@ -73,7 +73,7 @@ describe('logWarnings', () => {
         {
           type: 'other',
           message: 'Test warning',
-        } as LanguageModelV2CallWarning,
+        } as LanguageModelV3CallWarning,
       ];
 
       logWarnings(warnings);
@@ -92,7 +92,7 @@ describe('logWarnings', () => {
           type: 'unsupported-setting',
           setting: 'temperature',
           details: 'Temperature not supported',
-        } as LanguageModelV2CallWarning,
+        } as LanguageModelV3CallWarning,
         {
           type: 'other',
           message: 'Another warning',
@@ -121,7 +121,7 @@ describe('logWarnings', () => {
 
   describe('when AI_SDK_LOG_WARNINGS is not set (default behavior)', () => {
     it('should log a single warning to console.warn', () => {
-      const warning: LanguageModelV2CallWarning = {
+      const warning: LanguageModelV3CallWarning = {
         type: 'other',
         message: 'Test warning message',
       };
@@ -137,7 +137,7 @@ describe('logWarnings', () => {
     });
 
     it('should log multiple warnings to console.warn', () => {
-      const warning1: LanguageModelV2CallWarning = {
+      const warning1: LanguageModelV3CallWarning = {
         type: 'other',
         message: 'First warning',
       };
@@ -172,8 +172,8 @@ describe('logWarnings', () => {
     });
 
     describe('with different warning types', () => {
-      it('should log LanguageModelV2CallWarning with unsupported-setting type', () => {
-        const warning: LanguageModelV2CallWarning = {
+      it('should log LanguageModelV3CallWarning with unsupported-setting type', () => {
+        const warning: LanguageModelV3CallWarning = {
           type: 'unsupported-setting',
           setting: 'temperature',
           details: 'Temperature setting is not supported by this model',
@@ -189,8 +189,8 @@ describe('logWarnings', () => {
         );
       });
 
-      it('should log LanguageModelV2CallWarning with unsupported-tool type', () => {
-        const warning: LanguageModelV2CallWarning = {
+      it('should log LanguageModelV3CallWarning with unsupported-tool type', () => {
+        const warning: LanguageModelV3CallWarning = {
           type: 'unsupported-tool',
           tool: {
             type: 'function',
@@ -262,7 +262,7 @@ describe('logWarnings', () => {
       });
 
       it('should log mixed warning types', () => {
-        const languageWarning: LanguageModelV2CallWarning = {
+        const languageWarning: LanguageModelV3CallWarning = {
           type: 'other',
           message: 'Language model warning',
         };
@@ -316,7 +316,7 @@ describe('logWarnings', () => {
     });
 
     it('should use default behavior and log to console.warn', () => {
-      const warning: LanguageModelV2CallWarning = {
+      const warning: LanguageModelV3CallWarning = {
         type: 'other',
         message: 'Test warning with undefined logger',
       };
@@ -335,7 +335,7 @@ describe('logWarnings', () => {
   describe('first-time information note', () => {
     describe('when using default console behavior', () => {
       it('should display information note on first call', () => {
-        const warning: LanguageModelV2CallWarning = {
+        const warning: LanguageModelV3CallWarning = {
           type: 'other',
           message: 'First warning',
         };
@@ -354,11 +354,11 @@ describe('logWarnings', () => {
       });
 
       it('should not display information note on subsequent calls', () => {
-        const warning1: LanguageModelV2CallWarning = {
+        const warning1: LanguageModelV3CallWarning = {
           type: 'other',
           message: 'First warning',
         };
-        const warning2: LanguageModelV2CallWarning = {
+        const warning2: LanguageModelV3CallWarning = {
           type: 'other',
           message: 'Second warning',
         };
@@ -405,7 +405,7 @@ describe('logWarnings', () => {
         expect(mockConsoleWarn).not.toHaveBeenCalled();
 
         // Second call with actual warning should trigger info message (as it's the "first" real call)
-        const warning: LanguageModelV2CallWarning = {
+        const warning: LanguageModelV3CallWarning = {
           type: 'other',
           message: 'Test warning',
         };
@@ -428,7 +428,7 @@ describe('logWarnings', () => {
         const customLogger = vi.fn();
         globalThis.AI_SDK_LOG_WARNINGS = customLogger;
 
-        const warning: LanguageModelV2CallWarning = {
+        const warning: LanguageModelV3CallWarning = {
           type: 'other',
           message: 'Test warning',
         };
@@ -448,7 +448,7 @@ describe('logWarnings', () => {
       });
 
       it('should not display information note when logging is disabled', () => {
-        const warning: LanguageModelV2CallWarning = {
+        const warning: LanguageModelV3CallWarning = {
           type: 'other',
           message: 'Test warning',
         };

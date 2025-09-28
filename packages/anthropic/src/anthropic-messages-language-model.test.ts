@@ -1,8 +1,8 @@
 import {
   JSONValue,
-  LanguageModelV2,
-  LanguageModelV2Prompt,
-  LanguageModelV2StreamPart,
+  LanguageModelV3,
+  LanguageModelV3Prompt,
+  LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -19,7 +19,7 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -1024,7 +1024,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web search tool', () => {
       describe('with fixture', () => {
-        let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-search-tool.1');
@@ -1513,7 +1513,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web fetch tool', () => {
       describe('txt response', () => {
-        let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.1');
@@ -1564,7 +1564,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('unavailable error', () => {
-        let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.error');
@@ -1842,7 +1842,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
   describe('doStream', () => {
     describe('json schema response format', () => {
-      let result: Array<LanguageModelV2StreamPart>;
+      let result: Array<LanguageModelV3StreamPart>;
 
       beforeEach(async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
@@ -3083,7 +3083,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       describe('web fetch tool', () => {
         describe('txt response', () => {
-          let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+          let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
           beforeEach(async () => {
             prepareChunksFixtureResponse('anthropic-web-fetch-tool.1');
@@ -3110,7 +3110,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('web search tool', () => {
-        let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+        let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
         beforeEach(async () => {
           prepareChunksFixtureResponse('anthropic-web-search-tool.1');

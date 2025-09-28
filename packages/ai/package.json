@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "5.1.0-beta.13",
+  "version": "5.1.0-beta.14",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -54,13 +54,13 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/test-server": "workspace:*",
     "@ai-sdk/gateway": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@opentelemetry/api": "1.9.0"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@edge-runtime/vm": "^5.0.0",
     "@types/json-schema": "7.0.15",
     "@types/node": "20.17.24",

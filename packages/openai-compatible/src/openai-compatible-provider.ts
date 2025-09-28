@@ -1,7 +1,7 @@
 import {
   EmbeddingModelV3,
   ImageModelV3,
-  LanguageModelV2,
+  LanguageModelV3,
   ProviderV3,
 } from '@ai-sdk/provider';
 import {
@@ -25,16 +25,16 @@ export interface OpenAICompatibleProvider<
   EMBEDDING_MODEL_IDS extends string = string,
   IMAGE_MODEL_IDS extends string = string,
 > extends Omit<ProviderV3, 'imageModel'> {
-  (modelId: CHAT_MODEL_IDS): LanguageModelV2;
+  (modelId: CHAT_MODEL_IDS): LanguageModelV3;
 
   languageModel(
     modelId: CHAT_MODEL_IDS,
     config?: Partial<OpenAICompatibleChatConfig>,
-  ): LanguageModelV2;
+  ): LanguageModelV3;
 
-  chatModel(modelId: CHAT_MODEL_IDS): LanguageModelV2;
+  chatModel(modelId: CHAT_MODEL_IDS): LanguageModelV3;
 
-  completionModel(modelId: COMPLETION_MODEL_IDS): LanguageModelV2;
+  completionModel(modelId: COMPLETION_MODEL_IDS): LanguageModelV3;
 
   textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3<string>;
 

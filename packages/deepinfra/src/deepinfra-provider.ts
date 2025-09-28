@@ -1,5 +1,5 @@
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   EmbeddingModelV3,
   ProviderV3,
   ImageModelV3,
@@ -46,12 +46,12 @@ export interface DeepInfraProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
-  (modelId: DeepInfraChatModelId): LanguageModelV2;
+  (modelId: DeepInfraChatModelId): LanguageModelV3;
 
   /**
 Creates a chat model for text generation.
 */
-  chatModel(modelId: DeepInfraChatModelId): LanguageModelV2;
+  chatModel(modelId: DeepInfraChatModelId): LanguageModelV3;
 
   /**
 Creates a model for image generation.
@@ -66,12 +66,12 @@ Creates a model for image generation.
   /**
 Creates a chat model for text generation.
 */
-  languageModel(modelId: DeepInfraChatModelId): LanguageModelV2;
+  languageModel(modelId: DeepInfraChatModelId): LanguageModelV3;
 
   /**
 Creates a completion model for text generation.
 */
-  completionModel(modelId: DeepInfraCompletionModelId): LanguageModelV2;
+  completionModel(modelId: DeepInfraCompletionModelId): LanguageModelV3;
 
   /**
 Creates a text embedding model for text generation.
