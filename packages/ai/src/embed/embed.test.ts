@@ -1,7 +1,7 @@
 import { EmbeddingModelV3 } from '@ai-sdk/provider';
 import assert from 'node:assert';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v2';
+import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockTracer } from '../test/mock-tracer';
 import { Embedding, EmbeddingModelUsage } from '../types';
 import { embed } from './embed';

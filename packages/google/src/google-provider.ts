@@ -1,8 +1,8 @@
 import {
   EmbeddingModelV3,
-  LanguageModelV2,
+  LanguageModelV3,
   ProviderV3,
-  ImageModelV2,
+  ImageModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -25,11 +25,11 @@ import {
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 
 export interface GoogleGenerativeAIProvider extends ProviderV3 {
-  (modelId: GoogleGenerativeAIModelId): LanguageModelV2;
+  (modelId: GoogleGenerativeAIModelId): LanguageModelV3;
 
-  languageModel(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
+  languageModel(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
 
-  chat(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
+  chat(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
 
   /**
 Creates a model for image generation.
@@ -37,12 +37,12 @@ Creates a model for image generation.
   image(
     modelId: GoogleGenerativeAIImageModelId,
     settings?: GoogleGenerativeAIImageSettings,
-  ): ImageModelV2;
+  ): ImageModelV3;
 
   /**
    * @deprecated Use `chat()` instead.
    */
-  generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
+  generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
 
   /**
 @deprecated Use `textEmbedding()` instead.

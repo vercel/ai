@@ -1,5 +1,39 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.9
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
+## 1.1.0-beta.8
+
+### Patch Changes
+
+- c823faf: feat(provider/gateway): Add new Gemini preview models to Gateway model string autocomplete
+
+## 1.1.0-beta.7
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
+## 1.1.0-beta.6
+
+### Patch Changes
+
+- aaf5ebf: feat(provider/gateway): Add new Qwen models to Gateway model string autocomplete
+- ed329cb: feat: `Provider-V3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
 ## 1.1.0-beta.5
 
 ### Patch Changes
