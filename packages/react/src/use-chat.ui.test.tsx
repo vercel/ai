@@ -845,7 +845,8 @@ describe('onToolCall', () => {
     };
 
     await userEvent.click(screen.getByTestId('toggle'));
-    await userEvent.click(screen.getByTestId('do-send'));
+    const sendButtons = screen.getAllByTestId('do-send');
+    await userEvent.click(sendButtons[sendButtons.length - 1]);
 
     await vi.waitUntil(() => onToolCallB.mock.calls.length > 0, {
       timeout: 2000,
