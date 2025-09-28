@@ -13,6 +13,9 @@ const weatherTool = tool({
     location,
     temperature: weatherData[location],
   }),
+  providerOptions: {
+    bedrock: { cachePoint: { type: 'default' } },
+  },
 });
 
 const weatherData: Record<string, number> = {
@@ -128,14 +131,6 @@ async function main() {
       weather: weatherTool,
     },
     prompt: 'What is the weather in San Francisco?',
-    // TODO: need a way to set cachePoint on `tools`.
-    providerOptions: {
-      bedrock: {
-        cachePoint: {
-          type: 'default',
-        },
-      },
-    },
   });
 
   // typed tool calls:
