@@ -16,7 +16,7 @@ run(async () => {
     prompt: `Create an anime-like image of a cute cat waving hello.`,
     tools: {
       image_generation: azure.tools.imageGeneration({
-        outputFormat: 'png',  // on azure , supported extension is png and jpeg.
+        outputFormat: 'png', // on azure , supported extension is png and jpeg.
         quality: 'medium',
         size: '1024x1024',
       }),
