@@ -27,14 +27,14 @@ const stream = createUIMessageStream({
       type: 'text-start',
       id: 'example-text',
     });
-    
+
     // Write a message chunk
     writer.write({
       type: 'text-delta',
       id: 'example-text',
       delta: 'Hello',
     });
-    
+
     // End the text message
     writer.write({
       type: 'text-end',
