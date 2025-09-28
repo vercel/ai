@@ -30,7 +30,7 @@ To create an Aihubmix provider instance, use the `createAihubmix` function:
 ```typescript
 import { createAihubmix } from '@aihubmix/ai-sdk-provider';
 
-const openrouter = createAihubmix({
+const aihubmix = createAihubmix({
   apiKey: 'AIHUBMIX_API_KEY',
 });
 ```
@@ -97,7 +97,7 @@ const { text } = await generateText({
 
 ```ts
 import { aihubmix } from '@aihubmix/ai-sdk-provider';
-import { generateImage } from 'ai';
+import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: aihubmix.image('gpt-image-1'),
@@ -261,7 +261,7 @@ const { text } = await generateText({
   model: aihubmix('gpt-4'),
   prompt: 'What are the latest developments in AI?',
   tools: {
-    webSearchPreview: aihubmix.tools.webSearchPreview({
+    webSearchPreview: aihubmix.tools.webSearch({
       searchContextSize: 'high',
     }),
   },
