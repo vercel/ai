@@ -117,25 +117,23 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   }, [resume, chatRef]);
 
   // Keep callbacks up-to-date to avoid stale closures without recreating the chat instance
-  useEffect(() => {
-    if (chatRef.current) {
-      if ('onToolCall' in options) {
-        chatRef.current.setOnToolCall(options.onToolCall);
-      }
-      if ('onData' in options) {
-        chatRef.current.setOnData(options.onData);
-      }
-      if ('onFinish' in options) {
-        chatRef.current.setOnFinish(options.onFinish);
-      }
-      if ('onError' in options) {
-        chatRef.current.setOnError(options.onError);
-      }
-      if ('sendAutomaticallyWhen' in options) {
-        chatRef.current.setSendAutomaticallyWhen(options.sendAutomaticallyWhen);
-      }
+  if (chatRef.current) {
+    if ('onToolCall' in options) {
+      chatRef.current.setOnToolCall(options.onToolCall);
     }
-  }, [options]);
+    if ('onData' in options) {
+      chatRef.current.setOnData(options.onData);
+    }
+    if ('onFinish' in options) {
+      chatRef.current.setOnFinish(options.onFinish);
+    }
+    if ('onError' in options) {
+      chatRef.current.setOnError(options.onError);
+    }
+    if ('sendAutomaticallyWhen' in options) {
+      chatRef.current.setSendAutomaticallyWhen(options.sendAutomaticallyWhen);
+    }
+  }
 
   return {
     id: chatRef.current.id,
