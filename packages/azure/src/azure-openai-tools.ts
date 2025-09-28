@@ -1,4 +1,8 @@
-import { codeInterpreter, fileSearch,imageGeneration } from '@ai-sdk/openai/internal';
+import {
+  codeInterpreter,
+  fileSearch,
+  imageGeneration,
+} from '@ai-sdk/openai/internal';
 
 export const azureOpenaiTools: {
   codeInterpreter: typeof codeInterpreter;
