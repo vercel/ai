@@ -179,6 +179,9 @@ export type OpenAIResponsesTool =
       output_format: 'png' | 'jpeg' | 'webp' | undefined;
       quality: 'auto' | 'low' | 'medium' | 'high' | undefined;
       size: 'auto' | '1024x1024' | '1024x1536' | '1536x1024' | undefined;
+    }
+  | {
+      type: 'local_shell';
     };
 
 export type OpenAIResponsesReasoning = {
