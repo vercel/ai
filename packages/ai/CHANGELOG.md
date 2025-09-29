@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.57
+
+### Patch Changes
+
+- c319849: fixed docs and exported NoSpeechGeneratedError
+
 ## 5.0.56
 
 ### Patch Changes
