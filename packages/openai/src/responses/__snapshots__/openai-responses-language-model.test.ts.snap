@@ -355,6 +355,17 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > local shell tool > should i
     "text": "",
     "type": "reasoning",
   },
+  {
+    "input": "{"action":{"type":"exec","command":["ls"],"working_directory":"/root","env":{}}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "lsh_68da74abdaec819c9aa19c124308f4600fdbc19a07110799",
+      },
+    },
+    "toolCallId": "call_XWgeTylovOiS8xLNz2TONOgO",
+    "toolName": "local_shell",
+    "type": "tool-call",
+  },
 ]
 `;
 

@@ -35,6 +35,7 @@ import {
 } from './openai-responses-api-types';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
+import { localShellInputSchema } from '../tool/local-shell';
 
 const webSearchCallItem = z.object({
   type: z.literal('web_search_call'),
@@ -575,6 +576,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               result: part.result,
             } satisfies z.infer<typeof imageGenerationOutputSchema>,
             providerExecuted: true,
+          });
+
+          break;
+        }
+
+        case 'local_shell_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: 'local_shell',
+            input: JSON.stringify({ action: part.action } satisfies z.infer<
+              typeof localShellInputSchema
+            >),
+            providerMetadata: {
+              openai: {
+                itemId: part.id,
+              },
+            },
           });
 
           break;
