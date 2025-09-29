@@ -278,7 +278,7 @@ export async function convertToOpenAIResponsesInput({
           ) {
             input.push({
               type: 'local_shell_call_output',
-              id: part.toolCallId,
+              call_id: part.toolCallId,
               output: localShellOutputSchema.parse(output.value).output,
             });
             break;

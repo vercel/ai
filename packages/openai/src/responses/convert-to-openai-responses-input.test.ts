@@ -1837,7 +1837,7 @@ describe('convertToOpenAIResponsesInput', () => {
               "type": "local_shell_call",
             },
             {
-              "id": "call_XWgeTylovOiS8xLNz2TONOgO",
+              "call_id": "call_XWgeTylovOiS8xLNz2TONOgO",
               "output": "example output",
               "type": "local_shell_call_output",
             },

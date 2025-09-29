@@ -197,6 +197,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         systemMessageMode: modelConfig.systemMessageMode,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
+        hasLocalShellTool: hasOpenAITool('openai.local_shell'),
       });
 
     warnings.push(...inputWarnings);

@@ -87,7 +87,7 @@ export type OpenAIResponsesLocalShellCall = {
 
 export type OpenAIResponsesLocalShellCallOutput = {
   type: 'local_shell_call_output';
-  id: string;
+  call_id: string;
   output: string;
 };
 
