@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     providerOptions: {
       openai: {
         instructions:
-        'First call the file_search_pdf tool to produce a PDF using the default base64 input. Then use the file_search tool to search that PDF and answer the user\'s question using citations.',
+          "First call the file_search_pdf tool to produce a PDF using the default base64 input. Then use the file_search tool to search that PDF and answer the user's question using citations.",
         include: ['file_search_call.results'],
       } satisfies OpenAIResponsesProviderOptions,
     },
@@ -49,5 +49,3 @@ export async function POST(req: Request) {
     sendSources: true,
   });
 }
-
-

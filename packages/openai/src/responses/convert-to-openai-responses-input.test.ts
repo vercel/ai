@@ -1760,9 +1760,9 @@ describe('convertToOpenAIResponsesInput', () => {
                     },
                   ],
                 },
-              },  
-            ]
-          }
+              },
+            ],
+          },
         ],
         systemMessageMode: 'system',
         store: true,
@@ -1811,7 +1811,7 @@ describe('convertToOpenAIResponsesInput', () => {
                       type: 'media',
                       mediaType: 'application/pdf',
                       data: base64Data,
-                    }
+                    },
                   ],
                 },
               },
@@ -1845,7 +1845,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ]
       `);
     });
-    
+
     it('should convert multiple tool result parts in a single message', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [

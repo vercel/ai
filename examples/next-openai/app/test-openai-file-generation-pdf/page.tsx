@@ -8,15 +8,18 @@ import { DefaultChatTransport } from 'ai';
 import { OpenAIFileGeneratePDFMessage } from '@/app/api/chat-openai-file-generation-pdf/route';
 
 export default function TestOpenAIFileGenerationPDF() {
-  const { status, sendMessage, messages } = useChat<OpenAIFileGeneratePDFMessage>({
-    transport: new DefaultChatTransport({
-      api: '/api/chat-openai-file-generation-pdf',
-    }),
-  });
+  const { status, sendMessage, messages } =
+    useChat<OpenAIFileGeneratePDFMessage>({
+      transport: new DefaultChatTransport({
+        api: '/api/chat-openai-file-generation-pdf',
+      }),
+    });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
-      <h1 className="mb-4 text-xl font-bold">OpenAI File Generation PDF Test</h1>
+      <h1 className="mb-4 text-xl font-bold">
+        OpenAI File Generation PDF Test
+      </h1>
 
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
@@ -38,5 +41,3 @@ export default function TestOpenAIFileGenerationPDF() {
     </div>
   );
 }
-
-
