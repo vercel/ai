@@ -1,5 +1,11 @@
 # @ai-sdk/baseten
 
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- 916bc46: bumped performance client to 0.0.10
+
 ## 1.0.0-beta.5
 
 ### Patch Changes
