@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.28
+
+### Patch Changes
+
+- ba7f149: fix(provider/amazon-bedrock): normalise headers and body if input is of instance Request
+
 ## 3.0.27
 
 ### Patch Changes
