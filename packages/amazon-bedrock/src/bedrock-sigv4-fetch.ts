@@ -37,7 +37,6 @@ export function createSigV4FetchFunction(
             extractHeaders(init?.headers),
           )
         : extractHeaders(init?.headers);
-    console.log('originalHeaders', originalHeaders);
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
       `ai-sdk/amazon-bedrock/${VERSION}`,
