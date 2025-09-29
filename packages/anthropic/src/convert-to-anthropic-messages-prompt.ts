@@ -262,7 +262,9 @@ export async function convertToAnthropicMessagesPrompt({
                             cache_control: undefined,
                           };
                         case 'media': {
-                          if (contentPart.mediaType.startsWith('application/pdf')) {
+                          if (
+                            contentPart.mediaType.startsWith('application/pdf')
+                          ) {
                             if (contentPart.data instanceof URL) {
                               return {
                                 type: 'document',
