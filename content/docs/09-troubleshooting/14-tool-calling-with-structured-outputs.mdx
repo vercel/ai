@@ -49,7 +49,7 @@ const result = await generateText({
 
 When a generation finishes with tool calls (finish reason: `tool-calls`), the structured output parsing is automatically skipped. This means:
 
-- experimental_output will not inforce structured output when the LLM retunres with tool calls as a last message.
+- experimental_output will not enforce structured output when the LLM returns with tool calls as a last message.
 - This prevents unnecessary parsing of tool call responses that don't contain structured text output
 - result.experimental_output will throw "No output specified"
 
