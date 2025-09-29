@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.11
+
+### Patch Changes
+
+- 636e614: feat(provider/gateway): Add DeepSeek V3.2 Exp to Gateway language model settings
+
 ## 1.1.0-beta.10
 
 ### Patch Changes
