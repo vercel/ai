@@ -5,11 +5,43 @@ description: Learn how to use the Ollama provider.
 
 # Ollama Provider
 
-[nordwestt/ollama-ai-provider-v2](https://github.com/nordwestt/ollama-ai-provider-v2) is a community provider that uses [Ollama](https://ollama.com/) to provide language model support for the AI SDK.
+The AI SDK supports [Ollama](https://ollama.com/) through two community providers:
+
+- [nordwestt/ollama-ai-provider-v2](https://github.com/nordwestt/ollama-ai-provider-v2) - Direct HTTP API integration
+- [ai-sdk-ollama](https://github.com/jagreehal/ai-sdk-ollama) - Built on the official Ollama JavaScript client
+
+Both provide language model support for the AI SDK with different approaches and feature sets.
+
+## Choosing Your Provider
+
+The AI SDK ecosystem offers multiple Ollama providers, each optimized for different use cases:
+
+### For Simple Text Generation
+
+[nordwestt/ollama-ai-provider-v2](https://github.com/nordwestt/ollama-ai-provider-v2) provides straightforward access to Ollama models with direct HTTP API calls, making it ideal for basic text generation and getting started quickly.
+
+### For Advanced Features & Tool Reliability
+
+[`ai-sdk-ollama` by jagreehal](https://github.com/jagreehal/ai-sdk-ollama) is recommended when you need:
+
+- **Reliable tool calling** with guaranteed complete responses (solves common empty response issues)
+- **Web search capabilities** using [Ollama's new web search API](https://docs.ollama.com/web-search) for current information
+- **Cross-environment support** with automatic detection for Node.js and browsers
+- **Advanced Ollama features** like `mirostat`, `repeat_penalty`, `num_ctx` for fine-tuned control
+- **Enhanced reliability** with built-in error handling and retries via the official client
+
+Key technical advantages:
+- Built on the official [`Ollama`](https://www.npmjs.com/package/ollama) JavaScript client library
+- Supports both CommonJS and ESM module formats
+- Full TypeScript support with type-safe Ollama-specific options
+
+Both providers implement the AI SDK specification and offer excellent TypeScript support. Choose based on your project's complexity and feature requirements.
 
 ## Setup
 
-The Ollama provider is available in the `ollama-ai-provider-v2` module. You can install it with
+Choose and install your preferred Ollama provider:
+
+### ollama-ai-provider-v2
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
@@ -21,9 +53,25 @@ The Ollama provider is available in the `ollama-ai-provider-v2` module. You can 
   <Tab>
     <Snippet text="yarn add ollama-ai-provider-v2" dark />
   </Tab>
-
   <Tab>
     <Snippet text="bun add ollama-ai-provider-v2" dark />
+  </Tab>
+</Tabs>
+
+### ai-sdk-ollama
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-ollama" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-ollama" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-ollama" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add ai-sdk-ollama" dark />
   </Tab>
 </Tabs>
 
@@ -102,19 +150,3 @@ console.log(
 );
 ```
 
-## Alternative Providers
-
-There is an alternative provider package called [`ai-sdk-ollama` by jagreehal](https://github.com/jagreehal/ai-sdk-ollama), which uses the official
-[`Ollama`](https://www.npmjs.com/package/ollama) JavaScript client library instead of direct HTTP API calls.
-
-Key differences:
-
-- Uses the official `ollama` npm package for communication
-- Provides automatic environment detection (Node.js vs browser)
-- Includes built-in error handling and retries via the official client
-- Supports both CommonJS and ESM module formats
-- Full TypeScript support with type-safe Ollama-specific options via `providerOptions.ollama`
-
-This approach leverages Ollama's official client library, which may provide better compatibility with
-Ollama updates and additional features like model management. Both providers implement the AI SDK
-specification, so you can choose based on your specific requirements and preferences.
