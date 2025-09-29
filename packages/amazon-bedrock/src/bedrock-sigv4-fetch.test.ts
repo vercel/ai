@@ -130,7 +130,7 @@ describe('createSigV4FetchFunction', () => {
     expect(calledInit.body).toEqual('{"test": "data"}');
   });
 
-  it.only('shold handle a POST request with a Request object', async () => {
+  it('shold handle a POST request with a Request object', async () => {
     const dummyResponse = new Response('Signed', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
     const fetchFn = createFetchFunction(dummyFetch);
