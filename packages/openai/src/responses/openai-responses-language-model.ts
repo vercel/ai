@@ -804,7 +804,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     let responseId: string | null = null;
     const ongoingToolCalls: Record<
       number,
-      { toolName: string; toolCallId: string } | undefined
+      | {
+          toolName: string;
+          toolCallId: string;
+          codeInterpreter?: {
+            containerId: string;
+          };
+        }
+      | undefined
     > = {};
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
@@ -877,6 +884,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-start',
                   id: value.item.id,
                   toolName: 'computer_use',
+                });
+              } else if (value.item.type === 'code_interpreter_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: 'code_interpreter',
+                  toolCallId: value.item.id,
+                  codeInterpreter: {
+                    containerId: value.item.container_id,
+                  },
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.id,
+                  toolName: 'code_interpreter',
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: value.item.id,
+                  delta: `{"containerId":"${value.item.container_id}","code":"`,
                 });
               } else if (value.item.type === 'file_search_call') {
                 controller.enqueue({
@@ -1013,16 +1040,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'code_interpreter_call') {
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName: 'code_interpreter',
-                  input: JSON.stringify({
-                    code: value.item.code,
-                    containerId: value.item.container_id,
-                  } satisfies z.infer<typeof codeInterpreterInputSchema>),
-                  providerExecuted: true,
-                });
+                ongoingToolCalls[value.output_index] = undefined;
 
                 controller.enqueue({
                   type: 'tool-result',
@@ -1075,6 +1093,45 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-delta',
                   id: toolCall.toolCallId,
                   delta: value.delta,
+                });
+              }
+            } else if (isResponseCodeInterpreterCallCodeDeltaChunk(value)) {
+              const toolCall = ongoingToolCalls[value.output_index];
+
+              if (toolCall != null) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  // The delta is code, which is embedding in a JSON string.
+                  // To escape it, we use JSON.stringify and slice to remove the outer quotes.
+                  delta: JSON.stringify(value.delta).slice(1, -1),
+                });
+              }
+            } else if (isResponseCodeInterpreterCallCodeDoneChunk(value)) {
+              const toolCall = ongoingToolCalls[value.output_index];
+
+              if (toolCall != null) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta: '"}',
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: toolCall.toolCallId,
+                });
+
+                // immediately send the tool call after the input end:
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: 'code_interpreter',
+                  input: JSON.stringify({
+                    code: value.code,
+                    containerId: toolCall.codeInterpreter!.containerId,
+                  } satisfies z.infer<typeof codeInterpreterInputSchema>),
+                  providerExecuted: true,
                 });
               }
             } else if (isResponseCreatedChunk(value)) {
@@ -1292,6 +1349,21 @@ const responseOutputItemAddedSchema = z.object({
       type: z.literal('image_generation_call'),
       id: z.string(),
     }),
+    z.object({
+      type: z.literal('code_interpreter_call'),
+      id: z.string(),
+      container_id: z.string(),
+      code: z.string().nullable(),
+      outputs: z
+        .array(
+          z.discriminatedUnion('type', [
+            z.object({ type: z.literal('logs'), logs: z.string() }),
+            z.object({ type: z.literal('image'), url: z.string() }),
+          ]),
+        )
+        .nullable(),
+      status: z.string(),
+    }),
   ]),
 });
 
@@ -1335,6 +1407,20 @@ const responseFunctionCallArgumentsDeltaSchema = z.object({
   delta: z.string(),
 });
 
+const responseCodeInterpreterCallCodeDeltaSchema = z.object({
+  type: z.literal('response.code_interpreter_call_code.delta'),
+  item_id: z.string(),
+  output_index: z.number(),
+  delta: z.string(),
+});
+
+const responseCodeInterpreterCallCodeDoneSchema = z.object({
+  type: z.literal('response.code_interpreter_call_code.done'),
+  item_id: z.string(),
+  output_index: z.number(),
+  code: z.string(),
+});
+
 const responseAnnotationAddedSchema = z.object({
   type: z.literal('response.output_text.annotation.added'),
   annotation: z.discriminatedUnion('type', [
@@ -1375,6 +1461,8 @@ const openaiResponsesChunkSchema = z.union([
   responseOutputItemAddedSchema,
   responseOutputItemDoneSchema,
   responseFunctionCallArgumentsDeltaSchema,
+  responseCodeInterpreterCallCodeDeltaSchema,
+  responseCodeInterpreterCallCodeDoneSchema,
   responseAnnotationAddedSchema,
   responseReasoningSummaryPartAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
@@ -1430,6 +1518,18 @@ function isResponseFunctionCallArgumentsDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseFunctionCallArgumentsDeltaSchema> {
   return chunk.type === 'response.function_call_arguments.delta';
+}
+
+function isResponseCodeInterpreterCallCodeDeltaChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseCodeInterpreterCallCodeDeltaSchema> {
+  return chunk.type === 'response.code_interpreter_call_code.delta';
+}
+
+function isResponseCodeInterpreterCallCodeDoneChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseCodeInterpreterCallCodeDoneSchema> {
+  return chunk.type === 'response.code_interpreter_call_code.done';
 }
 
 function isResponseOutputItemAddedChunk(
