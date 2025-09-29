@@ -1,5 +1,16 @@
 # @ai-sdk/cerebras
 
+## 1.1.0-beta.6
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- Updated dependencies [8dac895]
+- Updated dependencies [10c1322]
+  - @ai-sdk/openai-compatible@1.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
 ## 1.1.0-beta.5
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+
 ## 2.1.0-beta.2
 
 ### Patch Changes
