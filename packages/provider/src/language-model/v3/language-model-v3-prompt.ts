@@ -1,7 +1,6 @@
 import { JSONValue } from '../../json-value/json-value';
 import { SharedV2ProviderOptions } from '../../shared/v2/shared-v2-provider-options';
 import { LanguageModelV3DataContent } from './language-model-v3-data-content';
-import { DataContent } from '@ai-sdk/provider-utils';
 
 /**
 A prompt is a list of messages.
