@@ -10,10 +10,7 @@ import { LanguageModel } from '../types/language-model';
 
 export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
   if (typeof model !== 'string') {
-    if (
-      model.specificationVersion !== 'v3' &&
-      model.specificationVersion !== 'v2'
-    ) {
+    if (model.specificationVersion !== 'v3') {
       throw new UnsupportedModelVersionError({
         version: model.specificationVersion,
         provider: model.provider,
@@ -30,10 +27,7 @@ export function resolveEmbeddingModel<VALUE = string>(
   model: EmbeddingModel<VALUE>,
 ): EmbeddingModelV3<VALUE> {
   if (typeof model !== 'string') {
-    if (
-      model.specificationVersion !== 'v3' &&
-      model.specificationVersion !== 'v2'
-    ) {
+    if (model.specificationVersion !== 'v3') {
       throw new UnsupportedModelVersionError({
         version: model.specificationVersion,
         provider: model.provider,
