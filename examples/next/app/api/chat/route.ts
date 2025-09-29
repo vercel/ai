@@ -3,6 +3,7 @@ import { readChat, saveChat } from '@util/chat-store';
 import { convertToModelMessages, generateId, streamText } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
+import throttle from 'throttleit';
 
 export async function POST(req: Request) {
   const {
@@ -61,12 +62,13 @@ export async function POST(req: Request) {
     model: 'openai/gpt-5-mini',
     messages: convertToModelMessages(messages),
     abortSignal: userStopSignal.signal,
-    onChunk: async chunk => {
+    // throttle reading from chat store to max once per second
+    onChunk: throttle(async () => {
       const { canceledAt } = await readChat(id);
       if (canceledAt) {
         userStopSignal.abort();
       }
-    },
+    }, 1000),
     onAbort: () => {
       console.log('aborted');
     },
