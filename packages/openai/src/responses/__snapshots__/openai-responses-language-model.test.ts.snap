@@ -3528,3 +3528,55 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
   },
 ]
 `;
+
+exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > should stream code local shell results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_68da7fd5d24481949fc2cf1cc60377050faf5df54b42d9a6",
+    "modelId": "gpt-5-codex",
+    "timestamp": 2025-09-29T12:47:17.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_68da7fd5d24481949fc2cf1cc60377050faf5df54b42d9a6",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 407,
+      "outputTokens": 151,
+      "reasoningTokens": 128,
+      "totalTokens": 558,
+    },
+  },
+]
+`;

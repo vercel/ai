@@ -4084,6 +4084,32 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('image generation tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('openai-local-shell-tool.1');
+
+        result = await createModel('gpt-5-codex').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.local_shell',
+              name: 'local_shell',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should stream code local shell results', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
     describe('errors', () => {
       it('should stream error parts', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {

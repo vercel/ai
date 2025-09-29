@@ -1,6 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { stepCountIs, streamText } from 'ai';
 import { run } from '../lib/run';
+import { saveRawChunks } from '../lib/save-raw-chunks';
 
 run(async () => {
   const result = streamText({
@@ -22,34 +23,8 @@ README.md     build         data          node_modules  package.json  src       
     },
     prompt: 'List the files in my home directory.',
     stopWhen: stepCountIs(2),
+    includeRawChunks: true,
   });
 
-  for await (const chunk of result.fullStream) {
-    switch (chunk.type) {
-      case 'text-delta': {
-        process.stdout.write(chunk.text);
-        break;
-      }
-
-      case 'tool-call': {
-        console.log(
-          `\x1b[32m\x1b[1mTool call:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
-        );
-        break;
-      }
-
-      case 'tool-result': {
-        console.log(
-          `\x1b[32m\x1b[1mTool result:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
-        );
-        break;
-      }
-
-      case 'error':
-        console.error('Error:', chunk.error);
-        break;
-    }
-  }
-
-  console.dir(await result.content, { depth: Infinity });
+  await saveRawChunks({ result, filename: 'openai-local-shell-tool' });
 });
