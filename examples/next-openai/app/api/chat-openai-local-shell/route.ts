@@ -1,13 +1,9 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
 import { Sandbox } from '@vercel/sandbox';
 import {
-  convertToModelMessages,
-  InferUITools,
+  Experimental_Agent as Agent,
+  Experimental_InferAgentUIMessage as InferAgentUIMessage,
   stepCountIs,
-  streamText,
-  ToolSet,
-  UIDataTypes,
-  UIMessage,
   validateUIMessages,
 } from 'ai';
 
@@ -22,39 +18,34 @@ async function getSandbox(): Promise<Sandbox> {
   return sandbox;
 }
 
-const tools = {
-  local_shell: openai.tools.localShell({
-    execute: async ({ action }) => {
-      const [cmd, ...args] = action.command;
+export const sandboxAgent = new Agent({
+  model: openai('gpt-5-codex'),
+  system: 'You are a helpful assistant.',
+  tools: {
+    local_shell: openai.tools.localShell({
+      execute: async ({ action }) => {
+        const [cmd, ...args] = action.command;
 
-      const sandbox = await getSandbox();
-      const command = await sandbox.runCommand({
-        cmd,
-        args,
-        cwd: action.workingDirectory,
-      });
+        const sandbox = await getSandbox();
+        const command = await sandbox.runCommand({
+          cmd,
+          args,
+          cwd: action.workingDirectory,
+        });
 
-      return { output: await command.stdout() };
-    },
-  }),
-} satisfies ToolSet;
+        return { output: await command.stdout() };
+      },
+    }),
+  },
+  stopWhen: stepCountIs(10),
+});
 
-export type OpenAILocalShellMessage = UIMessage<
-  never,
-  UIDataTypes,
-  InferUITools<typeof tools>
->;
+export type OpenAILocalShellMessage = InferAgentUIMessage<typeof sandboxAgent>;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const uiMessages = await validateUIMessages({ messages });
 
-  const result = streamText({
-    model: openai('gpt-5-codex'),
-    tools,
-    stopWhen: stepCountIs(10),
-    messages: convertToModelMessages(uiMessages),
+  return sandboxAgent.respond({
+    messages: await validateUIMessages({ messages }),
   });
-
-  return result.toUIMessageStreamResponse();
 }
