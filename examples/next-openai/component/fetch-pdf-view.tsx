@@ -22,7 +22,7 @@ export default function FetchPDFView({
             download="test.pdf"
             target="_blank"
           >
-            Open/Download PDF
+            Download PDF
           </a>
         </div>
       );

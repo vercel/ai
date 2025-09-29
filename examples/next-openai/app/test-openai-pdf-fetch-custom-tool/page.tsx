@@ -16,7 +16,7 @@ export default function TestOpenAIFileGenerationPDF() {
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       <h1 className="mb-4 text-xl font-bold">
-        OpenAI File Generation PDF Test
+        OpenAI Fetch PDF Custom Tool Test
       </h1>
 
       {messages.map(message => (
