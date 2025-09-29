@@ -743,7 +743,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
     describe('reasoning messages', () => {
       describe('basic conversion', () => {
-        it('should convert single reasoning part with text', async () => {
+        it('should convert single reasoning part with text (store: false)', async () => {
           const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
@@ -762,7 +762,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            store: true,
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -782,7 +782,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toHaveLength(0);
         });
 
-        it('should convert single reasoning part with encrypted content', async () => {
+        it('should convert single reasoning part with encrypted content (store: false)', async () => {
           const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
@@ -802,7 +802,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            store: true,
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -822,7 +822,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toHaveLength(0);
         });
 
-        it('should convert single reasoning part with null encrypted content', async () => {
+        it('should convert single reasoning part with null encrypted content (store: false)', async () => {
           const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
@@ -842,7 +842,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            store: true,
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -864,7 +864,7 @@ describe('convertToOpenAIResponsesInput', () => {
       });
 
       describe('empty text handling', () => {
-        it('should create empty summary for initial empty text', async () => {
+        it('should create empty summary for initial empty text (store: false)', async () => {
           const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
@@ -883,7 +883,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            store: true,
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -898,7 +898,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toHaveLength(0);
         });
 
-        it('should create empty summary for initial empty text with encrypted content', async () => {
+        it('should create empty summary for initial empty text with encrypted content (store: false)', async () => {
           const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
@@ -918,7 +918,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            store: true,
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -933,7 +933,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toHaveLength(0);
         });
 
-        it('should warn when appending empty text to existing sequence', async () => {
+        it('should warn when appending empty text to existing sequence (store: false)', async () => {
           const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
@@ -961,7 +961,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            store: true,
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -990,7 +990,7 @@ describe('convertToOpenAIResponsesInput', () => {
       });
 
       describe('merging and sequencing', () => {
-        it('should merge consecutive parts with same reasoning ID', async () => {
+        it('should merge consecutive parts with same reasoning ID (store: false)', async () => {
           const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
@@ -1018,7 +1018,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            store: true,
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -1042,7 +1042,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toHaveLength(0);
         });
 
-        it('should create separate messages for different reasoning IDs', async () => {
+        it('should create separate messages for different reasoning IDs (store: false)', async () => {
           const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
@@ -1070,7 +1070,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            store: true,
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -1101,7 +1101,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toHaveLength(0);
         });
 
-        it('should handle reasoning across multiple assistant messages', async () => {
+        it('should handle reasoning across multiple assistant messages (store: true)', async () => {
           const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
@@ -1156,6 +1156,115 @@ describe('convertToOpenAIResponsesInput', () => {
             store: true,
           });
 
+          expect(result.input).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "First user question",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "id": "reasoning_001",
+                "type": "item_reference",
+              },
+              {
+                "content": [
+                  {
+                    "text": "First response",
+                    "type": "output_text",
+                  },
+                ],
+                "id": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Second user question",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "id": "reasoning_002",
+                "type": "item_reference",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Second response",
+                    "type": "output_text",
+                  },
+                ],
+                "id": undefined,
+                "role": "assistant",
+              },
+            ]
+          `);
+
+          expect(result.warnings).toMatchInlineSnapshot(`[]`);
+        });
+
+        it('should handle reasoning across multiple assistant messages (store: false)', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            prompt: [
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'First user question' }],
+              },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'First reasoning step (message 1)',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'reasoning_001',
+                      },
+                    },
+                  },
+                  {
+                    type: 'reasoning',
+                    text: 'Second reasoning step (message 1)',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'reasoning_001',
+                      },
+                    },
+                  },
+                  { type: 'text', text: 'First response' },
+                ],
+              },
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'Second user question' }],
+              },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'First reasoning step (message 2)',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'reasoning_002',
+                      },
+                    },
+                  },
+                  { type: 'text', text: 'Second response' },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            store: false,
+          });
+
           expect(result.input).toEqual([
             {
               role: 'user',
@@ -1204,7 +1313,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toHaveLength(0);
         });
 
-        it('should handle complex reasoning sequences with tool interactions', async () => {
+        it('should handle complex reasoning sequences with tool interactions (store: false)', async () => {
           const result = await convertToOpenAIResponsesInput({
             prompt: [
               {
@@ -1325,7 +1434,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            store: true,
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -1551,7 +1660,7 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
-  describe('provider-executed tools', () => {
+  describe('provider-defined tools', () => {
     it('should convert single provider-executed tool call and result into item reference with store: true', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
@@ -1670,6 +1779,71 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
         }
       `);
+    });
+
+    describe('local shell', () => {
+      it('should convert local shell tool call and result into item reference with store: true', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
+                  toolName: 'local_shell',
+                  input: { action: { type: 'exec', command: ['ls'] } },
+                  providerOptions: {
+                    openai: {
+                      itemId:
+                        'lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
+                  toolName: 'local_shell',
+                  output: { type: 'json', value: { output: 'example output' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          store: true,
+          hasLocalShellTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "action": {
+                "command": [
+                  "ls",
+                ],
+                "env": undefined,
+                "timeout_ms": undefined,
+                "type": "exec",
+                "user": undefined,
+                "working_directory": undefined,
+              },
+              "call_id": "call_XWgeTylovOiS8xLNz2TONOgO",
+              "id": "lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+              "type": "local_shell_call",
+            },
+            {
+              "call_id": "call_XWgeTylovOiS8xLNz2TONOgO",
+              "output": "example output",
+              "type": "local_shell_call_output",
+            },
+          ]
+        `);
+      });
     });
   });
 

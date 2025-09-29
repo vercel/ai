@@ -1,7 +1,7 @@
 import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2Prompt,
-  LanguageModelV2ToolCallPart,
+  LanguageModelV3CallWarning,
+  LanguageModelV3Prompt,
+  LanguageModelV3ToolCallPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
@@ -10,6 +10,10 @@ import {
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api-types';
+import {
+  localShellInputSchema,
+  localShellOutputSchema,
+} from '../tool/local-shell';
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -25,17 +29,19 @@ export async function convertToOpenAIResponsesInput({
   systemMessageMode,
   fileIdPrefixes,
   store,
+  hasLocalShellTool = false,
 }: {
-  prompt: LanguageModelV2Prompt;
+  prompt: LanguageModelV3Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
   fileIdPrefixes?: readonly string[];
   store: boolean;
+  hasLocalShellTool?: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
-  warnings: Array<LanguageModelV2CallWarning>;
+  warnings: Array<LanguageModelV3CallWarning>;
 }> {
   const input: OpenAIResponsesInput = [];
-  const warnings: Array<LanguageModelV2CallWarning> = [];
+  const warnings: Array<LanguageModelV3CallWarning> = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -125,7 +131,7 @@ export async function convertToOpenAIResponsesInput({
 
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
-        const toolCallParts: Record<string, LanguageModelV2ToolCallPart> = {};
+        const toolCallParts: Record<string, LanguageModelV3ToolCallPart> = {};
 
         for (const part of content) {
           switch (part.type) {
@@ -142,6 +148,27 @@ export async function convertToOpenAIResponsesInput({
               toolCallParts[part.toolCallId] = part;
 
               if (part.providerExecuted) {
+                break;
+              }
+
+              if (hasLocalShellTool && part.toolName === 'local_shell') {
+                const parsedInput = localShellInputSchema.parse(part.input);
+                input.push({
+                  type: 'local_shell_call',
+                  call_id: part.toolCallId,
+                  id:
+                    (part.providerOptions?.openai?.itemId as string) ??
+                    undefined,
+                  action: {
+                    type: 'exec',
+                    command: parsedInput.action.command,
+                    timeout_ms: parsedInput.action.timeoutMs,
+                    user: parsedInput.action.user,
+                    working_directory: parsedInput.action.workingDirectory,
+                    env: parsedInput.action.env,
+                  },
+                });
+
                 break;
               }
 
@@ -181,33 +208,50 @@ export async function convertToOpenAIResponsesInput({
               const reasoningId = providerOptions?.itemId;
 
               if (reasoningId != null) {
-                const existingReasoningMessage = reasoningMessages[reasoningId];
+                const reasoningMessage = reasoningMessages[reasoningId];
 
-                const summaryParts: Array<{
-                  type: 'summary_text';
-                  text: string;
-                }> = [];
+                if (store) {
+                  if (reasoningMessage === undefined) {
+                    // use item references to refer to reasoning (single reference)
+                    input.push({ type: 'item_reference', id: reasoningId });
 
-                if (part.text.length > 0) {
-                  summaryParts.push({ type: 'summary_text', text: part.text });
-                } else if (existingReasoningMessage !== undefined) {
-                  warnings.push({
-                    type: 'other',
-                    message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
-                  });
-                }
-
-                if (existingReasoningMessage === undefined) {
-                  reasoningMessages[reasoningId] = {
-                    type: 'reasoning',
-                    id: reasoningId,
-                    encrypted_content:
-                      providerOptions?.reasoningEncryptedContent,
-                    summary: summaryParts,
-                  };
-                  input.push(reasoningMessages[reasoningId]);
+                    // store unused reasoning message to mark id as used
+                    reasoningMessages[reasoningId] = {
+                      type: 'reasoning',
+                      id: reasoningId,
+                      summary: [],
+                    };
+                  }
                 } else {
-                  existingReasoningMessage.summary.push(...summaryParts);
+                  const summaryParts: Array<{
+                    type: 'summary_text';
+                    text: string;
+                  }> = [];
+
+                  if (part.text.length > 0) {
+                    summaryParts.push({
+                      type: 'summary_text',
+                      text: part.text,
+                    });
+                  } else if (reasoningMessage !== undefined) {
+                    warnings.push({
+                      type: 'other',
+                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                    });
+                  }
+
+                  if (reasoningMessage === undefined) {
+                    reasoningMessages[reasoningId] = {
+                      type: 'reasoning',
+                      id: reasoningId,
+                      encrypted_content:
+                        providerOptions?.reasoningEncryptedContent,
+                      summary: summaryParts,
+                    };
+                    input.push(reasoningMessages[reasoningId]);
+                  } else {
+                    reasoningMessage.summary.push(...summaryParts);
+                  }
                 }
               } else {
                 warnings.push({
@@ -226,6 +270,19 @@ export async function convertToOpenAIResponsesInput({
       case 'tool': {
         for (const part of content) {
           const output = part.output;
+
+          if (
+            hasLocalShellTool &&
+            part.toolName === 'local_shell' &&
+            output.type === 'json'
+          ) {
+            input.push({
+              type: 'local_shell_call_output',
+              call_id: part.toolCallId,
+              output: localShellOutputSchema.parse(output.value).output,
+            });
+            break;
+          }
 
           let contentValue: string;
           switch (output.type) {

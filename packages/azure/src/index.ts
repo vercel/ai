@@ -3,3 +3,4 @@ export type {
   AzureOpenAIProvider,
   AzureOpenAIProviderSettings,
 } from './azure-openai-provider';
+export { VERSION } from './version';

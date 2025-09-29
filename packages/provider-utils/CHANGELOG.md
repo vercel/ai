@@ -1,5 +1,40 @@
 # @ai-sdk/provider-utils
 
+## 3.1.0-beta.5
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider@2.1.0-beta.3
+
+## 3.1.0-beta.4
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+
+## 3.1.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+
+## 3.1.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+
+## 3.1.0-beta.1
+
+### Patch Changes
+
+- cbb1d35: Update for provider-util changeset after change in PR #8588
+
 ## 3.1.0-beta.0
 
 ### Minor Changes

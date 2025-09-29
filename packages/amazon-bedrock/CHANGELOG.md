@@ -1,5 +1,85 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.1.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [a5a8db4]
+  - @ai-sdk/anthropic@2.1.0-beta.8
+
+## 3.1.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [e1e2821]
+  - @ai-sdk/anthropic@2.1.0-beta.7
+
+## 3.1.0-beta.6
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [8dac895]
+- Updated dependencies [10c1322]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/anthropic@2.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.3
+
+## 3.1.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [11e4abe]
+- Updated dependencies [afb00e3]
+- Updated dependencies [f6603b7]
+- Updated dependencies [fa35e95]
+- Updated dependencies [c5440c5]
+  - @ai-sdk/anthropic@2.1.0-beta.5
+
+## 3.1.0-beta.4
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - @ai-sdk/anthropic@2.1.0-beta.4
+
+## 3.1.0-beta.3
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 522f6b8: feat: `ImageModelV3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/anthropic@2.1.0-beta.3
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 3.1.0-beta.2
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+- Updated dependencies [1cad0ab]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/anthropic@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 3.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+  - @ai-sdk/anthropic@2.1.0-beta.1
+
 ## 3.1.0-beta.0
 
 ### Minor Changes
