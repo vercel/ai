@@ -10,43 +10,31 @@ import {
   UIMessage,
   validateUIMessages,
 } from 'ai';
-import z from 'zod';
 
-const contextSchema = z.object({
-  sandboxId: z.string().nullable(),
-});
+// warning: this is a demo sandbox that is shared across chats on localhost
+let globalSandboxId: string | null = null;
+async function getSandbox(): Promise<Sandbox> {
+  if (globalSandboxId) {
+    return await Sandbox.get({ sandboxId: globalSandboxId });
+  }
+  const sandbox = await Sandbox.create();
+  globalSandboxId = sandbox.sandboxId;
+  return sandbox;
+}
 
 const tools = {
   local_shell: openai.tools.localShell({
-    execute: async ({ action }, { experimental_context }) => {
-      let sandbox: Sandbox | null = null;
+    execute: async ({ action }) => {
+      const [cmd, ...args] = action.command;
 
-      const { success, data } = contextSchema.safeParse(experimental_context);
-      if (success && data.sandboxId) {
-        sandbox = await Sandbox.get({ sandboxId: data.sandboxId });
-        console.log('reusing sandbox:', sandbox.sandboxId);
-      } else {
-        sandbox = await Sandbox.create();
-        // @ts-ignore experimental_context type is unknown
-        experimental_context.sandboxId = sandbox.sandboxId;
-      }
+      const sandbox = await getSandbox();
+      const command = await sandbox.runCommand({
+        cmd,
+        args,
+        cwd: action.workingDirectory,
+      });
 
-      try {
-        const [cmd, ...args] = action.command;
-
-        const command = await sandbox.runCommand({
-          cmd,
-          args,
-          cwd: action.workingDirectory,
-        });
-
-        const output = await command.stdout();
-
-        return { output };
-      } catch (error) {
-        console.error(error);
-        throw error;
-      }
+      return { output: await command.stdout() };
     },
   }),
 } satisfies ToolSet;
@@ -65,19 +53,7 @@ export async function POST(req: Request) {
     model: openai('gpt-5-codex'),
     tools,
     stopWhen: stepCountIs(10),
-    experimental_context: {
-      sandboxId: null,
-    },
     messages: convertToModelMessages(uiMessages),
-    onStepFinish: ({ request }) => {
-      console.log(JSON.stringify(request.body, null, 2));
-    },
-    providerOptions: {
-      openai: {
-        store: false,
-        include: ['reasoning.encrypted_content'],
-      } satisfies OpenAIResponsesProviderOptions,
-    },
   });
 
   return result.toUIMessageStreamResponse();
