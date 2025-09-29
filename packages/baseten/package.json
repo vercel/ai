@@ -35,7 +35,7 @@
     "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@basetenlabs/performance-client": "^0.0.8"
+    "@basetenlabs/performance-client": "^0.0.10"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
