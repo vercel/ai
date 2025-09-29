@@ -18,7 +18,7 @@ async function getSandbox(): Promise<Sandbox> {
   return sandbox;
 }
 
-export const sandboxAgent = new Agent({
+const sandboxAgent = new Agent({
   model: openai('gpt-5-codex'),
   system: 'You are a helpful assistant.',
   tools: {
