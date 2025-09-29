@@ -34,7 +34,10 @@ export type GatewayModelId =
   | 'deepseek/deepseek-v3.1-base'
   | 'deepseek/deepseek-v3.1-terminus'
   | 'deepseek/deepseek-v3.2-exp'
+<<<<<<< HEAD
   | 'deepseek/deepseek-v3.2-exp-thinking'
+=======
+>>>>>>> 636e6142e (feat(provider/gateway): Add DeepSeek V3.2 Exp to Gateway language model settings (#9038))
   | 'google/gemini-2.0-flash'
   | 'google/gemini-2.0-flash-lite'
   | 'google/gemini-2.5-flash'
