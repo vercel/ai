@@ -24,7 +24,7 @@ export default function TestOpenAIWebSearch() {
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          <div className='space-y-4'>
+          <div className="space-y-4">
             {message.parts.map((part, index) => {
               switch (part.type) {
                 case 'text':

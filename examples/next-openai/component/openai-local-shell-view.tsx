@@ -19,9 +19,7 @@ export default function LocalShellView({
 
       <div className="p-6">
         <div className="mb-3">
-          <div className="mb-2 text-sm font-medium text-blue-400">
-            Command:
-          </div>
+          <div className="mb-2 text-sm font-medium text-blue-400">Command:</div>
           <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap bg-black rounded-lg">
             {command}
           </pre>
