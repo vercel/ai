@@ -1,5 +1,35 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.1.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [e1e2821]
+  - @ai-sdk/anthropic@2.1.0-beta.7
+
+## 3.1.0-beta.6
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [8dac895]
+- Updated dependencies [10c1322]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/anthropic@2.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.3
+
+## 3.1.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [11e4abe]
+- Updated dependencies [afb00e3]
+- Updated dependencies [f6603b7]
+- Updated dependencies [fa35e95]
+- Updated dependencies [c5440c5]
+  - @ai-sdk/anthropic@2.1.0-beta.5
+
 ## 3.1.0-beta.4
 
 ### Patch Changes

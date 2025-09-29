@@ -1,6 +1,6 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
 } from '@ai-sdk/provider';
@@ -38,17 +38,17 @@ export interface DeepSeekProvider extends ProviderV3 {
   /**
 Creates a DeepSeek model for text generation.
 */
-  (modelId: DeepSeekChatModelId): LanguageModelV2;
+  (modelId: DeepSeekChatModelId): LanguageModelV3;
 
   /**
 Creates a DeepSeek model for text generation.
 */
-  languageModel(modelId: DeepSeekChatModelId): LanguageModelV2;
+  languageModel(modelId: DeepSeekChatModelId): LanguageModelV3;
 
   /**
 Creates a DeepSeek chat model for text generation.
 */
-  chat(modelId: DeepSeekChatModelId): LanguageModelV2;
+  chat(modelId: DeepSeekChatModelId): LanguageModelV3;
 }
 
 export function createDeepSeek(

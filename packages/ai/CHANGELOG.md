@@ -1,5 +1,24 @@
 # ai
 
+## 5.1.0-beta.14
+
+### Patch Changes
+
+- 7c3c216: fixed docs and exported NoSpeechGeneratedError
+- 8dac895: feat: `LanguageModelV3`
+- e0d1ea9: fix(ai): align logic of text-end with reasoning-end
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+  - @ai-sdk/gateway@1.1.0-beta.9
+
+## 5.1.0-beta.13
+
+### Patch Changes
+
+- 1c2a4c1: fix(ai): remove outdated jsdoc param descriptions
+
 ## 5.1.0-beta.12
 
 ### Patch Changes

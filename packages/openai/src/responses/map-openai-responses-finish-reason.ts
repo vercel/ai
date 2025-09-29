@@ -1,4 +1,4 @@
-import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
+import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
 
 export function mapOpenAIResponseFinishReason({
   finishReason,
@@ -7,7 +7,7 @@ export function mapOpenAIResponseFinishReason({
   finishReason: string | null | undefined;
   // flag that checks if there have been client-side tool calls (not executed by openai)
   hasFunctionCall: boolean;
-}): LanguageModelV2FinishReason {
+}): LanguageModelV3FinishReason {
   switch (finishReason) {
     case undefined:
     case null:

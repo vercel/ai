@@ -1,6 +1,6 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
 } from '@ai-sdk/provider';
@@ -54,17 +54,17 @@ export interface CerebrasProvider extends ProviderV3 {
   /**
 Creates a Cerebras model for text generation.
 */
-  (modelId: CerebrasChatModelId): LanguageModelV2;
+  (modelId: CerebrasChatModelId): LanguageModelV3;
 
   /**
 Creates a Cerebras model for text generation.
 */
-  languageModel(modelId: CerebrasChatModelId): LanguageModelV2;
+  languageModel(modelId: CerebrasChatModelId): LanguageModelV3;
 
   /**
 Creates a Cerebras chat model for text generation.
 */
-  chat(modelId: CerebrasChatModelId): LanguageModelV2;
+  chat(modelId: CerebrasChatModelId): LanguageModelV3;
 }
 
 export function createCerebras(

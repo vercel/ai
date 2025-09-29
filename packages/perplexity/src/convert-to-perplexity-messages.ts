@@ -1,5 +1,5 @@
 import {
-  LanguageModelV2Prompt,
+  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -9,7 +9,7 @@ import {
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToPerplexityMessages(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): PerplexityPrompt {
   const messages: PerplexityPrompt = [];
 
