@@ -1,19 +1,17 @@
 'use client';
 
 import ChatInput from '@/component/chat-input';
-import FileSearchPDFView from '@/component/openai-file-search-pdf-view';
-import FileSearchView from '@/component/openai-file-search-view';
+import FetchPDFView from '@/component/fetch-pdf-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { OpenAIFileGeneratePDFMessage } from '@/app/api/chat-openai-file-generation-pdf/route';
+import { OpenAIFetchPDFMessage } from '@/app/api/chat-openai-fetch-pdf-custom-tool/route';
 
 export default function TestOpenAIFileGenerationPDF() {
-  const { status, sendMessage, messages } =
-    useChat<OpenAIFileGeneratePDFMessage>({
-      transport: new DefaultChatTransport({
-        api: '/api/chat-openai-file-generation-pdf',
-      }),
-    });
+  const { status, sendMessage, messages } = useChat<OpenAIFetchPDFMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/chat-openai-fetch-pdf-custom-tool',
+    }),
+  });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
@@ -28,10 +26,8 @@ export default function TestOpenAIFileGenerationPDF() {
             switch (part.type) {
               case 'text':
                 return <div key={index}>{part.text}</div>;
-              case 'tool-file_search_pdf':
-                return <FileSearchPDFView key={index} invocation={part} />;
-              case 'tool-file_search':
-                return <FileSearchView key={index} invocation={part} />;
+              case 'tool-fetchPdf':
+                return <FetchPDFView key={index} invocation={part} />;
             }
           })}
         </div>

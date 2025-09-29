@@ -1,15 +1,15 @@
-import { PDFGenerateUIToolInvocation } from '@/tool/generate-pdf-tool';
+import { FetchPDFUIToolInvocation } from '@/tool/fetch-pdf-tool';
 
-export default function FileGeneratePDFView({
+export default function FetchPDFView({
   invocation,
 }: {
-  invocation: PDFGenerateUIToolInvocation;
+  invocation: FetchPDFUIToolInvocation;
 }) {
   switch (invocation.state) {
     case 'input-available':
       return (
         <div className="mb-2 bg-gray-900 rounded-xl border border-gray-600 shadow-lg">
-          Generating PDFs...
+          Fetching PDF...
         </div>
       );
     case 'output-available':
@@ -18,7 +18,7 @@ export default function FileGeneratePDFView({
           <div className="mb-2 font-semibold text-gray-300">PDF Result</div>
           <a
             className="text-blue-400 underline"
-            href={`data:application/pdf;base64,${invocation.output.pdf.base64}`}
+            href={`data:application/pdf;base64,${invocation.output.base64}`}
             download="test.pdf"
             target="_blank"
           >
