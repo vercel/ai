@@ -505,11 +505,9 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'document',
-                    source: {
-                      type: 'url',
-                      url: 'https://example.com/document.pdf',
-                    },
+                    type: 'media',
+                    data: new URL('https://example.com/document.pdf'),
+                    mediaType: 'application/pdf',
                   },
                   {
                     type: 'text',

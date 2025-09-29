@@ -261,20 +261,35 @@ export async function convertToAnthropicMessagesPrompt({
                             text: contentPart.text,
                             cache_control: undefined,
                           };
-                        case 'document':
-                          return {
-                            type: 'document',
-                            source: contentPart.source,
-                            cache_control: undefined,
-                          };
                         case 'media': {
+                          if (contentPart.mediaType.startsWith('application/pdf')) {
+                            if (contentPart.data instanceof URL) {
+                              return {
+                                type: 'document',
+                                source: {
+                                  type: 'url',
+                                  url: contentPart.data.toString(),
+                                },
+                                cache_control: undefined,
+                              };
+                            }
+                            return {
+                              type: 'document',
+                              source: {
+                                type: 'base64',
+                                media_type: contentPart.mediaType,
+                                data: contentPart.data.toString(),
+                              },
+                              cache_control: undefined,
+                            };
+                          }
                           if (contentPart.mediaType.startsWith('image/')) {
                             return {
                               type: 'image',
                               source: {
                                 type: 'base64',
                                 media_type: contentPart.mediaType,
-                                data: contentPart.data,
+                                data: contentPart.data.toString(),
                               },
                               cache_control: undefined,
                             };

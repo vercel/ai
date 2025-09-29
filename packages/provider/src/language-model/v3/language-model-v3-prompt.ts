@@ -1,7 +1,7 @@
 import { JSONValue } from '../../json-value/json-value';
 import { SharedV2ProviderOptions } from '../../shared/v2/shared-v2-provider-options';
 import { LanguageModelV3DataContent } from './language-model-v3-data-content';
-import { LanguageModelV3Source } from './language-model-v3-source';
+import { DataContent } from '@ai-sdk/provider-utils';
 
 /**
 A prompt is a list of messages.
@@ -202,16 +202,12 @@ Text content.
             text: string;
           }
         | {
-            type: 'document';
-            source: LanguageModelV3Source;
-          }
-        | {
             type: 'media';
 
             /**
-Base-64 encoded media data.
-*/
-            data: string;
+            Media data. Can be a base64 encoded string or a URL.
+            */
+            data: string | URL;
 
             /**
 IANA media type.
