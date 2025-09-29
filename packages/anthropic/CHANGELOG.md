@@ -1,5 +1,27 @@
 # @ai-sdk/anthropic
 
+## 2.1.0-beta.8
+
+### Patch Changes
+
+- a5a8db4: chore: add model ID for Sonnet 4.5
+
+## 2.1.0-beta.7
+
+### Patch Changes
+
+- e1e2821: fix(provider/anthropic): support null title in web fetch tool
+
+## 2.1.0-beta.6
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
 ## 2.1.0-beta.5
 
 ### Patch Changes

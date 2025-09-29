@@ -1,6 +1,7 @@
 import { codeInterpreter } from './tool/code-interpreter';
 import { fileSearch } from './tool/file-search';
 import { imageGeneration } from './tool/image-generation';
+import { localShell } from './tool/local-shell';
 import { webSearch } from './tool/web-search';
 import { webSearchPreview } from './tool/web-search-preview';
 
@@ -44,6 +45,16 @@ export const openaiTools = {
    * @param background - Transparent or opaque
    */
   imageGeneration,
+
+  /**
+   * Local shell is a tool that allows agents to run shell commands locally
+   * on a machine you or the user provides.
+   *
+   * Supported models: `gpt-5-codex` and `codex-mini-latest`
+   *
+   * Must have name `local_shell`.
+   */
+  localShell,
 
   /**
    * Web search allows models to access up-to-date information from the internet

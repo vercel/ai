@@ -16,7 +16,8 @@
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "9.0.1",
-    "resumable-stream": "^2.2.0",
+    "resumable-stream": "^2.2.4",
+    "throttleit": "2.1.0",
     "zod": "3.25.76"
   },
   "devDependencies": {

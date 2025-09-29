@@ -1,5 +1,24 @@
 # @ai-sdk/rsc
 
+## 1.1.0-beta.15
+
+### Patch Changes
+
+- ai@5.1.0-beta.15
+
+## 1.1.0-beta.14
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- Updated dependencies [7c3c216]
+- Updated dependencies [8dac895]
+- Updated dependencies [e0d1ea9]
+- Updated dependencies [10c1322]
+  - ai@5.1.0-beta.14
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
 ## 1.1.0-beta.13
 
 ### Patch Changes
