@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.10
+
+### Patch Changes
+
+- 9f6149e: feat(provider/gateway): Add Sonnet 4.5 to Gateway model string autocomplete
+
 ## 1.1.0-beta.9
 
 ### Patch Changes
