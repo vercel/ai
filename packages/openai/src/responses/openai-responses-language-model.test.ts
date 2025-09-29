@@ -2017,7 +2017,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('local shell tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-local-shell-tool.1');
@@ -4085,7 +4085,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('image generation tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('openai-local-shell-tool.1');
