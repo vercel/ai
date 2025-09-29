@@ -3562,6 +3562,17 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
     "type": "reasoning-end",
   },
   {
+    "input": "{"action":{"type":"exec","command":["ls","-a","~"],"env":{}}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "lsh_68da7fd99b3c8194bd624b18c0c0851b0faf5df54b42d9a6",
+      },
+    },
+    "toolCallId": "call_h3nm8hUG0KO9tVNuRACkL1ri",
+    "toolName": "local_shell",
+    "type": "tool-call",
+  },
+  {
     "finishReason": "stop",
     "providerMetadata": {
       "openai": {
