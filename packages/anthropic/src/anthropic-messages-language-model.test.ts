@@ -1654,7 +1654,11 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web fetch tool', () => {
       describe('text response', () => {
+<<<<<<< HEAD
         let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+=======
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+>>>>>>> e1e28212a (fix(provider/anthropic): support null title in web fetch tool (#8998))
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.1');
@@ -1705,7 +1709,11 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('text response without title', () => {
+<<<<<<< HEAD
         let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+=======
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+>>>>>>> e1e28212a (fix(provider/anthropic): support null title in web fetch tool (#8998))
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.2');

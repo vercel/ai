@@ -1,5 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+<<<<<<< HEAD
 exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should expose container information as provider metadata 1`] = `
 {
   "anthropic": {
@@ -639,6 +640,8 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > memory 20250818 > should 
 ]
 `;
 
+=======
+>>>>>>> e1e28212a (fix(provider/anthropic): support null title in web fetch tool (#8998))
 exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response > should include web fetch tool call and result in content 1`] = `
 [
   {
