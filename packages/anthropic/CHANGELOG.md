@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.22
+
+### Patch Changes
+
+- f969579: chore: add model ID for Sonnet 4.5
+
 ## 2.0.21
 
 ### Patch Changes
