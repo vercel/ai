@@ -490,6 +490,78 @@ describe('tool messages', () => {
       }
     `);
   });
+
+  it('should handle tool result with document content parts', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'image-generator',
+              toolCallId: 'image-gen-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'document',
+                    source: {
+                      type: 'url',
+                      url: 'https://example.com/document.pdf',
+                    },
+                  },
+                  {
+                    type: 'text',
+                    text: 'Document loaded successfully',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "source": {
+                        "type": "url",
+                        "url": "https://example.com/document.pdf",
+                      },
+                      "type": "document",
+                    },
+                    {
+                      "cache_control": undefined,
+                      "text": "Document loaded successfully",
+                      "type": "text",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "image-gen-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
 });
 
 describe('assistant messages', () => {

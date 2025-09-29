@@ -1,6 +1,7 @@
 import { JSONValue } from '../../json-value/json-value';
 import { SharedV2ProviderOptions } from '../../shared/v2/shared-v2-provider-options';
 import { LanguageModelV3DataContent } from './language-model-v3-data-content';
+import { LanguageModelV3Source } from './language-model-v3-source';
 
 /**
 A prompt is a list of messages.
@@ -199,6 +200,10 @@ export type LanguageModelV3ToolResultOutput =
 Text content.
 */
             text: string;
+          }
+        | {
+            type: 'document';
+            source: LanguageModelV3Source;
           }
         | {
             type: 'media';
