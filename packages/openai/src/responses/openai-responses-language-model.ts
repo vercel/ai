@@ -1031,7 +1031,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 });
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = undefined;
-                
+
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
@@ -1103,7 +1103,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-input-delta',
                   id: toolCall.toolCallId,
-                  delta: value.delta,
+                  // The delta is code, which is embedding in a JSON string.
+                  // To escape it, we use JSON.stringify and slice to remove the outer quotes.
+                  delta: JSON.stringify(value.delta).slice(1, -1),
                 });
               }
             } else if (isResponseCodeInterpreterCallCodeDoneChunk(value)) {
