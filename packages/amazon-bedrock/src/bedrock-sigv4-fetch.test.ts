@@ -130,6 +130,36 @@ describe('createSigV4FetchFunction', () => {
     expect(calledInit.body).toEqual('{"test": "data"}');
   });
 
+  it.only('shold handle a POST request with a Request object', async () => {
+    const dummyResponse = new Response('Signed', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const fetchFn = createFetchFunction(dummyFetch);
+
+    const inputUrl = 'http://example.com';
+    const request = new Request(inputUrl, {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: { 'X-From-Request': 'from-request' },
+    });
+    const init: RequestInit = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Custom-Header': 'value',
+      },
+    };
+    await fetchFn(request, init);
+    expect(dummyFetch).toHaveBeenCalled();
+    const calledRequest = dummyFetch.mock.calls[0][0] as Request;
+    const calledInit = dummyFetch.mock.calls[0][1] as RequestInit;
+    const headers = calledInit.headers as Record<string, string>;
+    expect(calledRequest.url).toEqual('http://example.com/');
+    expect(calledInit.body).toEqual('{"test": "data"}');
+    expect(headers['content-type']).toEqual('application/json');
+    expect(headers['custom-header']).toEqual('value');
+    expect(headers['x-from-request']).toEqual('from-request');
+  });
+
   it('should handle non-string body by stringifying it', async () => {
     const dummyResponse = new Response('Signed', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
