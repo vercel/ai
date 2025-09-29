@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.12
+
+### Patch Changes
+
+- e6bfe91: feat(provider/gateway): Update DeepSeek model string autocomplete
+
 ## 1.1.0-beta.11
 
 ### Patch Changes

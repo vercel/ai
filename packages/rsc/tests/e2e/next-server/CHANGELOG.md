@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@5.1.0-beta.17
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - Updated dependencies [14ca35d]
   - ai@5.1.0-beta.16
 
