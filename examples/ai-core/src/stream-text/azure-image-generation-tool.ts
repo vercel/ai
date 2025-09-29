@@ -1,8 +1,8 @@
 import { createAzure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
-import { convertBase64ToUint8Array } from '../lib/convertBase64ToUint8Array';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
+import { convertBase64ToUint8Array } from '../lib/convert-base64';
 
 /**
  *
