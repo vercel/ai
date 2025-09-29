@@ -104,7 +104,11 @@ export interface AnthropicServerToolUseContent {
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
-  content: string | Array<AnthropicTextContent | AnthropicImageContent>;
+  content:
+    | string
+    | Array<
+        AnthropicTextContent | AnthropicImageContent | AnthropicDocumentContent
+      >;
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;
 }
