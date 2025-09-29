@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.39
+
+### Patch Changes
+
+- 5428a0d: The built in Code Interpreter tool input code is streamed in `tool-input-<start/delta/end>` chunks.
+
 ## 2.0.38
 
 ### Patch Changes
