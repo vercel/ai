@@ -848,6 +848,9 @@ importers:
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
+      '@vercel/sandbox':
+        specifier: ^0.0.21
+        version: 0.0.21
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
@@ -1335,7 +1338,7 @@ importers:
         version: link:../../packages/ai
       autoprefixer:
         specifier: ^10.4.20
-        version: 10.4.20(postcss@8.5.6)
+        version: 10.4.20(postcss@8.5.3)
       bits-ui:
         specifier: ^1.3.9
         version: 1.3.9(svelte@5.32.1)
@@ -9691,6 +9694,10 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  '@vercel/oidc@2.0.2':
+    resolution: {integrity: sha512-59PBFx3T+k5hLTEWa3ggiMpGRz1OVvl9eN8SUai+A43IsqiOuAe7qPBf+cray/Fj6mkgnxm/D7IAtjc8zSHi7g==}
+    engines: {node: '>= 18'}
+
   '@vercel/oidc@3.0.0':
     resolution: {integrity: sha512-XOoUcf/1VfGArUAfq0ELxk6TD7l4jGcrOsWjQibj4wYM74uNihzZ9gA46ywWegoqKWWdph4y5CKxGI9823deoA==}
     engines: {node: '>= 20'}
@@ -9706,6 +9713,9 @@ packages:
       '@opentelemetry/sdk-logs': '>=0.46.0 && <1.0.0'
       '@opentelemetry/sdk-metrics': ^1.19.0
       '@opentelemetry/sdk-trace-base': ^1.19.0
+
+  '@vercel/sandbox@0.0.21':
+    resolution: {integrity: sha512-j6nAUQyuw6znVaZGd7yI0nab1EWhEtIZPnTXvpDatJ2SObodYZOz5hGoLjCopAuhQBC7vOngbZ1bwP6HxtB5+g==}
 
   '@vitejs/plugin-basic-ssl@2.1.0':
     resolution: {integrity: sha512-dOxxrhgyDIEUADhb/8OlV9JIqYLgos03YorAueTIeOUskLJSEsfwCByjbu98ctXitUN3znXKp0bYD/WHSudCeA==}
@@ -13429,6 +13439,9 @@ packages:
   jsonify@0.0.1:
     resolution: {integrity: sha512-2/Ki0GcmuqSrgFyelQq9M05y7PS0mEwuIzrf3f1fPqkVDVRvZrPZtVSMHxdgo8Aq0sxAOb/cr2aqqA3LeWHVPg==}
 
+  jsonlines@0.1.1:
+    resolution: {integrity: sha512-ekDrAGso79Cvf+dtm+mL8OBI2bmAOt3gssYs833De/C9NmIpWDWyUO4zPgB5x2/OhY366dkhgfPMYfwZF7yOZA==}
+
   jsonparse@1.3.1:
     resolution: {integrity: sha512-POQXvpdL69+CluYsillJ7SUhKvytYjW9vG/GKpnf+xP8UWgYEM/RaMzHHofbALDiKbbP1W8UEYmgGl39WkPZsg==}
     engines: {'0': node >= 0.2.0}
@@ -16579,6 +16592,9 @@ packages:
   tar-stream@3.1.6:
     resolution: {integrity: sha512-B/UyjYwPpMBv+PaFSWAmtYjwdrlEaZQEhMIBFNC5oEG8lpiW8XjcSdmEaClj28ArfKScKHs2nshz3k2le6crsg==}
 
+  tar-stream@3.1.7:
+    resolution: {integrity: sha512-qJj60CXt7IU1Ffyc3NJMjh6EkuCFej46zUqJ4J7pqYlThyd9bO0XBTmcOIhSzZJVWfsLks0+nle/j538YAW9RQ==}
+
   tar@6.2.0:
     resolution: {integrity: sha512-/Wo7DcT0u5HUV486xg675HtjNd3BXZ6xDbzsCUZPt5iw8bTQ63bP0Raut3mvro9u+CUyq7YQd8Cx55fsZXxqLQ==}
     engines: {node: '>=10'}
@@ -17076,6 +17092,10 @@ packages:
   undici@5.28.4:
     resolution: {integrity: sha512-72RFADWFqKmUb2hmmvNODKL3p9hcB6Gt2DOQMis1SEBaV6a4MH8soBvzg+95CYhCKPFedut2JY9bMfrDl9D23g==}
     engines: {node: '>=14.0'}
+
+  undici@7.16.0:
+    resolution: {integrity: sha512-QEg3HPMll0o3t2ourKwOeUAZ159Kn9mx5pnzHRQO8+Wixmh88YdZRiIwat0iNzNNXn0yoEtXJqFpyW7eM8BV7g==}
+    engines: {node: '>=20.18.1'}
 
   unenv@1.10.0:
     resolution: {integrity: sha512-wY5bskBQFL9n3Eca5XnhH6KbUo/tfvkwm9OpcdCvLaeA7piBNbavbOKJySEwQ1V0RH6HvNlSAFRTpvTqgKRQXQ==}
@@ -17998,6 +18018,9 @@ packages:
     resolution: {integrity: sha512-3h08nf3Vw3Wl3PK+q3ow/lIil81IT2Oa7YpQyUUDsEWbXveMesdfK1xBd2RhCkynwZndAxixji/7SYJJowr62w==}
     peerDependencies:
       zod: ^3.24.1
+
+  zod@3.24.4:
+    resolution: {integrity: sha512-OdqJE9UDRPwWsrHjLN2F8bPxvwJBK22EHLWtanu0LSYr5YqzsaaW3RMgmjwr8Rypg5k+meEJdSPXJZXE/yqOMg==}
 
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
@@ -26716,6 +26739,11 @@ snapshots:
       - rollup
       - supports-color
 
+  '@vercel/oidc@2.0.2':
+    dependencies:
+      '@types/ms': 2.1.0
+      ms: 2.1.3
+
   '@vercel/oidc@3.0.0':
     dependencies:
       '@types/ms': 2.1.0
@@ -26740,6 +26768,16 @@ snapshots:
       '@opentelemetry/sdk-logs': 0.55.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-metrics': 1.29.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.29.0(@opentelemetry/api@1.9.0)
+
+  '@vercel/sandbox@0.0.21':
+    dependencies:
+      '@vercel/oidc': 2.0.2
+      async-retry: 1.3.3
+      jsonlines: 0.1.1
+      ms: 2.1.3
+      tar-stream: 3.1.7
+      undici: 7.16.0
+      zod: 3.24.4
 
   '@vitejs/plugin-basic-ssl@2.1.0(vite@7.1.5(@types/node@20.17.24)(jiti@2.4.0)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.7.0))':
     dependencies:
@@ -26798,15 +26836,6 @@ snapshots:
     optionalDependencies:
       msw: 2.6.4(@types/node@20.17.24)(typescript@5.8.3)
       vite: 5.4.11(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)
-
-  '@vitest/mocker@2.1.4(msw@2.6.4(@types/node@20.17.24)(typescript@5.8.3))(vite@5.4.11(@types/node@22.7.4)(less@4.4.0)(sass@1.90.0)(terser@5.43.1))':
-    dependencies:
-      '@vitest/spy': 2.1.4
-      estree-walker: 3.0.3
-      magic-string: 0.30.17
-    optionalDependencies:
-      msw: 2.6.4(@types/node@20.17.24)(typescript@5.8.3)
-      vite: 5.4.11(@types/node@22.7.4)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)
 
   '@vitest/mocker@2.1.4(msw@2.7.0(@types/node@22.7.4)(typescript@5.8.3))(vite@5.4.11(@types/node@22.7.4)(less@4.4.0)(sass@1.90.0)(terser@5.43.1))':
     dependencies:
@@ -27552,16 +27581,6 @@ snapshots:
       normalize-range: 0.1.2
       picocolors: 1.0.1
       postcss: 8.5.3
-      postcss-value-parser: 4.2.0
-
-  autoprefixer@10.4.20(postcss@8.5.6):
-    dependencies:
-      browserslist: 4.23.3
-      caniuse-lite: 1.0.30001649
-      fraction.js: 4.3.7
-      normalize-range: 0.1.2
-      picocolors: 1.0.1
-      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
   autoprefixer@10.4.21(postcss@8.5.6):
@@ -29208,7 +29227,7 @@ snapshots:
       '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.8.3)
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.57.1)
+      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
       eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.57.1)
       eslint-plugin-react: 7.34.1(eslint@8.57.1)
@@ -29292,7 +29311,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.57.1):
+  eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       debug: 4.4.1(supports-color@9.4.0)
       enhanced-resolve: 5.17.1
@@ -29355,7 +29374,7 @@ snapshots:
       '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.8.3)
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.57.1)
+      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -31796,6 +31815,8 @@ snapshots:
       graceful-fs: 4.2.11
 
   jsonify@0.0.1: {}
+
+  jsonlines@0.1.1: {}
 
   jsonparse@1.3.1: {}
 
@@ -35800,6 +35821,12 @@ snapshots:
       fast-fifo: 1.3.2
       streamx: 2.15.4
 
+  tar-stream@3.1.7:
+    dependencies:
+      b4a: 1.6.4
+      fast-fifo: 1.3.2
+      streamx: 2.15.4
+
   tar@6.2.0:
     dependencies:
       chownr: 2.0.0
@@ -36383,6 +36410,8 @@ snapshots:
     dependencies:
       '@fastify/busboy': 2.1.0
 
+  undici@7.16.0: {}
+
   unenv@1.10.0:
     dependencies:
       consola: 3.2.3
@@ -36931,7 +36960,7 @@ snapshots:
   vitest@2.1.4(@edge-runtime/vm@5.0.0)(@types/node@20.17.24)(jsdom@26.0.0)(less@4.4.0)(msw@2.6.4(@types/node@20.17.24)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1):
     dependencies:
       '@vitest/expect': 2.1.4
-      '@vitest/mocker': 2.1.4(msw@2.6.4(@types/node@20.17.24)(typescript@5.8.3))(vite@5.4.11(@types/node@22.7.4)(less@4.4.0)(sass@1.90.0)(terser@5.43.1))
+      '@vitest/mocker': 2.1.4(msw@2.6.4(@types/node@20.17.24)(typescript@5.8.3))(vite@5.4.11(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1))
       '@vitest/pretty-format': 2.1.4
       '@vitest/runner': 2.1.4
       '@vitest/snapshot': 2.1.4
@@ -37531,6 +37560,8 @@ snapshots:
   zod-to-json-schema@3.24.1(zod@3.25.76):
     dependencies:
       zod: 3.25.76
+
+  zod@3.24.4: {}
 
   zod@3.25.76: {}
 
