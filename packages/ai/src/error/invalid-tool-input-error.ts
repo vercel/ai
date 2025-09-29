@@ -13,15 +13,11 @@ export class InvalidToolInputError extends AISDKError {
   constructor({
     toolInput,
     toolName,
-    cause,
-    message = `Invalid input for tool ${toolName}: ${getErrorMessage(cause)}`,
   }: {
-    message?: string;
     toolInput: string;
     toolName: string;
-    cause: unknown;
   }) {
-    super({ name, message, cause });
+    super({ name });
 
     this.toolInput = toolInput;
     this.toolName = toolName;
