@@ -190,6 +190,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       schema: openaiResponsesProviderOptionsSchema,
     });
 
+    if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'conversation',
+        details: 'conversation and previousResponseId cannot be used together',
+      });
+    }
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
@@ -275,6 +283,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       }),
 
       // provider options:
+      conversation: openaiOptions?.conversation,
       max_tool_calls: openaiOptions?.maxToolCalls,
       metadata: openaiOptions?.metadata,
       parallel_tool_calls: openaiOptions?.parallelToolCalls,
@@ -1642,6 +1651,7 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
 
 // TODO AI SDK 6: use optional here instead of nullish
 const openaiResponsesProviderOptionsSchema = z.object({
+  conversation: z.string().nullish(),
   include: z
     .array(
       z.enum([
