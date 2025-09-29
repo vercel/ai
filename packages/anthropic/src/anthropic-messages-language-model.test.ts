@@ -1564,7 +1564,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('text response without title', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.2');
