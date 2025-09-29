@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > txt response > should include web fetch tool call and result in content 1`] = `
+exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response > should include web fetch tool call and result in content 1`] = `
 [
   {
     "text": "I'll fetch the Wikipedia page about Maglemosian culture to tell you what it's about.",
@@ -99,7 +99,7 @@ The page provides both historical context about this important prehistoric cultu
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > txt response from pdf > should include web fetch tool call and result in content 1`] = `
+exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response without title > should include web fetch tool call and result in content 1`] = `
 [
   {
     "text": "I'll fetch the PDF from the URL you provided to see what it says about AI.",

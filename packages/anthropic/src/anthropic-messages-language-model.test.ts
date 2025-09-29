@@ -1512,7 +1512,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     describe('web fetch tool', () => {
-      describe('txt response', () => {
+      describe('text response', () => {
         let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
         beforeEach(async () => {
@@ -1563,7 +1563,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
-      describe('txt response from pdf', () => {
+      describe('text response without title', () => {
         let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
         beforeEach(async () => {
@@ -1580,33 +1580,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
           });
-        });
-
-        it('should send request body with include and tool', async () => {
-          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "max_tokens": 4096,
-            "messages": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "claude-3-haiku-20240307",
-            "tools": [
-              {
-                "max_uses": 1,
-                "name": "web_fetch",
-                "type": "web_fetch_20250910",
-              },
-            ],
-          }
-        `);
         });
 
         it('should include web fetch tool call and result in content', async () => {
