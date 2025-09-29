@@ -1619,8 +1619,8 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
       '@basetenlabs/performance-client':
-        specifier: ^0.0.8
-        version: 0.0.8
+        specifier: ^0.0.10
+        version: 0.0.10
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -4171,86 +4171,91 @@ packages:
     resolution: {integrity: sha512-bkFqkLhh3pMBUQQkpVgWDWq/lqzc2678eUyDlTBhRqhCHFguYYGM0Efga7tYk4TogG/3x0EEl66/OQ+WGbWB/Q==}
     engines: {node: '>=6.9.0'}
 
-  '@basetenlabs/performance-client-android-arm-eabi@0.0.8':
-    resolution: {integrity: sha512-Ej6UO02/QNQdFfjWJ/9jVrr0ThF24Bq4BL4fnljNcvfzbJGtsJFlkIUzT+waj+ORyUuZePQU5bB0+gA0IpUvfg==}
+  '@basetenlabs/performance-client-android-arm-eabi@0.0.10':
+    resolution: {integrity: sha512-gwDZ6GDJA0AAmQAHxt2vaCz0tYTaLjxJKZnoYt+0Eji4gy231JZZFAwvbAqNdQCrGEQ9lXnk7SNM1Apet4NlYg==}
     engines: {node: '>= 10'}
     cpu: [arm]
     os: [android]
 
-  '@basetenlabs/performance-client-android-arm64@0.0.8':
-    resolution: {integrity: sha512-yKKzSkK2+ktrZoZmObojURAJtY8JNILLC4RsNy07Cdp/fCzh9OTkknFoiOVXTspdILgBbvIkFbiJOkFZf9fiPQ==}
+  '@basetenlabs/performance-client-android-arm64@0.0.10':
+    resolution: {integrity: sha512-oGRB/6hH89majhsmoVmj1IAZv4C7F2aLeTSebevBelmdYO4CFkn5qewxLzU1pDkkmxVVk2k+TRpYa1Dt4B96qQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [android]
 
-  '@basetenlabs/performance-client-darwin-arm64@0.0.8':
-    resolution: {integrity: sha512-6HVXSYtPrBmWP1Icmkn4ccuEUPJqXPUQyBiGzF6dn3RIF2YtRYYqfpIPeBmwDXfBs/AaOOM81MjNDVGlp5gNRw==}
+  '@basetenlabs/performance-client-darwin-arm64@0.0.10':
+    resolution: {integrity: sha512-QpBOUjeO05tWgFWkDw2RUQZa3BMplX5jNiBBTi5mH1lIL/m1sm2vkxoc0iorEESp1mMPstYFS/fr4ssBuO7wyA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
 
-  '@basetenlabs/performance-client-darwin-x64@0.0.8':
-    resolution: {integrity: sha512-A+YBOMR2DdSH6BCV/8xIDwu2KoxQGiVkwwrQygXNCTXuWC+KJNoQ2UoOUsXpWZyI0JB6nm6UuOMSfV3bFOe6EQ==}
+  '@basetenlabs/performance-client-darwin-universal@0.0.10':
+    resolution: {integrity: sha512-CBM38GAhekjylrlf7jW/0WNyFAGnAMBCNHZxaPnAjjhDNzJh1tcrwhvtOs66XbAqCOjO/tkt5Pdu6mg2Ui2Pjw==}
+    engines: {node: '>= 10'}
+    os: [darwin]
+
+  '@basetenlabs/performance-client-darwin-x64@0.0.10':
+    resolution: {integrity: sha512-R+NsA72Axclh1CUpmaWOCLTWCqXn5/tFMj2z9BnHVSRTelx/pYFlx6ZngVTB1HYp1n21m3upPXGo8CHF8R7Itw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
 
-  '@basetenlabs/performance-client-linux-arm-gnueabihf@0.0.8':
-    resolution: {integrity: sha512-P4QNm7YiYitSvd2gbfbvSabdLQLrKCTU9lam+4JgcHNf19hd9HZLjfDiqmEZ9apAxuOcd+3xYnM2ukNRJwP4qQ==}
+  '@basetenlabs/performance-client-linux-arm-gnueabihf@0.0.10':
+    resolution: {integrity: sha512-96kEo0Eas4GVQdFkxIB1aAv6dy5Ga57j+RIg5l0Yiawv+AYIEmgk9BsGkqcwayp8Iiu6LN22Z+AUsGY2gstNrg==}
     engines: {node: '>= 10'}
     cpu: [arm]
     os: [linux]
 
-  '@basetenlabs/performance-client-linux-arm-musleabihf@0.0.8':
-    resolution: {integrity: sha512-PFv2SH/sfN8my9lZs+TVKOAyNGmQNx9NRjmXAAyXbrz3/DEp5y87MSuAKtK9jklUyrlzFJPkKJLbpQnBvCg79g==}
+  '@basetenlabs/performance-client-linux-arm-musleabihf@0.0.10':
+    resolution: {integrity: sha512-lzEHeu+/BWDl2q+QZcqCkg1rDGF4MeyM3HgYwX+07t+vGZoqtM2we9vEV68wXMpl6ToEHQr7ML2KHA1Gb6ogxg==}
     engines: {node: '>= 10'}
     cpu: [arm]
     os: [linux]
 
-  '@basetenlabs/performance-client-linux-arm64-gnu@0.0.8':
-    resolution: {integrity: sha512-4srDdNhaTIPBTjfwNhlD2bIF4MEIDxtyGK1umOxFZOBR2Yr9LaOP5ZVrYhkKiSHTdd4MsaL8+hlNL26L54WxXQ==}
+  '@basetenlabs/performance-client-linux-arm64-gnu@0.0.10':
+    resolution: {integrity: sha512-MnY2cIRY/cQOYERWIHhh5CoaS2wgmmXtGDVGSLYyZvjwizrXZvjkEz7Whv2jaQ21T5S56VER67RABjz2TItrHQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
 
-  '@basetenlabs/performance-client-linux-riscv64-gnu@0.0.8':
-    resolution: {integrity: sha512-MRgQg07l0hN+lzbcKAcJc0D0hZDxhH+WrRDig/U4TlpsWBweHKhk//IFpIn/nzmMrp3hAVZLsM4nbQZ6SWxnKw==}
+  '@basetenlabs/performance-client-linux-riscv64-gnu@0.0.10':
+    resolution: {integrity: sha512-2KUvdK4wuoZdIqNnJhx7cu6ybXCwtiwGAtlrEvhai3FOkUQ3wE2Xa+TQ33mNGSyFbw6wAvLawYtKVFmmw27gJw==}
     engines: {node: '>= 10'}
     cpu: [riscv64]
     os: [linux]
 
-  '@basetenlabs/performance-client-linux-x64-gnu@0.0.8':
-    resolution: {integrity: sha512-msLwWKcPkJJdjGocn5YtSm+kAVcSeSH6VjwidmM9FeHi0YcNZuXHWoBf8gkfP4muXDek5Ml4PVWfgvz7zFA2zw==}
+  '@basetenlabs/performance-client-linux-x64-gnu@0.0.10':
+    resolution: {integrity: sha512-9jjQPjHLiVOGwUPlmhnBl7OmmO7hQ8WMt+v3mJuxkS5JTNDmVOngfmgGlbN9NjBhQMENjdcMUVOquVo7HeybGQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
 
-  '@basetenlabs/performance-client-linux-x64-musl@0.0.8':
-    resolution: {integrity: sha512-tI9UMpl+35nwSPeCib/b0ao/bV11ZtLYrJeHaI3GERnCYZDOUje1qrLac1gYdikIuJycKtvucfkMRjc6dGNy/w==}
+  '@basetenlabs/performance-client-linux-x64-musl@0.0.10':
+    resolution: {integrity: sha512-bjYB8FKcPvEa251Ep2Gm3tvywADL9eavVjZsikdf0AvJ1K5pT+vLLvJBU9ihBsTPWnbF4pJgxVjwS6UjVObsQA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
 
-  '@basetenlabs/performance-client-win32-arm64-msvc@0.0.8':
-    resolution: {integrity: sha512-IH76vdeRyouecsLLIHs07XsXs+GWf1GaGVqT3HtkmwF0DRKTeLAWgdhyBjQc1+cC1fE+cO8N9OHjsbD0u8/5yg==}
+  '@basetenlabs/performance-client-win32-arm64-msvc@0.0.10':
+    resolution: {integrity: sha512-Vxq5UXEmfh3C3hpwXdp3Daaf0dnLR9zFH2x8MJ1Hf/TcilmOP1clneewNpIv0e7MrnT56Z4pM6P3d8VFMZqBKg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
 
-  '@basetenlabs/performance-client-win32-ia32-msvc@0.0.8':
-    resolution: {integrity: sha512-oIS68FvHqwLfIHmZ5FHxveVpg83nln8VFm9ED9+xvElqhrFcP58yqkg5YLbXyqmCKno0e6QbpIK0LqKGdRaI8g==}
+  '@basetenlabs/performance-client-win32-ia32-msvc@0.0.10':
+    resolution: {integrity: sha512-KJrm7CgZdP/UDC5+tHtqE6w9XMfY5YUfMOxJfBZGSsLMqS2OGsakQsaF0a55k+58l29X5w/nAkjHrI1BcQO03w==}
     engines: {node: '>= 10'}
     cpu: [ia32]
     os: [win32]
 
-  '@basetenlabs/performance-client-win32-x64-msvc@0.0.8':
-    resolution: {integrity: sha512-HWkuf+E7Hdj7iPfIs9ibTJC2kMvuNfB9hfloJccCuA2LffpkMcqZ4wOamEwbFSCe6bQ5Dxik3RsBFIUbQsbL9Q==}
+  '@basetenlabs/performance-client-win32-x64-msvc@0.0.10':
+    resolution: {integrity: sha512-M/mhvfTItUcUX+aeXRb5g5MbRlndfg6yelV7tSYfLU4YixMIe5yoGaAP3iDilpFJjcC99f+EU4l4+yLbPtpXig==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
 
-  '@basetenlabs/performance-client@0.0.8':
-    resolution: {integrity: sha512-D6BbLwJCldgAhxMdNTO/HTZpyvxFtR6lUv9Ht3UPHPg06lrofoKryRWL1oZmeJw1z4yP34Lj4KpKqa+bpUB9HA==}
+  '@basetenlabs/performance-client@0.0.10':
+    resolution: {integrity: sha512-H6bpd1JcDbuJsOS2dNft+CCGLzBqHJO/ST/4mMKhLAW641J6PpVJUw1szYsk/dTetdedbWxHpMkvFObOKeP8nw==}
     engines: {node: '>= 10'}
 
   '@bcoe/v8-coverage@0.2.3':
@@ -20702,60 +20707,64 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
-  '@basetenlabs/performance-client-android-arm-eabi@0.0.8':
+  '@basetenlabs/performance-client-android-arm-eabi@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client-android-arm64@0.0.8':
+  '@basetenlabs/performance-client-android-arm64@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client-darwin-arm64@0.0.8':
+  '@basetenlabs/performance-client-darwin-arm64@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client-darwin-x64@0.0.8':
+  '@basetenlabs/performance-client-darwin-universal@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client-linux-arm-gnueabihf@0.0.8':
+  '@basetenlabs/performance-client-darwin-x64@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client-linux-arm-musleabihf@0.0.8':
+  '@basetenlabs/performance-client-linux-arm-gnueabihf@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client-linux-arm64-gnu@0.0.8':
+  '@basetenlabs/performance-client-linux-arm-musleabihf@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client-linux-riscv64-gnu@0.0.8':
+  '@basetenlabs/performance-client-linux-arm64-gnu@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client-linux-x64-gnu@0.0.8':
+  '@basetenlabs/performance-client-linux-riscv64-gnu@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client-linux-x64-musl@0.0.8':
+  '@basetenlabs/performance-client-linux-x64-gnu@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client-win32-arm64-msvc@0.0.8':
+  '@basetenlabs/performance-client-linux-x64-musl@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client-win32-ia32-msvc@0.0.8':
+  '@basetenlabs/performance-client-win32-arm64-msvc@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client-win32-x64-msvc@0.0.8':
+  '@basetenlabs/performance-client-win32-ia32-msvc@0.0.10':
     optional: true
 
-  '@basetenlabs/performance-client@0.0.8':
+  '@basetenlabs/performance-client-win32-x64-msvc@0.0.10':
+    optional: true
+
+  '@basetenlabs/performance-client@0.0.10':
     optionalDependencies:
-      '@basetenlabs/performance-client-android-arm-eabi': 0.0.8
-      '@basetenlabs/performance-client-android-arm64': 0.0.8
-      '@basetenlabs/performance-client-darwin-arm64': 0.0.8
-      '@basetenlabs/performance-client-darwin-x64': 0.0.8
-      '@basetenlabs/performance-client-linux-arm-gnueabihf': 0.0.8
-      '@basetenlabs/performance-client-linux-arm-musleabihf': 0.0.8
-      '@basetenlabs/performance-client-linux-arm64-gnu': 0.0.8
-      '@basetenlabs/performance-client-linux-riscv64-gnu': 0.0.8
-      '@basetenlabs/performance-client-linux-x64-gnu': 0.0.8
-      '@basetenlabs/performance-client-linux-x64-musl': 0.0.8
-      '@basetenlabs/performance-client-win32-arm64-msvc': 0.0.8
-      '@basetenlabs/performance-client-win32-ia32-msvc': 0.0.8
-      '@basetenlabs/performance-client-win32-x64-msvc': 0.0.8
+      '@basetenlabs/performance-client-android-arm-eabi': 0.0.10
+      '@basetenlabs/performance-client-android-arm64': 0.0.10
+      '@basetenlabs/performance-client-darwin-arm64': 0.0.10
+      '@basetenlabs/performance-client-darwin-universal': 0.0.10
+      '@basetenlabs/performance-client-darwin-x64': 0.0.10
+      '@basetenlabs/performance-client-linux-arm-gnueabihf': 0.0.10
+      '@basetenlabs/performance-client-linux-arm-musleabihf': 0.0.10
+      '@basetenlabs/performance-client-linux-arm64-gnu': 0.0.10
+      '@basetenlabs/performance-client-linux-riscv64-gnu': 0.0.10
+      '@basetenlabs/performance-client-linux-x64-gnu': 0.0.10
+      '@basetenlabs/performance-client-linux-x64-musl': 0.0.10
+      '@basetenlabs/performance-client-win32-arm64-msvc': 0.0.10
+      '@basetenlabs/performance-client-win32-ia32-msvc': 0.0.10
+      '@basetenlabs/performance-client-win32-x64-msvc': 0.0.10
 
   '@bcoe/v8-coverage@0.2.3': {}
 
