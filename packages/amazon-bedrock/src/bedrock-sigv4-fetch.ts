@@ -57,7 +57,7 @@ export function createSigV4FetchFunction(
     const effectiveMethod =
       init?.method ?? (input instanceof Request ? input.method : undefined);
 
-    if (effectiveMethod?.toUpperCase() !== 'POST' || !effectiveBody) {
+      if (init?.method?.toUpperCase() !== 'POST' || !effectiveBody) {
       return fetch(input, {
         ...init,
         headers: headersWithUserAgent as HeadersInit,
