@@ -1563,6 +1563,57 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
+      describe('txt response from pdf', () => {
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-web-fetch-tool.2');
+
+          result = await model.doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'anthropic.web_fetch_20250910',
+                name: 'web_fetch',
+                args: { maxUses: 1 },
+              },
+            ],
+          });
+        });
+
+        it('should send request body with include and tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "max_uses": 1,
+                "name": "web_fetch",
+                "type": "web_fetch_20250910",
+              },
+            ],
+          }
+        `);
+        });
+
+        it('should include web fetch tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+
       describe('unavailable error', () => {
         let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
