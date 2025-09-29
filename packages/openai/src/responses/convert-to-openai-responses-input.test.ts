@@ -1660,7 +1660,7 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
-  describe('provider-executed tools', () => {
+  describe('provider-defined tools', () => {
     it('should convert single provider-executed tool call and result into item reference with store: true', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
@@ -1779,6 +1779,71 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
         }
       `);
+    });
+
+    describe('local shell', () => {
+      it('should convert local shell tool call and result into item reference with store: true', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
+                  toolName: 'local_shell',
+                  input: { action: { type: 'exec', command: ['ls'] } },
+                  providerOptions: {
+                    openai: {
+                      itemId:
+                        'lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
+                  toolName: 'local_shell',
+                  output: { type: 'json', value: { output: 'example output' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          store: true,
+          hasLocalShellTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "action": {
+                "command": [
+                  "ls",
+                ],
+                "env": undefined,
+                "timeout_ms": undefined,
+                "type": "exec",
+                "user": undefined,
+                "working_directory": undefined,
+              },
+              "call_id": "call_XWgeTylovOiS8xLNz2TONOgO",
+              "id": "lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+              "type": "local_shell_call",
+            },
+            {
+              "id": "call_XWgeTylovOiS8xLNz2TONOgO",
+              "output": "example output",
+              "type": "local_shell_call_output",
+            },
+          ]
+        `);
+      });
     });
   });
 

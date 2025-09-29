@@ -9,6 +9,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
   | OpenAIResponsesComputerCall
+  | OpenAIResponsesLocalShellCall
+  | OpenAIResponsesLocalShellCallOutput
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference;
 
@@ -67,6 +69,26 @@ export type OpenAIResponsesComputerCall = {
   type: 'computer_call';
   id: string;
   status?: string;
+};
+
+export type OpenAIResponsesLocalShellCall = {
+  type: 'local_shell_call';
+  id: string;
+  call_id: string;
+  action: {
+    type: 'exec';
+    command: string[];
+    timeout_ms?: number;
+    user?: string;
+    working_directory?: string;
+    env?: Record<string, string>;
+  };
+};
+
+export type OpenAIResponsesLocalShellCallOutput = {
+  type: 'local_shell_call_output';
+  id: string;
+  output: string;
 };
 
 export type OpenAIResponsesItemReference = {
