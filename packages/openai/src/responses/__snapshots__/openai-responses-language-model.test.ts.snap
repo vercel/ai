@@ -343,6 +343,32 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > sho
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doGenerate > local shell tool > should include generate image tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68da74ab2c48819cb435ff526bd1ba1d0fdbc19a07110799",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{"action":{"type":"exec","command":["ls"],"working_directory":"/root","env":{}}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "lsh_68da74abdaec819c9aa19c124308f4600fdbc19a07110799",
+      },
+    },
+    "toolCallId": "call_XWgeTylovOiS8xLNz2TONOgO",
+    "toolName": "local_shell",
+    "type": "tool-call",
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > should stream code interpreter results 1`] = `
 [
   {
@@ -3498,6 +3524,69 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
       "outputTokens": 1249,
       "reasoningTokens": 1024,
       "totalTokens": 4190,
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > should stream code local shell results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_68da7fd5d24481949fc2cf1cc60377050faf5df54b42d9a6",
+    "modelId": "gpt-5-codex",
+    "timestamp": 2025-09-29T12:47:17.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{"action":{"type":"exec","command":["ls","-a","~"],"env":{}}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "lsh_68da7fd99b3c8194bd624b18c0c0851b0faf5df54b42d9a6",
+      },
+    },
+    "toolCallId": "call_h3nm8hUG0KO9tVNuRACkL1ri",
+    "toolName": "local_shell",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_68da7fd5d24481949fc2cf1cc60377050faf5df54b42d9a6",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 407,
+      "outputTokens": 151,
+      "reasoningTokens": 128,
+      "totalTokens": 558,
     },
   },
 ]
