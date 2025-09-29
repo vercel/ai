@@ -470,6 +470,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               codeInterpreterCallItem,
               imageGenerationCallItem,
               z.object({
+                type: z.literal('local_shell_call'),
+                id: z.string(),
+                call_id: z.string(),
+                action: z.object({
+                  type: z.literal('exec'),
+                  command: z.array(z.string()),
+                  timeout_ms: z.number().optional(),
+                  user: z.string().optional(),
+                  working_directory: z.string().optional(),
+                  env: z.record(z.string(), z.string()).optional(),
+                }),
+              }),
+              z.object({
                 type: z.literal('function_call'),
                 call_id: z.string(),
                 name: z.string(),

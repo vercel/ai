@@ -343,6 +343,21 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > sho
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doGenerate > local shell tool > should include generate image tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68da74ab2c48819cb435ff526bd1ba1d0fdbc19a07110799",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > should stream code interpreter results 1`] = `
 [
   {

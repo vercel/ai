@@ -2016,6 +2016,54 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('local shell tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-local-shell-tool.1');
+
+        result = await createModel('gpt-5-codex').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.local_shell',
+              name: 'local_shell',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-codex",
+            "tools": [
+              {
+                "type": "local_shell",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include generate image tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
     describe('web search tool', () => {
       beforeEach(() => {
         server.urls['https://api.openai.com/v1/responses'].response = {
