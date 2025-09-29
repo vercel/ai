@@ -18,10 +18,12 @@ export async function saveChat({
   id,
   activeStreamId,
   messages,
+  canceledAt,
 }: {
   id: string;
   activeStreamId?: string | null;
   messages?: MyUIMessage[];
+  canceledAt?: number | null;
 }): Promise<void> {
   const chat = await readChat(id);
 
@@ -33,7 +35,11 @@ export async function saveChat({
     chat.activeStreamId = activeStreamId;
   }
 
-  writeChat(chat);
+  if (canceledAt !== undefined) {
+    chat.canceledAt = canceledAt;
+  }
+
+  await writeChat(chat);
 }
 
 export async function appendMessageToChat({
@@ -45,7 +51,7 @@ export async function appendMessageToChat({
 }): Promise<void> {
   const chat = await readChat(id);
   chat.messages.push(message);
-  writeChat(chat);
+  await writeChat(chat);
 }
 
 async function writeChat(chat: ChatData) {
@@ -75,10 +81,14 @@ async function getChatFile(id: string): Promise<string> {
   const chatFile = path.join(chatDir, `${id}.json`);
 
   if (!existsSync(chatFile)) {
-    await writeFile(
-      chatFile,
-      JSON.stringify({ id, messages: [], createdAt: Date.now() }, null, 2),
-    );
+    const blankChat: ChatData = {
+      id,
+      messages: [],
+      createdAt: Date.now(),
+      activeStreamId: null,
+      canceledAt: null,
+    };
+    await writeFile(chatFile, JSON.stringify(blankChat, null, 2));
   }
 
   return chatFile;

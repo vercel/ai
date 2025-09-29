@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.1.0-beta.7
+
+### Patch Changes
+
+- e1e2821: fix(provider/anthropic): support null title in web fetch tool
+
 ## 2.1.0-beta.6
 
 ### Patch Changes
