@@ -192,7 +192,7 @@ export function createAmazonBedrock(
             }),
             sessionToken: loadOptionalSetting({
               settingValue: options.sessionToken,
-              environmentVariableName: 'AWS_SESSION_TOKEN',
+              environmentVariableName: 'AWS_BEDROCK_SESSION_TOKEN',
             }),
           };
         } catch (error) {
