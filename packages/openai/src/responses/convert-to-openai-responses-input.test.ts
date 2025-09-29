@@ -2055,6 +2055,7 @@ describe('convertToOpenAIResponsesInput', () => {
         expect(result.input).toMatchInlineSnapshot(`
           [
             {
+<<<<<<< HEAD
               "id": "lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
               "type": "item_reference",
             },
@@ -2107,6 +2108,8 @@ describe('convertToOpenAIResponsesInput', () => {
         expect(result.input).toMatchInlineSnapshot(`
           [
             {
+=======
+>>>>>>> 3997a4243 (feat(provider/openai): local shell tool (#9009))
               "action": {
                 "command": [
                   "ls",

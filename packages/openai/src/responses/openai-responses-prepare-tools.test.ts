@@ -336,8 +336,13 @@ describe('prepareResponsesTools', () => {
   });
 
   describe('local shell', () => {
+<<<<<<< HEAD
     it('should prepare local_shell tool', async () => {
       const result = await prepareResponsesTools({
+=======
+    it('should prepare local_shell tool', () => {
+      const result = prepareResponsesTools({
+>>>>>>> 3997a4243 (feat(provider/openai): local shell tool (#9009))
         tools: [
           {
             type: 'provider-defined',

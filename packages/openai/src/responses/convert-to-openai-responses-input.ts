@@ -19,7 +19,15 @@ import {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
+<<<<<<< HEAD
 } from './openai-responses-api';
+=======
+} from './openai-responses-api-types';
+import {
+  localShellInputSchema,
+  localShellOutputSchema,
+} from '../tool/local-shell';
+>>>>>>> 3997a4243 (feat(provider/openai): local shell tool (#9009))
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -167,6 +175,7 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
+<<<<<<< HEAD
               const id = part.providerOptions?.openai?.itemId as
                 | string
                 | undefined;
@@ -186,6 +195,16 @@ export async function convertToOpenAIResponsesInput({
                   type: 'local_shell_call',
                   call_id: part.toolCallId,
                   id: id!,
+=======
+              if (hasLocalShellTool && part.toolName === 'local_shell') {
+                const parsedInput = localShellInputSchema.parse(part.input);
+                input.push({
+                  type: 'local_shell_call',
+                  call_id: part.toolCallId,
+                  id:
+                    (part.providerOptions?.openai?.itemId as string) ??
+                    undefined,
+>>>>>>> 3997a4243 (feat(provider/openai): local shell tool (#9009))
                   action: {
                     type: 'exec',
                     command: parsedInput.action.command,
@@ -309,6 +328,7 @@ export async function convertToOpenAIResponsesInput({
             part.toolName === 'local_shell' &&
             output.type === 'json'
           ) {
+<<<<<<< HEAD
             const parsedOutput = await validateTypes({
               value: output.value,
               schema: localShellOutputSchema,
@@ -318,11 +338,21 @@ export async function convertToOpenAIResponsesInput({
               type: 'local_shell_call_output',
               call_id: part.toolCallId,
               output: parsedOutput.output,
+=======
+            input.push({
+              type: 'local_shell_call_output',
+              call_id: part.toolCallId,
+              output: localShellOutputSchema.parse(output.value).output,
+>>>>>>> 3997a4243 (feat(provider/openai): local shell tool (#9009))
             });
             break;
           }
 
+<<<<<<< HEAD
           let contentValue: OpenAIResponsesFunctionCallOutput['output'];
+=======
+          let contentValue: string;
+>>>>>>> 3997a4243 (feat(provider/openai): local shell tool (#9009))
           switch (output.type) {
             case 'text':
             case 'error-text':

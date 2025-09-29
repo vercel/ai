@@ -379,6 +379,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > local shell tool > should i
 ]
 `;
 
+<<<<<<< HEAD
 exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should include web search tool call and result in content 1`] = `
 [
   {
@@ -508,6 +509,8 @@ An analysis by Climate Central revealed that San Francisco, along with most U.S.
 ]
 `;
 
+=======
+>>>>>>> 3997a4243 (feat(provider/openai): local shell tool (#9009))
 exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > should stream code interpreter results 1`] = `
 [
   {
@@ -3686,7 +3689,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
 ]
 `;
 
+<<<<<<< HEAD
 exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should stream code local shell results 1`] = `
+=======
+exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > should stream code local shell results 1`] = `
+>>>>>>> 3997a4243 (feat(provider/openai): local shell tool (#9009))
 [
   {
     "type": "stream-start",
@@ -3748,6 +3755,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should str
   },
 ]
 `;
+<<<<<<< HEAD
 
 exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should handle streaming web search with action query field 1`] = `
 [
@@ -4271,3 +4279,5 @@ Would you like me to pull live updates or focus on a specific topic (arts,",
   },
 ]
 `;
+=======
+>>>>>>> 3997a4243 (feat(provider/openai): local shell tool (#9009))
