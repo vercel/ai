@@ -30,13 +30,11 @@ export function createSigV4FetchFunction(
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
-    const originalHeaders =
-      input instanceof Request
-        ? combineHeaders(
-            extractHeaders(input.headers),
-            extractHeaders(init?.headers),
-          )
-        : extractHeaders(init?.headers);
+    const request = input instanceof Request ? input : undefined;
+    const originalHeaders = combineHeaders(
+      extractHeaders(request?.headers),
+      extractHeaders(init?.headers),
+    );
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
       `ai-sdk/amazon-bedrock/${VERSION}`,
@@ -44,18 +42,13 @@ export function createSigV4FetchFunction(
     );
 
     let effectiveBody: BodyInit | undefined = init?.body ?? undefined;
-    if (
-      effectiveBody === undefined &&
-      input instanceof Request &&
-      input.body !== null
-    ) {
+    if (effectiveBody === undefined && request && request.body !== null) {
       try {
-        effectiveBody = await input.clone().text();
+        effectiveBody = await request.clone().text();
       } catch {}
     }
 
-    const effectiveMethod =
-      init?.method ?? (input instanceof Request ? input.method : undefined);
+    const effectiveMethod = init?.method ?? request?.method;
 
     if (effectiveMethod?.toUpperCase() !== 'POST' || !effectiveBody) {
       return fetch(input, {
