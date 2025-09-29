@@ -1235,7 +1235,7 @@ const anthropicMessagesResponseSchema = z.object({
             retrieved_at: z.string(),
             content: z.object({
               type: z.literal('document'),
-              title: z.string(),
+              title: z.string().nullable(),
               citations: z.object({ enabled: z.boolean() }).optional(),
               source: z.object({
                 type: z.literal('text'),
@@ -1348,7 +1348,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
             retrieved_at: z.string(),
             content: z.object({
               type: z.literal('document'),
-              title: z.string(),
+              title: z.string().nullable(),
               citations: z.object({ enabled: z.boolean() }).optional(),
               source: z.object({
                 type: z.literal('text'),
