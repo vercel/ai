@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 2.0.40
+
+### Patch Changes
+
+- 8c74f47: feat(provider/openai): add gpt-5-codex model id
+- adca087: feat(provider/openai): local shell tool
+
 ## 2.0.39
 
 ### Patch Changes
