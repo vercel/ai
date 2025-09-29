@@ -1512,7 +1512,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     describe('web fetch tool', () => {
-      describe('txt response', () => {
+      describe('text response', () => {
         let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
 
         beforeEach(async () => {
@@ -1556,6 +1556,30 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
           }
         `);
+        });
+
+        it('should include web fetch tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+
+      describe('text response without title', () => {
+        let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-web-fetch-tool.2');
+
+          result = await model.doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'anthropic.web_fetch_20250910',
+                name: 'web_fetch',
+                args: { maxUses: 1 },
+              },
+            ],
+          });
         });
 
         it('should include web fetch tool call and result in content', async () => {
