@@ -1,5 +1,13 @@
 # ai
 
+## 5.1.0-beta.16
+
+### Patch Changes
+
+- 14ca35d: feat: add support for v2 specs
+- Updated dependencies [636e614]
+  - @ai-sdk/gateway@1.1.0-beta.11
+
 ## 5.1.0-beta.15
 
 ### Patch Changes
