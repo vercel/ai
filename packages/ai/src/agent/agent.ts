@@ -25,6 +25,11 @@ export type AgentSettings<
   OUTPUT_PARTIAL = never,
 > = CallSettings & {
   /**
+   * The name of the agent.
+   */
+  name?: string;
+
+  /**
    * The system prompt to use.
    */
   system?: string;
