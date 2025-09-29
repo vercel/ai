@@ -160,6 +160,38 @@ describe('createSigV4FetchFunction', () => {
     expect(headers['x-from-request']).toEqual('from-request');
   });
 
+  it('should sign when input is a POST Request with body and no init', async () => {
+    const dummyResponse = new Response('Signed', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const fetchFn = createFetchFunction(dummyFetch);
+
+    const request = new Request('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-From-Request': 'from-request',
+      },
+    });
+
+    await fetchFn(request);
+
+    expect(dummyFetch).toHaveBeenCalled();
+    const calledInit = dummyFetch.mock.calls[0][1] as RequestInit;
+    const headers = calledInit.headers as Record<string, string>;
+
+    expect(calledInit.body).toEqual('{"test": "data"}');
+    expect(headers['content-type']).toEqual('application/json');
+    expect(headers['x-from-request']).toEqual('from-request');
+    expect(headers['x-amz-date']).toEqual('20240315T000000Z');
+    expect(headers['authorization']).toEqual(
+      'AWS4-HMAC-SHA256 Credential=test',
+    );
+    expect(headers['user-agent']).toEqual(
+      'ai-sdk/amazon-bedrock/0.0.0-test runtime/testenv',
+    );
+  });
+
   it('should handle non-string body by stringifying it', async () => {
     const dummyResponse = new Response('Signed', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);

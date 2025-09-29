@@ -54,10 +54,12 @@ export function createSigV4FetchFunction(
       } catch {}
     }
 
-    if (init?.method?.toUpperCase() !== 'POST' || !effectiveBody) {
+    const effectiveMethod =
+      init?.method ?? (input instanceof Request ? input.method : undefined);
+
+    if (effectiveMethod?.toUpperCase() !== 'POST' || !effectiveBody) {
       return fetch(input, {
         ...init,
-        body: effectiveBody,
         headers: headersWithUserAgent as HeadersInit,
       });
     }
