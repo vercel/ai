@@ -804,7 +804,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     let responseId: string | null = null;
     const ongoingToolCalls: Record<
       number,
-      { toolName: string; toolCallId: string } | undefined
+      | {
+          toolName: string;
+          toolCallId: string;
+          codeInterpreter?: {
+            containerId: string;
+          };
+        }
+      | undefined
     > = {};
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
@@ -882,6 +889,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ongoingToolCalls[value.output_index] = {
                   toolName: 'code_interpreter',
                   toolCallId: value.item.id,
+                  codeInterpreter: {
+                    containerId: value.item.container_id,
+                  },
                 };
 
                 controller.enqueue({
@@ -1033,17 +1043,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ongoingToolCalls[value.output_index] = undefined;
 
                 controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName: 'code_interpreter',
-                  input: JSON.stringify({
-                    code: value.item.code,
-                    containerId: value.item.container_id,
-                  } satisfies z.infer<typeof codeInterpreterInputSchema>),
-                  providerExecuted: true,
-                });
-
-                controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: 'code_interpreter',
@@ -1121,6 +1120,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-input-end',
                   id: toolCall.toolCallId,
+                });
+
+                // immediately send the tool call after the input end:
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: 'code_interpreter',
+                  input: JSON.stringify({
+                    code: value.code,
+                    containerId: toolCall.codeInterpreter!.containerId,
+                  } satisfies z.infer<typeof codeInterpreterInputSchema>),
+                  providerExecuted: true,
                 });
               }
             } else if (isResponseCreatedChunk(value)) {
