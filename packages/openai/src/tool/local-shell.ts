@@ -18,12 +18,35 @@ export const localShellOutputSchema = z.object({
 
 export const localShell = createProviderDefinedToolFactoryWithOutputSchema<
   {
+    /**
+     * Execute a shell command on the server.
+     */
     action: {
       type: 'exec';
+
+      /**
+       * The command to run.
+       */
       command: string[];
+
+      /**
+       * Optional timeout in milliseconds for the command.
+       */
       timeoutMs?: number;
+
+      /**
+       * Optional user to run the command as.
+       */
       user?: string;
+
+      /**
+       * Optional working directory to run the command in.
+       */
       workingDirectory?: string;
+
+      /**
+       * Environment variables to set for the command.
+       */
       env?: Record<string, string>;
     };
   },
