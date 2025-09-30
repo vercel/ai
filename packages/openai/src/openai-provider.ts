@@ -9,6 +9,7 @@ import {
 import {
   FetchFunction,
   loadApiKey,
+  loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
@@ -138,7 +139,12 @@ export function createOpenAI(
   options: OpenAIProviderSettings = {},
 ): OpenAIProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ?? 'https://api.openai.com/v1';
+    withoutTrailingSlash(
+      loadOptionalSetting({
+        settingValue: options.baseURL,
+        environmentVariableName: 'OPENAI_BASE_URL',
+      }),
+    ) ?? 'https://api.openai.com/v1';
 
   const providerName = options.name ?? 'openai';
 
