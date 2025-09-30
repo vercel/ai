@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.1.0-beta.10
+
+### Patch Changes
+
+- d64ece9: enables image_generation capabilities in the Azure provider through the Responses API.
+
 ## 2.1.0-beta.9
 
 ### Patch Changes
