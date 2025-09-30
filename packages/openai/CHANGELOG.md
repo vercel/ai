@@ -1,5 +1,36 @@
 # @ai-sdk/openai
 
+## 2.1.0-beta.11
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- 2b0caef: feat(provider/openai): preview image generation results
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+
+## 2.1.0-beta.10
+
+### Patch Changes
+
+- d64ece9: enables image_generation capabilities in the Azure provider through the Responses API.
+
+## 2.1.0-beta.9
+
+### Patch Changes
+
+- 9a51b92: support OPENAI_BASE_URL env
+
+## 2.1.0-beta.8
+
+### Patch Changes
+
+- 4122d2a: feat(provider/openai): add gpt-5-codex model id
+- 3997a42: feat(provider/openai): local shell tool
+- cb4d238: The built in Code Interpreter tool input code is streamed in `tool-input-<start/delta/end>` chunks.
+
 ## 2.1.0-beta.7
 
 ### Patch Changes

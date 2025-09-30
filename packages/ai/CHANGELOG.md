@@ -1,5 +1,39 @@
 # ai
 
+## 5.1.0-beta.18
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- 9b8d17e: fix(agent): move provider options to main agent config
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+  - @ai-sdk/gateway@1.1.0-beta.13
+
+## 5.1.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [e6bfe91]
+  - @ai-sdk/gateway@1.1.0-beta.12
+
+## 5.1.0-beta.16
+
+### Patch Changes
+
+- 14ca35d: feat: add support for v2 specs
+- Updated dependencies [636e614]
+  - @ai-sdk/gateway@1.1.0-beta.11
+
+## 5.1.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [9f6149e]
+  - @ai-sdk/gateway@1.1.0-beta.10
+
 ## 5.1.0-beta.14
 
 ### Patch Changes

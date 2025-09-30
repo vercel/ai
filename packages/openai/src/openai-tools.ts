@@ -1,6 +1,7 @@
 import { codeInterpreter } from './tool/code-interpreter';
 import { fileSearch } from './tool/file-search';
 import { imageGeneration } from './tool/image-generation';
+import { localShell } from './tool/local-shell';
 import { webSearch } from './tool/web-search';
 import { webSearchPreview } from './tool/web-search-preview';
 
@@ -37,13 +38,28 @@ export const openaiTools = {
    *
    * Must have name `image_generation`.
    *
-   * @param size - Image dimensions (e.g., 1024x1024, 1024x1536)
-   * @param quality - Rendering quality (e.g. low, medium, high)
-   * @param format - File output format
-   * @param compression - Compression level (0-100%) for JPEG and WebP formats
-   * @param background - Transparent or opaque
+   * @param background - Background type for the generated image. One of 'auto', 'opaque', or 'transparent'.
+   * @param inputFidelity - Input fidelity for the generated image. One of 'low' or 'high'.
+   * @param inputImageMask - Optional mask for inpainting. Contains fileId and/or imageUrl.
+   * @param model - The image generation model to use. Default: gpt-image-1.
+   * @param moderation - Moderation level for the generated image. Default: 'auto'.
+   * @param outputCompression - Compression level for the output image (0-100).
+   * @param outputFormat - The output format of the generated image. One of 'png', 'jpeg', or 'webp'.
+   * @param partialImages - Number of partial images to generate in streaming mode (0-3).
+   * @param quality - The quality of the generated image. One of 'auto', 'low', 'medium', or 'high'.
+   * @param size - The size of the generated image. One of 'auto', '1024x1024', '1024x1536', or '1536x1024'.
    */
   imageGeneration,
+
+  /**
+   * Local shell is a tool that allows agents to run shell commands locally
+   * on a machine you or the user provides.
+   *
+   * Supported models: `gpt-5-codex` and `codex-mini-latest`
+   *
+   * Must have name `local_shell`.
+   */
+  localShell,
 
   /**
    * Web search allows models to access up-to-date information from the internet

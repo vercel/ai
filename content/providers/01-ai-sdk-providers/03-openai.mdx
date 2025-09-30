@@ -443,7 +443,8 @@ refer to the OpenAI documentation:
 
 #### Code Interpreter Tool
 
-The OpenAI responses API supports the code interpreter tool through the `openai.tools.codeInterpreter` tool. This allows models to write and execute Python code.
+The OpenAI responses API supports the code interpreter tool through the `openai.tools.codeInterpreter` tool.
+This allows models to write and execute Python code.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -471,6 +472,35 @@ The code interpreter tool can be configured with:
   The tool must be named `code_interpreter` when using OpenAI's code interpreter
   functionality. This name is required by OpenAI's API specification and cannot
   be customized.
+</Note>
+
+#### Local Shell Tool
+
+The OpenAI responses API support the local shell tool for Codex models through the `openai.tools.localShell` tool.
+Local shell is a tool that allows agents to run shell commands locally on a machine you or the user provides.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5-codex'),
+  tools: {
+    local_shell: openai.tools.localShell({
+      execute: async ({ action }) => {
+        // ... your implementation, e.g. sandbox access ...
+        return { output: stdout };
+      },
+    }),
+  },
+  prompt: 'List the files in my home directory.',
+  stopWhen: stepCountIs(2),
+});
+```
+
+<Note>
+  The tool must be named `local_shell`. This name is required by OpenAI's API
+  specification and cannot be customized. The model can only be
 </Note>
 
 #### Image Inputs
@@ -1218,26 +1248,18 @@ The following optional provider options are available for OpenAI completion mode
 
 ### Model Capabilities
 
-| Model                  | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
-| ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-4.1`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4.1-mini`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4.1-nano`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-audio-preview` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4-turbo`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-3.5-turbo`        | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o1`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o3-mini`              | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o3`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o4-mini`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `chatgpt-4o-latest`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-5`                | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-mini`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-nano`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-chat-latest`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model               | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
+| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-5`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-mini`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-nano`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-codex`       | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-4.1`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4.1-mini`      | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4.1-nano`      | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o`            | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-mini`       | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [OpenAI

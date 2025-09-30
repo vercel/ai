@@ -4,7 +4,7 @@ import {
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
-  SharedV2ProviderMetadata,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -885,5 +885,5 @@ export type ObjectStreamInputPart =
       type: 'finish';
       finishReason: LanguageModelV3FinishReason;
       usage: LanguageModelV3Usage;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     };

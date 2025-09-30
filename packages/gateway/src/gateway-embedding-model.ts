@@ -11,7 +11,7 @@ import { z } from 'zod/v4';
 import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
-import type { SharedV2ProviderMetadata } from '@ai-sdk/provider';
+import type { SharedV3ProviderMetadata } from '@ai-sdk/provider';
 
 export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
   readonly specificationVersion = 'v3';
@@ -71,7 +71,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
         embeddings: responseBody.embeddings,
         usage: responseBody.usage ?? undefined,
         providerMetadata:
-          responseBody.providerMetadata as unknown as SharedV2ProviderMetadata,
+          responseBody.providerMetadata as unknown as SharedV3ProviderMetadata,
         response: { headers: responseHeaders, body: rawValue },
       };
     } catch (error) {
