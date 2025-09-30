@@ -1,6 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createOpenAI } from './openai-provider';
-import { afterEach } from 'node:test';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
