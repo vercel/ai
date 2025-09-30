@@ -134,7 +134,8 @@ class DefaultMCPClient implements MCPClient {
       if ('method' in message) {
         // Handle notifications
         if (message.method === 'notifications/resources/updated') {
-          this.onResourceNotification(message as JSONRPCNotification);
+          // Fire and forget - errors are handled within onResourceNotification
+          void this.onResourceNotification(message as JSONRPCNotification);
           return;
         }
 
