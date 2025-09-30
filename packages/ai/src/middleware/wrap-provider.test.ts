@@ -1,15 +1,15 @@
-import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
-import { MockProviderV2 } from '../test/mock-provider-v2';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockProviderV3 } from '../test/mock-provider-v3';
 import { wrapProvider } from './wrap-provider';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('wrapProvider', () => {
   it('should wrap all language models in the provider', () => {
-    const model1 = new MockLanguageModelV2({ modelId: 'model-1' });
-    const model2 = new MockLanguageModelV2({ modelId: 'model-2' });
-    const model3 = new MockLanguageModelV2({ modelId: 'model-3' });
+    const model1 = new MockLanguageModelV3({ modelId: 'model-1' });
+    const model2 = new MockLanguageModelV3({ modelId: 'model-2' });
+    const model3 = new MockLanguageModelV3({ modelId: 'model-3' });
 
-    const provider = new MockProviderV2({
+    const provider = new MockProviderV3({
       languageModels: {
         'model-1': model1,
         'model-2': model2,
@@ -24,7 +24,7 @@ describe('wrapProvider', () => {
     const wrappedProvider = wrapProvider({
       provider,
       languageModelMiddleware: {
-        middlewareVersion: 'v2',
+        middlewareVersion: 'v3',
         overrideModelId,
       },
     });

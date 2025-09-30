@@ -1,7 +1,7 @@
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
@@ -33,16 +33,16 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface VercelProvider extends ProviderV2 {
+export interface VercelProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
-  (modelId: VercelChatModelId): LanguageModelV2;
+  (modelId: VercelChatModelId): LanguageModelV3;
 
   /**
 Creates a language model for text generation.
 */
-  languageModel(modelId: VercelChatModelId): LanguageModelV2;
+  languageModel(modelId: VercelChatModelId): LanguageModelV3;
 }
 
 export function createVercel(

@@ -3,10 +3,10 @@ import {
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
-  ImageModelV2,
-  LanguageModelV2,
+  ImageModelV3,
+  LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -26,31 +26,31 @@ const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorToMessage: data => data.error.message,
 };
 
-export interface XaiProvider extends ProviderV2 {
+export interface XaiProvider extends ProviderV3 {
   /**
 Creates an Xai chat model for text generation.
    */
-  (modelId: XaiChatModelId): LanguageModelV2;
+  (modelId: XaiChatModelId): LanguageModelV3;
 
   /**
 Creates an Xai language model for text generation.
    */
-  languageModel(modelId: XaiChatModelId): LanguageModelV2;
+  languageModel(modelId: XaiChatModelId): LanguageModelV3;
 
   /**
 Creates an Xai chat model for text generation.
    */
-  chat: (modelId: XaiChatModelId) => LanguageModelV2;
+  chat: (modelId: XaiChatModelId) => LanguageModelV3;
 
   /**
 Creates an Xai image model for image generation.
    */
-  image(modelId: XaiImageModelId): ImageModelV2;
+  image(modelId: XaiImageModelId): ImageModelV3;
 
   /**
 Creates an Xai image model for image generation.
    */
-  imageModel(modelId: XaiImageModelId): ImageModelV2;
+  imageModel(modelId: XaiImageModelId): ImageModelV3;
 }
 
 export interface XaiProviderSettings {

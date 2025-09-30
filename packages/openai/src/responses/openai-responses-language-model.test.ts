@@ -1,7 +1,7 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2FunctionTool,
-  LanguageModelV2Prompt,
+  LanguageModelV3,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -16,11 +16,11 @@ import {
   openaiResponsesReasoningModelIds,
 } from './openai-responses-settings';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
+const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
   {
     type: 'function',
     name: 'weather',
@@ -1908,7 +1908,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-code-interpreter-tool.1');
@@ -1962,7 +1962,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('image generation tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-image-generation-tool.1');
@@ -2005,6 +2005,54 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "quality": "low",
                 "size": "1024x1024",
                 "type": "image_generation",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include generate image tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('local shell tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-local-shell-tool.1');
+
+        result = await createModel('gpt-5-codex').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.local_shell',
+              name: 'local_shell',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-codex",
+            "tools": [
+              {
+                "type": "local_shell",
               },
             ],
           }
@@ -2375,7 +2423,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -3924,7 +3972,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -3985,7 +4033,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('openai-code-interpreter-tool.1');
@@ -4011,7 +4059,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('image generation tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('openai-image-generation-tool.1');
@@ -4030,6 +4078,32 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should stream code image generation results', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('image generation tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('openai-local-shell-tool.1');
+
+        result = await createModel('gpt-5-codex').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.local_shell',
+              name: 'local_shell',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should stream code local shell results', async () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
@@ -4947,7 +5021,7 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('fileIdPrefixes configuration', () => {
-    const TEST_PROMPT_WITH_FILE: LanguageModelV2Prompt = [
+    const TEST_PROMPT_WITH_FILE: LanguageModelV3Prompt = [
       {
         role: 'user',
         content: [

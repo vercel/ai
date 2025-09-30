@@ -1,15 +1,15 @@
-import { EmbeddingModelV3 } from '@ai-sdk/provider';
+import { EmbeddingModelV2 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
-export class MockEmbeddingModelV3<VALUE> implements EmbeddingModelV3<VALUE> {
-  readonly specificationVersion = 'v3';
+export class MockEmbeddingModelV2<VALUE> implements EmbeddingModelV2<VALUE> {
+  readonly specificationVersion = 'v2';
 
-  readonly provider: EmbeddingModelV3<VALUE>['provider'];
-  readonly modelId: EmbeddingModelV3<VALUE>['modelId'];
-  readonly maxEmbeddingsPerCall: EmbeddingModelV3<VALUE>['maxEmbeddingsPerCall'];
-  readonly supportsParallelCalls: EmbeddingModelV3<VALUE>['supportsParallelCalls'];
+  readonly provider: EmbeddingModelV2<VALUE>['provider'];
+  readonly modelId: EmbeddingModelV2<VALUE>['modelId'];
+  readonly maxEmbeddingsPerCall: EmbeddingModelV2<VALUE>['maxEmbeddingsPerCall'];
+  readonly supportsParallelCalls: EmbeddingModelV2<VALUE>['supportsParallelCalls'];
 
-  doEmbed: EmbeddingModelV3<VALUE>['doEmbed'];
+  doEmbed: EmbeddingModelV2<VALUE>['doEmbed'];
 
   constructor({
     provider = 'mock-provider',
@@ -18,13 +18,13 @@ export class MockEmbeddingModelV3<VALUE> implements EmbeddingModelV3<VALUE> {
     supportsParallelCalls = false,
     doEmbed = notImplemented,
   }: {
-    provider?: EmbeddingModelV3<VALUE>['provider'];
-    modelId?: EmbeddingModelV3<VALUE>['modelId'];
+    provider?: EmbeddingModelV2<VALUE>['provider'];
+    modelId?: EmbeddingModelV2<VALUE>['modelId'];
     maxEmbeddingsPerCall?:
-      | EmbeddingModelV3<VALUE>['maxEmbeddingsPerCall']
+      | EmbeddingModelV2<VALUE>['maxEmbeddingsPerCall']
       | null;
-    supportsParallelCalls?: EmbeddingModelV3<VALUE>['supportsParallelCalls'];
-    doEmbed?: EmbeddingModelV3<VALUE>['doEmbed'];
+    supportsParallelCalls?: EmbeddingModelV2<VALUE>['supportsParallelCalls'];
+    doEmbed?: EmbeddingModelV2<VALUE>['doEmbed'];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;

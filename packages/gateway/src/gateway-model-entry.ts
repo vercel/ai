@@ -1,4 +1,4 @@
-import type { LanguageModelV2 } from '@ai-sdk/provider';
+import type { LanguageModelV3 } from '@ai-sdk/provider';
 
 export interface GatewayLanguageModelEntry {
   /**
@@ -53,6 +53,6 @@ export interface GatewayLanguageModelEntry {
 }
 
 export type GatewayLanguageModelSpecification = Pick<
-  LanguageModelV2,
+  LanguageModelV3,
   'specificationVersion' | 'provider' | 'modelId'
 >;

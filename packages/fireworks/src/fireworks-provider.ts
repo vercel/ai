@@ -6,9 +6,9 @@ import {
 } from '@ai-sdk/openai-compatible';
 import {
   EmbeddingModelV3,
-  ImageModelV2,
-  LanguageModelV2,
-  ProviderV2,
+  ImageModelV3,
+  LanguageModelV3,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -56,26 +56,26 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface FireworksProvider extends ProviderV2 {
+export interface FireworksProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
-  (modelId: FireworksChatModelId): LanguageModelV2;
+  (modelId: FireworksChatModelId): LanguageModelV3;
 
   /**
 Creates a chat model for text generation.
 */
-  chatModel(modelId: FireworksChatModelId): LanguageModelV2;
+  chatModel(modelId: FireworksChatModelId): LanguageModelV3;
 
   /**
 Creates a completion model for text generation.
 */
-  completionModel(modelId: FireworksCompletionModelId): LanguageModelV2;
+  completionModel(modelId: FireworksCompletionModelId): LanguageModelV3;
 
   /**
 Creates a chat model for text generation.
 */
-  languageModel(modelId: FireworksChatModelId): LanguageModelV2;
+  languageModel(modelId: FireworksChatModelId): LanguageModelV3;
 
   /**
 Creates a text embedding model for text generation.
@@ -87,12 +87,12 @@ Creates a text embedding model for text generation.
   /**
 Creates a model for image generation.
 */
-  image(modelId: FireworksImageModelId): ImageModelV2;
+  image(modelId: FireworksImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
 */
-  imageModel(modelId: FireworksImageModelId): ImageModelV2;
+  imageModel(modelId: FireworksImageModelId): ImageModelV3;
 }
 
 const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';

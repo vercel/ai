@@ -23,9 +23,8 @@ We use [changesets](https://github.com/changesets/action) for automated releases
 
 ## Beta Releases
 
-- Create a maintenance branch for the current stable minor version (e.g., if latest is `5.0.24`, create `v5.0`).
-- Enable the [`release` workflow](https://github.com/vercel/ai/blob/main/.github/workflows/release.yml) on that branch and set up branch protections.
-- Switch `main` to beta release mode:
+- Create a maintenance branch for the current stable minor version (e.g., if latest is `5.0.24`, create `release-v5.0`).
+- Switch `main` branch to beta release mode:
 
   ```bash
   pnpm changeset pre enter beta

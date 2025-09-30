@@ -1,4 +1,4 @@
-import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { LanguageModelMiddleware } from '../types';
 import { mergeObjects } from '../util/merge-objects';
 
@@ -9,25 +9,25 @@ export function defaultSettingsMiddleware({
   settings,
 }: {
   settings: Partial<{
-    maxOutputTokens?: LanguageModelV2CallOptions['maxOutputTokens'];
-    temperature?: LanguageModelV2CallOptions['temperature'];
-    stopSequences?: LanguageModelV2CallOptions['stopSequences'];
-    topP?: LanguageModelV2CallOptions['topP'];
-    topK?: LanguageModelV2CallOptions['topK'];
-    presencePenalty?: LanguageModelV2CallOptions['presencePenalty'];
-    frequencyPenalty?: LanguageModelV2CallOptions['frequencyPenalty'];
-    responseFormat?: LanguageModelV2CallOptions['responseFormat'];
-    seed?: LanguageModelV2CallOptions['seed'];
-    tools?: LanguageModelV2CallOptions['tools'];
-    toolChoice?: LanguageModelV2CallOptions['toolChoice'];
-    headers?: LanguageModelV2CallOptions['headers'];
-    providerOptions?: LanguageModelV2CallOptions['providerOptions'];
+    maxOutputTokens?: LanguageModelV3CallOptions['maxOutputTokens'];
+    temperature?: LanguageModelV3CallOptions['temperature'];
+    stopSequences?: LanguageModelV3CallOptions['stopSequences'];
+    topP?: LanguageModelV3CallOptions['topP'];
+    topK?: LanguageModelV3CallOptions['topK'];
+    presencePenalty?: LanguageModelV3CallOptions['presencePenalty'];
+    frequencyPenalty?: LanguageModelV3CallOptions['frequencyPenalty'];
+    responseFormat?: LanguageModelV3CallOptions['responseFormat'];
+    seed?: LanguageModelV3CallOptions['seed'];
+    tools?: LanguageModelV3CallOptions['tools'];
+    toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+    headers?: LanguageModelV3CallOptions['headers'];
+    providerOptions?: LanguageModelV3CallOptions['providerOptions'];
   }>;
 }): LanguageModelMiddleware {
   return {
-    middlewareVersion: 'v2',
+    middlewareVersion: 'v3',
     transformParams: async ({ params }) => {
-      return mergeObjects(settings, params) as LanguageModelV2CallOptions;
+      return mergeObjects(settings, params) as LanguageModelV3CallOptions;
     },
   };
 }

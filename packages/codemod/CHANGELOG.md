@@ -1,5 +1,14 @@
 # @ai-sdk/codemod
 
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- 740d4bf: feat(codemod): add usechat input state transformation for v5
+- 437ab50: feat(codemod): add usechat api to transport transformation
+- 9b4457c: feat(codemod): add tool invocations migration to v5 codemods
+- adbeac4: feat(codemod): add datastream to uimessagestream transformation
+
 ## 2.1.0-beta.0
 
 ### Minor Changes
