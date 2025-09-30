@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 2.0.42
+
+### Patch Changes
+
+- 2a5edd3: enables image_generation capabilities in the Azure provider through the Responses API.
+- Updated dependencies [2a5edd3]
+  - @ai-sdk/openai@2.0.42
+
 ## 2.0.41
 
 ### Patch Changes
