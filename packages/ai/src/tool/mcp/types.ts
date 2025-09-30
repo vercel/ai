@@ -160,3 +160,65 @@ export const CallToolResultSchema = ResultSchema.extend({
   }),
 );
 export type CallToolResult = z.infer<typeof CallToolResultSchema>;
+
+// Resource schemas
+const ResourceSchema = z
+  .object({
+    /**
+     * The URI of this resource.
+     */
+    uri: z.string(),
+    /**
+     * The human-readable name of this resource.
+     */
+    name: z.string(),
+    /**
+     * A human-readable description of this resource.
+     */
+    description: z.optional(z.string()),
+    /**
+     * The MIME type of this resource's content.
+     */
+    mimeType: z.optional(z.string()),
+  })
+  .loose();
+export type Resource = z.infer<typeof ResourceSchema>;
+
+const ResourceTemplateSchema = z
+  .object({
+    /**
+     * A URI template (RFC 6570) that can be used to construct resource URIs.
+     */
+    uriTemplate: z.string(),
+    /**
+     * The human-readable name of this resource template.
+     */
+    name: z.string(),
+    /**
+     * A human-readable description of this resource template.
+     */
+    description: z.optional(z.string()),
+    /**
+     * The MIME type for all resources created from this template.
+     */
+    mimeType: z.optional(z.string()),
+  })
+  .loose();
+export type ResourceTemplate = z.infer<typeof ResourceTemplateSchema>;
+
+export const ListResourcesResultSchema = PaginatedResultSchema.extend({
+  resources: z.array(ResourceSchema),
+});
+export type ListResourcesResult = z.infer<typeof ListResourcesResultSchema>;
+
+export const ListResourceTemplatesResultSchema = PaginatedResultSchema.extend({
+  resourceTemplates: z.array(ResourceTemplateSchema),
+});
+export type ListResourceTemplatesResult = z.infer<typeof ListResourceTemplatesResultSchema>;
+
+export const ReadResourceResultSchema = ResultSchema.extend({
+  contents: z.array(
+    z.union([TextResourceContentsSchema, BlobResourceContentsSchema]),
+  ),
+});
+export type ReadResourceResult = z.infer<typeof ReadResourceResultSchema>;
