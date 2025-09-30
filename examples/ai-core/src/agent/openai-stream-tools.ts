@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { Experimental_Agent as Agent, stepCountIs, tool } from 'ai';
+import { Agent, stepCountIs, tool } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 

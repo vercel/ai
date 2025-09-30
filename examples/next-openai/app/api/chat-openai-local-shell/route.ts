@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { Sandbox } from '@vercel/sandbox';
 import {
-  Experimental_Agent as Agent,
-  Experimental_InferAgentUIMessage as InferAgentUIMessage,
+  Agent,
+  InferAgentUIMessage,
   stepCountIs,
   validateUIMessages,
 } from 'ai';

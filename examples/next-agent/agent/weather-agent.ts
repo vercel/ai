@@ -1,10 +1,6 @@
 import { weatherTool } from '@/tool/weather-tool';
 import { openai } from '@ai-sdk/openai';
-import {
-  Experimental_Agent as Agent,
-  Experimental_InferAgentUIMessage as InferAgentUIMessage,
-  stepCountIs,
-} from 'ai';
+import { Agent, InferAgentUIMessage, stepCountIs } from 'ai';
 
 export const weatherAgent = new Agent({
   model: openai('gpt-4o'),
