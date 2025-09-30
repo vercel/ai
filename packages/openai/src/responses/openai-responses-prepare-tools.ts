@@ -128,11 +128,12 @@ export function prepareResponsesTools({
                   }
                 : undefined,
               model: args.model,
-              size: args.size,
-              quality: args.quality,
               moderation: args.moderation,
-              output_format: args.outputFormat,
+              partial_images: args.partialImages,
+              quality: args.quality,
               output_compression: args.outputCompression,
+              output_format: args.outputFormat,
+              size: args.size,
             });
             break;
           }
