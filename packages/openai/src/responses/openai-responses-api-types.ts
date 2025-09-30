@@ -199,6 +199,7 @@ export type OpenAIResponsesTool =
       moderation: 'auto' | undefined;
       output_compression: number | undefined;
       output_format: 'png' | 'jpeg' | 'webp' | undefined;
+      partial_images: number | undefined;
       quality: 'auto' | 'low' | 'medium' | 'high' | undefined;
       size: 'auto' | '1024x1024' | '1024x1536' | '1536x1024' | undefined;
     }

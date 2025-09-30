@@ -1151,6 +1151,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   delta: value.delta,
                 });
               }
+            } else if (isResponseImageGenerationCallPartialImageChunk(value)) {
+              controller.enqueue({
+                type: 'tool-result',
+                toolCallId: value.item_id,
+                toolName: 'image_generation',
+                result: {
+                  result: value.partial_image_b64,
+                } satisfies z.infer<typeof imageGenerationOutputSchema>,
+                providerExecuted: true,
+                preliminary: true,
+              });
             } else if (isResponseCodeInterpreterCallCodeDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
 
@@ -1464,6 +1475,13 @@ const responseFunctionCallArgumentsDeltaSchema = z.object({
   delta: z.string(),
 });
 
+const responseImageGenerationCallPartialImageSchema = z.object({
+  type: z.literal('response.image_generation_call.partial_image'),
+  item_id: z.string(),
+  output_index: z.number(),
+  partial_image_b64: z.string(),
+});
+
 const responseCodeInterpreterCallCodeDeltaSchema = z.object({
   type: z.literal('response.code_interpreter_call_code.delta'),
   item_id: z.string(),
@@ -1518,6 +1536,7 @@ const openaiResponsesChunkSchema = z.union([
   responseOutputItemAddedSchema,
   responseOutputItemDoneSchema,
   responseFunctionCallArgumentsDeltaSchema,
+  responseImageGenerationCallPartialImageSchema,
   responseCodeInterpreterCallCodeDeltaSchema,
   responseCodeInterpreterCallCodeDoneSchema,
   responseAnnotationAddedSchema,
@@ -1575,6 +1594,11 @@ function isResponseFunctionCallArgumentsDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseFunctionCallArgumentsDeltaSchema> {
   return chunk.type === 'response.function_call_arguments.delta';
+}
+function isResponseImageGenerationCallPartialImageChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseImageGenerationCallPartialImageSchema> {
+  return chunk.type === 'response.image_generation_call.partial_image';
 }
 
 function isResponseCodeInterpreterCallCodeDeltaChunk(

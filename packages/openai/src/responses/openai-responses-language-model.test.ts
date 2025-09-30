@@ -1978,6 +1978,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 outputFormat: 'webp',
                 quality: 'low',
                 size: '1024x1024',
+                partialImages: 2,
               },
             },
           ],
@@ -2002,6 +2003,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "tools": [
               {
                 "output_format": "webp",
+                "partial_images": 2,
                 "quality": "low",
                 "size": "1024x1024",
                 "type": "image_generation",
@@ -4084,7 +4086,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
-    describe('image generation tool', () => {
+    describe('local shell tool', () => {
       let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
       beforeEach(async () => {
