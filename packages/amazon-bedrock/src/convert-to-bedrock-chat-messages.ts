@@ -30,7 +30,7 @@ function getCachePoint(
 }
 
 async function shouldEnableCitations(
-  providerMetadata: SharedV2ProviderMetadata | undefined,
+  providerMetadata: SharedV3ProviderMetadata | undefined,
 ): Promise<boolean> {
   const bedrockOptions = await parseProviderOptions({
     provider: 'bedrock',
