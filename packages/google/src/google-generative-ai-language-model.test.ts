@@ -1371,25 +1371,37 @@ describe('doGenerate', () => {
     });
   });
 
+<<<<<<< HEAD
   it('should pass imageConfig.aspectRatio in provider options', async () => {
+=======
+  it('should pass mediaResolution in provider options', async () => {
+>>>>>>> 7728ac507 (feat(google): add media resolution option (#8490))
     prepareJsonResponse({});
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         google: {
+<<<<<<< HEAD
           imageConfig: {
             aspectRatio: '16:9',
           },
+=======
+          mediaResolution: 'MEDIA_RESOLUTION_LOW',
+>>>>>>> 7728ac507 (feat(google): add media resolution option (#8490))
         },
       },
     });
 
     expect(await server.calls[0].requestBodyJson).toMatchObject({
       generationConfig: {
+<<<<<<< HEAD
         imageConfig: {
           aspectRatio: '16:9',
         },
+=======
+        mediaResolution: 'MEDIA_RESOLUTION_LOW',
+>>>>>>> 7728ac507 (feat(google): add media resolution option (#8490))
       },
     });
   });
