@@ -1,5 +1,5 @@
-import { SharedV2Headers } from '../../shared';
-import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
+import { SharedV3Headers } from '../../shared';
+import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 import { LanguageModelV3CallOptions } from './language-model-v3-call-options';
 import { LanguageModelV3CallWarning } from './language-model-v3-call-warning';
 import { LanguageModelV3Content } from './language-model-v3-content';
@@ -70,7 +70,7 @@ Additional provider-specific metadata. They are passed through
 from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
      */
-    providerMetadata?: SharedV2ProviderMetadata;
+    providerMetadata?: SharedV3ProviderMetadata;
 
     /**
 Optional request information for telemetry and debugging purposes.
@@ -89,7 +89,7 @@ Optional response information for telemetry and debugging purposes.
       /**
 Response headers.
       */
-      headers?: SharedV2Headers;
+      headers?: SharedV3Headers;
 
       /**
 Response HTTP body.
@@ -131,7 +131,7 @@ Optional response data.
       /**
 Response headers.
        */
-      headers?: SharedV2Headers;
+      headers?: SharedV3Headers;
     };
   }>;
 };

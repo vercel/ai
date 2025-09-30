@@ -1,4 +1,4 @@
-import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
+import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 
 /**
 Result of a tool call that has been executed by the provider.
@@ -48,5 +48,5 @@ export type LanguageModelV3ToolResult = {
   /**
    * Additional provider-specific metadata for the tool result.
    */
-  providerMetadata?: SharedV2ProviderMetadata;
+  providerMetadata?: SharedV3ProviderMetadata;
 };

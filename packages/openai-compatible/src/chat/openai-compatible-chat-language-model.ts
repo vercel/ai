@@ -6,7 +6,7 @@ import {
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
-  SharedV2ProviderMetadata,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -265,7 +265,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     }
 
     // provider metadata:
-    const providerMetadata: SharedV2ProviderMetadata = {
+    const providerMetadata: SharedV3ProviderMetadata = {
       [this.providerOptionsName]: {},
       ...(await this.config.metadataExtractor?.extractMetadata?.({
         parsedBody: rawResponse,
@@ -641,7 +641,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               });
             }
 
-            const providerMetadata: SharedV2ProviderMetadata = {
+            const providerMetadata: SharedV3ProviderMetadata = {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
             };
