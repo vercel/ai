@@ -28,7 +28,6 @@
     ]
   },
   "devDependencies": {
-    "update-ts-references": "^3.6.0",
     "@changesets/cli": "2.27.10",
     "@playwright/test": "^1.44.1",
     "eslint": "8.57.1",
@@ -42,8 +41,10 @@
     "publint": "0.2.12",
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
+    "tsx": "4.19.2",
     "turbo": "2.4.4",
     "typescript": "5.8.3",
+    "update-ts-references": "^3.6.0",
     "vitest": "2.1.4"
   },
   "engines": {

@@ -77,6 +77,12 @@ export interface MCPClient {
 
   readResource(params: { uri: string } | string): Promise<ReadResourceResult>;
 
+  subscribeResource(uri: string): Promise<void>;
+
+  unsubscribeResource(uri: string): Promise<void>;
+
+  onResourceUpdated(handler: (notification: { uri: string }) => void | Promise<void>): void;
+
   close: () => Promise<void>;
 }
 
@@ -93,7 +99,6 @@ export interface MCPClient {
  *
  * Not supported:
  * - Client options (e.g. sampling, roots) as they are not needed for tool conversion
- * - Accepting notifications
  * - Session management (when passing a sessionId to an instance of the Streamable HTTP transport)
  * - Resumable SSE streams
  */
@@ -108,6 +113,7 @@ class DefaultMCPClient implements MCPClient {
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
   private isClosed = true;
+  private resourceUpdateHandlers: Array<(notification: { uri: string }) => void | Promise<void>> = [];
 
   constructor({
     transport: transportConfig,
@@ -126,12 +132,16 @@ class DefaultMCPClient implements MCPClient {
     this.transport.onerror = (error: Error) => this.onError(error);
     this.transport.onmessage = message => {
       if ('method' in message) {
-        // This lightweight client implementation does not support
-        // receiving notifications or requests from server.
-        // If we get an unsupported message, we can safely ignore it and pass to the onError handler:
+        // Handle notifications
+        if (message.method === 'notifications/resources/updated') {
+          this.onResourceNotification(message as JSONRPCNotification);
+          return;
+        }
+
+        // Other notification/request types not supported
         this.onError(
           new MCPClientError({
-            message: 'Unsupported message type',
+            message: `Unsupported message type: ${message.method}`,
           }),
         );
         return;
@@ -213,6 +223,14 @@ class DefaultMCPClient implements MCPClient {
         if (!this.serverCapabilities.resources) {
           throw new MCPClientError({
             message: `Server does not support resources`,
+          });
+        }
+        break;
+      case 'resources/subscribe':
+      case 'resources/unsubscribe':
+        if (!this.serverCapabilities.resources?.subscribe) {
+          throw new MCPClientError({
+            message: `Server does not support resource subscriptions`,
           });
         }
         break;
@@ -623,6 +641,49 @@ class DefaultMCPClient implements MCPClient {
       return this.readResourceInternal({ uri });
     } catch (error) {
       throw error;
+    }
+  }
+
+  async subscribeResource(uri: string): Promise<void> {
+    this.assertCapability('resources/subscribe');
+
+    await this.request({
+      request: {
+        method: 'resources/subscribe',
+        params: { uri },
+      },
+      resultSchema: z.object({}),
+    });
+  }
+
+  async unsubscribeResource(uri: string): Promise<void> {
+    this.assertCapability('resources/subscribe');
+
+    await this.request({
+      request: {
+        method: 'resources/unsubscribe',
+        params: { uri },
+      },
+      resultSchema: z.object({}),
+    });
+  }
+
+  onResourceUpdated(handler: (notification: { uri: string }) => void | Promise<void>): void {
+    this.resourceUpdateHandlers.push(handler);
+  }
+
+  private async onResourceNotification(notification: JSONRPCNotification): Promise<void> {
+    if (notification.method === 'notifications/resources/updated' && notification.params) {
+      const params = notification.params as { uri: string };
+
+      // Call all registered handlers
+      for (const handler of this.resourceUpdateHandlers) {
+        try {
+          await handler({ uri: params.uri });
+        } catch (error) {
+          this.onError(error);
+        }
+      }
     }
   }
 
