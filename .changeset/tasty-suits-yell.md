@@ -2,6 +2,7 @@
 'ai': patch
 '@ai-sdk/assemblyai': patch
 '@ai-sdk/azure': patch
+'@ai-sdk/deepgram': patch  
 '@ai-sdk/elevenlabs': patch
 '@ai-sdk/fal': patch
 '@ai-sdk/gladia': patch
