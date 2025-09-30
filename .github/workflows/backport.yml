@@ -112,11 +112,19 @@ jobs:
             exit 1
           fi
 
+      - name: Commit changes in case of errors
+        if: failure()
+        run: |
+          # In case of failure, commit the conflicts to allow inspection
+          git add .
+          git commit -m "Backport conflicts for PR #${{ github.event.pull_request.number }} to ${{ needs.find-branch.outputs.release-branch }}"
       - name: Push backport branch
+        if: always()
         run: |
           git push origin backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }}
 
       - name: Create backport pull request
+        if: always()
         id: create-pr
         run: |
           # Create the backport PR
@@ -135,7 +143,7 @@ jobs:
           PR_BODY: "This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch."
 
       - name: Remove backport label from original PR
-        if: steps.create-pr.outputs.backport-pr-url
+        if: always() && steps.create-pr.outputs.backport-pr-url
         run: |
           # Remove the backport label from the original PR
           gh pr edit ${{ github.event.pull_request.number }} --remove-label backport
@@ -144,14 +152,21 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Success Comment on original PR
-        if: steps.create-pr.outputs.backport-pr-url
+        if: success() && steps.create-pr.outputs.backport-pr-url
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "✅ Backport PR created: ${{ steps.create-pr.outputs.backport-pr-url }}"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
-      - name: Failure Comment on original PR
-        if: failure()
+      - name: Error Comment on original PR
+        if: failure() && steps.create-pr.outputs.backport-pr-url
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ Backport to ${{ needs.find-branch.outputs.release-branch }} created but has conflicts: ${{ steps.create-pr.outputs.backport-pr-url }}"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Pull request failure Comment on original PR
+        if: failure() && !steps.create-pr.outputs.backport-pr-url
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "❌ Backport to ${{ needs.find-branch.outputs.release-branch }} failed. This backport requires manual intervention. [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
         env:
