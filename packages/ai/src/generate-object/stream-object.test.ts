@@ -22,6 +22,7 @@ import { MockTracer } from '../test/mock-tracer';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
+import { StreamObjectOnErrorCallback } from './stream-object-options';
 
 const testUsage = {
   inputTokens: 3,
@@ -236,7 +237,96 @@ describe('streamObject', () => {
         // consume stream
         await convertAsyncIterableToArray(resultObject.partialObjectStream);
 
-        expect(result).toStrictEqual([{ error: new Error('test error') }]);
+        expect(result).toStrictEqual([
+          expect.objectContaining({ error: new Error('test error') }),
+        ]);
+      });
+
+      it('should provide retry function in onError callback', async () => {
+        let retryFunction:
+          | Parameters<StreamObjectOnErrorCallback<any, any, any>>[0]['retry']
+          | undefined;
+        let callCount = 0;
+
+        const resultObject = streamObject({
+          model: new MockLanguageModelV3({
+            doStream: async () => {
+              callCount++;
+              if (callCount === 1) {
+                throw new Error('test error');
+              }
+
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
+                  {
+                    type: 'text-delta',
+                    id: '1',
+                    delta: '{ "content": "success" }',
+                  },
+                  { type: 'text-end', id: '1' },
+                  { type: 'finish', finishReason: 'stop', usage: testUsage },
+                ]),
+              };
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError({ error, retry }) {
+            expect(error).toEqual(new Error('test error'));
+            expect(typeof retry).toBe('function');
+            retryFunction = retry;
+          },
+        });
+
+        await convertAsyncIterableToArray(resultObject.partialObjectStream);
+
+        expect(retryFunction).toBeDefined();
+        expect(typeof retryFunction).toBe('function');
+
+        const retryResult = retryFunction!();
+        expect(retryResult).toBeDefined();
+
+        await convertAsyncIterableToArray(retryResult.partialObjectStream);
+
+        expect(callCount).toBe(2);
+      });
+
+      it('should allow retry with modified options', async () => {
+        let retryFunction:
+          | Parameters<
+              StreamObjectOnErrorCallback<
+                z.ZodObject<{ content: z.ZodString }>,
+                'object',
+                { content: string }
+              >
+            >[0]['retry']
+          | undefined;
+
+        const resultObject = streamObject({
+          model: new MockLanguageModelV3({
+            doStream: async options => {
+              throw new Error('test error');
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'original prompt',
+          temperature: 0.5,
+          onError({ retry }) {
+            retryFunction = retry;
+          },
+        });
+
+        await convertAsyncIterableToArray(resultObject.partialObjectStream);
+
+        expect(retryFunction).toBeDefined();
+
+        const retryResult = retryFunction!({
+          prompt: 'modified prompt',
+          temperature: 0.8,
+        });
+
+        expect(retryResult).toBeDefined();
       });
     });
 

@@ -41,7 +41,7 @@ import { LanguageModelRequestMetadata } from '../types/language-model-request-me
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
-import { DeepPartial, isDeepEqualData, parsePartialJson } from '../util';
+import { isDeepEqualData, parsePartialJson } from '../util';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -54,58 +54,23 @@ import { prepareRetries } from '../util/prepare-retries';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 import { RepairTextFunction } from './repair-text';
+import {
+  StreamObjectOnErrorCallback,
+  StreamObjectOnFinishCallback,
+  StreamObjectOptions,
+  StreamObjectReturnType,
+} from './stream-object-options';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
-/**
-Callback that is set using the `onError` option.
-
-@param event - The event that is passed to the callback.
- */
-export type StreamObjectOnErrorCallback = (event: {
-  error: unknown;
-}) => Promise<void> | void;
-
-/**
-Callback that is set using the `onFinish` option.
-
-@param event - The event that is passed to the callback.
- */
-export type StreamObjectOnFinishCallback<RESULT> = (event: {
-  /**
-The token usage of the generated response.
-*/
-  usage: LanguageModelUsage;
-
-  /**
-The generated object. Can be undefined if the final object does not match the schema.
-*/
-  object: RESULT | undefined;
-
-  /**
-Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
-*/
-  error: unknown | undefined;
-
-  /**
-Response metadata.
- */
-  response: LanguageModelResponseMetadata;
-
-  /**
-Warnings from the model provider (e.g. unsupported settings).
-*/
-  warnings?: CallWarning[];
-
-  /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-*/
-  providerMetadata: ProviderMetadata | undefined;
-}) => Promise<void> | void;
+export type {
+  StreamObjectOptions,
+  StreamObjectOnErrorCallback,
+  StreamObjectOnFinishCallback,
+  StreamObjectReturnType,
+};
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -182,121 +147,8 @@ export function streamObject<
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
-  options: Omit<CallSettings, 'stopSequences'> &
-    Prompt &
-    (OUTPUT extends 'enum'
-      ? {
-          /**
-The enum values that the model should use.
-        */
-          enum: Array<RESULT>;
-          mode?: 'json';
-          output: 'enum';
-        }
-      : OUTPUT extends 'no-schema'
-        ? {}
-        : {
-            /**
-The schema of the object that the model should generate.
-      */
-            schema: SCHEMA;
-
-            /**
-Optional name of the output that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema name.
-      */
-            schemaName?: string;
-
-            /**
-Optional description of the output that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema description.
-      */
-            schemaDescription?: string;
-
-            /**
-The mode to use for object generation.
-
-The schema is converted into a JSON schema and used in one of the following ways
-
-- 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
-
-Please note that most providers do not support all modes.
-
-Default and recommended: 'auto' (best mode for the model).
-      */
-            mode?: 'auto' | 'json' | 'tool';
-          }) & {
-      output?: OUTPUT;
-
-      /**
-The language model to use.
-     */
-      model: LanguageModel;
-
-      /**
-A function that attempts to repair the raw output of the model
-to enable JSON parsing.
-       */
-      experimental_repairText?: RepairTextFunction;
-
-      /**
-Optional telemetry configuration (experimental).
-       */
-
-      experimental_telemetry?: TelemetrySettings;
-
-      /**
-  Custom download function to use for URLs.
-
-  By default, files are downloaded if the model does not support the URL for the given media type.
-       */
-      experimental_download?: DownloadFunction | undefined;
-
-      /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-      providerOptions?: ProviderOptions;
-
-      /**
-Callback that is invoked when an error occurs during streaming.
-You can use it to log errors.
-The stream processing will pause until the callback promise is resolved.
-     */
-      onError?: StreamObjectOnErrorCallback;
-
-      /**
-Callback that is called when the LLM response and the final object validation are finished.
-*/
-      onFinish?: StreamObjectOnFinishCallback<RESULT>;
-
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-        now?: () => number;
-      };
-    },
-): StreamObjectResult<
-  OUTPUT extends 'enum'
-    ? string
-    : OUTPUT extends 'array'
-      ? RESULT
-      : DeepPartial<RESULT>,
-  OUTPUT extends 'array' ? RESULT : RESULT,
-  OUTPUT extends 'array'
-    ? RESULT extends Array<infer U>
-      ? AsyncIterableStream<U>
-      : never
-    : never
-> {
+  options: StreamObjectOptions<SCHEMA, OUTPUT, RESULT>,
+): StreamObjectReturnType<SCHEMA, OUTPUT, RESULT> {
   const {
     model,
     output = 'object',
@@ -310,7 +162,14 @@ Callback that is called when the LLM response and the final object validation ar
     experimental_telemetry: telemetry,
     experimental_download: download,
     providerOptions,
-    onError = ({ error }: { error: unknown }) => {
+    onError = ({
+      error,
+    }: {
+      error: unknown;
+      retry: (
+        newOptions?: Partial<StreamObjectOptions<SCHEMA, OUTPUT, RESULT>>,
+      ) => StreamObjectReturnType<SCHEMA, OUTPUT, RESULT>;
+    }) => {
       console.error(error);
     },
     onFinish,
@@ -366,11 +225,24 @@ Callback that is called when the LLM response and the final object validation ar
     generateId,
     currentDate,
     now,
+    originalOptions: options,
   });
 }
 
-class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
-  implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
+class DefaultStreamObjectResult<
+  PARTIAL,
+  RESULT,
+  ELEMENT_STREAM,
+  SCHEMA extends
+    | z3.Schema
+    | z4.core.$ZodType
+    | Schema = z4.core.$ZodType<JSONValue>,
+  OUTPUT extends
+    | 'object'
+    | 'array'
+    | 'enum'
+    | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
+> implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 {
   private readonly _object = new DelayedPromise<RESULT>();
   private readonly _usage = new DelayedPromise<LanguageModelUsage>();
@@ -413,6 +285,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     generateId,
     currentDate,
     now,
+    originalOptions,
   }: {
     model: LanguageModel;
     telemetry: TelemetrySettings | undefined;
@@ -428,12 +301,13 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
     repairText: RepairTextFunction | undefined;
-    onError: StreamObjectOnErrorCallback;
+    onError: StreamObjectOnErrorCallback<SCHEMA, OUTPUT, RESULT>;
     onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
     download: DownloadFunction | undefined;
     generateId: () => string;
     currentDate: () => Date;
     now: () => number;
+    originalOptions: StreamObjectOptions<SCHEMA, OUTPUT, RESULT>;
   }) {
     const model = resolveLanguageModel(modelArg);
 
@@ -465,7 +339,14 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         controller.enqueue(chunk);
 
         if (chunk.type === 'error') {
-          onError({ error: wrapGatewayError(chunk.error) });
+          onError({
+            error: wrapGatewayError(chunk.error),
+            retry: newOptions =>
+              streamObject({
+                ...originalOptions,
+                ...newOptions,
+              } as StreamObjectOptions<SCHEMA, OUTPUT, RESULT>),
+          });
         }
       },
     });
@@ -755,6 +636,14 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     } catch (e) {
                       error = e;
                       self._object.reject(e);
+                      onError({
+                        error: e,
+                        retry: newOptions =>
+                          streamObject({
+                            ...originalOptions,
+                            ...newOptions,
+                          } as StreamObjectOptions<SCHEMA, OUTPUT, RESULT>),
+                      });
                     }
                     break;
                   }

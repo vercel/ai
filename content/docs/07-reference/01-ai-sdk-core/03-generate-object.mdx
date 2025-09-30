@@ -561,6 +561,31 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
       ],
     },
     {
+      name: 'onError',
+      type: '(event: OnErrorEvent) => Promise<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is invoked when an error occurs during generation. The callback receives the error and a retry function.',
+      properties: [
+        {
+          type: 'OnErrorEvent',
+          parameters: [
+            {
+              name: 'error',
+              type: 'unknown',
+              description: 'The error that occurred.',
+            },
+            {
+              name: 'retry',
+              type: '(newOptions?: Partial<GenerateObjectOptions>) => Promise<GenerateObjectResult>',
+              description:
+                'Function to retry the generation with modified options. The new options are merged with the original options.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'providerOptions',
       type: 'Record<string,Record<string,JSONValue>> | undefined',
       isOptional: true,

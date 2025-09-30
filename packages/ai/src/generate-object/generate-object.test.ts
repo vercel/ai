@@ -20,7 +20,10 @@ import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } 
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTracer } from '../test/mock-tracer';
-import { generateObject } from './generate-object';
+import {
+  generateObject,
+  GenerateObjectOnErrorCallback,
+} from './generate-object';
 
 vi.mock('../version', () => {
   return {
@@ -284,6 +287,87 @@ describe('generateObject', () => {
           },
           body: 'test body',
         });
+      });
+    });
+
+    describe('retry functionality', () => {
+      it('should provide retry function in onError callback', async () => {
+        let retryFunction:
+          | Parameters<GenerateObjectOnErrorCallback<any, any, any>>[0]['retry']
+          | undefined;
+        let callCount = 0;
+
+        try {
+          await generateObject({
+            model: new MockLanguageModelV3({
+              doGenerate: async () => {
+                callCount++;
+                if (callCount === 1) {
+                  throw new Error('test error');
+                }
+
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: '{ "content": "success" }' }],
+                };
+              },
+            }),
+            schema: z.object({ content: z.string() }),
+            prompt: 'prompt',
+            onError({ error, retry }) {
+              expect(error).toEqual(new Error('test error'));
+              expect(typeof retry).toBe('function');
+              retryFunction = retry;
+            },
+          });
+          fail('Expected error to be thrown');
+        } catch (error) {}
+
+        expect(retryFunction).toBeDefined();
+        expect(typeof retryFunction).toBe('function');
+
+        const retryResult = await retryFunction!();
+        expect(retryResult).toBeDefined();
+        expect(retryResult.object).toEqual({ content: 'success' });
+        expect(callCount).toBe(2);
+      });
+
+      it('should allow retry with modified options', async () => {
+        let retryFunction:
+          | Parameters<
+              GenerateObjectOnErrorCallback<
+                z.ZodObject<{ content: z.ZodString }>,
+                'object',
+                { content: string }
+              >
+            >[0]['retry']
+          | undefined;
+
+        try {
+          await generateObject({
+            model: new MockLanguageModelV3({
+              doGenerate: async options => {
+                throw new Error('test error');
+              },
+            }),
+            schema: z.object({ content: z.string() }),
+            prompt: 'original prompt',
+            temperature: 0.5,
+            onError({ retry }) {
+              retryFunction = retry;
+            },
+          });
+          fail('Expected error to be thrown');
+        } catch (error) {}
+
+        expect(retryFunction).toBeDefined();
+
+        try {
+          await retryFunction!({
+            prompt: 'modified prompt',
+            temperature: 0.8,
+          });
+        } catch (error) {}
       });
     });
 
