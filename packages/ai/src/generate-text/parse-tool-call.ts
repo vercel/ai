@@ -1,4 +1,4 @@
-import { LanguageModelV2ToolCall } from '@ai-sdk/provider';
+import { LanguageModelV3ToolCall } from '@ai-sdk/provider';
 import {
   asSchema,
   ModelMessage,
@@ -19,7 +19,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   system,
   messages,
 }: {
-  toolCall: LanguageModelV2ToolCall;
+  toolCall: LanguageModelV3ToolCall;
   tools: TOOLS | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   system: string | undefined;
@@ -43,7 +43,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
         throw error;
       }
 
-      let repairedToolCall: LanguageModelV2ToolCall | null = null;
+      let repairedToolCall: LanguageModelV3ToolCall | null = null;
 
       try {
         repairedToolCall = await repairToolCall({
@@ -93,7 +93,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
 }: {
-  toolCall: LanguageModelV2ToolCall;
+  toolCall: LanguageModelV3ToolCall;
   tools: TOOLS;
 }): Promise<TypedToolCall<TOOLS>> {
   const toolName = toolCall.toolName as keyof TOOLS & string;

@@ -20,18 +20,20 @@ import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
-  LanguageModelV2,
-  EmbeddingModelV2,
-  ProviderV2,
+  LanguageModelV3,
+  EmbeddingModelV3,
+  ProviderV3,
 } from '@ai-sdk/provider';
+import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import { VERSION } from './version';
 
-export interface GatewayProvider extends ProviderV2 {
-  (modelId: GatewayModelId): LanguageModelV2;
+export interface GatewayProvider extends ProviderV3 {
+  (modelId: GatewayModelId): LanguageModelV3;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(modelId: GatewayModelId): LanguageModelV2;
+  languageModel(modelId: GatewayModelId): LanguageModelV3;
 
   /**
 Returns available providers and models for use with the remote provider.
@@ -48,7 +50,7 @@ Creates a model for generating text embeddings.
 */
   textEmbeddingModel(
     modelId: GatewayEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 }
 
 export interface GatewayProviderSettings {
@@ -107,12 +109,15 @@ export function createGatewayProvider(
   const getHeaders = async () => {
     const auth = await getGatewayAuthToken(options);
     if (auth) {
-      return {
-        Authorization: `Bearer ${auth.token}`,
-        'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
-        [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
-        ...options.headers,
-      };
+      return withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${auth.token}`,
+          'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
+          [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
+          ...options.headers,
+        },
+        `ai-sdk/gateway/${VERSION}`,
+      );
     }
 
     throw GatewayAuthenticationError.createContextualError({

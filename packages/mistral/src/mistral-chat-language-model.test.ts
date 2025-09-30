@@ -1,13 +1,17 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { createMistral } from './mistral-provider';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -464,6 +468,9 @@ describe('doGenerate', () => {
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/mistral/0.0.0-test`,
+    );
   });
 
   it('should send request body', async () => {
@@ -1020,6 +1027,9 @@ describe('doStream', () => {
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/mistral/0.0.0-test`,
+    );
   });
 
   it('should send request body', async () => {
@@ -1408,7 +1418,7 @@ describe('doStream with raw chunks', () => {
 });
 
 describe('tool result format support', () => {
-  it('should handle new LanguageModelV2ToolResultOutput format', async () => {
+  it('should handle new LanguageModelV3ToolResultOutput format', async () => {
     server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
       type: 'json-value',
       body: {

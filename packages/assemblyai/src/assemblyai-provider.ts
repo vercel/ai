@@ -1,13 +1,18 @@
 import {
   TranscriptionModelV2,
-  ProviderV2,
+  ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
-import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
+import { VERSION } from './version';
 
-export interface AssemblyAIProvider extends ProviderV2 {
+export interface AssemblyAIProvider extends ProviderV3 {
   (
     modelId: 'best',
     settings?: {},
@@ -45,14 +50,18 @@ Create an AssemblyAI provider instance.
 export function createAssemblyAI(
   options: AssemblyAIProviderSettings = {},
 ): AssemblyAIProvider {
-  const getHeaders = () => ({
-    authorization: loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'ASSEMBLYAI_API_KEY',
-      description: 'AssemblyAI',
-    }),
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        authorization: loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'ASSEMBLYAI_API_KEY',
+          description: 'AssemblyAI',
+        }),
+        ...options.headers,
+      },
+      `ai-sdk/assemblyai/${VERSION}`,
+    );
 
   const createTranscriptionModel = (modelId: AssemblyAITranscriptionModelId) =>
     new AssemblyAITranscriptionModel(modelId, {
