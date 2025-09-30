@@ -170,6 +170,126 @@ const tools = await mcpClient.tools({
 
 This approach provides full TypeScript type safety and IDE autocompletion, letting you catch parameter mismatches during development. When you define `schemas`, the client only pulls the explicitly defined tools, keeping your application focused on the tools it needs
 
+## Using MCP Resources
+
+MCP servers can expose resources, which are structured information sources (like files, APIs, or databases) that AI applications can retrieve and provide to models as context. The MCP client provides methods to discover and read these resources.
+
+### Listing Resources
+
+Use `listResources()` to discover available resources:
+
+```typescript
+const result = await mcpClient.listResources();
+
+for (const resource of result.resources) {
+  console.log(`Resource: ${resource.name}`);
+  console.log(`  URI: ${resource.uri}`);
+  console.log(`  Description: ${resource.description}`);
+  console.log(`  MIME Type: ${resource.mimeType}`);
+}
+
+// Handle pagination if needed
+if (result.nextCursor) {
+  const nextPage = await mcpClient.listResources({ cursor: result.nextCursor });
+}
+```
+
+### Listing Resource Templates
+
+Resource templates define URI patterns for dynamic resources. Use `listResourceTemplates()` to discover them:
+
+```typescript
+const result = await mcpClient.listResourceTemplates();
+
+for (const template of result.resourceTemplates) {
+  console.log(`Template: ${template.name}`);
+  console.log(`  URI Template: ${template.uriTemplate}`);
+  console.log(`  Description: ${template.description}`);
+}
+```
+
+### Reading Resources
+
+Use `readResource()` to fetch the content of a specific resource:
+
+```typescript
+// Using a string URI
+const result = await mcpClient.readResource('file:///path/to/document.txt');
+
+// Or using an object with uri property (matches reference SDK)
+const result = await mcpClient.readResource({ uri: 'file:///path/to/document.txt' });
+
+for (const content of result.contents) {
+  if ('text' in content) {
+    console.log('Text content:', content.text);
+  } else if ('blob' in content) {
+    console.log('Binary content (base64):', content.blob);
+  }
+}
+```
+
+### Including Resources as Tools
+
+You can optionally include resources as callable tools by setting `includeResources: true`. This allows the AI model to automatically access resources when needed:
+
+```typescript
+import { experimental_createMCPClient as createMCPClient } from 'ai';
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+// Create MCP client
+const mcpClient = await createMCPClient({
+  transport: { type: 'sse', url: 'https://your-server.com/mcp' },
+});
+
+// Get tools with resources included
+const tools = await mcpClient.tools({ includeResources: true });
+
+// Use with streamText - AI can now call resource tools automatically
+const result = streamText({
+  model: openai('gpt-4'),
+  tools, // Pass tools including resources
+  maxSteps: 5,
+  prompt: 'Read the latest data and summarize it',
+  onFinish: async () => {
+    await mcpClient.close();
+  },
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+**How it works:**
+
+Resources are exposed as tools with predictable names:
+- Direct resources: `resource_${resourceName}`
+- Resource templates: `resource_template_${templateName}`
+
+When included as tools:
+- Direct resources become zero-parameter tools that read the resource when called
+- Resource templates become tools with parameters extracted from their URI template
+- The AI model can call these tools just like any other tool
+- Resource tools return `ReadResourceResult` containing the resource content
+
+**Example with resource templates:**
+
+```typescript
+// If the MCP server exposes a resource template:
+// URI: "docs://{section}/{page}"
+
+const tools = await mcpClient.tools({ includeResources: true });
+
+// The AI can now call: resource_template_docs
+// With parameters: { section: "api", page: "authentication" }
+const result = await generateText({
+  model: openai('gpt-4'),
+  tools,
+  prompt: 'Read the authentication documentation and explain how OAuth works',
+});
+```
+
 ## Examples
 
 You can see MCP tools in action in the following example:

@@ -11,3 +11,8 @@ export {
   type MCPClient as experimental_MCPClient,
 } from './mcp/mcp-client';
 export type { MCPTransport } from './mcp/mcp-transport';
+export type {
+  Resource as experimental_MCPResource,
+  ResourceTemplate as experimental_MCPResourceTemplate,
+  ReadResourceResult as experimental_MCPReadResourceResult,
+} from './mcp/types';

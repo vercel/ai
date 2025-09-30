@@ -1,7 +1,7 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { JSONRPCMessage } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
-import { MCPTool } from './types';
+import { MCPTool, Resource, ResourceTemplate } from './types';
 
 const DEFAULT_TOOLS: MCPTool[] = [
   {
@@ -23,8 +23,28 @@ const DEFAULT_TOOLS: MCPTool[] = [
   },
 ];
 
+const DEFAULT_RESOURCES: Resource[] = [
+  {
+    uri: 'file:///mock/document.txt',
+    name: 'mock-document',
+    description: 'A mock document for testing',
+    mimeType: 'text/plain',
+  },
+];
+
+const DEFAULT_RESOURCE_TEMPLATES: ResourceTemplate[] = [
+  {
+    uriTemplate: 'file:///mock/{filename}',
+    name: 'mock-file-template',
+    description: 'A mock file template for testing',
+    mimeType: 'text/plain',
+  },
+];
+
 export class MockMCPTransport implements MCPTransport {
   private tools;
+  private resources;
+  private resourceTemplates;
   private failOnInvalidToolParams;
   private initializeResult;
   private sendError;
@@ -35,16 +55,22 @@ export class MockMCPTransport implements MCPTransport {
 
   constructor({
     overrideTools = DEFAULT_TOOLS,
+    overrideResources = DEFAULT_RESOURCES,
+    overrideResourceTemplates = DEFAULT_RESOURCE_TEMPLATES,
     failOnInvalidToolParams = false,
     initializeResult,
     sendError = false,
   }: {
     overrideTools?: MCPTool[];
+    overrideResources?: Resource[];
+    overrideResourceTemplates?: ResourceTemplate[];
     failOnInvalidToolParams?: boolean;
     initializeResult?: Record<string, unknown>;
     sendError?: boolean;
   } = {}) {
     this.tools = overrideTools;
+    this.resources = overrideResources;
+    this.resourceTemplates = overrideResourceTemplates;
     this.failOnInvalidToolParams = failOnInvalidToolParams;
     this.initializeResult = initializeResult;
     this.sendError = sendError;
@@ -75,6 +101,7 @@ export class MockMCPTransport implements MCPTransport {
             },
             capabilities: {
               ...(this.tools.length > 0 ? { tools: {} } : {}),
+              ...(this.resources.length > 0 || this.resourceTemplates.length > 0 ? { resources: {} } : {}),
             },
           },
         });
@@ -149,6 +176,81 @@ export class MockMCPTransport implements MCPTransport {
               {
                 type: 'text',
                 text: `Mock tool call result`,
+              },
+            ],
+          },
+        });
+      }
+
+      if (message.method === 'resources/list') {
+        await delay(10);
+        if (this.resources.length === 0) {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32000,
+              message: 'Method not supported',
+            },
+          });
+          return;
+        }
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            resources: this.resources,
+          },
+        });
+      }
+
+      if (message.method === 'resources/templates/list') {
+        await delay(10);
+        if (this.resourceTemplates.length === 0) {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32000,
+              message: 'Method not supported',
+            },
+          });
+          return;
+        }
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            resourceTemplates: this.resourceTemplates,
+          },
+        });
+      }
+
+      if (message.method === 'resources/read') {
+        await delay(10);
+        const uri = message.params?.uri as string;
+
+        if (!uri) {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32602,
+              message: 'Invalid params: uri is required',
+            },
+          });
+          return;
+        }
+
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            contents: [
+              {
+                uri,
+                mimeType: 'text/plain',
+                text: `Mock resource content for ${uri}`,
               },
             ],
           },

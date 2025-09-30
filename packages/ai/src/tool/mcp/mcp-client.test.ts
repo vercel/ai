@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 import { MCPClientError } from '../../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
 import { MockMCPTransport } from './mock-mcp-transport';
-import { CallToolResult } from './types';
+import { CallToolResult, Resource, ResourceTemplate } from './types';
 import {
   beforeEach,
   afterEach,
@@ -383,5 +383,141 @@ describe('MCPClient', () => {
         "isError": false,
       }
     `);
+  });
+
+  describe('Resources', () => {
+    it('should list resources', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      const result = await client.listResources();
+      expect(result.resources).toHaveLength(1);
+      expect(result.resources[0]).toMatchObject({
+        uri: 'file:///mock/document.txt',
+        name: 'mock-document',
+        description: 'A mock document for testing',
+        mimeType: 'text/plain',
+      });
+    });
+
+    it('should list resource templates', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      const result = await client.listResourceTemplates();
+      expect(result.resourceTemplates).toHaveLength(1);
+      expect(result.resourceTemplates[0]).toMatchObject({
+        uriTemplate: 'file:///mock/{filename}',
+        name: 'mock-file-template',
+        description: 'A mock file template for testing',
+        mimeType: 'text/plain',
+      });
+    });
+
+    it('should read a resource with string uri', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      const result = await client.readResource('file:///mock/document.txt');
+      expect(result).toHaveProperty('contents');
+      expect(result.contents).toHaveLength(1);
+      expect(result.contents[0]).toMatchObject({
+        uri: 'file:///mock/document.txt',
+        mimeType: 'text/plain',
+        text: 'Mock resource content for file:///mock/document.txt',
+      });
+    });
+
+    it('should read a resource with params object', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      const result = await client.readResource({ uri: 'file:///mock/document.txt' });
+      expect(result).toHaveProperty('contents');
+      expect(result.contents).toHaveLength(1);
+      expect(result.contents[0]).toMatchObject({
+        uri: 'file:///mock/document.txt',
+        mimeType: 'text/plain',
+        text: 'Mock resource content for file:///mock/document.txt',
+      });
+    });
+
+    it('should include resources as tools when includeResources is true', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      const tools = await client.tools({ includeResources: true });
+
+      // Should have both regular tools and resource tools
+      expect(tools).toHaveProperty('mock-tool');
+      expect(tools).toHaveProperty('resource_mock-document');
+      expect(tools).toHaveProperty('resource_template_mock-file-template');
+
+      // Test direct resource tool
+      const resourceTool = tools['resource_mock-document'];
+      expect(resourceTool).toHaveProperty('inputSchema');
+      const result = await resourceTool.execute({}, { messages: [], toolCallId: '1' });
+      expect(result).toHaveProperty('contents');
+      expect(result.contents[0]).toMatchObject({
+        uri: 'file:///mock/document.txt',
+        text: 'Mock resource content for file:///mock/document.txt',
+      });
+    });
+
+    it('should include resource templates as tools with parameters', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      const tools = await client.tools({ includeResources: true });
+
+      const templateTool = tools['resource_template_mock-file-template'];
+      expect(templateTool).toHaveProperty('inputSchema');
+      expect(templateTool.inputSchema).toMatchObject({
+        jsonSchema: {
+          type: 'object',
+          properties: {
+            filename: {
+              type: 'string',
+              description: 'Value for filename in URI template',
+            },
+          },
+          required: ['filename'],
+          additionalProperties: false,
+        },
+      });
+
+      const result = await templateTool.execute(
+        { filename: 'test.txt' },
+        { messages: [], toolCallId: '1' }
+      );
+      expect(result).toHaveProperty('contents');
+      expect(result.contents[0]).toMatchObject({
+        uri: 'file:///mock/test.txt',
+        text: 'Mock resource content for file:///mock/test.txt',
+      });
+    });
+
+    it('should not include resources when includeResources is false', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      const tools = await client.tools({ includeResources: false });
+
+      expect(tools).toHaveProperty('mock-tool');
+      expect(tools).not.toHaveProperty('resource_mock-document');
+      expect(tools).not.toHaveProperty('resource_template_mock-file-template');
+    });
+
+    it('should throw error when server does not support resources', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideResources: [],
+        overrideResourceTemplates: [],
+      });
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      await expect(client.listResources()).rejects.toThrow(MCPClientError);
+    });
   });
 });
