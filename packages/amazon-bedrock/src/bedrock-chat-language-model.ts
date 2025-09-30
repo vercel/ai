@@ -7,7 +7,7 @@ import {
   LanguageModelV3Reasoning,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
-  SharedV2ProviderMetadata,
+  SharedV3ProviderMetadata,
   LanguageModelV3FunctionTool,
 } from '@ai-sdk/provider';
 import {
@@ -457,7 +457,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
-    let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
+    let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
 
     const contentBlocks: Record<
       number,

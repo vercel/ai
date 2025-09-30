@@ -1,5 +1,5 @@
 import { JSONSchema7 } from 'json-schema';
-import { SharedV2ProviderOptions } from '../../shared/v2/shared-v2-provider-options';
+import { SharedV3ProviderOptions } from '../../shared/v3/shared-v3-provider-options';
 import { LanguageModelV3FunctionTool } from './language-model-v3-function-tool';
 import { LanguageModelV3Prompt } from './language-model-v3-prompt';
 import { LanguageModelV3ProviderDefinedTool } from './language-model-v3-provider-defined-tool';
@@ -123,5 +123,5 @@ Only applicable for HTTP-based providers.
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV2ProviderOptions;
+  providerOptions?: SharedV3ProviderOptions;
 };
