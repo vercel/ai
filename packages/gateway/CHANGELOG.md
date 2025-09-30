@@ -1,5 +1,23 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.12
+
+### Patch Changes
+
+- e6bfe91: feat(provider/gateway): Update DeepSeek model string autocomplete
+
+## 1.1.0-beta.11
+
+### Patch Changes
+
+- 636e614: feat(provider/gateway): Add DeepSeek V3.2 Exp to Gateway language model settings
+
+## 1.1.0-beta.10
+
+### Patch Changes
+
+- 9f6149e: feat(provider/gateway): Add Sonnet 4.5 to Gateway model string autocomplete
+
 ## 1.1.0-beta.9
 
 ### Patch Changes
