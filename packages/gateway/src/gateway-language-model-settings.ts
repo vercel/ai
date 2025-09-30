@@ -113,4 +113,5 @@ export type GatewayModelId =
   | 'zai/glm-4.5'
   | 'zai/glm-4.5-air'
   | 'zai/glm-4.5v'
+  | 'zai/glm-4.6'
   | (string & {});
