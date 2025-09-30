@@ -2,7 +2,7 @@ import {
   ImageModelV3,
   NoSuchModelError,
   ProviderV3,
-  SpeechModelV2,
+  SpeechModelV3,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
@@ -62,7 +62,7 @@ Creates a model for transcription.
   /**
 Creates a model for speech generation.
    */
-  speech(modelId: FalSpeechModelId): SpeechModelV2;
+  speech(modelId: FalSpeechModelId): SpeechModelV3;
 }
 
 const defaultBaseURL = 'https://fal.run';
