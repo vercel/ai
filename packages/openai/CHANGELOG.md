@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.1.0-beta.9
+
+### Patch Changes
+
+- 9a51b92: support OPENAI_BASE_URL env
+
 ## 2.1.0-beta.8
 
 ### Patch Changes
