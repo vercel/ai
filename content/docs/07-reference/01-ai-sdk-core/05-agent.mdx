@@ -10,7 +10,7 @@ Creates a reusable AI agent that can generate text, stream responses, and use to
 It is ideal for building autonomous AI systems that need to perform complex, multi-step tasks with tool calling capabilities. Unlike single-step functions like `generateText`, agents can iteratively call tools and make decisions based on intermediate results.
 
 ```ts
-import { Experimental_Agent as Agent } from 'ai';
+import { Agent } from 'ai';
 
 const agent = new Agent({
   model: 'openai/gpt-4o',
@@ -32,10 +32,7 @@ To see `Agent` in action, check out [these examples](#examples).
 
 ## Import
 
-<Snippet
-  text={`import { Experimental_Agent as Agent } from "ai"`}
-  prompt={false}
-/>
+<Snippet text={`import { Agent } from "ai"`} prompt={false} />
 
 ## Constructor
 
@@ -172,6 +169,19 @@ To see `Agent` in action, check out [these examples](#examples).
       description:
         'An optional abort signal that can be used to cancel the call.',
     },
+    {
+      name: 'providerOptions',
+      type: 'ProviderOptions',
+      isOptional: true,
+      description:
+        'Additional provider-specific options. They are passed through to the provider from the AI SDK and enable provider-specific functionality that can be fully encapsulated in the provider.',
+    },
+    {
+      name: 'name',
+      type: 'string',
+      isOptional: true,
+      description: 'The name of the agent.',
+    },
   ]}
 />
 
@@ -198,20 +208,6 @@ const result = await agent.generate({
       name: 'messages',
       type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage>',
       description: 'A list of messages that represent a conversation.',
-    },
-    {
-      name: 'providerMetadata',
-      type: 'ProviderMetadata',
-      isOptional: true,
-      description:
-        'Additional provider-specific metadata. They are passed through from the provider to the AI SDK and enable provider-specific results that can be fully encapsulated in the provider.',
-    },
-    {
-      name: 'providerOptions',
-      type: 'ProviderOptions',
-      isOptional: true,
-      description:
-        'Additional provider-specific metadata. They are passed through to the provider from the AI SDK and enable provider-specific functionality that can be fully encapsulated in the provider.',
     },
     {
       name: 'system',
@@ -252,20 +248,6 @@ for await (const chunk of stream.textStream) {
       name: 'messages',
       type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage>',
       description: 'A list of messages that represent a conversation.',
-    },
-    {
-      name: 'providerMetadata',
-      type: 'ProviderMetadata',
-      isOptional: true,
-      description:
-        'Additional provider-specific metadata. They are passed through from the provider to the AI SDK and enable provider-specific results that can be fully encapsulated in the provider.',
-    },
-    {
-      name: 'providerOptions',
-      type: 'ProviderOptions',
-      isOptional: true,
-      description:
-        'Additional provider-specific metadata. They are passed through to the provider from the AI SDK and enable provider-specific functionality that can be fully encapsulated in the provider.',
     },
     {
       name: 'system',
@@ -317,10 +299,7 @@ Returns a `Response` object that streams UI messages to the client in the format
 Infers the UI message type of an agent, useful for type-safe message handling in TypeScript applications.
 
 ```ts
-import {
-  Experimental_Agent as Agent,
-  Experimental_InferAgentUIMessage as InferAgentUIMessage,
-} from 'ai';
+import { Agent, InferAgentUIMessage } from 'ai';
 
 const weatherAgent = new Agent({
   model: 'openai/gpt-4o',
@@ -337,7 +316,7 @@ type WeatherAgentUIMessage = InferAgentUIMessage<typeof weatherAgent>;
 Create an agent that can use multiple tools to answer questions:
 
 ```ts
-import { Experimental_Agent as Agent, stepCountIs } from 'ai';
+import { Agent, stepCountIs } from 'ai';
 import { weatherTool, calculatorTool } from './tools';
 
 const assistant = new Agent({
@@ -409,7 +388,7 @@ Use an agent in a Next.js API route:
 
 ```ts
 // app/api/chat/route.ts
-import { Experimental_Agent as Agent } from 'ai';
+import { Agent } from 'ai';
 
 const agent = new Agent({
   model: 'openai/gpt-4o',

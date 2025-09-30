@@ -1,9 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import {
-  Experimental_Agent as Agent,
-  Experimental_InferAgentUIMessage as InferAgentUIMessage,
-  validateUIMessages,
-} from 'ai';
+import { Agent, InferAgentUIMessage, validateUIMessages } from 'ai';
 
 const imageGenerationAgent = new Agent({
   model: openai('gpt-5-nano'),
