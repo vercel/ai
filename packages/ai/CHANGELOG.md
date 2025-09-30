@@ -1,5 +1,13 @@
 # ai
 
+## 5.1.0-beta.19
+
+### Patch Changes
+
+- aa0515c: feat(ai): move Agent to stable
+- e7d9b00: feat(agent): add optional name property to agent
+- b1aeea7: feat(ai): set default stopWhen on Agent to stepCountIs(20)
+
 ## 5.1.0-beta.18
 
 ### Patch Changes
