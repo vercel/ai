@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { Experimental_Agent as Agent } from 'ai';
+import { Agent } from 'ai';
 import 'dotenv/config';
 
 async function main() {
