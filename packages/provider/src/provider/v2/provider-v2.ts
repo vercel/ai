@@ -2,7 +2,7 @@ import { EmbeddingModelV2 } from '../../embedding-model/v2/embedding-model-v2';
 import { ImageModelV2 } from '../../image-model/v2/image-model-v2';
 import { LanguageModelV2 } from '../../language-model/v2/language-model-v2';
 import { SpeechModelV2 } from '../../speech-model/v2/speech-model-v2';
-import { TranscriptionModelV2 } from '../../transcription-model/v2/transcription-model-v2';
+import { TranscriptionModelV3 } from '../../transcription-model/v3/transcription-model-v3';
 
 /**
  * Provider for language, text embedding, and image generation models.
@@ -50,7 +50,7 @@ The model id is then passed to the provider function to get the model.
 
 @returns {TranscriptionModel} The transcription model associated with the id
   */
-  transcriptionModel?(modelId: string): TranscriptionModelV2;
+  transcriptionModel?(modelId: string): TranscriptionModelV3;
 
   /**
 Returns the speech model with the given id.

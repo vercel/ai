@@ -5,7 +5,7 @@ import {
   NoSuchModelError,
   ProviderV3,
   SpeechModelV2,
-  TranscriptionModelV2,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 
 /**
@@ -26,7 +26,7 @@ export function customProvider<
   LANGUAGE_MODELS extends Record<string, LanguageModelV3>,
   EMBEDDING_MODELS extends Record<string, EmbeddingModelV3<string>>,
   IMAGE_MODELS extends Record<string, ImageModelV3>,
-  TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV2>,
+  TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV3>,
   SPEECH_MODELS extends Record<string, SpeechModelV2>,
 >({
   languageModels,
@@ -50,7 +50,7 @@ export function customProvider<
   imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV3;
   transcriptionModel(
     modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
-  ): TranscriptionModelV2;
+  ): TranscriptionModelV3;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV2;
 } {
   return {
@@ -94,7 +94,7 @@ export function customProvider<
 
     transcriptionModel(
       modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
-    ): TranscriptionModelV2 {
+    ): TranscriptionModelV3 {
       if (transcriptionModels != null && modelId in transcriptionModels) {
         return transcriptionModels[modelId];
       }
