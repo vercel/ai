@@ -6,7 +6,7 @@ import {
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
-import { StopCondition } from '../generate-text/stop-condition';
+import { stepCountIs, StopCondition } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
@@ -52,7 +52,7 @@ The tool choice strategy. Default: 'auto'.
 Condition for stopping the generation when there are tool results in the last step.
 When the condition is an array, any of the conditions can be met to stop the generation.
 
-@default stepCountIs(1)
+@default stepCountIs(20)
    */
   stopWhen?:
     | StopCondition<NoInfer<TOOLS>>
@@ -154,11 +154,19 @@ export class Agent<
   }
 
   async generate(options: Prompt): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
-    return generateText({ ...this.settings, ...options });
+    return generateText({
+      ...this.settings,
+      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
+      ...options,
+    });
   }
 
   stream(options: Prompt): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
-    return streamText({ ...this.settings, ...options });
+    return streamText({
+      ...this.settings,
+      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
+      ...options,
+    });
   }
 
   /**
