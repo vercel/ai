@@ -1,5 +1,12 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.29
+
+### Patch Changes
+
+- 62d43ff: Support citations in amazon-bedrock-provider
+- 559eef3: Add Claude Sonnet 4.5 (claude-sonnet-4-5-20250929-v1:0) model support
+
 ## 3.0.28
 
 ### Patch Changes
