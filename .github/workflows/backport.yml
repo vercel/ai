@@ -101,6 +101,7 @@ jobs:
           git checkout -b backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} origin/${{ needs.find-branch.outputs.release-branch }}
 
       - name: Cherry-pick commits
+        id: cherry-pick
         run: |
           # Get the merge commit hash
           MERGE_COMMIT="${{ github.event.pull_request.merge_commit_sha }}"
@@ -109,41 +110,49 @@ jobs:
           if ! git cherry-pick -m 1 "$MERGE_COMMIT"; then
             echo "Cherry-pick failed. This backport requires manual intervention."
             echo "::error::Failed to cherry-pick merge commit $MERGE_COMMIT to ${{ needs.find-branch.outputs.release-branch }} branch"
-            exit 1
+            echo "has-conflicts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-conflicts=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Commit changes in case of errors
-        if: failure()
+        if: steps.cherry-pick.outputs.has-conflicts == 'true'
         run: |
           # In case of failure, commit the conflicts to allow inspection
           git add .
           git commit -m "Backport conflicts for PR #${{ github.event.pull_request.number }} to ${{ needs.find-branch.outputs.release-branch }}"
       - name: Push backport branch
-        if: always()
         run: |
           git push origin backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }}
 
-      - name: Create backport pull request
-        if: always()
+      - name: Create backport pull request on success
         id: create-pr
         run: |
           # Create the backport PR
-          
-          PR_URL=$(gh pr create \
-            --title "$PR_TITLE" \
-            --body "$PR_BODY" \
-            --base ${{ needs.find-branch.outputs.release-branch }} \
-            --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }})
-          
+          if [ "${{ steps.cherry-pick.outputs.has-conflicts }}" = "true" ]; then
+            PR_URL=$(gh pr create \
+              --title "$PR_TITLE" \
+              --body "$PR_BODY_CONFLICTS" \
+              --base ${{ needs.find-branch.outputs.release-branch }} \
+              --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} \
+              --draft)
+          else
+            PR_URL=$(gh pr create \
+              --title "$PR_TITLE" \
+              --body "$PR_BODY_NO_CONFLICTS" \
+              --base ${{ needs.find-branch.outputs.release-branch }} \
+              --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }})
+          fi
           echo "backport-pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
           echo "Created backport PR $PR_URL"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_TITLE: "Backport: ${{ github.event.pull_request.title }}"
-          PR_BODY: "This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch."
+          PR_BODY_NO_CONFLICTS: "This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch."
+          PR_BODY_CONFLICTS: "This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. This backport has conflicts that need to be resolved manually."
 
       - name: Remove backport label from original PR
-        if: always() && steps.create-pr.outputs.backport-pr-url
+        if: steps.create-pr.outputs.backport-pr-url
         run: |
           # Remove the backport label from the original PR
           gh pr edit ${{ github.event.pull_request.number }} --remove-label backport
@@ -152,21 +161,21 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Success Comment on original PR
-        if: success() && steps.create-pr.outputs.backport-pr-url
+        if: steps.cherry-pick.outputs.has-conflicts == 'false' && steps.create-pr.outputs.backport-pr-url
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "✅ Backport PR created: ${{ steps.create-pr.outputs.backport-pr-url }}"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Error Comment on original PR
-        if: failure() && steps.create-pr.outputs.backport-pr-url
+        if: steps.cherry-pick.outputs.has-conflicts == 'true' && steps.create-pr.outputs.backport-pr-url
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ Backport to ${{ needs.find-branch.outputs.release-branch }} created but has conflicts: ${{ steps.create-pr.outputs.backport-pr-url }}"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Pull request failure Comment on original PR
-        if: failure() && !steps.create-pr.outputs.backport-pr-url
+        if: steps.cherry-pick.outputs.has-conflicts == 'true' && !steps.create-pr.outputs.backport-pr-url
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "❌ Backport to ${{ needs.find-branch.outputs.release-branch }} failed. This backport requires manual intervention. [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
         env:
