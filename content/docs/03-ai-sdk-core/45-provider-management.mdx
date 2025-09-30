@@ -158,11 +158,6 @@ export const registry = createProviderRegistry({
 });
 ```
 
-You can target an OpenAI-compatible proxy or regional gateway by setting the
-`OPENAI_BASE_URL` environment variable (or by passing the `baseURL` option when
-calling `createOpenAI`). Requests default to `https://api.openai.com/v1` when
-neither override is provided.
-
 ### Setup with Custom Separator
 
 By default, the registry uses `:` as the separator between provider and model IDs. You can customize this separator:
