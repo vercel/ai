@@ -520,4 +520,114 @@ describe('MCPClient', () => {
       await expect(client.listResources()).rejects.toThrow(MCPClientError);
     });
   });
+
+  describe('Resource Subscriptions', () => {
+    it('should subscribe to resource updates', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+
+      // Subscribe should not throw
+      await expect(
+        client.subscribeResource('file:///mock/document.txt')
+      ).resolves.not.toThrow();
+    });
+
+    it('should receive resource update notifications', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+
+      const notifications: string[] = [];
+      client.onResourceUpdated(({ uri }) => {
+        notifications.push(uri);
+      });
+
+      await client.subscribeResource('file:///mock/document.txt');
+
+      // Wait for the mock notification
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      expect(notifications).toContain('file:///mock/document.txt');
+    });
+
+    it('should handle multiple notification handlers', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+
+      const notifications1: string[] = [];
+      const notifications2: string[] = [];
+
+      client.onResourceUpdated(({ uri }) => {
+        notifications1.push(uri);
+      });
+
+      client.onResourceUpdated(({ uri }) => {
+        notifications2.push(uri);
+      });
+
+      await client.subscribeResource('file:///mock/document.txt');
+
+      // Wait for the mock notification
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      expect(notifications1).toContain('file:///mock/document.txt');
+      expect(notifications2).toContain('file:///mock/document.txt');
+    });
+
+    it('should unsubscribe from resource updates', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+
+      // Unsubscribe should not throw
+      await expect(
+        client.unsubscribeResource('file:///mock/document.txt')
+      ).resolves.not.toThrow();
+    });
+
+    it('should throw error when server does not support subscriptions', async () => {
+      const mockTransport = new MockMCPTransport({
+        initializeResult: {
+          protocolVersion: '2025-06-18',
+          serverInfo: {
+            name: 'mock-mcp-server',
+            version: '1.0.0',
+          },
+          capabilities: {
+            resources: {}, // No subscribe capability
+          },
+        },
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      await expect(
+        client.subscribeResource('file:///mock/document.txt')
+      ).rejects.toThrow('Server does not support resource subscriptions');
+    });
+
+    it('should support async notification handlers', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+
+      const notifications: string[] = [];
+      client.onResourceUpdated(async ({ uri }) => {
+        // Simulate async processing
+        await new Promise(resolve => setTimeout(resolve, 10));
+        notifications.push(uri);
+      });
+
+      await client.subscribeResource('file:///mock/document.txt');
+
+      // Wait for the mock notification and async processing
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      expect(notifications).toContain('file:///mock/document.txt');
+    });
+  });
 });

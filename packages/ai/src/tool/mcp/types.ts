@@ -222,3 +222,26 @@ export const ReadResourceResultSchema = ResultSchema.extend({
   ),
 });
 export type ReadResourceResult = z.infer<typeof ReadResourceResultSchema>;
+
+// Resource subscription schemas
+export const SubscribeRequestParamsSchema = z.object({
+  uri: z.string(),
+});
+export type SubscribeRequestParams = z.infer<typeof SubscribeRequestParamsSchema>;
+
+export const UnsubscribeRequestParamsSchema = z.object({
+  uri: z.string(),
+});
+export type UnsubscribeRequestParams = z.infer<typeof UnsubscribeRequestParamsSchema>;
+
+export const EmptyResultSchema = ResultSchema;
+export type EmptyResult = z.infer<typeof EmptyResultSchema>;
+
+// Resource update notification
+export const ResourceUpdatedNotificationSchema = z.object({
+  method: z.literal('notifications/resources/updated'),
+  params: z.object({
+    uri: z.string(),
+  }),
+});
+export type ResourceUpdatedNotification = z.infer<typeof ResourceUpdatedNotificationSchema>;

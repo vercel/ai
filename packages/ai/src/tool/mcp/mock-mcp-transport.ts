@@ -101,7 +101,9 @@ export class MockMCPTransport implements MCPTransport {
             },
             capabilities: {
               ...(this.tools.length > 0 ? { tools: {} } : {}),
-              ...(this.resources.length > 0 || this.resourceTemplates.length > 0 ? { resources: {} } : {}),
+              ...(this.resources.length > 0 || this.resourceTemplates.length > 0
+                ? { resources: { subscribe: true } }
+                : {}),
             },
           },
         });
@@ -254,6 +256,63 @@ export class MockMCPTransport implements MCPTransport {
               },
             ],
           },
+        });
+      }
+
+      if (message.method === 'resources/subscribe') {
+        await delay(10);
+        const uri = message.params?.uri as string;
+
+        if (!uri) {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32602,
+              message: 'Invalid params: uri is required',
+            },
+          });
+          return;
+        }
+
+        // Acknowledge subscription
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {},
+        });
+
+        // Simulate a resource update notification after a delay
+        setTimeout(() => {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            method: 'notifications/resources/updated',
+            params: { uri },
+          });
+        }, 100);
+      }
+
+      if (message.method === 'resources/unsubscribe') {
+        await delay(10);
+        const uri = message.params?.uri as string;
+
+        if (!uri) {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32602,
+              message: 'Invalid params: uri is required',
+            },
+          });
+          return;
+        }
+
+        // Acknowledge unsubscription
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {},
         });
       }
     }
