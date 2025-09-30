@@ -4084,7 +4084,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
-    describe('image generation tool', () => {
+    describe('local shell tool', () => {
       let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
       beforeEach(async () => {
