@@ -12,7 +12,7 @@
     "@ai-sdk/react": "workspace:*",
     "@vercel/blob": "^0.26.0",
     "ai": "workspace:*",
-    "next": "latest",
+    "next": "^15.5.4",
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "9.0.1",
