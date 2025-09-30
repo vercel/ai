@@ -129,19 +129,27 @@ jobs:
         id: create-pr
         run: |
           # Create the backport PR
-          
-          PR_URL=$(gh pr create \
-            --title "$PR_TITLE" \
-            --body "$PR_BODY" \
-            --base ${{ needs.find-branch.outputs.release-branch }} \
-            --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }})
-          
+          if [ "${{ steps.cherry-pick.outputs.has-conflicts }}" = "true" ]; then
+            PR_URL=$(gh pr create \
+              --title "$PR_TITLE" \
+              --body "$PR_BODY_CONFLICTS" \
+              --base ${{ needs.find-branch.outputs.release-branch }} \
+              --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} \
+              --draft)
+          else
+            PR_URL=$(gh pr create \
+              --title "$PR_TITLE" \
+              --body "$PR_BODY_NO_CONFLICTS" \
+              --base ${{ needs.find-branch.outputs.release-branch }} \
+              --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }})
+          fi
           echo "backport-pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
           echo "Created backport PR $PR_URL"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_TITLE: "Backport: ${{ github.event.pull_request.title }}"
-          PR_BODY: "This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch."
+          PR_BODY_NO_CONFLICTS: "This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch."
+          PR_BODY_CONFLICTS: "This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. This backport has conflicts that need to be resolved manually."
 
       - name: Remove backport label from original PR
         if: steps.create-pr.outputs.backport-pr-url
