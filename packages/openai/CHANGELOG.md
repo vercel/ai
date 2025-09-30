@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.41
+
+### Patch Changes
+
+- 110c735: support OPENAI_BASE_URL env
+
 ## 2.0.40
 
 ### Patch Changes
