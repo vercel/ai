@@ -130,6 +130,16 @@ export class Agent<
     this.settings = settings;
   }
 
+  /**
+   * The name of the agent.
+   */
+  get name(): string | undefined {
+    return this.settings.name;
+  }
+
+  /**
+   * The tools that the agent can use.
+   */
   get tools(): TOOLS {
     return this.settings.tools as TOOLS;
   }
