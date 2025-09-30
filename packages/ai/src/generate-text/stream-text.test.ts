@@ -5,7 +5,7 @@ import {
   LanguageModelV3FunctionTool,
   LanguageModelV3ProviderDefinedTool,
   LanguageModelV3StreamPart,
-  SharedV2ProviderMetadata,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   delay,
@@ -226,7 +226,7 @@ const modelWithReasoning = new MockLanguageModelV3({
         delta: '',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        } as SharedV2ProviderMetadata,
+        } as SharedV3ProviderMetadata,
       },
       { type: 'reasoning-end', id: '1' },
       {
@@ -253,14 +253,14 @@ const modelWithReasoning = new MockLanguageModelV3({
         id: '3',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        } as SharedV2ProviderMetadata,
+        } as SharedV3ProviderMetadata,
       },
       {
         type: 'reasoning-start',
         id: '4',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        } as SharedV2ProviderMetadata,
+        } as SharedV3ProviderMetadata,
       },
       {
         type: 'reasoning-delta',
@@ -277,7 +277,7 @@ const modelWithReasoning = new MockLanguageModelV3({
         id: '5',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        } as SharedV2ProviderMetadata,
+        } as SharedV3ProviderMetadata,
       },
       {
         type: 'reasoning-delta',
@@ -299,14 +299,14 @@ const modelWithReasoning = new MockLanguageModelV3({
         id: '4',
         providerMetadata: {
           testProvider: { signature: '0987654321' },
-        } as SharedV2ProviderMetadata,
+        } as SharedV3ProviderMetadata,
       },
       {
         type: 'reasoning-end',
         id: '5',
         providerMetadata: {
           testProvider: { signature: '0987654321' },
-        } as SharedV2ProviderMetadata,
+        } as SharedV3ProviderMetadata,
       },
       { type: 'text-start', id: '1' },
       { type: 'text-delta', id: '1', delta: 'Hi' },
@@ -316,7 +316,7 @@ const modelWithReasoning = new MockLanguageModelV3({
         id: '1',
         providerMetadata: {
           testProvider: { signature: '0987654321' },
-        } as SharedV2ProviderMetadata,
+        } as SharedV3ProviderMetadata,
       },
       {
         type: 'finish',

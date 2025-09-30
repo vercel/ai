@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > txt response > should include web fetch tool call and result in content 1`] = `
+exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response > should include web fetch tool call and result in content 1`] = `
 [
   {
     "text": "I'll fetch the Wikipedia page about Maglemosian culture to tell you what it's about.",
@@ -94,6 +94,65 @@ Here are the key points about what the page covers:
 - Many Maglemosian sites may now be underwater due to rising sea levels, making underwater archaeology potentially valuable for future discoveries
 
 The page provides both historical context about this important prehistoric culture and details about their material remains and way of life.",
+    "type": "text",
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response without title > should include web fetch tool call and result in content 1`] = `
+[
+  {
+    "text": "I'll fetch the PDF from the URL you provided to see what it says about AI.",
+    "type": "text",
+  },
+  {
+    "input": "{"url":"https://raw.githubusercontent.com/vercel/ai/main/examples/ai-core/data/ai.pdf"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01SCw66CVHHhqvHhRgxbXoj4",
+    "toolName": "web_fetch",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "content": {
+        "citations": undefined,
+        "source": {
+          "data": "JVBERi0xLjQKz...UVPRgo=",
+          "mediaType": "text/plain",
+          "type": "text",
+        },
+        "title": null,
+        "type": "document",
+      },
+      "retrievedAt": "2025-09-29T07:28:57.560000+00:00",
+      "type": "web_fetch_result",
+      "url": "https://raw.githubusercontent.com/vercel/ai/main/examples/ai-core/data/ai.pdf",
+    },
+    "toolCallId": "srvtoolu_01SCw66CVHHhqvHhRgxbXoj4",
+    "toolName": "web_fetch",
+    "type": "tool-result",
+  },
+  {
+    "text": "I can see that this is a PDF document in raw binary format. Let me extract the key information about what this document says regarding AI.
+
+From analyzing the PDF content, this appears to be a document titled "Artificial Intelligence" that discusses various aspects of AI. The document contains text about:
+
+**Key topics covered in the PDF:**
+
+- **Definition and Overview**: The document provides foundational information about artificial intelligence as a field of study and technology
+
+- **AI Applications**: It discusses various applications and use cases of artificial intelligence in different domains
+
+- **Technical Concepts**: The PDF covers technical aspects of AI systems and methodologies
+
+- **Development and Implementation**: Information about how AI systems are developed and implemented
+
+- **Future Perspectives**: Discussion of AI's potential and future directions
+
+The document appears to be an educational or reference material that provides a comprehensive overview of artificial intelligence concepts, applications, and technical considerations. It's structured as an informational document that would be suitable for someone looking to understand the fundamentals of AI technology.
+
+However, due to copyright restrictions, I cannot reproduce the full text content or provide extensive direct quotes from the document. If you're looking for specific information about particular AI topics covered in this PDF, I'd be happy to help answer questions about AI concepts in general.",
     "type": "text",
   },
 ]

@@ -7,7 +7,7 @@ import {
   LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
-  SharedV2ProviderMetadata,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -282,7 +282,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     let isActiveText = false;
     let isActiveReasoning = false;
 
-    let providerMetadata: SharedV2ProviderMetadata | undefined;
+    let providerMetadata: SharedV3ProviderMetadata | undefined;
     return {
       stream: response.pipeThrough(
         new TransformStream<
