@@ -1093,20 +1093,27 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           self.addStream(toolExecutionStepStream);
 
           try {
-            // TODO send tool outputs in full stream
+            const approvedToolCalls = toolApprovals
+              .filter(toolApproval => toolApproval.approvalResponse.approved)
+              .map(toolApproval => toolApproval.toolCall);
 
-            const toolOutputs = await executeTools({
-              // run only approved tool calls:
-              toolCalls: toolApprovals
-                .filter(toolApproval => toolApproval.approvalResponse.approved)
-                .map(toolApproval => toolApproval.toolCall),
-              tools: tools as TOOLS,
-              tracer,
-              telemetry,
-              messages: initialMessages,
-              abortSignal,
-              experimental_context,
-            });
+            const toolOutputsIncludingNull = await Promise.all(
+              approvedToolCalls.map(async toolCall =>
+                executeToolCall({
+                  toolCall,
+                  tools,
+                  tracer,
+                  telemetry,
+                  messages: initialMessages,
+                  abortSignal,
+                  experimental_context,
+                }),
+              ),
+            );
+
+            const toolOutputs = toolOutputsIncludingNull.filter(
+              (output): output is NonNullable<typeof output> => output != null,
+            );
 
             initialResponseMessages.push({
               role: 'tool',
@@ -2236,40 +2243,4 @@ However, the LLM results are expected to be small enough to not cause issues.
       ...init,
     });
   }
-}
-
-async function executeTools<TOOLS extends ToolSet>({
-  toolCalls,
-  tools,
-  tracer,
-  telemetry,
-  messages,
-  abortSignal,
-  experimental_context,
-}: {
-  toolCalls: Array<TypedToolCall<TOOLS>>;
-  tools: TOOLS;
-  tracer: Tracer;
-  telemetry: TelemetrySettings | undefined;
-  messages: ModelMessage[];
-  abortSignal: AbortSignal | undefined;
-  experimental_context: unknown;
-}): Promise<Array<ToolOutput<TOOLS>>> {
-  const toolOutputs = await Promise.all(
-    toolCalls.map(async toolCall =>
-      executeToolCall({
-        toolCall,
-        tools,
-        tracer,
-        telemetry,
-        messages,
-        abortSignal,
-        experimental_context,
-      }),
-    ),
-  );
-
-  return toolOutputs.filter(
-    (output): output is NonNullable<typeof output> => output != null,
-  );
 }
