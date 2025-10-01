@@ -18,7 +18,6 @@ import {
 import {
   InferUIMessageToolCall,
   isToolOrDynamicToolUIPart,
-  ToolUIPart,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,

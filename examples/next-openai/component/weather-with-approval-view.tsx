@@ -2,10 +2,10 @@ import type { WeatherUIToolWithApprovalInvocation } from '@/tool/weather-tool-wi
 
 export default function WeatherWithApprovalView({
   invocation,
-  sendApprovalResponse,
+  addToolApprovalResponse,
 }: {
   invocation: WeatherUIToolWithApprovalInvocation;
-  sendApprovalResponse: (response: {
+  addToolApprovalResponse: (response: {
     id: string;
     approved: boolean;
     reason?: string;
@@ -20,7 +20,7 @@ export default function WeatherWithApprovalView({
             <button
               className="px-4 py-2 mr-2 text-white bg-blue-500 rounded transition-colors hover:bg-blue-600"
               onClick={() =>
-                sendApprovalResponse({
+                addToolApprovalResponse({
                   id: invocation.approval.id,
                   approved: true,
                 })
@@ -31,7 +31,7 @@ export default function WeatherWithApprovalView({
             <button
               className="px-4 py-2 text-white bg-red-500 rounded transition-colors hover:bg-red-600"
               onClick={() =>
-                sendApprovalResponse({
+                addToolApprovalResponse({
                   id: invocation.approval.id,
                   approved: false,
                 })

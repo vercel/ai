@@ -30,8 +30,8 @@ export default function TestToolApproval() {
                   <WeatherWithApprovalView
                     key={index}
                     invocation={part}
-                    sendApprovalResponse={() => {
-                      console.log('sendApprovalResponse');
+                    addToolApprovalResponse={approval => {
+                      console.log('addToolApprovalResponse', approval);
                     }}
                   />
                 );
