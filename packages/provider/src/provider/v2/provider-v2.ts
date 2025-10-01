@@ -3,7 +3,6 @@ import { ImageModelV2 } from '../../image-model/v2/image-model-v2';
 import { LanguageModelV2 } from '../../language-model/v2/language-model-v2';
 import { SpeechModelV2 } from '../../speech-model/v2/speech-model-v2';
 import { TranscriptionModelV2 } from '../../transcription-model/v2/transcription-model-v2';
-import { RerankingModelV3 } from '../../reranking-model/v3/reranking-model-v3';
 
 /**
  * Provider for language, text embedding, and image generation models.
@@ -62,16 +61,4 @@ The model id is then passed to the provider function to get the model.
 @returns {SpeechModel} The speech model associated with the id
   */
   speechModel?(modelId: string): SpeechModelV2;
-
-  /**
-Returns the reranking model with the given id.
-The model id is then passed to the provider function to get the model.
-
-@param {string} modelId - The id of the model to return.
-
-@returns {RerankingModel} The reranking model associated with the id
-
-@throws {NoSuchModelError} If no such model exists.
-   */
-  rerankingModel?(modelId: string): RerankingModelV3<VALUE>;
 }
