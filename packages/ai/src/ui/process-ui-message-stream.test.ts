@@ -5989,6 +5989,34 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "approval-requested",
+                  "toolCallId": "call-1",
+                  "type": "tool-tool1",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });

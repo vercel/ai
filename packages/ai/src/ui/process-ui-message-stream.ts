@@ -532,6 +532,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 id: chunk.approvalId,
               };
 
+              write();
               break;
             }
 

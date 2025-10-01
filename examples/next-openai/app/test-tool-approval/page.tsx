@@ -12,6 +12,8 @@ export default function TestToolApproval() {
       transport: new DefaultChatTransport({ api: '/api/chat-tool-approval' }),
     });
 
+  console.log(structuredClone(messages));
+
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       <h1 className="mb-4 text-xl font-bold">Tool Approval Test</h1>
