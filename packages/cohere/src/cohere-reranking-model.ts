@@ -1,5 +1,5 @@
 import {
-  RerankingModelV2,
+  RerankingModelV3,
   TooManyDocumentsForRerankingError,
 } from '@ai-sdk/provider';
 
@@ -25,8 +25,8 @@ type CohereRerankingConfig = {
   fetch?: FetchFunction;
 };
 
-export class CohereRerankingModel implements RerankingModelV2<string> {
-  readonly specificationVersion = 'v2';
+export class CohereRerankingModel implements RerankingModelV3<string> {
+  readonly specificationVersion = 'v3';
   readonly modelId: CohereRerankingModelId;
 
   readonly maxDocumentsPerCall = Infinity;
@@ -50,8 +50,8 @@ export class CohereRerankingModel implements RerankingModelV2<string> {
     topK,
     abortSignal,
     providerOptions,
-  }: Parameters<RerankingModelV2<string>['doRerank']>[0]): Promise<
-    Awaited<ReturnType<RerankingModelV2<string>['doRerank']>>
+  }: Parameters<RerankingModelV3<string>['doRerank']>[0]): Promise<
+    Awaited<ReturnType<RerankingModelV3<string>['doRerank']>>
   > {
     const rerankingOptions = await parseProviderOptions({
       provider: 'cohere',

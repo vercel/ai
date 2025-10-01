@@ -4,11 +4,11 @@ import {
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV2,
-  EmbeddingModelV2,
-  RerankingModelV2,
+  LanguageModelV3,
+  EmbeddingModelV3,
+  RerankingModelV3,
 } from '@ai-sdk/provider';
-import { loadApiKey } from '@ai-sdk/provider-utils';
+import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { createTogetherAI } from './togetherai-provider';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
@@ -24,10 +24,14 @@ vi.mock('@ai-sdk/openai-compatible', () => ({
   OpenAICompatibleEmbeddingModel: vi.fn(),
 }));
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
-  withoutTrailingSlash: vi.fn(url => url),
-}));
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    ...actual,
+    loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
+    withoutTrailingSlash: vi.fn(url => url),
+  };
+});
 
 vi.mock('./togetherai-image-model', () => ({
   TogetherAIImageModel: vi.fn(),
@@ -38,22 +42,22 @@ vi.mock('./togetherai-reranking-model', () => ({
 }));
 
 describe('TogetherAIProvider', () => {
-  let mockLanguageModel: LanguageModelV2;
-  let mockEmbeddingModel: EmbeddingModelV2<string>;
-  let mockRerankingModel: RerankingModelV2<string | object>;
+  let mockLanguageModel: LanguageModelV3;
+  let mockEmbeddingModel: EmbeddingModelV3<string>;
+  let mockRerankingModel: RerankingModelV3<string | object>;
   let createOpenAICompatibleMock: Mock;
 
   beforeEach(() => {
     // Mock implementations of models
     mockLanguageModel = {
-      // Add any required methods for LanguageModelV2
-    } as LanguageModelV2;
+      // Add any required methods for LanguageModelV3
+    } as LanguageModelV3;
     mockEmbeddingModel = {
-      // Add any required methods for EmbeddingModelV2
-    } as EmbeddingModelV2<string>;
+      // Add any required methods for EmbeddingModelV3
+    } as EmbeddingModelV3<string>;
     mockRerankingModel = {
-      // Add any required methods for RerankingModelV2
-    } as RerankingModelV2<string | object>;
+      // Add any required methods for RerankingModelV3
+    } as RerankingModelV3<string | object>;
 
     // Reset mocks
     vi.clearAllMocks();

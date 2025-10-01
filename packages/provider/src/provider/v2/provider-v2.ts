@@ -3,7 +3,7 @@ import { ImageModelV2 } from '../../image-model/v2/image-model-v2';
 import { LanguageModelV2 } from '../../language-model/v2/language-model-v2';
 import { SpeechModelV2 } from '../../speech-model/v2/speech-model-v2';
 import { TranscriptionModelV2 } from '../../transcription-model/v2/transcription-model-v2';
-import { RerankingModelV2 } from '../../reranking-model/v2/reranking-model-v2';
+import { RerankingModelV3 } from '../../reranking-model/v3/reranking-model-v3';
 
 /**
  * Provider for language, text embedding, and image generation models.
@@ -73,5 +73,5 @@ The model id is then passed to the provider function to get the model.
 
 @throws {NoSuchModelError} If no such model exists.
    */
-  rerankingModel?(modelId: string): RerankingModelV2<VALUE>;
+  rerankingModel?(modelId: string): RerankingModelV3<VALUE>;
 }

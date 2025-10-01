@@ -15,6 +15,13 @@ export interface GatewayFetchMetadataResponse {
   models: GatewayLanguageModelEntry[];
 }
 
+export interface GatewayCreditsResponse {
+  /** The remaining gateway credit balance available for API usage */
+  balance: string;
+  /** The total amount of gateway credits that have been consumed */
+  totalUsed: string;
+}
+
 export class GatewayFetchMetadata {
   constructor(private readonly config: GatewayFetchMetadataConfig) {}
 
@@ -38,10 +45,32 @@ export class GatewayFetchMetadata {
       throw asGatewayError(error);
     }
   }
+
+  async getCredits(): Promise<GatewayCreditsResponse> {
+    try {
+      const baseUrl = new URL(this.config.baseURL);
+
+      const { value } = await getFromApi({
+        url: `${baseUrl.origin}/v1/credits`,
+        headers: await resolve(this.config.headers()),
+        successfulResponseHandler:
+          createJsonResponseHandler(gatewayCreditsSchema),
+        failedResponseHandler: createJsonErrorResponseHandler({
+          errorSchema: z.any(),
+          errorToMessage: data => data,
+        }),
+        fetch: this.config.fetch,
+      });
+
+      return value;
+    } catch (error) {
+      throw asGatewayError(error);
+    }
+  }
 }
 
 const gatewayLanguageModelSpecificationSchema = z.object({
-  specificationVersion: z.literal('v2'),
+  specificationVersion: z.literal('v3'),
   provider: z.string(),
   modelId: z.string(),
 });
@@ -74,3 +103,13 @@ const gatewayLanguageModelEntrySchema = z.object({
 const gatewayFetchMetadataSchema = z.object({
   models: z.array(gatewayLanguageModelEntrySchema),
 });
+
+const gatewayCreditsSchema = z
+  .object({
+    balance: z.string(),
+    total_used: z.string(),
+  })
+  .transform(({ balance, total_used }) => ({
+    balance,
+    totalUsed: total_used,
+  }));

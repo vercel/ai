@@ -161,14 +161,16 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
 
 ```typescript
 import { experimental_createMCPClient, generateText } from 'ai';
+import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
 
+let client;
+
 try {
-  const client = await experimental_createMCPClient({
-    transport: {
-      type: 'stdio',
+  client = await experimental_createMCPClient({
+    transport: new Experimental_StdioMCPTransport({
       command: 'node server.js',
-    },
+    }),
   });
 
   const tools = await client.tools();
@@ -180,8 +182,13 @@ try {
   });
 
   console.log(response);
+} catch (error) {
+  console.error('Error:', error);
 } finally {
-  await client.close();
+  // ensure the client is closed even if an error occurs
+  if (client) {
+    await client.close();
+  }
 }
 ```
 

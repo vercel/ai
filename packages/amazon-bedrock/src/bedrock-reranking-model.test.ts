@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { injectFetchHeaders } from './inject-fetch-headers';
 import { RerankedDocument } from '@ai-sdk/provider';
 import { BedrockRerankingModel } from './bedrock-reranking-model';

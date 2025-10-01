@@ -91,6 +91,7 @@ await generateText({
   providerOptions: {
     mistral: {
       safePrompt: true, // optional safety prompt injection
+      parallelToolCalls: false, // disable parallel tool calls (one tool per response)
     } satisfies MistralLanguageModelOptions,
   },
 });
@@ -121,6 +122,12 @@ The following optional provider options are available for Mistral models:
 - **structuredOutputs** _boolean_
 
   Whether to use [structured outputs](#structured-outputs). When enabled, tool calls and object generation will be strict and follow the provided schema.
+
+  Defaults to `true`.
+
+- **parallelToolCalls** _boolean_
+
+  Whether to enable parallel function calling during tool use. When set to false, the model will use at most one tool per response.
 
   Defaults to `true`.
 
@@ -221,7 +228,7 @@ with Zod, Valibot, or raw JSON Schema. The SDK sends your schema via Mistral's `
 ```ts
 import { mistral } from '@ai-sdk/mistral';
 import { generateObject } from 'ai';
-import { z } from 'zod/v3';
+import { z } from 'zod';
 
 const result = await generateObject({
   model: mistral('mistral-large-latest'),
@@ -243,7 +250,7 @@ You can enable strict JSON Schema validation using a provider option:
 ```ts highlight="7-11"
 import { mistral } from '@ai-sdk/mistral';
 import { generateObject } from 'ai';
-import { z } from 'zod/v3';
+import { z } from 'zod';
 
 const result = await generateObject({
   model: mistral('mistral-large-latest'),

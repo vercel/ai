@@ -1,5 +1,63 @@
 # @ai-sdk/codemod
 
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- 740d4bf: feat(codemod): add usechat input state transformation for v5
+- 437ab50: feat(codemod): add usechat api to transport transformation
+- 9b4457c: feat(codemod): add tool invocations migration to v5 codemods
+- adbeac4: feat(codemod): add datastream to uimessagestream transformation
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+## 2.0.10
+
+### Patch Changes
+
+- 4627f55: fix(codemod): remove generate text codemod
+
+## 2.0.9
+
+### Patch Changes
+
+- c82e85a: fix(codemod): handle import alias for maxStep-stopWhen
+
+## 2.0.8
+
+### Patch Changes
+
+- 8aadbc9: feat(codemod): add not implemented comment and warnings
+
+## 2.0.7
+
+### Patch Changes
+
+- 5dc1c62: fix(codemod): Language Model V2 Import
+
+  Migration: https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#language-model-v2-import
+
+  Codemod behavior before the fix
+
+  ```diff
+  - import { LanguageModelV2 } from 'ai';
+  + import { LanguageModelV2 } from '@ai-sdk/provider';
+  ```
+
+  After
+
+  ```diff
+  + import { LanguageModelV2 } from 'ai';
+  - import { LanguageModelV2 } from '@ai-sdk/provider';
+  ```
+
+- 7ae8e57: fix(codemod): avoid false positive in `v5/restructure-file-stream-parts`
+- 237a8cc: fix(codemod): Do not replace `delta.type` value from `'text-delta'` to `'text'`
+
 ## 2.0.6
 
 ### Patch Changes

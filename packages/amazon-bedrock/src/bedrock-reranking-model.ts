@@ -1,5 +1,5 @@
 import {
-  RerankingModelV2,
+  RerankingModelV3,
   TooManyDocumentsForRerankingError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -28,13 +28,13 @@ type BedrockRerankingConfig = {
 };
 
 type DoRerankResponse = Awaited<
-  ReturnType<RerankingModelV2<string | object>['doRerank']>
+  ReturnType<RerankingModelV3<string | object>['doRerank']>
 >;
 
 export class BedrockRerankingModel
-  implements RerankingModelV2<string | object>
+  implements RerankingModelV3<string | object>
 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly provider = 'amazon-bedrock';
   readonly maxDocumentsPerCall = 1000;
 
@@ -51,7 +51,7 @@ export class BedrockRerankingModel
     abortSignal,
     providerOptions,
   }: Parameters<
-    RerankingModelV2<string | object>['doRerank']
+    RerankingModelV3<string | object>['doRerank']
   >[0]): Promise<DoRerankResponse> {
     if (values.length > this.maxDocumentsPerCall) {
       throw new TooManyDocumentsForRerankingError({

@@ -1,9 +1,9 @@
 import {
-  LanguageModelV2,
-  EmbeddingModelV2,
-  ProviderV2,
-  ImageModelV2,
-  RerankingModelV2,
+  LanguageModelV3,
+  EmbeddingModelV3,
+  ProviderV3,
+  ImageModelV3,
+  RerankingModelV3,
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -14,6 +14,7 @@ import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { TogetherAIChatModelId } from './togetherai-chat-options';
 import { TogetherAIEmbeddingModelId } from './togetherai-embedding-options';
@@ -22,6 +23,7 @@ import { TogetherAIImageModel } from './togetherai-image-model';
 import { TogetherAIImageModelId } from './togetherai-image-settings';
 import { TogetherAIRerankingModelId } from './togetherai-reranking-options';
 import { TogetherAIRerankingModel } from './togetherai-reranking-model';
+import { VERSION } from './version';
 
 export interface TogetherAIProviderSettings {
   /**
@@ -43,50 +45,50 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface TogetherAIProvider extends ProviderV2<string | object> {
+export interface TogetherAIProvider extends ProviderV3<string | object> {
   /**
 Creates a model for text generation.
 */
-  (modelId: TogetherAIChatModelId): LanguageModelV2;
+  (modelId: TogetherAIChatModelId): LanguageModelV3;
 
   /**
 Creates a chat model for text generation.
 */
-  chatModel(modelId: TogetherAIChatModelId): LanguageModelV2;
+  chatModel(modelId: TogetherAIChatModelId): LanguageModelV3;
 
   /**
 Creates a chat model for text generation.
 */
-  languageModel(modelId: TogetherAIChatModelId): LanguageModelV2;
+  languageModel(modelId: TogetherAIChatModelId): LanguageModelV3;
 
   /**
 Creates a completion model for text generation.
 */
-  completionModel(modelId: TogetherAICompletionModelId): LanguageModelV2;
+  completionModel(modelId: TogetherAICompletionModelId): LanguageModelV3;
 
   /**
 Creates a text embedding model for text generation.
 */
   textEmbeddingModel(
     modelId: TogetherAIEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 
   /**
 Creates a model for image generation.
 */
-  image(modelId: TogetherAIImageModelId): ImageModelV2;
+  image(modelId: TogetherAIImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
 */
-  imageModel(modelId: TogetherAIImageModelId): ImageModelV2;
+  imageModel(modelId: TogetherAIImageModelId): ImageModelV3;
 
   /**
 Creates a model for reranking.
 */
   rerankingModel(
     modelId: TogetherAIRerankingModelId,
-  ): RerankingModelV2<string | object>;
+  ): RerankingModelV3<string | object>;
 }
 
 export function createTogetherAI(
@@ -95,14 +97,18 @@ export function createTogetherAI(
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.together.xyz/v1/',
   );
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'TOGETHER_AI_API_KEY',
-      description: 'TogetherAI',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'TOGETHER_AI_API_KEY',
+          description: 'TogetherAI',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/togetherai/${VERSION}`,
+    );
 
   interface CommonModelConfig {
     provider: string;

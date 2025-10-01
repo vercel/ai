@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 
 import { createTogetherAI } from './togetherai-provider';
 import {

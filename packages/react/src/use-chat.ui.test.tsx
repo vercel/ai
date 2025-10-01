@@ -2,9 +2,9 @@
 /* eslint-disable @next/next/no-img-element */
 import {
   createTestServer,
-  mockId,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
+import { mockId } from '@ai-sdk/provider-utils/test';
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -346,6 +346,9 @@ describe('data protocol stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "isAbort": false,
+          "isDisconnect": false,
+          "isError": false,
           "message": {
             "id": "id-1",
             "metadata": {
@@ -534,6 +537,9 @@ describe('text stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "isAbort": false,
+          "isDisconnect": false,
+          "isError": false,
           "message": {
             "id": "id-2",
             "metadata": undefined,

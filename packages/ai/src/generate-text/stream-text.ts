@@ -1,7 +1,7 @@
 import {
   getErrorMessage,
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
+  LanguageModelV3,
+  LanguageModelV3CallWarning,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -13,6 +13,7 @@ import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -58,6 +59,7 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DelayedPromise } from '../util/delayed-promise';
+import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { ContentPart } from './content-part';
@@ -244,6 +246,7 @@ export function streamText<
   activeTools = experimental_activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
+  experimental_download: download,
   includeRawChunks = false,
   onChunk,
   onError = ({ error }) => {
@@ -342,6 +345,13 @@ The stream transformations must maintain the stream structure for streamText to 
       | Array<StreamTextTransform<TOOLS>>;
 
     /**
+Custom download function to use for URLs.
+
+By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+    experimental_download?: DownloadFunction | undefined;
+
+    /**
 Whether to include raw chunks from the provider in the stream.
 When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
 This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
@@ -424,6 +434,7 @@ Internal. For test use only. May change without notice.
     currentDate,
     generateId,
     experimental_context,
+    download,
   });
 }
 
@@ -592,8 +603,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onAbort,
     onStepFinish,
     experimental_context,
+    download,
   }: {
-    model: LanguageModelV2;
+    model: LanguageModelV3;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
@@ -616,6 +628,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     currentDate: () => Date;
     generateId: () => string;
     experimental_context: unknown;
+    download: DownloadFunction | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -717,6 +730,22 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'text-end') {
+          const activeText = activeTextContent[part.id];
+
+          if (activeText == null) {
+            controller.enqueue({
+              part: {
+                type: 'error',
+                error: `text part ${part.id} not found`,
+              },
+              partialOutput: undefined,
+            });
+            return;
+          }
+
+          activeText.providerMetadata =
+            part.providerMetadata ?? activeText.providerMetadata;
+
           delete activeTextContent[part.id];
         }
 
@@ -815,6 +844,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           });
 
           await onStepFinish?.(currentStepResult);
+
+          logWarnings(recordedWarnings);
 
           recordedSteps.push(currentStepResult);
 
@@ -1061,6 +1092,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
             supportedUrls: await model.supportedUrls,
+            download,
           });
 
           const stepModel = resolveLanguageModel(
@@ -1158,7 +1190,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepRequest = request ?? {};
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
-          let warnings: LanguageModelV2CallWarning[] | undefined;
+          let warnings: LanguageModelV3CallWarning[] | undefined;
 
           const activeToolCallToolNames: Record<string, string> = {};
 

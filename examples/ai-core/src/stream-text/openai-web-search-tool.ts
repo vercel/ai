@@ -1,18 +1,16 @@
 import { openai } from '@ai-sdk/openai';
-import { stepCountIs, streamText } from 'ai';
-import 'dotenv/config';
+import { streamText } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-4o-mini'),
-    stopWhen: stepCountIs(5),
+    model: openai('gpt-5-mini'),
+    prompt: 'What happened in tech news today?',
     tools: {
-      web_search_preview: openai.tools.webSearchPreview({
-        searchContextSize: 'high',
+      web_search: openai.tools.webSearch({
+        searchContextSize: 'medium',
       }),
     },
-    toolChoice: { type: 'tool', toolName: 'web_search_preview' },
-    prompt: 'Look up the company that owns Sonny Angel',
   });
 
   for await (const chunk of result.fullStream) {
@@ -22,29 +20,26 @@ async function main() {
         break;
       }
 
+      case 'tool-call': {
+        console.log(
+          `\x1b[32m\x1b[1mTool call:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
+        );
+        break;
+      }
+
+      case 'tool-result': {
+        console.log(
+          `\x1b[32m\x1b[1mTool result:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
+        );
+        break;
+      }
+
       case 'source': {
         if (chunk.sourceType === 'url') {
-          process.stdout.write(`\n\n Source: ${chunk.title} (${chunk.url})`);
-        } else {
-          process.stdout.write(`\n\n Document: ${chunk.title}`);
+          process.stdout.write(
+            `\n\n\x1b[36mSource: ${chunk.title} (${chunk.url})\x1b[0m\n\n`,
+          );
         }
-        break;
-      }
-
-      case 'finish-step': {
-        console.log();
-        console.log();
-        console.log('STEP FINISH');
-        console.log('Finish reason:', chunk.finishReason);
-        console.log('Usage:', chunk.usage);
-        console.log();
-        break;
-      }
-
-      case 'finish': {
-        console.log('FINISH');
-        console.log('Finish reason:', chunk.finishReason);
-        console.log('Total Usage:', chunk.totalUsage);
         break;
       }
 
@@ -53,6 +48,4 @@ async function main() {
         break;
     }
   }
-}
-
-main().catch(console.error);
+});

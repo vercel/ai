@@ -1,7 +1,7 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2Content,
-  LanguageModelV2ToolCall,
+  LanguageModelV3,
+  LanguageModelV3Content,
+  LanguageModelV3ToolCall,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -9,9 +9,11 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
@@ -31,6 +33,7 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
+import { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
 import { ContentPart } from './content-part';
 import { extractTextContent } from './extract-text-content';
@@ -53,6 +56,7 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
+import { VERSION } from '../version';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -137,6 +141,7 @@ export async function generateText<
   experimental_prepareStep,
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
+  experimental_download: download,
   experimental_context,
   _internal: {
     generateId = originalGenerateId,
@@ -200,6 +205,13 @@ Optional specification for parsing structured outputs from the LLM response.
     experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
 
     /**
+Custom download function to use for URLs.
+
+By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+    experimental_download?: DownloadFunction | undefined;
+
+    /**
      * @deprecated Use `prepareStep` instead.
      */
     experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
@@ -245,10 +257,15 @@ A function that attempts to repair a tool call that failed to parse.
 
   const callSettings = prepareCallSettings(settings);
 
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers,
+    headers: headersWithUserAgent,
     settings: { ...callSettings, maxRetries },
   });
 
@@ -285,7 +302,7 @@ A function that attempts to repair a tool call that failed to parse.
         const callSettings = prepareCallSettings(settings);
 
         let currentModelResponse: Awaited<
-          ReturnType<LanguageModelV2['doGenerate']>
+          ReturnType<LanguageModelV3['doGenerate']>
         > & { response: { id: string; timestamp: Date; modelId: string } };
         let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
         let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
@@ -311,6 +328,7 @@ A function that attempts to repair a tool call that failed to parse.
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
             supportedUrls: await model.supportedUrls,
+            download,
           });
 
           const stepModel = resolveLanguageModel(
@@ -376,7 +394,7 @@ A function that attempts to repair a tool call that failed to parse.
                   prompt: promptMessages,
                   providerOptions,
                   abortSignal,
-                  headers,
+                  headers: headersWithUserAgent,
                 });
 
                 // Fill in default values:
@@ -436,7 +454,7 @@ A function that attempts to repair a tool call that failed to parse.
           const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
             currentModelResponse.content
               .filter(
-                (part): part is LanguageModelV2ToolCall =>
+                (part): part is LanguageModelV3ToolCall =>
                   part.type === 'tool-call',
               )
               .map(toolCall =>
@@ -537,6 +555,8 @@ A function that attempts to repair a tool call that failed to parse.
               messages: structuredClone(responseMessages),
             },
           });
+
+          logWarnings(currentModelResponse.warnings ?? []);
 
           steps.push(currentStepResult);
           await onStepFinish?.(currentStepResult);
@@ -821,9 +841,9 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 }
 
-function asToolCalls(content: Array<LanguageModelV2Content>) {
+function asToolCalls(content: Array<LanguageModelV3Content>) {
   const parts = content.filter(
-    (part): part is LanguageModelV2ToolCall => part.type === 'tool-call',
+    (part): part is LanguageModelV3ToolCall => part.type === 'tool-call',
   );
 
   if (parts.length === 0) {
@@ -842,7 +862,7 @@ function asContent<TOOLS extends ToolSet>({
   toolCalls,
   toolOutputs,
 }: {
-  content: Array<LanguageModelV2Content>;
+  content: Array<LanguageModelV3Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
 }): Array<ContentPart<TOOLS>> {

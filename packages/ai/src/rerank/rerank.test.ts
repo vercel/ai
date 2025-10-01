@@ -4,8 +4,8 @@ import { MockTracer } from '../test/mock-tracer';
 import { rerank } from './rerank';
 import {
   mockRerank,
-  MockRerankingModelV2,
-} from '../test/mock-reranking-model-v2';
+  MockRerankingModelV3,
+} from '../test/mock-reranking-model-v3';
 import { RerankedDocument } from '../types/reranking-model';
 import { TooManyDocumentsForRerankingError } from '@ai-sdk/provider';
 
@@ -28,7 +28,7 @@ const topK = 3;
 describe('result.reranking', () => {
   it('should reranking documents', async () => {
     const result = await rerank({
-      model: new MockRerankingModelV2({
+      model: new MockRerankingModelV3({
         doRerank: mockRerank(testDocuments, dummyRerankedDocuments),
       }),
       values: testDocuments,
@@ -43,7 +43,7 @@ describe('result.reranking', () => {
 describe('result.response', () => {
   it('should include response in the result', async () => {
     const result = await rerank({
-      model: new MockRerankingModelV2({
+      model: new MockRerankingModelV3({
         doRerank: mockRerank(testDocuments, dummyRerankedDocuments),
       }),
       values: testDocuments,
@@ -58,7 +58,7 @@ describe('result.response', () => {
 describe('result.value', () => {
   it('should include value in the result', async () => {
     const result = await rerank({
-      model: new MockRerankingModelV2({
+      model: new MockRerankingModelV3({
         doRerank: mockRerank(testDocuments, dummyRerankedDocuments),
       }),
       values: testDocuments,
@@ -73,7 +73,7 @@ describe('result.value', () => {
 describe('result.usage', () => {
   it('should include usage in the result', async () => {
     const result = await rerank({
-      model: new MockRerankingModelV2({
+      model: new MockRerankingModelV3({
         doRerank: mockRerank(testDocuments, dummyRerankedDocuments, {
           tokens: 30,
         }),
@@ -97,7 +97,7 @@ describe('result.providerMetadata', () => {
     };
 
     const result = await rerank({
-      model: new MockRerankingModelV2({
+      model: new MockRerankingModelV3({
         doRerank: mockRerank(
           testDocuments,
           dummyRerankedDocuments,
@@ -121,7 +121,7 @@ describe('result.providerMetadata', () => {
 describe('options.headers', () => {
   it('should set headers', async () => {
     const result = await rerank({
-      model: new MockRerankingModelV2({
+      model: new MockRerankingModelV3({
         doRerank: async ({ headers }) => {
           assert.deepStrictEqual(headers, {
             'custom-request-header': 'request-header-value',
@@ -142,7 +142,7 @@ describe('options.headers', () => {
 
 describe('options.providerOptions', () => {
   it('should pass provider options to model', async () => {
-    const model = new MockRerankingModelV2({
+    const model = new MockRerankingModelV3({
       doRerank: async ({ providerOptions }) => {
         return {
           rerankedDocuments: [dummyRerankedDocuments[0]],
@@ -184,7 +184,7 @@ describe('telemetry', () => {
 
   it('should not record any telemetry data when not explicitly enabled', async () => {
     await rerank({
-      model: new MockRerankingModelV2({
+      model: new MockRerankingModelV3({
         doRerank: mockRerank(testDocuments, dummyRerankedDocuments),
       }),
       values: testDocuments,
@@ -196,7 +196,7 @@ describe('telemetry', () => {
 
   it('should record telemetry data when enabled (single call path)', async () => {
     await rerank({
-      model: new MockRerankingModelV2({
+      model: new MockRerankingModelV3({
         doRerank: mockRerank(testDocuments, dummyRerankedDocuments, {
           tokens: 10,
         }),
@@ -220,7 +220,7 @@ describe('telemetry', () => {
 
   it('should not record telemetry inputs / outputs when disabled', async () => {
     await rerank({
-      model: new MockRerankingModelV2({
+      model: new MockRerankingModelV3({
         doRerank: mockRerank(testDocuments, dummyRerankedDocuments),
       }),
       values: testDocuments,
@@ -247,7 +247,7 @@ describe('maxDocumentsPerCall validation', () => {
       'document 3', // This exceeds the limit
     ];
 
-    const model = new MockRerankingModelV2({
+    const model = new MockRerankingModelV3({
       provider: 'test-provider',
       modelId: 'test-model',
       maxDocumentsPerCall,

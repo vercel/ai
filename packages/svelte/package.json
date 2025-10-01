@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "3.0.26",
+  "version": "3.1.0-beta.19",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
@@ -44,7 +44,7 @@
   },
   "peerDependencies": {
     "svelte": "^5.31.0",
-    "zod": "^3.25.76 || ^4"
+    "zod": "^3.25.76 || ^4.1.8"
   },
   "peerDependenciesMeta": {
     "zod": {
@@ -52,17 +52,18 @@
     }
   },
   "dependencies": {
-    "ai": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "ai": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
+    "@ai-sdk/test-server": "workspace:*",
     "@eslint/compat": "^1.2.5",
     "@eslint/js": "^9.18.0",
     "@sveltejs/package": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/svelte": "^5.2.4",
+    "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "eslint": "^9.18.0",
     "eslint-plugin-svelte": "^3.0.0",

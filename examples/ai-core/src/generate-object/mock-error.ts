@@ -1,12 +1,12 @@
 import { generateObject, NoObjectGeneratedError } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV3 } from 'ai/test';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   try {
     await generateObject({
-      model: new MockLanguageModelV2({
+      model: new MockLanguageModelV3({
         doGenerate: async () => ({
           warnings: [],
           content: [{ type: 'text', text: `{"content":"Hello broken json` }],

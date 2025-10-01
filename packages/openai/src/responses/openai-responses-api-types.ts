@@ -1,17 +1,32 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 
-export type OpenAIResponsesPrompt = Array<OpenAIResponsesMessage>;
+export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
-export type OpenAIResponsesMessage =
+export type OpenAIResponsesInputItem =
   | OpenAIResponsesSystemMessage
   | OpenAIResponsesUserMessage
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
-  | OpenAIWebSearchCall
-  | OpenAIComputerCall
-  | OpenAIFileSearchCall
-  | OpenAIResponsesReasoning;
+  | OpenAIResponsesComputerCall
+  | OpenAIResponsesLocalShellCall
+  | OpenAIResponsesLocalShellCallOutput
+  | OpenAIResponsesReasoning
+  | OpenAIResponsesItemReference;
+
+export type OpenAIResponsesIncludeValue =
+  | 'web_search_call.action.sources'
+  | 'code_interpreter_call.outputs'
+  | 'computer_call_output.output.image_url'
+  | 'file_search_call.results'
+  | 'message.input_image.image_url'
+  | 'message.output_text.logprobs'
+  | 'reasoning.encrypted_content';
+
+export type OpenAIResponsesIncludeOptions =
+  | Array<OpenAIResponsesIncludeValue>
+  | undefined
+  | null;
 
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
@@ -32,12 +47,7 @@ export type OpenAIResponsesUserMessage = {
 
 export type OpenAIResponsesAssistantMessage = {
   role: 'assistant';
-  content: Array<
-    | { type: 'output_text'; text: string }
-    | OpenAIWebSearchCall
-    | OpenAIComputerCall
-    | OpenAIFileSearchCall
-  >;
+  content: Array<{ type: 'output_text'; text: string }>;
   id?: string;
 };
 
@@ -55,22 +65,73 @@ export type OpenAIResponsesFunctionCallOutput = {
   output: string;
 };
 
-export type OpenAIWebSearchCall = {
-  type: 'web_search_call';
-  id: string;
-  status?: string;
-};
-
-export type OpenAIComputerCall = {
+export type OpenAIResponsesComputerCall = {
   type: 'computer_call';
   id: string;
   status?: string;
 };
 
-export type OpenAIFileSearchCall = {
-  type: 'file_search_call';
+export type OpenAIResponsesLocalShellCall = {
+  type: 'local_shell_call';
   id: string;
-  status?: string;
+  call_id: string;
+  action: {
+    type: 'exec';
+    command: string[];
+    timeout_ms?: number;
+    user?: string;
+    working_directory?: string;
+    env?: Record<string, string>;
+  };
+};
+
+export type OpenAIResponsesLocalShellCallOutput = {
+  type: 'local_shell_call_output';
+  call_id: string;
+  output: string;
+};
+
+export type OpenAIResponsesItemReference = {
+  type: 'item_reference';
+  id: string;
+};
+
+/**
+ * A filter used to compare a specified attribute key to a given value using a defined comparison operation.
+ */
+export type OpenAIResponsesFileSearchToolComparisonFilter = {
+  /**
+   * The key to compare against the value.
+   */
+  key: string;
+
+  /**
+   * Specifies the comparison operator: eq, ne, gt, gte, lt, lte.
+   */
+  type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
+
+  /**
+   * The value to compare against the attribute key; supports string, number, or boolean types.
+   */
+  value: string | number | boolean;
+};
+
+/**
+ * Combine multiple filters using and or or.
+ */
+export type OpenAIResponsesFileSearchToolCompoundFilter = {
+  /**
+   * Type of operation: and or or.
+   */
+  type: 'and' | 'or';
+
+  /**
+   * Array of filters to combine. Items can be ComparisonFilter or CompoundFilter.
+   */
+  filters: Array<
+    | OpenAIResponsesFileSearchToolComparisonFilter
+    | OpenAIResponsesFileSearchToolCompoundFilter
+  >;
 };
 
 export type OpenAIResponsesTool =
@@ -79,7 +140,21 @@ export type OpenAIResponsesTool =
       name: string;
       description: string | undefined;
       parameters: JSONSchema7;
-      strict?: boolean;
+      strict: boolean | undefined;
+    }
+  | {
+      type: 'web_search';
+      filters: { allowed_domains: string[] | undefined } | undefined;
+      search_context_size: 'low' | 'medium' | 'high' | undefined;
+      user_location:
+        | {
+            type: 'approximate';
+            city?: string;
+            country?: string;
+            region?: string;
+            timezone?: string;
+          }
+        | undefined;
     }
   | {
       type: 'web_search_preview';
@@ -100,21 +175,36 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'file_search';
-      vector_store_ids?: string[];
-      max_num_results?: number;
-      ranking_options?: {
-        ranker?: 'auto' | 'default-2024-08-21';
-      };
-      filters?:
+      vector_store_ids: string[];
+      max_num_results: number | undefined;
+      ranking_options:
+        | { ranker?: string; score_threshold?: number }
+        | undefined;
+      filters:
+        | OpenAIResponsesFileSearchToolComparisonFilter
+        | OpenAIResponsesFileSearchToolCompoundFilter
+        | undefined;
+    }
+  | {
+      type: 'image_generation';
+      background: 'auto' | 'opaque' | 'transparent' | undefined;
+      input_fidelity: 'low' | 'high' | undefined;
+      input_image_mask:
         | {
-            key: string;
-            type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
-            value: string | number | boolean;
+            file_id: string | undefined;
+            image_url: string | undefined;
           }
-        | {
-            type: 'and' | 'or';
-            filters: any[];
-          };
+        | undefined;
+      model: string | undefined;
+      moderation: 'auto' | undefined;
+      output_compression: number | undefined;
+      output_format: 'png' | 'jpeg' | 'webp' | undefined;
+      partial_images: number | undefined;
+      quality: 'auto' | 'low' | 'medium' | 'high' | undefined;
+      size: 'auto' | '1024x1024' | '1024x1536' | '1536x1024' | undefined;
+    }
+  | {
+      type: 'local_shell';
     };
 
 export type OpenAIResponsesReasoning = {

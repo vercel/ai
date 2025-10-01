@@ -1,5 +1,5 @@
 import {
-  RerankingModelV2,
+  RerankingModelV3,
   TooManyDocumentsForRerankingError,
 } from '@ai-sdk/provider';
 
@@ -26,9 +26,9 @@ type TogetherAIRerankingConfig = {
 };
 
 export class TogetherAIRerankingModel
-  implements RerankingModelV2<string | object>
+  implements RerankingModelV3<string | object>
 {
-  readonly specificationVersion = 'v2';
+  readonly specificationVersion = 'v3';
   readonly modelId: TogetherAIRerankingModelId;
 
   readonly maxDocumentsPerCall = Infinity;
@@ -55,8 +55,8 @@ export class TogetherAIRerankingModel
     topK,
     abortSignal,
     providerOptions,
-  }: Parameters<RerankingModelV2<string | object>['doRerank']>[0]): Promise<
-    Awaited<ReturnType<RerankingModelV2<string | object>['doRerank']>>
+  }: Parameters<RerankingModelV3<string | object>['doRerank']>[0]): Promise<
+    Awaited<ReturnType<RerankingModelV3<string | object>['doRerank']>>
   > {
     const rerankingOptions = await parseProviderOptions({
       provider: 'togetherai',

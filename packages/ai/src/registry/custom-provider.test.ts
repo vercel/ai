@@ -1,17 +1,16 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
-import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
-import { MockImageModelV2 } from '../test/mock-image-model-v2';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
+import { MockImageModelV3 } from '../test/mock-image-model-v3';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
 import { customProvider } from './custom-provider';
-import { MockRerankingModelV2 } from '../test/mock-reranking-model-v2';
+import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 
-const mockLanguageModel = new MockLanguageModelV2();
-const mockEmbeddingModel = new MockEmbeddingModelV2();
-const mockRerankingModel = new MockRerankingModelV2<string>();
-
+const mockLanguageModel = new MockLanguageModelV3();
+const mockEmbeddingModel = new MockEmbeddingModelV3();
+const mockRerankingModel = new MockRerankingModelV3<string>();
 const mockFallbackProvider = {
   languageModel: vi.fn(),
   textEmbeddingModel: vi.fn(),
@@ -83,7 +82,7 @@ describe('textEmbeddingModel', () => {
 });
 
 describe('imageModel', () => {
-  const mockImageModel = new MockImageModelV2();
+  const mockImageModel = new MockImageModelV3();
 
   it('should return the image model if it exists', () => {
     const provider = customProvider({
