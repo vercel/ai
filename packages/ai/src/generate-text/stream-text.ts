@@ -1097,9 +1097,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               .filter(toolApproval => toolApproval.approvalResponse.approved)
               .map(toolApproval => toolApproval.toolCall);
 
-            const toolOutputsIncludingNull = await Promise.all(
-              approvedToolCalls.map(async toolCall =>
-                executeToolCall({
+            const toolOutputs: Array<ToolOutput<TOOLS>> = [];
+
+            await Promise.all(
+              approvedToolCalls.map(async toolCall => {
+                const result = await executeToolCall({
                   toolCall,
                   tools,
                   tracer,
@@ -1107,12 +1109,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   messages: initialMessages,
                   abortSignal,
                   experimental_context,
-                }),
-              ),
-            );
+                });
 
-            const toolOutputs = toolOutputsIncludingNull.filter(
-              (output): output is NonNullable<typeof output> => output != null,
+                if (result != null) {
+                  toolOutputs.push(result);
+                }
+              }),
             );
 
             initialResponseMessages.push({
