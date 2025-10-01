@@ -29,6 +29,7 @@
         "GOOGLE_VERTEX_LOCATION",
         "GOOGLE_VERTEX_PROJECT",
         "GROQ_API_KEY",
+        "HUGGINGFACE_API_KEY",
         "LUMA_API_KEY",
         "MISTRAL_API_KEY",
         "NEXT_RUNTIME",
