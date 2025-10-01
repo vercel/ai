@@ -666,6 +666,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           usage: response.usage as JSONObject,
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
+          stopSequence: response.stop_sequence ?? null,
         },
       },
     };
@@ -715,6 +716,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
+    let stopSequence: string | null = null;
 
     let blockType:
       | 'text'
@@ -1149,6 +1151,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   isJsonResponseFromTool: usesJsonResponseTool,
                 });
 
+                stopSequence = value.delta.stop_sequence ?? null;
+
                 rawUsage = {
                   ...rawUsage,
                   ...(value.usage as JSONObject),
@@ -1166,6 +1170,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     anthropic: {
                       usage: rawUsage ?? null,
                       cacheCreationInputTokens,
+                      stopSequence,
                     },
                   },
                 });
@@ -1288,6 +1293,7 @@ const anthropicMessagesResponseSchema = z.object({
     ]),
   ),
   stop_reason: z.string().nullish(),
+  stop_sequence: z.string().nullish(),
   usage: z.looseObject({
     input_tokens: z.number(),
     output_tokens: z.number(),
@@ -1439,7 +1445,10 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('message_delta'),
-    delta: z.object({ stop_reason: z.string().nullish() }),
+    delta: z.object({
+      stop_reason: z.string().nullish(),
+      stop_sequence: z.string().nullish(),
+    }),
     usage: z.looseObject({
       output_tokens: z.number(),
       cache_creation_input_tokens: z.number().nullish(),
