@@ -1,6 +1,7 @@
 import {
   AssistantContent,
   ModelMessage,
+  ToolApprovalResponse,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text/tool-set';
@@ -178,6 +179,14 @@ export function convertToModelMessages(
                       : {}),
                   });
 
+                  if (part.state === 'approval-responded') {
+                    content.push({
+                      type: 'tool-approval-request' as const,
+                      approvalId: part.approval.id,
+                      toolCallId: part.toolCallId,
+                    });
+                  }
+
                   if (
                     part.providerExecuted === true &&
                     (part.state === 'output-available' ||
@@ -222,37 +231,49 @@ export function convertToModelMessages(
               modelMessages.push({
                 role: 'tool',
                 content: toolParts
-                  .map((toolPart): ToolResultPart | null => {
-                    switch (toolPart.state) {
-                      case 'output-error':
-                      case 'output-available': {
-                        const toolName =
-                          toolPart.type === 'dynamic-tool'
-                            ? toolPart.toolName
-                            : getToolName(toolPart);
+                  .map(
+                    (
+                      toolPart,
+                    ): ToolResultPart | ToolApprovalResponse | null => {
+                      switch (toolPart.state) {
+                        case 'approval-responded': {
+                          return {
+                            type: 'tool-approval-response' as const,
+                            approvalId: toolPart.approval.id,
+                            approved: toolPart.approval.approved,
+                            reason: toolPart.approval.reason,
+                          };
+                        }
+                        case 'output-error':
+                        case 'output-available': {
+                          const toolName =
+                            toolPart.type === 'dynamic-tool'
+                              ? toolPart.toolName
+                              : getToolName(toolPart);
 
-                        return {
-                          type: 'tool-result',
-                          toolCallId: toolPart.toolCallId,
-                          toolName,
-                          output: createToolModelOutput({
-                            output:
-                              toolPart.state === 'output-error'
-                                ? toolPart.errorText
-                                : toolPart.output,
-                            tool: options?.tools?.[toolName],
-                            errorMode:
-                              toolPart.state === 'output-error'
-                                ? 'text'
-                                : 'none',
-                          }),
-                        };
+                          return {
+                            type: 'tool-result',
+                            toolCallId: toolPart.toolCallId,
+                            toolName,
+                            output: createToolModelOutput({
+                              output:
+                                toolPart.state === 'output-error'
+                                  ? toolPart.errorText
+                                  : toolPart.output,
+                              tool: options?.tools?.[toolName],
+                              errorMode:
+                                toolPart.state === 'output-error'
+                                  ? 'text'
+                                  : 'none',
+                            }),
+                          };
+                        }
+                        default: {
+                          return null;
+                        }
                       }
-                      default: {
-                        return null;
-                      }
-                    }
-                  })
+                    },
+                  )
                   .filter(
                     (output): output is NonNullable<typeof output> =>
                       output != null,
