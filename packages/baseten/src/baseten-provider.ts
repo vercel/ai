@@ -4,10 +4,10 @@ import {
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
-  EmbeddingModelV3,
-  LanguageModelV3,
+  EmbeddingModelV2,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -61,28 +61,28 @@ export interface BasetenProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface BasetenProvider extends ProviderV3 {
+export interface BasetenProvider extends ProviderV2 {
   /**
 Creates a chat model for text generation. 
 */
-  (modelId?: BasetenChatModelId): LanguageModelV3;
+  (modelId?: BasetenChatModelId): LanguageModelV2;
 
   /**
 Creates a chat model for text generation. 
 */
-  chatModel(modelId?: BasetenChatModelId): LanguageModelV3;
+  chatModel(modelId?: BasetenChatModelId): LanguageModelV2;
 
   /**
 Creates a language model for text generation. Alias for chatModel.
 */
-  languageModel(modelId?: BasetenChatModelId): LanguageModelV3;
+  languageModel(modelId?: BasetenChatModelId): LanguageModelV2;
 
   /**
 Creates a text embedding model for text generation.
 */
   textEmbeddingModel(
     modelId?: BasetenEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  ): EmbeddingModelV2<string>;
 }
 
 // by default, we use the Model APIs
