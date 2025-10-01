@@ -70,7 +70,7 @@ export class GatewayFetchMetadata {
 }
 
 const gatewayLanguageModelSpecificationSchema = z.object({
-  specificationVersion: z.literal('v2'),
+  specificationVersion: z.literal('v3'),
   provider: z.string(),
   modelId: z.string(),
 });

@@ -110,7 +110,7 @@ export const weatherTool = tool({
             {
               name: 'toModelOutput',
               isOptional: true,
-              type: "(output: RESULT) => LanguageModelV2ToolResultPart['output']",
+              type: "(output: RESULT) => LanguageModelV3ToolResultPart['output']",
               description:
                 'Optional conversion function that maps the tool result to an output that can be used by the language model. If not provided, the tool result will be sent as a JSON object.',
             },

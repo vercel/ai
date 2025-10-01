@@ -1,4 +1,4 @@
-import { JSONValue, LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
+import { JSONValue, LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
 import { FlexibleSchema } from '../schema';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
@@ -137,7 +137,7 @@ If not provided, the tool result will be sent as a JSON object.
         : [OUTPUT] extends [never]
           ? any
           : NoInfer<OUTPUT>,
-    ) => LanguageModelV2ToolResultPart['output'];
+    ) => LanguageModelV3ToolResultPart['output'];
   } & (
     | {
         /**
@@ -209,7 +209,7 @@ export function dynamicTool(tool: {
   providerOptions?: ProviderOptions;
   inputSchema: FlexibleSchema<unknown>;
   execute: ToolExecuteFunction<unknown, unknown>;
-  toModelOutput?: (output: unknown) => LanguageModelV2ToolResultPart['output'];
+  toModelOutput?: (output: unknown) => LanguageModelV3ToolResultPart['output'];
 }): Tool<unknown, unknown> & {
   type: 'dynamic';
 } {

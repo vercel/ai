@@ -1,4 +1,4 @@
-import { LanguageModelV2ToolResultOutput } from '@ai-sdk/provider';
+import { LanguageModelV3ToolResultOutput } from '@ai-sdk/provider';
 import {
   FilePart,
   ImagePart,
@@ -97,7 +97,7 @@ export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
 /**
 @internal
  */
-export const outputSchema: z.ZodType<LanguageModelV2ToolResultOutput> =
+export const outputSchema: z.ZodType<LanguageModelV3ToolResultOutput> =
   z.discriminatedUnion('type', [
     z.object({
       type: z.literal('text'),

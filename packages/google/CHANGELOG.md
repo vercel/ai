@@ -1,5 +1,45 @@
 # @ai-sdk/google
 
+## 2.1.0-beta.9
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+
+## 2.1.0-beta.8
+
+### Patch Changes
+
+- 7728ac5: The mediaResolution option has been added and is now passed to the Google API.
+
+## 2.1.0-beta.7
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
+## 2.1.0-beta.6
+
+### Patch Changes
+
+- e833473: chore (provider/google): Add preview modelIds for gemini 2.5 flash and lite
+
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
 ## 2.1.0-beta.4
 
 ### Patch Changes

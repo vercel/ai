@@ -1,5 +1,70 @@
 # @ai-sdk/azure
 
+## 2.1.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+  - @ai-sdk/openai@2.1.0-beta.11
+
+## 2.1.0-beta.10
+
+### Patch Changes
+
+- d64ece9: enables image_generation capabilities in the Azure provider through the Responses API.
+- Updated dependencies [d64ece9]
+  - @ai-sdk/openai@2.1.0-beta.10
+
+## 2.1.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [9a51b92]
+  - @ai-sdk/openai@2.1.0-beta.9
+
+## 2.1.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [4122d2a]
+- Updated dependencies [3997a42]
+- Updated dependencies [cb4d238]
+  - @ai-sdk/openai@2.1.0-beta.8
+
+## 2.1.0-beta.7
+
+### Patch Changes
+
+- 77f2b20: enables code_interpreter and file_search capabilities in the Azure provider through the Responses API
+- 8dac895: feat: `LanguageModelV3`
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [77f2b20]
+- Updated dependencies [8dac895]
+- Updated dependencies [10c1322]
+  - @ai-sdk/openai@2.1.0-beta.7
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
+## 2.1.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [fe49278]
+  - @ai-sdk/openai@2.1.0-beta.6
+
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - @ai-sdk/openai@2.1.0-beta.5
+
 ## 2.1.0-beta.4
 
 ### Patch Changes

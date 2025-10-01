@@ -1,10 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { Experimental_Agent as Agent } from 'ai';
+import { Agent } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const agent = new Agent({
-    model: openai('gpt-3.5-turbo'),
+    model: openai('gpt-5'),
     system: 'You are a helpful assistant.',
   });
 

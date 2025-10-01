@@ -1,12 +1,11 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
-
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { createXai } from './xai-provider';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -31,7 +30,7 @@ describe('XaiChatLanguageModel', () => {
   it('should be instantiated correctly', () => {
     expect(model.modelId).toBe('grok-beta');
     expect(model.provider).toBe('xai.chat');
-    expect(model.specificationVersion).toBe('v2');
+    expect(model.specificationVersion).toBe('v3');
   });
 
   it('should have supported URLs', () => {

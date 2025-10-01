@@ -1,4 +1,4 @@
-import { LanguageModelV2StreamPart } from '@ai-sdk/provider';
+import { LanguageModelV3StreamPart } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -20,7 +20,7 @@ const testUsage = {
 };
 describe('runToolsTransformation', () => {
   it('should forward text deltas correctly', async () => {
-    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
         { type: 'text-start', id: '1' },
         { type: 'text-delta', id: '1', delta: 'text' },
@@ -79,7 +79,7 @@ describe('runToolsTransformation', () => {
   });
 
   it('should handle async tool execution', async () => {
-    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -152,7 +152,7 @@ describe('runToolsTransformation', () => {
   });
 
   it('should handle sync tool execution', async () => {
-    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -225,7 +225,7 @@ describe('runToolsTransformation', () => {
   });
 
   it('should hold off on sending finish until the delayed tool result is received', async () => {
-    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -302,7 +302,7 @@ describe('runToolsTransformation', () => {
   });
 
   it('should try to repair tool call when the tool name is not found', async () => {
-    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -387,7 +387,7 @@ describe('runToolsTransformation', () => {
   it('should not call execute for provider-executed tool calls', async () => {
     let toolExecuted = false;
 
-    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',

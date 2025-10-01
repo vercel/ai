@@ -1,4 +1,4 @@
-import { LanguageModelV2ToolResultOutput } from '@ai-sdk/provider';
+import { LanguageModelV3ToolResultOutput } from '@ai-sdk/provider';
 import { ProviderOptions } from './provider-options';
 import { DataContent } from './data-content';
 
@@ -158,7 +158,7 @@ Name of the tool that generated this result.
   /**
 Result of the tool call. This is a JSON-serializable object.
    */
-  output: LanguageModelV2ToolResultOutput;
+  output: LanguageModelV3ToolResultOutput;
 
   /**
 Additional provider-specific metadata. They are passed through

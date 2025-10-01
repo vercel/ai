@@ -1,8 +1,8 @@
 import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2FunctionTool,
-  LanguageModelV2Prompt,
-  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV3CallOptions,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3Prompt,
+  LanguageModelV3ProviderDefinedTool,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
@@ -26,7 +26,7 @@ import {
 import { z } from 'zod/v4';
 import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
@@ -51,7 +51,7 @@ const dummyResponseValues = {
   warnings: [],
 };
 
-const modelWithSources = new MockLanguageModelV2({
+const modelWithSources = new MockLanguageModelV3({
   doGenerate: {
     ...dummyResponseValues,
     content: [
@@ -76,7 +76,7 @@ const modelWithSources = new MockLanguageModelV2({
   },
 });
 
-const modelWithFiles = new MockLanguageModelV2({
+const modelWithFiles = new MockLanguageModelV3({
   doGenerate: {
     ...dummyResponseValues,
     content: [
@@ -95,7 +95,7 @@ const modelWithFiles = new MockLanguageModelV2({
   },
 });
 
-const modelWithReasoning = new MockLanguageModelV2({
+const modelWithReasoning = new MockLanguageModelV3({
   doGenerate: {
     ...dummyResponseValues,
     content: [
@@ -138,7 +138,7 @@ describe('generateText', () => {
   describe('result.content', () => {
     it('should generate content', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: {
             ...dummyResponseValues,
             content: [
@@ -248,7 +248,7 @@ describe('generateText', () => {
   describe('result.text', () => {
     it('should generate text', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: {
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -341,7 +341,7 @@ describe('generateText', () => {
   describe('result.toolCalls', () => {
     it('should contain tool calls', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -437,7 +437,7 @@ describe('generateText', () => {
   describe('result.toolResults', () => {
     it('should contain tool results', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -519,7 +519,7 @@ describe('generateText', () => {
   describe('result.providerMetadata', () => {
     it('should contain provider metadata', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [],
@@ -546,7 +546,7 @@ describe('generateText', () => {
   describe('result.response.messages', () => {
     it('should contain assistant response message when there are no tool calls', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -560,7 +560,7 @@ describe('generateText', () => {
 
     it('should contain assistant response message and tool message when there are tool calls with results', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -606,7 +606,7 @@ describe('generateText', () => {
   describe('result.request', () => {
     it('should contain request body', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -627,7 +627,7 @@ describe('generateText', () => {
   describe('result.response', () => {
     it('should contain response body and headers', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -660,7 +660,7 @@ describe('generateText', () => {
 
         let responseCount = 0;
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async ({ prompt, tools, toolChoice }) => {
               switch (responseCount++) {
                 case 0:
@@ -807,7 +807,7 @@ describe('generateText', () => {
     describe('2 steps: initial, tool-result with prepareStep', () => {
       let result: GenerateTextResult<any, any>;
       let onStepFinishResults: StepResult<any>[];
-      let doGenerateCalls: Array<LanguageModelV2CallOptions>;
+      let doGenerateCalls: Array<LanguageModelV3CallOptions>;
       let prepareStepCalls: Array<{
         stepNumber: number;
         steps: Array<StepResult<any>>;
@@ -821,7 +821,7 @@ describe('generateText', () => {
 
         let responseCount = 0;
 
-        const trueModel = new MockLanguageModelV2({
+        const trueModel = new MockLanguageModelV3({
           doGenerate: async ({ prompt, tools, toolChoice }) => {
             doGenerateCalls.push({ prompt, tools, toolChoice });
 
@@ -1449,7 +1449,7 @@ describe('generateText', () => {
 
         let responseCount = 0;
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => {
               switch (responseCount++) {
                 case 0:
@@ -1683,7 +1683,7 @@ describe('generateText', () => {
   describe('options.headers', () => {
     it('should pass headers to model', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({ headers }) => {
             assert.equal(
               headers?.['custom-request-header'],
@@ -1707,7 +1707,7 @@ describe('generateText', () => {
   describe('options.providerOptions', () => {
     it('should pass provider options to model', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({ providerOptions }) => {
             expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
@@ -1735,7 +1735,7 @@ describe('generateText', () => {
       const toolExecuteMock = vi.fn().mockResolvedValue('tool result');
 
       const generateTextPromise = generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1778,11 +1778,11 @@ describe('generateText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
+        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool)[]
         | undefined;
 
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({ tools: toolsArg }) => {
             tools = toolsArg;
 
@@ -1842,7 +1842,7 @@ describe('generateText', () => {
 
     it('should not record any telemetry data when not explicitly enabled', async () => {
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -1857,7 +1857,7 @@ describe('generateText', () => {
 
     it('should record telemetry data when enabled', async () => {
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -1900,7 +1900,7 @@ describe('generateText', () => {
 
     it('should record successful tool call', async () => {
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [
@@ -2001,7 +2001,7 @@ describe('generateText', () => {
 
     it('should record error on tool call', async () => {
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [
@@ -2063,7 +2063,7 @@ describe('generateText', () => {
 
     it('should not record telemetry inputs / outputs when disabled', async () => {
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [
@@ -2105,7 +2105,7 @@ describe('generateText', () => {
       const recordedCalls: unknown[] = [];
 
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => {
             return {
               ...dummyResponseValues,
@@ -2171,7 +2171,7 @@ describe('generateText', () => {
   describe('tools with custom schema', () => {
     it('should contain tool calls', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -2282,7 +2282,7 @@ describe('generateText', () => {
 
       beforeEach(async () => {
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [
@@ -2435,7 +2435,7 @@ describe('generateText', () => {
   describe('options.messages', () => {
     it('should support models that use "this" context in supportedUrls', async () => {
       let supportedUrlsCalled = false;
-      class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV3 {
         constructor() {
           super({
             supportedUrls() {
@@ -2477,7 +2477,7 @@ describe('generateText', () => {
     describe('no output', () => {
       it('should throw error when accessing output', async () => {
         const result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [{ type: 'text', text: `Hello, world!` }],
@@ -2495,7 +2495,7 @@ describe('generateText', () => {
     describe('text output', () => {
       it('should forward text as output', async () => {
         const result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [{ type: 'text', text: `Hello, world!` }],
@@ -2509,10 +2509,10 @@ describe('generateText', () => {
       });
 
       it('should set responseFormat to text and not change the prompt', async () => {
-        let callOptions: LanguageModelV2CallOptions;
+        let callOptions: LanguageModelV3CallOptions;
 
         await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async args => {
               callOptions = args;
               return {
@@ -2565,7 +2565,7 @@ describe('generateText', () => {
     describe('object output', () => {
       it('should parse the output', async () => {
         const result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [{ type: 'text', text: `{ "value": "test-value" }` }],
@@ -2581,10 +2581,10 @@ describe('generateText', () => {
       });
 
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
-        let callOptions: LanguageModelV2CallOptions;
+        let callOptions: LanguageModelV3CallOptions;
 
         await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async args => {
               callOptions = args;
               return {
@@ -2655,7 +2655,7 @@ describe('generateText', () => {
 
     beforeEach(async () => {
       result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -2750,7 +2750,7 @@ describe('generateText', () => {
       let toolExecuted = false;
 
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -2843,7 +2843,7 @@ describe('generateText', () => {
       let toolExecuted = false;
 
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -2909,7 +2909,7 @@ describe('generateText', () => {
       let recordedContext: unknown | undefined;
 
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -2952,7 +2952,7 @@ describe('generateText', () => {
 
       beforeEach(async () => {
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               warnings: [],
               usage: {
@@ -3084,7 +3084,7 @@ describe('generateText', () => {
 
       beforeEach(async () => {
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               warnings: [],
               usage: {
@@ -3263,7 +3263,7 @@ describe('generateText', () => {
       ];
 
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: {
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -3290,7 +3290,7 @@ describe('generateText', () => {
       let callCount = 0;
 
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => {
             switch (callCount++) {
               case 0:
@@ -3336,7 +3336,7 @@ describe('generateText', () => {
 
     it('should call logWarnings with empty array when no warnings are present', async () => {
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: {
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -3357,7 +3357,7 @@ describe('generateText', () => {
 
       beforeEach(async () => {
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [
@@ -3457,14 +3457,14 @@ describe('generateText', () => {
 
     describe('when a call from a single tool that needs approval is approved', () => {
       let result: GenerateTextResult<any, any>;
-      let prompts: LanguageModelV2Prompt[];
+      let prompts: LanguageModelV3Prompt[];
       let executeFunction: ToolExecuteFunction<any, any>;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -3626,14 +3626,14 @@ describe('generateText', () => {
 
     describe('when a call from a single tool that needs approval is rejected', () => {
       let result: GenerateTextResult<any, any>;
-      let prompts: LanguageModelV2Prompt[];
+      let prompts: LanguageModelV3Prompt[];
       let executeFunction: ToolExecuteFunction<any, any>;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -3785,14 +3785,14 @@ describe('generateText', () => {
 
     describe('when two calls from a single tool that needs approval are approved', () => {
       let result: GenerateTextResult<any, any>;
-      let prompts: LanguageModelV2Prompt[];
+      let prompts: LanguageModelV3Prompt[];
       let executeFunction: ToolExecuteFunction<any, any>;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async ({ prompt }) => {
               prompts.push(prompt);
               return {
