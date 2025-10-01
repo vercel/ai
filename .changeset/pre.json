@@ -71,7 +71,7 @@
     "@vercel/ai-tsconfig": "0.0.0",
     "@ai-sdk/baseten": "0.0.0",
     "@ai-sdk/test-server": "0.0.0",
-    "@ai-sdk/huggingface": "0.0.0"
+    "@ai-sdk/huggingface": "0.0.1"
   },
   "changesets": [
     "angry-hats-cry",
