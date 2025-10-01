@@ -69,7 +69,7 @@
     "eslint-config-vercel-ai": "0.0.0",
     "generate-llms-txt": "0.0.0",
     "@vercel/ai-tsconfig": "0.0.0",
-    "@ai-sdk/baseten": "0.0.0",
+    "@ai-sdk/baseten": "0.0.1",
     "@ai-sdk/test-server": "0.0.0",
     "@ai-sdk/huggingface": "0.0.0"
   },
