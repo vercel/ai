@@ -1,7 +1,10 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+} from 'ai';
 import ChatInput from '@/component/chat-input';
 import { WeatherWithApprovalAgentUIMessage } from '@/agent/weather-with-approval-agent';
 import WeatherWithApprovalView from '@/component/weather-with-approval-view';
@@ -10,6 +13,8 @@ export default function TestToolApproval() {
   const { status, sendMessage, messages, addToolApprovalResponse } =
     useChat<WeatherWithApprovalAgentUIMessage>({
       transport: new DefaultChatTransport({ api: '/api/chat-tool-approval' }),
+      sendAutomaticallyWhen:
+        lastAssistantMessageIsCompleteWithApprovalResponses,
     });
 
   console.log(structuredClone(messages));

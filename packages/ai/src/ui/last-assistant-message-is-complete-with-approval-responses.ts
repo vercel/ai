@@ -29,14 +29,15 @@ export function lastAssistantMessageIsCompleteWithApprovalResponses({
     .filter(isToolOrDynamicToolUIPart);
 
   return (
-    lastStepToolInvocations.length > 0 &&
+    // has at least one tool approval response
+    lastStepToolInvocations.filter(part => part.state === 'approval-responded')
+      .length > 0 &&
+    // all tool approvals must have a response
     lastStepToolInvocations.every(
       part =>
         part.state === 'output-available' ||
         part.state === 'output-error' ||
         part.state === 'approval-responded',
-    ) &&
-    lastStepToolInvocations.filter(part => part.state === 'approval-responded')
-      .length > 0
+    )
   );
 }

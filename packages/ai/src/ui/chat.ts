@@ -442,6 +442,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             : part,
         ),
       });
+
+      // TODO update incoming stream
+
+      // automatically send the message if the sendAutomaticallyWhen function returns true
+      if (
+        this.status !== 'streaming' &&
+        this.status !== 'submitted' &&
+        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+      ) {
+        // no await to avoid deadlocking
+        this.makeRequest({
+          trigger: 'submit-message',
+          messageId: this.lastMessage?.id,
+        });
+      }
     });
 
   addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
