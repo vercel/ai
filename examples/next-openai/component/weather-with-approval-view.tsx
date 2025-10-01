@@ -1,10 +1,10 @@
-import type { WeatherUIToolInvocation } from '@/tool/weather-tool';
+import type { WeatherUIToolWithApprovalInvocation } from '@/tool/weather-tool-with-approval';
 
-export default function WeatherView({
+export default function WeatherWithApprovalView({
   invocation,
   sendApprovalResponse,
 }: {
-  invocation: WeatherUIToolInvocation;
+  invocation: WeatherUIToolWithApprovalInvocation;
   sendApprovalResponse: (response: {
     id: string;
     approved: boolean;
@@ -12,15 +12,6 @@ export default function WeatherView({
   }) => void;
 }) {
   switch (invocation.state) {
-    // example of pre-rendering streaming tool calls:
-    case 'input-streaming':
-      return <pre>{JSON.stringify(invocation.input, null, 2)}</pre>;
-    case 'input-available':
-      return (
-        <div className="text-gray-500">
-          Getting weather information for {invocation.input.city}...
-        </div>
-      );
     case 'approval-requested':
       return (
         <div className="text-gray-500">
@@ -58,9 +49,7 @@ export default function WeatherView({
     case 'output-available':
       return (
         <div className="text-gray-500">
-          {invocation.output.state === 'loading'
-            ? 'Fetching weather information...'
-            : `Weather in ${invocation.input.city}: ${invocation.output.weather}`}
+          Weather in {invocation.input.city}: {invocation.output.weather}
         </div>
       );
     case 'output-error':
