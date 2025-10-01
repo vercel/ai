@@ -62,21 +62,4 @@ export default defineConfig([
       ),
     },
   },
-  // MCP stdio
-  {
-    entry: ['mcp-stdio/index.ts'],
-    outDir: 'dist/mcp-stdio',
-    format: ['cjs', 'esm'],
-    external: ['chai', 'chai/*'],
-    dts: true,
-    sourcemap: true,
-    target: 'es2018',
-    platform: 'node',
-    define: {
-      __PACKAGE_VERSION__: JSON.stringify(
-        (await import('./package.json', { with: { type: 'json' } })).default
-          .version,
-      ),
-    },
-  },
 ]);
