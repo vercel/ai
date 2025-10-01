@@ -7,7 +7,7 @@ import { WeatherWithApprovalAgentUIMessage } from '@/agent/weather-with-approval
 import WeatherWithApprovalView from '@/component/weather-with-approval-view';
 
 export default function TestToolApproval() {
-  const { status, sendMessage, messages } =
+  const { status, sendMessage, messages, addToolApprovalResponse } =
     useChat<WeatherWithApprovalAgentUIMessage>({
       transport: new DefaultChatTransport({ api: '/api/chat-tool-approval' }),
     });
@@ -30,9 +30,7 @@ export default function TestToolApproval() {
                   <WeatherWithApprovalView
                     key={index}
                     invocation={part}
-                    addToolApprovalResponse={approval => {
-                      console.log('addToolApprovalResponse', approval);
-                    }}
+                    addToolApprovalResponse={addToolApprovalResponse}
                   />
                 );
             }

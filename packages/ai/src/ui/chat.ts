@@ -413,6 +413,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
+  addToolApprovalResponse = async ({
+    id,
+    approved,
+    reason,
+  }: {
+    id: string;
+    approved: boolean;
+    reason?: string;
+  }) => {
+    console.log('addToolApprovalResponse', id, approved, reason);
+  };
+
   addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
     state = 'output-available',
     tool,
