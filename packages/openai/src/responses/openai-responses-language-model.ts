@@ -860,6 +860,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       | undefined
     > = {};
 
+    const ongoingAnnotations: Array<
+      z.infer<typeof responseAnnotationAddedSchema>['annotation']
+    > = [];
+
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
 
@@ -968,6 +972,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
+                ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
@@ -1281,6 +1286,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 serviceTier = value.response.service_tier;
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
+              ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
                 controller.enqueue({
                   type: 'source',
