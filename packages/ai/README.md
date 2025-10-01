@@ -8,7 +8,7 @@ To learn more about how to use the AI SDK, check out our [API Reference](https:/
 
 ## Installation
 
-You will need Node.js 18+ and pnpm installed on your local development machine.
+You will need Node.js 18+ and npm (or another package manager) installed on your local development machine.
 
 ```shell
 npm install ai
