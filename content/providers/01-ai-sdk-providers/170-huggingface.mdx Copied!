@@ -1,0 +1,119 @@
+---
+title: Hugging Face
+description: Learn how to use Hugging Face Provider.
+---
+
+# Hugging Face Provider
+
+The [Hugging Face](https://huggingface.co/) provider offers access to thousands of language models through [Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/index), including models from Meta, DeepSeek, Qwen, and more.
+
+API keys can be obtained from [Hugging Face Settings](https://huggingface.co/settings/tokens).
+
+## Setup
+
+The Hugging Face provider is available via the `@ai-sdk/huggingface` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/huggingface" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/huggingface" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/huggingface" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/huggingface" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `huggingface` from `@ai-sdk/huggingface`:
+
+```ts
+import { huggingface } from '@ai-sdk/huggingface';
+```
+
+For custom configuration, you can import `createHuggingFace` and create a provider instance with your settings:
+
+```ts
+import { createHuggingFace } from '@ai-sdk/huggingface';
+
+const huggingface = createHuggingFace({
+  apiKey: process.env.HUGGINGFACE_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the Hugging Face provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://router.huggingface.co/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header. It defaults to
+  the `HUGGINGFACE_API_KEY` environment variable. You can get your API key
+  from [Hugging Face Settings](https://huggingface.co/settings/tokens).
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+You can create language models using a provider instance:
+
+```ts
+import { huggingface } from '@ai-sdk/huggingface';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: huggingface('deepseek-ai/DeepSeek-V3-0324'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+You can also use the `.responses()` or `.languageModel()` factory methods:
+
+```ts
+const model = huggingface.responses('deepseek-ai/DeepSeek-V3-0324');
+// or
+const model = huggingface.languageModel('moonshotai/Kimi-K2-Instruct');
+```
+
+Hugging Face language models can be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+You can explore the latest and trending models with their capabilities, context size, throughput and pricing on the [Hugging Face Inference Models](https://huggingface.co/inference/models) page.
+
+## Model Capabilities
+
+| Model                                       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `meta-llama/Llama-3.1-8B-Instruct`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-3.1-70B-Instruct`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-3.3-70B-Instruct`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-4-Scout-17B-16E-Instruct` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-V3-0324`              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-R1`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-R1-Distill-Llama-70B` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-235B-A22B-Instruct-2507`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-Coder-480B-A35B-Instruct`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen2.5-VL-7B-Instruct`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `google/gemma-3-27b-it`                     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `moonshotai/Kimi-K2-Instruct`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  The capabilities depend on the specific model you're using. Check the model
+  documentation on Hugging Face Hub for detailed information about each model's
+  features.
+</Note>
