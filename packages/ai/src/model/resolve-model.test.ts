@@ -42,9 +42,7 @@ describe('resolveLanguageModel', () => {
       expect(resolvedModel.specificationVersion).toBe('v3');
 
       await resolvedModel.doGenerate({
-        prompt: [
-          { role: 'user', content: [{ type: 'text', text: 'hello' }] },
-        ],
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
       } as any);
 
       expect(v2.doGenerateCalls.length).toBe(1);
@@ -74,9 +72,7 @@ describe('resolveLanguageModel', () => {
       const resolvedModel = resolveLanguageModel(v2);
 
       await resolvedModel.doGenerate({
-        prompt: [
-          { role: 'user', content: [{ type: 'text', text: 'hello' }] },
-        ],
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
       } as any);
 
       expect(receivedThis).toBe(v2);
