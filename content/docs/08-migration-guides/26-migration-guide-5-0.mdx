@@ -2964,25 +2964,26 @@ const result = await generateText({
 });
 ```
 
-#### Strict Mode Changes & Compatibility Option Removal
+#### Strict Mode Changes
 
-The `compatibility` option has been removed.
-
-Strict mode is now disabled by default for OpenAI Responses and Chat language models. The provider options for strict JSON schema have been updated:
+`strictJsonSchema` mode is now disabled by default for OpenAI Responses and Chat language models. The provider options for strict JSON schema have been updated:
 
 - For chat language models, use the new `strictJsonSchema` provider option
 - For response language models, the `strictSchemas` provider option has been renamed to `strictJsonSchema`
 
 ```tsx filename="AI SDK 4.0"
-const openai = createOpenAI({
-  compatibility: 'strict',
+// strictJsonSchema on by default
+
+const result = await generateObject({
+  model: openai('gpt-4.1-2024-08-06'),
+  schema: z.object({ name: z.string() }),
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
 import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 
-// Must explicitly enable strict mode via provider options
+// Must explicitly enable strictJsonSchema via provider options
 const result = await generateObject({
   model: openai('gpt-4.1-2024-08-06'),
   schema: z.object({ name: z.string() }),
@@ -2991,6 +2992,22 @@ const result = await generateObject({
       strictJsonSchema: true, // opt-in via provider options
     } satisfies OpenAIResponsesProviderOptions,
   },
+});
+```
+
+#### Compatibility Option Removal
+
+The `compatibility` option has been removed; strict compatibility mode is now the default.
+
+```tsx filename="AI SDK 4.0"
+const openai = createOpenAI({
+  compatibility: 'strict',
+});
+```
+
+```tsx filename="AI SDK 5.0"
+const openai = createOpenAI({
+  // strict compatibility is now the default
 });
 ```
 
