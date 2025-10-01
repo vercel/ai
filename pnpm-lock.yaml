@@ -113,6 +113,9 @@ importers:
       '@ai-sdk/groq':
         specifier: workspace:*
         version: link:../../packages/groq
+      '@ai-sdk/huggingface':
+        specifier: workspace:*
+        version: link:../../packages/huggingface
       '@ai-sdk/hume':
         specifier: workspace:*
         version: link:../../packages/hume
@@ -1955,6 +1958,34 @@ importers:
 
   packages/groq:
     dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.5.6)(tsx@4.19.2)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/huggingface:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: workspace:*
+        version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider
