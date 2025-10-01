@@ -13857,9 +13857,8 @@ describe('streamText', () => {
       });
 
       it('should add tool approval requests to the UI message stream', async () => {
-        expect(
-          await convertAsyncIterableToArray(result.toUIMessageStream()),
-        ).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
           [
             {
               "type": "start",
