@@ -47,7 +47,7 @@ export default function WeatherWithApprovalView({
       return (
         <div className="text-gray-500">
           Can I retrieve the weather for {invocation.input.city}?
-          {invocation.approval.approved ? 'Approved' : 'Rejected'}
+          <div>{invocation.approval.approved ? 'Approved' : 'Rejected'}</div>
         </div>
       );
     case 'output-available':

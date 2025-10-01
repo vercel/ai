@@ -2066,4 +2066,85 @@ describe('Chat', () => {
       expect(chat.status).toBe('ready');
     });
   });
+
+  describe('addToolApprovalResponse', () => {
+    describe('approved', () => {
+      let chat: TestChat;
+
+      beforeEach(async () => {
+        chat = new TestChat({
+          id: '123',
+          generateId: mockId({ prefix: 'newid' }),
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+          messages: [
+            {
+              id: 'id-0',
+              role: 'user',
+              parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+            },
+            {
+              id: 'id-1',
+              role: 'assistant',
+              parts: [
+                { type: 'step-start' },
+                {
+                  type: 'tool-weather',
+                  toolCallId: 'call-1',
+                  state: 'approval-requested',
+                  input: { city: 'Tokyo' },
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+          ],
+        });
+
+        await chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        });
+      });
+
+      it('should update tool invocation to show the approval response', () => {
+        expect(chat.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "What is the weather in Tokyo?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "approval-1",
+                    "reason": undefined,
+                  },
+                  "input": {
+                    "city": "Tokyo",
+                  },
+                  "state": "approval-responded",
+                  "toolCallId": "call-1",
+                  "type": "tool-weather",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+  });
 });

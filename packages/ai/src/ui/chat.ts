@@ -18,6 +18,7 @@ import {
 import {
   InferUIMessageToolCall,
   isToolOrDynamicToolUIPart,
+  isToolUIPart,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
@@ -421,9 +422,27 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     id: string;
     approved: boolean;
     reason?: string;
-  }) => {
-    console.log('addToolApprovalResponse', id, approved, reason);
-  };
+  }) =>
+    this.jobExecutor.run(async () => {
+      const messages = this.state.messages;
+      const lastMessage = messages[messages.length - 1];
+
+      // update the message to trigger an immediate UI update
+      this.state.replaceMessage(messages.length - 1, {
+        ...lastMessage,
+        parts: lastMessage.parts.map(part =>
+          isToolUIPart(part) &&
+          part.state === 'approval-requested' &&
+          part.approval.id === id
+            ? {
+                ...part,
+                state: 'approval-responded',
+                approval: { id, approved, reason },
+              }
+            : part,
+        ),
+      });
+    });
 
   addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
     state = 'output-available',
@@ -450,6 +469,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
 
+      // update the message to trigger an immediate UI update
       this.state.replaceMessage(messages.length - 1, {
         ...lastMessage,
         parts: lastMessage.parts.map(part =>
