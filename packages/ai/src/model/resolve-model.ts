@@ -14,6 +14,8 @@ function transformToV3LanguageModel(model: LanguageModelV2): LanguageModelV3 {
   return {
     ...model,
     specificationVersion: 'v3',
+    doGenerate: model.doGenerate.bind(model),
+    doStream: model.doStream.bind(model),
   };
 }
 
@@ -23,6 +25,7 @@ function transformToV3EmbeddingModel<VALUE>(
   return {
     ...model,
     specificationVersion: 'v3',
+    doEmbed: model.doEmbed.bind(model),
   };
 }
 
