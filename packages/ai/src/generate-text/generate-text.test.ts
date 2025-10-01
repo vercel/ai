@@ -2650,7 +2650,7 @@ describe('generateText', () => {
     describe('tool-calls with experimental_output', () => {
       it('should not parse output when finish reason is tool-calls', async () => {
         const result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               ...dummyResponseValues,
               finishReason: 'tool-calls',
