@@ -39,7 +39,7 @@ You can create an instance of the Orq AI provider using the `createOrqAiProvider
 import { createOrqAiProvider } from '@orq-ai/vercel-provider';
 
 const orq = createOrqAiProvider({
-    apiKey: 'YOUR_ORQ_API', // Replace with your Orq AI API key
+  apiKey: 'YOUR_ORQ_API', // Replace with your Orq AI API key
 });
 ```
 
@@ -74,9 +74,9 @@ Generate text with various models:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-    model: orq('openai/gpt-4o'),
-    system: 'You are a helpful assistant.',
-    prompt: 'What is the capital of France?',
+  model: orq('openai/gpt-4o'),
+  system: 'You are a helpful assistant.',
+  prompt: 'What is the capital of France?',
 });
 
 console.log(text);
@@ -90,13 +90,13 @@ Stream responses for real-time interaction:
 import { streamText } from 'ai';
 
 const result = streamText({
-    model: orq('openai/gpt-4o'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+  model: orq('openai/gpt-4o'),
+  prompt: 'Invent a new holiday and describe its traditions.',
 });
 
 // Use textStream as an async iterable
 for await (const textPart of result.textStream) {
-    console.log(textPart);
+  console.log(textPart);
 }
 ```
 
@@ -109,18 +109,18 @@ import { embed, embedMany } from 'ai';
 
 // Single embedding
 const { embedding } = await embed({
-    model: orq.textEmbeddingModel('openai/text-embedding-ada-002'),
-    value: 'The quick brown fox jumps over the lazy dog',
+  model: orq.textEmbeddingModel('openai/text-embedding-ada-002'),
+  value: 'The quick brown fox jumps over the lazy dog',
 });
 
 // Multiple embeddings
 const { embeddings } = await embedMany({
-    model: orq.textEmbeddingModel('openai/text-embedding-ada-002'),
-    values: [
-        'First document about AI',
-        'Second document about machine learning',
-        'Third document about deep learning',
-    ],
+  model: orq.textEmbeddingModel('openai/text-embedding-ada-002'),
+  values: [
+    'First document about AI',
+    'Second document about machine learning',
+    'Third document about deep learning',
+  ],
 });
 ```
 
@@ -132,18 +132,18 @@ Create images using AI models:
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-    model: orq.imageModel('openai/dall-e-3'),
-    prompt: 'A futuristic city with flying cars at sunset',
-    size: "1024x1024",
-    n: 1,
-    aspectRatio: "1:1",
-    seed: undefined,
-    providerOptions: {
-        openai: {
-            style: "vivid",
-            quality: "hd",
-        },
+  model: orq.imageModel('openai/dall-e-3'),
+  prompt: 'A futuristic city with flying cars at sunset',
+  size: '1024x1024',
+  n: 1,
+  aspectRatio: '1:1',
+  seed: undefined,
+  providerOptions: {
+    openai: {
+      style: 'vivid',
+      quality: 'hd',
     },
+  },
 });
 ```
 
@@ -155,7 +155,7 @@ Add custom headers for organization-specific configurations:
 
 ```ts
 const orq = createOrqAiProvider({
-  apiKey: "YOUR_ORQ_API",    // Replace with your Orq AI API key
+  apiKey: 'YOUR_ORQ_API', // Replace with your Orq AI API key
   headers: {
     'X-Organization-Id': 'org-123',
     'X-Project-Id': 'project-456',
@@ -169,8 +169,8 @@ The Orq AI provider accepts the following configuration options:
 
 ```ts
 interface OrqAiProviderOptions {
-  apiKey: string;                           // Required: Your Orq API key
-  headers?: Record<string, string>;         // Optional: Additional HTTP headers
+  apiKey: string; // Required: Your Orq API key
+  headers?: Record<string, string>; // Optional: Additional HTTP headers
 }
 ```
 
