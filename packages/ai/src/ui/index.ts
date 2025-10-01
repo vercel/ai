@@ -26,6 +26,7 @@ export {
   type PrepareReconnectToStreamRequest,
   type PrepareSendMessagesRequest,
 } from './http-chat-transport';
+export { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
@@ -56,7 +57,7 @@ export {
   type UseCompletionOptions,
 } from './use-completion';
 export {
-  validateUIMessages,
   safeValidateUIMessages,
+  validateUIMessages,
   type SafeValidateUIMessagesResult,
 } from './validate-ui-messages';
