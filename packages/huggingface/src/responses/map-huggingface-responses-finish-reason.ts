@@ -1,8 +1,8 @@
-import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
+import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
 
 export function mapHuggingFaceResponsesFinishReason(
   finishReason: string | null | undefined,
-): LanguageModelV3FinishReason {
+): LanguageModelV2FinishReason {
   switch (finishReason) {
     case 'stop':
       return 'stop';
