@@ -475,6 +475,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         }),
                         z.object({
                           type: z.literal('container_file_citation'),
+                          container_id: z.string().nullish(),
+                          end_index: z.number().nullish(),
+                          file_id: z.string().nullish(),
+                          filename: z.string().nullish(),
+                          start_index: z.number().nullish(),
                         }),
                       ]),
                     ),
@@ -638,6 +643,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   mediaType: 'text/plain',
                   title: annotation.quote ?? annotation.filename ?? 'Document',
                   filename: annotation.filename ?? annotation.file_id,
+                });
+              } else if (annotation.type === 'container_file_citation') {
+                content.push({
+                  type: 'file',
+                  mediaType: 'container_file_citation',
+                  data: JSON.stringify(annotation),
                 });
               }
             }
@@ -1291,6 +1302,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   filename:
                     value.annotation.filename ?? value.annotation.file_id,
                 });
+              } else if (value.annotation.type === 'container_file_citation') {
+                controller.enqueue({
+                  type: 'file',
+                  mediaType: 'container_file_citation',
+                  data: JSON.stringify(value.annotation),
+                });
               }
             } else if (isErrorChunk(value)) {
               controller.enqueue({ type: 'error', error: value });
@@ -1496,24 +1513,34 @@ const responseCodeInterpreterCallCodeDoneSchema = z.object({
   code: z.string(),
 });
 
+export const openaiReseponseAnnotationSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('url_citation'),
+    url: z.string(),
+    title: z.string(),
+  }),
+  z.object({
+    type: z.literal('file_citation'),
+    file_id: z.string(),
+    filename: z.string().nullish(),
+    index: z.number().nullish(),
+    start_index: z.number().nullish(),
+    end_index: z.number().nullish(),
+    quote: z.string().nullish(),
+  }),
+  z.object({
+    type: z.literal('container_file_citation'),
+    container_id: z.string().nullish(),
+    end_index: z.number().nullish(),
+    file_id: z.string().nullish(),
+    filename: z.string().nullish(),
+    start_index: z.number().nullish(),
+  }),
+]);
+
 const responseAnnotationAddedSchema = z.object({
   type: z.literal('response.output_text.annotation.added'),
-  annotation: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('url_citation'),
-      url: z.string(),
-      title: z.string(),
-    }),
-    z.object({
-      type: z.literal('file_citation'),
-      file_id: z.string(),
-      filename: z.string().nullish(),
-      index: z.number().nullish(),
-      start_index: z.number().nullish(),
-      end_index: z.number().nullish(),
-      quote: z.string().nullish(),
-    }),
-  ]),
+  annotation: openaiReseponseAnnotationSchema,
 });
 
 const responseReasoningSummaryPartAddedSchema = z.object({
