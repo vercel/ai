@@ -7,7 +7,7 @@ async function main() {
     model: anthropic('claude-3-5-sonnet-20240620'),
     prompt: 'Write a short story and end it with the word END.',
     stopSequences: ['END'],
-  }); 
+  });
 
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);

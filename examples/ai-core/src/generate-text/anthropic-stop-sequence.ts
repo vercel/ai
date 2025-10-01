@@ -13,7 +13,7 @@ async function main() {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-  console.log(  
+  console.log(
     'Stop sequence:',
     result.providerMetadata?.anthropic?.stopSequence,
   );
