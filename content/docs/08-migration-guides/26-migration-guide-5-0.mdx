@@ -2941,24 +2941,37 @@ return createUIMessageStreamResponse({ stream });
 
 #### Structured Outputs Default
 
-Structured outputs are now enabled by default for supported OpenAI models.
+The `structuredOutputs` parameter has been removed from the model instance and is now disabled by default. It can be enabled via provider options.
 
 ```tsx filename="AI SDK 4.0"
+import { openai } from '@ai-sdk/openai';
+
 const result = await generateText({
   model: openai('gpt-4.1-2024-08-06', { structuredOutputs: true }),
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
+import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+
 const result = await generateText({
   model: openai('gpt-4.1-2024-08-06'),
-  // structuredOutputs: true is now the default
+  providerOptions: {
+    openai: {
+      structuredOutputs: true, // opt-in via provider options
+    } satisfies OpenAIResponsesProviderOptions,
+  },
 });
 ```
 
-#### Compatibility Option Removal
+#### Strict Mode Changes & Compatibility Option Removal
 
-The `compatibility` option has been removed; strict mode is now the default.
+The `compatibility` option has been removed.
+
+Strict mode is now disabled by default for OpenAI Responses and Chat language models. The provider options for strict JSON schema have been updated:
+
+- For chat language models, use the new `strictJsonSchema` provider option
+- For response language models, the `strictSchemas` provider option has been renamed to `strictJsonSchema`
 
 ```tsx filename="AI SDK 4.0"
 const openai = createOpenAI({
@@ -2967,8 +2980,17 @@ const openai = createOpenAI({
 ```
 
 ```tsx filename="AI SDK 5.0"
-const openai = createOpenAI({
-  // strict compatibility is now the default
+import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+
+// Must explicitly enable strict mode via provider options
+const result = await generateObject({
+  model: openai('gpt-4.1-2024-08-06'),
+  schema: z.object({ name: z.string() }),
+  providerOptions: {
+    openai: {
+      strictJsonSchema: true, // opt-in via provider options
+    } satisfies OpenAIResponsesProviderOptions,
+  },
 });
 ```
 
