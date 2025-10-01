@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
 } from '@ai-sdk/provider';
 
 export type HuggingFaceResponsesTool = {
@@ -19,17 +19,17 @@ export function prepareResponsesTools({
   tools,
   toolChoice,
 }: {
-  tools: LanguageModelV3CallOptions['tools'];
-  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
 }): {
   tools?: HuggingFaceResponsesTool[];
   toolChoice?: HuggingFaceResponsesToolChoice;
-  toolWarnings: LanguageModelV3CallWarning[];
+  toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
