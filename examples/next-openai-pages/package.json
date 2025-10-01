@@ -12,7 +12,7 @@
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/react": "workspace:*",
     "ai": "workspace:*",
-    "next": "latest",
+    "next": "^15.5.4",
     "react": "^18",
     "react-dom": "^18",
     "zod": "3.25.76"

@@ -127,6 +127,9 @@ export interface BedrockDocumentBlock {
     source: {
       bytes: string;
     };
+    citations?: {
+      enabled: boolean;
+    };
   };
 }
 

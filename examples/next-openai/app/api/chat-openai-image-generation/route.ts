@@ -1,42 +1,28 @@
 import { openai } from '@ai-sdk/openai';
-import {
-  convertToModelMessages,
-  InferUITools,
-  streamText,
-  ToolSet,
-  UIDataTypes,
-  UIMessage,
-  validateUIMessages,
-} from 'ai';
+import { Agent, InferAgentUIMessage, validateUIMessages } from 'ai';
 
-const tools = {
-  image_generation: openai.tools.imageGeneration(),
-} satisfies ToolSet;
+const imageGenerationAgent = new Agent({
+  model: openai('gpt-5-nano'),
+  tools: {
+    image_generation: openai.tools.imageGeneration({
+      partialImages: 3,
+      quality: 'low',
+      size: '1024x1024',
+    }),
+  },
+  onStepFinish: ({ request }) => {
+    console.log(JSON.stringify(request.body, null, 2));
+  },
+});
 
-export type OpenAIImageGenerationMessage = UIMessage<
-  never,
-  UIDataTypes,
-  InferUITools<typeof tools>
+export type OpenAIImageGenerationMessage = InferAgentUIMessage<
+  typeof imageGenerationAgent
 >;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const uiMessages = await validateUIMessages({ messages });
 
-  const result = streamText({
-    model: openai('gpt-5-nano'),
-    tools,
-    messages: convertToModelMessages(uiMessages),
-    onStepFinish: ({ request }) => {
-      console.log(JSON.stringify(request.body, null, 2));
-    },
-    providerOptions: {
-      // openai: {
-      //   store: false,
-      //   include: ['reasoning.encrypted_content'],
-      // } satisfies OpenAIResponsesProviderOptions,
-    },
+  return imageGenerationAgent.respond({
+    messages: await validateUIMessages({ messages }),
   });
-
-  return result.toUIMessageStreamResponse();
 }

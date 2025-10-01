@@ -1,5 +1,43 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.1.0-beta.11
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/anthropic@2.1.0-beta.9
+  - @ai-sdk/provider@2.1.0-beta.4
+
+## 3.1.0-beta.10
+
+### Patch Changes
+
+- c5e2a7c: Support citations in amazon-bedrock-provider
+- 3aeb791: Add Claude Sonnet 4.5 (claude-sonnet-4-5-20250929-v1:0) model support
+
+## 3.1.0-beta.9
+
+### Patch Changes
+
+- d4b2964: fix(provider/amazon-bedrock): normalise headers and body if input is of instance Request
+
+## 3.1.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [a5a8db4]
+  - @ai-sdk/anthropic@2.1.0-beta.8
+
+## 3.1.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [e1e2821]
+  - @ai-sdk/anthropic@2.1.0-beta.7
+
 ## 3.1.0-beta.6
 
 ### Patch Changes
