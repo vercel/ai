@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
 
 export type TogetherAIRerankingModelId =
-  | 'Salesforce/Llama-Rank-V1'
+  | 'Salesforce/Llama-Rank-v1'
   | 'mixedbread-ai/Mxbai-Rerank-Large-V2'
   | (string & {});
 
