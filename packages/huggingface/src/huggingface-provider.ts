@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -34,21 +34,21 @@ or to provide a custom fetch implementation for e.g. testing.
   generateId?: () => string;
 }
 
-export interface HuggingFaceProvider extends ProviderV3 {
+export interface HuggingFaceProvider extends ProviderV2 {
   /**
 Creates a Hugging Face responses model for text generation.
 */
-  (modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+  (modelId: HuggingFaceResponsesModelId): LanguageModelV2;
 
   /**
 Creates a Hugging Face responses model for text generation.
 */
-  languageModel(modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+  languageModel(modelId: HuggingFaceResponsesModelId): LanguageModelV2;
 
   /**
 Creates a Hugging Face responses model for text generation.
 */
-  responses(modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+  responses(modelId: HuggingFaceResponsesModelId): LanguageModelV2;
 }
 
 /**
