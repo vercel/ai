@@ -13856,6 +13856,40 @@ describe('streamText', () => {
         `);
       });
 
+      it('should add tool approval requests to the UI message stream', async () => {
+        expect(
+          await convertAsyncIterableToArray(result.toUIMessageStream()),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-input-available",
+            },
+            {
+              "approvalId": "id-1",
+              "toolCallId": "call-1",
+              "type": "tool-approval-request",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
+      });
+
       it('should add tool approval requests to the content', async () => {
         expect(await result.content).toMatchInlineSnapshot(`
           [

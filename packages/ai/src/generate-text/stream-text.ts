@@ -2026,6 +2026,15 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
+            case 'tool-approval-request': {
+              controller.enqueue({
+                type: 'tool-approval-request',
+                approvalId: part.approvalId,
+                toolCallId: part.toolCall.toolCallId,
+              });
+              break;
+            }
+
             case 'tool-result': {
               const dynamic = isDynamic(part.toolCallId);
 
@@ -2109,7 +2118,6 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'tool-approval-request':
             case 'tool-input-end': {
               break;
             }

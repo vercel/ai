@@ -64,6 +64,11 @@ export const uiMessageChunkSchema = z.union([
     errorText: z.string(),
   }),
   z.strictObject({
+    type: z.literal('tool-approval-request'),
+    approvalId: z.string(),
+    toolCallId: z.string(),
+  }),
+  z.strictObject({
     type: z.literal('tool-output-available'),
     toolCallId: z.string(),
     output: z.unknown(),
@@ -216,6 +221,11 @@ export type UIMessageChunk<
       providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
       errorText: string;
+    }
+  | {
+      type: 'tool-approval-request';
+      approvalId: string;
+      toolCallId: string;
     }
   | {
       type: 'tool-output-available';
