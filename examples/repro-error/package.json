@@ -1,0 +1,24 @@
+{
+    "name": "@example/repro-error",
+    "version": "0.0.0",
+    "private": true,
+    "dependencies": {
+      "@ai-sdk/anthropic": "^2.0.22",
+      "@ai-sdk/openai": "^2.0.42",
+      "ai": "^5.1.0-beta.19",
+      "dotenv": "16.4.5",
+      "zod": "3.25.76"
+    },
+    "scripts": {
+      "test:e2e:all": "vitest run src/e2e/*.test.ts",
+      "test:file": "vitest run",
+      "type-check": "tsc --build"
+    },
+    "devDependencies": {
+      "@types/node": "20.17.24",
+      "tsx": "4.19.2",
+      "typescript": "5.8.3",
+      "@vercel/ai-tsconfig": "workspace:*"
+    }
+  }
+  
