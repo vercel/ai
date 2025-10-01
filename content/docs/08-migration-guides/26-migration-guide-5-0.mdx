@@ -2939,43 +2939,15 @@ return createUIMessageStreamResponse({ stream });
 
 ### OpenAI
 
-#### Structured Outputs Default
+#### Structured Outputs
 
-The `structuredOutputs` parameter has been removed from the model instance and is now disabled by default. It can be enabled via provider options.
+The `structuredOutputs` parameter has been removed from the provider instance configuration and renamed to `strictJsonSchema`. It is now disabled by default and can be enabled via provider options.
 
 ```tsx filename="AI SDK 4.0"
 import { openai } from '@ai-sdk/openai';
 
-const result = await generateText({
+const result = await generateObject({
   model: openai('gpt-4.1-2024-08-06', { structuredOutputs: true }),
-});
-```
-
-```tsx filename="AI SDK 5.0"
-import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-
-const result = await generateText({
-  model: openai('gpt-4.1-2024-08-06'),
-  providerOptions: {
-    openai: {
-      structuredOutputs: true, // opt-in via provider options
-    } satisfies OpenAIResponsesProviderOptions,
-  },
-});
-```
-
-#### Strict Mode Changes
-
-`strictJsonSchema` mode is now disabled by default for OpenAI Responses and Chat language models. The provider options for strict JSON schema have been updated:
-
-- For chat language models, use the new `strictJsonSchema` provider option
-- For response language models, the `strictSchemas` provider option has been renamed to `strictJsonSchema`
-
-```tsx filename="AI SDK 4.0"
-// strictJsonSchema on by default
-
-const result = await generateObject({
-  model: openai('gpt-4.1-2024-08-06'),
   schema: z.object({ name: z.string() }),
 });
 ```
@@ -2983,13 +2955,12 @@ const result = await generateObject({
 ```tsx filename="AI SDK 5.0"
 import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 
-// Must explicitly enable strictJsonSchema via provider options
 const result = await generateObject({
   model: openai('gpt-4.1-2024-08-06'),
   schema: z.object({ name: z.string() }),
   providerOptions: {
     openai: {
-      strictJsonSchema: true, // opt-in via provider options
+      strictJsonSchema: true, // renamed and opt-in via provider options
     } satisfies OpenAIResponsesProviderOptions,
   },
 });
