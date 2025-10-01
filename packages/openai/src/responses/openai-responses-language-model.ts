@@ -622,6 +622,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               providerMetadata: {
                 openai: {
                   itemId: part.id,
+                  annotations: contentPart.annotations,
                 },
               },
             });
@@ -1000,7 +1001,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               }
-            } else if (isResponseOutputItemDoneChunk(value)) {
+            } else if (
+              isResponseOutputItemDoneChunk(value) &&
+              value.item.type !== 'message'
+            ) {
               if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
@@ -1132,11 +1136,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerMetadata: {
                     openai: { itemId: value.item.id },
                   },
-                });
-              } else if (value.item.type === 'message') {
-                controller.enqueue({
-                  type: 'text-end',
-                  id: value.item.id,
                 });
               } else if (isResponseOutputItemDoneReasoningChunk(value)) {
                 const activeReasoningPart = activeReasoning[value.item.id];
@@ -1315,6 +1314,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   data: JSON.stringify(value.annotation),
                 });
               }
+            } else if (
+              isResponseOutputItemDoneChunk(value) &&
+              value.item.type === 'message'
+            ) {
+              controller.enqueue({
+                type: 'text-end',
+                id: value.item.id,
+                providerMetadata: {
+                  openai: {
+                    itemId: value.item.id,
+                    annotations: ongoingAnnotations,
+                  },
+                },
+              });
             } else if (isErrorChunk(value)) {
               controller.enqueue({ type: 'error', error: value });
             }
