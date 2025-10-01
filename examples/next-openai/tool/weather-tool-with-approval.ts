@@ -2,7 +2,7 @@ import { UIToolInvocation, tool } from 'ai';
 import { z } from 'zod';
 
 function randomWeather() {
-  const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
+  const weatherOptions = ['sunny', 'cloudy', 'rainy', 'windy'];
   return weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
 }
 
