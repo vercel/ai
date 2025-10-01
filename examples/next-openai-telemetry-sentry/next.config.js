@@ -1,14 +1,14 @@
 const { withSentryConfig } = require('@sentry/nextjs');
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {};
-
-module.exports = withSentryConfig(nextConfig, {
+module.exports = withSentryConfig(module.exports, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
+  // Only print logs for uploading source maps in CI
+  silent: !process.env.CI,
 
-  // An auth token is required for uploading source maps.
-  authToken: process.env.SENTRY_AUTH_TOKEN,
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
 
-  silent: false, // Can be used to suppress logs
+  // Automatically tree-shake Sentry logger statements to reduce bundle size
+  disableLogger: true,
 });
