@@ -1112,6 +1112,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                 });
 
                 if (result != null) {
+                  toolExecutionStepStreamController?.enqueue(result);
                   toolOutputs.push(result);
                 }
               }),
