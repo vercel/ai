@@ -30,7 +30,11 @@ export default function TestOpenAIWebSearch() {
               case 'tool-code_interpreter':
                 return <CodeInterpreterView key={index} invocation={part} />;
               case 'file':
-                return <ContainerFileCitationDownloadButton key={index} part={part} />
+                return(
+                  <div  key={index} className='py-4'>
+                    <ContainerFileCitationDownloadButton key={index} part={part} />
+                  </div>
+                );
             }
           })}
         </div>
