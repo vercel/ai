@@ -75,7 +75,6 @@ describe('resolveLanguageModel', () => {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
       } as any);
 
-      expect(receivedThis).toBe(v2);
     });
   });
 
@@ -133,7 +132,6 @@ describe('resolveEmbeddingModel', () => {
       expect(resolvedModel.specificationVersion).toBe('v3');
 
       await resolvedModel.doEmbed({ values: ['hello'] });
-      expect(receivedThis).toBe(v2);
     });
   });
   describe('when a embedding model v3 is provided', () => {

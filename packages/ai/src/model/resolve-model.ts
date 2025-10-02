@@ -11,22 +11,23 @@ import { EmbeddingModel } from '../types/embedding-model';
 import { LanguageModel } from '../types/language-model';
 
 function transformToV3LanguageModel(model: LanguageModelV2): LanguageModelV3 {
-  return {
-    ...model,
-    specificationVersion: 'v3',
-    doGenerate: model.doGenerate.bind(model),
-    doStream: model.doStream.bind(model),
-  };
+  return new Proxy(model as any, {
+    get(target, prop) {
+      if (prop === 'specificationVersion') return 'v3';
+      return target[prop]
+    },
+  }) as LanguageModelV3;
 }
 
 function transformToV3EmbeddingModel<VALUE>(
   model: EmbeddingModelV2<VALUE>,
 ): EmbeddingModelV3<VALUE> {
-  return {
-    ...model,
-    specificationVersion: 'v3',
-    doEmbed: model.doEmbed.bind(model),
-  };
+  return new Proxy(model as any, {
+    get(target, prop) {
+      if (prop === 'specificationVersion') return 'v3';
+      return target[prop]
+    },
+  }) as EmbeddingModelV3<VALUE>;
 }
 
 export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
