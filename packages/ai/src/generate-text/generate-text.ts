@@ -322,18 +322,18 @@ A function that attempts to repair a tool call that failed to parse.
             messages: stepInputMessages,
           });
 
+          const stepModel = resolveLanguageModel(
+            prepareStepResult?.model ?? model,
+          );
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
-            supportedUrls: await model.supportedUrls,
+            supportedUrls: await stepModel.supportedUrls,
             download,
           });
-
-          const stepModel = resolveLanguageModel(
-            prepareStepResult?.model ?? model,
-          );
 
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
