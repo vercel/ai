@@ -3351,8 +3351,9 @@ describe('generateText', () => {
 
   describe('prepareStep with model switch and image URLs', () => {
     it('should use the prepareStep model supportedUrls for download decision', async () => {
-      const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> = [];
-      
+      const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
+        [];
+
       // Model that supports image URLs (like OpenAI)
       const modelWithImageUrlSupport = new MockLanguageModelV3({
         provider: 'openai-like',
@@ -3378,9 +3379,10 @@ describe('generateText', () => {
           // Verify that the model receives base64 data, not a URL
           const userMessage = prompt.find(msg => msg.role === 'user');
           const imagePart = userMessage?.content.find(
-            (part: any) => part.type === 'file' && part.mediaType?.startsWith('image/'),
+            (part: any) =>
+              part.type === 'file' && part.mediaType?.startsWith('image/'),
           );
-          
+
           expect(imagePart).toBeDefined();
           expect(imagePart.data).toBeInstanceOf(Uint8Array);
 
@@ -3426,11 +3428,13 @@ describe('generateText', () => {
 
       // Verify the download behavior
       expect(downloadCalls.length).toBe(1);
-      
+
       // Should use Gemini's supportedUrls, not OpenAI's
       expect(downloadCalls[0].isUrlSupportedByModel).toBe(false);
-      expect(downloadCalls[0].url.toString()).toBe('https://example.com/test.jpg');
-      
+      expect(downloadCalls[0].url.toString()).toBe(
+        'https://example.com/test.jpg',
+      );
+
       // Verify the result
       expect(result.text).toBe('Response from Gemini');
     });
