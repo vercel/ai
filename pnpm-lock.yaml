@@ -1273,9 +1273,6 @@ importers:
       '@nuxtjs/tailwindcss':
         specifier: 6.12.2
         version: 6.12.2(magicast@0.3.5)(rollup@4.52.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))
-      '@rollup/plugin-inject':
-        specifier: 5.0.3
-        version: 5.0.3(rollup@4.52.3)
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1296,7 +1293,7 @@ importers:
         version: 3.5.12
       nuxt:
         specifier: 4.1.2
-        version: 4.1.2(@parcel/watcher@2.4.1)(@types/node@20.17.24)(@upstash/redis@1.34.3)(@vercel/functions@3.1.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0)))(@vue/compiler-sfc@3.5.22)(aws4fetch@1.0.20)(db0@0.3.4)(encoding@0.1.13)(eslint@9.21.0(jiti@2.6.1))(ioredis@5.8.0)(less@4.4.0)(magicast@0.3.5)(optionator@0.9.4)(rolldown@1.0.0-beta.38)(rollup@4.52.3)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(typescript@5.8.3)(vite@7.1.5(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.8.1))(yaml@2.8.1)
+        version: 4.1.2(@parcel/watcher@2.4.1)(@types/node@20.17.24)(@upstash/redis@1.34.3)(@vercel/functions@3.1.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0)))(@vue/compiler-sfc@3.5.22)(aws4fetch@1.0.20)(db0@0.3.4)(eslint@9.21.0(jiti@2.6.1))(ioredis@5.8.0)(less@4.4.0)(magicast@0.3.5)(optionator@0.9.4)(rolldown@1.0.0-beta.38)(rollup@4.52.3)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(typescript@5.8.3)(vite@7.1.5(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.8.1))(yaml@2.8.1)
       tailwindcss:
         specifier: 3.4.15
         version: 3.4.15(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))
@@ -8584,15 +8581,6 @@ packages:
       rollup:
         optional: true
 
-  '@rollup/plugin-inject@5.0.3':
-    resolution: {integrity: sha512-411QlbL+z2yXpRWFXSmw/teQRMkXcAAC8aYTemc15gwJRpvEVDQwoe+N/HTFD8RFG8+88Bme9DK2V9CVm7hJdA==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      rollup: ^1.20.0||^2.0.0||^3.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
   '@rollup/plugin-inject@5.0.5':
     resolution: {integrity: sha512-2+DEJbNBoPROPkgTDNe8/1YXWcqxbN5DTjASVIOx8HS+pITXushyNiBV56RB08zuptzz8gT3YfkqriTBVycepg==}
     engines: {node: '>=14.0.0'}
@@ -14110,10 +14098,6 @@ packages:
   magic-string-ast@1.0.2:
     resolution: {integrity: sha512-8ngQgLhcT0t3YBdn9CGkZqCYlvwW9pm7aWJwd7AxseVWf1RU8ZHCQvG1mt3N5vvUme+pXTcHB8G/7fE666U8Vw==}
     engines: {node: '>=20.18.0'}
-
-  magic-string@0.27.0:
-    resolution: {integrity: sha512-8UnnX2PeRAPZuN12svgR9j7M1uWMovg/CEnIwIG0LFkXSJJe4PdfUGiTGl8V9bsBHFUtfVINcSyYxd7q+kx9fA==}
-    engines: {node: '>=12'}
 
   magic-string@0.30.11:
     resolution: {integrity: sha512-+Wri9p0QHMy+545hKww7YAu5NyzF8iomPL/RQazugQ9+Ez4Ic3mERMd8ZTX5rfK944j+560ZJi8iAwgak1Ac7A==}
@@ -25558,14 +25542,6 @@ snapshots:
     optionalDependencies:
       rollup: 4.52.3
 
-  '@rollup/plugin-inject@5.0.3(rollup@4.52.3)':
-    dependencies:
-      '@rollup/pluginutils': 5.1.3(rollup@4.52.3)
-      estree-walker: 2.0.2
-      magic-string: 0.27.0
-    optionalDependencies:
-      rollup: 4.52.3
-
   '@rollup/plugin-inject@5.0.5(rollup@4.52.3)':
     dependencies:
       '@rollup/pluginutils': 5.1.3(rollup@4.52.3)
@@ -27208,7 +27184,7 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vercel/nft@0.30.2(encoding@0.1.13)(rollup@4.52.3)':
+  '@vercel/nft@0.30.2(rollup@4.52.3)':
     dependencies:
       '@mapbox/node-pre-gyp': 2.0.0(encoding@0.1.13)
       '@rollup/pluginutils': 5.1.3(rollup@4.52.3)
@@ -32944,10 +32920,6 @@ snapshots:
     dependencies:
       magic-string: 0.30.19
 
-  magic-string@0.27.0:
-    dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.0
-
   magic-string@0.30.11:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.0
@@ -33703,7 +33675,7 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  nitropack@2.12.6(@upstash/redis@1.34.3)(@vercel/functions@3.1.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0)))(aws4fetch@1.0.20)(encoding@0.1.13)(rolldown@1.0.0-beta.38):
+  nitropack@2.12.6(@upstash/redis@1.34.3)(@vercel/functions@3.1.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0)))(aws4fetch@1.0.20)(rolldown@1.0.0-beta.38):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.4.0
       '@rollup/plugin-alias': 5.1.1(rollup@4.52.3)
@@ -33713,7 +33685,7 @@ snapshots:
       '@rollup/plugin-node-resolve': 16.0.1(rollup@4.52.3)
       '@rollup/plugin-replace': 6.0.2(rollup@4.52.3)
       '@rollup/plugin-terser': 0.4.4(rollup@4.52.3)
-      '@vercel/nft': 0.30.2(encoding@0.1.13)(rollup@4.52.3)
+      '@vercel/nft': 0.30.2(rollup@4.52.3)
       archiver: 7.0.1
       c12: 3.3.0(magicast@0.3.5)
       chokidar: 4.0.3
@@ -33956,7 +33928,7 @@ snapshots:
 
   num-sort@2.1.0: {}
 
-  nuxt@4.1.2(@parcel/watcher@2.4.1)(@types/node@20.17.24)(@upstash/redis@1.34.3)(@vercel/functions@3.1.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0)))(@vue/compiler-sfc@3.5.22)(aws4fetch@1.0.20)(db0@0.3.4)(encoding@0.1.13)(eslint@9.21.0(jiti@2.6.1))(ioredis@5.8.0)(less@4.4.0)(magicast@0.3.5)(optionator@0.9.4)(rolldown@1.0.0-beta.38)(rollup@4.52.3)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(typescript@5.8.3)(vite@7.1.5(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.8.1))(yaml@2.8.1):
+  nuxt@4.1.2(@parcel/watcher@2.4.1)(@types/node@20.17.24)(@upstash/redis@1.34.3)(@vercel/functions@3.1.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0)))(@vue/compiler-sfc@3.5.22)(aws4fetch@1.0.20)(db0@0.3.4)(eslint@9.21.0(jiti@2.6.1))(ioredis@5.8.0)(less@4.4.0)(magicast@0.3.5)(optionator@0.9.4)(rolldown@1.0.0-beta.38)(rollup@4.52.3)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(typescript@5.8.3)(vite@7.1.5(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.8.1))(yaml@2.8.1):
     dependencies:
       '@nuxt/cli': 3.28.0(magicast@0.3.5)
       '@nuxt/devalue': 2.0.2
@@ -33991,7 +33963,7 @@ snapshots:
       mlly: 1.8.0
       mocked-exports: 0.1.1
       nanotar: 0.2.0
-      nitropack: 2.12.6(@upstash/redis@1.34.3)(@vercel/functions@3.1.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0)))(aws4fetch@1.0.20)(encoding@0.1.13)(rolldown@1.0.0-beta.38)
+      nitropack: 2.12.6(@upstash/redis@1.34.3)(@vercel/functions@3.1.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0)))(aws4fetch@1.0.20)(rolldown@1.0.0-beta.38)
       nypm: 0.6.2
       ofetch: 1.4.1
       ohash: 2.0.11
