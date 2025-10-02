@@ -34,7 +34,8 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "@vercel/oidc": "^3.0.1"
   },
   "devDependencies": {
     "@types/node": "18.15.11",
