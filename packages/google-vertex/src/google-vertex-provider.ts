@@ -1,5 +1,10 @@
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { ImageModelV3, LanguageModelV3, ProviderV3 } from '@ai-sdk/provider';
+import {
+  ImageModelV3,
+  LanguageModelV3,
+  ProviderV3,
+  EmbeddingModelV3,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
@@ -35,6 +40,10 @@ Creates a model for text generation.
 Creates a model for image generation.
    */
   imageModel(modelId: GoogleVertexImageModelId): ImageModelV3;
+
+  textEmbeddingModel(
+    modelId: GoogleVertexEmbeddingModelId,
+  ): EmbeddingModelV3<string>;
 
   tools: typeof googleVertexTools;
 }
