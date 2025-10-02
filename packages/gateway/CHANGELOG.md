@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.33
+
+### Patch Changes
+
+- cffad55: feat(gateway): oidc refresh with `@vercel/oidc`
+
 ## 1.0.32
 
 ### Patch Changes
