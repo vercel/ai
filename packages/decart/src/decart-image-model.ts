@@ -54,10 +54,6 @@ export class DecartImageModel implements ImageModelV3 {
   > {
     const warnings: Array<ImageModelV3CallWarning> = [];
 
-    if (n != null && n > 1) {
-      warnings.push({ type: 'unsupported-setting', setting: 'n' });
-    }
-
     if (size != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'size' });
     }

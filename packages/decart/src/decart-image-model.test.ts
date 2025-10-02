@@ -182,7 +182,7 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       prompt,
-      n: 5,
+      n: 2,
       size: '1024x1024',
       aspectRatio: '4:3',
       seed: undefined,
@@ -190,10 +190,6 @@ describe('doGenerate', () => {
     });
 
     expect(result.warnings).toStrictEqual([
-      {
-        type: 'unsupported-setting',
-        setting: 'n',
-      },
       {
         type: 'unsupported-setting',
         setting: 'size',
