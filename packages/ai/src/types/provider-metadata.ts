@@ -12,5 +12,5 @@ export type ProviderMetadata = SharedV3ProviderMetadata;
 
 export const providerMetadataSchema: z.ZodType<ProviderMetadata> = z.record(
   z.string(),
-  z.record(z.string(), jsonValueSchema),
+  z.record(z.string(), jsonValueSchema.optional()),
 );

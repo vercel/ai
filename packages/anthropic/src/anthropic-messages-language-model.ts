@@ -1,6 +1,5 @@
 import {
   JSONObject,
-  JSONValue,
   LanguageModelV3,
   LanguageModelV3CallWarning,
   LanguageModelV3Content,
