@@ -3,6 +3,7 @@ import {
   ImageModelV3,
   LanguageModelV3,
   NoSuchModelError,
+  RerankingModelV3,
   ProviderV3,
   SpeechModelV2,
   TranscriptionModelV2,
@@ -17,6 +18,7 @@ import {
  * @param {Record<string, ImageModel>} [options.imageModels] - A record of image models, where keys are model IDs and values are ImageModel instances.
  * @param {Record<string, TranscriptionModel>} [options.transcriptionModels] - A record of transcription models, where keys are model IDs and values are TranscriptionModel instances.
  * @param {Record<string, SpeechModel>} [options.speechModels] - A record of speech models, where keys are model IDs and values are SpeechModel instances.
+ * @param {Record<string, RerankingModel<string>>} [options.rerankingModels] - A record of reranking models, where keys are model IDs and values are RerankingModel<string> instances.
  * @param {Provider} [options.fallbackProvider] - An optional fallback provider to use when a requested model is not found in the custom provider.
  * @returns {Provider} A Provider object with languageModel, textEmbeddingModel, imageModel, transcriptionModel, and speechModel methods.
  *
@@ -28,12 +30,14 @@ export function customProvider<
   IMAGE_MODELS extends Record<string, ImageModelV3>,
   TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV2>,
   SPEECH_MODELS extends Record<string, SpeechModelV2>,
+  RERANKING_MODELS extends Record<string, RerankingModelV3<string>>,
 >({
   languageModels,
   textEmbeddingModels,
   imageModels,
   transcriptionModels,
   speechModels,
+  rerankingModels,
   fallbackProvider,
 }: {
   languageModels?: LANGUAGE_MODELS;
@@ -41,6 +45,7 @@ export function customProvider<
   imageModels?: IMAGE_MODELS;
   transcriptionModels?: TRANSCRIPTION_MODELS;
   speechModels?: SPEECH_MODELS;
+  rerankingModels?: RERANKING_MODELS;
   fallbackProvider?: ProviderV3;
 }): ProviderV3 & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3;
@@ -52,6 +57,9 @@ export function customProvider<
     modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
   ): TranscriptionModelV2;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV2;
+  rerankingModel(
+    modelId: ExtractModelId<RERANKING_MODELS>,
+  ): RerankingModelV3<string>;
 } {
   return {
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3 {
@@ -116,6 +124,19 @@ export function customProvider<
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'speechModel' });
+    },
+    rerankingModel(
+      modelId: ExtractModelId<RERANKING_MODELS>,
+    ): RerankingModelV3<string> {
+      if (rerankingModels != null && modelId in rerankingModels) {
+        return rerankingModels[modelId];
+      }
+
+      if (fallbackProvider?.rerankingModel) {
+        return fallbackProvider.rerankingModel(modelId);
+      }
+
+      throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
     },
   };
 }

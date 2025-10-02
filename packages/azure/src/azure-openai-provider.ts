@@ -14,6 +14,7 @@ import {
   ImageModelV3,
   SpeechModelV2,
   TranscriptionModelV2,
+  NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,

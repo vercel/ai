@@ -6,6 +6,7 @@ import { createProviderRegistry } from './provider-registry';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
+import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { MockProviderV3 } from '../test/mock-provider-v3';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -23,6 +24,9 @@ describe('languageModel', () => {
           return null as any;
         },
         imageModel: (id: string) => {
+          return null as any;
+        },
+        rerankingModel: (id: string) => {
           return null as any;
         },
       },
@@ -44,6 +48,9 @@ describe('languageModel', () => {
           return null as any;
         },
         imageModel: () => {
+          return null as any;
+        },
+        rerankingModel: (id: string) => {
           return null as any;
         },
       },
@@ -77,6 +84,9 @@ describe('languageModel', () => {
           return null as any;
         },
         speechModel: () => {
+          return null as any;
+        },
+        rerankingModel: () => {
           return null as any;
         },
       },
@@ -118,6 +128,9 @@ describe('languageModel', () => {
           speechModel: () => {
             return null as any;
           },
+          rerankingModel: () => {
+            return null as any;
+          },
         },
       },
       { separator: '|' },
@@ -146,6 +159,9 @@ describe('languageModel', () => {
             return null as any;
           },
           speechModel: () => {
+            return null as any;
+          },
+          rerankingModel: () => {
             return null as any;
           },
         },
@@ -179,6 +195,9 @@ describe('textEmbeddingModel', () => {
         speechModel: () => {
           return null as any;
         },
+        rerankingModel: () => {
+          return null as any;
+        },
       },
     });
 
@@ -204,6 +223,9 @@ describe('textEmbeddingModel', () => {
           return null as any;
         },
         imageModel: () => {
+          return null as any;
+        },
+        rerankingModel: (id: string) => {
           return null as any;
         },
       },
@@ -245,6 +267,9 @@ describe('textEmbeddingModel', () => {
           speechModel: () => {
             return null as any;
           },
+          rerankingModel: (id: string) => {
+            return null as any;
+          },
         },
       },
       { separator: '|' },
@@ -268,6 +293,7 @@ describe('imageModel', () => {
         textEmbeddingModel: () => null as any,
         transcriptionModel: () => null as any,
         speechModel: () => null as any,
+        rerankingModel: () => null as any,
       },
     });
 
@@ -289,6 +315,8 @@ describe('imageModel', () => {
         imageModel: () => null as any,
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
+        transcriptionModel: () => null as any,
+        rerankingModel: () => null as any,
       },
     });
 
@@ -316,6 +344,7 @@ describe('imageModel', () => {
           },
           languageModel: () => null as any,
           textEmbeddingModel: () => null as any,
+          rerankingModel: () => null as any,
         },
       },
       { separator: '|' },
@@ -338,6 +367,7 @@ describe('transcriptionModel', () => {
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
         imageModel: () => null as any,
+        rerankingModel: () => null as any,
       },
     });
 
@@ -360,6 +390,7 @@ describe('transcriptionModel', () => {
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
         imageModel: () => null as any,
+        rerankingModel: () => null as any,
       },
     });
 
@@ -391,6 +422,7 @@ describe('speechModel', () => {
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
         imageModel: () => null as any,
+        rerankingModel: () => null as any,
       },
     });
 
@@ -413,6 +445,7 @@ describe('speechModel', () => {
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
         imageModel: () => null as any,
+        rerankingModel: () => null as any,
       },
     });
 
@@ -426,6 +459,112 @@ describe('speechModel', () => {
 
     // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.speechModel('model')).toThrowError(NoSuchModelError);
+  });
+});
+
+describe('rerankingModel', () => {
+  it('should return reranking model from provider using rerankingModel', () => {
+    const model = new MockRerankingModelV3<string>();
+
+    const modelRegistry = createProviderRegistry({
+      provider: {
+        rerankingModel: id => {
+          expect(id).toEqual('model');
+          return model;
+        },
+        textEmbeddingModel: () => {
+          return null as any;
+        },
+        languageModel: () => {
+          return null as any;
+        },
+        imageModel: () => {
+          return null as any;
+        },
+        transcriptionModel: () => {
+          return null as any;
+        },
+        speechModel: () => {
+          return null as any;
+        },
+      },
+    });
+
+    expect(modelRegistry.rerankingModel('provider:model')).toEqual(model);
+  });
+
+  it('should throw NoSuchProviderError if provider does not exist', () => {
+    const registry = createProviderRegistry({});
+
+    // @ts-expect-error - should not accept arbitrary strings
+    expect(() => registry.rerankingModel('provider:model')).toThrowError(
+      NoSuchProviderError,
+    );
+  });
+
+  it('should throw NoSuchModelError if provider does not return a model', () => {
+    const registry = createProviderRegistry({
+      provider: {
+        textEmbeddingModel: () => {
+          return null as any;
+        },
+        languageModel: () => {
+          return null as any;
+        },
+        imageModel: () => {
+          return null as any;
+        },
+        rerankingModel: (id: string) => {
+          return null as any;
+        },
+      },
+    });
+
+    expect(() => registry.rerankingModel('provider:model')).toThrowError(
+      NoSuchModelError,
+    );
+  });
+
+  it("should throw NoSuchModelError if model id doesn't contain a colon", () => {
+    const registry = createProviderRegistry({});
+
+    // @ts-expect-error - should not accept arbitrary strings
+    expect(() => registry.rerankingModel('model')).toThrowError(
+      NoSuchModelError,
+    );
+  });
+
+  it('should support custom separator', () => {
+    const model = new MockRerankingModelV3<string>();
+
+    const modelRegistry = createProviderRegistry(
+      {
+        provider: {
+          rerankingModel: id => {
+            expect(id).toEqual('model');
+            return model;
+          },
+          textEmbeddingModel: () => {
+            return null as any;
+          },
+          languageModel: () => {
+            return null as any;
+          },
+          imageModel: () => {
+            return null as any;
+          },
+          transcriptionModel: () => {
+            return null as any;
+          },
+          speechModel: () => {
+            return null as any;
+          },
+        },
+      },
+      { separator: '|' },
+    );
+
+    expect(modelRegistry.rerankingModel('provider|model')).toEqual(model);
   });
 });
 
