@@ -14,7 +14,7 @@ function transformToV3LanguageModel(model: LanguageModelV2): LanguageModelV3 {
   return new Proxy(model as any, {
     get(target, prop) {
       if (prop === 'specificationVersion') return 'v3';
-      return target[prop]
+      return target[prop];
     },
   }) as LanguageModelV3;
 }
@@ -25,7 +25,7 @@ function transformToV3EmbeddingModel<VALUE>(
   return new Proxy(model as any, {
     get(target, prop) {
       if (prop === 'specificationVersion') return 'v3';
-      return target[prop]
+      return target[prop];
     },
   }) as EmbeddingModelV3<VALUE>;
 }

@@ -74,7 +74,6 @@ describe('resolveLanguageModel', () => {
       await resolvedModel.doGenerate({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
       } as any);
-
     });
   });
 
