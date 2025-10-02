@@ -13787,4 +13787,100 @@ describe('streamText', () => {
       expect(logWarningsSpy).toHaveBeenCalledWith([]);
     });
   });
+
+  describe('prepareStep with model switch and image URLs', () => {
+    it('should use the prepareStep model supportedUrls for download decision', async () => {
+      const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> = [];
+      
+      // Model that supports image URLs (like OpenAI)
+      const modelWithImageUrlSupport = new MockLanguageModelV3({
+        provider: 'openai-like',
+        modelId: 'gpt-4',
+        supportedUrls: {
+          'image/*': [/^https?:\/\/.*$/],
+        },
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Response from OpenAI' },
+            { type: 'text-end', id: '1' },
+          ]),
+        }),
+      });
+
+      // Model that does NOT support arbitrary image URLs (like Gemini)
+      const modelWithoutImageUrlSupport = new MockLanguageModelV3({
+        provider: 'gemini-like',
+        modelId: 'gemini-2.5-flash',
+        supportedUrls: {
+          // Only specific URLs supported, not arbitrary image URLs
+          '*': [/^https:\/\/specific-cdn\.example\.com\/.*$/],
+        },
+        doStream: async ({ prompt }) => {
+          // Verify that the model receives base64 data, not a URL
+          const userMessage = prompt.find(msg => msg.role === 'user');
+          const imagePart = userMessage?.content.find(
+            (part: any) => part.type === 'file' && part.mediaType?.startsWith('image/'),
+          );
+          
+          expect(imagePart).toBeDefined();
+          expect(imagePart.data).toBeInstanceOf(Uint8Array);
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Response from Gemini' },
+              { type: 'text-end', id: '1' },
+            ]),
+          };
+        },
+      });
+
+      const customDownload = async (
+        requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>,
+      ) => {
+        downloadCalls.push(...requestedDownloads);
+        return requestedDownloads.map(download =>
+          download.isUrlSupportedByModel
+            ? null
+            : {
+                data: new Uint8Array([1, 2, 3, 4]),
+                mediaType: 'image/png',
+              },
+        );
+      };
+
+      const result = streamText({
+        model: modelWithImageUrlSupport, // OpenAI-like model
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image' },
+              { type: 'image', image: 'https://example.com/test.jpg' },
+            ],
+          },
+        ],
+        prepareStep: async () => {
+          return {
+            model: modelWithoutImageUrlSupport, // Switch to Gemini-like model
+          };
+        },
+        experimental_download: customDownload,
+      });
+
+      // Consume the stream
+      await result.text;
+
+      // Verify the download behavior
+      expect(downloadCalls.length).toBe(1);
+      
+      // Should use Gemini's supportedUrls, not OpenAI's
+      expect(downloadCalls[0].isUrlSupportedByModel).toBe(false);
+      expect(downloadCalls[0].url.toString()).toBe('https://example.com/test.jpg');
+      
+      // Verify the result
+      expect(await result.text).toBe('Response from Gemini');
+    });
+  });
 });
