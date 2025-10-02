@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.15
+
+### Patch Changes
+
+- ef62178: feat(gateway): oidc refresh with `@vercel/oidc`
+
 ## 1.1.0-beta.14
 
 ### Patch Changes
