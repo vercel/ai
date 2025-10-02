@@ -1184,4 +1184,61 @@ describe('convertToModelMessages', () => {
       `);
     });
   });
+
+  it('Handles providerExecuted: null', async () => {
+    const result = convertToModelMessages(
+      [
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: "tool-x",
+              toolCallId: "call_1",
+              state: "output-available",
+              input: {
+                x: "y"
+              },
+              output: "nothing",
+              rawInput: null,
+              // @ts-expect-error
+              providerExecuted: null,
+            }
+          ],
+        },
+      ],
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "input": {
+                "x": "y",
+              },
+              "providerExecuted": null,
+              "toolCallId": "call_1",
+              "toolName": "x",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "text",
+                "value": "nothing",
+              },
+              "toolCallId": "call_1",
+              "toolName": "x",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
+  });
 });
