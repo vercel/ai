@@ -2,6 +2,7 @@ import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3CallWarning,
+  LanguageModelV3FilePart,
   LanguageModelV3FunctionTool,
   LanguageModelV3ProviderDefinedTool,
   LanguageModelV3StreamPart,
@@ -13826,7 +13827,9 @@ describe('streamText', () => {
           );
 
           expect(imagePart).toBeDefined();
-          expect(imagePart.data).toBeInstanceOf(Uint8Array);
+          expect((imagePart as LanguageModelV3FilePart).data).toBeInstanceOf(
+            Uint8Array,
+          );
 
           return {
             stream: convertArrayToReadableStream([

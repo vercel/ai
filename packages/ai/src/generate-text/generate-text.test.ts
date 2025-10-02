@@ -1,5 +1,6 @@
 import {
   LanguageModelV3CallOptions,
+  LanguageModelV3FilePart,
   LanguageModelV3FunctionTool,
   LanguageModelV3ProviderDefinedTool,
 } from '@ai-sdk/provider';
@@ -3384,7 +3385,9 @@ describe('generateText', () => {
           );
 
           expect(imagePart).toBeDefined();
-          expect(imagePart.data).toBeInstanceOf(Uint8Array);
+          expect((imagePart as LanguageModelV3FilePart).data).toBeInstanceOf(
+            Uint8Array,
+          );
 
           return {
             ...dummyResponseValues,
