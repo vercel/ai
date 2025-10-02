@@ -83,6 +83,9 @@ importers:
       '@ai-sdk/cohere':
         specifier: workspace:*
         version: link:../../packages/cohere
+      '@ai-sdk/decart':
+        specifier: workspace:*
+        version: link:../../packages/decart
       '@ai-sdk/deepgram':
         specifier: workspace:*
         version: link:../../packages/deepgram
@@ -1719,6 +1722,34 @@ importers:
         version: 2.1.4(@edge-runtime/vm@5.0.0)(@types/node@20.17.24)(jsdom@26.0.0)(less@4.4.0)(msw@2.6.4(@types/node@20.17.24)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)
 
   packages/cohere:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.5.6)(tsx@4.19.2)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/decart:
     dependencies:
       '@ai-sdk/provider':
         specifier: workspace:*

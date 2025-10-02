@@ -11,6 +11,7 @@
     "@ai-sdk/cerebras": "workspace:*",
     "@ai-sdk/cohere": "workspace:*",
     "@ai-sdk/deepgram": "workspace:*",
+    "@ai-sdk/decart": "workspace:*",
     "@ai-sdk/deepinfra": "workspace:*",
     "@ai-sdk/deepseek": "workspace:*",
     "@ai-sdk/elevenlabs": "workspace:*",
