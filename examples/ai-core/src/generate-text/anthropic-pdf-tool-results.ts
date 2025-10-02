@@ -56,5 +56,4 @@ run(async () => {
   });
 
   console.log(`Assisstant response : ${JSON.stringify(result.text, null, 2)}`);
-
 });
