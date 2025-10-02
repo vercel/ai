@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.14
+
+### Patch Changes
+
+- a90dca6: feat(provider/gateway): Add zAI GLM 4.6 to Gateway language model settings
+
 ## 1.1.0-beta.13
 
 ### Patch Changes
