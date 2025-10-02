@@ -26,10 +26,10 @@ jobs:
           app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
           private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
 
-      - name: Enable auto-merge
+      - name: merge pull request
         run: |
           gh pr merge ${{ github.event.pull_request.number }} --auto --squash
+          gh pr review ${{ github.event.pull_request.number }} --approve
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           GH_REPO: ${{ github.repository }}
-
