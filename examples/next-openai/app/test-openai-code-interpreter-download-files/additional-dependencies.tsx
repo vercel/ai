@@ -3,22 +3,19 @@
 /**
  * This example requires additional dependencies.
  * Install them with:
- * 
+ *
  * pnpm add clsx tailwind-merge streamdown
- * 
+ *
  */
 
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 import { Streamdown } from 'streamdown';
 import { type ComponentProps, memo } from 'react';
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
-
-
-
 
 type ResponseProps = ComponentProps<typeof Streamdown>;
 

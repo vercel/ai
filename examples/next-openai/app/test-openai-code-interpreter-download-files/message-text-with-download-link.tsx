@@ -2,13 +2,12 @@ import { openaiReseponseAnnotationSchema } from '@ai-sdk/openai';
 import { OpenAICodeInterpreterMessage } from '../api/chat-openai-code-interpreter-download-files/route';
 import z from 'zod/v4';
 
-
 /**
  * This example requires additional dependencies.
  * Install them with:
- * 
+ *
  * pnpm add clsx tailwind-merge streamdown
- * 
+ *
  */
 //import { Response } from './additional-dependencies';
 
@@ -17,7 +16,11 @@ type UIMessageTextPart = Extract<
   { type: 'text' }
 >;
 
-export function MessageTextWithDownloadLink({ part }: { part: UIMessageTextPart }) {
+export function MessageTextWithDownloadLink({
+  part,
+}: {
+  part: UIMessageTextPart;
+}) {
   const annotationsAny = part.providerMetadata?.openai.annotations;
   const annotationsParse = z
     .array(openaiReseponseAnnotationSchema)
@@ -54,7 +57,6 @@ export function MessageTextWithDownloadLink({ part }: { part: UIMessageTextPart 
    * when use AI Element , Response(streamdown).
    */
   //return <Response>{text}</Response>;
-  
-  return <div>{text}</div>
 
+  return <div>{text}</div>;
 }

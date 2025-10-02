@@ -25,7 +25,8 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai('gpt-4.1-mini'),
-    system:'If you used Code Interpreter to create the file, ask at the end, "Were you able to download the file using Code Interpreter?"',
+    system:
+      'If you used Code Interpreter to create the file, ask at the end, "Were you able to download the file using Code Interpreter?"',
     tools: {
       code_interpreter: openai.tools.codeInterpreter(),
     },

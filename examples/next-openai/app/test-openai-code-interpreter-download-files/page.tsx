@@ -5,7 +5,7 @@ import { DefaultChatTransport } from 'ai';
 import ChatInput from '@/component/chat-input';
 import { OpenAICodeInterpreterMessage } from '@/app/api/chat-openai-code-interpreter/route';
 import CodeInterpreterView from '@/component/openai-code-interpreter-view';
-import {MessageTextWithDownloadLink} from './message-text-with-download-link';
+import { MessageTextWithDownloadLink } from './message-text-with-download-link';
 import { ContainerFileCitationDownloadButton } from './container-file-citation-download-button';
 
 export default function TestOpenAIWebSearch() {
@@ -30,9 +30,12 @@ export default function TestOpenAIWebSearch() {
               case 'tool-code_interpreter':
                 return <CodeInterpreterView key={index} invocation={part} />;
               case 'file':
-                return(
-                  <div  key={index} className='py-4'>
-                    <ContainerFileCitationDownloadButton key={index} part={part} />
+                return (
+                  <div key={index} className="py-4">
+                    <ContainerFileCitationDownloadButton
+                      key={index}
+                      part={part}
+                    />
                   </div>
                 );
             }
