@@ -4,7 +4,7 @@ import {
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
-  SharedV2ProviderMetadata,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -179,7 +179,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
     const choice = response.choices[0];
 
-    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
 
     if (choice.logprobs != null) {
       providerMetadata.openai.logprobs = choice.logprobs;
@@ -234,7 +234,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     });
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
     const usage: LanguageModelV3Usage = {
       inputTokens: undefined,
       outputTokens: undefined,

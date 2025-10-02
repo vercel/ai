@@ -1,8 +1,8 @@
-import { SharedV2ProviderMetadata } from '@ai-sdk/provider';
+import { SharedV3ProviderMetadata } from '@ai-sdk/provider';
 import { AnthropicCacheControl } from './anthropic-api-types';
 
 export function getCacheControl(
-  providerMetadata: SharedV2ProviderMetadata | undefined,
+  providerMetadata: SharedV3ProviderMetadata | undefined,
 ): AnthropicCacheControl | undefined {
   const anthropic = providerMetadata?.anthropic;
 

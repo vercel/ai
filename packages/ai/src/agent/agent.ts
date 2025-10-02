@@ -6,7 +6,7 @@ import {
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
-import { StopCondition } from '../generate-text/stop-condition';
+import { stepCountIs, StopCondition } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
@@ -15,7 +15,6 @@ import { CallSettings } from '../prompt/call-settings';
 import { Prompt } from '../prompt/prompt';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
-import { ProviderMetadata } from '../types/provider-metadata';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import { InferUITools, UIMessage } from '../ui/ui-messages';
 
@@ -24,6 +23,11 @@ export type AgentSettings<
   OUTPUT = never,
   OUTPUT_PARTIAL = never,
 > = CallSettings & {
+  /**
+   * The name of the agent.
+   */
+  name?: string;
+
   /**
    * The system prompt to use.
    */
@@ -48,7 +52,7 @@ The tool choice strategy. Default: 'auto'.
 Condition for stopping the generation when there are tool results in the last step.
 When the condition is an array, any of the conditions can be met to stop the generation.
 
-@default stepCountIs(1)
+@default stepCountIs(20)
    */
   stopWhen?:
     | StopCondition<NoInfer<TOOLS>>
@@ -91,6 +95,13 @@ A function that attempts to repair a tool call that failed to parse.
   onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
 
   /**
+Additional provider-specific options. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+         */
+  providerOptions?: ProviderOptions;
+
+  /**
    * Context that is passed into tool calls.
    *
    * Experimental (can break in patch releases).
@@ -108,6 +119,15 @@ A function that attempts to repair a tool call that failed to parse.
   };
 };
 
+/**
+ * The Agent class provides a structured way to encapsulate LLM configuration, tools,
+ * and behavior into reusable components.
+ *
+ * It handles the agent loop for you, allowing the LLM to call tools multiple times in
+ * sequence to accomplish complex tasks.
+ *
+ * Define agents once and use them across your application.
+ */
 export class Agent<
   TOOLS extends ToolSet,
   OUTPUT = never,
@@ -119,46 +139,34 @@ export class Agent<
     this.settings = settings;
   }
 
+  /**
+   * The name of the agent.
+   */
+  get name(): string | undefined {
+    return this.settings.name;
+  }
+
+  /**
+   * The tools that the agent can use.
+   */
   get tools(): TOOLS {
     return this.settings.tools as TOOLS;
   }
 
-  async generate(
-    options: Prompt & {
-      /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-   */
-      providerMetadata?: ProviderMetadata;
-      /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-         */
-      providerOptions?: ProviderOptions;
-    },
-  ): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
-    return generateText({ ...this.settings, ...options });
+  async generate(options: Prompt): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
+    return generateText({
+      ...this.settings,
+      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
+      ...options,
+    });
   }
 
-  stream(
-    options: Prompt & {
-      /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-   */
-      providerMetadata?: ProviderMetadata;
-      /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-         */
-      providerOptions?: ProviderOptions;
-    },
-  ): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
-    return streamText({ ...this.settings, ...options });
+  stream(options: Prompt): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
+    return streamText({
+      ...this.settings,
+      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
+      ...options,
+    });
   }
 
   /**

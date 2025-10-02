@@ -1,5 +1,21 @@
 # @ai-sdk/google
 
+## 2.1.0-beta.9
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+
+## 2.1.0-beta.8
+
+### Patch Changes
+
+- 7728ac5: The mediaResolution option has been added and is now passed to the Google API.
+
 ## 2.1.0-beta.7
 
 ### Patch Changes

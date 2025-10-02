@@ -1,7 +1,7 @@
 import {
-  SharedV2Headers,
-  SharedV2ProviderOptions,
-  SharedV2ProviderMetadata,
+  SharedV3Headers,
+  SharedV3ProviderOptions,
+  SharedV3ProviderMetadata,
 } from '../../shared';
 import { EmbeddingModelV3Embedding } from './embedding-model-v3-embedding';
 
@@ -70,7 +70,7 @@ Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
     */
-    providerOptions?: SharedV2ProviderOptions;
+    providerOptions?: SharedV3ProviderOptions;
 
     /**
   Additional HTTP headers to be sent with the request.
@@ -93,7 +93,7 @@ Additional provider-specific metadata. They are passed through
 from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
      */
-    providerMetadata?: SharedV2ProviderMetadata;
+    providerMetadata?: SharedV3ProviderMetadata;
 
     /**
 Optional response information for debugging purposes.
@@ -102,7 +102,7 @@ Optional response information for debugging purposes.
       /**
 Response headers.
        */
-      headers?: SharedV2Headers;
+      headers?: SharedV3Headers;
 
       /**
       The response body.

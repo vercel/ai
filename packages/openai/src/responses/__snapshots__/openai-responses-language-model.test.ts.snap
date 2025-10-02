@@ -343,6 +343,32 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > sho
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doGenerate > local shell tool > should include generate image tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68da74ab2c48819cb435ff526bd1ba1d0fdbc19a07110799",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{"action":{"type":"exec","command":["ls"],"working_directory":"/root","env":{}}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "lsh_68da74abdaec819c9aa19c124308f4600fdbc19a07110799",
+      },
+    },
+    "toolCallId": "call_XWgeTylovOiS8xLNz2TONOgO",
+    "toolName": "local_shell",
+    "type": "tool-call",
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > should stream code interpreter results 1`] = `
 [
   {
@@ -374,6 +400,395 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
       },
     },
     "type": "reasoning-end",
+  },
+  {
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","code":"",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "import",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " random",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ",",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " math",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "N",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "100",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "00",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=[]\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "0",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "for",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " _",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " in",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " range",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(N",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "):\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " a",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=random",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".randint",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ",",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "6",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " b",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=random",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".randint",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ",",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "6",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " sm",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=a",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+b",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " sums",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".append",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(sm",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+=",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "sm",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "min",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "),",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " max",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "),",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " sum",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "),",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " sum",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")/",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "N",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-end",
   },
   {
     "input": "{"code":"import random, math\\nN=10000\\nsums=[]\\ns=0\\nfor _ in range(N):\\n    a=random.randint(1,6)\\n    b=random.randint(1,6)\\n    sm=a+b\\n    sums.append(sm)\\n    s+=sm\\nmin(sums), max(sums), sum(sums), sum(sums)/N\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
@@ -417,6 +832,375 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "type": "reasoning-end",
   },
   {
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","code":"",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "import",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " csv",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ",",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " pathlib",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "path",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " =",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " pathlib",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".Path",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "('/",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "mnt",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "/data",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "/",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "roll",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "2",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "dice",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_s",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "100",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "00",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".csv",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "')\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "with",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " open",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(path",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ",",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " '",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "w",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "',",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " newline",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "='",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "')",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " as",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " f",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ":\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " writer",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " =",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " csv",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".writer",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(f",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " writer",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".writerow",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(['",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "sum",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "'])\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " for",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " val",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " in",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " sums",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ":\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "       ",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " writer",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".writerow",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "([",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "val",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "])\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "path",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ",",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " path",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".exists",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(),",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " len",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(s",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-end",
+  },
+  {
     "input": "{"code":"import csv, pathlib\\npath = pathlib.Path('/mnt/data/roll2dice_sums_10000.csv')\\nwith open(path, 'w', newline='') as f:\\n    writer = csv.writer(f)\\n    writer.writerow(['sum'])\\n    for val in sums:\\n        writer.writerow([val])\\npath, path.exists(), len(sums)\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
     "providerExecuted": true,
     "toolCallId": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
@@ -456,6 +1240,50 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
       },
     },
     "type": "reasoning-end",
+  },
+  {
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","code":"",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "s",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "[:",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "20",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "]\\n",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-end",
   },
   {
     "input": "{"code":"sums[:20]\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
@@ -2660,6 +3488,16 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
     "type": "tool-call",
   },
   {
+    "preliminary": true,
+    "providerExecuted": true,
+    "result": {
+      "result": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
+    },
+    "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
+    "toolName": "image_generation",
+    "type": "tool-result",
+  },
+  {
     "providerExecuted": true,
     "result": {
       "result": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
@@ -2696,6 +3534,69 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
       "outputTokens": 1249,
       "reasoningTokens": 1024,
       "totalTokens": 4190,
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should stream code local shell results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_68da7fd5d24481949fc2cf1cc60377050faf5df54b42d9a6",
+    "modelId": "gpt-5-codex",
+    "timestamp": 2025-09-29T12:47:17.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{"action":{"type":"exec","command":["ls","-a","~"],"env":{}}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "lsh_68da7fd99b3c8194bd624b18c0c0851b0faf5df54b42d9a6",
+      },
+    },
+    "toolCallId": "call_h3nm8hUG0KO9tVNuRACkL1ri",
+    "toolName": "local_shell",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_68da7fd5d24481949fc2cf1cc60377050faf5df54b42d9a6",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 407,
+      "outputTokens": 151,
+      "reasoningTokens": 128,
+      "totalTokens": 558,
     },
   },
 ]
