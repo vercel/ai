@@ -1,0 +1,137 @@
+---
+title: Decart
+description: Learn how to use Decart AI models with the AI SDK.
+---
+
+# Decart Provider
+
+[Decart AI](https://decart.ai) provides state-of-the-art image generation models, including Lucy Pro, their flagship text-to-image model that delivers high-quality results.
+
+## Setup
+
+The Decart provider is available via the `@ai-sdk/decart` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/decart" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/decart" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/decart" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/decart" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `decart` from `@ai-sdk/decart`:
+
+```ts
+import { decart } from '@ai-sdk/decart';
+```
+
+If you need a customized setup, you can import `createDecart` and create a provider instance with your settings:
+
+```ts
+import { createDecart } from '@ai-sdk/decart';
+
+const decart = createDecart({
+  apiKey: 'your-api-key', // optional, defaults to DECART_API_KEY environment variable
+  baseURL: 'custom-url', // optional
+  headers: {
+    /* custom headers */
+  }, // optional
+});
+```
+
+You can use the following optional settings to customize the Decart provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.decart.ai`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `X-API-KEY` header.
+  It defaults to the `DECART_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Image Models
+
+You can create Decart image models using the `.image()` factory method.
+For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+### Basic Usage
+
+```ts
+import { decart } from '@ai-sdk/decart';
+import { experimental_generateImage as generateImage } from 'ai';
+import fs from 'fs';
+
+const { image } = await generateImage({
+  model: decart.image('lucy-pro-t2i'),
+  prompt: 'Three dogs playing in the snow',
+});
+
+const filename = `image-${Date.now()}.png`;
+fs.writeFileSync(filename, image.uint8Array);
+console.log(`Image saved to ${filename}`);
+```
+
+### Model Capabilities
+
+Decart currently offers:
+
+| Model          | Description                                 |
+| -------------- | ------------------------------------------- |
+| `lucy-pro-t2i` | High-quality text-to-image generation model |
+
+The model supports the following aspect ratios:
+
+- 16:9 (landscape)
+- 9:16 (portrait)
+
+<Note>
+  Other aspect ratios will generate a warning and fall back to the default
+  behavior.
+</Note>
+
+### Image Model Settings
+
+You can customize the generation behavior with optional settings:
+
+```ts
+const { image } = await generateImage({
+  model: decart.image('lucy-pro-t2i'),
+  prompt: 'Three dogs playing in the snow',
+  aspectRatio: '16:9',
+  seed: 42,
+});
+```
+
+Supported settings:
+
+- **aspectRatio** _string_
+
+  Control the aspect ratio of the generated image. Supported values: `16:9` (landscape) and `9:16` (portrait).
+
+- **seed** _number_
+
+  Set a seed value for reproducible results.
+
+For more details about Decart's capabilities and features, visit [Decart AI](https://decart.ai).
