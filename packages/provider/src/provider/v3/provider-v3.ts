@@ -1,7 +1,7 @@
 import { EmbeddingModelV3 } from '../../embedding-model/v3/embedding-model-v3';
 import { ImageModelV3 } from '../../image-model/v3/image-model-v3';
 import { LanguageModelV3 } from '../../language-model/v3/language-model-v3';
-import { SpeechModelV3 } from '../../speech-model/v2/speech-model-v3';
+import { SpeechModelV3 } from '../../speech-model/v3/speech-model-v3';
 import { TranscriptionModelV3 } from '../../transcription-model/v3/transcription-model-v3';
 
 /**
