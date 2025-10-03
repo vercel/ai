@@ -1,5 +1,5 @@
 import {
-  TranscriptionModelV2,
+  TranscriptionModelV3,
   SpeechModelV3,
   ProviderV3,
   NoSuchModelError,
@@ -26,7 +26,7 @@ export interface ElevenLabsProvider extends ProviderV3 {
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV2;
+  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV3;
 
   /**
 Creates a model for speech generation.

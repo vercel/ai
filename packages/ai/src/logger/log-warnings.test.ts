@@ -9,7 +9,7 @@ import type {
   LanguageModelV3CallWarning,
   ImageModelV3CallWarning,
   SpeechModelV3CallWarning,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV3CallWarning,
 } from '@ai-sdk/provider';
 
 // Mock console.warn and console.info
@@ -244,8 +244,8 @@ describe('logWarnings', () => {
         );
       });
 
-      it('should log TranscriptionModelV2CallWarning', () => {
-        const warning: TranscriptionModelV2CallWarning = {
+      it('should log TranscriptionModelV3CallWarning', () => {
+        const warning: TranscriptionModelV3CallWarning = {
           type: 'unsupported-setting',
           setting: 'mediaType',
           details: 'MediaType setting not supported',
@@ -274,7 +274,7 @@ describe('logWarnings', () => {
           type: 'other',
           message: 'Speech model warning',
         };
-        const transcriptionWarning: TranscriptionModelV2CallWarning = {
+        const transcriptionWarning: TranscriptionModelV3CallWarning = {
           type: 'other',
           message: 'Transcription model warning',
         };
