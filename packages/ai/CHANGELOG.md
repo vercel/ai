@@ -1,5 +1,17 @@
 # ai
 
+## 5.1.0-beta.22
+
+### Patch Changes
+
+- 046aa3b: feat(provider): speech model v3 spec
+- a5e152d: fix(ai): back version support for V2 providers
+- 21e20c0: feat(provider): transcription model v3 spec
+- Updated dependencies [046aa3b]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/gateway@1.1.0-beta.16
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
 ## 5.1.0-beta.21
 
 ### Patch Changes
