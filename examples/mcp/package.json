@@ -5,6 +5,8 @@
   "scripts": {
     "sse:server": "tsx src/sse/server.ts",
     "sse:client": "tsx src/sse/client.ts",
+    "sse-auth:server": "tsx src/sse-with-auth/server.ts",
+    "sse-auth:client": "tsx src/sse-with-auth/client.ts",
     "stdio:build": "tsc src/stdio/server.ts --outDir src/stdio/dist --target es2023 --module nodenext",
     "stdio:client": "tsx src/stdio/client.ts",
     "http:server": "tsx src/http/server.ts",
