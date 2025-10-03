@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { Agent, stepCountIs, tool } from 'ai';
+import { Agent, tool } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
   const agent = new Agent({
-    model: openai('gpt-3.5-turbo'),
+    model: openai('gpt-5'),
     system: 'You are a helpful that answers questions about the weather.',
     tools: {
       weather: tool({
@@ -19,7 +19,6 @@ async function main() {
         }),
       }),
     },
-    stopWhen: stepCountIs(5),
   });
 
   const result = agent.stream({
