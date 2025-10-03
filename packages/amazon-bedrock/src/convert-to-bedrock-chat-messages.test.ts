@@ -111,7 +111,7 @@ describe('user messages', () => {
     `);
   });
 
-  it('should convert messages with document parts and a custom filename', async () => {
+  it('should be converted with actual filename when provided', async () => {
     const fileData = new Uint8Array([0, 1, 2, 3]);
 
     const { messages } = await convertToBedrockChatMessages([
