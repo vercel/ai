@@ -29,6 +29,11 @@ export type AgentSettings<
   name?: string;
 
   /**
+   * The description of what the agent does.
+   */
+  description?: string;
+
+  /**
    * The system prompt to use.
    */
   system?: string;
@@ -144,6 +149,13 @@ export class Agent<
    */
   get name(): string | undefined {
     return this.settings.name;
+  }
+
+  /**
+   * The description of what the agent does.
+   */
+  get description(): string | undefined {
+    return this.settings.description;
   }
 
   /**
