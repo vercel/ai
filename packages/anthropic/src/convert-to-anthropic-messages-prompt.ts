@@ -274,6 +274,23 @@ export async function convertToAnthropicMessagesPrompt({
                             };
                           }
 
+                          if (contentPart.mediaType === 'application/pdf') {
+                            betas.add('pdfs-2024-09-25');
+
+                            return {
+                              type: 'document',
+                              source: {
+                                type: 'base64',
+                                media_type: contentPart.mediaType,
+                                data:
+                                  typeof contentPart.data === 'string'
+                                    ? contentPart.data
+                                    : convertToBase64(contentPart.data),
+                              },
+                              cache_control: undefined,
+                            };
+                          }
+
                           throw new UnsupportedFunctionalityError({
                             functionality: `media type: ${contentPart.mediaType}`,
                           });
