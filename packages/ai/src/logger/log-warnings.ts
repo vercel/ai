@@ -1,15 +1,17 @@
 import {
   ImageModelV3CallWarning,
   LanguageModelV3CallWarning,
-  SpeechModelV2CallWarning,
+  SpeechModelV3CallWarning,
   TranscriptionModelV3CallWarning,
 } from '@ai-sdk/provider';
 
 export type Warning =
   | LanguageModelV3CallWarning
   | ImageModelV3CallWarning
-  | SpeechModelV2CallWarning
+  | SpeechModelV3CallWarning
   | TranscriptionModelV3CallWarning;
+  | SpeechModelV3CallWarning
+  | TranscriptionModelV2CallWarning;
 
 export type LogWarningsFunction = (warnings: Warning[]) => void;
 

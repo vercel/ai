@@ -5,7 +5,7 @@ import {
   NoSuchModelError,
   ProviderV2,
   ProviderV3,
-  SpeechModelV2,
+  SpeechModelV3,
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
 
@@ -28,7 +28,7 @@ export function customProvider<
   EMBEDDING_MODELS extends Record<string, EmbeddingModelV3<string>>,
   IMAGE_MODELS extends Record<string, ImageModelV3>,
   TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV3>,
-  SPEECH_MODELS extends Record<string, SpeechModelV2>,
+  SPEECH_MODELS extends Record<string, SpeechModelV3>,
 >({
   languageModels,
   textEmbeddingModels,
@@ -52,7 +52,7 @@ export function customProvider<
   transcriptionModel(
     modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
   ): TranscriptionModelV3;
-  speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV2;
+  speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV3;
 } {
   return {
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3 {
@@ -107,13 +107,13 @@ export function customProvider<
       throw new NoSuchModelError({ modelId, modelType: 'transcriptionModel' });
     },
 
-    speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV2 {
+    speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV3 {
       if (speechModels != null && modelId in speechModels) {
         return speechModels[modelId];
       }
 
       if (fallbackProvider?.speechModel) {
-        return fallbackProvider.speechModel(modelId);
+        return (fallbackProvider as ProviderV3).speechModel!(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'speechModel' });

@@ -4,7 +4,7 @@ import {
   LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
-  SpeechModelV2,
+  SpeechModelV3,
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
@@ -61,10 +61,10 @@ export interface ProviderRegistryProvider<
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['speechModel']>>[0]>}`
       : never,
-  ): SpeechModelV2;
+  ): SpeechModelV3;
   speechModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): SpeechModelV2;
+  ): SpeechModelV3;
 }
 
 /**
@@ -270,7 +270,7 @@ class DefaultProviderRegistry<
 
   speechModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): SpeechModelV2 {
+  ): SpeechModelV3 {
     const [providerId, modelId] = this.splitId(id, 'speechModel');
     const provider = this.getProvider(providerId, 'speechModel');
 

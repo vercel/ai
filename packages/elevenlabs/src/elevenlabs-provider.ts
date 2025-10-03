@@ -1,6 +1,6 @@
 import {
   TranscriptionModelV3,
-  SpeechModelV2,
+  SpeechModelV3,
   ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
@@ -31,7 +31,7 @@ Creates a model for transcription.
   /**
 Creates a model for speech generation.
    */
-  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV2;
+  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV3;
 }
 
 export interface ElevenLabsProviderSettings {

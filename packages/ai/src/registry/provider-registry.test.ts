@@ -5,7 +5,7 @@ import { NoSuchProviderError } from './no-such-provider-error';
 import { createProviderRegistry } from './provider-registry';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
-import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
+import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
 import { MockProviderV3 } from '../test/mock-provider-v3';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -380,7 +380,7 @@ describe('transcriptionModel', () => {
 
 describe('speechModel', () => {
   it('should return speech model from provider', () => {
-    const model = new MockSpeechModelV2();
+    const model = new MockSpeechModelV3();
 
     const modelRegistry = createProviderRegistry({
       provider: {
