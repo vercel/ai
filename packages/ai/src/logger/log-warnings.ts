@@ -10,8 +10,6 @@ export type Warning =
   | ImageModelV3CallWarning
   | SpeechModelV3CallWarning
   | TranscriptionModelV3CallWarning;
-  | SpeechModelV3CallWarning
-  | TranscriptionModelV2CallWarning;
 
 export type LogWarningsFunction = (warnings: Warning[]) => void;
 
