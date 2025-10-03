@@ -4,6 +4,8 @@ import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
+import { MockProviderV2 } from '../test/mock-provider-v2';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
 import { customProvider } from './custom-provider';
 
@@ -37,6 +39,17 @@ describe('languageModel', () => {
     expect(mockFallbackProvider.languageModel).toHaveBeenCalledWith(
       'test-model',
     );
+  });
+
+  it('should accept a ProviderV2 as fallback and use it', () => {
+    const v2Model = new MockLanguageModelV2({ modelId: 'legacy-model' });
+    const v2Provider = new MockProviderV2({
+      languageModels: { 'legacy-model': v2Model },
+    });
+
+    const provider = customProvider({ fallbackProvider: v2Provider });
+
+    expect(provider.languageModel('legacy-model')).toBe(v2Model);
   });
 
   it('should throw NoSuchModelError if model not found and no fallback', () => {
