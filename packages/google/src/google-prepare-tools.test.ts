@@ -1,5 +1,5 @@
+import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
-import { it, expect } from 'vitest';
 
 it('should return undefined tools and tool_choice when tools are null', () => {
   const result = prepareTools({
@@ -270,4 +270,23 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
         'Cannot mix function tools with provider-defined tools in the same request. Please use either function tools or provider-defined tools, but not both.',
     },
   ]);
+});
+
+it('should handle latest modelId for provider-defined tools correctly', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-flash-latest',
+  });
+  expect(result.tools).toEqual({
+    googleSearch: {},
+  });
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
 });

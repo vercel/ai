@@ -40,7 +40,14 @@ export function prepareTools({
 
   const toolWarnings: LanguageModelV3CallWarning[] = [];
 
-  const isGemini2 = modelId.includes('gemini-2');
+  const isLatest = (
+    [
+      'gemini-flash-latest',
+      'gemini-flash-lite-latest',
+      'gemini-pro-latest',
+    ] as const satisfies GoogleGenerativeAIModelId[]
+  ).some(id => id === modelId);
+  const isGemini2 = modelId.includes('gemini-2') || isLatest;
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
 
