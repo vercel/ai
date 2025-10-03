@@ -6,7 +6,7 @@ import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockProviderV2 } from '../test/mock-provider-v2';
 import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
-import { MockSpeechModelV2 } from '../test/mock-speech-model-v3';
+import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
 import { customProvider } from './custom-provider';
 
 const mockLanguageModel = new MockLanguageModelV3();
