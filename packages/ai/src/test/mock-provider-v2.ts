@@ -5,7 +5,7 @@ import {
   NoSuchModelError,
   ProviderV2,
   SpeechModelV2,
-  TranscriptionModelV3,
+  TranscriptionModelV2,
 } from '@ai-sdk/provider';
 
 export class MockProviderV2 implements ProviderV2 {
@@ -25,7 +25,7 @@ export class MockProviderV2 implements ProviderV2 {
     languageModels?: Record<string, LanguageModelV2>;
     embeddingModels?: Record<string, EmbeddingModelV2<string>>;
     imageModels?: Record<string, ImageModelV2>;
-    transcriptionModels?: Record<string, TranscriptionModelV3>;
+    transcriptionModels?: Record<string, TranscriptionModelV2>;
     speechModels?: Record<string, SpeechModelV2>;
   } = {}) {
     this.languageModel = (modelId: string) => {

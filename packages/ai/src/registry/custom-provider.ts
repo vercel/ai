@@ -101,7 +101,7 @@ export function customProvider<
       }
 
       if (fallbackProvider?.transcriptionModel) {
-        return fallbackProvider.transcriptionModel(modelId);
+        return (fallbackProvider as ProviderV3).transcriptionModel!(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'transcriptionModel' });
