@@ -27,14 +27,16 @@ export class UnauthorizedError extends Error {
  * Extracts the OAuth 2.0 Protected Resource Metadata URL from a WWW-Authenticate header (RFC9728).
  * Looks for a resource="..." parameter.
  */
-export function extractResourceMetadataUrl(response: Response): URL | undefined {
+export function extractResourceMetadataUrl(
+  response: Response,
+): URL | undefined {
   const header =
     response.headers.get('www-authenticate') ??
     response.headers.get('WWW-Authenticate');
   if (!header) return undefined;
 
   // Example: WWW-Authenticate: Bearer resource="https://mcp.example.com/.well-known/oauth-protected-resource"
-  // covers https, http, wss 
+  // covers https, http, wss
   const match = header.match(/resource="([^"]+)"/i);
   if (!match) return undefined;
 

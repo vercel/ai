@@ -5,8 +5,10 @@ import {
   type AuthResult,
 } from './oauth';
 
-const makeResponse = (status: number, headers: Record<string, string>): Response =>
-  new Response('', { status, headers });
+const makeResponse = (
+  status: number,
+  headers: Record<string, string>,
+): Response => new Response('', { status, headers });
 
 describe('extractResourceMetadataUrl', () => {
   it('extracts URL from WWW-Authenticate resource parameter', () => {
@@ -43,7 +45,6 @@ describe('extractResourceMetadataUrl', () => {
     expect(result).toBeUndefined();
   });
 });
-
 
 describe('OAuthClientProvider (example implementation)', () => {
   class MemoryOAuthProvider implements OAuthClientProvider {

@@ -7,6 +7,12 @@ import { MCPClientError } from '../../error/mcp-client-error';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
 import { VERSION } from '../../version';
+import {
+  OAuthClientProvider,
+  extractResourceMetadataUrl,
+  UnauthorizedError,
+} from './oauth';
+import { LATEST_PROTOCOL_VERSION } from './types';
 
 export class SseMCPTransport implements MCPTransport {
   private endpoint?: URL;
@@ -17,6 +23,8 @@ export class SseMCPTransport implements MCPTransport {
     close: () => void;
   };
   private headers?: Record<string, string>;
+  private authProvider?: OAuthClientProvider;
+  private resourceMetadataUrl?: URL;
 
   onclose?: () => void;
   onerror?: (error: unknown) => void;
@@ -25,12 +33,38 @@ export class SseMCPTransport implements MCPTransport {
   constructor({
     url,
     headers,
+    authProvider,
   }: {
     url: string;
     headers?: Record<string, string>;
+    authProvider?: OAuthClientProvider;
   }) {
     this.url = new URL(url);
     this.headers = headers;
+    this.authProvider = authProvider;
+  }
+
+  private async commonHeaders(
+    base: Record<string, string>,
+  ): Promise<Record<string, string>> {
+    const headers: Record<string, string> = {
+      ...this.headers,
+      ...base,
+      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+    };
+
+    if (this.authProvider) {
+      const tokens = await this.authProvider.tokens();
+      if (tokens?.access_token) {
+        headers['Authorization'] = `Bearer ${tokens.access_token}`;
+      }
+    }
+
+    return withUserAgentSuffix(
+      headers,
+      `ai-sdk/${VERSION}`,
+      getRuntimeEnvironmentUserAgent(),
+    );
   }
 
   async start(): Promise<void> {
@@ -41,20 +75,30 @@ export class SseMCPTransport implements MCPTransport {
 
       this.abortController = new AbortController();
 
-      const establishConnection = async () => {
+      const establishConnection = async (triedAuth: boolean = false) => {
         try {
-          const headers = withUserAgentSuffix(
-            {
-              ...this.headers,
-              Accept: 'text/event-stream',
-            },
-            `ai-sdk/${VERSION}`,
-            getRuntimeEnvironmentUserAgent(),
-          );
+          const headers = await this.commonHeaders({
+            Accept: 'text/event-stream',
+          });
           const response = await fetch(this.url.href, {
             headers,
             signal: this.abortController?.signal,
           });
+
+          if (response.status === 401 && this.authProvider && !triedAuth) {
+            this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+            const result = await this.authProvider.authorize({
+              serverUrl: this.url,
+              resourceMetadataUrl: this.resourceMetadataUrl,
+            });
+
+            if (result !== 'AUTHORIZED') {
+              const error = new UnauthorizedError();
+              this.onerror?.(error);
+              return reject(error);
+            }
+            return establishConnection(true);
+          }
 
           if (!response.ok || !response.body) {
             const error = new MCPClientError({
@@ -141,7 +185,7 @@ export class SseMCPTransport implements MCPTransport {
         }
       };
 
-      establishConnection();
+      void establishConnection();
     });
   }
 
@@ -159,36 +203,50 @@ export class SseMCPTransport implements MCPTransport {
       });
     }
 
-    try {
-      const headers = withUserAgentSuffix(
-        {
-          ...this.headers,
+    const endpoint = this.endpoint as URL;
+
+    const attempt = async (triedAuth: boolean = false): Promise<void> => {
+      try {
+        const headers = await this.commonHeaders({
           'Content-Type': 'application/json',
-        },
-        `ai-sdk/${VERSION}`,
-        getRuntimeEnvironmentUserAgent(),
-      );
-      const init = {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(message),
-        signal: this.abortController?.signal,
-      };
-
-      const response = await fetch(this.endpoint, init);
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => null);
-        const error = new MCPClientError({
-          message: `MCP SSE Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`,
         });
+        const init = {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(message),
+          signal: this.abortController?.signal,
+        };
+
+        const response = await fetch(endpoint, init);
+
+        if (response.status === 401 && this.authProvider && !triedAuth) {
+          this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+          const result = await this.authProvider.authorize({
+            serverUrl: this.url,
+            resourceMetadataUrl: this.resourceMetadataUrl,
+          });
+          if (result !== 'AUTHORIZED') {
+            const error = new UnauthorizedError();
+            this.onerror?.(error);
+            return;
+          }
+          return attempt(true);
+        }
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => null);
+          const error = new MCPClientError({
+            message: `MCP SSE Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`,
+          });
+          this.onerror?.(error);
+          return;
+        }
+      } catch (error) {
         this.onerror?.(error);
         return;
       }
-    } catch (error) {
-      this.onerror?.(error);
-      return;
-    }
+    };
+    await attempt();
   }
 }
 
