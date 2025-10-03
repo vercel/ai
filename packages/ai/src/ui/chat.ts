@@ -2,9 +2,9 @@ import {
   generateId as generateIdFunc,
   IdGenerator,
   StandardSchemaV1,
-  ToolCall,
   Validator,
 } from '@ai-sdk/provider-utils';
+import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { SerialJobExecutor } from '../util/serial-job-executor';
 import { ChatTransport } from './chat-transport';
@@ -16,21 +16,17 @@ import {
   StreamingUIMessageState,
 } from './process-ui-message-stream';
 import {
-  isAssistantMessageWithCompletedToolCalls,
-  shouldResubmitMessages,
-} from './should-resubmit-messages';
-import {
-  isToolUIPart,
+  InferUIMessageToolCall,
+  isToolOrDynamicToolUIPart,
+  ToolUIPart,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
   type InferUIMessageMetadata,
   type InferUIMessageTools,
-  type ToolUIPart,
   type UIDataTypes,
   type UIMessage,
 } from './ui-messages';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 
 export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
   UI_MESSAGE,
@@ -93,18 +89,31 @@ export interface ChatState<UI_MESSAGE extends UIMessage> {
 
 export type ChatOnErrorCallback = (error: Error) => void;
 
-export type ChatOnToolCallCallback = ({
-  toolCall,
-}: {
-  toolCall: ToolCall<string, unknown>;
-}) => void | Promise<unknown> | unknown;
+export type ChatOnToolCallCallback<UI_MESSAGE extends UIMessage = UIMessage> =
+  (options: {
+    toolCall: InferUIMessageToolCall<UI_MESSAGE>;
+  }) => void | PromiseLike<void>;
 
 export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
   dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
 ) => void;
 
+/**
+ * Function that is called when the assistant response has finished streaming.
+ *
+ * @param message The assistant message that was streamed.
+ * @param messages The full chat history, including the assistant message.
+ *
+ * @param isAbort Indicates whether the request has been aborted.
+ * @param isDisconnect Indicates whether the request has been ended by a network error.
+ * @param isError Indicates whether the request has been ended by an error.
+ */
 export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
   message: UI_MESSAGE;
+  messages: UI_MESSAGE[];
+  isAbort: boolean;
+  isDisconnect: boolean;
+  isError: boolean;
 }) => void;
 
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
@@ -129,8 +138,6 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
 
   transport?: ChatTransport<UI_MESSAGE>;
 
-  maxSteps?: number;
-
   /**
    * Callback function to be called when an error is encountered.
    */
@@ -143,12 +150,10 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   You can optionally return a result for the tool call,
   either synchronously or asynchronously.
      */
-  onToolCall?: ChatOnToolCallCallback;
+  onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
 
   /**
-   * Optional callback function that is called when the assistant message is finished streaming.
-   *
-   * @param message The message that was streamed.
+   * Function that is called when the assistant response has finished streaming.
    */
   onFinish?: ChatOnFinishCallback<UI_MESSAGE>;
 
@@ -158,6 +163,14 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    * @param data The data part that was received.
    */
   onData?: ChatOnDataCallback<UI_MESSAGE>;
+
+  /**
+   * When provided, this function will be called when the stream is finished or a tool call is added
+   * to determine if the current messages should be resubmitted.
+   */
+  sendAutomaticallyWhen?: (options: {
+    messages: UI_MESSAGE[];
+  }) => boolean | PromiseLike<boolean>;
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
@@ -174,11 +187,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     | UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>
     | undefined;
   private readonly transport: ChatTransport<UI_MESSAGE>;
-  private maxSteps: number;
   private onError?: ChatInit<UI_MESSAGE>['onError'];
   private onToolCall?: ChatInit<UI_MESSAGE>['onToolCall'];
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
   private onData?: ChatInit<UI_MESSAGE>['onData'];
+  private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
 
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
@@ -187,7 +200,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     generateId = generateIdFunc,
     id = generateId(),
     transport = new DefaultChatTransport(),
-    maxSteps = 1,
     messageMetadataSchema,
     dataPartSchemas,
     state,
@@ -195,11 +207,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     onToolCall,
     onFinish,
     onData,
+    sendAutomaticallyWhen,
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
     this.id = id;
-    this.maxSteps = maxSteps;
     this.transport = transport;
     this.generateId = generateId;
     this.messageMetadataSchema = messageMetadataSchema;
@@ -209,6 +221,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onToolCall = onToolCall;
     this.onFinish = onFinish;
     this.onData = onData;
+    this.sendAutomaticallyWhen = sendAutomaticallyWhen;
   }
 
   /**
@@ -259,7 +272,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
    * If a messageId is provided, the message will be replaced.
    */
   sendMessage = async (
-    message:
+    message?:
       | (CreateUIMessage<UI_MESSAGE> & {
           text?: never;
           files?: never;
@@ -278,8 +291,17 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           parts?: never;
           messageId?: string;
         },
-    options: ChatRequestOptions = {},
+    options?: ChatRequestOptions,
   ): Promise<void> => {
+    if (message == null) {
+      await this.makeRequest({
+        trigger: 'submit-message',
+        messageId: this.lastMessage?.id,
+        ...options,
+      });
+      return;
+    }
+
     let uiMessage: CreateUIMessage<UI_MESSAGE>;
 
     if ('text' in message || 'files' in message) {
@@ -334,7 +356,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     await this.makeRequest({
-      trigger: 'submit-user-message',
+      trigger: 'submit-message',
       messageId: message.messageId,
       ...options,
     });
@@ -369,7 +391,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     );
 
     await this.makeRequest({
-      trigger: 'regenerate-assistant-message',
+      trigger: 'regenerate-message',
       messageId,
       ...options,
     });
@@ -382,37 +404,78 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     await this.makeRequest({ trigger: 'resume-stream', ...options });
   };
 
-  addToolResult = async ({
+  /**
+   * Clear the error state and set the status to ready if the chat is in an error state.
+   */
+  clearError = () => {
+    if (this.status === 'error') {
+      this.state.error = undefined;
+      this.setStatus({ status: 'ready' });
+    }
+  };
+
+  addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
+    state = 'output-available',
+    tool,
     toolCallId,
     output,
-  }: {
-    toolCallId: string;
-    output: unknown;
-  }) => {
+    errorText,
+  }:
+    | {
+        state?: 'output-available';
+        tool: TOOL;
+        toolCallId: string;
+        output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+        errorText?: never;
+      }
+    | {
+        state: 'output-error';
+        tool: TOOL;
+        toolCallId: string;
+        output?: never;
+        errorText: string;
+      }) =>
     this.jobExecutor.run(async () => {
-      updateToolOutput({
-        messages: this.state.messages,
-        toolCallId,
-        output,
+      const messages = this.state.messages;
+      const lastMessage = messages[messages.length - 1];
+
+      this.state.replaceMessage(messages.length - 1, {
+        ...lastMessage,
+        parts: lastMessage.parts.map(part =>
+          isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
+            ? { ...part, state, output, errorText }
+            : part,
+        ),
       });
 
-      this.messages = this.state.messages;
-
-      // when the request is ongoing, the auto-submit will be triggered after the request is finished
-      if (this.status === 'submitted' || this.status === 'streaming') {
-        return;
+      // update the active response if it exists
+      if (this.activeResponse) {
+        this.activeResponse.state.message.parts =
+          this.activeResponse.state.message.parts.map(part =>
+            isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
+              ? ({
+                  ...part,
+                  state,
+                  output,
+                  errorText,
+                } as typeof part)
+              : part,
+          );
       }
 
-      // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage = this.lastMessage;
-      if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-        // we do not await this call to avoid a deadlock in the serial job executor; triggerRequest also uses the job executor internally.
+      // automatically send the message if the sendAutomaticallyWhen function returns true
+      if (
+        this.status !== 'streaming' &&
+        this.status !== 'submitted' &&
+        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+      ) {
+        // no await to avoid deadlocking
         this.makeRequest({
-          trigger: 'submit-tool-result',
+          trigger: 'submit-message',
+          messageId: this.lastMessage?.id,
         });
       }
     });
-  };
 
   /**
    * Abort the current request immediately, keep the generated tokens if any.
@@ -432,19 +495,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     body,
     messageId,
   }: {
-    trigger:
-      | 'submit-user-message'
-      | 'resume-stream'
-      | 'submit-tool-result'
-      | 'regenerate-assistant-message';
+    trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
     messageId?: string;
   } & ChatRequestOptions) {
     this.setStatus({ status: 'submitted', error: undefined });
 
-    const messageCount = this.state.messages.length;
     const lastMessage = this.lastMessage;
-    const maxStep =
-      lastMessage?.parts.filter(part => part.type === 'step-start').length ?? 0; // TODO: should this be 1?
+
+    let isAbort = false;
+    let isDisconnect = false;
+    let isError = false;
 
     try {
       const activeResponse = {
@@ -454,6 +514,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         }),
         abortController: new AbortController(),
       } as ActiveResponse<UI_MESSAGE>;
+
+      activeResponse.abortController.signal.addEventListener('abort', () => {
+        isAbort = true;
+      });
 
       this.activeResponse = activeResponse;
 
@@ -468,6 +532,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         });
 
         if (reconnect == null) {
+          this.setStatus({ status: 'ready' });
           return; // no active stream found, so we do not resume
         }
 
@@ -531,14 +596,24 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         },
       });
 
-      this.onFinish?.({ message: activeResponse.state.message });
-
       this.setStatus({ status: 'ready' });
     } catch (err) {
       // Ignore abort errors as they are expected.
-      if ((err as any).name === 'AbortError') {
+      if (isAbort || (err as any).name === 'AbortError') {
+        isAbort = true;
         this.setStatus({ status: 'ready' });
         return null;
+      }
+
+      isError = true;
+
+      // Network errors such as disconnected, timeout, etc.
+      if (
+        err instanceof TypeError &&
+        (err.message.toLowerCase().includes('fetch') ||
+          err.message.toLowerCase().includes('network'))
+      ) {
+        isDisconnect = true;
       }
 
       if (this.onError && err instanceof Error) {
@@ -547,63 +622,30 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       this.setStatus({ status: 'error', error: err as Error });
     } finally {
+      try {
+        this.onFinish?.({
+          message: this.activeResponse!.state.message,
+          messages: this.state.messages,
+          isAbort,
+          isDisconnect,
+          isError,
+        });
+      } catch (err) {
+        console.error(err);
+      }
+
       this.activeResponse = undefined;
     }
 
-    // auto-submit when all tool calls in the last assistant message have results
-    // and assistant has not answered yet
-    if (
-      shouldResubmitMessages({
-        originalMaxToolInvocationStep: maxStep,
-        originalMessageCount: messageCount,
-        maxSteps: this.maxSteps,
-        messages: this.state.messages,
-      })
-    ) {
+    // automatically send the message if the sendAutomaticallyWhen function returns true
+    if (this.sendAutomaticallyWhen?.({ messages: this.state.messages })) {
       await this.makeRequest({
+        trigger: 'submit-message',
+        messageId: this.lastMessage?.id,
         metadata,
         headers,
         body,
-        // secondary requests are triggered by automatic tool execution
-        trigger: 'submit-tool-result',
       });
     }
   }
-}
-
-/**
- * Updates the result of a specific tool invocation in the last message of the given messages array.
- *
- * @param {object} params - The parameters object.
- * @param {UIMessage[]} params.messages - An array of messages, from which the last one is updated.
- * @param {string} params.toolCallId - The unique identifier for the tool invocation to update.
- * @param {unknown} params.toolResult - The result object to attach to the tool invocation.
- * @returns {void} This function does not return anything.
- */
-function updateToolOutput<UI_MESSAGE extends UIMessage>({
-  messages,
-  toolCallId,
-  output,
-}: {
-  messages: UI_MESSAGE[];
-  toolCallId: string;
-  output: unknown;
-}) {
-  const lastMessage = messages[messages.length - 1];
-
-  const toolPart = lastMessage.parts.find(
-    (part): part is ToolUIPart<InferUIMessageTools<UI_MESSAGE>> =>
-      isToolUIPart(part) && part.toolCallId === toolCallId,
-  );
-
-  if (toolPart == null) {
-    return;
-  }
-
-  toolPart.state = 'output-available';
-  (
-    toolPart as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> & {
-      state: 'output-available';
-    }
-  ).output = output;
 }

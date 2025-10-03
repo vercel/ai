@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -18,8 +18,8 @@ import {
 } from './google-vertex-embedding-options';
 import { GoogleVertexConfig } from './google-vertex-config';
 
-export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
-  readonly specificationVersion = 'v2';
+export class GoogleVertexEmbeddingModel implements EmbeddingModelV3<string> {
+  readonly specificationVersion = 'v3';
   readonly modelId: GoogleVertexEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
@@ -43,8 +43,8 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
   > {
     // Parse provider options
     const googleOptions =
@@ -77,9 +77,14 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
       url,
       headers: mergedHeaders,
       body: {
-        instances: values.map(value => ({ content: value })),
+        instances: values.map(value => ({
+          content: value,
+          task_type: googleOptions.taskType,
+          title: googleOptions.title,
+        })),
         parameters: {
           outputDimensionality: googleOptions.outputDimensionality,
+          autoTruncate: googleOptions.autoTruncate,
         },
       },
       failedResponseHandler: googleVertexFailedResponseHandler,

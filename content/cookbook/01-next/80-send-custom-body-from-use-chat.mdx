@@ -6,19 +6,20 @@ tags: ['next', 'chat']
 
 # Send Custom Body from useChat
 
-<Note type="warning">
-  `experimental_prepareRequestBody` is an experimental feature and only
-  available in React, Svelte and Vue.
+<Note>
+  If you are looking to send custom values alongside each message, check out the
+  [chatbot request configuration
+  documentation](https://ai-sdk.dev/docs/ai-sdk-ui/chatbot#request-configuration).
 </Note>
 
 By default, `useChat` sends all messages as well as information from the request to the server.
-However, it is often desirable to control the body content that is sent to the server, e.g. to:
+However, it is often desirable to control the entire body content that is sent to the server, e.g. to:
 
 - only send the last message
 - send additional data along with the message
 - change the structure of the request body
 
-The `experimental_prepareRequestBody` option allows you to customize the body content that is sent to the server.
+The `prepareSendMessagesRequest` option allows you to customize the entire body content that is sent to the server.
 The function receives the message list, the request data, and the request body from the append call.
 It should return the body content that will be sent to the server.
 
@@ -29,30 +30,48 @@ This can be useful if you want to reduce the amount of data sent to the server.
 
 ### Client
 
-```typescript filename='app/page.tsx' highlight="7-10"
+```typescript filename='app/page.tsx' highlight="3,7-14"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    experimental_prepareRequestBody: ({ messages }) => {
-      // e.g. only the text of the last message:
-      return messages[messages.length - 1].content;
-    },
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      prepareSendMessagesRequest: ({ id, messages }) => {
+        return {
+          body: {
+            id,
+            message: messages[messages.length - 1],
+          },
+        };
+      },
+    }),
   });
 
   return (
     <div>
-      {messages.map(m => (
-        <div key={m.id}>
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
-        </div>
-      ))}
+    {messages.map((message, index) => (
+      <div key={index}>
+        {message.role === 'user' ? 'User: ' : 'AI: '}
+        {message.parts.map((part) => {
+          switch (part.type) {
+            case "text":
+              return <div key={`${message.id}-text`}>{part.text}</div>;
+          }
+        })}
+      </div>
+    ))}
 
-      <form onSubmit={handleSubmit}>
-        <input value={input} onChange={handleInputChange} />
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        sendMessage({text: input});
+        setInput('');
+      }}>
+        <input value={input} onChange={(e) => setInput(e.currentTarget.value)} />
       </form>
     </div>
   );
@@ -61,33 +80,35 @@ export default function Chat() {
 
 ### Server
 
-We need to adjust the server to only receive the text of the last message.
+We need to adjust the server to receive the custom request format with the chat ID and last message.
 The rest of the message history can be loaded from storage.
 
-```tsx filename='app/api/chat/route.ts' highlight="8,9,23"
-import { openai } from '@ai-sdk/openai'
-import { streamText } from 'ai'
+```tsx filename='app/api/chat/route.ts' highlight="8,11,12,16"
+import { openai } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
-export const maxDuration = 30
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  // we receive only the text from the last message
-  const text = await req.json()
+  const { id, message } = await req.json();
 
-  // e.g. load message history from storage
-  const history = await loadHistory()
+  // Load existing messages and add the new one
+  const messages = await loadMessages(id);
+  messages.push(message);
 
   // Call the language model
   const result = streamText({
     model: openai('gpt-4.1'),
-    messages: [...history, { role: 'user', content: text }]
-    onFinish({ text }) {
-      // e.g. save the message and the response to storage
-    }
-  })
+    messages: convertToModelMessages(messages),
+  });
 
   // Respond with the stream
-  return result.toUIMessageStreamResponse()
+  return result.toUIMessageStreamResponse({
+    originalMessages: messages,
+    onFinish: ({ messages: newMessages }) => {
+      saveMessages(id, newMessages);
+    },
+  });
 }
 ```

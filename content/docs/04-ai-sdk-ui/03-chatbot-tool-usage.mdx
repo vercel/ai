@@ -20,11 +20,11 @@ The flow is as follows:
 1. All tool calls are forwarded to the client.
 1. Server-side tools are executed using their `execute` method and their results are forwarded to the client.
 1. Client-side tools that should be automatically executed are handled with the `onToolCall` callback.
-   You can return the tool result from the callback.
+   You must call `addToolResult` to provide the tool result.
 1. Client-side tool that require user interactions can be displayed in the UI.
    The tool calls and results are available as tool invocation parts in the `parts` property of the last assistant message.
 1. When the user interaction is done, `addToolResult` can be used to add the tool result to the chat.
-1. When there are tool calls in the last assistant message and all tool results are available, the client sends the updated messages back to the server.
+1. The chat can be configured to automatically submit when all tool results are available using `sendAutomaticallyWhen`.
    This triggers another iteration of this flow.
 
 The tool calls and tool executions are integrated into the assistant message as typed tool parts.
@@ -32,11 +32,10 @@ A tool part is at first a tool call, and then it becomes a tool result when the 
 The tool result contains all information about the tool call as well as the result of the tool execution.
 
 <Note>
-  In order to automatically send another request to the server when all tool
-  calls are server-side, you need to set
-  [`maxSteps`](/docs/reference/ai-sdk-ui/use-chat#max-steps) to a value greater
-  than 1 in the `useChat` options. It is disabled by default for backward
-  compatibility.
+  Tool result submission can be configured using the `sendAutomaticallyWhen`
+  option. You can use the `lastAssistantMessageIsCompleteWithToolCalls` helper
+  to automatically submit when all tool results are available. This simplifies
+  the client-side code while still allowing full control when needed.
 </Note>
 
 ## Example
@@ -105,30 +104,56 @@ There are three things worth mentioning:
 
 1. The [`onToolCall`](/docs/reference/ai-sdk-ui/use-chat#on-tool-call) callback is used to handle client-side tools that should be automatically executed.
    In this example, the `getLocation` tool is a client-side tool that returns a random city.
+   You call `addToolResult` to provide the result (without `await` to avoid potential deadlocks).
 
-2. The `parts` array of assistant messages contains tool parts with typed names like `tool-askForConfirmation`.
+   <Note>
+     Always check `if (toolCall.dynamic)` first in your `onToolCall` handler.
+     Without this check, TypeScript will throw an error like: `Type 'string' is
+     not assignable to type '"toolName1" | "toolName2"'` when you try to use
+     `toolCall.toolName` in `addToolResult`.
+   </Note>
+
+2. The [`sendAutomaticallyWhen`](/docs/reference/ai-sdk-ui/use-chat#send-automatically-when) option with `lastAssistantMessageIsCompleteWithToolCalls` helper automatically submits when all tool results are available.
+
+3. The `parts` array of assistant messages contains tool parts with typed names like `tool-askForConfirmation`.
    The client-side tool `askForConfirmation` is displayed in the UI.
    It asks the user for confirmation and displays the result once the user confirms or denies the execution.
-   The result is added to the chat using `addToolResult`.
+   The result is added to the chat using `addToolResult` with the `tool` parameter for type safety.
 
-3. The [`maxSteps`](/docs/reference/ai-sdk-ui/use-chat#max-steps) option is set to 5.
-   This enables several tool use iterations between the client and the server.
-
-```tsx filename='app/page.tsx' highlight="9,12,33"
+```tsx filename='app/page.tsx' highlight="2,6,10,14-20"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
 import { useState } from 'react';
 
 export default function Chat() {
   const { messages, sendMessage, addToolResult } = useChat({
-    maxSteps: 5,
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {
+      // Check if it's a dynamic tool first for proper type narrowing
+      if (toolCall.dynamic) {
+        return;
+      }
+
       if (toolCall.toolName === 'getLocation') {
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
-        return cities[Math.floor(Math.random() * cities.length)];
+
+        // No await - avoids potential deadlocks
+        addToolResult({
+          tool: 'getLocation',
+          toolCallId: toolCall.toolCallId,
+          output: cities[Math.floor(Math.random() * cities.length)],
+        });
       }
     },
   });
@@ -162,8 +187,9 @@ export default function Chat() {
                           <button
                             onClick={() =>
                               addToolResult({
+                                tool: 'askForConfirmation',
                                 toolCallId: callId,
-                                result: 'Yes, confirmed.',
+                                output: 'Yes, confirmed.',
                               })
                             }
                           >
@@ -172,8 +198,9 @@ export default function Chat() {
                           <button
                             onClick={() =>
                               addToolResult({
+                                tool: 'askForConfirmation',
                                 toolCallId: callId,
-                                result: 'No, denied',
+                                output: 'No, denied',
                               })
                             }
                           >
@@ -268,6 +295,98 @@ export default function Chat() {
   );
 }
 ```
+
+### Error handling
+
+Sometimes an error may occur during client-side tool execution. Use the `addToolResult` method with a `state` of `output-error` and `errorText` value instead of `output` record the error.
+
+```tsx filename='app/page.tsx' highlight="19,36-41"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+import { useState } from 'react';
+
+export default function Chat() {
+  const { messages, sendMessage, addToolResult } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+    // run client-side tools that are automatically executed:
+    async onToolCall({ toolCall }) {
+      // Check if it's a dynamic tool first for proper type narrowing
+      if (toolCall.dynamic) {
+        return;
+      }
+
+      if (toolCall.toolName === 'getWeatherInformation') {
+        try {
+          const weather = await getWeatherInformation(toolCall.input);
+
+          // No await - avoids potential deadlocks
+          addToolResult({
+            tool: 'getWeatherInformation',
+            toolCallId: toolCall.toolCallId,
+            output: weather,
+          });
+        } catch (err) {
+          addToolResult({
+            tool: 'getWeatherInformation',
+            toolCallId: toolCall.toolCallId,
+            state: 'output-error',
+            errorText: 'Unable to get the weather information',
+          });
+        }
+      }
+    },
+  });
+}
+```
+
+## Dynamic Tools
+
+When using dynamic tools (tools with unknown types at compile time), the UI parts use a generic `dynamic-tool` type instead of specific tool types:
+
+```tsx filename='app/page.tsx'
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      // Static tools with specific (`tool-${toolName}`) types
+      case 'tool-getWeatherInformation':
+        return <WeatherDisplay part={part} />;
+
+      // Dynamic tools use generic `dynamic-tool` type
+      case 'dynamic-tool':
+        return (
+          <div key={index}>
+            <h4>Tool: {part.toolName}</h4>
+            {part.state === 'input-streaming' && (
+              <pre>{JSON.stringify(part.input, null, 2)}</pre>
+            )}
+            {part.state === 'output-available' && (
+              <pre>{JSON.stringify(part.output, null, 2)}</pre>
+            )}
+            {part.state === 'output-error' && (
+              <div>Error: {part.errorText}</div>
+            )}
+          </div>
+        );
+    }
+  });
+}
+```
+
+Dynamic tools are useful when integrating with:
+
+- MCP (Model Context Protocol) tools without schemas
+- User-defined functions loaded at runtime
+- External tool providers
 
 ## Tool call streaming
 

@@ -1,6 +1,6 @@
 import type {
-  ImageModelV2,
-  ImageModelV2CallWarning,
+  ImageModelV3,
+  ImageModelV3CallWarning,
   JSONObject,
 } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
@@ -28,8 +28,8 @@ interface FalImageModelConfig {
   };
 }
 
-export class FalImageModel implements ImageModelV2 {
-  readonly specificationVersion = 'v2';
+export class FalImageModel implements ImageModelV3 {
+  readonly specificationVersion = 'v3';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
@@ -50,10 +50,10 @@ export class FalImageModel implements ImageModelV2 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV2['doGenerate']>>
+  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV2CallWarning> = [];
+    const warnings: Array<ImageModelV3CallWarning> = [];
 
     let imageSize: FalImageSize | undefined;
     if (size) {
@@ -82,16 +82,8 @@ export class FalImageModel implements ImageModelV2 {
       fetch: this.config.fetch,
     });
 
-    // download the images:
-    const targetImages = 'images' in value ? value.images : [value.image];
-    const downloadedImages = await Promise.all(
-      targetImages.map(image => this.downloadImage(image.url, abortSignal)),
-    );
     const {
-      // @ts-expect-error - either image or images is present, not both.
-      image,
-      // @ts-expect-error - either image or images is present, not both.
-      images,
+      images: targetImages,
       // prompt is just passed through and not a revised prompt per image
       prompt: _prompt,
       // NSFW information is normalized merged into `providerMetadata.fal.images`
@@ -100,6 +92,11 @@ export class FalImageModel implements ImageModelV2 {
       // pass through other properties to providerMetadata
       ...responseMetaData
     } = value;
+
+    // download the images:
+    const downloadedImages = await Promise.all(
+      targetImages.map(image => this.downloadImage(image.url, abortSignal)),
+    );
 
     return {
       images: downloadedImages,
@@ -122,16 +119,17 @@ export class FalImageModel implements ImageModelV2 {
             } = image;
 
             const nsfw =
-              value.has_nsfw_concepts?.[index] ??
-              value.nsfw_content_detected?.[index];
+              has_nsfw_concepts?.[index] ?? nsfw_content_detected?.[index];
 
             return {
               ...imageMetaData,
-              ...(contentType !== undefined ? { contentType } : undefined),
-              ...(fileName !== undefined ? { fileName } : undefined),
-              ...(fileData !== undefined ? { fileData } : undefined),
-              ...(fileSize !== undefined ? { fileSize } : undefined),
-              ...(nsfw !== undefined ? { nsfw } : undefined),
+              ...removeOnlyUndefined({
+                contentType,
+                fileName,
+                fileData,
+                fileSize,
+                nsfw,
+              }),
             };
           }),
           ...responseMetaData,
@@ -155,6 +153,12 @@ export class FalImageModel implements ImageModelV2 {
     });
     return response;
   }
+}
+
+function removeOnlyUndefined<T extends Record<string, unknown>>(obj: T) {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined),
+  ) as Partial<T>;
 }
 
 /**
@@ -210,28 +214,29 @@ const falErrorSchema = z.union([falValidationErrorSchema, falHttpErrorSchema]);
 
 const falImageSchema = z.object({
   url: z.string(),
-  width: z.number().optional(),
-  height: z.number().optional(),
-  content_type: z.string().optional(),
+  width: z.number().nullish(),
+  height: z.number().nullish(),
+  // e.g. https://fal.ai/models/fal-ai/fashn/tryon/v1.6/api#schema-output
+  content_type: z.string().nullish(),
   // e.g. https://fal.ai/models/fal-ai/flowedit/api#schema-output
-  file_name: z.string().optional(),
+  file_name: z.string().nullish(),
   file_data: z.string().optional(),
-  file_size: z.number().optional(),
+  file_size: z.number().nullish(),
 });
 
 // https://fal.ai/models/fal-ai/lora/api#type-File
 const loraFileSchema = z.object({
   url: z.string(),
   content_type: z.string().optional(),
-  file_name: z.string().optional(),
+  file_name: z.string().nullable().optional(),
   file_data: z.string().optional(),
-  file_size: z.number().optional(),
+  file_size: z.number().nullable().optional(),
 });
 
 const commonResponseSchema = z.object({
   timings: z
     .object({
-      inference: z.number(),
+      inference: z.number().optional(),
     })
     .optional(),
   seed: z.number().optional(),
@@ -247,18 +252,14 @@ const commonResponseSchema = z.object({
 
 // Most FAL image models respond with an array of images, but some have a response
 // with a single image, e.g. https://fal.ai/models/easel-ai/easel-avatar/api#schema-output
-const falImageResponseSchema = z.union([
-  z
-    .object({
-      images: z.array(falImageSchema),
-    })
-    .merge(commonResponseSchema),
-  z
-    .object({
-      image: falImageSchema,
-    })
-    .merge(commonResponseSchema),
-]);
+const base = z.looseObject(commonResponseSchema.shape);
+const falImageResponseSchema = z
+  .union([
+    base.extend({ images: z.array(falImageSchema) }),
+    base.extend({ image: falImageSchema }),
+  ])
+  .transform(v => ('images' in v ? v : { ...v, images: [v.image] }))
+  .pipe(base.extend({ images: z.array(falImageSchema) }));
 
 function isValidationError(error: unknown): error is ValidationError {
   return falValidationErrorSchema.safeParse(error).success;

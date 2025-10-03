@@ -1,24 +1,27 @@
 import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2DataContent,
-  LanguageModelV2Message,
-  LanguageModelV2Prompt,
-  SharedV2ProviderMetadata,
+  LanguageModelV3CallWarning,
+  LanguageModelV3DataContent,
+  LanguageModelV3Message,
+  LanguageModelV3Prompt,
+  SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
-  AnthropicCacheControl,
   AnthropicMessagesPrompt,
   AnthropicToolResultContent,
   AnthropicUserMessage,
+  AnthropicWebFetchToolResultContent,
 } from './anthropic-api-types';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
+import { getCacheControl } from './get-cache-control';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
+import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
+import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 
-function convertToString(data: LanguageModelV2DataContent): string {
+function convertToString(data: LanguageModelV3DataContent): string {
   if (typeof data === 'string') {
     return Buffer.from(data, 'base64').toString('utf-8');
   }
@@ -43,9 +46,9 @@ export async function convertToAnthropicMessagesPrompt({
   sendReasoning,
   warnings,
 }: {
-  prompt: LanguageModelV2Prompt;
+  prompt: LanguageModelV3Prompt;
   sendReasoning: boolean;
-  warnings: LanguageModelV2CallWarning[];
+  warnings: LanguageModelV3CallWarning[];
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -56,22 +59,8 @@ export async function convertToAnthropicMessagesPrompt({
   let system: AnthropicMessagesPrompt['system'] = undefined;
   const messages: AnthropicMessagesPrompt['messages'] = [];
 
-  function getCacheControl(
-    providerMetadata: SharedV2ProviderMetadata | undefined,
-  ): AnthropicCacheControl | undefined {
-    const anthropic = providerMetadata?.anthropic;
-
-    // allow both cacheControl and cache_control:
-    const cacheControlValue =
-      anthropic?.cacheControl ?? anthropic?.cache_control;
-
-    // Pass through value assuming it is of the correct type.
-    // The Anthropic API will validate the value.
-    return cacheControlValue as AnthropicCacheControl | undefined;
-  }
-
   async function shouldEnableCitations(
-    providerMetadata: SharedV2ProviderMetadata | undefined,
+    providerMetadata: SharedV3ProviderMetadata | undefined,
   ): Promise<boolean> {
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -83,7 +72,7 @@ export async function convertToAnthropicMessagesPrompt({
   }
 
   async function getDocumentMetadata(
-    providerMetadata: SharedV2ProviderMetadata | undefined,
+    providerMetadata: SharedV3ProviderMetadata | undefined,
   ): Promise<{ title?: string; context?: string }> {
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -414,22 +403,24 @@ export async function convertToAnthropicMessagesPrompt({
 
               case 'tool-call': {
                 if (part.providerExecuted) {
-                  if (part.toolName === 'web_search') {
+                  if (
+                    part.toolName === 'code_execution' ||
+                    part.toolName === 'web_fetch' ||
+                    part.toolName === 'web_search'
+                  ) {
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
-                      name: 'web_search',
+                      name: part.toolName,
                       input: part.input,
                       cache_control: cacheControl,
                     });
-
-                    break;
+                  } else {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool call for tool ${part.toolName} is not supported`,
+                    });
                   }
-
-                  warnings.push({
-                    type: 'other',
-                    message: `provider executed tool call for tool ${part.toolName} is not supported`,
-                  });
 
                   break;
                 }
@@ -445,6 +436,76 @@ export async function convertToAnthropicMessagesPrompt({
               }
 
               case 'tool-result': {
+                if (part.toolName === 'code_execution') {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const codeExecutionOutput =
+                    codeExecution_20250522OutputSchema.parse(output.value);
+
+                  anthropicContent.push({
+                    type: 'code_execution_tool_result',
+                    tool_use_id: part.toolCallId,
+                    content: {
+                      type: codeExecutionOutput.type,
+                      stdout: codeExecutionOutput.stdout,
+                      stderr: codeExecutionOutput.stderr,
+                      return_code: codeExecutionOutput.return_code,
+                    },
+                    cache_control: cacheControl,
+                  });
+
+                  break;
+                }
+
+                if (part.toolName === 'web_fetch') {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const webFetchOutput = webFetch_20250910OutputSchema.parse(
+                    output.value,
+                  );
+
+                  anthropicContent.push({
+                    type: 'web_fetch_tool_result',
+                    tool_use_id: part.toolCallId,
+                    content: {
+                      type: 'web_fetch_result',
+                      url: webFetchOutput.url,
+                      retrieved_at: webFetchOutput.retrievedAt,
+                      content: {
+                        type: 'document',
+                        title: webFetchOutput.content.title,
+                        citations: webFetchOutput.content.citations,
+                        source: {
+                          type: webFetchOutput.content.source.type,
+                          media_type: webFetchOutput.content.source.mediaType,
+                          data: webFetchOutput.content.source.data,
+                        } as AnthropicWebFetchToolResultContent['content']['content']['source'],
+                      },
+                    },
+                    cache_control: cacheControl,
+                  });
+
+                  break;
+                }
+
                 if (part.toolName === 'web_search') {
                   const output = part.output;
 
@@ -508,19 +569,19 @@ export async function convertToAnthropicMessagesPrompt({
 
 type SystemBlock = {
   type: 'system';
-  messages: Array<LanguageModelV2Message & { role: 'system' }>;
+  messages: Array<LanguageModelV3Message & { role: 'system' }>;
 };
 type AssistantBlock = {
   type: 'assistant';
-  messages: Array<LanguageModelV2Message & { role: 'assistant' }>;
+  messages: Array<LanguageModelV3Message & { role: 'assistant' }>;
 };
 type UserBlock = {
   type: 'user';
-  messages: Array<LanguageModelV2Message & { role: 'user' | 'tool' }>;
+  messages: Array<LanguageModelV3Message & { role: 'user' | 'tool' }>;
 };
 
 function groupIntoBlocks(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =

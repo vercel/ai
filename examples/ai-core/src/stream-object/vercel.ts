@@ -1,24 +1,29 @@
 import { vercel } from '@ai-sdk/vercel';
 import { streamObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const result = streamObject({
-    model: vercel('v0-1.0-md'),
+    model: vercel('v0-1.5-md'),
     schema: z.object({
-      characters: z.array(
-        z.object({
-          name: z.string(),
-          class: z
-            .string()
-            .describe('Character class, e.g. warrior, mage, or thief.'),
-          description: z.string(),
+      button: z.object({
+        element: z.string(),
+        baseStyles: z.object({
+          padding: z.string(),
+          borderRadius: z.string(),
+          border: z.string(),
+          backgroundColor: z.string(),
+          color: z.string(),
+          cursor: z.string(),
         }),
-      ),
+        hoverStyles: z.object({
+          backgroundColor: z.string(),
+          transform: z.string().optional(),
+        }),
+      }),
     }),
-    prompt:
-      'Generate 3 character descriptions for a fantasy role playing game.',
+    prompt: 'Generate CSS styles for a modern primary button component.',
   });
 
   for await (const partialObject of result.partialObjectStream) {

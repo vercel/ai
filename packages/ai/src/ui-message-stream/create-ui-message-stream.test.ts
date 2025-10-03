@@ -6,6 +6,7 @@ import { UIMessageChunk } from './ui-message-chunks';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 import { consumeStream } from '../util/consume-stream';
 import { UIMessage } from '../ui/ui-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('createUIMessageStream', () => {
   it('should send data stream part and close the stream', async () => {
@@ -396,6 +397,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "isAborted": false,
           "isContinuation": false,
           "messages": [
             {
@@ -403,6 +405,7 @@ describe('createUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "1a",
                   "type": "text",
@@ -416,6 +419,7 @@ describe('createUIMessageStream', () => {
             "metadata": undefined,
             "parts": [
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "1a",
                 "type": "text",
@@ -459,6 +463,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "isAborted": false,
           "isContinuation": true,
           "messages": [
             {
@@ -480,6 +485,7 @@ describe('createUIMessageStream', () => {
                   "type": "text",
                 },
                 {
+                  "providerMetadata": undefined,
                   "state": "done",
                   "text": "1b",
                   "type": "text",
@@ -497,6 +503,7 @@ describe('createUIMessageStream', () => {
                 "type": "text",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "1b",
                 "type": "text",
@@ -537,6 +544,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "isAborted": false,
           "isContinuation": false,
           "messages": [
             {
@@ -595,6 +603,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "isAborted": false,
           "isContinuation": false,
           "messages": [
             {

@@ -18,19 +18,7 @@ The [AI Gateway](https://vercel.com/docs/ai-gateway) provider connects you to mo
 
 ## Setup
 
-The AI Gateway provider is available in the `@ai-sdk/gateway` module. You can install it with
-
-<Tabs items={['pnpm', 'npm', 'yarn']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/gateway" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/gateway" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/gateway" dark />
-  </Tab>
-</Tabs>
+The Vercel AI Gateway provider is part of the AI SDK.
 
 ## Basic Usage
 
@@ -41,18 +29,17 @@ For most use cases, you can use the AI Gateway directly with a model string:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-4o',
+  model: 'openai/gpt-5',
   prompt: 'Hello world',
 });
 ```
 
 ```ts
 // use provider instance
-import { generateText } from 'ai';
-import { gateway } from '@ai-sdk/gateway';
+import { generateText, gateway } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-4o'),
+  model: gateway('openai/gpt-5'),
   prompt: 'Hello world',
 });
 ```
@@ -61,10 +48,10 @@ The AI SDK automatically uses the AI Gateway when you pass a model string in the
 
 ## Provider Instance
 
-You can also import the default provider instance `gateway` from `@ai-sdk/gateway`:
+You can also import the default provider instance `gateway` from `ai`:
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
+import { gateway } from 'ai';
 ```
 
 You may want to create a custom provider instance when you need to:
@@ -74,10 +61,10 @@ You may want to create a custom provider instance when you need to:
 - Wrap the provider with [middleware](/docs/ai-sdk-core/middleware)
 - Use different settings for different parts of your application
 
-To create a custom provider instance, import `createGateway` from `@ai-sdk/gateway`:
+To create a custom provider instance, import `createGateway` from `ai`:
 
 ```ts
-import { createGateway } from '@ai-sdk/gateway';
+import { createGateway } from 'ai';
 
 const gateway = createGateway({
   apiKey: process.env.AI_GATEWAY_API_KEY ?? '',
@@ -125,7 +112,7 @@ AI_GATEWAY_API_KEY=your_api_key_here
 Or pass it directly to the provider:
 
 ```ts
-import { createGateway } from '@ai-sdk/gateway';
+import { createGateway } from 'ai';
 
 const gateway = createGateway({
   apiKey: 'your_api_key_here',
@@ -134,18 +121,42 @@ const gateway = createGateway({
 
 ### OIDC Authentication (Vercel Deployments)
 
-When deployed on Vercel, the AI Gateway provider automatically uses OIDC tokens for authentication without requiring an API key.
+When deployed to Vercel, the AI Gateway provider supports authenticating using [OIDC (OpenID Connect)
+tokens](https://vercel.com/docs/oidc) without API Keys.
+
+#### How OIDC Authentication Works
+
+1. **In Production/Preview Deployments**:
+
+   - OIDC authentication is automatically handled
+   - No manual configuration needed
+   - Tokens are automatically obtained and refreshed
+
+2. **In Local Development**:
+   - First, install and authenticate with the [Vercel CLI](https://vercel.com/docs/cli)
+   - Run `vercel env pull` to download your project's OIDC token locally
+   - For automatic token management:
+     - Use `vercel dev` to start your development server - this will handle token refreshing automatically
+   - For manual token management:
+     - If not using `vercel dev`, note that OIDC tokens expire after 12 hours
+     - You'll need to run `vercel env pull` again to refresh the token before it expires
+
+<Note>
+  If an API Key is present (either passed directly or via environment), it will
+  always be used, even if invalid.
+</Note>
+
+Read more about using OIDC tokens in the [Vercel AI Gateway docs](https://vercel.com/docs/ai-gateway#using-the-ai-gateway-with-a-vercel-oidc-token).
 
 ## Language Models
 
 You can create language models using a provider instance. The first argument is the model ID in the format `creator/model-name`:
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-4o'),
+  model: 'openai/gpt-5',
   prompt: 'Explain quantum computing in simple terms',
 });
 ```
@@ -163,8 +174,7 @@ For the complete list of available models, see the [AI Gateway documentation](ht
 You can discover available models programmatically:
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
-import { generateText } from 'ai';
+import { gateway, generateText } from 'ai';
 
 const availableModels = await gateway.getAvailableModels();
 
@@ -177,6 +187,16 @@ availableModels.models.forEach(model => {
   if (model.pricing) {
     console.log(`  Input: $${model.pricing.input}/token`);
     console.log(`  Output: $${model.pricing.output}/token`);
+    if (model.pricing.cachedInputTokens) {
+      console.log(
+        `  Cached input (read): $${model.pricing.cachedInputTokens}/token`,
+      );
+    }
+    if (model.pricing.cacheCreationInputTokens) {
+      console.log(
+        `  Cache creation (write): $${model.pricing.cacheCreationInputTokens}/token`,
+      );
+    }
   }
 });
 
@@ -187,16 +207,33 @@ const { text } = await generateText({
 });
 ```
 
+## Credit Usage
+
+You can check your team's current credit balance and usage:
+
+```ts
+import { gateway } from 'ai';
+
+const credits = await gateway.getCredits();
+
+console.log(`Team balance: ${credits.balance} credits`);
+console.log(`Team total used: ${credits.total_used} credits`);
+```
+
+The `getCredits()` method returns your team's credit information based on the authenticated API key or OIDC token:
+
+- **balance** _number_ - Your team's current available credit balance
+- **total_used** _number_ - Total credits consumed by your team
+
 ## Examples
 
 ### Basic Text Generation
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('anthropic/claude-3.5-sonnet'),
+  model: 'anthropic/claude-sonnet-4',
   prompt: 'Write a haiku about programming',
 });
 
@@ -206,11 +243,10 @@ console.log(text);
 ### Streaming
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 
 const { textStream } = await streamText({
-  model: gateway('openai/gpt-4o'),
+  model: 'openai/gpt-5',
   prompt: 'Explain the benefits of serverless architecture',
 });
 
@@ -222,12 +258,11 @@ for await (const textPart of textStream) {
 ### Tool Usage
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const { text } = await generateText({
-  model: gateway('meta/llama-3.3-70b'),
+  model: 'xai/grok-4',
   prompt: 'What is the weather like in San Francisco?',
   tools: {
     getWeather: tool({
@@ -253,7 +288,7 @@ When using provider-specific options, use the actual provider name (e.g. `anthro
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-3-5-sonnet',
+  model: 'anthropic/claude-sonnet-4',
   prompt: 'Explain quantum computing',
   providerOptions: {
     anthropic: {
@@ -265,11 +300,10 @@ const { text } = await generateText({
 
 ```ts
 // with provider instance
-import { generateText } from 'ai';
-import { gateway } from '@ai-sdk/gateway';
+import { gateway, generateText } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('anthropic/claude-3-5-sonnet'),
+  model: gateway('anthropic/claude-sonnet-4'),
   prompt: 'Explain quantum computing',
   providerOptions: {
     anthropic: {
@@ -278,6 +312,8 @@ const { text } = await generateText({
   },
 });
 ```
+
+The AI Gateway provider also accepts its own set of options. Refer to the [AI Gateway provider options documentation](https://vercel.com/docs/ai-gateway/provider-options).
 
 ## Model Capabilities
 

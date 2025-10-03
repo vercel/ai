@@ -1,11 +1,9 @@
 import type {
-  LanguageModelV2Prompt,
-  LanguageModelV2FilePart,
+  LanguageModelV3Prompt,
+  LanguageModelV3FilePart,
 } from '@ai-sdk/provider';
-import {
-  convertReadableStreamToArray,
-  createTestServer,
-} from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayConfig } from './gateway-config';
 import {
@@ -16,8 +14,9 @@ import {
   GatewayModelNotFoundError,
   GatewayResponseError,
 } from './errors';
+import { describe, it, expect, vi } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -31,7 +30,7 @@ const createTestModel = (
     baseURL: 'https://api.test.com',
     headers: () => ({
       Authorization: 'Bearer test-token',
-      'x-ai-gateway-auth-method': 'api-key',
+      'ai-gateway-auth-method': 'api-key',
     }),
     fetch: globalThis.fetch,
     o11yHeaders: config.o11yHeaders || {},
@@ -49,7 +48,7 @@ describe('GatewayLanguageModel', () => {
       const model = createTestModel();
       expect(model.modelId).toBe('test-model');
       expect(model.provider).toBe('test-provider');
-      expect(model.specificationVersion).toBe('v2');
+      expect(model.specificationVersion).toBe('v3');
     });
   });
 
@@ -310,7 +309,7 @@ describe('GatewayLanguageModel', () => {
         prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
-        const imagePrompt: LanguageModelV2Prompt = [
+        const imagePrompt: LanguageModelV3Prompt = [
           {
             role: 'user',
             content: [
@@ -326,7 +325,7 @@ describe('GatewayLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         const imagePart = requestBody.prompt[0]
-          .content[1] as LanguageModelV2FilePart;
+          .content[1] as LanguageModelV3FilePart;
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toBe(`data:image/jpeg;base64,${expectedBase64}`);
@@ -338,7 +337,7 @@ describe('GatewayLanguageModel', () => {
         const imageBytes = new Uint8Array([5, 6, 7, 8]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const mimeType = 'image/png';
-        const imagePrompt: LanguageModelV2Prompt = [
+        const imagePrompt: LanguageModelV3Prompt = [
           {
             role: 'user',
             content: [{ type: 'file', data: imageBytes, mediaType: mimeType }],
@@ -351,7 +350,7 @@ describe('GatewayLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         const imagePart = requestBody.prompt[0]
-          .content[0] as LanguageModelV2FilePart;
+          .content[0] as LanguageModelV3FilePart;
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toBe(
@@ -363,7 +362,7 @@ describe('GatewayLanguageModel', () => {
       it('should not modify image part with URL', async () => {
         prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageUrl = new URL('https://example.com/image.jpg');
-        const imagePrompt: LanguageModelV2Prompt = [
+        const imagePrompt: LanguageModelV3Prompt = [
           {
             role: 'user',
             content: [
@@ -379,7 +378,7 @@ describe('GatewayLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         const imagePart = requestBody.prompt[0]
-          .content[1] as LanguageModelV2FilePart;
+          .content[1] as LanguageModelV3FilePart;
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toBe(imageUrl.toString());
@@ -390,7 +389,7 @@ describe('GatewayLanguageModel', () => {
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const imageUrl = new URL('https://example.com/image2.png');
-        const imagePrompt: LanguageModelV2Prompt = [
+        const imagePrompt: LanguageModelV3Prompt = [
           {
             role: 'user',
             content: [
@@ -825,7 +824,7 @@ describe('GatewayLanguageModel', () => {
         prepareStreamResponse({ content: ['response'] });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
-        const imagePrompt: LanguageModelV2Prompt = [
+        const imagePrompt: LanguageModelV3Prompt = [
           {
             role: 'user',
             content: [
@@ -842,7 +841,7 @@ describe('GatewayLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         const imagePart = requestBody.prompt[0]
-          .content[1] as LanguageModelV2FilePart;
+          .content[1] as LanguageModelV3FilePart;
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toBe(`data:image/jpeg;base64,${expectedBase64}`);
@@ -854,7 +853,7 @@ describe('GatewayLanguageModel', () => {
         const imageBytes = new Uint8Array([5, 6, 7, 8]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const mimeType = 'image/png';
-        const imagePrompt: LanguageModelV2Prompt = [
+        const imagePrompt: LanguageModelV3Prompt = [
           {
             role: 'user',
             content: [
@@ -871,7 +870,7 @@ describe('GatewayLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         const imagePart = requestBody.prompt[0]
-          .content[1] as LanguageModelV2FilePart;
+          .content[1] as LanguageModelV3FilePart;
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toBe(
@@ -883,7 +882,7 @@ describe('GatewayLanguageModel', () => {
       it('should not modify image part with URL', async () => {
         prepareStreamResponse({ content: ['response'] });
         const imageUrl = new URL('https://example.com/image.jpg');
-        const imagePrompt: LanguageModelV2Prompt = [
+        const imagePrompt: LanguageModelV3Prompt = [
           {
             role: 'user',
             content: [
@@ -900,7 +899,7 @@ describe('GatewayLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         const imagePart = requestBody.prompt[0]
-          .content[1] as LanguageModelV2FilePart;
+          .content[1] as LanguageModelV3FilePart;
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toBe(imageUrl.toString());
@@ -912,7 +911,7 @@ describe('GatewayLanguageModel', () => {
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const imageUrl = new URL('https://example.com/image2.png');
-        const imagePrompt: LanguageModelV2Prompt = [
+        const imagePrompt: LanguageModelV3Prompt = [
           {
             role: 'user',
             content: [
@@ -1309,6 +1308,160 @@ describe('GatewayLanguageModel', () => {
         finishReason: 'stop',
         usage: { prompt_tokens: 10, completion_tokens: 5 },
         timestamp: timestampString, // Should remain a string
+      });
+    });
+  });
+
+  describe('Provider Options', () => {
+    function prepareJsonResponse({
+      content = { type: 'text', text: '' },
+      usage = {
+        prompt_tokens: 4,
+        completion_tokens: 30,
+      },
+      finish_reason = 'stop',
+      id = 'test-id',
+      created = 1711115037,
+      model = 'test-model',
+    } = {}) {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: {
+          id,
+          created,
+          model,
+          content,
+          finish_reason,
+          usage,
+        },
+      };
+    }
+
+    function prepareStreamResponse({
+      content,
+      finish_reason = 'stop',
+    }: {
+      content: string[];
+      finish_reason?: string;
+    }) {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...content.map(
+            text =>
+              `data: ${JSON.stringify({
+                type: 'text-delta',
+                textDelta: text,
+              })}\n\n`,
+          ),
+          `data: ${JSON.stringify({
+            type: 'finish',
+            finishReason: finish_reason,
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 20,
+            },
+          })}\n\n`,
+        ],
+      };
+    }
+
+    it('should pass provider routing order for doGenerate', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            order: ['bedrock', 'anthropic'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { order: ['bedrock', 'anthropic'] },
+      });
+    });
+
+    it('should pass single provider in order array', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            order: ['openai'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { order: ['openai'] },
+      });
+    });
+
+    it('should work without provider options', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toBeUndefined();
+      expect(result.content).toEqual({
+        type: 'text',
+        text: 'Test response',
+      });
+    });
+
+    it('should pass provider routing order for doStream', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' world'],
+      });
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            order: ['groq', 'openai'],
+          },
+        },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { order: ['groq', 'openai'] },
+      });
+    });
+
+    it('should validate provider options against schema', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            order: ['anthropic', 'bedrock', 'openai'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { order: ['anthropic', 'bedrock', 'openai'] },
       });
     });
   });

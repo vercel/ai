@@ -1,24 +1,26 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2Content,
-  LanguageModelV2ToolCall,
+  LanguageModelV3,
+  LanguageModelV3Content,
+  LanguageModelV3ToolCall,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  executeTool,
+  getErrorMessage,
   IdGenerator,
   ProviderOptions,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
-import { asArray } from '../../src/util/as-array';
-import { prepareRetries } from '../../src/util/prepare-retries';
+import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { logWarnings } from '../logger/log-warnings';
+import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
-import { resolveLanguageModel } from '../prompt/resolve-language-model';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -30,8 +32,11 @@ import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import { asArray } from '../util/as-array';
+import { DownloadFunction } from '../util/download/download-function';
+import { prepareRetries } from '../util/prepare-retries';
 import { ContentPart } from './content-part';
-import { extractContentText } from './extract-content-text';
+import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { Output } from './output';
@@ -45,10 +50,13 @@ import {
   StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
-import { ToolCallArray } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolErrorUnion, ToolOutput, ToolResultUnion } from './tool-output';
+import { TypedToolError } from './tool-error';
+import { ToolOutput } from './tool-output';
+import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
+import { VERSION } from '../version';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -133,6 +141,8 @@ export async function generateText<
   experimental_prepareStep,
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
+  experimental_download: download,
+  experimental_context,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -195,6 +205,13 @@ Optional specification for parsing structured outputs from the LLM response.
     experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
 
     /**
+Custom download function to use for URLs.
+
+By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+    experimental_download?: DownloadFunction | undefined;
+
+    /**
      * @deprecated Use `prepareStep` instead.
      */
     experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
@@ -215,6 +232,15 @@ A function that attempts to repair a tool call that failed to parse.
     onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
 
     /**
+     * Context that is passed into tool execution.
+     *
+     * Experimental (can break in patch releases).
+     *
+     * @default undefined
+     */
+    experimental_context?: unknown;
+
+    /**
      * Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -224,14 +250,22 @@ A function that attempts to repair a tool call that failed to parse.
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
-  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { maxRetries, retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   const callSettings = prepareCallSettings(settings);
+
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers,
+    headers: headersWithUserAgent,
     settings: { ...callSettings, maxRetries },
   });
 
@@ -239,7 +273,7 @@ A function that attempts to repair a tool call that failed to parse.
     system,
     prompt,
     messages,
-  });
+  } as Prompt);
 
   const tracer = getTracer(telemetry);
 
@@ -268,9 +302,9 @@ A function that attempts to repair a tool call that failed to parse.
         const callSettings = prepareCallSettings(settings);
 
         let currentModelResponse: Awaited<
-          ReturnType<LanguageModelV2['doGenerate']>
+          ReturnType<LanguageModelV3['doGenerate']>
         > & { response: { id: string; timestamp: Date; modelId: string } };
-        let clientToolCalls: ToolCallArray<TOOLS> = [];
+        let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
         let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
         const responseMessages: Array<ResponseMessage> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
@@ -294,6 +328,7 @@ A function that attempts to repair a tool call that failed to parse.
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
             supportedUrls: await model.supportedUrls,
+            download,
           });
 
           const stepModel = resolveLanguageModel(
@@ -359,7 +394,7 @@ A function that attempts to repair a tool call that failed to parse.
                   prompt: promptMessages,
                   providerOptions,
                   abortSignal,
-                  headers,
+                  headers: headersWithUserAgent,
                 });
 
                 // Fill in default values:
@@ -378,7 +413,7 @@ A function that attempts to repair a tool call that failed to parse.
                     attributes: {
                       'ai.response.finishReason': result.finishReason,
                       'ai.response.text': {
-                        output: () => extractContentText(result.content),
+                        output: () => extractTextContent(result.content),
                       },
                       'ai.response.toolCalls': {
                         output: () => {
@@ -416,10 +451,10 @@ A function that attempts to repair a tool call that failed to parse.
           );
 
           // parse tool calls:
-          const stepToolCalls = await Promise.all(
+          const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
             currentModelResponse.content
               .filter(
-                (part): part is LanguageModelV2ToolCall =>
+                (part): part is LanguageModelV3ToolCall =>
                   part.type === 'tool-call',
               )
               .map(toolCall =>
@@ -435,6 +470,10 @@ A function that attempts to repair a tool call that failed to parse.
 
           // notify the tools that the tool calls are available:
           for (const toolCall of stepToolCalls) {
+            if (toolCall.invalid) {
+              continue; // ignore invalid tool calls
+            }
+
             const tool = tools![toolCall.toolName];
             if (tool?.onInputAvailable != null) {
               await tool.onInputAvailable({
@@ -442,26 +481,50 @@ A function that attempts to repair a tool call that failed to parse.
                 toolCallId: toolCall.toolCallId,
                 messages: stepInputMessages,
                 abortSignal,
+                experimental_context,
               });
             }
           }
 
-          clientToolCalls = stepToolCalls.filter(
-            toolCall => toolCall.providerExecuted !== true,
+          // insert error tool outputs for invalid tool calls:
+          // TODO AI SDK 6: invalid inputs should not require output parts
+          const invalidToolCalls = stepToolCalls.filter(
+            toolCall => toolCall.invalid && toolCall.dynamic,
           );
 
-          // execute tools:
-          clientToolOutputs =
-            tools == null
-              ? []
-              : await executeTools({
-                  toolCalls: clientToolCalls,
-                  tools,
-                  tracer,
-                  telemetry,
-                  messages: stepInputMessages,
-                  abortSignal,
-                });
+          clientToolOutputs = [];
+
+          for (const toolCall of invalidToolCalls) {
+            clientToolOutputs.push({
+              type: 'tool-error',
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+              input: toolCall.input,
+              error: getErrorMessage(toolCall.error!),
+              dynamic: true,
+            });
+          }
+
+          // execute client tool calls:
+          clientToolCalls = stepToolCalls.filter(
+            toolCall => !toolCall.providerExecuted,
+          );
+
+          if (tools != null) {
+            clientToolOutputs.push(
+              ...(await executeTools({
+                toolCalls: clientToolCalls.filter(
+                  toolCall => !toolCall.invalid,
+                ),
+                tools,
+                tracer,
+                telemetry,
+                messages: stepInputMessages,
+                abortSignal,
+                experimental_context,
+              })),
+            );
+          }
 
           // content:
           const stepContent = asContent({
@@ -493,6 +556,8 @@ A function that attempts to repair a tool call that failed to parse.
             },
           });
 
+          logWarnings(currentModelResponse.warnings ?? []);
+
           steps.push(currentStepResult);
           await onStepFinish?.(currentStepResult);
         } while (
@@ -511,7 +576,7 @@ A function that attempts to repair a tool call that failed to parse.
             attributes: {
               'ai.response.finishReason': currentModelResponse.finishReason,
               'ai.response.text': {
-                output: () => extractContentText(currentModelResponse.content),
+                output: () => extractTextContent(currentModelResponse.content),
               },
               'ai.response.toolCalls': {
                 output: () => {
@@ -560,13 +625,15 @@ async function executeTools<TOOLS extends ToolSet>({
   telemetry,
   messages,
   abortSignal,
+  experimental_context,
 }: {
-  toolCalls: ToolCallArray<TOOLS>;
+  toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
+  experimental_context: unknown;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async ({ toolCallId, toolName, input }) => {
@@ -587,7 +654,7 @@ async function executeTools<TOOLS extends ToolSet>({
             }),
             'ai.toolCall.name': toolName,
             'ai.toolCall.id': toolCallId,
-            'ai.toolCall.input': {
+            'ai.toolCall.args': {
               output: () => JSON.stringify(input),
             },
           },
@@ -595,19 +662,30 @@ async function executeTools<TOOLS extends ToolSet>({
         tracer,
         fn: async span => {
           try {
-            const result = await tool.execute!(input, {
-              toolCallId,
-              messages,
-              abortSignal,
+            const stream = executeTool({
+              execute: tool.execute!.bind(tool),
+              input,
+              options: {
+                toolCallId,
+                messages,
+                abortSignal,
+                experimental_context,
+              },
             });
 
+            let output: unknown;
+            for await (const part of stream) {
+              if (part.type === 'final') {
+                output = part.output;
+              }
+            }
             try {
               span.setAttributes(
                 selectTelemetryAttributes({
                   telemetry,
                   attributes: {
                     'ai.toolCall.result': {
-                      output: () => JSON.stringify(result),
+                      output: () => JSON.stringify(output),
                     },
                   },
                 }),
@@ -624,8 +702,9 @@ async function executeTools<TOOLS extends ToolSet>({
               toolCallId,
               toolName,
               input,
-              output: result,
-            } as ToolResultUnion<TOOLS>;
+              output,
+              dynamic: tool.type === 'dynamic',
+            } as TypedToolResult<TOOLS>;
           } catch (error) {
             recordErrorOnSpan(span, error);
             return {
@@ -634,7 +713,8 @@ async function executeTools<TOOLS extends ToolSet>({
               toolName,
               input,
               error,
-            } as ToolErrorUnion<TOOLS>;
+              dynamic: tool.type === 'dynamic',
+            } as TypedToolError<TOOLS>;
           }
         },
       });
@@ -689,8 +769,24 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     return this.finalStep.toolCalls;
   }
 
+  get staticToolCalls() {
+    return this.finalStep.staticToolCalls;
+  }
+
+  get dynamicToolCalls() {
+    return this.finalStep.dynamicToolCalls;
+  }
+
   get toolResults() {
     return this.finalStep.toolResults;
+  }
+
+  get staticToolResults() {
+    return this.finalStep.staticToolResults;
+  }
+
+  get dynamicToolResults() {
+    return this.finalStep.dynamicToolResults;
   }
 
   get sources() {
@@ -745,9 +841,9 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 }
 
-function asToolCalls(content: Array<LanguageModelV2Content>) {
+function asToolCalls(content: Array<LanguageModelV3Content>) {
   const parts = content.filter(
-    (part): part is LanguageModelV2ToolCall => part.type === 'tool-call',
+    (part): part is LanguageModelV3ToolCall => part.type === 'tool-call',
   );
 
   if (parts.length === 0) {
@@ -766,8 +862,8 @@ function asContent<TOOLS extends ToolSet>({
   toolCalls,
   toolOutputs,
 }: {
-  content: Array<LanguageModelV2Content>;
-  toolCalls: ToolCallArray<TOOLS>;
+  content: Array<LanguageModelV3Content>;
+  toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
 }): Array<ContentPart<TOOLS>> {
   return [
@@ -808,7 +904,8 @@ function asContent<TOOLS extends ToolSet>({
               input: toolCall.input,
               error: part.result,
               providerExecuted: true,
-            } as ToolErrorUnion<TOOLS>;
+              dynamic: toolCall.dynamic,
+            } as TypedToolError<TOOLS>;
           }
 
           return {
@@ -818,7 +915,8 @@ function asContent<TOOLS extends ToolSet>({
             input: toolCall.input,
             output: part.result,
             providerExecuted: true,
-          } as ToolResultUnion<TOOLS>;
+            dynamic: toolCall.dynamic,
+          } as TypedToolResult<TOOLS>;
         }
       }
     }),

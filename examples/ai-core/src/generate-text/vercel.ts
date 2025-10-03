@@ -4,9 +4,8 @@ import { generateText } from 'ai';
 
 async function main() {
   const result = await generateText({
-    model: vercel('v0-1.0-md'),
-    // prompt: 'Invent a new holiday and describe its traditions.',
-    prompt: 'Create a Next.js AI chatbot',
+    model: vercel('v0-1.5-md'),
+    prompt: 'Implement Fibonacci in Lua.',
   });
 
   console.log(result.text);

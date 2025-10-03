@@ -1,9 +1,9 @@
-import { MyUIMessage } from '@/util/chat-schema';
-import { openai } from '@ai-sdk/openai';
+import type { MyUIMessage } from '@/util/chat-schema';
 import { readChat, saveChat } from '@util/chat-store';
 import { convertToModelMessages, generateId, streamText } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
+import throttle from 'throttleit';
 
 export async function POST(req: Request) {
   const {
@@ -14,14 +14,14 @@ export async function POST(req: Request) {
   }: {
     message: MyUIMessage | undefined;
     id: string;
-    trigger: 'submit-user-message' | 'regenerate-assistant-message';
+    trigger: 'submit-message' | 'regenerate-message';
     messageId: string | undefined;
   } = await req.json();
 
   const chat = await readChat(id);
   let messages: MyUIMessage[] = chat.messages;
 
-  if (trigger === 'submit-user-message') {
+  if (trigger === 'submit-message') {
     if (messageId != null) {
       const messageIndex = messages.findIndex(m => m.id === messageId);
 
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     } else {
       messages = [...messages, message!];
     }
-  } else if (trigger === 'regenerate-assistant-message') {
+  } else if (trigger === 'regenerate-message') {
     const messageIndex =
       messageId == null
         ? messages.length - 1
@@ -56,13 +56,27 @@ export async function POST(req: Request) {
   // save the user message
   saveChat({ id, messages, activeStreamId: null });
 
+  const userStopSignal = new AbortController();
+
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: 'openai/gpt-5-mini',
     messages: convertToModelMessages(messages),
+    abortSignal: userStopSignal.signal,
+    // throttle reading from chat store to max once per second
+    onChunk: throttle(async () => {
+      const { canceledAt } = await readChat(id);
+      if (canceledAt) {
+        userStopSignal.abort();
+      }
+    }, 1000),
+    onAbort: () => {
+      console.log('aborted');
+    },
   });
 
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
+    generateMessageId: generateId,
     messageMetadata: ({ part }) => {
       if (part.type === 'start') {
         return { createdAt: Date.now() };

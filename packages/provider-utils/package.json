@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "3.0.0-beta.2",
+  "version": "3.1.0-beta.6",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -41,8 +41,7 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.0.0",
-    "zod-to-json-schema": "^3.24.1",
-    "eventsource-parser": "^3.0.3"
+    "eventsource-parser": "^3.0.5"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
@@ -50,10 +49,10 @@
     "msw": "2.7.0",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "zod": "3.25.49"
+    "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.25.49 || ^4"
+    "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {
     "node": ">=18"

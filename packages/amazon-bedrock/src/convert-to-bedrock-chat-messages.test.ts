@@ -1,5 +1,6 @@
 import { BedrockReasoningMetadata } from './bedrock-chat-language-model';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('system messages', () => {
   it('should combine multiple leading system messages into a single system message', async () => {
@@ -543,6 +544,46 @@ describe('assistant messages', () => {
       system: [],
     });
   });
+
+  it('should filter out empty text blocks in assistant messages', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: '\n\n' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-123',
+            toolName: 'test',
+            input: {},
+          },
+          { type: 'text', text: '  ' },
+          { type: 'text', text: 'actual content' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Hello' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { toolUse: { toolUseId: 'call-123', name: 'test', input: {} } },
+            { text: 'actual content' },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
 });
 
 describe('tool messages', () => {
@@ -705,6 +746,167 @@ describe('tool messages', () => {
         },
       ],
     });
+  });
+});
+
+describe('citations', () => {
+  it('should handle citations enabled for PDF', async () => {
+    const pdfData = new Uint8Array([0, 1, 2, 3]);
+
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from(pdfData).toString('base64'),
+            mediaType: 'application/pdf',
+            providerOptions: {
+              bedrock: {
+                citations: {
+                  enabled: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0].content[0]).toEqual({
+      document: {
+        format: 'pdf',
+        name: 'document-1',
+        source: {
+          bytes: 'AAECAw==',
+        },
+        citations: {
+          enabled: true,
+        },
+      },
+    });
+  });
+
+  it('should handle citations disabled for PDF', async () => {
+    const pdfData = new Uint8Array([0, 1, 2, 3]);
+
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from(pdfData).toString('base64'),
+            mediaType: 'application/pdf',
+            providerOptions: {
+              bedrock: {
+                citations: {
+                  enabled: false,
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0].content[0]).toEqual({
+      document: {
+        format: 'pdf',
+        name: 'document-1',
+        source: {
+          bytes: 'AAECAw==',
+        },
+      },
+    });
+  });
+
+  it('should handle no citations specified for PDF (default)', async () => {
+    const pdfData = new Uint8Array([0, 1, 2, 3]);
+
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from(pdfData).toString('base64'),
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0].content[0]).toEqual({
+      document: {
+        format: 'pdf',
+        name: 'document-1',
+        source: {
+          bytes: 'AAECAw==',
+        },
+      },
+    });
+  });
+
+  it('should handle multiple PDFs with different citation settings', async () => {
+    const pdfData1 = new Uint8Array([0, 1, 2, 3]);
+    const pdfData2 = new Uint8Array([4, 5, 6, 7]);
+
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from(pdfData1).toString('base64'),
+            mediaType: 'application/pdf',
+            providerOptions: {
+              bedrock: {
+                citations: {
+                  enabled: true,
+                },
+              },
+            },
+          },
+          {
+            type: 'file',
+            data: Buffer.from(pdfData2).toString('base64'),
+            mediaType: 'application/pdf',
+            providerOptions: {
+              bedrock: {
+                citations: {
+                  enabled: false,
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0].content).toEqual([
+      {
+        document: {
+          format: 'pdf',
+          name: 'document-1',
+          source: {
+            bytes: 'AAECAw==',
+          },
+          citations: {
+            enabled: true,
+          },
+        },
+      },
+      {
+        document: {
+          format: 'pdf',
+          name: 'document-2',
+          source: {
+            bytes: 'BAUGBw==',
+          },
+        },
+      },
+    ]);
   });
 });
 

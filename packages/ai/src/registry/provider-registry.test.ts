@@ -1,15 +1,17 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
-import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { createProviderRegistry } from './provider-registry';
-import { MockImageModelV2 } from '../test/mock-image-model-v2';
+import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
+import { MockProviderV3 } from '../test/mock-provider-v3';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('languageModel', () => {
   it('should return language model from provider', () => {
-    const model = new MockLanguageModelV2();
+    const model = new MockLanguageModelV3();
 
     const modelRegistry = createProviderRegistry({
       provider: {
@@ -30,7 +32,7 @@ describe('languageModel', () => {
   });
 
   it('should return language model with additional colon from provider', () => {
-    const model = new MockLanguageModelV2();
+    const model = new MockLanguageModelV3();
 
     const modelRegistry = createProviderRegistry({
       provider: {
@@ -95,7 +97,7 @@ describe('languageModel', () => {
   });
 
   it('should support custom separator', () => {
-    const model = new MockLanguageModelV2();
+    const model = new MockLanguageModelV3();
 
     const modelRegistry = createProviderRegistry(
       {
@@ -125,7 +127,7 @@ describe('languageModel', () => {
   });
 
   it('should support custom separator with multiple characters', () => {
-    const model = new MockLanguageModelV2();
+    const model = new MockLanguageModelV3();
 
     const modelRegistry = createProviderRegistry(
       {
@@ -157,7 +159,7 @@ describe('languageModel', () => {
 
 describe('textEmbeddingModel', () => {
   it('should return embedding model from provider using textEmbeddingModel', () => {
-    const model = new MockEmbeddingModelV2<string>();
+    const model = new MockEmbeddingModelV3<string>();
 
     const modelRegistry = createProviderRegistry({
       provider: {
@@ -222,7 +224,7 @@ describe('textEmbeddingModel', () => {
   });
 
   it('should support custom separator', () => {
-    const model = new MockEmbeddingModelV2<string>();
+    const model = new MockEmbeddingModelV3<string>();
 
     const modelRegistry = createProviderRegistry(
       {
@@ -254,7 +256,7 @@ describe('textEmbeddingModel', () => {
 
 describe('imageModel', () => {
   it('should return image model from provider', () => {
-    const model = new MockImageModelV2();
+    const model = new MockImageModelV3();
 
     const modelRegistry = createProviderRegistry({
       provider: {
@@ -303,7 +305,7 @@ describe('imageModel', () => {
   });
 
   it('should support custom separator', () => {
-    const model = new MockImageModelV2();
+    const model = new MockImageModelV3();
 
     const modelRegistry = createProviderRegistry(
       {
@@ -424,5 +426,58 @@ describe('speechModel', () => {
 
     // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.speechModel('model')).toThrowError(NoSuchModelError);
+  });
+});
+
+describe('middleware functionality', () => {
+  it('should wrap all language models accessed through the provider registry', () => {
+    const model1 = new MockLanguageModelV3({ modelId: 'model-1' });
+    const model2 = new MockLanguageModelV3({ modelId: 'model-2' });
+    const model3 = new MockLanguageModelV3({ modelId: 'model-3' });
+
+    const provider1 = new MockProviderV3({
+      languageModels: {
+        'model-1': model1,
+        'model-2': model2,
+      },
+    });
+
+    const provider2 = new MockProviderV3({
+      languageModels: {
+        'model-3': model3,
+      },
+    });
+
+    const overrideModelId = vi
+      .fn()
+      .mockImplementation(({ model }) => `override-${model.modelId}`);
+
+    const registry = createProviderRegistry(
+      {
+        provider1,
+        provider2,
+      },
+      {
+        languageModelMiddleware: {
+          middlewareVersion: 'v3',
+          overrideModelId,
+        },
+      },
+    );
+
+    expect(registry.languageModel('provider1:model-1').modelId).toBe(
+      'override-model-1',
+    );
+    expect(registry.languageModel('provider1:model-2').modelId).toBe(
+      'override-model-2',
+    );
+    expect(registry.languageModel('provider2:model-3').modelId).toBe(
+      'override-model-3',
+    );
+
+    expect(overrideModelId).toHaveBeenCalledTimes(3);
+    expect(overrideModelId).toHaveBeenCalledWith({ model: model1 });
+    expect(overrideModelId).toHaveBeenCalledWith({ model: model2 });
+    expect(overrideModelId).toHaveBeenCalledWith({ model: model3 });
   });
 });

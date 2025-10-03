@@ -1,7 +1,8 @@
+import { tool } from '@ai-sdk/provider-utils';
 import z from 'zod/v4';
 import { DefaultGeneratedFile } from './generated-file';
 import { toResponseMessages } from './to-response-messages';
-import { tool } from '../tool';
+import { describe, it, expect } from 'vitest';
 
 describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {
@@ -66,6 +67,61 @@ describe('toResponseMessages', () => {
     ]);
   });
 
+  it('should include tool calls with metadata in the assistant message', () => {
+    const result = toResponseMessages({
+      content: [
+        {
+          type: 'text',
+          text: 'Using a tool',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          input: {},
+          providerMetadata: {
+            testProvider: {
+              signature: 'sig',
+            },
+          },
+        },
+      ],
+      tools: {
+        testTool: tool({
+          description: 'A test tool',
+          inputSchema: z.object({}),
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "providerOptions": undefined,
+              "text": "Using a tool",
+              "type": "text",
+            },
+            {
+              "input": {},
+              "providerExecuted": undefined,
+              "providerOptions": {
+                "testProvider": {
+                  "signature": "sig",
+                },
+              },
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
+
   it('should include tool results as a separate message', () => {
     const result = toResponseMessages({
       content: [
@@ -100,12 +156,14 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "Tool used",
               "type": "text",
             },
             {
               "input": {},
               "providerExecuted": undefined,
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -165,12 +223,14 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "Tool used",
               "type": "text",
             },
             {
               "input": {},
               "providerExecuted": undefined,
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -280,6 +340,7 @@ describe('toResponseMessages', () => {
               "type": "reasoning",
             },
             {
+              "providerOptions": undefined,
               "text": "Final text",
               "type": "text",
             },
@@ -330,12 +391,14 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "multipart tool result",
               "type": "text",
             },
             {
               "input": {},
               "providerExecuted": undefined,
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -384,8 +447,17 @@ describe('toResponseMessages', () => {
       {
         role: 'assistant',
         content: [
-          { type: 'text', text: 'Here is an image' },
-          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
+          {
+            type: 'text',
+            text: 'Here is an image',
+            providerOptions: undefined,
+          },
+          {
+            type: 'file',
+            data: pngFile.base64,
+            mediaType: pngFile.mediaType,
+            providerOptions: undefined,
+          },
         ],
       },
     ]);
@@ -417,12 +489,22 @@ describe('toResponseMessages', () => {
       {
         role: 'assistant',
         content: [
-          { type: 'text', text: 'Here are multiple images' },
-          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
+          {
+            type: 'text',
+            text: 'Here are multiple images',
+            providerOptions: undefined,
+          },
+          {
+            type: 'file',
+            data: pngFile.base64,
+            mediaType: pngFile.mediaType,
+            providerOptions: undefined,
+          },
           {
             type: 'file',
             data: jpegFile.base64,
             mediaType: jpegFile.mediaType,
+            providerOptions: undefined,
           },
         ],
       },
@@ -450,8 +532,17 @@ describe('toResponseMessages', () => {
       {
         role: 'assistant',
         content: [
-          { type: 'text', text: 'Here is a binary image' },
-          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
+          {
+            type: 'text',
+            text: 'Here is a binary image',
+            providerOptions: undefined,
+          },
+          {
+            type: 'file',
+            data: pngFile.base64,
+            mediaType: pngFile.mediaType,
+            providerOptions: undefined,
+          },
         ],
       },
     ]);
@@ -506,15 +597,18 @@ describe('toResponseMessages', () => {
             {
               "data": "iVBORw0KGgo=",
               "mediaType": "image/png",
+              "providerOptions": undefined,
               "type": "file",
             },
             {
+              "providerOptions": undefined,
               "text": "Combined response",
               "type": "text",
             },
             {
               "input": {},
               "providerExecuted": undefined,
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -555,6 +649,7 @@ describe('toResponseMessages', () => {
             {
               "input": {},
               "providerExecuted": undefined,
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -632,6 +727,7 @@ describe('toResponseMessages', () => {
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "Let me search for recent news from San Francisco.",
                 "type": "text",
               },
@@ -640,6 +736,7 @@ describe('toResponseMessages', () => {
                   "query": "San Francisco major news events June 22 2025",
                 },
                 "providerExecuted": true,
+                "providerOptions": undefined,
                 "toolCallId": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                 "toolName": "web_search",
                 "type": "tool-call",
@@ -654,11 +751,13 @@ describe('toResponseMessages', () => {
                   ],
                 },
                 "providerExecuted": true,
+                "providerOptions": undefined,
                 "toolCallId": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                 "toolName": "web_search",
                 "type": "tool-result",
               },
               {
+                "providerOptions": undefined,
                 "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025). Here are the main highlights:
 
         1. Juneteenth Celebration:
@@ -671,5 +770,37 @@ describe('toResponseMessages', () => {
         ]
       `);
     });
+  });
+
+  it('should include provider metadata in the text parts', () => {
+    const result = toResponseMessages({
+      content: [
+        {
+          type: 'text',
+          text: 'Here is a text',
+          providerMetadata: { testProvider: { signature: 'sig' } },
+        },
+      ],
+      tools: {},
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "providerOptions": {
+                "testProvider": {
+                  "signature": "sig",
+                },
+              },
+              "text": "Here is a text",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 });

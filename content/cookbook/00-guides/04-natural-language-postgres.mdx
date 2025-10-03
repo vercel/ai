@@ -68,15 +68,40 @@ POSTGRES_PASSWORD="..."
 POSTGRES_DATABASE="..."
 ```
 
-<Note>
-  This project uses Vercel Postgres. You can learn more about how to set up at
-  the [Vercel Postgres documentation](https://vercel.com/postgres).
-</Note>
-
 4. This project uses CB Insights' Unicorn Companies dataset. You can download the dataset by following these instructions:
    - Navigate to [CB Insights Unicorn Companies](https://www.cbinsights.com/research-unicorn-companies)
    - Enter in your email. You will receive a link to download the dataset.
    - Save it as `unicorns.csv` in your project root
+
+<Note>
+  You will need a Postgres database to complete this tutorial. If you don't have
+  Postgres setup on your local machine you can: - Create a free Postgres
+  database with Vercel (recommended - see instructions below); or - Follow [this
+  guide](https://www.prisma.io/dataguide/postgresql/setting-up-a-local-postgresql-database)
+  to set it up locally
+</Note>
+
+#### Setting up Postgres with Vercel
+
+To set up a Postgres instance on your Vercel account:
+
+1. Go to [Vercel.com](https://vercel.com) and make sure you're logged in
+1. Navigate to your team homepage
+1. Click on the **Integrations** tab
+1. Click **Browse Marketplace**
+1. Look for the **Storage** option in the sidebar
+1. Select the **Neon** option (recommended, but any other PostgreSQL database provider should work)
+1. Click **Install**, then click **Install** again in the top right corner
+1. On the "Get Started with Neon" page, click **Create Database** on the right
+1. Select your region (e.g., Washington, D.C., U.S. East)
+1. Turn off **Auth**
+1. Click **Continue**
+1. Name your database (you can use the default name or rename it to something like "NaturalLanguagePostgres")
+1. Click **Create** in the bottom right corner
+1. After seeing "Database created successfully", click **Done**
+1. You'll be redirected to your database instance
+1. In the Quick Start section, click **Show secrets**
+1. Copy the full `DATABASE_URL` environment variable and use it to populate the Postgres environment variables in your `.env` file
 
 ### About the dataset
 
@@ -473,7 +498,7 @@ Finally, let's render the query results visually in a chart. There are two appro
 
 1. Send both the query and data to the model and ask it to return the data in a visualization-ready format. While this provides complete control over the visualization, it requires the model to send back all of the data, which significantly increases latency and costs.
 
-2. Send the query and data to the model and ask it to generate a chart configuration (fixed-size and not many tokens) that maps your data appropriately. This configuration specifies how to visualize the information while delivering the insights from your natural language query. Importnatly, this is done without requiring the model return the full dataset.
+2. Send the query and data to the model and ask it to generate a chart configuration (fixed-size and not many tokens) that maps your data appropriately. This configuration specifies how to visualize the information while delivering the insights from your natural language query. Importantly, this is done without requiring the model return the full dataset.
 
 Since you don't know the SQL query or data shape beforehand, let's use the second approach to dynamically generate chart configurations based on the query results and user intent.
 

@@ -1,4 +1,4 @@
-import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import {
   asSchema,
   safeParseJSON,
@@ -7,9 +7,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
-import { DeepPartial } from '../../src/util/deep-partial';
-import { parsePartialJson } from '../../src/util/parse-partial-json';
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
+import { DeepPartial } from '../util/deep-partial';
+import { parsePartialJson } from '../util/parse-partial-json';
 import { FinishReason } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
@@ -17,7 +17,7 @@ import { LanguageModelUsage } from '../types/usage';
 export interface Output<OUTPUT, PARTIAL> {
   readonly type: 'object' | 'text';
 
-  responseFormat: LanguageModelV2CallOptions['responseFormat'];
+  responseFormat: LanguageModelV3CallOptions['responseFormat'];
 
   parsePartial(options: {
     text: string;
@@ -51,7 +51,7 @@ export const object = <OUTPUT>({
   schema: inputSchema,
 }: {
   schema:
-    | z4.ZodType<OUTPUT, any>
+    | z4.core.$ZodType<OUTPUT, any>
     | z3.Schema<OUTPUT, z3.ZodTypeDef, any>
     | Schema<OUTPUT>;
 }): Output<OUTPUT, DeepPartial<OUTPUT>> => {

@@ -15,12 +15,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
-} from '../../src/util/async-iterable-stream';
-import { DeepPartial } from '../../src/util/deep-partial';
+} from '../util/async-iterable-stream';
+import { DeepPartial } from '../util/deep-partial';
 import {
   FinishReason,
   LanguageModelResponseMetadata,
@@ -394,7 +394,7 @@ export function getOutputStrategy<SCHEMA>({
 }: {
   output: 'object' | 'array' | 'enum' | 'no-schema';
   schema?:
-    | z4.ZodType<SCHEMA, any>
+    | z4.core.$ZodType<SCHEMA, any>
     | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
     | Schema<SCHEMA>;
   enumValues?: Array<SCHEMA>;

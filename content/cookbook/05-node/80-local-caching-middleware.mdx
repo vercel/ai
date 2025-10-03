@@ -6,6 +6,8 @@ tags: ['streaming', 'caching', 'middleware']
 
 # Local Caching Middleware
 
+<Note type="warning">This example is not yet updated to v5.</Note>
+
 When developing AI applications, you'll often find yourself repeatedly making the same API calls during development. This can lead to increased costs and slower development cycles. A caching middleware allows you to store responses locally and reuse them when the same inputs are provided.
 
 This approach is particularly useful in two scenarios:
@@ -38,7 +40,7 @@ The middleware handles all transformations needed to make cached responses indis
 ```ts
 import {
   type LanguageModelV1,
-  type LanguageModelV2Middleware,
+  type LanguageModelV3Middleware,
   LanguageModelV1Prompt,
   type LanguageModelV1StreamPart,
   simulateReadableStream,
@@ -113,7 +115,7 @@ const cleanPrompt = (prompt: LanguageModelV1Prompt) => {
   });
 };
 
-export const cacheMiddleware: LanguageModelV2Middleware = {
+export const cacheMiddleware: LanguageModelV3Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     const cacheKey = JSON.stringify({
       ...cleanPrompt(params.prompt),

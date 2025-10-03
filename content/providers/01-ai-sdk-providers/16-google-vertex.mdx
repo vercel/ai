@@ -19,7 +19,7 @@ The Google Vertex provider for the [AI SDK](/docs) contains language model suppo
 
 The Google Vertex and Google Vertex Anthropic providers are both available in the `@ai-sdk/google-vertex` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/google-vertex" dark />
   </Tab>
@@ -31,6 +31,10 @@ The Google Vertex and Google Vertex Anthropic providers are both available in th
       text="yarn add @ai-sdk/google-vertex @google-cloud/vertexai"
       dark
     />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/google-vertex" dark />
   </Tab>
 </Tabs>
 
@@ -300,16 +304,18 @@ The following optional provider options are available for Google Vertex models:
     - `BLOCK_ONLY_HIGH`
     - `BLOCK_NONE`
 
-- **useSearchGrounding** _boolean_
-
-  Optional. When enabled, the model will [use Google search to ground the response](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview).
-
 - **audioTimestamp** _boolean_
 
   Optional. Enables timestamp understanding for audio files. Defaults to false.
 
   This is useful for generating transcripts with accurate timestamps.
   Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding) for usage details.
+
+- **labels** _object_
+
+  Optional. Defines labels used in billing reports.
+
+  Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls) for usage details.
 
 You can use Google Vertex language models to generate text with the `generateText` function:
 
@@ -325,6 +331,56 @@ const { text } = await generateText({
 
 Google Vertex language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
+
+#### Code Execution
+
+With [Code Execution](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/code-execution), certain Gemini models on Vertex AI can generate and execute Python code. This allows the model to perform calculations, data manipulation, and other programmatic tasks to enhance its responses.
+
+You can enable code execution by adding the `code_execution` tool to your request.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  tools: { code_execution: vertex.tools.codeExecution({}) },
+  prompt:
+    'Use python to calculate 20th fibonacci number. Then find the nearest palindrome to it.',
+});
+```
+
+The response will contain `tool-call` and `tool-result` parts for the executed code.
+
+#### URL Context
+
+URL Context allows Gemini models to retrieve and analyze content from URLs. Supported models: Gemini 2.5 Flash-Lite, 2.5 Pro, 2.5 Flash, 2.0 Flash.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  tools: { url_context: vertex.tools.urlContext({}) },
+  prompt: 'What are the key points from https://example.com/article?',
+});
+```
+
+#### Google Search
+
+Google Search enables Gemini models to access real-time web information. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  tools: { google_search: vertex.tools.googleSearch({}) },
+  prompt: 'What are the latest developments in AI?',
+});
+```
 
 #### Reasoning (Thinking Tokens)
 
@@ -427,109 +483,6 @@ const { text } = await generateText({
 </Note>
 
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
-
-#### Search Grounding
-
-With [search grounding](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview),
-the model has access to the latest information using Google search.
-Search grounding can be used to provide answers around current events:
-
-```ts highlight="7,14-20"
-import { vertex } from '@ai-sdk/google-vertex';
-import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
-import { generateText } from 'ai';
-
-const { text, providerMetadata } = await generateText({
-  model: vertex('gemini-1.5-pro'),
-  providerOptions: {
-    google: {
-      useSearchGrounding: true,
-    },
-  },
-  prompt:
-    'List the top 5 San Francisco news from the past week.' +
-    'You must include the date of each article.',
-});
-
-// access the grounding metadata. Casting to the provider metadata type
-// is optional but provides autocomplete and type safety.
-const metadata = providerMetadata?.google as
-  | GoogleGenerativeAIProviderMetadata
-  | undefined;
-const groundingMetadata = metadata?.groundingMetadata;
-const safetyRatings = metadata?.safetyRatings;
-```
-
-The grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:
-
-- **`webSearchQueries`** (`string[] | null`)
-
-  - Array of search queries used to retrieve information
-  - Example: `["What's the weather in Chicago this weekend?"]`
-
-- **`searchEntryPoint`** (`{ renderedContent: string } | null`)
-
-  - Contains the main search result content used as an entry point
-  - The `renderedContent` field contains the formatted content
-
-- **`groundingSupports`** (Array of support objects | null)
-  - Contains details about how specific response parts are supported by search results
-  - Each support object includes:
-    - **`segment`**: Information about the grounded text segment
-      - `text`: The actual text segment
-      - `startIndex`: Starting position in the response
-      - `endIndex`: Ending position in the response
-    - **`groundingChunkIndices`**: References to supporting search result chunks
-    - **`confidenceScores`**: Confidence scores (0-1) for each supporting chunk
-
-Example response excerpt:
-
-```json
-{
-  "groundingMetadata": {
-    "retrievalQueries": ["What's the weather in Chicago this weekend?"],
-    "searchEntryPoint": {
-      "renderedContent": "..."
-    },
-    "groundingSupports": [
-      {
-        "segment": {
-          "startIndex": 0,
-          "endIndex": 65,
-          "text": "Chicago weather changes rapidly, so layers let you adjust easily."
-        },
-        "groundingChunkIndices": [0],
-        "confidenceScores": [0.99]
-      }
-    ]
-  }
-}
-```
-
-<Note>
-  The Google Vertex provider does not yet support [dynamic retrieval mode and
-  threshold](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#dynamic-retrieval).
-</Note>
-
-### Sources
-
-When you use [Search Grounding](#search-grounding), the model will include sources in the response.
-You can access them using the `sources` property of the result:
-
-```ts
-import { vertex } from '@ai-sdk/google-vertex';
-import { generateText } from 'ai';
-
-const { sources } = await generateText({
-  model: vertex('gemini-1.5-pro'),
-  providerOptions: {
-    google: {
-      useSearchGrounding: true,
-    },
-  },
-  prompt: 'List the top 5 San Francisco news from the past week.',
-});
-```
 
 ### Safety Ratings
 
@@ -658,6 +611,8 @@ const { embedding } = await embed({
   providerOptions: {
     google: {
       outputDimensionality: 512, // optional, number of dimensions for the embedding
+      taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
+      autoTruncate: false, // optional
     },
   },
 });
@@ -668,6 +623,27 @@ The following optional provider options are available for Google Vertex AI embed
 - **outputDimensionality**: _number_
 
   Optional reduced dimension for the output embedding. If set, excessive values in the output embedding are truncated from the end.
+
+- **taskType**: _string_
+
+  Optional. Specifies the task type for generating embeddings. Supported task types include:
+
+  - `SEMANTIC_SIMILARITY`: Optimized for text similarity.
+  - `CLASSIFICATION`: Optimized for text classification.
+  - `CLUSTERING`: Optimized for clustering texts based on similarity.
+  - `RETRIEVAL_DOCUMENT`: Optimized for document retrieval.
+  - `RETRIEVAL_QUERY`: Optimized for query-based retrieval.
+  - `QUESTION_ANSWERING`: Optimized for answering questions.
+  - `FACT_VERIFICATION`: Optimized for verifying factual information.
+  - `CODE_RETRIEVAL_QUERY`: Optimized for retrieving code blocks based on natural language queries.
+
+- **title**: _string_
+
+  Optional. The title of the document being embedded. This helps the model produce better embeddings by providing additional context. Only valid when `taskType` is set to `'RETRIEVAL_DOCUMENT'`.
+
+- **autoTruncate**: _boolean_
+
+  Optional. When set to `true`, input text will be truncated if it exceeds the maximum length. When set to `false`, an error is returned if the input text is too long. Defaults to `true`.
 
 #### Model Capabilities
 
@@ -756,10 +732,14 @@ console.log(
 
 #### Model Capabilities
 
-| Model                          | Aspect Ratios             |
-| ------------------------------ | ------------------------- |
-| `imagen-3.0-generate-002`      | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-3.0-fast-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| Model                                     | Aspect Ratios             |
+| ----------------------------------------- | ------------------------- |
+| `imagen-3.0-generate-001`                 | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-3.0-generate-002`                 | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-3.0-fast-generate-001`            | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-generate-preview-06-06`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-fast-generate-preview-06-06`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-ultra-generate-preview-06-06` | 1:1, 3:4, 4:3, 9:16, 16:9 |
 
 ## Google Vertex Anthropic Provider Usage
 
@@ -1179,7 +1159,7 @@ const computerTool = vertexAnthropic.tools.computer_20241022({
   },
 
   // map to tool result content for LLM consumption:
-  experimental_toToolResultContent(result) {
+  toModelOutput(result) {
     return typeof result === 'string'
       ? [{ type: 'text', text: result }]
       : [{ type: 'image', data: result.data, mediaType: 'image/png' }];

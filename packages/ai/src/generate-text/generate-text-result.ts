@@ -1,4 +1,3 @@
-import { ReasoningPart } from '@ai-sdk/provider-utils';
 import { CallWarning, FinishReason, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
@@ -6,10 +5,15 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
+import { ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
-import { ToolCallArray } from './tool-call';
-import { ToolResultArray } from './tool-output';
+import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
+import {
+  DynamicToolResult,
+  StaticToolResult,
+  TypedToolResult,
+} from './tool-result';
 import { ToolSet } from './tool-set';
 
 /**
@@ -30,7 +34,7 @@ The text that was generated in the last step.
   /**
 The full reasoning that the model has generated in the last step.
    */
-  readonly reasoning: Array<ReasoningPart>;
+  readonly reasoning: Array<ReasoningOutput>;
 
   /**
 The reasoning text that the model has generated in the last step. Can be undefined if the model
@@ -52,12 +56,32 @@ Sources that have been used as references in the last step.
   /**
 The tool calls that were made in the last step.
    */
-  readonly toolCalls: ToolCallArray<TOOLS>;
+  readonly toolCalls: Array<TypedToolCall<TOOLS>>;
+
+  /**
+The static tool calls that were made in the last step.
+   */
+  readonly staticToolCalls: Array<StaticToolCall<TOOLS>>;
+
+  /**
+The dynamic tool calls that were made in the last step.
+   */
+  readonly dynamicToolCalls: Array<DynamicToolCall>;
 
   /**
 The results of the tool calls from the last step.
    */
-  readonly toolResults: ToolResultArray<TOOLS>;
+  readonly toolResults: Array<TypedToolResult<TOOLS>>;
+
+  /**
+The static tool results that were made in the last step.
+   */
+  readonly staticToolResults: Array<StaticToolResult<TOOLS>>;
+
+  /**
+The dynamic tool results that were made in the last step.
+   */
+  readonly dynamicToolResults: Array<DynamicToolResult>;
 
   /**
 The reason why the generation finished.

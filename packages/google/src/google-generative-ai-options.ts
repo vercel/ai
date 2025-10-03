@@ -23,10 +23,14 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.0-flash-exp'
   | 'gemini-2.5-pro'
   | 'gemini-2.5-flash'
+  | 'gemini-2.5-flash-image-preview'
+  | 'gemini-2.5-flash-lite'
+  | 'gemini-2.5-flash-lite-preview-09-2025'
+  | 'gemini-2.5-flash-preview-04-17'
+  | 'gemini-2.5-flash-preview-09-2025'
   // Experimental models
   // https://ai.google.dev/gemini-api/docs/models/experimental-models
   | 'gemini-2.5-pro-exp-03-25'
-  | 'gemini-2.5-flash-preview-04-17'
   | 'gemini-exp-1206'
   | 'gemma-3-12b-it'
   | 'gemma-3-27b-it'
@@ -102,6 +106,27 @@ Optional. A list of unique safety settings for blocking unsafe content.
    * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding
    */
   audioTimestamp: z.boolean().optional(),
+
+  /**
+   * Optional. Defines labels used in billing reports. Available on Vertex AI only.
+   *
+   * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls
+   */
+  labels: z.record(z.string(), z.string()).optional(),
+
+  /**
+   * Optional. If specified, the media resolution specified will be used.
+   *
+   * https://ai.google.dev/api/generate-content#MediaResolution
+   */
+  mediaResolution: z
+    .enum([
+      'MEDIA_RESOLUTION_UNSPECIFIED',
+      'MEDIA_RESOLUTION_LOW',
+      'MEDIA_RESOLUTION_MEDIUM',
+      'MEDIA_RESOLUTION_HIGH',
+    ])
+    .optional(),
 });
 
 export type GoogleGenerativeAIProviderOptions = z.infer<

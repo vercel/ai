@@ -1,8 +1,9 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
-  convertReadableStreamToArray,
-  createTestServer,
-} from '@ai-sdk/provider-utils/test';
+  LanguageModelV3Prompt,
+  LanguageModelV3ProviderDefinedTool,
+} from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 
 import {
@@ -12,8 +13,13 @@ import {
 import { createGoogleGenerativeAI } from './google-provider';
 import { groundingMetadataSchema } from './tool/google-search';
 import { urlContextMetadataSchema } from './tool/url-context';
+import { describe, it, expect, vi } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -254,6 +260,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
+          "providerMetadata": undefined,
           "text": "Hello, World!",
           "type": "text",
         },
@@ -363,6 +370,7 @@ describe('doGenerate', () => {
       [
         {
           "input": "{"value":"example value"}",
+          "providerMetadata": undefined,
           "toolCallId": "test-id",
           "toolName": "test-tool",
           "type": "tool-call",
@@ -669,6 +677,9 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
       'x-goog-api-key': 'test-api-key',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/google/0.0.0-test`,
+    );
   });
 
   it('should pass response format', async () => {
@@ -741,6 +752,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
+          "providerMetadata": undefined,
           "text": "test response",
           "type": "text",
         },
@@ -918,6 +930,35 @@ describe('doGenerate', () => {
     ]);
   });
 
+  it('should expose PromptFeedback in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'No' }], role: 'model' },
+            finishReason: 'SAFETY',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: {
+          blockReason: 'SAFETY',
+          safetyRatings: SAFETY_RATINGS,
+        },
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.promptFeedback).toStrictEqual({
+      blockReason: 'SAFETY',
+      safetyRatings: SAFETY_RATINGS,
+    });
+  });
+
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
       content: 'test response',
@@ -983,6 +1024,67 @@ describe('doGenerate', () => {
         webDynamicRetrievalScore: 0.96879,
       },
     });
+  });
+
+  it('should handle code execution tool calls', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  executableCode: {
+                    language: 'PYTHON',
+                    code: 'print(1+1)',
+                  },
+                },
+                {
+                  codeExecutionResult: {
+                    outcome: 'OUTCOME_OK',
+                    output: '2',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { content } = await model.doGenerate({
+      tools: [
+        provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tools).toEqual({ codeExecution: {} });
+
+    expect(content).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'test-id',
+        toolName: 'code_execution',
+        input: '{"language":"PYTHON","code":"print(1+1)"}',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'test-id',
+        toolName: 'code_execution',
+        result: {
+          outcome: 'OUTCOME_OK',
+          output: '2',
+        },
+        providerExecuted: true,
+      },
+    ]);
   });
 
   describe('search tool selection', () => {
@@ -1163,6 +1265,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
+          "providerMetadata": undefined,
           "text": "Here is an image:",
           "type": "text",
         },
@@ -1172,6 +1275,7 @@ describe('doGenerate', () => {
           "type": "file",
         },
         {
+          "providerMetadata": undefined,
           "text": "And another image:",
           "type": "text",
         },
@@ -1260,6 +1364,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass mediaResolution in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          mediaResolution: 'MEDIA_RESOLUTION_LOW',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        mediaResolution: 'MEDIA_RESOLUTION_LOW',
+      },
+    });
+  });
+
   it('should include non-image inlineData parts', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
@@ -1300,6 +1423,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
+          "providerMetadata": undefined,
           "text": "Here is content:",
           "type": "text",
         },
@@ -1351,20 +1475,144 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
+          "providerMetadata": undefined,
           "text": "Visible text part 1. ",
           "type": "text",
         },
         {
+          "providerMetadata": undefined,
           "text": "This is a thought process.",
           "type": "reasoning",
         },
         {
+          "providerMetadata": undefined,
           "text": "Visible text part 2.",
           "type": "text",
         },
         {
+          "providerMetadata": undefined,
           "text": "Another internal thought.",
           "type": "reasoning",
+        },
+      ]
+    `);
+  });
+
+  it('should correctly parse thought signatures with reasoning parts', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                { text: 'Visible text part 1. ', thoughtSignature: 'sig1' },
+                {
+                  text: 'This is a thought process.',
+                  thought: true,
+                  thoughtSignature: 'sig2',
+                },
+                { text: 'Visible text part 2.', thoughtSignature: 'sig3' },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "sig1",
+            },
+          },
+          "text": "Visible text part 1. ",
+          "type": "text",
+        },
+        {
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "sig2",
+            },
+          },
+          "text": "This is a thought process.",
+          "type": "reasoning",
+        },
+        {
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "sig3",
+            },
+          },
+          "text": "Visible text part 2.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should correctly parse thought signatures with function calls', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    name: 'test-tool',
+                    args: { value: 'test' },
+                  },
+                  thoughtSignature: 'func_sig1',
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"value":"test"}",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "func_sig1",
+            },
+          },
+          "toolCallId": "test-id",
+          "toolName": "test-tool",
+          "type": "tool-call",
         },
       ]
     `);
@@ -1675,21 +1923,25 @@ describe('doStream', () => {
         },
         {
           "id": "0",
+          "providerMetadata": undefined,
           "type": "text-start",
         },
         {
           "delta": "Hello",
           "id": "0",
+          "providerMetadata": undefined,
           "type": "text-delta",
         },
         {
           "delta": ", ",
           "id": "0",
+          "providerMetadata": undefined,
           "type": "text-delta",
         },
         {
           "delta": "world!",
           "id": "0",
+          "providerMetadata": undefined,
           "type": "text-delta",
         },
         {
@@ -1701,6 +1953,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -1770,6 +2023,111 @@ describe('doStream', () => {
         severity: 'LOW',
         severityScore: 0.2,
         blocked: false,
+      },
+    ]);
+  });
+
+  it('should expose PromptFeedback in provider metadata on finish', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"candidates": [{"content": {"parts": [{"text": "No"}],"role": "model"},` +
+          `"finishReason": "PROHIBITED_CONTENT","index": 0}],` +
+          `"promptFeedback": {"blockReason": "PROHIBITED_CONTENT","safetyRatings": [` +
+          `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
+          `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
+          `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
+          `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.promptFeedback,
+    ).toStrictEqual({
+      blockReason: 'PROHIBITED_CONTENT',
+      safetyRatings: SAFETY_RATINGS,
+    });
+  });
+
+  it('should stream code execution tool calls and results', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    executableCode: {
+                      language: 'PYTHON',
+                      code: 'print("hello")',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    codeExecutionResult: {
+                      outcome: 'OUTCOME_OK',
+                      output: 'hello\n',
+                    },
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { stream } = await model.doStream({
+      tools: [
+        provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const toolEvents = events.filter(
+      e => e.type === 'tool-call' || e.type === 'tool-result',
+    );
+
+    expect(toolEvents).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'test-id',
+        toolName: 'code_execution',
+        input: '{"language":"PYTHON","code":"print(\\"hello\\")"}',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'test-id',
+        toolName: 'code_execution',
+        result: {
+          outcome: 'OUTCOME_OK',
+          output: 'hello\n',
+        },
+        providerExecuted: true,
       },
     ]);
   });
@@ -2113,6 +2471,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -2347,16 +2706,19 @@ describe('doStream', () => {
         },
         {
           "id": "0",
+          "providerMetadata": undefined,
           "type": "reasoning-start",
         },
         {
           "delta": "I need to think about this carefully. The user wants a simple explanation.",
           "id": "0",
+          "providerMetadata": undefined,
           "type": "reasoning-delta",
         },
         {
           "delta": "Let me organize my thoughts and provide a clear answer.",
           "id": "0",
+          "providerMetadata": undefined,
           "type": "reasoning-delta",
         },
         {
@@ -2365,16 +2727,19 @@ describe('doStream', () => {
         },
         {
           "id": "1",
+          "providerMetadata": undefined,
           "type": "text-start",
         },
         {
           "delta": "Here is a simple explanation: ",
           "id": "1",
+          "providerMetadata": undefined,
           "type": "text-delta",
         },
         {
           "delta": "The concept works because of basic principles.",
           "id": "1",
+          "providerMetadata": undefined,
           "type": "text-delta",
         },
         {
@@ -2386,6 +2751,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": null,
               "urlContextMetadata": null,
               "usageMetadata": {
@@ -2403,6 +2769,144 @@ describe('doStream', () => {
             "outputTokens": 18,
             "reasoningTokens": 142,
             "totalTokens": 174,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should stream thought signatures with reasoning and text parts', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: 'I need to think about this.',
+                    thought: true,
+                    thoughtSignature: 'reasoning_sig1',
+                  },
+                ],
+                role: 'model',
+              },
+              index: 0,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: 'Here is the answer.',
+                    thoughtSignature: 'text_sig1',
+                  },
+                ],
+                role: 'model',
+              },
+              index: 0,
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(chunks).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "reasoning_sig1",
+            },
+          },
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "I need to think about this.",
+          "id": "0",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "reasoning_sig1",
+            },
+          },
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "1",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "text_sig1",
+            },
+          },
+          "type": "text-start",
+        },
+        {
+          "delta": "Here is the answer.",
+          "id": "1",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "text_sig1",
+            },
+          },
+          "type": "text-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "google": {
+              "groundingMetadata": null,
+              "promptFeedback": null,
+              "safetyRatings": [
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "probability": "NEGLIGIBLE",
+                },
+              ],
+              "urlContextMetadata": null,
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -2526,7 +3030,7 @@ describe('doStream', () => {
 });
 
 describe('GEMMA Model System Instruction Fix', () => {
-  const TEST_PROMPT_WITH_SYSTEM: LanguageModelV2Prompt = [
+  const TEST_PROMPT_WITH_SYSTEM: LanguageModelV3Prompt = [
     { role: 'system', content: 'You are a helpful assistant.' },
     { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
   ];
@@ -2664,7 +3168,7 @@ describe('GEMMA Model System Instruction Fix', () => {
       generateId: () => 'test-id',
     });
 
-    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV2Prompt = [
+    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV3Prompt = [
       { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
     ];
 

@@ -1,9 +1,9 @@
 import type {
-  LanguageModelV2Content,
-  LanguageModelV2Middleware,
-  LanguageModelV2StreamPart,
+  LanguageModelV3Content,
+  LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
-import { getPotentialStartIndex } from '../../src/util/get-potential-start-index';
+import { LanguageModelMiddleware } from '../types/language-model-middleware';
+import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 /**
  * Extract an XML-tagged reasoning section from the generated text and exposes it
@@ -21,16 +21,16 @@ export function extractReasoningMiddleware({
   tagName: string;
   separator?: string;
   startWithReasoning?: boolean;
-}): LanguageModelV2Middleware {
+}): LanguageModelMiddleware {
   const openingTag = `<${tagName}>`;
   const closingTag = `<\/${tagName}>`;
 
   return {
-    middlewareVersion: 'v2',
+    middlewareVersion: 'v3',
     wrapGenerate: async ({ doGenerate }) => {
       const { content, ...rest } = await doGenerate();
 
-      const transformedContent: LanguageModelV2Content[] = [];
+      const transformedContent: LanguageModelV3Content[] = [];
       for (const part of content) {
         if (part.type !== 'text') {
           transformedContent.push(part);
@@ -94,13 +94,27 @@ export function extractReasoningMiddleware({
         }
       > = {};
 
+      let delayedTextStart: LanguageModelV3StreamPart | undefined;
+
       return {
         stream: stream.pipeThrough(
           new TransformStream<
-            LanguageModelV2StreamPart,
-            LanguageModelV2StreamPart
+            LanguageModelV3StreamPart,
+            LanguageModelV3StreamPart
           >({
             transform: (chunk, controller) => {
+              // do not send `text-start` before `reasoning-start`
+              // https://github.com/vercel/ai/issues/7774
+              if (chunk.type === 'text-start') {
+                delayedTextStart = chunk;
+                return;
+              }
+
+              if (chunk.type === 'text-end' && delayedTextStart) {
+                controller.enqueue(delayedTextStart);
+                delayedTextStart = undefined;
+              }
+
               if (chunk.type !== 'text-delta') {
                 controller.enqueue(chunk);
                 return;
@@ -143,19 +157,23 @@ export function extractReasoningMiddleware({
                     });
                   }
 
-                  controller.enqueue(
-                    activeExtraction.isReasoning
-                      ? {
-                          type: 'reasoning-delta',
-                          delta: prefix + text,
-                          id: `reasoning-${activeExtraction.idCounter}`,
-                        }
-                      : {
-                          type: 'text-delta',
-                          delta: prefix + text,
-                          id: activeExtraction.textId,
-                        },
-                  );
+                  if (activeExtraction.isReasoning) {
+                    controller.enqueue({
+                      type: 'reasoning-delta',
+                      delta: prefix + text,
+                      id: `reasoning-${activeExtraction.idCounter}`,
+                    });
+                  } else {
+                    if (delayedTextStart) {
+                      controller.enqueue(delayedTextStart);
+                      delayedTextStart = undefined;
+                    }
+                    controller.enqueue({
+                      type: 'text-delta',
+                      delta: prefix + text,
+                      id: activeExtraction.textId,
+                    });
+                  }
                   activeExtraction.afterSwitch = false;
 
                   if (activeExtraction.isReasoning) {

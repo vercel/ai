@@ -1,13 +1,14 @@
-import { LanguageModelV2StreamPart } from '@ai-sdk/provider';
+import { LanguageModelV3StreamPart } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { z } from 'zod/v4';
-import { NoSuchToolError } from '../../src/error/no-such-tool-error';
+import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockTracer } from '../test/mock-tracer';
 import { runToolsTransformation } from './run-tools-transformation';
+import { describe, it, expect } from 'vitest';
 
 const testUsage = {
   inputTokens: 3,
@@ -18,7 +19,7 @@ const testUsage = {
 };
 describe('runToolsTransformation', () => {
   it('should forward text deltas correctly', async () => {
-    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
         { type: 'text-start', id: '1' },
         { type: 'text-delta', id: '1', delta: 'text' },
@@ -39,6 +40,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     const result = await convertReadableStreamToArray(transformedStream);
@@ -75,7 +77,7 @@ describe('runToolsTransformation', () => {
   });
 
   it('should handle async tool execution', async () => {
-    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -104,6 +106,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     expect(await convertReadableStreamToArray(transformedStream))
@@ -114,6 +117,7 @@ describe('runToolsTransformation', () => {
               "value": "test",
             },
             "providerExecuted": undefined,
+            "providerMetadata": undefined,
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-call",
@@ -124,6 +128,7 @@ describe('runToolsTransformation', () => {
             },
             "output": "test-sync-result",
             "providerExecuted": undefined,
+            "providerMetadata": undefined,
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-result",
@@ -145,7 +150,7 @@ describe('runToolsTransformation', () => {
   });
 
   it('should handle sync tool execution', async () => {
-    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -174,6 +179,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     expect(await convertReadableStreamToArray(transformedStream))
@@ -184,6 +190,7 @@ describe('runToolsTransformation', () => {
               "value": "test",
             },
             "providerExecuted": undefined,
+            "providerMetadata": undefined,
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-call",
@@ -194,6 +201,7 @@ describe('runToolsTransformation', () => {
             },
             "output": "test-sync-result",
             "providerExecuted": undefined,
+            "providerMetadata": undefined,
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-result",
@@ -215,7 +223,7 @@ describe('runToolsTransformation', () => {
   });
 
   it('should hold off on sending finish until the delayed tool result is received', async () => {
-    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -247,6 +255,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     const result = await convertReadableStreamToArray(transformedStream);
@@ -258,6 +267,7 @@ describe('runToolsTransformation', () => {
             "value": "test",
           },
           "providerExecuted": undefined,
+          "providerMetadata": undefined,
           "toolCallId": "call-1",
           "toolName": "delayedTool",
           "type": "tool-call",
@@ -268,6 +278,7 @@ describe('runToolsTransformation', () => {
           },
           "output": "test-delayed-result",
           "providerExecuted": undefined,
+          "providerMetadata": undefined,
           "toolCallId": "call-1",
           "toolName": "delayedTool",
           "type": "tool-result",
@@ -289,7 +300,7 @@ describe('runToolsTransformation', () => {
   });
 
   it('should try to repair tool call when the tool name is not found', async () => {
-    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -328,6 +339,7 @@ describe('runToolsTransformation', () => {
 
         return { ...toolCall, toolName: 'correctTool' };
       },
+      experimental_context: undefined,
     });
 
     expect(await convertReadableStreamToArray(transformedStream))
@@ -338,6 +350,7 @@ describe('runToolsTransformation', () => {
               "value": "test",
             },
             "providerExecuted": undefined,
+            "providerMetadata": undefined,
             "toolCallId": "call-1",
             "toolName": "correctTool",
             "type": "tool-call",
@@ -348,6 +361,7 @@ describe('runToolsTransformation', () => {
             },
             "output": "test-result",
             "providerExecuted": undefined,
+            "providerMetadata": undefined,
             "toolCallId": "call-1",
             "toolName": "correctTool",
             "type": "tool-result",
@@ -371,7 +385,7 @@ describe('runToolsTransformation', () => {
   it('should not call execute for provider-executed tool calls', async () => {
     let toolExecuted = false;
 
-    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -411,6 +425,7 @@ describe('runToolsTransformation', () => {
       system: undefined,
       abortSignal: undefined,
       repairToolCall: undefined,
+      experimental_context: undefined,
     });
 
     await convertReadableStreamToArray(transformedStream);

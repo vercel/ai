@@ -1,5 +1,156 @@
 # @ai-sdk/codemod
 
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- 740d4bf: feat(codemod): add usechat input state transformation for v5
+- 437ab50: feat(codemod): add usechat api to transport transformation
+- 9b4457c: feat(codemod): add tool invocations migration to v5 codemods
+- adbeac4: feat(codemod): add datastream to uimessagestream transformation
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+## 2.0.10
+
+### Patch Changes
+
+- 4627f55: fix(codemod): remove generate text codemod
+
+## 2.0.9
+
+### Patch Changes
+
+- c82e85a: fix(codemod): handle import alias for maxStep-stopWhen
+
+## 2.0.8
+
+### Patch Changes
+
+- 8aadbc9: feat(codemod): add not implemented comment and warnings
+
+## 2.0.7
+
+### Patch Changes
+
+- 5dc1c62: fix(codemod): Language Model V2 Import
+
+  Migration: https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#language-model-v2-import
+
+  Codemod behavior before the fix
+
+  ```diff
+  - import { LanguageModelV2 } from 'ai';
+  + import { LanguageModelV2 } from '@ai-sdk/provider';
+  ```
+
+  After
+
+  ```diff
+  + import { LanguageModelV2 } from 'ai';
+  - import { LanguageModelV2 } from '@ai-sdk/provider';
+  ```
+
+- 7ae8e57: fix(codemod): avoid false positive in `v5/restructure-file-stream-parts`
+- 237a8cc: fix(codemod): Do not replace `delta.type` value from `'text-delta'` to `'text'`
+
+## 2.0.6
+
+### Patch Changes
+
+- 7faddf1: feat(codemod): add zod import v3 transformation
+- 5f85d6f: add codemod for getErrorMessage to onError in toUIMessageStreamResponse
+
+## 2.0.5
+
+### Patch Changes
+
+- bc330ec: feat(codemod): add DataStream to UIMessage method renaming codemod
+
+## 2.0.4
+
+### Patch Changes
+
+- 3841377: Added a codemod to change `maxSteps` to `stopWhen`
+
+## 2.0.3
+
+### Patch Changes
+
+- 58fff3f: fixes generateText text property transform
+
+## 2.0.2
+
+### Patch Changes
+
+- 23a1916: fix Message transform for generic types
+
+## 2.0.1
+
+### Patch Changes
+
+- 3d6a91b: ### new codemode for: "`createIdGenerator()` now requires a size argument"
+
+  The codemod added in this change addresses the following change in v5
+
+  Before:
+
+  ```ts
+  import { createIdGenerator } from 'ai';
+
+  const generator = createIdGenerator({ prefix: 'msg' });
+  const id2 = generator(16); // Custom size at call time
+  ```
+
+  After:
+
+  ```ts
+  import { createIdGenerator } from 'ai';
+
+  const generator32 = createIdGenerator({ size: 32 });
+  const id1 = generator32(); // Fixed size from creation
+
+  const generator16 = createIdGenerator({ prefix: 'msg', size: 16 });
+  const id2 = generator16(); // Fixed size from creation
+  ```
+
+- 094c4ca: ### Codemod for: "`IDGenerator` type renamed to `IdGenerator`"
+
+  This change adds a new codemod which handles the change from
+
+  ```ts
+  import { IDGenerator } from 'ai';
+  ```
+
+  to
+
+  ```ts
+  import { IdGenerator } from 'ai';
+  ```
+
+## 2.0.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- b0446d4: release AI SDK 5.0 codemods package
+- df983e6: feat(codemods): added v4→v5 migration codemods
+- 4726e71: fix(codemod): correct import-LanguageModelV2-from-provider-package direction and quote preservation
+- 4e01854: v5 - AI SDK 5.0 codemods package
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- df983e6: feat(codemods): added v4→v5 migration codemods
+
 ## 2.0.0-beta.3
 
 ### Patch Changes

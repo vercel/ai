@@ -11,16 +11,18 @@ export type {
   ToolResultPart,
 } from './content-part';
 export type { DataContent } from './data-content';
+export { executeTool } from './execute-tool';
 export type { ModelMessage } from './model-message';
 export type { ProviderOptions } from './provider-options';
 export type { SystemModelMessage } from './system-model-message';
 export {
+  dynamicTool,
   tool,
+  type InferToolInput,
+  type InferToolOutput,
   type Tool,
   type ToolCallOptions,
   type ToolExecuteFunction,
-  type InferToolInput,
-  type InferToolOutput,
 } from './tool';
 export type { ToolCall } from './tool-call';
 export type { ToolContent, ToolModelMessage } from './tool-model-message';

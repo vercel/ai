@@ -1,7 +1,12 @@
-import { EventSourceParserStream } from '@ai-sdk/provider-utils';
-import { MCPClientError } from '../../../src/error/mcp-client-error';
+import {
+  EventSourceParserStream,
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
+} from '@ai-sdk/provider-utils';
+import { MCPClientError } from '../../error/mcp-client-error';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
+import { VERSION } from '../../version';
 
 export class SseMCPTransport implements MCPTransport {
   private endpoint?: URL;
@@ -38,8 +43,14 @@ export class SseMCPTransport implements MCPTransport {
 
       const establishConnection = async () => {
         try {
-          const headers = new Headers(this.headers);
-          headers.set('Accept', 'text/event-stream');
+          const headers = withUserAgentSuffix(
+            {
+              ...this.headers,
+              Accept: 'text/event-stream',
+            },
+            `ai-sdk/${VERSION}`,
+            getRuntimeEnvironmentUserAgent(),
+          );
           const response = await fetch(this.url.href, {
             headers,
             signal: this.abortController?.signal,
@@ -149,8 +160,14 @@ export class SseMCPTransport implements MCPTransport {
     }
 
     try {
-      const headers = new Headers(this.headers);
-      headers.set('Content-Type', 'application/json');
+      const headers = withUserAgentSuffix(
+        {
+          ...this.headers,
+          'Content-Type': 'application/json',
+        },
+        `ai-sdk/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      );
       const init = {
         method: 'POST',
         headers,

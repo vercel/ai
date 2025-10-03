@@ -1,6 +1,6 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { FireworksImageModel } from './fireworks-image-model';
 
 const prompt = 'A cute baby sea otter';
@@ -353,7 +353,7 @@ describe('FireworksImageModel', () => {
 
       expect(model.provider).toBe('fireworks');
       expect(model.modelId).toBe('accounts/fireworks/models/flux-1-dev-fp8');
-      expect(model.specificationVersion).toBe('v2');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

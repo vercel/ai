@@ -1,26 +1,32 @@
 import { z } from 'zod/v4';
-import { ValueOf } from '../util/value-of';
+import {
+  ProviderMetadata,
+  providerMetadataSchema,
+} from '../types/provider-metadata';
 import {
   InferUIMessageData,
   InferUIMessageMetadata,
   UIDataTypes,
   UIMessage,
 } from '../ui/ui-messages';
-import { ProviderMetadata } from '../types/provider-metadata';
+import { ValueOf } from '../util/value-of';
 
 export const uiMessageChunkSchema = z.union([
   z.strictObject({
     type: z.literal('text-start'),
     id: z.string(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('text-delta'),
     id: z.string(),
     delta: z.string(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('text-end'),
     id: z.string(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('error'),
@@ -31,6 +37,7 @@ export const uiMessageChunkSchema = z.union([
     toolCallId: z.string(),
     toolName: z.string(),
     providerExecuted: z.boolean().optional(),
+    dynamic: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-input-delta'),
@@ -43,49 +50,56 @@ export const uiMessageChunkSchema = z.union([
     toolName: z.string(),
     input: z.unknown(),
     providerExecuted: z.boolean().optional(),
+    providerMetadata: providerMetadataSchema.optional(),
+    dynamic: z.boolean().optional(),
+  }),
+  z.strictObject({
+    type: z.literal('tool-input-error'),
+    toolCallId: z.string(),
+    toolName: z.string(),
+    input: z.unknown(),
+    providerExecuted: z.boolean().optional(),
+    providerMetadata: providerMetadataSchema.optional(),
+    dynamic: z.boolean().optional(),
+    errorText: z.string(),
   }),
   z.strictObject({
     type: z.literal('tool-output-available'),
     toolCallId: z.string(),
     output: z.unknown(),
     providerExecuted: z.boolean().optional(),
+    dynamic: z.boolean().optional(),
+    preliminary: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-output-error'),
     toolCallId: z.string(),
     errorText: z.string(),
     providerExecuted: z.boolean().optional(),
-  }),
-  z.strictObject({
-    type: z.literal('reasoning'),
-    text: z.string(),
-    providerMetadata: z.record(z.string(), z.any()).optional(),
+    dynamic: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-start'),
     id: z.string(),
-    providerMetadata: z.record(z.string(), z.any()).optional(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-delta'),
     id: z.string(),
     delta: z.string(),
-    providerMetadata: z.record(z.string(), z.any()).optional(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-end'),
     id: z.string(),
-    providerMetadata: z.record(z.string(), z.any()).optional(),
-  }),
-  z.strictObject({
-    type: z.literal('reasoning-part-finish'),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('source-url'),
     sourceId: z.string(),
     url: z.string(),
     title: z.string().optional(),
-    providerMetadata: z.any().optional(), // Use z.any() for generic metadata
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('source-document'),
@@ -93,15 +107,20 @@ export const uiMessageChunkSchema = z.union([
     mediaType: z.string(),
     title: z.string(),
     filename: z.string().optional(),
-    providerMetadata: z.any().optional(), // Use z.any() for generic metadata
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('file'),
     url: z.string(),
     mediaType: z.string(),
+    providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
-    type: z.string().startsWith('data-'),
+    type: z.custom<`data-${string}`>(
+      (value): value is `data-${string}` =>
+        typeof value === 'string' && value.startsWith('data-'),
+      { message: 'Type must start with "data-"' },
+    ),
     id: z.string().optional(),
     data: z.unknown(),
     transient: z.boolean().optional(),
@@ -122,6 +141,9 @@ export const uiMessageChunkSchema = z.union([
     messageMetadata: z.unknown().optional(),
   }),
   z.strictObject({
+    type: z.literal('abort'),
+  }),
+  z.strictObject({
     type: z.literal('message-metadata'),
     messageMetadata: z.unknown(),
   }),
@@ -140,10 +162,27 @@ export type UIMessageChunk<
   METADATA = unknown,
   DATA_TYPES extends UIDataTypes = UIDataTypes,
 > =
-  | { type: 'text-start'; id: string }
-  | { type: 'text-delta'; delta: string; id: string }
-  | { type: 'text-end'; id: string }
-  | { type: 'reasoning-start'; id: string; providerMetadata?: ProviderMetadata }
+  | {
+      type: 'text-start';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'text-delta';
+      delta: string;
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'text-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-start';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
   | {
       type: 'reasoning-delta';
       id: string;
@@ -165,24 +204,40 @@ export type UIMessageChunk<
       toolName: string;
       input: unknown;
       providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
+      dynamic?: boolean;
+    }
+  | {
+      type: 'tool-input-error';
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+      providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
+      dynamic?: boolean;
+      errorText: string;
     }
   | {
       type: 'tool-output-available';
       toolCallId: string;
       output: unknown;
       providerExecuted?: boolean;
+      dynamic?: boolean;
+      preliminary?: boolean;
     }
   | {
       type: 'tool-output-error';
       toolCallId: string;
       errorText: string;
       providerExecuted?: boolean;
+      dynamic?: boolean;
     }
   | {
       type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
       providerExecuted?: boolean;
+      dynamic?: boolean;
     }
   | {
       type: 'tool-input-delta';
@@ -208,6 +263,7 @@ export type UIMessageChunk<
       type: 'file';
       url: string;
       mediaType: string;
+      providerMetadata?: ProviderMetadata;
     }
   | DataUIMessageChunk<DATA_TYPES>
   | {
@@ -224,6 +280,9 @@ export type UIMessageChunk<
   | {
       type: 'finish';
       messageMetadata?: METADATA;
+    }
+  | {
+      type: 'abort';
     }
   | {
       type: 'message-metadata';

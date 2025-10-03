@@ -2,9 +2,9 @@
 /* eslint-disable @next/next/no-img-element */
 import {
   createTestServer,
-  mockId,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
+import { mockId } from '@ai-sdk/provider-utils/test';
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -19,6 +19,7 @@ import React, { act, useRef, useState } from 'react';
 import { Chat } from './chat.react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -30,8 +31,6 @@ const server = createTestServer({
 });
 
 describe('initial messages', () => {
-  let onFinishCalls: Array<{ message: UIMessage }> = [];
-
   setupTestComponent(
     ({ id: idParam }: { id: string }) => {
       const [id, setId] = React.useState<string>(idParam);
@@ -63,10 +62,6 @@ describe('initial messages', () => {
       init: TestComponent => <TestComponent id={`first-${mockId()()}`} />,
     },
   );
-
-  beforeEach(() => {
-    onFinishCalls = [];
-  });
 
   it('should show initial messages', async () => {
     await waitFor(() => {
@@ -351,6 +346,9 @@ describe('data protocol stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "isAbort": false,
+          "isDisconnect": false,
+          "isError": false,
           "message": {
             "id": "id-1",
             "metadata": {
@@ -358,6 +356,7 @@ describe('data protocol stream', () => {
             },
             "parts": [
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -365,6 +364,34 @@ describe('data protocol stream', () => {
             ],
             "role": "assistant",
           },
+          "messages": [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": {
+                "example": "metadata",
+              },
+              "parts": [
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
         },
       ]
     `);
@@ -401,7 +428,7 @@ describe('data protocol stream', () => {
               "role": "user",
             },
           ],
-          "trigger": "submit-user-message",
+          "trigger": "submit-message",
         }
       `);
     });
@@ -510,6 +537,9 @@ describe('text stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "isAbort": false,
+          "isDisconnect": false,
+          "isError": false,
           "message": {
             "id": "id-2",
             "metadata": undefined,
@@ -518,6 +548,7 @@ describe('text stream', () => {
                 "type": "step-start",
               },
               {
+                "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
@@ -525,6 +556,35 @@ describe('text stream', () => {
             ],
             "role": "assistant",
           },
+          "messages": [
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-2",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
         },
       ]
     `);
@@ -633,7 +693,7 @@ describe('prepareChatRequest', () => {
         "requestMetadata": {
           "request-metadata-key": "request-metadata-value",
         },
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
 
@@ -661,12 +721,16 @@ describe('onToolCall', () => {
   let toolCallPromise: Promise<void>;
 
   setupTestComponent(() => {
-    const { messages, sendMessage } = useChat({
+    const { messages, sendMessage, addToolResult } = useChat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
-        return `test-tool-response: ${toolCall.toolName} ${
-          toolCall.toolCallId
-        } ${JSON.stringify(toolCall.input)}`;
+        addToolResult({
+          tool: 'test-tool',
+          toolCallId: toolCall.toolCallId,
+          output: `test-tool-response: ${toolCall.toolName} ${
+            toolCall.toolCallId
+          } ${JSON.stringify(toolCall.input)}`,
+        });
       },
     });
 
@@ -745,7 +809,6 @@ describe('onToolCall', () => {
 describe('tool invocations', () => {
   setupTestComponent(() => {
     const { messages, sendMessage, addToolResult } = useChat({
-      maxSteps: 5,
       generateId: mockId(),
     });
 
@@ -764,6 +827,7 @@ describe('tool invocations', () => {
                       data-testid={`add-result-${toolIdx}`}
                       onClick={() => {
                         addToolResult({
+                          tool: 'test-tool',
                           toolCallId: toolPart.toolCallId,
                           output: 'test-result',
                         });
@@ -1050,308 +1114,6 @@ describe('tool invocations', () => {
       ]);
     });
   });
-
-  it('should delay tool result submission until the stream is finished', async () => {
-    const controller1 = new TestResponseController();
-
-    server.urls['/api/chat'].response = [
-      { type: 'controlled-stream', controller: controller1 },
-    ];
-
-    await userEvent.click(screen.getByTestId('do-send'));
-
-    // start stream
-    controller1.write(formatChunk({ type: 'start' }));
-    controller1.write(formatChunk({ type: 'start-step' }));
-
-    // tool call
-    controller1.write(
-      formatChunk({
-        type: 'tool-input-available',
-        toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
-        input: { testArg: 'test-value' },
-      }),
-    );
-
-    await waitFor(() => {
-      expect(
-        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
-      ).toStrictEqual({
-        state: 'input-available',
-        input: { testArg: 'test-value' },
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-      });
-    });
-
-    // user submits the tool result
-    await userEvent.click(screen.getByTestId('add-result-0'));
-
-    // UI should show the tool result
-    await waitFor(() => {
-      expect(
-        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
-      ).toStrictEqual({
-        state: 'output-available',
-        input: { testArg: 'test-value' },
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-        output: 'test-result',
-      });
-    });
-
-    // should not have called the API yet
-    expect(server.calls.length).toBe(1);
-
-    // finish stream
-    controller1.write(formatChunk({ type: 'finish-step' }));
-    controller1.write(formatChunk({ type: 'finish' }));
-
-    await controller1.close();
-
-    // 2nd call should happen after the stream is finished
-    await waitFor(() => {
-      expect(server.calls.length).toBe(2);
-    });
-  });
-
-  it('should trigger request when all tool calls are completed', async () => {
-    const controller1 = new TestResponseController();
-    const controller2 = new TestResponseController();
-
-    server.urls['/api/chat'].response = [
-      { type: 'controlled-stream', controller: controller1 },
-      { type: 'controlled-stream', controller: controller2 },
-    ];
-
-    await userEvent.click(screen.getByTestId('do-send'));
-
-    // start stream
-    controller1.write(formatChunk({ type: 'start' }));
-    controller1.write(formatChunk({ type: 'start-step' }));
-
-    // tool call
-    controller1.write(
-      formatChunk({
-        type: 'tool-input-available',
-        toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
-        input: { testArg: 'test-value' },
-      }),
-    );
-
-    // finish stream
-    controller1.write(formatChunk({ type: 'finish-step' }));
-    controller1.write(formatChunk({ type: 'finish' }));
-    await controller1.close();
-
-    await waitFor(() => {
-      expect(
-        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
-      ).toStrictEqual({
-        state: 'input-available',
-        input: { testArg: 'test-value' },
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-      });
-    });
-
-    // user submits the tool result
-    await userEvent.click(screen.getByTestId('add-result-0'));
-
-    // UI should show the tool result
-    await waitFor(() => {
-      expect(
-        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
-      ).toStrictEqual({
-        state: 'output-available',
-        input: { testArg: 'test-value' },
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-        output: 'test-result',
-      });
-    });
-
-    // should trigger second request w/ tool result
-    expect(server.calls.length).toBe(2);
-
-    controller2.write(formatChunk({ type: 'start' }));
-    controller2.write(formatChunk({ type: 'start-step' }));
-
-    controller2.write(formatChunk({ type: 'text-start', id: '0' }));
-    controller2.write(
-      formatChunk({ type: 'text-delta', id: '0', delta: 'final result' }),
-    );
-    controller2.write(formatChunk({ type: 'text-end', id: '0' }));
-
-    controller2.write(formatChunk({ type: 'finish-step' }));
-    controller2.write(formatChunk({ type: 'finish' }));
-
-    await controller2.close();
-
-    // chunks from second request should show up in UI
-    await waitFor(() => {
-      expect(screen.getByTestId('message-1-text')).toHaveTextContent(
-        'final result',
-      );
-    });
-  });
-});
-
-describe('maxSteps', () => {
-  describe('two steps with automatic tool call', () => {
-    let onToolCallInvoked = false;
-
-    setupTestComponent(() => {
-      const { messages, sendMessage } = useChat({
-        async onToolCall({ toolCall }) {
-          onToolCallInvoked = true;
-
-          return `test-tool-response: ${toolCall.toolName} ${
-            toolCall.toolCallId
-          } ${JSON.stringify(toolCall.input)}`;
-        },
-        generateId: mockId(),
-        maxSteps: 5,
-      });
-
-      return (
-        <div>
-          {messages.map((m, idx) => (
-            <div data-testid={`message-${idx}`} key={m.id}>
-              {m.parts
-                .map(part => (part.type === 'text' ? part.text : ''))
-                .join('')}
-            </div>
-          ))}
-
-          <button
-            data-testid="do-send"
-            onClick={() => {
-              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
-            }}
-          />
-        </div>
-      );
-    });
-
-    beforeEach(() => {
-      onToolCallInvoked = false;
-    });
-
-    it('should automatically call api when tool call gets executed via onToolCall', async () => {
-      server.urls['/api/chat'].response = [
-        {
-          type: 'stream-chunks',
-          chunks: [
-            formatChunk({
-              type: 'tool-input-available',
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              input: { testArg: 'test-value' },
-            }),
-          ],
-        },
-        {
-          type: 'stream-chunks',
-          chunks: [
-            formatChunk({ type: 'text-start', id: '0' }),
-            formatChunk({
-              type: 'text-delta',
-              id: '0',
-              delta: 'final result',
-            }),
-            formatChunk({ type: 'text-end', id: '0' }),
-          ],
-        },
-      ];
-
-      await userEvent.click(screen.getByTestId('do-send'));
-
-      expect(onToolCallInvoked).toBe(true);
-
-      await screen.findByTestId('message-1');
-      expect(screen.getByTestId('message-1')).toHaveTextContent('final result');
-    });
-  });
-
-  describe('two steps with error response', () => {
-    let onToolCallCounter = 0;
-
-    setupTestComponent(() => {
-      const { messages, sendMessage, error } = useChat({
-        async onToolCall({ toolCall }) {
-          onToolCallCounter++;
-          return `test-tool-response: ${toolCall.toolName} ${
-            toolCall.toolCallId
-          } ${JSON.stringify(toolCall.input)}`;
-        },
-        generateId: mockId(),
-        maxSteps: 5,
-      });
-
-      return (
-        <div>
-          {error && <div data-testid="error">{error.toString()}</div>}
-
-          {messages.map((m, idx) => (
-            <div data-testid={`message-${idx}`} key={m.id}>
-              {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) =>
-                toolPart.state === 'output-available' ? (
-                  <div key={toolIdx} data-testid={`tool-${toolIdx}`}>
-                    {JSON.stringify(toolPart.output)}
-                  </div>
-                ) : null,
-              )}
-            </div>
-          ))}
-
-          <button
-            data-testid="do-send"
-            onClick={() => {
-              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
-            }}
-          />
-        </div>
-      );
-    });
-
-    beforeEach(() => {
-      onToolCallCounter = 0;
-    });
-
-    it('should automatically call api when tool call gets executed via onToolCall', async () => {
-      server.urls['/api/chat'].response = [
-        {
-          type: 'stream-chunks',
-          chunks: [
-            formatChunk({
-              type: 'tool-input-available',
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              input: { testArg: 'test-value' },
-            }),
-          ],
-        },
-        {
-          type: 'error',
-          status: 400,
-          body: 'call failure',
-        },
-      ];
-
-      await userEvent.click(screen.getByTestId('do-send'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('error')).toHaveTextContent(
-          'Error: call failure',
-        );
-      });
-
-      expect(onToolCallCounter).toBe(1);
-    });
-  });
 });
 
 describe('file attachments with data url', () => {
@@ -1488,7 +1250,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1578,7 +1340,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1701,7 +1463,7 @@ describe('file attachments with url', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1804,7 +1566,7 @@ describe('attachments with empty submit', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -1918,7 +1680,7 @@ describe('should send message with attachments', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -2015,7 +1777,7 @@ describe('regenerate', () => {
           },
         ],
         "request-body-key": "request-body-value",
-        "trigger": "regenerate-assistant-message",
+        "trigger": "regenerate-message",
       }
     `);
 
@@ -2101,7 +1863,7 @@ describe('test sending additional fields during message submission', () => {
             "role": "user",
           },
         ],
-        "trigger": "submit-user-message",
+        "trigger": "submit-message",
       }
     `);
   });
@@ -2533,5 +2295,104 @@ describe('chat instance changes', () => {
     await userEvent.click(screen.getByTestId('do-change-chat'));
 
     expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+  });
+});
+
+describe('streaming with id change from undefined to defined', () => {
+  setupTestComponent(
+    () => {
+      const [id, setId] = React.useState<string | undefined>(undefined);
+      const { messages, sendMessage, status } = useChat({
+        id,
+        generateId: mockId(),
+      });
+
+      return (
+        <div>
+          <div data-testid="status">{status.toString()}</div>
+          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+          <button
+            data-testid="change-id"
+            onClick={() => {
+              setId('chat-123');
+            }}
+          />
+          <button
+            data-testid="send-message"
+            onClick={() => {
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+            }}
+          />
+        </div>
+      );
+    },
+    {
+      init: TestComponent => <TestComponent />,
+    },
+  );
+
+  it('should handle streaming correctly when id changes from undefined to defined', async () => {
+    const controller = new TestResponseController();
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    // First, change the ID from undefined to 'chat-123'
+    await userEvent.click(screen.getByTestId('change-id'));
+
+    // Then send a message
+    await userEvent.click(screen.getByTestId('send-message'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+    });
+
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+    );
+
+    // Verify streaming is working - text should appear immediately
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toContainEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: ',' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+    );
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: '.' }));
+    controller.write(formatChunk({ type: 'text-end', id: '0' }));
+    controller.close();
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toContainEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello, world.',
+              state: 'done',
+            }),
+          ]),
+        }),
+      );
+    });
   });
 });

@@ -17,7 +17,7 @@ import type * as z3 from 'zod/v3';
 import type * as z4 from 'zod/v4';
 
 export type StructuredObjectOptions<
-  SCHEMA extends z3.Schema | z4.ZodType | Schema,
+  SCHEMA extends z3.Schema | z4.core.$ZodType | Schema,
   RESULT = InferSchema<SCHEMA>,
 > = {
   /**
@@ -83,7 +83,7 @@ export type StructuredObjectOptions<
 };
 
 export class StructuredObject<
-  SCHEMA extends z3.Schema | z4.ZodType | Schema,
+  SCHEMA extends z3.Schema | z4.core.$ZodType | Schema,
   RESULT = InferSchema<SCHEMA>,
   INPUT = unknown,
 > {
@@ -140,9 +140,9 @@ export class StructuredObject<
    */
   submit = async (input: INPUT) => {
     try {
-      this.#object.set(undefined); // reset the data
+      this.#clearObject();
+
       this.#loading.set(true);
-      this.#error.set(undefined);
 
       const abortController = new AbortController();
       this.#abortController = abortController;
@@ -229,5 +229,16 @@ export class StructuredObject<
       this.#loading.set(false);
       this.#error.set(coalescedError);
     }
+  };
+
+  clear = () => {
+    this.stop();
+    this.#clearObject();
+  };
+
+  #clearObject = () => {
+    this.#object.set(undefined);
+    this.#error.set(undefined);
+    this.#loading.set(false);
   };
 }

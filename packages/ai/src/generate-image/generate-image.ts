@@ -1,11 +1,11 @@
-import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { NoImageGeneratedError } from '../../src/error/no-image-generated-error';
+import { ImageModelV3, ImageModelV3ProviderMetadata } from '@ai-sdk/provider';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
-} from '../../src/util/detect-media-type';
-import { prepareRetries } from '../../src/util/prepare-retries';
+} from '../util/detect-media-type';
+import { prepareRetries } from '../util/prepare-retries';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import {
   DefaultGeneratedFile,
@@ -14,6 +14,8 @@ import {
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
+import { logWarnings } from '../logger/log-warnings';
+import { VERSION } from '../version';
 
 /**
 Generates images using an image model.
@@ -48,7 +50,7 @@ export async function generateImage({
   /**
 The image model to use.
      */
-  model: ImageModelV2;
+  model: ImageModelV3;
 
   /**
 The prompt that should be used to generate the image.
@@ -114,7 +116,7 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<GenerateImageResult> {
-  if (model.specificationVersion !== 'v2') {
+  if (model.specificationVersion !== 'v3') {
     throw new UnsupportedModelVersionError({
       version: model.specificationVersion,
       provider: model.provider,
@@ -122,7 +124,15 @@ Only applicable for HTTP-based providers.
     });
   }
 
-  const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
+  const { retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
 
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
@@ -147,7 +157,7 @@ Only applicable for HTTP-based providers.
           prompt,
           n: callImageCount,
           abortSignal,
-          headers,
+          headers: headersWithUserAgent,
           size,
           aspectRatio,
           seed,
@@ -161,7 +171,7 @@ Only applicable for HTTP-based providers.
   const images: Array<DefaultGeneratedFile> = [];
   const warnings: Array<ImageGenerationWarning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
-  const providerMetadata: ImageModelV2ProviderMetadata = {};
+  const providerMetadata: ImageModelV3ProviderMetadata = {};
   for (const result of results) {
     images.push(
       ...result.images.map(
@@ -192,6 +202,8 @@ Only applicable for HTTP-based providers.
     responses.push(result.response);
   }
 
+  logWarnings(warnings);
+
   if (!images.length) {
     throw new NoImageGeneratedError({ responses });
   }
@@ -208,13 +220,13 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedFile>;
   readonly warnings: Array<ImageGenerationWarning>;
   readonly responses: Array<ImageModelResponseMetadata>;
-  readonly providerMetadata: ImageModelV2ProviderMetadata;
+  readonly providerMetadata: ImageModelV3ProviderMetadata;
 
   constructor(options: {
     images: Array<GeneratedFile>;
     warnings: Array<ImageGenerationWarning>;
     responses: Array<ImageModelResponseMetadata>;
-    providerMetadata: ImageModelV2ProviderMetadata;
+    providerMetadata: ImageModelV3ProviderMetadata;
   }) {
     this.images = options.images;
     this.warnings = options.warnings;
@@ -227,7 +239,7 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   }
 }
 
-async function invokeModelMaxImagesPerCall(model: ImageModelV2) {
+async function invokeModelMaxImagesPerCall(model: ImageModelV3) {
   const isFunction = model.maxImagesPerCall instanceof Function;
 
   if (!isFunction) {

@@ -3,6 +3,8 @@ export type {
   GatewayLanguageModelEntry,
   GatewayLanguageModelSpecification,
 } from './gateway-model-entry';
+export type { GatewayCreditsResponse } from './gateway-fetch-metadata';
+export type { GatewayLanguageModelEntry as GatewayModelEntry } from './gateway-model-entry';
 export {
   createGatewayProvider,
   createGatewayProvider as createGateway,
@@ -12,6 +14,7 @@ export type {
   GatewayProvider,
   GatewayProviderSettings,
 } from './gateway-provider';
+export type { GatewayProviderOptions } from './gateway-provider-options';
 export {
   GatewayError,
   GatewayAuthenticationError,

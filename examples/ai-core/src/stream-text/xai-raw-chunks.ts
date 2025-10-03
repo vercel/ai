@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: xai('grok-beta'),
+    model: xai('grok-3'),
     prompt: 'Count from 1 to 3 slowly.',
     includeRawChunks: true,
   });
@@ -13,7 +13,7 @@ async function main() {
   let rawChunkCount = 0;
 
   for await (const chunk of result.fullStream) {
-    if (chunk.type === 'text') {
+    if (chunk.type === 'text-delta') {
       textChunkCount++;
       console.log('Text chunk', textChunkCount, ':', chunk.text);
     } else if (chunk.type === 'raw') {

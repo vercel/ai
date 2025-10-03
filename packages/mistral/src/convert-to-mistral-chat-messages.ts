@@ -1,11 +1,12 @@
 import {
-  LanguageModelV2Prompt,
+  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { MistralPrompt } from './mistral-chat-prompt';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToMistralChatMessages(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): MistralPrompt {
   const messages: MistralPrompt = [];
 
@@ -40,7 +41,7 @@ export function convertToMistralChatMessages(
                     image_url:
                       part.data instanceof URL
                         ? part.data.toString()
-                        : `data:${mediaType};base64,${part.data}`,
+                        : `data:${mediaType};base64,${convertToBase64(part.data)}`,
                   };
                 } else if (part.mediaType === 'application/pdf') {
                   return {
@@ -84,6 +85,15 @@ export function convertToMistralChatMessages(
                 },
               });
               break;
+            }
+            case 'reasoning': {
+              text += part.text;
+              break;
+            }
+            default: {
+              throw new Error(
+                `Unsupported content type in assistant message: ${part.type}`,
+              );
             }
           }
         }

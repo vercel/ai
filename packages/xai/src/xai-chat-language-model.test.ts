@@ -1,13 +1,17 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
-import {
-  convertReadableStreamToArray,
-  createTestServer,
-} from '@ai-sdk/provider-utils/test';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { describe, it, expect, vi } from 'vitest';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
+import { createXai } from './xai-provider';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const testConfig = {
   provider: 'xai.chat',
@@ -26,7 +30,7 @@ describe('XaiChatLanguageModel', () => {
   it('should be instantiated correctly', () => {
     expect(model.modelId).toBe('grok-beta');
     expect(model.provider).toBe('xai.chat');
-    expect(model.specificationVersion).toBe('v2');
+    expect(model.specificationVersion).toBe('v3');
   });
 
   it('should have supported URLs', () => {
@@ -307,6 +311,7 @@ describe('XaiChatLanguageModel', () => {
           authorization: 'Bearer test-api-key',
           'Custom-Provider-Header': 'provider-header-value',
         }),
+
         generateId: () => 'test-id',
       });
 
@@ -325,6 +330,26 @@ describe('XaiChatLanguageModel', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+    });
+
+    it('should include provider user agent when using createXai', async () => {
+      prepareJsonResponse({ content: '' });
+
+      const xai = createXai({
+        apiKey: 'test-api-key',
+        headers: { 'Custom-Provider-Header': 'provider-header-value' },
+      });
+
+      const modelWithHeaders = xai.chat('grok-beta');
+
+      await modelWithHeaders.doGenerate({
+        prompt: TEST_PROMPT,
+        headers: { 'Custom-Request-Header': 'request-header-value' },
+      });
+
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/xai/0.0.0-test`,
+      );
     });
 
     it('should send request body', async () => {
@@ -407,7 +432,10 @@ describe('XaiChatLanguageModel', () => {
                 },
                 {
                   type: 'x',
-                  xHandles: ['grok'],
+                  includedXHandles: ['grok'],
+                  excludedXHandles: ['openai'],
+                  postFavoriteCount: 5,
+                  postViewCount: 50,
                 },
                 {
                   type: 'news',
@@ -437,7 +465,10 @@ describe('XaiChatLanguageModel', () => {
             },
             {
               type: 'x',
-              x_handles: ['grok'],
+              included_x_handles: ['grok'],
+              excluded_x_handles: ['openai'],
+              post_favorite_count: 5,
+              post_view_count: 50,
             },
             {
               type: 'news',
@@ -579,7 +610,10 @@ describe('XaiChatLanguageModel', () => {
                 },
                 {
                   type: 'x',
-                  xHandles: ['openai', 'deepmind'],
+                  includedXHandles: ['openai', 'deepmind'],
+                  excludedXHandles: ['grok'],
+                  postFavoriteCount: 10,
+                  postViewCount: 100,
                 },
               ],
             },
@@ -610,7 +644,10 @@ describe('XaiChatLanguageModel', () => {
             },
             {
               type: 'x',
-              x_handles: ['openai', 'deepmind'],
+              included_x_handles: ['openai', 'deepmind'],
+              excluded_x_handles: ['grok'],
+              post_favorite_count: 10,
+              post_view_count: 100,
             },
           ],
         },
@@ -1270,6 +1307,96 @@ describe('XaiChatLanguageModel', () => {
           },
           {
             "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "inputTokens": 15,
+              "outputTokens": 20,
+              "reasoningTokens": 10,
+              "totalTokens": 35,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should deduplicate repetitive reasoning deltas', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          // Multiple identical "Thinking..." deltas (simulating Grok 4 issue)
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{"reasoning_content":"Thinking... "},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{"reasoning_content":"Thinking... "},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{"reasoning_content":"Thinking... "},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          // Different reasoning content should still come through
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{"reasoning_content":"Actually calculating now..."},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{"content":"The answer is 42."},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
+            `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+            `"usage":{"prompt_tokens":15,"total_tokens":35,"completion_tokens":20,"completion_tokens_details":{"reasoning_tokens":10}},"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: [DONE]\n\n`,
+        ],
+      };
+
+      const { stream } = await reasoningModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        providerOptions: {
+          xai: { reasoningEffort: 'low' },
+        },
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "grok-4-test",
+            "modelId": "grok-4-0709",
+            "timestamp": 2025-06-21T20:35:20.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "reasoning-grok-4-test",
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "Thinking... ",
+            "id": "reasoning-grok-4-test",
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": "Actually calculating now...",
+            "id": "reasoning-grok-4-test",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "text-grok-4-test",
+            "type": "text-start",
+          },
+          {
+            "delta": "The answer is 42.",
+            "id": "text-grok-4-test",
+            "type": "text-delta",
+          },
+          {
+            "id": "reasoning-grok-4-test",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "text-grok-4-test",
             "type": "text-end",
           },
           {

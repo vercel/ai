@@ -36,12 +36,16 @@ async function main() {
 
   for await (const part of result.fullStream) {
     switch (part.type) {
-      case 'text': {
+      case 'text-delta': {
         console.log('Text:', part.text);
         break;
       }
 
       case 'tool-call': {
+        if (part.dynamic) {
+          continue;
+        }
+
         switch (part.toolName) {
           case 'cityAttractions': {
             console.log('TOOL CALL cityAttractions');
@@ -60,6 +64,10 @@ async function main() {
       }
 
       case 'tool-result': {
+        if (part.dynamic) {
+          continue;
+        }
+
         switch (part.toolName) {
           // NOT AVAILABLE (NO EXECUTE METHOD)
           // case 'cityAttractions': {

@@ -38,32 +38,59 @@ const tools = {
 };
 ```
 
-2. Client-side execution with `useChat` (omitting the `execute` function), but you must provide results in one of these ways:
+2. Client-side execution with `useChat` (omitting the `execute` function), you must provide results using `addToolResult`:
 
 ```tsx
-const { messages } = useChat({
-  // Option 1: Handle using onToolCall
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+
+const { messages, sendMessage, addToolResult } = useChat({
+  // Automatically submit when all tool results are available
+  sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+  // Handle tool calls in onToolCall
   onToolCall: async ({ toolCall }) => {
     if (toolCall.toolName === 'getLocation') {
-      const result = await getLocationData();
-      return result; // This becomes the tool result
+      try {
+        const result = await getLocationData();
+
+        // Important: Don't await inside onToolCall to avoid deadlocks
+        addToolResult({
+          tool: 'getLocation',
+          toolCallId: toolCall.toolCallId,
+          output: result,
+        });
+      } catch (err) {
+        // Important: Don't await inside onToolCall to avoid deadlocks
+        addToolResult({
+          tool: 'getLocation',
+          toolCallId: toolCall.toolCallId,
+          state: 'output-error',
+          errorText: 'Failed to get location',
+        });
+      }
     }
   },
 });
-
-}
 ```
 
 ```tsx
-// Option 2: Use addToolResult (e.g. with interactive UI elements)
-const { messages, addToolResult } = useChat();
+// For interactive UI elements:
+const { messages, sendMessage, addToolResult } = useChat({
+  transport: new DefaultChatTransport({ api: '/api/chat' }),
+  sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+});
 
 // Inside your JSX, when rendering tool calls:
 <button
   onClick={() =>
     addToolResult({
+      tool: 'myTool',
       toolCallId, // must provide tool call ID
-      result: {
+      output: {
         /* your tool result */
       },
     })

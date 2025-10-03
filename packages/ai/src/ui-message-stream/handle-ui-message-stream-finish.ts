@@ -6,6 +6,7 @@ import {
 import { UIMessage } from '../ui/ui-messages';
 import { ErrorHandler } from '../util/error-handler';
 import { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
+import { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,
@@ -29,24 +30,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
 
   onError: ErrorHandler;
 
-  onFinish?: (options: {
-    /**
-     * The updates list of UI messages.
-     */
-    messages: UI_MESSAGE[];
-
-    /**
-     * Indicates whether the response message is a continuation of the last original message,
-     * or if a new message was created.
-     */
-    isContinuation: boolean;
-
-    /**
-     * The message that was sent to the client as a response
-     * (including the original message if it was extended).
-     */
-    responseMessage: UI_MESSAGE;
-  }) => void;
+  onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   // last message is only relevant for assistant messages
   let lastMessage: UI_MESSAGE | undefined =
@@ -57,6 +41,8 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     // appending to the last message, so we need to use the same id
     messageId = lastMessage.id;
   }
+
+  let isAborted = false;
 
   const idInjectedStream = stream.pipeThrough(
     new TransformStream<
@@ -72,6 +58,10 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
           if (startChunk.messageId == null && messageId != null) {
             startChunk.messageId = messageId;
           }
+        }
+
+        if (chunk.type === 'abort') {
+          isAborted = true;
         }
 
         controller.enqueue(chunk);
@@ -99,6 +89,26 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     await job({ state, write: () => {} });
   };
 
+  let finishCalled = false;
+
+  const callOnFinish = async () => {
+    if (finishCalled || !onFinish) {
+      return;
+    }
+    finishCalled = true;
+
+    const isContinuation = state.message.id === lastMessage?.id;
+    await onFinish({
+      isAborted,
+      isContinuation,
+      responseMessage: state.message as UI_MESSAGE,
+      messages: [
+        ...(isContinuation ? originalMessages.slice(0, -1) : originalMessages),
+        state.message,
+      ] as UI_MESSAGE[],
+    });
+  };
+
   return processUIMessageStream<UI_MESSAGE>({
     stream: idInjectedStream,
     runUpdateMessageJob,
@@ -111,19 +121,13 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       transform(chunk, controller) {
         controller.enqueue(chunk);
       },
+      // @ts-expect-error cancel is still new and missing from types https://developer.mozilla.org/en-US/docs/Web/API/TransformStream#browser_compatibility
+      async cancel() {
+        await callOnFinish();
+      },
 
-      flush() {
-        const isContinuation = state.message.id === lastMessage?.id;
-        onFinish({
-          isContinuation,
-          responseMessage: state.message as UI_MESSAGE,
-          messages: [
-            ...(isContinuation
-              ? originalMessages.slice(0, -1)
-              : originalMessages),
-            state.message,
-          ] as UI_MESSAGE[],
-        });
+      async flush() {
+        await callOnFinish();
       },
     }),
   );

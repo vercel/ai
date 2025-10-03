@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { streamObject } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const result = streamObject({

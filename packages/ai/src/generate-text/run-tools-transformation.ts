@@ -1,21 +1,27 @@
 import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2StreamPart,
+  LanguageModelV3CallWarning,
+  LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
-import { generateId, ModelMessage } from '@ai-sdk/provider-utils';
-import { SpanStatusCode, Tracer } from '@opentelemetry/api';
+import {
+  executeTool,
+  generateId,
+  getErrorMessage,
+  ModelMessage,
+} from '@ai-sdk/provider-utils';
+import { Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
+import { Source } from '../types/language-model';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolErrorUnion, ToolResultUnion } from './tool-output';
+import { TypedToolError } from './tool-error';
+import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
-import { Source } from '../types/language-model';
-import { ToolCallUnion } from './tool-call';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   // Text blocks:
@@ -74,11 +80,11 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
     }
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
-  | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>)
-  | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
+  | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
+  | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
+  | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | { type: 'stream-start'; warnings: LanguageModelV2CallWarning[] }
+  | { type: 'stream-start'; warnings: LanguageModelV3CallWarning[] }
   | {
       type: 'response-metadata';
       id?: string;
@@ -103,15 +109,17 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   repairToolCall,
+  experimental_context,
 }: {
   tools: TOOLS | undefined;
-  generatorStream: ReadableStream<LanguageModelV2StreamPart>;
+  generatorStream: ReadableStream<LanguageModelV3StreamPart>;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
   system: string | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  experimental_context: unknown;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -152,11 +160,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
   // forward stream
   const forwardStream = new TransformStream<
-    LanguageModelV2StreamPart,
+    LanguageModelV3StreamPart,
     SingleRequestTextStreamPart<TOOLS>
   >({
     async transform(
-      chunk: LanguageModelV2StreamPart,
+      chunk: LanguageModelV3StreamPart,
       controller: TransformStreamDefaultController<
         SingleRequestTextStreamPart<TOOLS>
       >,
@@ -217,6 +225,20 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             controller.enqueue(toolCall);
 
+            // handle invalid tool calls:
+            if (toolCall.invalid) {
+              toolResultsStreamController!.enqueue({
+                type: 'tool-error',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: toolCall.input,
+                error: getErrorMessage(toolCall.error!),
+                dynamic: true,
+              });
+
+              break;
+            }
+
             const tool = tools![toolCall.toolName];
 
             toolInputs.set(toolCall.toolCallId, toolCall.input);
@@ -227,6 +249,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 toolCallId: toolCall.toolCallId,
                 messages,
                 abortSignal,
+                experimental_context,
               });
             }
 
@@ -249,7 +272,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     }),
                     'ai.toolCall.name': toolCall.toolName,
                     'ai.toolCall.id': toolCall.toolCallId,
-                    'ai.toolCall.input': {
+                    'ai.toolCall.args': {
                       output: () => JSON.stringify(toolCall.input),
                     },
                   },
@@ -259,29 +282,43 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                   let output: unknown;
 
                   try {
-                    output = await tool.execute!(toolCall.input, {
-                      toolCallId: toolCall.toolCallId,
-                      messages,
-                      abortSignal,
+                    const stream = executeTool({
+                      execute: tool.execute!.bind(tool),
+                      input: toolCall.input,
+                      options: {
+                        toolCallId: toolCall.toolCallId,
+                        messages,
+                        abortSignal,
+                        experimental_context,
+                      },
                     });
+
+                    for await (const part of stream) {
+                      toolResultsStreamController!.enqueue({
+                        ...toolCall,
+                        type: 'tool-result',
+                        output: part.output,
+                        ...(part.type === 'preliminary' && {
+                          preliminary: true,
+                        }),
+                      });
+
+                      if (part.type === 'final') {
+                        output = part.output;
+                      }
+                    }
                   } catch (error) {
                     recordErrorOnSpan(span, error);
                     toolResultsStreamController!.enqueue({
                       ...toolCall,
                       type: 'tool-error',
                       error,
-                    } satisfies ToolErrorUnion<TOOLS>);
+                    } satisfies TypedToolError<TOOLS>);
 
                     outstandingToolResults.delete(toolExecutionId);
                     attemptClose();
                     return;
                   }
-
-                  toolResultsStreamController!.enqueue({
-                    ...toolCall,
-                    type: 'tool-result',
-                    output,
-                  } satisfies ToolResultUnion<TOOLS>);
 
                   outstandingToolResults.delete(toolExecutionId);
                   attemptClose();
@@ -292,7 +329,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                       selectTelemetryAttributes({
                         telemetry,
                         attributes: {
-                          'ai.toolCall.output': {
+                          'ai.toolCall.result': {
                             output: () => JSON.stringify(output),
                           },
                         },
@@ -325,7 +362,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               input: toolInputs.get(chunk.toolCallId),
               providerExecuted: chunk.providerExecuted,
               error: chunk.result,
-            } as ToolErrorUnion<TOOLS>);
+            } as TypedToolError<TOOLS>);
           } else {
             controller.enqueue({
               type: 'tool-result',
@@ -334,7 +371,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               input: toolInputs.get(chunk.toolCallId),
               output: chunk.result,
               providerExecuted: chunk.providerExecuted,
-            } as ToolResultUnion<TOOLS>);
+            } as TypedToolResult<TOOLS>);
           }
           break;
         }

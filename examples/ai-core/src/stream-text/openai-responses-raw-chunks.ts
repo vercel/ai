@@ -1,20 +1,11 @@
-import { openai } from '@ai-sdk/openai';
 import 'dotenv/config';
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 
 async function main() {
-  const model = openai.responses('o3-mini');
-
-  console.log('=== OPENAI RESPONSES RAW STREAMING CHUNKS ===');
-
-  const { stream } = await model.doStream({
-    prompt: [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'How many "r"s are in the word "strawberry"?' },
-        ],
-      },
-    ],
+  const result = streamText({
+    model: openai.responses('o3-mini'),
+    prompt: 'How many "r"s are in the word "strawberry"?',
     providerOptions: {
       openai: {
         reasoningEffort: 'low',
@@ -30,37 +21,28 @@ async function main() {
   let fullText = '';
   let fullReasoning = '';
 
-  const reader = stream.getReader();
-
-  try {
-    while (true) {
-      const { done, value: chunk } = await reader.read();
-      if (done) break;
-
-      if (chunk.type === 'raw') {
-        rawChunkCount++;
-        console.log(
-          'Raw chunk',
-          rawChunkCount,
-          ':',
-          JSON.stringify(chunk.rawValue),
-        );
-      } else {
-        console.log('Processed chunk:', chunk.type, JSON.stringify(chunk));
-      }
-
-      if (chunk.type === 'text-delta') {
-        textChunkCount++;
-        fullText += chunk.delta;
-      }
-
-      if (chunk.type === 'reasoning-delta') {
-        reasoningChunkCount++;
-        fullReasoning += chunk.delta;
-      }
+  for await (const chunk of result.fullStream) {
+    if (chunk.type === 'raw') {
+      rawChunkCount++;
+      console.log(
+        'Raw chunk',
+        rawChunkCount,
+        ':',
+        JSON.stringify(chunk.rawValue),
+      );
+    } else {
+      console.log('Processed chunk:', chunk.type, JSON.stringify(chunk));
     }
-  } finally {
-    reader.releaseLock();
+
+    if (chunk.type === 'text-delta') {
+      textChunkCount++;
+      fullText += chunk.text;
+    }
+
+    if (chunk.type === 'reasoning-delta') {
+      reasoningChunkCount++;
+      fullReasoning += chunk.text;
+    }
   }
 
   console.log();

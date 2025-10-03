@@ -1,4 +1,4 @@
-import { LanguageModelV2, LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import { LanguageModelV3, LanguageModelV3CallWarning } from '@ai-sdk/provider';
 import {
   InferSchema,
   ProviderOptions,
@@ -39,7 +39,9 @@ type Renderer<T extends Array<any>> = (
   | Generator<Streamable, Streamable, void>
   | AsyncGenerator<Streamable, Streamable, void>;
 
-type RenderTool<INPUT_SCHEMA extends z4.ZodType | z3.Schema | Schema = any> = {
+type RenderTool<
+  INPUT_SCHEMA extends z4.core.$ZodType | z3.Schema | Schema = any,
+> = {
   description?: string;
   inputSchema: INPUT_SCHEMA;
   generate?: Renderer<
@@ -77,7 +79,7 @@ type RenderText = Renderer<
 
 type RenderResult = {
   value: ReactNode;
-} & Awaited<ReturnType<LanguageModelV2['doStream']>>;
+} & Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
 const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
   content;
@@ -86,7 +88,7 @@ const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
  * `streamUI` is a helper function to create a streamable UI from LLMs.
  */
 export async function streamUI<
-  TOOLS extends { [name: string]: z4.ZodType | z3.Schema | Schema } = {},
+  TOOLS extends { [name: string]: z4.core.$ZodType | z3.Schema | Schema } = {},
 >({
   model,
   tools,
@@ -107,7 +109,7 @@ export async function streamUI<
     /**
      * The language model to use.
      */
-    model: LanguageModelV2;
+    model: LanguageModelV3;
 
     /**
      * The tools that the model can call. The model needs to support calling tools.
@@ -255,13 +257,13 @@ functionality that can be fully encapsulated in the provider.
     renderFinished.resolve(undefined);
   }
 
-  const { retry } = prepareRetries({ maxRetries });
+  const { retry } = prepareRetries({ maxRetries, abortSignal });
 
   const validatedPrompt = await standardizePrompt({
     system,
     prompt,
     messages,
-  });
+  } as Prompt);
   const result = await retry(async () =>
     model.doStream({
       ...prepareCallSettings(settings),
@@ -273,6 +275,7 @@ functionality that can be fully encapsulated in the provider.
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         supportedUrls: await model.supportedUrls,
+        download: undefined,
       }),
       providerOptions,
       abortSignal,
@@ -287,7 +290,7 @@ functionality that can be fully encapsulated in the provider.
     try {
       let content = '';
       let hasToolCall = false;
-      let warnings: LanguageModelV2CallWarning[] | undefined;
+      let warnings: LanguageModelV3CallWarning[] | undefined;
 
       const reader = forkedStream.getReader();
       while (true) {

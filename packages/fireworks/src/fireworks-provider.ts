@@ -5,15 +5,16 @@ import {
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
-  EmbeddingModelV2,
-  ImageModelV2,
-  LanguageModelV2,
-  ProviderV2,
+  EmbeddingModelV3,
+  ImageModelV3,
+  LanguageModelV3,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { FireworksChatModelId } from './fireworks-chat-options';
@@ -21,6 +22,7 @@ import { FireworksCompletionModelId } from './fireworks-completion-options';
 import { FireworksEmbeddingModelId } from './fireworks-embedding-options';
 import { FireworksImageModel } from './fireworks-image-model';
 import { FireworksImageModelId } from './fireworks-image-options';
+import { VERSION } from './version';
 
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
@@ -54,44 +56,43 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface FireworksProvider extends ProviderV2 {
+export interface FireworksProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
-  (modelId: FireworksChatModelId): LanguageModelV2;
+  (modelId: FireworksChatModelId): LanguageModelV3;
 
   /**
 Creates a chat model for text generation.
 */
-  chatModel(modelId: FireworksChatModelId): LanguageModelV2;
+  chatModel(modelId: FireworksChatModelId): LanguageModelV3;
 
   /**
 Creates a completion model for text generation.
 */
-  completionModel(modelId: FireworksCompletionModelId): LanguageModelV2;
+  completionModel(modelId: FireworksCompletionModelId): LanguageModelV3;
 
   /**
 Creates a chat model for text generation.
 */
-  languageModel(modelId: FireworksChatModelId): LanguageModelV2;
+  languageModel(modelId: FireworksChatModelId): LanguageModelV3;
 
   /**
 Creates a text embedding model for text generation.
 */
   textEmbeddingModel(
     modelId: FireworksEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
-
-  /**
-Creates a model for image generation.
-@deprecated Use `imageModel` instead.
-*/
-  image(modelId: FireworksImageModelId): ImageModelV2;
+  ): EmbeddingModelV3<string>;
 
   /**
 Creates a model for image generation.
 */
-  imageModel(modelId: FireworksImageModelId): ImageModelV2;
+  image(modelId: FireworksImageModelId): ImageModelV3;
+
+  /**
+Creates a model for image generation.
+*/
+  imageModel(modelId: FireworksImageModelId): ImageModelV3;
 }
 
 const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';
@@ -100,14 +101,18 @@ export function createFireworks(
   options: FireworksProviderSettings = {},
 ): FireworksProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'FIREWORKS_API_KEY',
-      description: 'Fireworks API key',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'FIREWORKS_API_KEY',
+          description: 'Fireworks API key',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/fireworks/${VERSION}`,
+    );
 
   interface CommonModelConfig {
     provider: string;

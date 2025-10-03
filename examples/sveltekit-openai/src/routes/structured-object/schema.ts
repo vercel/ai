@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 // define a schema for the notifications
 export const notificationSchema = z.object({

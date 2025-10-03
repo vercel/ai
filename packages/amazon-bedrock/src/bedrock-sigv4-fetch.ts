@@ -2,9 +2,11 @@ import { convertHeadersToRecord, extractHeaders } from './headers-utils';
 import {
   FetchFunction,
   combineHeaders,
-  removeUndefinedEntries,
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
 import { AwsV4Signer } from 'aws4fetch';
+import { VERSION } from './version';
 
 export interface BedrockCredentials {
   region: string;
@@ -28,8 +30,31 @@ export function createSigV4FetchFunction(
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
-    if (init?.method?.toUpperCase() !== 'POST' || !init?.body) {
-      return fetch(input, init);
+    const request = input instanceof Request ? input : undefined;
+    const originalHeaders = combineHeaders(
+      extractHeaders(request?.headers),
+      extractHeaders(init?.headers),
+    );
+    const headersWithUserAgent = withUserAgentSuffix(
+      originalHeaders,
+      `ai-sdk/amazon-bedrock/${VERSION}`,
+      getRuntimeEnvironmentUserAgent(),
+    );
+
+    let effectiveBody: BodyInit | undefined = init?.body ?? undefined;
+    if (effectiveBody === undefined && request && request.body !== null) {
+      try {
+        effectiveBody = await request.clone().text();
+      } catch {}
+    }
+
+    const effectiveMethod = init?.method ?? request?.method;
+
+    if (effectiveMethod?.toUpperCase() !== 'POST' || !effectiveBody) {
+      return fetch(input, {
+        ...init,
+        headers: headersWithUserAgent as HeadersInit,
+      });
     }
 
     const url =
@@ -39,13 +64,12 @@ export function createSigV4FetchFunction(
           ? input.href
           : input.url;
 
-    const originalHeaders = extractHeaders(init.headers);
-    const body = prepareBodyString(init.body);
+    const body = prepareBodyString(effectiveBody);
     const credentials = await getCredentials();
     const signer = new AwsV4Signer({
       url,
       method: 'POST',
-      headers: Object.entries(removeUndefinedEntries(originalHeaders)),
+      headers: Object.entries(headersWithUserAgent),
       body,
       region: credentials.region,
       accessKeyId: credentials.accessKeyId,
@@ -56,12 +80,14 @@ export function createSigV4FetchFunction(
 
     const signingResult = await signer.sign();
     const signedHeaders = convertHeadersToRecord(signingResult.headers);
+
+    // Use the combined headers directly as HeadersInit
+    const combinedHeaders = combineHeaders(headersWithUserAgent, signedHeaders);
+
     return fetch(input, {
       ...init,
       body,
-      headers: removeUndefinedEntries(
-        combineHeaders(originalHeaders, signedHeaders),
-      ),
+      headers: combinedHeaders as HeadersInit,
     });
   };
 }
@@ -76,4 +102,37 @@ function prepareBodyString(body: BodyInit | undefined): string {
   } else {
     return JSON.stringify(body);
   }
+}
+
+/**
+Creates a fetch function that applies Bearer token authentication.
+
+@param apiKey - The API key to use for Bearer token authentication.
+@param fetch - Optional original fetch implementation to wrap. Defaults to global fetch.
+@returns A FetchFunction that adds Authorization header with Bearer token to requests.
+ */
+export function createApiKeyFetchFunction(
+  apiKey: string,
+  fetch: FetchFunction = globalThis.fetch,
+): FetchFunction {
+  return async (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> => {
+    const originalHeaders = extractHeaders(init?.headers);
+    const headersWithUserAgent = withUserAgentSuffix(
+      originalHeaders,
+      `ai-sdk/amazon-bedrock/${VERSION}`,
+      getRuntimeEnvironmentUserAgent(),
+    );
+
+    const finalHeaders = combineHeaders(headersWithUserAgent, {
+      Authorization: `Bearer ${apiKey}`,
+    });
+
+    return fetch(input, {
+      ...init,
+      headers: finalHeaders as HeadersInit,
+    });
+  };
 }
