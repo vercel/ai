@@ -4,7 +4,7 @@ import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
-import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
+import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
 import { customProvider } from './custom-provider';
 
 const mockLanguageModel = new MockLanguageModelV3();
@@ -147,7 +147,7 @@ describe('transcriptionModel', () => {
 });
 
 describe('speechModel', () => {
-  const mockSpeechModel = new MockSpeechModelV2();
+  const mockSpeechModel = new MockSpeechModelV3();
 
   it('should return the speech model if it exists', () => {
     const provider = customProvider({

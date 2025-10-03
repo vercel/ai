@@ -1,7 +1,7 @@
 import { EmbeddingModelV3 } from '../../embedding-model/v3/embedding-model-v3';
 import { ImageModelV3 } from '../../image-model/v3/image-model-v3';
 import { LanguageModelV3 } from '../../language-model/v3/language-model-v3';
-import { SpeechModelV2 } from '../../speech-model/v2/speech-model-v2';
+import { SpeechModelV3 } from '../../speech-model/v3/speech-model-v3';
 import { TranscriptionModelV2 } from '../../transcription-model/v2/transcription-model-v2';
 
 /**
@@ -60,5 +60,5 @@ The model id is then passed to the provider function to get the model.
 
 @returns {SpeechModel} The speech model associated with the id
   */
-  speechModel?(modelId: string): SpeechModelV2;
+  speechModel?(modelId: string): SpeechModelV3;
 }
