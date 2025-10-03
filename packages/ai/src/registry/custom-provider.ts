@@ -113,7 +113,7 @@ export function customProvider<
       }
 
       if (fallbackProvider?.speechModel) {
-        return fallbackProvider.speechModel(modelId);
+        return (fallbackProvider as ProviderV3).speechModel!(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'speechModel' });

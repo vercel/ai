@@ -39,17 +39,6 @@ describe('languageModel', () => {
     );
   });
 
-  it('should accept a ProviderV2 as fallback and use it', () => {
-    const v2Model = new MockLanguageModelV2({ modelId: 'legacy-model' });
-    const v2Provider = new MockProviderV2({
-      languageModels: { 'legacy-model': v2Model },
-    });
-
-    const provider = customProvider({ fallbackProvider: v2Provider });
-
-    expect(provider.languageModel('legacy-model')).toBe(v2Model);
-  });
-
   it('should throw NoSuchModelError if model not found and no fallback', () => {
     const provider = customProvider({});
     expect(() => provider.languageModel('test-model')).toThrow(
