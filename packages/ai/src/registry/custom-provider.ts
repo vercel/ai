@@ -3,6 +3,7 @@ import {
   ImageModelV3,
   LanguageModelV3,
   NoSuchModelError,
+  ProviderV2,
   ProviderV3,
   SpeechModelV3,
   TranscriptionModelV2,
@@ -41,7 +42,7 @@ export function customProvider<
   imageModels?: IMAGE_MODELS;
   transcriptionModels?: TRANSCRIPTION_MODELS;
   speechModels?: SPEECH_MODELS;
-  fallbackProvider?: ProviderV3;
+  fallbackProvider?: ProviderV3 | ProviderV2;
 }): ProviderV3 & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3;
   textEmbeddingModel(
@@ -60,7 +61,7 @@ export function customProvider<
       }
 
       if (fallbackProvider) {
-        return fallbackProvider.languageModel(modelId);
+        return (fallbackProvider as ProviderV3).languageModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
@@ -74,7 +75,7 @@ export function customProvider<
       }
 
       if (fallbackProvider) {
-        return fallbackProvider.textEmbeddingModel(modelId);
+        return (fallbackProvider as ProviderV3).textEmbeddingModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
@@ -86,7 +87,7 @@ export function customProvider<
       }
 
       if (fallbackProvider?.imageModel) {
-        return fallbackProvider.imageModel(modelId);
+        return (fallbackProvider as ProviderV3).imageModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'imageModel' });

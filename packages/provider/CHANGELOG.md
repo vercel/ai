@@ -1,5 +1,12 @@
 # @ai-sdk/provider
 
+## 2.1.0-beta.4
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- 2b0caef: feat(provider): add preliminary provider executed tool results to language model specification
+
 ## 2.1.0-beta.3
 
 ### Patch Changes

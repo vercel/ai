@@ -1,5 +1,27 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.15
+
+### Patch Changes
+
+- ef62178: feat(gateway): oidc refresh with `@vercel/oidc`
+
+## 1.1.0-beta.14
+
+### Patch Changes
+
+- a90dca6: feat(provider/gateway): Add zAI GLM 4.6 to Gateway language model settings
+
+## 1.1.0-beta.13
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+
 ## 1.1.0-beta.12
 
 ### Patch Changes
