@@ -1495,8 +1495,8 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(onError).toHaveBeenCalledWith({
-        error: new Error('test error'),
+      expect(onError).toHaveBeenCalledWith(new Error('test error'), {
+        retry: expect.any(Function),
       });
     });
 
@@ -1594,8 +1594,8 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(onError).toHaveBeenCalledWith({
-        error: new Error('test error'),
+      expect(onError).toHaveBeenCalledWith(new Error('test error'), {
+        retry: expect.any(Function),
       });
     });
 
@@ -4694,7 +4694,7 @@ describe('streamText', () => {
 
   describe('options.onError', () => {
     it('should invoke onError', async () => {
-      const result: Array<{ error: unknown }> = [];
+      const result: Array<{ error: unknown; retry: () => Promise<void> }> = [];
 
       const resultObject = streamText({
         model: new MockLanguageModelV3({
@@ -4703,14 +4703,519 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
-        onError(event) {
-          result.push(event);
+        onError(error, options) {
+          result.push({ error, retry: options.retry });
         },
       });
 
       await resultObject.consumeStream();
 
-      expect(result).toStrictEqual([{ error: new Error('test error') }]);
+      expect(result).toStrictEqual([
+        { error: new Error('test error'), retry: expect.any(Function) },
+      ]);
+    });
+
+    it('should retry streaming with previous parts', async () => {
+      const prompts: Array<any> = [];
+      let call = 0;
+
+      const model = new MockLanguageModelV2({
+        doStream: async ({ prompt }) => {
+          prompts.push(prompt);
+          call++;
+          if (call === 1) {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'msg_001',
+                  modelId: 'mock-model-id',
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'error', error: 'boom' },
+                {
+                  type: 'finish',
+                  finishReason: 'error',
+                  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                },
+              ]),
+
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          }
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'msg_002',
+                modelId: 'mock-model-id',
+              },
+              { type: 'text-start', id: '2' },
+              { type: 'text-delta', id: '2', delta: ' world' },
+              { type: 'text-end', id: '2' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test-input',
+        onError: async (error, { retry }) => {
+          // Keep backward compatibility - use resume: true
+          await retry({ resume: true });
+        },
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      // Check there are no errors in the stream (retry handled transparently)
+      expect(parts.filter(p => p.type === 'error')).toHaveLength(0);
+
+      // Check we got both text parts
+      const textDeltas = parts.filter(p => p.type === 'text-delta');
+      expect(textDeltas).toHaveLength(2);
+      expect(textDeltas[0]).toMatchObject({
+        type: 'text-delta',
+        text: 'Hello',
+      });
+      expect(textDeltas[1]).toMatchObject({
+        type: 'text-delta',
+        text: ' world',
+      });
+
+      // Check we have two steps (original + retry)
+      const stepStarts = parts.filter(p => p.type === 'start-step');
+      expect(stepStarts).toHaveLength(2);
+
+      const stepFinishes = parts.filter(p => p.type === 'finish-step');
+      expect(stepFinishes).toHaveLength(1);
+      // Only the successful retry's finish-step should be present
+      expect(stepFinishes[0]).toMatchObject({ finishReason: 'stop' });
+
+      // Use snapshot for the structure without volatile fields
+      const sanitizedParts = parts.map(part => {
+        const sanitized = { ...part };
+        if ('response' in sanitized && sanitized.response) {
+          sanitized.response = {
+            ...sanitized.response,
+            id: 'id-x',
+            timestamp: new Date(0),
+          };
+        }
+        return sanitized;
+      });
+
+      expect(sanitizedParts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text-delta",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "2",
+            "type": "text-start",
+          },
+          {
+            "id": "2",
+            "providerMetadata": undefined,
+            "text": " world",
+            "type": "text-delta",
+          },
+          {
+            "id": "2",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-x",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "reasoningTokens": undefined,
+              "totalTokens": 0,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
+
+      expect(prompts[1]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Hello', providerOptions: undefined },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
+    it('should handle retry correctly when streams use same IDs', async () => {
+      let callCount = 0;
+      const model = new MockLanguageModelV2({
+        doStream: async ({ prompt }) => {
+          callCount++;
+          if (callCount === 1) {
+            // First attempt: text-start with id '1', partial text, then error (no text-end)
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'msg_001',
+                  modelId: 'mock-model-id',
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'First attempt' },
+                { type: 'error', error: new Error('Connection lost') },
+                {
+                  type: 'finish',
+                  finishReason: 'error',
+                  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          }
+          // Retry: also uses id '1' - should work without conflicts
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'msg_002',
+                modelId: 'mock-model-id',
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Retry successful' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test-input',
+        onError: async (error, { retry }) => {
+          // Use resume: true to keep text from first attempt
+          await retry({ resume: true });
+        },
+      });
+
+      const textParts = [];
+      for await (const part of result.textStream) {
+        textParts.push(part);
+      }
+
+      // Should contain text from first attempt and retry
+      expect(textParts.join('')).toBe('First attemptRetry successful');
+    });
+
+    it('should pass retriedError to prepareStep on retry and allow model change', async () => {
+      const prepareStepCalls: Array<any> = [];
+
+      const firstModel = new MockLanguageModelV2({
+        doStream: async ({ prompt }) => {
+          // First model should only be called once, then error
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              {
+                type: 'error',
+                error: { type: 'overloaded', message: 'Model overloaded' },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      });
+
+      const secondModel = new MockLanguageModelV2({
+        doStream: async ({ prompt }) => {
+          // Second model provides successful response
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '2' },
+              { type: 'text-delta', id: '2', delta: ' from backup model' },
+              { type: 'text-end', id: '2' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      });
+
+      // Spy on doStream methods to verify they're called
+      const firstModelSpy = vi.spyOn(firstModel, 'doStream');
+      const secondModelSpy = vi.spyOn(secondModel, 'doStream');
+
+      const result = streamText({
+        model: firstModel,
+        prompt: 'test-input',
+        prepareStep: options => {
+          prepareStepCalls.push({
+            stepNumber: options.stepNumber,
+            retriedError: options.retriedError,
+          });
+          // Switch to second model on retry after overloaded error
+          if (options.retriedError?.type === 'overloaded') {
+            return { model: secondModel };
+          }
+          return undefined;
+        },
+        onError: async (error, { retry }) => {
+          await retry();
+        },
+      });
+
+      const textParts = [];
+      for await (const part of result.textStream) {
+        textParts.push(part);
+      }
+
+      // Verify first model was called exactly once
+      expect(firstModelSpy).toHaveBeenCalledTimes(1);
+
+      // Verify second model was called exactly once (proving model switch worked)
+      expect(secondModelSpy).toHaveBeenCalledTimes(1);
+
+      // Verify prepareStep was called twice
+      expect(prepareStepCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "retriedError": undefined,
+            "stepNumber": 0,
+          },
+          {
+            "retriedError": {
+              "message": "Model overloaded",
+              "type": "overloaded",
+            },
+            "stepNumber": 0,
+          },
+        ]
+      `);
+
+      // Verify the output contains text from both models
+      expect(textParts.join('')).toBe('Hello from backup model');
+    });
+
+    it('should start fresh when retry is called with resume=false', async () => {
+      const prompts: Array<any> = [];
+      let call = 0;
+
+      const model = new MockLanguageModelV2({
+        doStream: async ({ prompt }) => {
+          prompts.push(prompt);
+          call++;
+          if (call === 1) {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'msg_001',
+                  modelId: 'mock-model-id',
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Partial response' },
+                { type: 'error', error: 'boom' },
+                {
+                  type: 'finish',
+                  finishReason: 'error',
+                  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          }
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'msg_002',
+                modelId: 'mock-model-id',
+              },
+              { type: 'text-start', id: '2' },
+              { type: 'text-delta', id: '2', delta: 'Fresh start' },
+              { type: 'text-end', id: '2' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test-input',
+        onError: async (error, { retry }) => {
+          // Explicitly set resume to false (default behavior)
+          await retry({ resume: false });
+        },
+      });
+
+      await result.consumeStream();
+
+      // Check that the retry didn't include the partial response
+      expect(prompts[1]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+        // No assistant message here when resume=false
+      ]);
+    });
+
+    it('should resume with partial content when retry is called with resume=true', async () => {
+      const prompts: Array<any> = [];
+      let call = 0;
+
+      const model = new MockLanguageModelV2({
+        doStream: async ({ prompt }) => {
+          prompts.push(prompt);
+          call++;
+          if (call === 1) {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'msg_001',
+                  modelId: 'mock-model-id',
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Partial response' },
+                { type: 'error', error: 'boom' },
+                {
+                  type: 'finish',
+                  finishReason: 'error',
+                  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          }
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'msg_002',
+                modelId: 'mock-model-id',
+              },
+              { type: 'text-start', id: '2' },
+              { type: 'text-delta', id: '2', delta: ' continued' },
+              { type: 'text-end', id: '2' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test-input',
+        onError: async (error, { retry }) => {
+          // Explicitly set resume to true
+          await retry({ resume: true });
+        },
+      });
+
+      await result.consumeStream();
+
+      // Check that the retry included the partial response as assistant message
+      expect(prompts[1]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Partial response',
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
     });
   });
 

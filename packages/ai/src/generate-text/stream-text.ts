@@ -107,11 +107,13 @@ export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
 /**
 Callback that is set using the `onError` option.
 
-@param event - The event that is passed to the callback.
+@param error - The error that occurred.
+@param options - Options object containing the retry function.
  */
-export type StreamTextOnErrorCallback = (event: {
-  error: unknown;
-}) => PromiseLike<void> | void;
+export type StreamTextOnErrorCallback = (
+  error: unknown,
+  options: { retry: (options?: { resume?: boolean }) => Promise<void> },
+) => PromiseLike<void> | void;
 
 /**
 Callback that is set using the `onStepFinish` option.
@@ -249,7 +251,7 @@ export function streamText<
   experimental_download: download,
   includeRawChunks = false,
   onChunk,
-  onError = ({ error }) => {
+  onError = error => {
     console.error(error);
   },
   onFinish,
@@ -656,6 +658,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     let rootSpan!: Span;
 
+    let streamStep!: (args: {
+      currentStep: number;
+      responseMessages: Array<ResponseMessage>;
+      usage: LanguageModelUsage;
+      retriedError?: any;
+    }) => Promise<void>;
+    let retryRequested = false;
+    let errorStreamFinishSuppressed = false;
+
+    // Variables to capture current step state for retry
+    let currentStepNumber: number;
+    let currentResponseMessages: Array<ResponseMessage>;
+    let currentUsage: LanguageModelUsage;
+
     let activeTextContent: Record<
       string,
       {
@@ -679,7 +695,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
     >({
       async transform(chunk, controller) {
-        controller.enqueue(chunk); // forward the chunk to the next stream
+        // Only forward non-error, non-finish, and non-finish-step chunks immediately
+        // These events are handled specially below
+        if (
+          chunk.part.type !== 'error' && 
+          chunk.part.type !== 'finish' && 
+          chunk.part.type !== 'finish-step'
+        ) {
+          controller.enqueue(chunk); // forward the chunk to the next stream
+        }
 
         const { part } = chunk;
 
@@ -697,7 +721,49 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'error') {
-          await onError({ error: wrapGatewayError(part.error) });
+          retryRequested = false;
+
+          const contentSnapshot = [...recordedContent];
+          const wrappedError = wrapGatewayError(part.error);
+
+          const retry = async (options?: { resume?: boolean }) => {
+            if (currentStepNumber === undefined) return;
+            retryRequested = true;
+
+            // Default to resume = false (start fresh from user message)
+            const resume = options?.resume ?? false;
+
+            // Reset state for retry
+            recordedContent = [...contentSnapshot];
+
+            // Clear active content tracking to avoid conflicts with retry stream
+            activeTextContent = {};
+            activeReasoningContent = {};
+
+            // Re-run the step with the accumulated content and the error
+            await streamStep({
+              currentStep: currentStepNumber,
+              responseMessages: [
+                ...currentResponseMessages,
+                // Only include assistant content if resume is true
+                ...(resume
+                  ? toResponseMessages({
+                      content: contentSnapshot,
+                      tools: tools ?? ({} as TOOLS),
+                    })
+                  : []),
+              ],
+              usage: currentUsage,
+              retriedError: wrappedError,
+            });
+          };
+
+          await onError(wrappedError, { retry });
+
+          // Only forward the error if retry was not requested
+          if (!retryRequested) {
+            controller.enqueue(chunk);
+          }
         }
 
         if (part.type === 'text-start') {
@@ -824,6 +890,17 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'finish-step') {
+          // If this is an error finish-step and retry was requested, suppress it
+          if (part.finishReason === 'error' && retryRequested) {
+            // Don't forward finish-step from error stream when retrying
+            // But still need to resolve the promise
+            stepFinish.resolve();
+            return;
+          }
+
+          // Forward the finish-step event to the output stream
+          controller.enqueue(chunk);
+
           const stepMessages = toResponseMessages({
             content: recordedContent,
             tools,
@@ -861,6 +938,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'finish') {
+          // If this is an error finish and retry was requested, suppress it
+          if (part.finishReason === 'error' && retryRequested) {
+            errorStreamFinishSuppressed = true;
+            return; // Don't forward or record finish event from error stream when retrying
+          }
+          // Forward the finish event to the output stream
+          controller.enqueue(chunk);
           recordedTotalUsage = part.totalUsage;
           recordedFinishReason = part.finishReason;
         }
@@ -1055,15 +1139,22 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       fn: async rootSpanArg => {
         rootSpan = rootSpanArg;
 
-        async function streamStep({
+        streamStep = async function streamStepImpl({
           currentStep,
           responseMessages,
           usage,
+          retriedError,
         }: {
           currentStep: number;
           responseMessages: Array<ResponseMessage>;
           usage: LanguageModelUsage;
+          retriedError?: any;
         }) {
+          // Store current step state for potential retry
+          currentStepNumber = currentStep;
+          currentResponseMessages = responseMessages;
+          currentUsage = usage;
+
           const includeRawChunks = self.includeRawChunks;
 
           stepFinish = new DelayedPromise<void>();
@@ -1084,6 +1175,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             steps: recordedSteps,
             stepNumber: recordedSteps.length,
             messages: stepInputMessages,
+            retriedError,
           });
 
           const promptMessages = await convertToLanguageModelPrompt({
@@ -1529,7 +1621,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               }),
             ),
           );
-        }
+        };
 
         // add the initial stream to the stitchable stream
         await streamStep({
