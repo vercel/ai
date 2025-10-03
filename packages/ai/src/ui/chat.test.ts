@@ -11,6 +11,7 @@ import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { delay } from '@ai-sdk/provider-utils';
+import { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 
 class TestChatState<UI_MESSAGE extends UIMessage>
   implements ChatState<UI_MESSAGE>
@@ -2064,6 +2065,215 @@ describe('Chat', () => {
 
       expect(chat.error).toBeUndefined();
       expect(chat.status).toBe('ready');
+    });
+  });
+
+  describe('addToolApprovalResponse', () => {
+    describe('approved', () => {
+      let chat: TestChat;
+
+      beforeEach(async () => {
+        chat = new TestChat({
+          id: '123',
+          generateId: mockId({ prefix: 'newid' }),
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+          messages: [
+            {
+              id: 'id-0',
+              role: 'user',
+              parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+            },
+            {
+              id: 'id-1',
+              role: 'assistant',
+              parts: [
+                { type: 'step-start' },
+                {
+                  type: 'tool-weather',
+                  toolCallId: 'call-1',
+                  state: 'approval-requested',
+                  input: { city: 'Tokyo' },
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+          ],
+        });
+
+        await chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        });
+      });
+
+      it('should update tool invocation to show the approval response', () => {
+        expect(chat.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "What is the weather in Tokyo?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "approval-1",
+                    "reason": undefined,
+                  },
+                  "input": {
+                    "city": "Tokyo",
+                  },
+                  "state": "approval-responded",
+                  "toolCallId": "call-1",
+                  "type": "tool-weather",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('approved with automatic sending', () => {
+      let chat: TestChat;
+      const onFinishPromise = createResolvablePromise<void>();
+
+      beforeEach(async () => {
+        server.urls['http://localhost:3000/api/chat'].response = [
+          {
+            type: 'stream-chunks',
+            chunks: [
+              formatChunk({ type: 'start' }),
+              formatChunk({ type: 'start-step' }),
+              formatChunk({
+                type: 'tool-output-available',
+                toolCallId: 'call-1',
+                output: { temperature: 72, weather: 'sunny' },
+              }),
+              formatChunk({ type: 'text-start', id: 'txt-1' }),
+              formatChunk({
+                type: 'text-delta',
+                id: 'txt-1',
+                delta: 'The weather in Tokyo is sunny.',
+              }),
+              formatChunk({ type: 'text-end', id: 'txt-1' }),
+              formatChunk({ type: 'finish-step' }),
+              formatChunk({ type: 'finish' }),
+            ],
+          },
+        ];
+
+        chat = new TestChat({
+          id: '123',
+          generateId: mockId({ prefix: 'newid' }),
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+          messages: [
+            {
+              id: 'id-0',
+              role: 'user',
+              parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+            },
+            {
+              id: 'id-1',
+              role: 'assistant',
+              parts: [
+                { type: 'step-start' },
+                {
+                  type: 'tool-weather',
+                  toolCallId: 'call-1',
+                  state: 'approval-requested',
+                  input: { city: 'Tokyo' },
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+          ],
+          sendAutomaticallyWhen:
+            lastAssistantMessageIsCompleteWithApprovalResponses,
+          onFinish: () => {
+            onFinishPromise.resolve();
+          },
+        });
+
+        await chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        });
+
+        await onFinishPromise.promise;
+      });
+
+      it('should update tool invocation to show the approval response', () => {
+        expect(chat.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "What is the weather in Tokyo?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "approval-1",
+                    "reason": undefined,
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "city": "Tokyo",
+                  },
+                  "output": {
+                    "temperature": 72,
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "type": "tool-weather",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "The weather in Tokyo is sunny.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
     });
   });
 });

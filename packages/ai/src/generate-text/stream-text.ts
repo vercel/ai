@@ -7,9 +7,10 @@ import {
   createIdGenerator,
   IdGenerator,
   isAbortError,
+  ModelMessage,
   ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { Span } from '@opentelemetry/api';
+import { Span, Tracer } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
@@ -17,6 +18,7 @@ import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
@@ -62,7 +64,9 @@ import { DelayedPromise } from '../util/delayed-promise';
 import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
+import { executeToolCall } from './execute-tool-call';
 import { Output } from './output';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
@@ -814,6 +818,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(part);
         }
 
+        if (part.type === 'tool-approval-request') {
+          recordedContent.push(part);
+        }
+
         if (part.type === 'tool-error') {
           recordedContent.push(part);
         }
@@ -1055,6 +1063,104 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       fn: async rootSpanArg => {
         rootSpan = rootSpanArg;
 
+        const initialPrompt = await standardizePrompt({
+          system,
+          prompt,
+          messages,
+        } as Prompt);
+
+        const initialMessages = initialPrompt.messages;
+        const initialResponseMessages: Array<ResponseMessage> = [];
+
+        // create tool outputs (either execute or reject) for tool approval responses:
+        const toolApprovals = collectToolApprovals<TOOLS>({
+          messages: initialMessages,
+        });
+
+        // initial tool execution step stream
+        if (toolApprovals.length > 0) {
+          let toolExecutionStepStreamController:
+            | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
+            | undefined;
+          const toolExecutionStepStream = new ReadableStream<
+            TextStreamPart<TOOLS>
+          >({
+            start(controller) {
+              toolExecutionStepStreamController = controller;
+            },
+          });
+
+          self.addStream(toolExecutionStepStream);
+
+          try {
+            const approvedToolCalls = toolApprovals
+              .filter(toolApproval => toolApproval.approvalResponse.approved)
+              .map(toolApproval => toolApproval.toolCall);
+
+            const toolOutputs: Array<ToolOutput<TOOLS>> = [];
+
+            await Promise.all(
+              approvedToolCalls.map(async toolCall => {
+                const result = await executeToolCall({
+                  toolCall,
+                  tools,
+                  tracer,
+                  telemetry,
+                  messages: initialMessages,
+                  abortSignal,
+                  experimental_context,
+                });
+
+                if (result != null) {
+                  toolExecutionStepStreamController?.enqueue(result);
+                  toolOutputs.push(result);
+                }
+              }),
+            );
+
+            initialResponseMessages.push({
+              role: 'tool',
+              content: [
+                // add tool results for approved tool calls:
+                ...toolOutputs.map(output => ({
+                  type: 'tool-result' as const,
+                  toolCallId: output.toolCallId,
+                  toolName: output.toolName,
+                  input: output.input,
+                  output: createToolModelOutput({
+                    tool: tools?.[output.toolName],
+                    output:
+                      output.type === 'tool-result'
+                        ? output.output
+                        : output.error,
+                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                  }),
+                })),
+                // add tool errors for rejected tool calls:
+                ...toolApprovals
+                  .filter(
+                    toolApproval => !toolApproval.approvalResponse.approved,
+                  )
+                  .map(toolApproval => ({
+                    type: 'tool-result' as const,
+                    toolCallId: toolApproval.toolCall.toolCallId,
+                    toolName: toolApproval.toolCall.toolName,
+                    output: {
+                      type: 'error-text' as const,
+                      value:
+                        toolApproval.approvalResponse.reason ??
+                        'Tool execution not approved.',
+                    },
+                  })),
+              ],
+            });
+          } finally {
+            toolExecutionStepStreamController?.close();
+          }
+        }
+
+        recordedResponseMessages.push(...initialResponseMessages);
+
         async function streamStep({
           currentStep,
           responseMessages,
@@ -1068,16 +1174,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           stepFinish = new DelayedPromise<void>();
 
-          const initialPrompt = await standardizePrompt({
-            system,
-            prompt,
-            messages,
-          } as Prompt);
-
-          const stepInputMessages = [
-            ...initialPrompt.messages,
-            ...responseMessages,
-          ];
+          const stepInputMessages = [...initialMessages, ...responseMessages];
 
           const prepareStepResult = await prepareStep?.({
             model,
@@ -1155,23 +1252,21 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               }),
               tracer,
               endWhenDone: false,
-              fn: async doStreamSpan => {
-                return {
-                  startTimestampMs: now(), // get before the call
-                  doStreamSpan,
-                  result: await stepModel.doStream({
-                    ...callSettings,
-                    tools: stepTools,
-                    toolChoice: stepToolChoice,
-                    responseFormat: output?.responseFormat,
-                    prompt: promptMessages,
-                    providerOptions,
-                    abortSignal,
-                    headers,
-                    includeRawChunks,
-                  }),
-                };
-              },
+              fn: async doStreamSpan => ({
+                startTimestampMs: now(), // get before the call
+                doStreamSpan,
+                result: await stepModel.doStream({
+                  ...callSettings,
+                  tools: stepTools,
+                  toolChoice: stepToolChoice,
+                  responseFormat: output?.responseFormat,
+                  prompt: promptMessages,
+                  providerOptions,
+                  abortSignal,
+                  headers,
+                  includeRawChunks,
+                }),
+              }),
             }),
           );
 
@@ -1185,6 +1280,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             repairToolCall,
             abortSignal,
             experimental_context,
+            generateId,
           });
 
           const stepRequest = request ?? {};
@@ -1247,6 +1343,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                   const chunkType = chunk.type;
                   switch (chunkType) {
+                    case 'tool-approval-request':
                     case 'text-start':
                     case 'text-end': {
                       controller.enqueue(chunk);
@@ -1534,7 +1631,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         // add the initial stream to the stitchable stream
         await streamStep({
           currentStep: 0,
-          responseMessages: [],
+          responseMessages: initialResponseMessages,
           usage: {
             inputTokens: undefined,
             outputTokens: undefined,
@@ -1936,6 +2033,15 @@ However, the LLM results are expected to be small enough to not cause issues.
                 });
               }
 
+              break;
+            }
+
+            case 'tool-approval-request': {
+              controller.enqueue({
+                type: 'tool-approval-request',
+                approvalId: part.approvalId,
+                toolCallId: part.toolCall.toolCallId,
+              });
               break;
             }
 

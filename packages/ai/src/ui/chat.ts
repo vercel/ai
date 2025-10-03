@@ -18,7 +18,7 @@ import {
 import {
   InferUIMessageToolCall,
   isToolOrDynamicToolUIPart,
-  ToolUIPart,
+  isToolUIPart,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
@@ -414,6 +414,51 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
+  addToolApprovalResponse = async ({
+    id,
+    approved,
+    reason,
+  }: {
+    id: string;
+    approved: boolean;
+    reason?: string;
+  }) =>
+    this.jobExecutor.run(async () => {
+      const messages = this.state.messages;
+      const lastMessage = messages[messages.length - 1];
+
+      // update the message to trigger an immediate UI update
+      this.state.replaceMessage(messages.length - 1, {
+        ...lastMessage,
+        parts: lastMessage.parts.map(part =>
+          isToolUIPart(part) &&
+          part.state === 'approval-requested' &&
+          part.approval.id === id
+            ? {
+                ...part,
+                state: 'approval-responded',
+                approval: { id, approved, reason },
+              }
+            : part,
+        ),
+      });
+
+      // TODO update incoming stream
+
+      // automatically send the message if the sendAutomaticallyWhen function returns true
+      if (
+        this.status !== 'streaming' &&
+        this.status !== 'submitted' &&
+        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+      ) {
+        // no await to avoid deadlocking
+        this.makeRequest({
+          trigger: 'submit-message',
+          messageId: this.lastMessage?.id,
+        });
+      }
+    });
+
   addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
     state = 'output-available',
     tool,
@@ -439,6 +484,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
 
+      // update the message to trigger an immediate UI update
       this.state.replaceMessage(messages.length - 1, {
         ...lastMessage,
         parts: lastMessage.parts.map(part =>
@@ -458,6 +504,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                   state,
                   output,
                   errorText,
+                  approval: undefined,
                 } as typeof part)
               : part,
           );

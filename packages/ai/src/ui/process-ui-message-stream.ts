@@ -524,6 +524,18 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
+            case 'tool-approval-request': {
+              const toolInvocation = getToolInvocation(chunk.toolCallId);
+
+              toolInvocation.state = 'approval-requested';
+              toolInvocation.approval = {
+                id: chunk.approvalId,
+              };
+
+              write();
+              break;
+            }
+
             case 'tool-output-available': {
               if (chunk.dynamic) {
                 const toolInvocation = getDynamicToolInvocation(

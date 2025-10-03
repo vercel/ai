@@ -16,6 +16,8 @@ export {
   type Tool,
   type ToolCallOptions,
   type ToolExecuteFunction,
+  type ToolApprovalResponse,
+  type ToolApprovalRequest,
 } from '@ai-sdk/provider-utils';
 
 // directory exports

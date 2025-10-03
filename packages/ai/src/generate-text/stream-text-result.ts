@@ -28,6 +28,7 @@ import {
   TypedToolResult,
 } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -329,6 +330,7 @@ Converts the result to a streamed response object with a stream data part stream
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
+// TODO AI SDK 5.1 rename
 export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'text-start';
@@ -386,6 +388,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
+  | ToolApprovalRequestOutput<TOOLS>
   | {
       type: 'start-step';
       request: LanguageModelRequestMetadata;

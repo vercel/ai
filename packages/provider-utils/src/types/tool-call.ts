@@ -28,4 +28,6 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
    * Whether the tool is dynamic.
    */
   dynamic?: boolean;
+
+  approvalState?: 'approved' | 'rejected' | 'required' | undefined;
 }
