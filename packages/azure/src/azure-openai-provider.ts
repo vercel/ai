@@ -12,7 +12,7 @@ import {
   LanguageModelV3,
   ProviderV3,
   ImageModelV3,
-  SpeechModelV2,
+  SpeechModelV3,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
 import {
@@ -77,7 +77,7 @@ Creates an Azure OpenAI model for text embeddings.
   /**
    * Creates an Azure OpenAI model for speech generation.
    */
-  speech(deploymentId: string): SpeechModelV2;
+  speech(deploymentId: string): SpeechModelV3;
 
   /**
    * AzureOpenAI-specific tools.

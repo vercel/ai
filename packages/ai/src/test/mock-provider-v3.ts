@@ -4,7 +4,7 @@ import {
   LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
-  SpeechModelV2,
+  SpeechModelV3,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
 
@@ -26,7 +26,7 @@ export class MockProviderV3 implements ProviderV3 {
     embeddingModels?: Record<string, EmbeddingModelV3<string>>;
     imageModels?: Record<string, ImageModelV3>;
     transcriptionModels?: Record<string, TranscriptionModelV2>;
-    speechModels?: Record<string, SpeechModelV2>;
+    speechModels?: Record<string, SpeechModelV3>;
   } = {}) {
     this.languageModel = (modelId: string) => {
       if (!languageModels?.[modelId]) {
@@ -58,7 +58,7 @@ export class MockProviderV3 implements ProviderV3 {
       }
       return transcriptionModels[modelId];
     };
-    this.speechModel = (modelId: string) => {
+    this.speechModel = (modelId: string): SpeechModelV3 => {
       if (!speechModels?.[modelId]) {
         throw new NoSuchModelError({ modelId, modelType: 'speechModel' });
       }
