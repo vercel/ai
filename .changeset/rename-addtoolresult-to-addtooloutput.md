@@ -17,6 +17,14 @@ addToolResult({
   toolCallId: 'call-123',
   output: { temperature: 72, condition: 'sunny' },
 });
+
+// Add error result
+addToolResult({
+  tool: 'getWeather',
+  toolCallId: 'call-123',
+  state: 'output-error',
+  errorText: 'Failed to fetch weather data',
+});
 ```
 
 ## After

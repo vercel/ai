@@ -18,7 +18,6 @@ import {
 import {
   InferUIMessageToolCall,
   isToolOrDynamicToolUIPart,
-  ToolUIPart,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
@@ -48,10 +47,10 @@ export type UIDataTypesToSchemas<T extends UIDataTypes> = {
 
 export type InferUIDataParts<T extends UIDataPartSchemas> = {
   [K in keyof T]: T[K] extends Validator<infer U>
-    ? U
-    : T[K] extends StandardSchemaV1<infer U>
-      ? U
-      : unknown;
+  ? U
+  : T[K] extends StandardSchemaV1<infer U>
+  ? U
+  : unknown;
 };
 
 export type ChatRequestOptions = {
@@ -125,8 +124,8 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   id?: string;
 
   messageMetadataSchema?:
-    | Validator<InferUIMessageMetadata<UI_MESSAGE>>
-    | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
+  | Validator<InferUIMessageMetadata<UI_MESSAGE>>
+  | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
 
   messages?: UI_MESSAGE[];
@@ -275,23 +274,23 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   sendMessage = async (
     message?:
       | (CreateUIMessage<UI_MESSAGE> & {
-          text?: never;
-          files?: never;
-          messageId?: string;
-        })
+        text?: never;
+        files?: never;
+        messageId?: string;
+      })
       | {
-          text: string;
-          files?: FileList | FileUIPart[];
-          metadata?: InferUIMessageMetadata<UI_MESSAGE>;
-          parts?: never;
-          messageId?: string;
-        }
+        text: string;
+        files?: FileList | FileUIPart[];
+        metadata?: InferUIMessageMetadata<UI_MESSAGE>;
+        parts?: never;
+        messageId?: string;
+      }
       | {
-          files: FileList | FileUIPart[];
-          metadata?: InferUIMessageMetadata<UI_MESSAGE>;
-          parts?: never;
-          messageId?: string;
-        },
+        files: FileList | FileUIPart[];
+        metadata?: InferUIMessageMetadata<UI_MESSAGE>;
+        parts?: never;
+        messageId?: string;
+      },
     options?: ChatRequestOptions,
   ): Promise<void> => {
     if (message == null) {
@@ -423,19 +422,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     errorText,
   }:
     | {
-        state?: 'output-available';
-        tool: TOOL;
-        toolCallId: string;
-        output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
-        errorText?: never;
-      }
+      state?: 'output-available';
+      tool: TOOL;
+      toolCallId: string;
+      output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+      errorText?: never;
+    }
     | {
-        state: 'output-error';
-        tool: TOOL;
-        toolCallId: string;
-        output?: never;
-        errorText: string;
-      }) =>
+      state: 'output-error';
+      tool: TOOL;
+      toolCallId: string;
+      output?: never;
+      errorText: string;
+    }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
@@ -455,11 +454,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           this.activeResponse.state.message.parts.map(part =>
             isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
               ? ({
-                  ...part,
-                  state,
-                  output,
-                  errorText,
-                } as typeof part)
+                ...part,
+                state,
+                output,
+                errorText,
+              } as typeof part)
               : part,
           );
       }
@@ -481,20 +480,23 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   /**
    * @deprecated Use `addToolOutput` instead. This method will be removed in a future version.
    */
-  addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
-    tool,
-    toolCallId,
-    output,
-  }: {
-    tool: TOOL;
-    toolCallId: string;
-    output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
-  }) =>
-    this.addToolOutput({
-      tool,
-      toolCallId,
-      output,
-    });
+  addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>(
+    params:
+      | {
+        tool: TOOL;
+        toolCallId: string;
+        output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+        state?: never;
+        errorText?: never;
+      }
+      | {
+        tool: TOOL;
+        toolCallId: string;
+        state: 'output-error';
+        errorText: string;
+        output?: never;
+      },
+  ) => this.addToolOutput(params as any);
 
   /**
    * Abort the current request immediately, keep the generated tokens if any.
