@@ -38,21 +38,22 @@ The middleware handles all transformations needed to make cached responses indis
 ### Middleware
 
 ```ts
+import { simulateReadableStream, wrapLanguageModel } from 'ai';
+
 import {
-  type LanguageModelV1,
+  type LanguageModelV3,
   type LanguageModelV3Middleware,
-  LanguageModelV1Prompt,
-  type LanguageModelV1StreamPart,
-  simulateReadableStream,
-  wrapLanguageModel,
-} from 'ai';
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3Prompt,
+} from '@ai-sdk/provider';
+
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 
 const CACHE_FILE = path.join(process.cwd(), '.cache/ai-cache.json');
 
-export const cached = (model: LanguageModelV1) =>
+export const cached = (model: LanguageModelV3) =>
   wrapLanguageModel({
     middleware: cacheMiddleware,
     model,
@@ -96,7 +97,7 @@ const updateCache = (key: string, value: any) => {
     console.error('Failed to update cache:', error);
   }
 };
-const cleanPrompt = (prompt: LanguageModelV1Prompt) => {
+const cleanPrompt = (prompt: LanguageModelV3Prompt) => {
   return prompt.map(m => {
     if (m.role === 'assistant') {
       return m.content.map(part =>
@@ -124,7 +125,7 @@ export const cacheMiddleware: LanguageModelV3Middleware = {
     console.log('Cache Key:', cacheKey);
 
     const cached = getCachedResult(cacheKey) as Awaited<
-      ReturnType<LanguageModelV1['doGenerate']>
+      ReturnType<LanguageModelV3['doGenerate']>
     > | null;
 
     if (cached && cached !== null) {
@@ -161,7 +162,7 @@ export const cacheMiddleware: LanguageModelV3Middleware = {
     if (cached && cached !== null) {
       console.log('Cache Hit');
       // Format the timestamps in the cached response
-      const formattedChunks = (cached as LanguageModelV1StreamPart[]).map(p => {
+      const formattedChunks = (cached as LanguageModelV3StreamPart[]).map(p => {
         if (p.type === 'response-metadata' && p.timestamp) {
           return { ...p, timestamp: new Date(p.timestamp) };
         } else return p;
@@ -179,11 +180,11 @@ export const cacheMiddleware: LanguageModelV3Middleware = {
     // If not cached, proceed with streaming
     const { stream, ...rest } = await doStream();
 
-    const fullResponse: LanguageModelV1StreamPart[] = [];
+    const fullResponse: LanguageModelV3StreamPart[] = [];
 
     const transformStream = new TransformStream<
-      LanguageModelV1StreamPart,
-      LanguageModelV1StreamPart
+      LanguageModelV3StreamPart,
+      LanguageModelV3StreamPart
     >({
       transform(chunk, controller) {
         fullResponse.push(chunk);
