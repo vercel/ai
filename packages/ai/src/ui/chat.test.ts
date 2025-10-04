@@ -1742,7 +1742,7 @@ describe('Chat', () => {
       `);
     });
 
-    it('should send message when a tool error result is submitted', async () => {
+    it('should send message when a tool error result is submitted (deprecated addToolResult)', async () => {
       server.urls['http://localhost:3000/api/chat'].response = [
         {
           type: 'stream-chunks',
