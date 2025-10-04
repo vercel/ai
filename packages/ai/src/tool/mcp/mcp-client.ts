@@ -284,7 +284,7 @@ class DefaultMCPClient implements MCPClient {
     }
   }
 
-  private async callTool({
+  async callTool({
     name,
     args,
     options,
