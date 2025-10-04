@@ -2,6 +2,7 @@ import {
   EventSourceParserStream,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
@@ -15,6 +16,9 @@ import {
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => globalThis.fetch;
+
 export class SseMCPTransport implements MCPTransport {
   private endpoint?: URL;
   private abortController?: AbortController;
@@ -26,6 +30,7 @@ export class SseMCPTransport implements MCPTransport {
   private headers?: Record<string, string>;
   private authProvider?: OAuthClientProvider;
   private resourceMetadataUrl?: URL;
+  private fetch: FetchFunction;
 
   onclose?: () => void;
   onerror?: (error: unknown) => void;
@@ -35,14 +40,17 @@ export class SseMCPTransport implements MCPTransport {
     url,
     headers,
     authProvider,
+    fetch = getOriginalFetch(),
   }: {
     url: string;
     headers?: Record<string, string>;
     authProvider?: OAuthClientProvider;
+    fetch?: FetchFunction;
   }) {
     this.url = new URL(url);
     this.headers = headers;
     this.authProvider = authProvider;
+    this.fetch = fetch;
   }
 
   private async commonHeaders(
@@ -81,7 +89,7 @@ export class SseMCPTransport implements MCPTransport {
           const headers = await this.commonHeaders({
             Accept: 'text/event-stream',
           });
-          const response = await fetch(this.url.href, {
+          const response = await this.fetch(this.url.href, {
             headers,
             signal: this.abortController?.signal,
           });
@@ -229,7 +237,7 @@ export class SseMCPTransport implements MCPTransport {
           signal: this.abortController?.signal,
         };
 
-        const response = await fetch(endpoint, init);
+        const response = await this.fetch(endpoint, init);
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
           this.resourceMetadataUrl = extractResourceMetadataUrl(response);
