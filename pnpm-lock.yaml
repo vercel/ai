@@ -391,6 +391,9 @@ importers:
       '@ai-sdk/openai':
         specifier: 3.0.0-beta.69
         version: link:../../packages/openai
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../../packages/provider-utils
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
         version: 1.17.3
