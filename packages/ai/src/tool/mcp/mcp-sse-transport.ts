@@ -2,11 +2,15 @@ import {
   EventSourceParserStream,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../../error/mcp-client-error';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
 import { VERSION } from '../../version';
+
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => globalThis.fetch;
 
 export class SseMCPTransport implements MCPTransport {
   private endpoint?: URL;
@@ -17,6 +21,7 @@ export class SseMCPTransport implements MCPTransport {
     close: () => void;
   };
   private headers?: Record<string, string>;
+  private fetch: FetchFunction;
 
   onclose?: () => void;
   onerror?: (error: unknown) => void;
@@ -25,12 +30,15 @@ export class SseMCPTransport implements MCPTransport {
   constructor({
     url,
     headers,
+    fetch = getOriginalFetch(),
   }: {
     url: string;
     headers?: Record<string, string>;
+    fetch?: FetchFunction;
   }) {
     this.url = new URL(url);
     this.headers = headers;
+    this.fetch = fetch;
   }
 
   async start(): Promise<void> {
@@ -51,7 +59,7 @@ export class SseMCPTransport implements MCPTransport {
             `ai-sdk/${VERSION}`,
             getRuntimeEnvironmentUserAgent(),
           );
-          const response = await fetch(this.url.href, {
+          const response = await this.fetch(this.url.href, {
             headers,
             signal: this.abortController?.signal,
           });
@@ -175,7 +183,7 @@ export class SseMCPTransport implements MCPTransport {
         signal: this.abortController?.signal,
       };
 
-      const response = await fetch(this.endpoint, init);
+      const response = await this.fetch(this.endpoint, init);
 
       if (!response.ok) {
         const text = await response.text().catch(() => null);
