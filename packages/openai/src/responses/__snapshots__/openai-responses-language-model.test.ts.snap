@@ -1,0 +1,3603 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > should include code interpreter tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e2cbc0a08190bc754d734af0940f0b24aae9c6c01e4f",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{"code":"import random\\nrandom.seed()  # system time\\nn=10000\\nsums=[(random.randint(1,6)+random.randint(1,6)) for _ in range(n)]\\ntotal=sum(sums)\\nmean=total/n\\nfrom collections import Counter\\ncounts=Counter(sums)\\ncounts_sorted=[(sum_val, counts[sum_val]) for sum_val in range(2,13)]\\ntotal, mean, counts_sorted[:5], counts_sorted[-5:]","containerId":"cntr_68c2e2caf50c8193b4069276f4c75ef301e63bd5fd6a4d4d"}",
+    "providerExecuted": true,
+    "toolCallId": "ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+    "toolName": "code_interpreter",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "outputs": [
+        {
+          "logs": "(70141,
+ 7.0141,
+ [(2, 269), (3, 511), (4, 865), (5, 1130), (6, 1353)],
+ [(8, 1387), (9, 1110), (10, 828), (11, 538), (12, 299)])",
+          "type": "logs",
+        },
+      ],
+    },
+    "toolCallId": "ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+    "toolName": "code_interpreter",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e2d67f60819097167827b0e29b4f0b24aae9c6c01e4f",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{"code":"counts_sorted_full = [(s,c) for s,c in sorted(counts.items())]\\ncounts_sorted_full","containerId":"cntr_68c2e2caf50c8193b4069276f4c75ef301e63bd5fd6a4d4d"}",
+    "providerExecuted": true,
+    "toolCallId": "ci_68c2e2d75fe08190b27c6e44213143010b24aae9c6c01e4f",
+    "toolName": "code_interpreter",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "outputs": [
+        {
+          "logs": "[(2, 269),
+ (3, 511),
+ (4, 865),
+ (5, 1130),
+ (6, 1353),
+ (7, 1710),
+ (8, 1387),
+ (9, 1110),
+ (10, 828),
+ (11, 538),
+ (12, 299)]",
+          "type": "logs",
+        },
+      ],
+    },
+    "toolCallId": "ci_68c2e2d75fe08190b27c6e44213143010b24aae9c6c01e4f",
+    "toolName": "code_interpreter",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e2dab6508190987f0d3db143b0580b24aae9c6c01e4f",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_68c2e2e513c88190a72cefb37140d19a0b24aae9c6c01e4f",
+      },
+    },
+    "text": "Here’s a quick result from simulating 10,000 rolls of two fair six-sided dice (sum per trial, then total across all trials):
+
+- Total sum of all 10,000 trial sums: 70141
+- Average sum per trial: 7.0141
+
+Distribution of the per-trial sums (2–12):
+- 2: 269 (2.69%)
+- 3: 511 (5.11%)
+- 4: 865 (8.65%)
+- 5: 1130 (11.30%)
+- 6: 1353 (13.53%)
+- 7: 1710 (17.10%)
+- 8: 1387 (13.87%)
+- 9: 1110 (11.10%)
+- 10: 828 (8.28%)
+- 11: 538 (5.38%)
+- 12: 299 (2.99%)
+
+Notes:
+- The total is around 7,0000 since the expected sum per trial is 7, so 10,000 trials ≈ 70000. Your exact total will vary with each run unless you fix a random seed.
+- If you’d like, I can provide the per-trial sums as a CSV file or share a reproducible run with a fixed seed.",
+    "type": "text",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > with results include > should include file search tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0365d26c32c64c650068cabb03bcc48194bfbd973152bca8f6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "fs_0365d26c32c64c650068cabb04aa388194b53c59de50a3951e",
+    "toolName": "file_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "queries": [
+        "What is an embedding model according to this document?",
+        "What is an embedding model in the document?",
+        "definition of embedding model",
+        "embedding model explanation 'embedding model'",
+      ],
+      "results": [
+        {
+          "attributes": {},
+          "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "filename": "ai.pdf",
+          "score": 0.9311,
+          "text": "AI 1
+
+AI
+Generative artificial intelligence refers to models that predict and generate 
+various types of outputs (such as text, images, or audio) based on whatʼs 
+statistically likely, pulling from patterns theyʼve learned from their training data. 
+For example:
+
+Given a photo, a generative model can generate a caption.
+
+Given an audio file, a generative model can generate a transcription.
+
+Given a text description, a generative model can generate an image.
+
+A large language model LLM is a subset of generative models focused 
+primarily on text. An LLM takes a sequence of words as input and aims to 
+predict the most likely sequence to follow. It assigns probabilities to potential 
+next sequences and then selects one. The model continues to generate 
+sequences until it meets a specified stopping criterion.
+
+LLMs learn by training on massive collections of written text, which means they 
+will be better suited to some use cases than others. For example, a model 
+trained on GitHub data would understand the probabilities of sequences in 
+source code particularly well.
+
+However, it's crucial to understand LLMs' limitations. When asked about less 
+known or absent information, like the birthday of a personal relative, LLMs 
+might "hallucinate" or make up information. It's essential to consider how well-
+represented the information you need is in the model.
+
+An embedding model is used to convert complex data (like words or images) 
+into a dense vector (a list of numbers) representation, known as an embedding. 
+Unlike generative models, embedding models do not generate new text or data. 
+Instead, they provide representations of semantic and synactic relationships 
+between entities that can be used as input for other models or other natural 
+language processing tasks.
+
+In the next section, you will learn about the difference between models 
+providers and models, and which ones are available in the AI SDK.",
+        },
+      ],
+    },
+    "toolCallId": "fs_0365d26c32c64c650068cabb04aa388194b53c59de50a3951e",
+    "toolName": "file_search",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0365d26c32c64c650068cabb061740819491324d349d0f07ca",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0365d26c32c64c650068cabb0e66b081949f66f61dacef39f3",
+      },
+    },
+    "text": "According to the document, an embedding model converts complex data (like words or images) into a dense vector — a list of numbers — called an embedding. It does not generate new text or data; instead it encodes semantic and syntactic relationships between entities so those vector representations can be used as inputs for other models or NLP tasks .",
+    "type": "text",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without results include > should include file search tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0a098396a8feca410068caae3b47208196957fe59419daad70",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "fs_0a098396a8feca410068caae3cab5c8196a54fd00498464e62",
+    "toolName": "file_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "queries": [
+        "What is an embedding model according to this document?",
+        "What is an embedding model?",
+        "definition of embedding model in the document",
+        "embedding model description",
+      ],
+      "results": null,
+    },
+    "toolCallId": "fs_0a098396a8feca410068caae3cab5c8196a54fd00498464e62",
+    "toolName": "file_search",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0a098396a8feca410068caae3e21a081968e7ac588401c4a6a",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0a098396a8feca410068caae457c508196b2fcd079d1d3ec74",
+      },
+    },
+    "text": "According to the document, an embedding model is used to convert complex data (like words or images) into a dense vector (a list of numbers) representation called an embedding, which captures semantic and syntactic relationships. Unlike generative models, embedding models do not generate new text or data; instead, they provide these vector representations to be used as input for other models or other natural language processing tasks .",
+    "type": "text",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > should include generate image tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0a33d15155cb126d0068c96c5527808195a933b468ccb5dfd9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ig_0a33d15155cb126d0068c96c59bc14819599154c9988b82996",
+    "toolName": "image_generation",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "result": "UklGRoitEQBXRUJQVlA4TEGzEAAv/8P/AM1AbNtGkITZhU4fH9J/wTOT+xIi+j8BuT4kABkCibNAZrlwIPyQ7W/bH5L2RHMzMBKgXmfZeYi9tLtrrQkZvN1yXHLLgG71gPkpDxmI/gc03YFulQR...AA9lhA0Y9rVdqQs/W4w/MOxeRW5+R1/UXmmNVi9yQ7x/vG0q2VRk01seZIuj5OmRYhD+yY82dZqMH1BCueTeOcNfGKxQ==",
+    },
+    "toolCallId": "ig_0a33d15155cb126d0068c96c59bc14819599154c9988b82996",
+    "toolName": "image_generation",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0a33d15155cb126d0068c96c6c0ef48195bc73e30faf832ba3",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0a33d15155cb126d0068c96c723ed88195b1405bc370bb8a65",
+      },
+    },
+    "text": "",
+    "type": "text",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > local shell tool > should include generate image tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68da74ab2c48819cb435ff526bd1ba1d0fdbc19a07110799",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{"action":{"type":"exec","command":["ls"],"working_directory":"/root","env":{}}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "lsh_68da74abdaec819c9aa19c124308f4600fdbc19a07110799",
+      },
+    },
+    "toolCallId": "call_XWgeTylovOiS8xLNz2TONOgO",
+    "toolName": "local_shell",
+    "type": "tool-call",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > should stream code interpreter results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_68c2e6efa238819383d5f52a2c2a3baa02d3a5742c7ddae9",
+    "modelId": "gpt-5-nano-2025-08-07",
+    "timestamp": 2025-09-11T15:12:47.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","code":"",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "import",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " random",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ",",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " math",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "N",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "100",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "00",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=[]\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "0",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "for",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " _",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " in",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " range",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(N",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "):\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " a",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=random",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".randint",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ",",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "6",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " b",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=random",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".randint",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ",",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "6",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " sm",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=a",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+b",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " sums",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".append",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(sm",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+=",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "sm",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "min",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "),",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " max",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "),",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " sum",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "),",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " sum",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(s",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")/",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "N",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"code":"import random, math\\nN=10000\\nsums=[]\\ns=0\\nfor _ in range(N):\\n    a=random.randint(1,6)\\n    b=random.randint(1,6)\\n    sm=a+b\\n    sums.append(sm)\\n    s+=sm\\nmin(sums), max(sums), sum(sums), sum(sums)/N\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
+    "providerExecuted": true,
+    "toolCallId": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "outputs": [
+        {
+          "logs": "(2, 12, 69868, 6.9868)",
+          "type": "logs",
+        },
+      ],
+    },
+    "toolCallId": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","code":"",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "import",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " csv",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ",",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " pathlib",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "path",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " =",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " pathlib",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".Path",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "('/",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "mnt",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "/data",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "/",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "roll",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "2",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "dice",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_s",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "100",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "00",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".csv",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "')\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "with",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " open",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(path",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ",",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " '",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "w",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "',",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " newline",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "='",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "')",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " as",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " f",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ":\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " writer",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " =",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " csv",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".writer",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(f",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " writer",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".writerow",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(['",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "sum",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "'])\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " for",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " val",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " in",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " sums",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ":\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "       ",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " writer",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".writerow",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "([",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "val",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "])\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "path",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ",",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " path",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".exists",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(),",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " len",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(s",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"code":"import csv, pathlib\\npath = pathlib.Path('/mnt/data/roll2dice_sums_10000.csv')\\nwith open(path, 'w', newline='') as f:\\n    writer = csv.writer(f)\\n    writer.writerow(['sum'])\\n    for val in sums:\\n        writer.writerow([val])\\npath, path.exists(), len(sums)\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
+    "providerExecuted": true,
+    "toolCallId": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "outputs": [
+        {
+          "logs": "(PosixPath('/mnt/data/roll2dice_sums_10000.csv'), True, 10000)",
+          "type": "logs",
+        },
+      ],
+    },
+    "toolCallId": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","code":"",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "s",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "[:",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "20",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "]\\n",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"code":"sums[:20]\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
+    "providerExecuted": true,
+    "toolCallId": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "outputs": [
+        {
+          "logs": "[6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7]",
+          "type": "logs",
+        },
+      ],
+    },
+    "toolCallId": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "toolName": "code_interpreter",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "Here",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "’s",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " simulation",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rolling",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " two",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fair",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " six",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-sided",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dice",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "10",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "000",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " times",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Each",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " trial",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sums",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " two",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dice",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Results",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Total",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sum",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " all",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "10",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "000",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " trials",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "69",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "868",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Average",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sum",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " per",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " trial",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "6",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "986",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "8",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Minimum",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sum",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " observed",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Maximum",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sum",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " observed",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "12",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Sample",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " first",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "20",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " trial",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sums",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "6",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "7",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "11",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "4",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "8",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "10",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "7",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "8",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "8",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "7",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "10",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "8",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "9",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "4",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "7",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Full",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " You",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " download",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " all",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "10",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "000",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sums",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " CSV",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " file",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " here",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " [",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Download",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sums",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " CSV",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "](",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "sandbox",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":/",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "mnt",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/data",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "roll",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "dice",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "_s",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ums",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "_",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "100",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "00",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".csv",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")
+
+",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "If",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "’d",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " I",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " also",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " provide",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " frequency",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " distribution",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " histogram",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " export",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " another",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " format",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "JSON",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Excel",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " etc",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".).",
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_68c2e6efa238819383d5f52a2c2a3baa02d3a5742c7ddae9",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 2944,
+      "inputTokens": 6047,
+      "outputTokens": 1623,
+      "reasoningTokens": 1408,
+      "totalTokens": 7670,
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > file search tool > with results include > should stream file search results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_06456cb9918b63780068cacd710b0881a1b00b5fca56e7100b",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-09-17T15:02:09.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
+    "toolName": "file_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "queries": [
+        "What is an embedding model according to this document?",
+        "What is an embedding model definition in this document?",
+        "How does the document define an embedding model?",
+      ],
+      "results": [
+        {
+          "attributes": {},
+          "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "filename": "ai.pdf",
+          "score": 0.9312,
+          "text": "AI 1
+
+AI
+Generative artificial intelligence refers to models that predict and generate 
+various types of outputs (such as text, images, or audio) based on whatʼs 
+statistically likely, pulling from patterns theyʼve learned from their training data. 
+For example:
+
+Given a photo, a generative model can generate a caption.
+
+Given an audio file, a generative model can generate a transcription.
+
+Given a text description, a generative model can generate an image.
+
+A large language model LLM is a subset of generative models focused 
+primarily on text. An LLM takes a sequence of words as input and aims to 
+predict the most likely sequence to follow. It assigns probabilities to potential 
+next sequences and then selects one. The model continues to generate 
+sequences until it meets a specified stopping criterion.
+
+LLMs learn by training on massive collections of written text, which means they 
+will be better suited to some use cases than others. For example, a model 
+trained on GitHub data would understand the probabilities of sequences in 
+source code particularly well.
+
+However, it's crucial to understand LLMs' limitations. When asked about less 
+known or absent information, like the birthday of a personal relative, LLMs 
+might "hallucinate" or make up information. It's essential to consider how well-
+represented the information you need is in the model.
+
+An embedding model is used to convert complex data (like words or images) 
+into a dense vector (a list of numbers) representation, known as an embedding. 
+Unlike generative models, embedding models do not generate new text or data. 
+Instead, they provide representations of semantic and synactic relationships 
+between entities that can be used as input for other models or other natural 
+language processing tasks.
+
+In the next section, you will learn about the difference between models 
+providers and models, and which ones are available in the AI SDK.",
+        },
+      ],
+    },
+    "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
+    "toolName": "file_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " document",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " defines",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " model",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tool",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " converts",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " complex",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "e",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".g",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " words",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " images",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dense",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "a",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " list",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " called",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Unlike",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gener",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ative",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " don",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "’t",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " generate",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " new",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " text",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " they",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " provide",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " representations",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " capture",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " semantic",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " synt",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "actic",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " relationships",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " be",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " used",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " input",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " other",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NLP",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tasks",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "delta": ".",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_06456cb9918b63780068cacd710b0881a1b00b5fca56e7100b",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 2304,
+      "inputTokens": 3748,
+      "outputTokens": 543,
+      "reasoningTokens": 448,
+      "totalTokens": 4291,
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > file search tool > without results include > should stream file search results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-09-17T14:03:38.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
+    "toolName": "file_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "queries": [
+        "What is an embedding model according to this document?",
+        "What is an embedding model defined as in the document?",
+        "definition of embedding model",
+      ],
+      "results": null,
+    },
+    "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
+    "toolName": "file_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "According",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " document",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " model",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " converts",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " complex",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "e",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".g",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " words",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " images",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dense",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " list",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " called",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Unlike",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gener",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ative",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " do",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " not",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " generate",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " new",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " text",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " instead",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " they",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " produce",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " representations",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " capture",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " semantic",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " synt",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "actic",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " relationships",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " be",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " used",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " input",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " other",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NLP",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tasks",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-1",
+    "mediaType": "text/plain",
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 2304,
+      "inputTokens": 3737,
+      "outputTokens": 621,
+      "reasoningTokens": 512,
+      "totalTokens": 4358,
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > should stream code image generation results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0df93c0bb83a72f20068c979db26ac819e8b5a444fad3f0d7f",
+    "modelId": "gpt-5-2025-08-07",
+    "timestamp": 2025-09-16T14:53:15.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0df93c0bb83a72f20068c979db90b4819e94cedbfda2d49af6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
+    "toolName": "image_generation",
+    "type": "tool-call",
+  },
+  {
+    "preliminary": true,
+    "providerExecuted": true,
+    "result": {
+      "result": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
+    },
+    "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
+    "toolName": "image_generation",
+    "type": "tool-result",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "result": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
+    },
+    "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
+    "toolName": "image_generation",
+    "type": "tool-result",
+  },
+  {
+    "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0df93c0bb83a72f20068c979db26ac819e8b5a444fad3f0d7f",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 1920,
+      "inputTokens": 2941,
+      "outputTokens": 1249,
+      "reasoningTokens": 1024,
+      "totalTokens": 4190,
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should stream code local shell results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_68da7fd5d24481949fc2cf1cc60377050faf5df54b42d9a6",
+    "modelId": "gpt-5-codex",
+    "timestamp": 2025-09-29T12:47:17.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_68da7fd65a3481948bbb35ff2c79c6c20faf5df54b42d9a6",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{"action":{"type":"exec","command":["ls","-a","~"],"env":{}}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "lsh_68da7fd99b3c8194bd624b18c0c0851b0faf5df54b42d9a6",
+      },
+    },
+    "toolCallId": "call_h3nm8hUG0KO9tVNuRACkL1ri",
+    "toolName": "local_shell",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_68da7fd5d24481949fc2cf1cc60377050faf5df54b42d9a6",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 407,
+      "outputTokens": 151,
+      "reasoningTokens": 128,
+      "totalTokens": 558,
+    },
+  },
+]
+`;

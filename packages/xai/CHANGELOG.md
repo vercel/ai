@@ -1,5 +1,115 @@
 # @ai-sdk/xai
 
+## 2.1.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/openai-compatible@1.1.0-beta.6
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+
+## 2.1.0-beta.6
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [8dac895]
+- Updated dependencies [10c1322]
+  - @ai-sdk/openai-compatible@1.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/openai-compatible@1.1.0-beta.4
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
+## 2.1.0-beta.4
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 522f6b8: feat: `ImageModelV3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/openai-compatible@1.1.0-beta.3
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+  - @ai-sdk/openai-compatible@1.1.0-beta.2
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- 1861f6f: feat(xai) add grok-4-fast model ids
+
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+  - @ai-sdk/openai-compatible@1.1.0-beta.1
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/openai-compatible@1.1.0-beta.0
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.20
+
+### Patch Changes
+
+- 3a10095: added new xai x live search fields
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [28363da]
+  - @ai-sdk/openai-compatible@1.0.18
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [3aed04c]
+  - @ai-sdk/openai-compatible@1.0.17
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/openai-compatible@1.0.16
+
 ## 2.0.16
 
 ### Patch Changes

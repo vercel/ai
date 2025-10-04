@@ -1,12 +1,17 @@
 import {
-  TranscriptionModelV2,
-  ProviderV2,
+  TranscriptionModelV3,
+  ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
-import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
+import { VERSION } from './version';
 
-export interface GladiaProvider extends ProviderV2 {
+export interface GladiaProvider extends ProviderV3 {
   (): {
     transcription: GladiaTranscriptionModel;
   };
@@ -14,7 +19,7 @@ export interface GladiaProvider extends ProviderV2 {
   /**
 Creates a model for transcription.
    */
-  transcription(): TranscriptionModelV2;
+  transcription(): TranscriptionModelV3;
 }
 
 export interface GladiaProviderSettings {
@@ -41,14 +46,18 @@ Create a Gladia provider instance.
 export function createGladia(
   options: GladiaProviderSettings = {},
 ): GladiaProvider {
-  const getHeaders = () => ({
-    'x-gladia-key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'GLADIA_API_KEY',
-      description: 'Gladia',
-    }),
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        'x-gladia-key': loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'GLADIA_API_KEY',
+          description: 'Gladia',
+        }),
+        ...options.headers,
+      },
+      `ai-sdk/gladia/${VERSION}`,
+    );
 
   const createTranscriptionModel = () =>
     new GladiaTranscriptionModel('default', {
@@ -67,7 +76,7 @@ export function createGladia(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  // Required ProviderV2 methods that are not supported
+  // Required ProviderV3 methods that are not supported
   provider.languageModel = () => {
     throw new NoSuchModelError({
       modelId: 'unknown',

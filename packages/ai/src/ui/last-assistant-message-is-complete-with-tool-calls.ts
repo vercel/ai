@@ -1,4 +1,4 @@
-import { isToolOrDynamicToolUIPart, UIMessage } from './ui-messages';
+import { isToolOrDynamicToolUIPart, type UIMessage } from './ui-messages';
 
 /**
 Check if the message is an assistant message with completed tool calls.

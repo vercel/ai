@@ -2,7 +2,7 @@ import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-me
 import { describe, it, expect } from 'vitest';
 
 describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
-  it('should return false if the last step of a multi-step sequency only has text', () => {
+  it('should return false if the last step of a multi-step sequence only has text', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
         messages: [
@@ -48,6 +48,36 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
                   city: 'New York',
                 },
                 output: 'windy',
+              },
+              {
+                type: 'text',
+                text: 'The current weather in New York is windy.',
+                state: 'done',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return true when the tool has a output-error state', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeatherInformation',
+                toolCallId: 'call_6iy0GxZ9R4VDI5MKohXxV48y',
+                state: 'output-error',
+                input: {
+                  city: 'New York',
+                },
+                errorText: 'Unable to get weather information',
               },
               {
                 type: 'text',

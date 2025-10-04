@@ -1,12 +1,12 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2Source,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
+  LanguageModelV3,
+  LanguageModelV3CallWarning,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3Source,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -48,11 +48,11 @@ type GoogleGenerativeAIConfig = {
   /**
    * The supported URLs for the model.
    */
-  supportedUrls?: () => LanguageModelV2['supportedUrls'];
+  supportedUrls?: () => LanguageModelV3['supportedUrls'];
 };
 
-export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v2';
+export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = 'v3';
 
   readonly modelId: GoogleGenerativeAIModelId;
 
@@ -90,8 +90,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const warnings: LanguageModelV2CallWarning[] = [];
+  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+    const warnings: LanguageModelV3CallWarning[] = [];
 
     const googleOptions = await parseProviderOptions({
       provider: 'google',
@@ -162,6 +162,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           // provider options:
           responseModalities: googleOptions?.responseModalities,
           thinkingConfig: googleOptions?.thinkingConfig,
+          ...(googleOptions?.mediaResolution && {
+            mediaResolution: googleOptions.mediaResolution,
+          }),
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
@@ -176,8 +179,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    options: Parameters<LanguageModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
     const { args, warnings } = await this.getArgs(options);
     const body = JSON.stringify(args);
 
@@ -203,7 +206,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     });
 
     const candidate = response.candidates[0];
-    const content: Array<LanguageModelV2Content> = [];
+    const content: Array<LanguageModelV3Content> = [];
 
     // map ordered parts to content:
     const parts = candidate.content?.parts ?? [];
@@ -292,6 +295,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       warnings,
       providerMetadata: {
         google: {
+          promptFeedback: response.promptFeedback ?? null,
           groundingMetadata: candidate.groundingMetadata ?? null,
           urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
@@ -308,8 +312,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV2['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+    options: Parameters<LanguageModelV3['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = JSON.stringify(args);
@@ -330,13 +334,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV2FinishReason = 'unknown';
-    const usage: LanguageModelV2Usage = {
+    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    const usage: LanguageModelV3Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
     };
-    let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
+    let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -355,7 +359,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof chunkSchema>>,
-          LanguageModelV2StreamPart
+          LanguageModelV3StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -590,6 +594,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
               providerMetadata = {
                 google: {
+                  promptFeedback: value.promptFeedback ?? null,
                   groundingMetadata: candidate.groundingMetadata ?? null,
                   urlContextMetadata: candidate.urlContextMetadata ?? null,
                   safetyRatings: candidate.safetyRatings ?? null,
@@ -676,7 +681,7 @@ function extractSources({
 }: {
   groundingMetadata: z.infer<typeof groundingMetadataSchema> | undefined | null;
   generateId: () => string;
-}): undefined | LanguageModelV2Source[] {
+}): undefined | LanguageModelV3Source[] {
   return groundingMetadata?.groundingChunks
     ?.filter(
       (
@@ -763,6 +768,12 @@ const responseSchema = z.object({
     }),
   ),
   usageMetadata: usageSchema.nullish(),
+  promptFeedback: z
+    .object({
+      blockReason: z.string().nullish(),
+      safetyRatings: z.array(safetyRatingSchema).nullish(),
+    })
+    .nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -780,4 +791,10 @@ const chunkSchema = z.object({
     )
     .nullish(),
   usageMetadata: usageSchema.nullish(),
+  promptFeedback: z
+    .object({
+      blockReason: z.string().nullish(),
+      safetyRatings: z.array(safetyRatingSchema).nullish(),
+    })
+    .nullish(),
 });

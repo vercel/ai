@@ -1,5 +1,229 @@
 # ai
 
+## 5.1.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [ef62178]
+  - @ai-sdk/gateway@1.1.0-beta.15
+
+## 5.1.0-beta.20
+
+### Patch Changes
+
+- 846e80e: fix(ai): bind functions for v2 -> v3 adapter
+- Updated dependencies [a90dca6]
+  - @ai-sdk/gateway@1.1.0-beta.14
+
+## 5.1.0-beta.19
+
+### Patch Changes
+
+- aa0515c: feat(ai): move Agent to stable
+- e7d9b00: feat(agent): add optional name property to agent
+- b1aeea7: feat(ai): set default stopWhen on Agent to stepCountIs(20)
+
+## 5.1.0-beta.18
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- 9b8d17e: fix(agent): move provider options to main agent config
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+  - @ai-sdk/gateway@1.1.0-beta.13
+
+## 5.1.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [e6bfe91]
+  - @ai-sdk/gateway@1.1.0-beta.12
+
+## 5.1.0-beta.16
+
+### Patch Changes
+
+- 14ca35d: feat: add support for v2 specs
+- Updated dependencies [636e614]
+  - @ai-sdk/gateway@1.1.0-beta.11
+
+## 5.1.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [9f6149e]
+  - @ai-sdk/gateway@1.1.0-beta.10
+
+## 5.1.0-beta.14
+
+### Patch Changes
+
+- 7c3c216: fixed docs and exported NoSpeechGeneratedError
+- 8dac895: feat: `LanguageModelV3`
+- e0d1ea9: fix(ai): align logic of text-end with reasoning-end
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+  - @ai-sdk/gateway@1.1.0-beta.9
+
+## 5.1.0-beta.13
+
+### Patch Changes
+
+- 1c2a4c1: fix(ai): remove outdated jsdoc param descriptions
+
+## 5.1.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [c823faf]
+  - @ai-sdk/gateway@1.1.0-beta.8
+
+## 5.1.0-beta.11
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - @ai-sdk/gateway@1.1.0-beta.7
+
+## 5.1.0-beta.10
+
+### Patch Changes
+
+- 8c98371: Extend addToolResult to support error results
+
+## 5.1.0-beta.9
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 177b475: fix(ai): download files when intermediate file cannot be downloaded
+- 522f6b8: feat: `ImageModelV3`
+- Updated dependencies [aaf5ebf]
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/gateway@1.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 5.1.0-beta.8
+
+### Patch Changes
+
+- 7eca093: fix(ai): update `uiMessageChunkSchema` to satisfy the `UIMessageChunk` type
+
+## 5.1.0-beta.7
+
+### Patch Changes
+
+- 5a4e732: Export `parseJsonEventStream` and `uiMessageChunkSchema` from "ai" package
+
+## 5.1.0-beta.6
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+- Updated dependencies [5d21222]
+- Updated dependencies [0c4822d]
+- Updated dependencies [1cad0ab]
+  - @ai-sdk/gateway@1.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 5.1.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [7ccb36f]
+- Updated dependencies [6c766ef]
+  - @ai-sdk/gateway@1.1.0-beta.4
+
+## 5.1.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [ea9ca31]
+  - @ai-sdk/gateway@1.1.0-beta.3
+
+## 5.1.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [3e83633]
+- Updated dependencies [f83903d]
+  - @ai-sdk/gateway@1.1.0-beta.2
+
+## 5.1.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+  - @ai-sdk/gateway@1.1.0-beta.1
+
+## 5.1.0-beta.1
+
+### Patch Changes
+
+- a7f6f81: Add safeValidateUIMessages utility to validate UI messages without throwing, returning a success/failure result object like Zod’s safeParse
+
+## 5.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/gateway@1.1.0-beta.0
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 5.0.45
+
+### Patch Changes
+
+- 76024fc: fix(ai): fix static tool call and result detection when dynamic is undefined
+- 93d8b60: fix(ai): do not filter zero-length text parts that have provider options
+- d8eb31f: fix(ai): fix webp image detection from base64
+
+## 5.0.44
+
+### Patch Changes
+
+- Updated dependencies [f49f924]
+  - @ai-sdk/gateway@1.0.23
+
+## 5.0.43
+
+### Patch Changes
+
+- 0294b58: feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/gateway@1.0.22
+
+## 5.0.42
+
+### Patch Changes
+
+- de5c066: fix(ai): forwarded providerExecuted flag in validateUIMessages
+
+## 5.0.41
+
+### Patch Changes
+
+- cd91e4b: fix(ai): use correct type for reasoning outputs
+
 ## 5.0.40
 
 ### Patch Changes

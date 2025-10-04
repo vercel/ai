@@ -16,13 +16,21 @@ describe('prepareResponsesTools', () => {
         strictJsonSchema: false,
       });
 
-      expect(result.tools).toEqual([
+      expect(result).toMatchInlineSnapshot(`
         {
-          type: 'code_interpreter',
-          container: { type: 'auto', file_ids: undefined },
-        },
-      ]);
-      expect(result.toolWarnings).toEqual([]);
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": undefined,
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
     });
 
     it('should prepare code interpreter tool with string container ID', () => {
@@ -40,13 +48,18 @@ describe('prepareResponsesTools', () => {
         strictJsonSchema: false,
       });
 
-      expect(result.tools).toEqual([
+      expect(result).toMatchInlineSnapshot(`
         {
-          type: 'code_interpreter',
-          container: 'container-123',
-        },
-      ]);
-      expect(result.toolWarnings).toEqual([]);
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": "container-123",
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
     });
 
     it('should prepare code interpreter tool with file IDs container', () => {
@@ -66,13 +79,25 @@ describe('prepareResponsesTools', () => {
         strictJsonSchema: false,
       });
 
-      expect(result.tools).toEqual([
+      expect(result).toMatchInlineSnapshot(`
         {
-          type: 'code_interpreter',
-          container: { type: 'auto', file_ids: ['file-1', 'file-2', 'file-3'] },
-        },
-      ]);
-      expect(result.toolWarnings).toEqual([]);
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": [
+                  "file-1",
+                  "file-2",
+                  "file-3",
+                ],
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
     });
 
     it('should prepare code interpreter tool with empty file IDs array', () => {
@@ -92,13 +117,21 @@ describe('prepareResponsesTools', () => {
         strictJsonSchema: false,
       });
 
-      expect(result.tools).toEqual([
+      expect(result).toMatchInlineSnapshot(`
         {
-          type: 'code_interpreter',
-          container: { type: 'auto', file_ids: [] },
-        },
-      ]);
-      expect(result.toolWarnings).toEqual([]);
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": [],
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
     });
 
     it('should prepare code interpreter tool with undefined file IDs', () => {
@@ -118,13 +151,21 @@ describe('prepareResponsesTools', () => {
         strictJsonSchema: false,
       });
 
-      expect(result.tools).toEqual([
+      expect(result).toMatchInlineSnapshot(`
         {
-          type: 'code_interpreter',
-          container: { type: 'auto', file_ids: undefined },
-        },
-      ]);
-      expect(result.toolWarnings).toEqual([]);
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": undefined,
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
     });
 
     it('should handle tool choice selection with code interpreter', () => {
@@ -144,16 +185,23 @@ describe('prepareResponsesTools', () => {
         strictJsonSchema: false,
       });
 
-      expect(result.tools).toEqual([
+      expect(result).toMatchInlineSnapshot(`
         {
-          type: 'code_interpreter',
-          container: { type: 'auto', file_ids: undefined },
-        },
-      ]);
-      expect(result.toolChoice).toEqual({
-        type: 'code_interpreter',
-      });
-      expect(result.toolWarnings).toEqual([]);
+          "toolChoice": {
+            "type": "code_interpreter",
+          },
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": undefined,
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
     });
 
     it('should handle multiple tools including code interpreter', () => {
@@ -182,25 +230,138 @@ describe('prepareResponsesTools', () => {
         strictJsonSchema: true,
       });
 
-      expect(result.tools).toEqual([
+      expect(result).toMatchInlineSnapshot(`
         {
-          type: 'function',
-          name: 'testFunction',
-          description: 'A test function',
-          parameters: {
-            type: 'object',
-            properties: {
-              input: { type: 'string' },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {
+                  "input": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "strict": true,
+              "type": "function",
+            },
+            {
+              "container": "my-container",
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
+  describe('image generation', () => {
+    it('should prepare image_generation tool with all options', () => {
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {
+              background: 'opaque',
+              size: '1536x1024',
+              quality: 'high',
+              moderation: 'auto',
+              outputFormat: 'png',
+              outputCompression: 100,
             },
           },
-          strict: true,
-        },
+        ],
+        strictJsonSchema: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
         {
-          type: 'code_interpreter',
-          container: 'my-container',
-        },
-      ]);
-      expect(result.toolWarnings).toEqual([]);
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "background": "opaque",
+              "input_fidelity": undefined,
+              "input_image_mask": undefined,
+              "model": undefined,
+              "moderation": "auto",
+              "output_compression": 100,
+              "output_format": "png",
+              "partial_images": undefined,
+              "quality": "high",
+              "size": "1536x1024",
+              "type": "image_generation",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should support tool choice selection for image_generation', () => {
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'image_generation' },
+        strictJsonSchema: false,
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "background": undefined,
+            "input_fidelity": undefined,
+            "input_image_mask": undefined,
+            "model": undefined,
+            "moderation": undefined,
+            "output_compression": undefined,
+            "output_format": undefined,
+            "partial_images": undefined,
+            "quality": undefined,
+            "size": undefined,
+            "type": "image_generation",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('local shell', () => {
+    it('should prepare local_shell tool', () => {
+      const result = prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.local_shell',
+            name: 'local_shell',
+            args: {},
+          },
+        ],
+        strictJsonSchema: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "local_shell",
+            },
+          ],
+        }
+      `);
     });
   });
 });

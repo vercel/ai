@@ -199,7 +199,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   get staticToolCalls() {
     return this.toolCalls.filter(
       (toolCall): toolCall is StaticToolCall<TOOLS> =>
-        toolCall.dynamic === false,
+        toolCall.dynamic !== true,
     );
   }
 
@@ -216,7 +216,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   get staticToolResults() {
     return this.toolResults.filter(
       (toolResult): toolResult is StaticToolResult<TOOLS> =>
-        toolResult.dynamic === false,
+        toolResult.dynamic !== true,
     );
   }
 

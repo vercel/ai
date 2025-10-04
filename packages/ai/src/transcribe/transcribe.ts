@@ -1,5 +1,5 @@
-import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { JSONValue, TranscriptionModelV3 } from '@ai-sdk/provider';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';
@@ -14,7 +14,7 @@ import {
 import { download } from '../util/download/download';
 import { prepareRetries } from '../util/prepare-retries';
 import { TranscriptionResult } from './transcribe-result';
-
+import { VERSION } from '../version';
 /**
 Generates transcripts using a transcription model.
 
@@ -39,7 +39,7 @@ export async function transcribe({
   /**
 The transcription model to use.
      */
-  model: TranscriptionModelV2;
+  model: TranscriptionModelV3;
 
   /**
 The audio data to transcribe.
@@ -80,7 +80,7 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
-  if (model.specificationVersion !== 'v2') {
+  if (model.specificationVersion !== 'v3') {
     throw new UnsupportedModelVersionError({
       version: model.specificationVersion,
       provider: model.provider,
@@ -93,6 +93,11 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
   const audioData =
     audio instanceof URL
       ? (await download({ url: audio })).data
@@ -102,7 +107,7 @@ Only applicable for HTTP-based providers.
     model.doGenerate({
       audio: audioData,
       abortSignal,
-      headers,
+      headers: headersWithUserAgent,
       providerOptions,
       mediaType:
         detectMediaType({

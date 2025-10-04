@@ -1,13 +1,13 @@
 import {
   InvalidResponseDataError,
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -30,7 +30,7 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAIChatModelId,
-  openaiProviderOptions,
+  openaiChatLanguageModelOptions,
 } from './openai-chat-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 
@@ -41,8 +41,8 @@ type OpenAIChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class OpenAIChatLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v2';
+export class OpenAIChatLanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = 'v3';
 
   readonly modelId: OpenAIChatModelId;
 
@@ -75,15 +75,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     providerOptions,
-  }: LanguageModelV2CallOptions) {
-    const warnings: LanguageModelV2CallWarning[] = [];
+  }: LanguageModelV3CallOptions) {
+    const warnings: LanguageModelV3CallWarning[] = [];
 
     // Parse provider options
     const openaiOptions =
       (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiProviderOptions,
+        schema: openaiChatLanguageModelOptions,
       })) ?? {};
 
     const structuredOutputs = openaiOptions.structuredOutputs ?? true;
@@ -309,8 +309,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    options: Parameters<LanguageModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
     const { args: body, warnings } = await this.getArgs(options);
 
     const {
@@ -333,7 +333,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV2Content> = [];
+    const content: Array<LanguageModelV3Content> = [];
 
     // text content:
     const text = choice.message.content;
@@ -365,7 +365,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
     const promptTokenDetails = response.usage?.prompt_tokens_details;
-    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
       providerMetadata.openai.acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
@@ -400,8 +400,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV2['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+    options: Parameters<LanguageModelV3['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -437,8 +437,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV2FinishReason = 'unknown';
-    const usage: LanguageModelV2Usage = {
+    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    const usage: LanguageModelV3Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
@@ -446,13 +446,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     let isFirstChunk = true;
     let isActiveText = false;
 
-    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof openaiChatChunkSchema>>,
-          LanguageModelV2StreamPart
+          LanguageModelV3StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

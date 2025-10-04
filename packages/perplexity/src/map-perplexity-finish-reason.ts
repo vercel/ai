@@ -1,8 +1,8 @@
-import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
+import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
 
 export function mapPerplexityFinishReason(
   finishReason: string | null | undefined,
-): LanguageModelV2FinishReason {
+): LanguageModelV3FinishReason {
   switch (finishReason) {
     case 'stop':
     case 'length':

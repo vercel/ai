@@ -1,5 +1,142 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.15
+
+### Patch Changes
+
+- ef62178: feat(gateway): oidc refresh with `@vercel/oidc`
+
+## 1.1.0-beta.14
+
+### Patch Changes
+
+- a90dca6: feat(provider/gateway): Add zAI GLM 4.6 to Gateway language model settings
+
+## 1.1.0-beta.13
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+
+## 1.1.0-beta.12
+
+### Patch Changes
+
+- e6bfe91: feat(provider/gateway): Update DeepSeek model string autocomplete
+
+## 1.1.0-beta.11
+
+### Patch Changes
+
+- 636e614: feat(provider/gateway): Add DeepSeek V3.2 Exp to Gateway language model settings
+
+## 1.1.0-beta.10
+
+### Patch Changes
+
+- 9f6149e: feat(provider/gateway): Add Sonnet 4.5 to Gateway model string autocomplete
+
+## 1.1.0-beta.9
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
+## 1.1.0-beta.8
+
+### Patch Changes
+
+- c823faf: feat(provider/gateway): Add new Gemini preview models to Gateway model string autocomplete
+
+## 1.1.0-beta.7
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
+## 1.1.0-beta.6
+
+### Patch Changes
+
+- aaf5ebf: feat(provider/gateway): Add new Qwen models to Gateway model string autocomplete
+- ed329cb: feat: `Provider-V3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 1.1.0-beta.5
+
+### Patch Changes
+
+- 5d21222: feat(provider/gateway): Add gpt-5-codex to Gateway model string autocomplete
+- 0c4822d: feat: `EmbeddingModelV3`
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 1.1.0-beta.4
+
+### Patch Changes
+
+- 7ccb36f: feat(provider/gateway): Add LongCat Thinking model to Gateway autocomplete
+- 6c766ef: feat(provider/gateway): Add DeepSeek V3.1 Terminus to Gateway autocomplete
+
+## 1.1.0-beta.3
+
+### Patch Changes
+
+- ea9ca31: feat(provider/gateway): Add new xAI models
+
+## 1.1.0-beta.2
+
+### Patch Changes
+
+- 3e83633: add getCredits() gateway method
+- f83903d: getCredits style improvements
+
+## 1.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+
+## 1.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 1.0.23
+
+### Patch Changes
+
+- f49f924: feat (provider/gateway): add qwen3 next model ids
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
 ## 1.0.21
 
 ### Patch Changes

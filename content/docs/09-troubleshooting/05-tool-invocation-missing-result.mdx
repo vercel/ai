@@ -54,14 +54,24 @@ const { messages, sendMessage, addToolOutput } = useChat({
   // Handle tool calls in onToolCall
   onToolCall: async ({ toolCall }) => {
     if (toolCall.toolName === 'getLocation') {
-      const result = await getLocationData();
+      try {
+        const result = await getLocationData();
 
-      // Important: Don't await inside onToolCall to avoid deadlocks
-      addToolOutput({
-        tool: 'getLocation',
-        toolCallId: toolCall.toolCallId,
-        output: result,
-      });
+        // Important: Don't await inside onToolCall to avoid deadlocks
+        addToolOutput({
+          tool: 'getLocation',
+          toolCallId: toolCall.toolCallId,
+          output: result,
+        });
+      } catch (err) {
+        // Important: Don't await inside onToolCall to avoid deadlocks
+        addToolOutput({
+          tool: 'getLocation',
+          toolCallId: toolCall.toolCallId,
+          state: 'output-error',
+          errorText: 'Failed to get location',
+        });
+      }
     }
   },
 });

@@ -48,11 +48,11 @@ The AI SDK comes with a wide range of providers that you can use to interact wit
 - [Gladia Provider](/providers/ai-sdk-providers/gladia) (`@ai-sdk/gladia`)
 - [LMNT Provider](/providers/ai-sdk-providers/lmnt) (`@ai-sdk/lmnt`)
 - [AssemblyAI Provider](/providers/ai-sdk-providers/assemblyai) (`@ai-sdk/assemblyai`)
+- [Baseten Provider](/providers/ai-sdk-providers/baseten) (`@ai-sdk/baseten`)
 
 You can also use the [OpenAI Compatible provider](/providers/openai-compatible-providers) with OpenAI-compatible APIs:
 
 - [LM Studio](/providers/openai-compatible-providers/lmstudio)
-- [Baseten](/providers/openai-compatible-providers/baseten)
 - [Heroku](/providers/openai-compatible-providers/heroku)
 
 Our [language model specification](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v2) is published as an open-source package, which you can use to create [custom providers](/providers/community-providers/custom-providers).
@@ -70,6 +70,7 @@ The open-source community has created the following providers:
 - [Voyage AI Provider](/providers/community-providers/voyage-ai) (`voyage-ai-provider`)
 - [Mem0 Provider](/providers/community-providers/mem0)(`@mem0/vercel-ai-provider`)
 - [Letta Provider](/providers/community-providers/letta)(`@letta-ai/vercel-ai-sdk-provider`)
+- [Supermemory Provider](/providers/community-providers/supermemory)(`@supermemory/tools`)
 - [Spark Provider](/providers/community-providers/spark) (`spark-ai-provider`)
 - [AnthropicVertex Provider](/providers/community-providers/anthropic-vertex-ai) (`anthropic-vertex-ai`)
 - [LangDB Provider](/providers/community-providers/langdb) (`@langdb/vercel-provider`)
@@ -88,7 +89,7 @@ You can access self-hosted models with the following providers:
 
 - [Ollama Provider](/providers/community-providers/ollama)
 - [LM Studio](/providers/openai-compatible-providers/lmstudio)
-- [Baseten](/providers/openai-compatible-providers/baseten)
+- [Baseten](/providers/ai-sdk-providers/baseten)
 - [Built-in AI](/providers/community-providers/built-in-ai)
 
 Additionally, any self-hosted provider that supports the OpenAI specification can be used with the [OpenAI Compatible Provider](/providers/openai-compatible-providers).
@@ -113,12 +114,12 @@ Here are the capabilities of popular models:
 | [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5`                                     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5-mini`                                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5-nano`                                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5-codex`                               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5-chat-latest`                         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-opus-4-latest`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-sonnet-4-latest`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-opus-4-1`                           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-opus-4-0`                           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-sonnet-4-0`                         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-7-sonnet-latest`                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-5-sonnet-latest`                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-5-sonnet-latest`                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-5-haiku-latest`                   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Mistral](/providers/ai-sdk-providers/mistral)                           | `pixtral-large-latest`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Mistral](/providers/ai-sdk-providers/mistral)                           | `mistral-large-latest`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

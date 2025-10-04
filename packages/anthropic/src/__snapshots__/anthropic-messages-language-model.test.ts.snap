@@ -1,73 +1,200 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search > should stream sources and tool calls 1`] = `
+exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response > should include web fetch tool call and result in content 1`] = `
 [
   {
-    "type": "stream-start",
-    "warnings": [],
+    "text": "I'll fetch the Wikipedia page about Maglemosian culture to tell you what it's about.",
+    "type": "text",
   },
   {
-    "id": "msg_01SZs8CgARn2ixN9VnpjE6WH",
-    "modelId": "claude-3-5-sonnet-20241022",
-    "type": "response-metadata",
-  },
-  {
-    "id": "0",
-    "type": "text-start",
-  },
-  {
-    "delta": "I'll search for the latest stock market trends and financial news",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "id": "0",
-    "type": "text-end",
-  },
-  {
-    "id": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
+    "input": "{"url":"https://en.wikipedia.org/wiki/Maglemosian_culture"}",
     "providerExecuted": true,
-    "toolName": "web_search",
-    "type": "tool-input-start",
+    "toolCallId": "srvtoolu_01KQVmoT9PpAS5FTTMFcM5ct",
+    "toolName": "web_fetch",
+    "type": "tool-call",
   },
   {
-    "delta": "",
-    "id": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "{"",
-    "id": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "query": "latest stock ",
-    "id": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "mar",
-    "id": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "ket trends financial",
-    "id": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " news June 20 2025"}",
-    "id": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
-    "type": "tool-input-delta",
-  },
-  {
-    "id": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
-    "type": "tool-input-end",
-  },
-  {
-    "input": "{"query": "latest stock market trends financial news June 20 2025"}",
     "providerExecuted": true,
-    "toolCallId": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
+    "result": {
+      "content": {
+        "citations": undefined,
+        "source": {
+          "data": "This article needs additional citations for
+|
+![]() |
+The
+|
+---|
+Maglemosian (c. 9000 – c. 6000 BC) is the name given to a [culture](https://en.wikipedia.org/wiki/Archaeological_culture) of the early [Mesolithic](https://en.wikipedia.org/wiki/Mesolithic) period in [Northern Europe](https://en.wikipedia.org/wiki/Northern_Europe). In [Scandinavia](https://en.wikipedia.org/wiki/Scandinavia), the culture was succeeded by the [Kongemose](https://en.wikipedia.org/wiki/Kongemose_culture) culture.
+The name originates from the [Danish](https://en.wikipedia.org/wiki/Denmark) archeological site Maglemose, situated near [Gørlev](https://en.wikipedia.org/wiki/Gørlev) and [Høng](https://en.wikipedia.org/wiki/Høng) on western [Zealand](https://en.wikipedia.org/wiki/Zealand_(Denmark)), southwest of lake [Tissø](https://en.wikipedia.org/wiki/Tissø). Here the first settlement of the culture was excavated in 1900, by George Sarauw.[[1]](./Maglemosian_culture#cite_note-1) During the following century a long series of similar settlements were excavated from [England](https://en.wikipedia.org/wiki/England) to [Poland](https://en.wikipedia.org/wiki/Poland) and from [Skåne](https://en.wikipedia.org/wiki/Skåne) in [Sweden](https://en.wikipedia.org/wiki/Sweden) to northern [France](https://en.wikipedia.org/wiki/France).
+When the Maglemosian culture flourished, sea levels were much lower than now and what is now mainland Europe and Scandinavia were linked with Britain. The cultural period overlaps the end of the [last ice age](https://en.wikipedia.org/wiki/Weichselian_glaciation),[[2]](./Maglemosian_culture#cite_note-2) when the ice retreated and the glaciers melted. It was a long process and sea levels in [Northern Europe](https://en.wikipedia.org/wiki/Northern_Europe) did not reach current levels until almost 6000 BC, by which time they had inundated large territories previously inhabited by Maglemosian people. Therefore, there is hope that the emerging discipline of [underwater archaeology](https://en.wikipedia.org/wiki/Underwater_archaeology) may reveal interesting findings related to the Maglemosian culture in the future.
+The Maglemosian people lived in forest and wetland environments, using fishing and hunting tools made from wood, bone, and flint [microliths](https://en.wikipedia.org/wiki/Microlith). It appears that they had domesticated the [dog](https://en.wikipedia.org/wiki/Dog).[[3]](./Maglemosian_culture#cite_note-3) Some may have lived settled lives, but most were nomadic.[[citation needed](https://en.wikipedia.org/wiki/Wikipedia:Citation_needed)]
+Huts made of bark have been preserved, in addition to tools made of [flint](https://en.wikipedia.org/wiki/Flint), [bone](https://en.wikipedia.org/wiki/Bone), and [horn](https://en.wikipedia.org/wiki/Horn_(anatomy)). A characteristic feature of the culture is the sharply edged [microliths](https://en.wikipedia.org/wiki/Microlith) of flintstone, used for spear and arrow heads.[[4]](./Maglemosian_culture#cite_note-4) Another notable feature is the [leister](https://en.wikipedia.org/wiki/Leister), a characteristic type of fishing spear, used for [gigging](https://en.wikipedia.org/wiki/Gigging).
+Era | Timespan |
+|
+---|
+![]() |
+This section needs expansion. You can help by [adding to it](//en.wikipedia.org/w/index.php?title=Maglemosian_culture&action=edit§ion=). (January 2020)
+[↑](https://en.wikipedia.org/wiki/Maglemosian_culture#cite_ref-1)[Sarauw, G. F. L.](https://en.wikipedia.org/wiki/Georg_F.L._Sarauw)(1903).["En Stenaldersboplads i Maglemose ved Mullerup – sammenholdt med beslægtede fund"](https://books.google.com/books?id=n5VePAAACAAJ)[A Stone Age settlement in Maglemose near Mullerup – compared with related finds. Resumé: Études sur le premier âge de la pierre du Nord de l'Europe]. Aarbøger for Nordisk Oldkyndighed og Historie (in Danish). 1903. A[German](https://en.wikipedia.org/wiki/German_language)translation appeared in Prähistorische Zeitschrift in 1911[↑](https://en.wikipedia.org/wiki/Maglemosian_culture#cite_ref-2)Jessen, Catherine A.; Pedersen, Kristoffer Buck; Christensen, Charlie; Olsen, Jesper; Mortensen, Morten Fischer; Hansen, Keld Møller (2015).["Early Maglemosian culture in the Preboreal landscape: Archaeology and vegetation from the earliest Mesolithic site in Denmark at Lundby Mose, Sjælland"](https://doi.org/10.1016%2Fj.quaint.2014.03.056). Quaternary International. 378: 73–87.[Bibcode](https://en.wikipedia.org/wiki/Bibcode_(identifier)):[2015QuInt.378...73J](https://ui.adsabs.harvard.edu/abs/2015QuInt.378...73J).[doi](https://en.wikipedia.org/wiki/Doi_(identifier)):[10.1016/j.quaint.2014.03.056](https://doi.org/10.1016%2Fj.quaint.2014.03.056).[↑](https://en.wikipedia.org/wiki/Maglemosian_culture#cite_ref-3)["Stone Age remains are Britain's earliest house"](http://www.manchester.ac.uk/discover/news/stone-age-remains-are-britains-earliest-house/). Retrieved 28 January 2018.[↑](https://en.wikipedia.org/wiki/Maglemosian_culture#cite_ref-4)[Med bue, pil og fiskespyd](http://www.denstoredanske.dk/Danmarks_Oldtid/Stenalder/De_vejl%C3%B8se_skove_9.500-6.400_f.Kr/Med_bue,_pil_og_fiskespyd)Gyldendals Open Encyclopedia (in Danish). Pictures of some Maglemosian tools.
+- Anders Fischer: "Submerged Stone Age – Danish Examples and North sea potential"; i: N.C.Flemming: Submarine Prehistory and Archaeology of the North Sea: research priorities and collaboration with industry. CBA Research Report 141, 2004, s. 23ff
+Danish-language texts
+- Geoffrey Bibby: Spadens vidnedsbyrd; Wormanium 1980,
+[ISBN](https://en.wikipedia.org/wiki/ISBN_(identifier))[87-8516-071-7](https://en.wikipedia.org/wiki/Special:BookSources/87-8516-071-7)s. 109f - Gyldendal og Politikens Danmarkshistorie (red. af Olaf Olsen); Bind 1: I begyndelsen. Fra de ældste tider til ca. år 200 f.Kr. (ved Jørgen Jensen); 1988, s. 47ff
+- Jørgen Jensen: Danmarks Oldtid. Stenalder, 13.000–2.000 f.Kr.; Gyldendal 2001,
+[ISBN](https://en.wikipedia.org/wiki/ISBN_(identifier))[87-00-49038-5](https://en.wikipedia.org/wiki/Special:BookSources/87-00-49038-5)s. 86ff - Anders Fischer: "En håndfuld flint", Skalk nr. 5, 1973, s. 8ff
+- Anders Fischer: "Mennesket og havet i ældre stenalder"; i: Carin Bunte (red): Arkeologi och Naturvetenskab, Lund 2005, s. 276ff
+- Kim Aaris-Sørensen: "Uroksejagt", Skalk nr. 6, 1984, s. 10ff
+- Ole Grøn: "Teltning", Skalk nr. 1, 1988, s. 13f
+- Søren A. Sørensen: "Hytte ved sø", Skalk nr. 3, 1988, s. 25ff
+- Peter Vang Petersen: "Bjørnejagt", Skalk nr. 5, 1991, s. 3ff
+- Poul og Kristian Krabbe: "Vest for Valhal", Skalk nr. 6, 1995, s. 11ff
+- Axel Degn Johansen: "Ikke en sky og ikke en vind!", Skalk nr 2, 2008, s. 8ff",
+          "mediaType": "text/plain",
+          "type": "text",
+        },
+        "title": "Maglemosian culture",
+        "type": "document",
+      },
+      "retrievedAt": "2025-07-17T21:38:38.606000+00:00",
+      "type": "web_fetch_result",
+      "url": "https://en.wikipedia.org/wiki/Maglemosian_culture",
+    },
+    "toolCallId": "srvtoolu_01KQVmoT9PpAS5FTTMFcM5ct",
+    "toolName": "web_fetch",
+    "type": "tool-result",
+  },
+  {
+    "text": "This Wikipedia page is about the **Maglemosian culture**, which was an early Mesolithic (Middle Stone Age) culture that existed in Northern Europe from approximately 9000 to 6000 BC.
+
+Here are the key points about what the page covers:
+
+**Geographic and Temporal Context:**
+- The culture stretched across Northern Europe from England to Poland and from southern Sweden to northern France
+- It flourished during a time when sea levels were much lower, and Britain was connected to mainland Europe
+- The period overlapped with the end of the last ice age
+
+**Discovery and Naming:**
+- Named after the Danish archaeological site Maglemose near Gørlev and Høng in western Zealand
+- First excavated in 1900 by George Sarauw
+
+**Lifestyle and Technology:**
+- The Maglemosian people lived in forest and wetland environments
+- They were primarily hunter-gatherers who used fishing and hunting tools
+- They had domesticated dogs
+- Most were nomadic, though some may have lived more settled lives
+- They built huts made of bark
+
+**Material Culture:**
+- Made tools from wood, bone, flint, and horn
+- Known for their characteristic sharply edged flint microliths used for spear and arrow heads
+- Used a distinctive type of fishing spear called a "leister"
+
+**Archaeological Significance:**
+- The culture was succeeded by the Kongemose culture in Scandinavia
+- Many Maglemosian sites may now be underwater due to rising sea levels, making underwater archaeology potentially valuable for future discoveries
+
+The page provides both historical context about this important prehistoric culture and details about their material remains and way of life.",
+    "type": "text",
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response without title > should include web fetch tool call and result in content 1`] = `
+[
+  {
+    "text": "I'll fetch the PDF from the URL you provided to see what it says about AI.",
+    "type": "text",
+  },
+  {
+    "input": "{"url":"https://raw.githubusercontent.com/vercel/ai/main/examples/ai-core/data/ai.pdf"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01SCw66CVHHhqvHhRgxbXoj4",
+    "toolName": "web_fetch",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "content": {
+        "citations": undefined,
+        "source": {
+          "data": "JVBERi0xLjQKz...UVPRgo=",
+          "mediaType": "text/plain",
+          "type": "text",
+        },
+        "title": null,
+        "type": "document",
+      },
+      "retrievedAt": "2025-09-29T07:28:57.560000+00:00",
+      "type": "web_fetch_result",
+      "url": "https://raw.githubusercontent.com/vercel/ai/main/examples/ai-core/data/ai.pdf",
+    },
+    "toolCallId": "srvtoolu_01SCw66CVHHhqvHhRgxbXoj4",
+    "toolName": "web_fetch",
+    "type": "tool-result",
+  },
+  {
+    "text": "I can see that this is a PDF document in raw binary format. Let me extract the key information about what this document says regarding AI.
+
+From analyzing the PDF content, this appears to be a document titled "Artificial Intelligence" that discusses various aspects of AI. The document contains text about:
+
+**Key topics covered in the PDF:**
+
+- **Definition and Overview**: The document provides foundational information about artificial intelligence as a field of study and technology
+
+- **AI Applications**: It discusses various applications and use cases of artificial intelligence in different domains
+
+- **Technical Concepts**: The PDF covers technical aspects of AI systems and methodologies
+
+- **Development and Implementation**: Information about how AI systems are developed and implemented
+
+- **Future Perspectives**: Discussion of AI's potential and future directions
+
+The document appears to be an educational or reference material that provides a comprehensive overview of artificial intelligence concepts, applications, and technical considerations. It's structured as an informational document that would be suitable for someone looking to understand the fundamentals of AI technology.
+
+However, due to copyright restrictions, I cannot reproduce the full text content or provide extensive direct quotes from the document. If you're looking for specific information about particular AI topics covered in this PDF, I'd be happy to help answer questions about AI concepts in general.",
+    "type": "text",
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > unavailable error > should include web fetch tool call and result in content 1`] = `
+[
+  {
+    "text": "I'll fetch the PDF document from the URL you provided to see what it says about AI.",
+    "type": "text",
+  },
+  {
+    "input": "{"url":"https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_013gia34XNKyTfwHxaPCKEVd",
+    "toolName": "web_fetch",
+    "type": "tool-call",
+  },
+  {
+    "isError": true,
+    "providerExecuted": true,
+    "result": {
+      "errorCode": "unavailable",
+      "type": "web_fetch_tool_result_error",
+    },
+    "toolCallId": "srvtoolu_013gia34XNKyTfwHxaPCKEVd",
+    "toolName": "web_fetch",
+    "type": "tool-result",
+  },
+  {
+    "text": "I'm unable to access the PDF document at that URL as the web_fetch tool is currently unavailable. To help you understand what the document says about AI, I would need the tool to be working or you could:\\n\\n1. Try the URL again later when the tool might be available\\n2. Share the content of the PDF directly if you have access to it\\n3. Provide a different accessible URL where the same content might be hosted\\n\\nIs there another way you'd like to proceed, or would you like to try again later?",
+    "type": "text",
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fixture > should include web search tool call and result in content 1`] = `
+[
+  {
+    "input": "{"query":"tech news today September 26 2024"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01Qxbje4duKBes3Nj42MkZug",
     "toolName": "web_search",
     "type": "tool-call",
   },
@@ -75,236 +202,633 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search > s
     "providerExecuted": true,
     "result": [
       {
-        "encryptedContent": "Ep4KCioIBBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDADUUNu4L313Df41ORoMeuawBfXo3gRCOLlHIjCrwqH7eyUcTYYzK3uGMir+55P+7F3DVFvMlpWza8wxKlGxFe8SEzZvK8sliu7L6toqoQmPOqy8Ovlf58WF7WiqWgo8K9zk0OZPm3k7xiIMJSS7jfk+VTAD+oS7zGeyiyxFXz6tJ/ehQ4h+ioIl07T+gMtnzvItR0QHlM8V+DcmpTDlYT0+/HqF7DD01Y1Vb5rq+XPTSpeT3zZKlUT5kcdnJib5uiBjbg85Duj2tNTg1PlxOmr8WMgpfM0rqhzclh4O7Hws6bAcTIYHwrFy3XrFFZjV4BrIKzAV9pjGfRnSYcUluLZ9b1rdOP/Rraeyql7/qVVsR9iOeiHVJXAIwy+fGDbamEZMNdCSfrqKXR59+kNxyF5WQ8QgVH0qLqzKBEmzwHkhtB4PuWp/kotLbtA8/nIUdNqi2EWYIcHZ/KPQq6b9MXnDFPvyzjEKAnCRHQUbKWfM9TLayLvZja2E0CYbck3YbezBpYYfyhf+euatxFmVv00X1i1GEd4fb/PrnP+4EtvDHYpLgcTzzakSpi/E0rEZf7wh1Bj8IFlmxoZeP75aJxvt3w43qEXC6aB4PuLZlYY4dFygS63ijxHvPHleXTSVVYjJJZyN1MvVudgvTw9sTSzC47PIPwJNXTN+JkSYcajaq+UfEviPE5qDvqRqorRwIeaY3791D2vhOb/YMCmQEIRV2D0zRAh0t9GJNBVG9o9EBujURJobrW0cEVRsc/dfi4nQsM7jZ6cgUR9uoqPtaP8dpk67CUiUTfTNyIBMhr8aXlk5hdY/iK7Pu+JyStkplMDl3IPdXdhP3jz3xH9KcduHlPtXnhW37IizPlx8wlaQcUxG8bDLyHyH9SF/3SkYP9SWwT3hU10/qrsJq2ka3+YUkqu5EIdOv4ytFRYJbJGF1BhS/dj+Rh3UYRhuZCBxx3o4xghboFCamMhrg75AqZwimgv4ouo7SXzZSoW06l6DAZJFB1QgIia0LvuUDCc8MiS79cpWGIjg029yvUx1mefHIpbqbCVOwECmLj2doEL/gqxnajD7KK3RGYuDobT2GTwO1+YwWWZABWm4KIAGuB9LcPz9k30K+KaVquN51GWR0h97p9HtG5sFbDhLkl91DNQ1eWI4GGEFoUM2Xzg/2k9rpg4eh5MQvvZVSuFMRDih4/MLYFVl4yDsBfehoZ8niEXCV/ObPgUDy6enIsdQhp8uFI67TVTCYH+EddwsQ6z8yRPQChxNnrTsUcTY9msqRXQj5lMU4p/heWh1LU+Dc/FwsaJkj+luq4ziounR8fFI1O+S8iiN+2Fh1s+zoMknaKtXCqzf7FybviFcPXahHVHfmeyg7DhhDAjpJouva7XoYkCpvCgh8TML4h9HynNfKDQEpPFqpGzt360ndbEKKEZx1R7D/yW3EA+mlR78gAv4AHzf4dwqqyqH6jOOVwwTl6sB+zID7ItNPyk30t9YKIjCoLfzaYwOicZA/RWyzzxWmHpUBC7NaBnY+LFMge08e/AKqzluxcN/mdtYMLDOqBweXvPUMWWkwR8aA7pFH6NYsllOm34MOgLm+Z+pclrkNOsGpV/DrOmP5uCSkJgJX1e3EMWCsOhHVUtPqXMkeLpxNbEKNzDG8aIsmA9DblZoXuCtWfmOOE+L7Yse4KfmY2cYAw==",
-        "pageAge": "1 day ago",
-        "title": "Stock market news for June 18, 2025",
-        "type": "web_search_result",
-        "url": "https://www.cnbc.com/2025/06/17/stock-market-today-live-updates.html",
-      },
-      {
-        "encryptedContent": "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",
+        "encryptedContent": "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",
         "pageAge": null,
-        "title": "Markets News, June 18, 2025: Stocks Close Little Changed After Fed Holds Rates Steady as Investors Monitor News on Israel-Iran Conflict",
+        "title": "Latest News - Apple Developer",
         "type": "web_search_result",
-        "url": "https://www.investopedia.com/dow-jones-today-06182025-11756849",
+        "url": "https://developer.apple.com/news/",
       },
       {
-        "encryptedContent": "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",
-        "pageAge": "October 26, 2020",
-        "title": "Weekly Stock Market Update | Edward Jones",
+        "encryptedContent": "Er0DCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDLsZPoZiisCIn9aRfRoMUzVJz86FgMrEYUEkIjBkbFhYcya8sawn8p3RQeRY1tRhIHqyvFYTCKE3BBKgRGahCSkWeqIOFdG2mDgiTR4qwAIOkz65P4t0tFtisRNBLUOX1YUmI1iBWeJevolZ2/kElJBUQGGC+8xGx2VncEskIMyslyAwhwggtFFETYDe7bS2KAvgYdIPY4AwHzwOM6Vvjkd0LNtN6B/wrYtOXATCxwQWPEq+DmRuxa0ktgb3ExTIyccqbo3fPr7ZRwZp59+Hm0v4TMQG1y2n8y4QSMgGXiUtUgHKajDdhF6SsV1gesr3OFQCaV1OJzV90vv/Mlthyy58+CEsxjTec/eBNKXh4omjPAMz+m/Vmobj1Z17mH2kZFgqME3/X+v67EbeuBEagwSVk5jE3rW/Nl5lZHLOsI4foQzSPOBc4si/iGMioRbHYBYrl7wglFbgJf34cArX1OAq7HePnh7syRX596sQj0VbzqWzismm08l9RUulAxMCnjWaRx5elp61Kx/g60CnQBgD",
+        "pageAge": null,
+        "title": "Daily Tech News 26 September 2024",
         "type": "web_search_result",
-        "url": "https://www.edwardjones.com/us-en/market-news-insights/stock-market-news/stock-market-weekly-update",
+        "url": "https://acecomments.mu.nu/?post=411647",
       },
       {
-        "encryptedContent": "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",
-        "pageAge": "2 weeks ago",
-        "title": "June 2025 US Stock Market Outlook: Has the Storm Passed? | Morningstar",
+        "encryptedContent": "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",
+        "pageAge": null,
+        "title": "The top technology stories in 2024 from the World Economic Forum | World Economic Forum",
         "type": "web_search_result",
-        "url": "https://www.morningstar.com/markets/june-2025-us-stock-market-outlook-has-storm-passed",
+        "url": "https://www.weforum.org/stories/2024/12/top-technology-stories-from-2024/",
       },
       {
-        "encryptedContent": "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",
+        "encryptedContent": "ErADCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDPVpfPnAq0Oo9MMD2xoM4GTpUyE7FY2B9eNEIjAVou+i05l/V7+egSSVUtR7SeVJmjmrv1D51jg1I2gKRcn6fuoqSZC/FcL1d4J5SvUqswLpQ9yM+HkAjUw9i33TYu2hxZ+iUyNo6+WTyAWhWQxU5mm/Ncoai8Kw8V5dRo6GSlZrbHHNrcPomocRw1N1vEM20OYOwxQx82qt6AmsKR3EBUz1+j+7Ta0YPszW91mDueoFORNVV9BzQnaZ0Z7R8J0dyV8c1fZMNwq8rYjhTomBZDiA6YW9uuekus5v6IDisXajmDGjPJeEYNuwWdCnEq9NFFrmtAu2SdDq9EndUpNmOx8ClCIDb+BG+CSvhYrhZFyspopWAA9EZ1HRy/SS77yZcMkaafm+yGWBsSZQHxTiwGBDbyzFmq7HkDmob8VxBXuisyS8FkTjiG0NECT0Ez/55Cni2QosmRxDzDY/76je4nvKUARsRyh/1XLp31wUk5UPVvmy35KP0BDjVWSIHz4r9elnGAM=",
+        "pageAge": null,
+        "title": "SciTechDaily - Science, Space and Technology News 2025",
+        "type": "web_search_result",
+        "url": "https://scitechdaily.com/",
+      },
+      {
+        "encryptedContent": "EvgdCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDLEWYKsyXZv3W5FMKxoMWZmXFkaI1PXjO2sgIjBK6dJ5QXJZR+xHUAalJLC/PpP/OVegWoKjLO8msX3a6DhAaNuncMg2v9Est2y7CWEq+xyOdV+fcc0uc/49Wk5ih7EXNmArU0/kwvl0slHz1S++leG9L/WqCE1XvFUOpYBaYO3XhyDbtRAcvxn/D41ZoNwc16BA3wcNqT29bnt3M9jXyYmh7oXYGYzmRT8ciSPHo5ddM6LnCEjIAvUjRxjiKaFilCA8r2dRXnKKykWnuF4Kz10lde1HAo0uyRz0mcfHqznY83+6FxnMRPPLVa5ELKADxvoZhpfyMT2unqH0ajDkAmj4hWAL2a+KDldSIykk3YnalzpaV/RrP6IPo02o0l9PR5Cj54bN97LN9AHN7+f/zfKE5vPVL0ymhREwpRYJ6FEe5bwI2W7Fjk/IPNRqnmDCc3fMXvYfZPqt6RQM62J8tmRezbUVp15kc6GK/YYqCeLJMD+kOIjnBzPOQbwOzueKmAVGbL3cxyziHoGAHEeXpJTU5Vvuk6jUnSnMKQwdHL0tG0FfnBRhtXARLx7paCd1tYS4nExhaoUviB7YbirRNHU+YMoHdp+0DGxWPrUWSRW0NYRwmQpvMbThyiuoItNBw0uHxAHbzseMEnOCJ20UtLbujfxhbSasGywzqifaKGd6IaMXQH3lo71Ld8+QTwrSy3rf3c6/p/5eAbNlaJh61RL8OjcsKWEJO9bGhpyVUNi88z19h59eE+1E6QHAjRroNp95JlvaEaUGaFyJ8XHFgeXyx6yp+BIiXZGHqcB3Ny6n8nUL2bn23JuneG/KsFwlFU40sWhp5v55DI0ItWe/QuNTu98+Q1Zc0RHA85erGp4LqjOm7Dm+ZzjHh4PUspHdCVD4bf0X3R01/Z0ZpydrDoRh1L5dp0zSrhf7HMdAnTWX9H6H0mTp06kZMAvwc0WSjWd9Op7W9oCyfdmYZjYPtldpoW1MHTEPIIM9dUH+LrXnEztsrtc66MyqEUvLueNy6SbBJZcaS8tvxlX2z26pyF1vMGEW4cKrhBusIZSIsTukU7gCYTrGykJPATM7IBI3PelqwONu6RxDqKMi/qyW1q1tx6TZUY74M3HT8BfM6aHHBIVMeGjMyqCEZ+zyHV2ceLSNBSHs8NyIwq+A7/Gqz7OYJ78RMslV/kf41RweiDyzoCkBwJS9MWcx9Ad2o+8bSPjFo1PrVFW4aYk34DjGmozYH+rOUiAbBUCzZYpQ+7og9rgTZByFnqObZoYI1jQ3+iRp1X/Q0qGDTky1M6kjw2q8n/IML2zg7gRk0LOX4SEm6N5Q/QXExGIIu/nzicUSHETKYblJPK1ezeQqZRzbtCV9fXEPlWTOIxVvMHcSLen9DquC1AtvLF1z2uztq8D8rT+3SemSHqrpPa5usy1vi22wwkEn867fw0RBh82eR4rNvIZBtP2tt0OOK/E6/HHR2x23sZk/mzYH1S/eB5TfDUKcsqXYSoEDSMSy1CErM8kuidryAStzslP0lB9s7ybpntT0C5xP/ZOjK0/XndFkcUPky66opPRRdlEs/PXgKVXx0wCrFAqehCjRXtXz3xvNhcB0qSQIaIe6MYrzqCggUClZjdvPUxLmAEJJFSfMcewvgr28Ego+QpzFxNzJ72T5C9Jw+1N28n8MTppZoOlfg+MmMtlInyhi0AbUPCe9BLZXD6Is1uP6cS7Zkf8e4Fb/4iCMMrnhzpWbuxbdeS3Z5gvYjcXm6MDC8Z3iEUQpxkGVtZL4dX6DUBRWaMSIoOwgae5beuxvmdGnaR4CoLEtQMJMi/loXBUVPqm7Ro8ixWfEeBVYPPVQ++te9z7MWgCSaCTxIagBv27WGt31RH3Z1QI21TWwAR261sVd/ckqLPryGvvEh3iQHfAawKULzl8i0tgyoV/RjBuX0/bSIV1NQVpVlNNb74gXhmXhbkHmzJmhlrSi1wa78gVVovJnuTcFIlf09hRaH09p2ix4QLjjr8gqhjcMRDzshSOEYvGMS71a/sOJwuvCJ7d0RO5LnQE1I2A1msrFCG6J+llsEqyN34CL0UBqr5Am/o1fQTmEBVCvCZ9ys2oPv/jhBkvUUxqUIytpo8AIq1Y5PTsFTnZHjhx6FUR2uHv4sqHWChTRoJPfgX9+KavJSGPRNM8tTrTADXfJqjfhfsUMceAUdICtPqnnoNP1iqY2+CF4Nt1v9yFMkG/StBZR1xuBGXuSK7VNKKiTkEzY1SisWzqXbzcQzMehFpI4CarRYDvsq7UyWt0WvjDGjvGCwvk93jra/UmsXi9TT887YdXu/UhHRrkDK+WBg/W1r0EfxVdJW6Zylmo8ompsptzHDyuB/NNjYB79uTQCO9L6MSVmLRZMJl4VJu4x5/xCrxLhGGNyCretpdGabrZLnntvJq81PDs1fIKavM3uv2ssGOAwo3PSu1byhyMgSvRwI1Yk0nH9yJc9iK5vNc2gCoXQm1TruBQ2K9BZJbnQft9LBlOw/CFkAJoYwULYt0hsJoUcrTui2UVrb7QbTasXagG0LHhz1s8s2bPur7MNWvod7LMW93WLQgxluhLScE/LMXy/O0gXMdtj3nk/U+r3YYLXf8gjriMGoJzLZYHlLWu2p0pY5gQwTgoIY6qVYA9nWPz2GjURbkrWP1h6AJNT5W4uMnBuGVEB7q+VfwHT1jPjltK3au/9FSXEXr7ONS15ZAru31cmkXsqfLyrVXE92oj9PjKJpsTiZvN0k+AlKBEvohqnb1in/gYGO3VK/YK2hHwHl1DMVB7LkRWmxm5Px5+LXwYmBc7Zm8D3jqOHmrujfuXf+t7kTRpqIOjBaBvBOyZQw+6jZaz4h/v5AVyPCGmcrT/yaZ7EUqZ+jSXPZEBcysykq2zqhEhIEoJC2Bl676wsPlZz66k7yWkcetTbfax2vSrkV7mUbgBADn0wrC3o64o7sHzIqc+iCrtcyxOT0H5r+NbQkHgrdLbVrK89TR5+Z5zZyr99a3cJ+1aiudAWtCWCuic2yqzy2Ujn1Js/ceooSOADTtmdImKCTqAJ6lIWYvS9QLBpDsV+SkTIgtynjjamU01ZINL7zkJMaVg6eRBywcdrumeOGE8Zf31d7xAc9ACKnFcpiXchrlgJSfcS6xcHyYXf+8ir5gWkYsVbHppj8gvcDYwfLrFTXg3YN5jEsABup9Di9W5I/YOENaGwfyjC1rCgVcsPok4R/3CvkSrCYEVhUKw5SpjgrJwvNGwjTwIUnX7LISbogi0Ax8Mw2bUcUzhNgmvxgVd1+zX3/EbMlCbaTRzvFoF75GdRu0tKZzx3cMTUwBopIvbyiZ3cWC/jO4iAXIdPaR2QA4R5iY93ryFa3kF3EL/4r3O0eKHk2koVvahPubNAR2UGdu6xJe0HdyjRCEPf8GqxTXunsD0QKMNr7HDUdnIY2SjSlh3O1xaGp4bPiKIhuP3ybY4fXSb/6I0Xgskf8q2b68idCWyKHhmmLnUll4QjJ4zGPttQVNM4AWU2fBRsmT4BtdnFZXlGQWyMgJv5Z2HI4YN5aUqvW1ryUmDwqzKqtALKmLlUBBixlkytvmn5iOlpQe/Y5nBx9D3ZdiF7ZOW2FO2WTISOlwZVEARHxzAivZCb01vw9akz0RLDmQfTvlJ1L8F+C21qLzfoG+YW6sOf2j1MrkMNva99WgIoxIUJYG8QzXQTTdrwtngoRh/L6m2E/ptxvz4wU1qe+awRVLaDGFoCZCAHWlNtzNlwDT9lW7Moyhp4pWe1oKOmJnAt70BGEYjcAS6NhuS1mSqT2FdwfZTo4Th8ASy9B04/MK7QspW5qQ8BdVeuy7XXqV0JvKq9jlZZebP0TGFQBzr3NVU8PAMR6VNiQgtJRdx/ggZCUmruoM+v6Pnjclx9ge9b0PA2+X5w6A9o0v3lL1xYUSrwvkpfynXiU8nC1HEwF1Uj5Z8f5gXxdyrIU52N24mbyDRqtK7q7T8dknGXkkzQPSDchVF7FeIlOm83uA3MlUrZR7sY59Dyje7U5oQkIftAzAp1LwePRkphokge1DH7ub/TRSc3px0FWxO+kenySOzNAlvaeXznddK2Ut33AqmsAy/USStr1u+O2LfJZoZGX4LavXe4Fii44l3NEjr7cgSKNhecrX+EsP8QONqdoQ1QpdyBEZTiUGDXAvSFHrCpq4z/e17VjlUpvPsAhR5vahE7xBvcJrOQAybjLU08I8CiXokPLnKxShqyyP9PcH//WSes4Txnm9OQ0RA14ARgJgyWlmx8UPqwE4BUGBsBoGOumPUCP7jFTtYgrKZFIgyPq2sMYXcXvaeoQP95XjMB0h3NyrWf04QlrlIOGy+3pHjwDY7CjB0DAbK0unJ+ezycbpb6EHX0oIG6Qr4r7kEO5yVPB2Jq5CQ1sJ4fXiY6G5C/5ua9CSpKPGEb0afeCj8G6iBaWzhqaAcup4hj0Jl+k6Xd53LBrCCil2wrQkEaOSNTJL6d+4AZDCrHWsV/h2pSXKqfWOwP50tQz1n/qSnopA1CRQGETR6MPF8vzUdzT24A6pGSMc3LiHY1F8Betqv/X2l/+pyOUqQFcdTYB1wqOUplOFjaIZ7H6Bol63vjETjNedKcDhc/UlCMeX1lPgV2a5Bh7PGIwSADvT4djn7uqyqgLfhYHPqs0PFZTN6VE2Ap2WlxJY9pzEfpSqqga8dfvoTO6G3UClGaOPq/+xPLvuvsRhJ7/6rvBE1d3S231jp9JGJn5+MbWR51xvmGxhVNtCpJNDLalPqFN3riXPjNDRqyFaPULUmamIO6dEz+ulmVFLzKEL7SSLPpAKJV7ORcM946DDL5cGn+aDQGTeir3UvtI8jF5JFOI0Jn6N90rRR8hBxwXHearLCXPe3dtgoon0DnofS97cbtGg3gKLt8jE1g8nVPqBXvITQUFT08TTwJM+eW2rdo6ZrSAmfEGq9SIyEdTOH1+s4A1QHfwAXxs9GXfslXakChdvgMZ4FCPzh57bkOIg1fma8vGZfHQJhBt9DMqLmgyrLNTBiOW5pZSL7ivTAjbRZ0xx3NAhgD",
+        "pageAge": null,
+        "title": "The Latest AI News and AI Breakthroughs that Matter Most: 2025 | News",
+        "type": "web_search_result",
+        "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
+      },
+      {
+        "encryptedContent": "EvsCCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDEcLID6voUYxzt7qKRoMLCXbUmjOMeC7FmSjIjCcONhlvwJNoFghaeURzqx/KRbVNyaO7B5+wbjMnoFPifzt2sXxM6zFRa4tJaEe43Aq/gF5XgmF4hcfBPVFCoMNOJCmuj1FL3PfRjuLpNVNYTyOmFFCHc/v8ZVicVgmXePDSE+pynx3kXe/OIgB64cfdVfgzf+zOP85jyPSC3UNV4e/vJcnOAR2C39pQQamxBgffSoK9aLiu5yrPyERN+f4wKOSuXWCl6IkZwg99Wx4RyttUvmtavl9xFH4fyRW+f1lrF46ZdoEl/Lsg6jyt29q9HBykjkrG8+CpgrpkpH+DP8y8kt23TMdVT1bA8itPPW8/1KWz6ymJR3kyKIGuU5uWUReh29fOHLT0jC6ugGyzIg/NAP6EM6hX11hwwVnanaM762xlZnQeAsavEe61n4McBgD",
+        "pageAge": "December 21, 2015",
+        "title": "Technology News",
+        "type": "web_search_result",
+        "url": "https://www.cnbc.com/technology/",
+      },
+      {
+        "encryptedContent": "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",
         "pageAge": "2 days ago",
-        "title": "Stock market today: Dow, S&P 500, Nasdaq stall as Fed holds rates steady, forecasts 2 cuts in 2025",
+        "title": "Technology News -- ScienceDaily",
         "type": "web_search_result",
-        "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-stall-as-fed-holds-rates-steady-forecasts-2-cuts-in-2025-180946600.html",
+        "url": "https://www.sciencedaily.com/news/matter_energy/technology/",
       },
       {
-        "encryptedContent": "EtgeCioIBBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDK8VKB/m8mhF6Fm1PhoMRaDQ/VAXJa/msf6KIjBvNg1V5km16TbXoeUuZLhKyWY2yKfAWvgZ57kotAOKbhV2HENP2mKFwz7TD4pzifMq2x08oG4gx3+g6WPLr5lbS6NlHMQmJNlkZRiD2grSFup2cbfZFrl0XBj4Q1ob8MfZGCb+XqTXOa5s3VlD26BHhy+x7goX5xJg/XHUz3NA/82sJYbStorclU9ZYrGJVoCIvrd0/ZPSm51oq+FUX4omyA1X3rpfoAErAPesN/ncjxwalf6TmVCGJt9m8ImHpUe4EXLdymeGJQ7iAxGxEb3iu+hIRGg+yUjxqJ+h09kHeEz0yfx53LEPobwq2WPu0uck8H6MTyAepaDN74grhhMt/Z8cZQwgCT0gil4t/lH/yvW2/88Jys2vfyttGkvrK9mlAIBfO5W2EReGHGtKFQytONVF38yBnQHIfq48IWfiBFGEQNifmElH0g8v94RMsdy5yM0sD8gQIiWrNR4MJDfBZpKs5DdsTF8Cc3k+bMWLQixe3JBcFfGW2D8y55JGJy9bQdbw3XtsSqCa5Mdvi0fkOMxVUwavdinErh9vUdb7aXKEy0CmIs8UB/Cb633pShcBkZh69p+fmn7MArGEXpKII700UxcXRPUhJrCT5LzC9GjibfZ9gi40qXxrRvgYN4+f9umPoKrYEZVCjAwgcj+m1QKzWqp0K805DX5l4522k09we3F6n1inKS2+/ti1bITRx1YbdFPrDF1Z7QJxFt3kI/HoSuuQqSWU5Nhep3lF7dEBByKOUhR082G16KSTDe0Ow5rdT4mnqlfX6IXIeV8ds2oCQZsgBEK9vj9oT8v03yKGLqq9UDUX1qqqA3cWsDZ5fkrrNaleroJ5jssfHpo08ajQOSJHSpuOci7pUdKaQfEf8dBag/Sp4gZdf+4NmBcaiR+fPnT6T9sSuM0Tt2+JzwlAxCGrADqnu3EmNyNBjw3lsC0U7SN8FPIc0oaVEAXAmYH/zcYCF3lXNASP3RSFgl/cqSXy2w2fvxTaCwpK35sIK5I2176NUF9kyqgcK0Axq1FnA9+rdTjmhR2aUnlTY68YII9EULZqx6PySqWj5wkehbxK486XYwdW9Sw/HpMqJQyms//q0k+AfemGZrOV9Ub75XsPWheotGg817xXKNZhlBADxd7jrAfxC1IIKcl70rdXLx+jOgV5zS/xdbxSC7L092cxV4+JXYXWhgXt4t5XOUJAgg9b0lcWf/OoOqLjOYCtQBDQNAWOnNR40LjjrGJ+JKCLr1ffp5oD3Wy9WhL6WhPA0Cf8dy0BeLOd2cCzHZszwJ1mRnKOmSF4SOpRtqiSWgb098Gcgi/EWh5XGAiQ8/4vpb0ZHcMe6K/UDPQOvFa8rh7mqjTrt2SoQcRSkE/KLr43rSKf6zx4yJutrnNVfsscyYVnJC7x+73FZA8yauV+eYS7PA9sADsRHG7vztinKk5EFey+Gu4F5wnTFv8RqhKXeouDIARb6k350VOTqNYY9GXGmdCD5XtCO/8f5FANUrGUuv/+3pXUer2olZWg36oJbpuUiKY5DwaADQMAUWNpXPKxySDKjJAWVL2/QHpM9wXH+pf7e3WgvUhpj0yP/hOAvq75scMFoW0++MG+0c11ZE+i6cTN7uMhtfdEIBtN5zalkr93eCfex1KKo1aSVa85xbTX8rTO2qmrtXNNrXAmTojTrH5mJhQt3x6BCcjvPi/RZuFN52Mk2w14NUTCfOVXLrFqT1MzZgoGp6srYP4AAYaH24mthFC7IOa8ziv7i+CQqNg3xMs6QhriBaFWEKqWG1p0TbhQXZIfCOLBJvdDvYXh1BFyNAS1r45fUzWadaI8sAq+bRmO+Z5PEGzfr3iqUn55k6XBBYqU24ZmgHpRh5yTxUkij6fAMt2bqbP1i9yti3ZwqQLr6hvPtOKgxaEOf50MyD6llJLByvIno49lu61xrvKc7EEbPAKSV7C8ZAm3LN67xLhTZjmZMn12wnqV2kgJtHNeSUKkvih7Mjwm2MVaDmtwRXzGYgk9sX2kwq4EsZuzupXJjOmk1xbUzLYOBIm9+x6On/6F239/irysHcewe388Y1ILBfTSqj1j825GtdtQ3MvI6K2/wyAi9viuU8YcZtxhO6OR2LdIMQfcd2u20ZYfhP9QJe71RiVckUlbPBiR89BCwxhK6DaJlYS+kHlkY21SVDAk3oy99ISM3bFwSxun0AqyFEtO3g/cjxnl/AOLbYI3R4nLSsyqYFNbGxIMmJdOin9MtCDZ8QlPvod+shDMK49k4B7Tw3SDB/dh5grj0FF74wV9AKxG4XBx7J1wFvpZPAFfAXQwt4a+KimY8s8FF85zPVXOoH4lnhpkgkT219Ps1oLvrzz1FIuCxTYj/+8aO5d/KU+NIkycXdb411XDcX+BZjqkJsPbqStieLA9PHlB/6Y2fs56RW3FcPywwH8S1YIa9p25k3d7h/n5Bz+f8EZnsJjY5S8HjwXpTRoZdGyAXJYKkIE8aciXvRgLgE9YSC8U+HwZLQeeqlMQHedUl4bkjoke+TEduQCPDdO0EX0dW0oy2U81i0bY0GgrzXwiWAvCvUri67B4bzbOq6fgMHi3zlBMGM6xntmvopaCpfe3BYp1KQG/gUBBpkDXVgMsjkfJRU5lC4bZI5cwJYejQzSZB3kP1KfglJF8uBIooKPMWRg/Vs/JD/Xo+E34okOaPxq4OLit5LCrlyrwkkXRDddWMDIS1iLaiUUxguu6bxlVIOiqaWUFLEb4g0pzY92OGcVcUTuaxNzRPGNni2+NDSOGsGJDKGlPQTRIcECCidXgjsXTyrZOu4WrZBDgq3+zVU24gYd1J56e+/Ywgws7LXjlI/iEEzgI3HSPIYvnsFxySflVeHx5gHonuyBiywR7zHxCKd+/gnYGYm1NteAC8kLqxq4LFZw0spR2y4I6S8OekLWndNq8YEHTlwr+IOWIo6eXugCvf8guiNdEQIXUPj1z/Ydqrib+2FtNnY/Ejic3yuuhgNpUMDqYTcn4wCHIa5ukoS5PONJlH1KMnsLCouT/WU1Xj9nsVBWv1wBj7Tkitjsk/o3UrcS4JzuDABBM23uQdz0y2CrLBkPDBeKClQ7NJSAWZ2UlNRQGjaJ8qsMCBSGuXaMx/L5L1GKqM74t2S23C3yS6PmSPlsemwpVO4YQg5p/JmHAOqBj9icmiSkyStOVptL+DH51/qqOYxnYnuhKhjt/dxNTfiWo3pcf1dKioUFUsH9X50zX0KmfpTJhkScAhJf8zRiZXt/4dCt8B3RTBb07CBRNS97sf8s/1PJKSlJvX8CUuxdp/JQKjWD6Zfbz2vAcYz7onCQ3x34w+sZLiNOrQShFKSvz4+mx6pVzguASCLXsFPcThnl0k0RHCiFUt0RGcPNJrPvLr+thdMhEW26mCiE6ZcOx+vSO+5v8/YdI2kRH6fTpTSfuf6ryeGrWGwyjJS/77Km8aCCQvl7m9IhBPV/+PF16BkxgFoqKTNCatId/pXif4J6ayhKxr6s/hn0nLvXpglzvTP9uoQXMyVfebzgbzC4Qoy6oIBcSemjURxEBtrwMUn21qeMLlkZ0KP75zWPqMQaMBVjz6oBujm/eoX0TCKp4bo1YuYleqUrjic+J914N3zy7tK8XNoh7UyT+qSbY3lvChV5gNYQeqdRvFMGLL8RKsyzONf/Kn+pw2lbOr23Yy6KY0p74CKw456jBLbav1RX6p20EdWSrkI/3LTZ6hvRVTD/cPnwUQ8V3p3Rywb3NaMb6z/R7Xx3yXX0HKg/nOQD6YgQVuLzXmDK92c923C3/vM2TaxxqTCisacR/el/V8tbSreAgdW10dAG9I+HKUAwOwMeW6pWi+eE7nuycmBjay3C8mhQAzyBs5VjoVINdnAvZ+sCasPaMpR+HpMuJTj/hUt7CADuCbg1/D4wxJOP3i1Z5+es0aPg0ZzJkLmMWLm3gtKh4W+Cuu85G/Wr6YbEdDVn2Iw866JkoQ3mUPqv2kcHOwC42+aFcIhAA/GA7hYTYsjRsB5Dst3LP3r42oGjYtPGkexn1c4GZx7C1rcvcJxijj5uQ2SlB8lrP35HBxN+fvfnMtLgWQFOK18qS6cj0cTdMdRTx+jlMbxZMniRJX3GS9R2C4PWjFgIuVKZ3RR3JeXddhWNR+XDB/cR459olzMnyYQQUZbz20qSqTBAoCM+wNXn26J1MzGYLsVo/9rScrv8y27qfCWhXcrc81YgLF+L3uP0qshA0PhkheJ5HLrRKfuXcAvnx8nHvza1/iAe69MlwgNBeJJktOL17XRt73W42I3KGc64TgoPa0ztgSAPoBHEvafOLLoDFfh2bFAubR1O6Uc8rCPXOfUzvLjcYOrgqbzkmmMKvaKDYlUyJAeTm1DuCvYKdP2heZH7mkfeS58yH4GVx0JZSriF1VMWPp6fy5Zw1d5aKeFCbBsixLVN0RqDKM4CqBO0qzV/zaoCPLxS0H5jLRyI20ko1kOK3sRffhUbiTcJcXwi4QZBNZZvo4+iRT+N//mMQifX2c5gPK9gyMqfQUsGkt0WhK28z2B6+58cn1KI+jsdYAAWq22Rg5i40L/U96HHpcrFWkS3Ro/bBNFcGjKgMK1ROwRAxm8O3X558jGcU9R7xkYIqzNKcIF2qlvna/rYOgD1nIM2A79JKqFPyOO2NjfTKEDc7BdCl9Pp4qd4A9tgpSjvQgGt0aRP+3caKR3+7Yer4A0CBZjnPUlsAI8IIGFiahXWrRGRFl5Cbjc20mMgqAchzDZNxmqwKNyhUEG4u7mFn26xGLrIapoyjEPXvbu61kh1KPbqXCfL7gvO51oDL9MAazIKXB6XK/KoQBZv0O+FbNl0eNaqigDfujrWOITk6vtDP3bwmA0jH4e8W3TkudWBI0L9bLVvlN56MkNdvtWu0yz4Ac84xHw9oE1AuAmUFQzruGVMAd8t6Db39uuqDrrOF2bxsUAlgwJeK73TuDybMpxQtAW2ovxZtMR34TXC4kt9jy89hYawutZ2iKZFdby0R7PSj8ViG6wzsCpPzbfWnBSHNfYcnUfuE7POmCedwmMuerPRd16BwCBT/0Dk85pr7Gy+jS3BksMwbf4wz6cYqHPue4GfTZE8O4jtEUIsKaC8XgshrMUIu+ilx3unebt14tPwH74mLBRgD",
-        "pageAge": "2 weeks ago",
-        "title": "June 2025 stock market outlook | Fidelity",
-        "type": "web_search_result",
-        "url": "https://www.fidelity.com/learning-center/trading-investing/stock-market-outlook",
-      },
-      {
-        "encryptedContent": "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",
+        "encryptedContent": "EpshCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDOJc2XUnySTlC5YXDBoMtfHBaZhTDAYf1hegIjA3Vx8KhxnDDPmC84aqX4i4hu3jxDBuGlgs7QKMbNFHA71t1/lPyPNErvGnBvRodO4qniAAzVtI4Pe40bGsfTHQnNJrrpc5M2ILQNKCTOwrt1kp/BrJZkdVdMWxoGrYwBSDu7WL1/vuzHn762mytZFjj3Dkvp/k2dkv/U0ehcWXIsLBzhVOh4f+gdyfPdBrcfOLtGQOyEJnCoe3bLdYoihw8XIRz5yjfNCz4QvTM12p/ZST8shJ0s+At+RjR+E5K3VS2DSjymJjETogUctj61wj5ufizzMnStpiD7XFX+fvPJKltoZ7JkfYQle3HN50Zetx22Pq8LMJDZNV90K+11u9ABgdRM8dZ7Vzh7JILEuSaTjAJHgo7R9W1vJVcIR65o8oIgokHj5zW5rzWKFzerk67vHgWOxZq5dg1XbXGzYWAkUUN14uo7alzzjQrD6J7A+aZCOLEmfFP/N9CGwwZcGkbjAti3lLu2hbpLFR7FOm9fz6IZQ6qMo3rnevEq5tLEFs/7yUXLxWYbknEynU2s+ahzSI3sFWzAjyz4ZB93C8lHzTxNFK8AGVysaWVcP012AWH783CVhYLgTMqxe1C0JNCktl/dyFbqstMlKzKwHyFKFSv+rr59wo98KRDm9Ew49e69FluKiMVjz7rrvaIQhoCD8lNZwUJz4V6pxkYeAw4NfV/y1DuVJiGEBwpKj+CV7OzcsDc92JTUvhLFJra3+IkAsXVzXKlzx4iN4Vb+rR9fAfOV1S26G9yjh+0r3oFPuhB9nrFWwNRdyfywjxfoojo7k57WDHNfXbwui8loLZxTt6/zRQUlordunh0bN4qEtecxQQ9N6LWVB+FqxG07uDDyXEr8L/HFct9KvPcrWGmgmATuCwd2zm56GCMOKK96ux1PpvyYFZZ7gU5E5vWNyD/HIc40lf/uEpRQh44DR+H0wJHH2QkH6BHvmVR93tL1Bgkm/wJIxS1l3qcAG5CKSSCXuuHx0pENNNt+eX5s7IzeUAZ5Iv976Iec6bRYlYQarJ/n5NSKUXOvXm3yx6oK/aMP6RB1iiB0Vgv6p5KIR38WvLVbR/oBua8FgYUC+CahFIeTQznBVqW2iBxOYBfOZwcZ+BRwJ4NJbrC+W1LkMFOQyw9cCtl6LOcnBowd2bs1L8OGbcCsiaaf1YqY0z34mbYRQOrNf1QB+A5Qa+DCbZXRy3/zn41Nl7zr9kK675UEGIGKk2IYeXqnG9bOHK/K5CP03nwD4WOeU8L5/IuSsPjqcmlmOGHj8QwmTMnbe1+8AcxwTZGrK2q8E+5Q7+aweb3fnwFKaPk7LLp56XQ3fI+SfQb1Upc4EVe87looV2zMdHMlcGFfWxGYlr40SbB5rvREoZK3SJRlCwn/ryCc53LK0yOVrwkxiPSFtG4u3ItHnJkCFx0cfGigP/yxIyZSOuU7uoI88M42YgxfcTiRGIeUcY86yj4Kk7p+OgHilan7MNBjyhYAP8sMvABAo2QU5/XksWR7u6e5vSVWLBYE7oAUJo/v/Cx4EWkvW4NNOfJISDIC5GWcckzZPjNJtVHmiuvr227EMZ00xiybVR6zqc/lL1uBZ7+9OKNjtGS4Je7Tn0A4s9Gwc6nJM81NBs3BvgQqPbfHYgOn/bD/7+N4v8GQgF47P12pFBEV5TDkxPAnpIKSsnUltfnYGVxRNtNccF8177YE4O2z0tPWf3a0bzxTIpPgv2ZDvgTdVvyUXN4vEuB9xWYY2cUXY9F52J+tYFb+nbt/EXQYXxlZrFj39L2gyHDv9ZQ+jdxipIbsYJnpqUFqbN/AoUSdA8gLiwYyotu0tfaxfjpj/9TojF0gHANNRMZDNcZaMiKLj/ABUTiSMGNlqldZ07rOdLKS9Hn7MpQs61CPCiyHiY0uP5G9WvYFSWCgYDgLBtIOaSoPgon1rbQaKs7jyeNMPpWSJZZX4Xe46MioFSrNnQIrJX22HL8dV3UKLxXex77IPULbdbgQjOGXs5nGML3Aj87j9RsYCrc+/SnGZMCtJiXfSjwvSHJT9fYId6xndfY/Tefo00lsI+GADFisWOGZrfPykUH5xCkaXrzI0x4kKTpw6US67wCFgN5g/DsZkA1iG4mDkKskpHOZJpa42JgN2SEFDqhudNAuzvbVvnAq9k60SVH6+ojChiSGndd9G4f3esoYGOcRhO+HpX8boFirIRYI0ySgCjAc4X2gpINJD1+F7mm4XmCrj2UZTLTlRlWBK5ErhcmgsHOhqpP/Xlc/77nxIkHKWLbXlgW05JvIIG8gJQfBrdnfvMQOd7Yq4J/N9wdR70LCJN98NBM39paDG7icNC9eajN6C96vDSdpMxEB8RED3hefUP4++4U34F6esJel35LQFARJGQI8TETAPdWQYB58S1NoiGRmqy5SMtyQKOvJelO8mz/TrOtUrY678V0zuXuesLH1THYG5PMzkPpUARNMCqdhw+0ei/QvBLQv8mLipwEP9lEIQkHxixvPK3/W1gxBtlYYiPv9q8hOAPlRh4uY27dacpjc9VON+wFVUDXcW+92ED8QW3NfJBMgE3y5GwOHaZ89Bf4vAQElubRz3moi6wRBXpKT/V05kqMS/e6tP9msaPNYeULIjWDARFKhJa01WLVZJO89HbwWfzIranyC9zS3V6zYuH6mCeSVhITJ0zLqh1KIx2mY/B+3A5lq854m7VhaerrihxNF3veJVo7W4EL+B/kQVB9tTEZ88RA6a8NKqUWffD3uyf43d7SCqU2eYTAKAQXVhAPQCMm/7PMM9o+MavdqblFhee53SS8kqKw1bbkoufpxVDXJnYSaccqmf9lnQnNaKEkxewLTtTd5Svidpi+aP+0mxDHvFoVm6qBYoSKUHs6nlONUsE8ZK4FkOchL4rpfMGiHTI9s+LNb1fwiyD2opKCsjMT4fpol3CpohL2inxHcAnnR721hALwxo5O9nG2Z0eOrgfHb4MMpLqHeuAhC25W94j2kKfLU1WGVGvASXT+N663BE9Dv3DcvKFbZ3dIxYMRlz8iPCtKJ6Npih+mi4ySTqzPy4KsHk9CoF/6va226wm940rPBedf7r22bkiDX/9fn0i2ozbFe14Ge87FGMbBPDAi6TIy47uKOb2t9ClPsy8Pz+S2c6vVsi/vJpcujPdfuMBjgV/DmY8lF7iQBtbj9BO07IRdrFyVxHmAgWsQNa8UP0M06pqoDveiFzdS9Th6ycJfqT0ZKNucZIFlHXtfFb9e6XrF8oFYgFaUKKP6suDDz/zBUD/HTebjiRSe4oK3xMU6Arw/MNX7kA0IUvWi/t/YMMpSJjcdzS1tmeTg4uuvbM3sa5VX7jvUG286ZAfIA6o9gTWhqzoVoMWmOGoDghup18sjd5m/eTl+2h5tJDC81BtnTiWKtJqL2tMuM3K2RosNIUSyjTMLLgorKDCmHBgT+NP0OIW3wsfvVzcBfhWXlPu/RVpdVxDSKkzGc8VQtfBp474G9Vx4qON7taqDnXyBNdudsS9hCrVnnzAlgArsz6e7mH98O2jBxoKOvoMVT3SYUhZf9ZRWvWgpepw971a7ZSS0ld9cKJDrlKD9XuaCXjkWYGDoMN/lQkvOBtybM/PDPdbhP6cpo1ZB084z/T1rlT+fT3/kspsx11+tgu5bETx7C4MOjexKhGZpI5Jv3U//evl6ADxATxpnobKAiXZNTngh7HaGkvJgRT61QF0jXGbL6KlD36sd6lCUDzqpo937MUamOvbOcSxybCMJeA4G1JdNYl0XOsJoUt6j1QAtV80PAzSrlnGhVsMhdhisASZf4CSV0duOwZQdx5MRzJ7vLboTPgwSOoLcSYUgVTwaoW9B+7kbOFXJWTrpGA7Pvp7BjQJL98zVL3sKxifoLrlh4EyQIKyBtHdJ0ZWnmuawyIzgK1EXMq0lztnKUGucaEeJ4aK61fc5UOY4yMLOFi4Cyvj0Z7IBbfB+31xnxK923JC1RznLofIuquHReoXyMIXomgpi0D8oLUKFj6b9D/fS+eJNEfbNnibTWS2se2LxgK06FDg7pnrALtOWeMohxsoWW+dPTpSsa3KGlZSXIVrbcmLBRyceG+JRmhC9eGXlnFoxSzVPJCgPfk8FJU3Clmu1YAnbBQHj1C6+IFGx5/3JcBwrb4xsBGKiYgs0hkHrnqaQRR7tyrhV81CXe380NW/ZPxtc254T25wzl6EUvN7MHJv/xDXAeYrcXgMSfvcYikWly5ChK/xnVIg1dLJCw4Ws/jiYCVfMyKCJ/Q0SxWFSxCmFIZhieaUvLcoOrfPWLWN6c9D3v+ygM2vIC1wjRqJ5PvOywlSsCmSYYUN7FLOVH3tFxwAtv88Huj7T6Jw6Xnw2XgbZf8b8HXU7rpwg4CVfPMkYaGYMOLFN2jrPcnmiBaid77UMJHeZ+DFERCGeyjNKkibn/5VGudLdLEOu2EMTD0WdYfumXLqFAa9F22pLd9Wpef6zcRCiaNZYem56Ltsy0P+pvrhSZnwpqa3C7Hdujzw+W7CjhYmSZlyuycic2G13e5/begmrFoze+axv6On61Lv0KMBVI4BGYrATyJFV2kyRf0nRcjm1xWUBbroadl7vS3BWt+EeFJrBCHiEs0sgOraehF6s3916IqOPaNlAG629GxOP5ApJEDWD4SmMHZ1c6bP+QlNrdxqpvKltxbxm+lKBJ4C6BHsYSr4oNz/PfxXrluVnZkkdLJsGfVyCRVjWmGJLfS0DTSyQq85cQ+A2KGfaZI4Z1iGOVWT2leIqdZ9LbQ1QfjccIPKpNoAI3t5zHhDmF1P1FyHR5g499ltpPAwz7AQahN6HTkBgLtsCXLt0+vgjgISm3zbWjhXZ1p5DedJ5SfMrCaFhE4W6Xfey5p01JY3PfXJUE7sVJrJO1Y+0JqMfdx/uMBrMxJHlW+1SAEjZE1lK7HwoGkWKYYQBs6uO4Drbm6wEQLYOaktfULUR8sqp6713kRo4iqhkoGLhk32DN+q0BGeZiH1Pp862bmU4t9jd9joy5UhWALKmsoa3fHBiYzrITSdscPCDKuXqjPiMX6ERLWHLzjdMQxpWApilxe8EPkuYq/IUhcainMW9xBV/zsW7C89hmW/agybLWON2G3c6kq4JKu7ZNMJwlKl+2SFD8WHhQmasEXEaLmTNaVNlmnkKqo+Rj9MtX+ZCnd6h5HsWlgefDupJTwsZJ22jFcF08tGfZCdwdK7+ycbjJd42m9SeMhmGkQh90oAbHkoqYqYolAUxRcUh13NqEpzzhXC2swVwboUn1JNOjbGmo+2UgTRWjjIY/xpjWjaCkr3qsS81kMWFx7RIq573Hc6mhUkPC8N1R3NkhHgFWhUquvsoMqkREZJIF2GoIcYHc/rRRD7o1ZlL5tfJ5/Py2JSao+QClrf3ufBJAxOhyEu/YUmaMI0rcnKjnlC0MGSqhO32auTg/5RUEFZHBIpOR1sFFcOR+0Y59h262IFNleTgqQgc24WrCRzWKLUwIZ3xdJ4tHtXYZCHIb5iYnAlBkWWpozqwHffshYf3TwGhPEz7RDBT62naxQ2yVtVzgaGB9GsRHHbKFf4C5+7CIpPaIoXmPknGAM=",
         "pageAge": null,
-        "title": "Markets News, June 10, 2025: Stocks Rise for 3rd Straight Day as Investors Await News on US-China Trade Talks; Tesla, Intel Surge to Pace S&P 500",
+        "title": "MIT Technology Review",
         "type": "web_search_result",
-        "url": "https://www.investopedia.com/dow-jones-today-06102025-11751328",
+        "url": "https://www.technologyreview.com/",
       },
       {
-        "encryptedContent": "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",
-        "pageAge": null,
-        "title": "Markets News, June 3, 2025: Major Indexes Rise as Nvidia Leads Big Gains for Chip Stocks; Nasdaq Back in Positive Territory for 2025",
+        "encryptedContent": "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",
+        "pageAge": "December 31, 2024",
+        "title": "Top Tech News Stories of 2024 - Tech Startups",
         "type": "web_search_result",
-        "url": "https://www.investopedia.com/dow-jones-today-06032025-11747070",
+        "url": "https://techstartups.com/2024/12/30/top-tech-news-stories-of-2024/",
       },
       {
-        "encryptedContent": "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",
-        "pageAge": null,
-        "title": "US Markets, Company Earnings, Stock Market Trends, Market News | Morningstar",
+        "encryptedContent": "EokZCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDJtgU5ddlivNbMCGwBoM2ee8HEW7ECp2289ZIjDmFU5rvFUs1JlGs/kiM1hxTFVfTs9rh0hchHcYFBhMPWDCW2OW5I4i6JVaQJghGsgqjBgkZx0BcdpcWBCDFzEN95fu0bmV/LWQ9wUcBVnZQCpUpecv5xsemy/rm6lNhNqYGxaf4kBv//AQN+twTxwKeXq/Oa1Bz1MbInKpu+JBL8FiVjGcR8/ZZaeW2r5nn0hgUPzcrXMpVnN+qUsuIcuBJ5fXsNN7D7CaVGSDICdVwgJY7z02wqu/bVdz39DIKo3tDgvdb8lL31NoYejY98m0ZFu4xl/WaGMN/1+yl7P1CDh3mrkbhIajkUlMyUXfmYjScVp7lGF2hwddrenZOHHXEZexd3kQpST9aqsESaYBvM5ewsYZ0fKGn/bXgWTBaCzu2tt3DpuQCDEwnPub47xWw6Qfv1bM2seW+4Jz/pppTFTxEMmUbFcrHkA8oK/d8cvi4JctWpniuBoKaFToiN1yd7bjLXrNtIWzXV1jFIf5L5ti44OPF4QBbTqWA+JsSWlmnMccSZs20b4A0jVbkhUt92pmxlq3t0prt6d/LCra8LAkkOVyFrb3HY5vWIsjA6vGo0cHTSVCJrs67whB7YUNNT7IbL6G9P7S2TjRKbC9R4sZ1FTGP61w1qr1CMkmeP+p/Y8ykXL0KZfD/PKRsD4xrzEmJ5yzw+i0iJRcZDX39OyOJBSqOLEm9KV2Be1zGviP28Hq7BFLvUFdYIO42SSTJ+QYDNGK62e9UtVh1eY897VPeZ/7/+z2lB7LIxJaT2UBO/jpmhZk4JqK3qrJlhAZ31PoNE4+G8K7ja4C90EpWuk8O9VAG430f5Q6UxH9/Zh9NdZG9vLb8mMrYaINbDt9RqeKAkZH2YFEeQq8MnFpnVUqOwk3ocBjScnP2hcKnz7JD3mvbqukW+Bz/jpdhvSoRk2owaqECFzptLmbqiiaM9SX6R1lfMnx90iSJzyxOhfrJrS+zyW0/LL7E+O+EtyYlwPi8aw/EHAjcQjCQ2sOyq8adecCZzdToABoWqMREkH6ywXihhocwMh6YKihiHCgVRHOlgWIOS9PTgh2dVvpIWU9BY9ZUMsxyIUKEje6+L/+MY3e7ARvc1+hLxSdnXX7ZdrMFRBe9YX+jKGR60u7wwl4CoeFDEs7o5d7291TqPHbRzzMQ8MGI0D1BgDM6E3G233UQW5qauJoYOoChFWKijmVl3JdkcJbBWars0It6v39iTUpuEpzrLqin9CUaOSMXtbf0CR5c5J+71M+KYqhaKrHlUPtLOGjYErfJrvkEXqJoFvwz9A/gWugdXxyDVW6K65iRmyOfIz4ecvIMqgsWgIxPM4mPOsTyXYb/JVr1oN2twbGhymv4JstYHDJvGpzIbczn8+8P9lrs40ZZIQ3aFJtLU8fPVSx8BLnmtXcOqGe2HvbJCyCPFjBjCtWbU0XLzLJTRBr4Fz+tTHbtIzWOHZC/a+N5acgYgfHvXy4WeNHA0ouGQBj0Q4ciG3qtJTanBSWc7wnhpPlNfZkMWagcND6rVKkzhOBhdf9894rnEup7evmlieSBeN+3mrXe0iRkUkw9pIrzCBC3pLqu+SxA5a8soOG6cvEDSzqmgJY12iVTSrnGjQpk6D1O5yqDXS+O+XoCryDwmTR6gCh4JQOYg6DuUC139jPMalHqChIrNOLBtWMX6zdov3XoYobuthirK2D2STlEhXaMZj3WzTkkRBnljyBKAen/+55cXYy2y6DM3oM47UjV32K/6gtArfNaXFFCU6g/WgAvghP2JdkkkLTWxSVLocQo2unRtfsMFWplYbiYn9UQAZy08I30BiI9w9cUN1NVfiinPZo3UFnQ3lxSb+OaZyVBsCclS+sHdrNEjqQWqxYNj8PwZMqU8NBbKBTIQO3/eC2bn81x6iqhjXEPBz5kmTEmNnNLy9NeRNYSahA7Uv8MCKT11i25QfQ/VwztXGV4bPqvDGN6l1RYPbbsh841RgPkbDpOv1u46umIbh+SKJLD9SuWaTAFnwy5pPS6PpO025AKWHvDBesxFQq9QqA+fKi4Uk1Df1Tl5xSfnZ9qc7SpZ7rgiQnaQt7IEHRGgxqa9w+yvJ/olLYSZkchcohkyuCUkmUX5I7mvmU0lhkoXi+wt/8cef1cysWp/E6KOhUlcZmYCTNL+/vvHnRcpvwBqwEsUSBQeSX2eB/ByyHhGVYTu6nfzeC409FVhkuupbeDE+H6RTLaN4o44aYo4QTaMwULifZQZK+fcStP2fgIfuEAEtCUp/oSdiTVMUdJBfdxGaiD+UbcyrZsy5jQujv8ESPzTofo40scOgBNQP0baZFkHABV0Qb3oa6P8t1Hr4eEytSCLlaOO7S3CUfOoeGPcwlRwaR7Ynh86UnesY5i3LzEn97Z684827HhqPjDOJJOLd1glGKwdwSCJ+kaUO6+3jVDgLBuy+AJ9tLvnRIOfIJ5vcCe79A5Fr9jpdiM6vjQLI8GBOvEYzZMO0YZLdHSQlGmqUybexjtXqysrVDveTVBCGKIw7H1zJG0x1vECUluHryowr5zWYlWOrgPXWRVWL7NviwT2SWhaTPMQXAVpMwP7/4jbCRR95a6sQZe7XPGuifM9wsuKW5DGsD8hkgZGqCtsb7B7tw6E6yvgN19c6AliNnfXSwJUx/CYBnbqe0BkPrt+v+VVjvuEi7K/VoLrjqNFY4yGVkLI4rQu4v53kdkzv1X+F3licXYdUbNiyH29dWSCH1uEyAx5z1wRbHJpWN2mevqRwvQXxoxrn2ptxp9hLnvMlVH+IB3PNpnseuMgzfq/pnzZCI77EMwCzYkIxi8ffXKmeC6VlToMHdN5XdS9RGxIhY/DN7XP2hW5FhYoBzAbzinEabMydVzW7uwjz0CgO4sge7epOxZm9vMbR1T3xhyDvafM8YzvD0SpxouAEU5uJ9h0r/CIETROmDWwDkILxXT5FXiwO2AyNAT3rW2TNo0sYZhaOdcxUa0xMKCfsKae4IjkpORv3QauFJusW3NNocyZIdN+scIySRel4HTN6n6cMppaBkBn9CVhc9wMPZBzbxszst6+uftD671+G/LCuVf1RPebbV0aqtRPMyHwlJYzzdAilpSx1frX3B3vm1XKSMAQw1LA66xSqtA93qwwwFlav3PHLGmUPP05EXDRJXym+d/rGe5Qk0EHY1Kpb0cboJLyqmCLiH/SfxXQHhN7LZucFWblzFF2W4VrvtZAJOEiZRgUdu9Ka+dw1JD0kvk0G+jrcPPNXIoOpjHW4H52F5VZqgO7RgTBpViBRqICkZJxjuwkZEoSq5acrxXMYdDBokxCwkaVDddrNBjs6jKvQkosDW67aZIJdDtllq820CmW6k5Sbm3cDRWONCSGi78h3f/EPKztuJuC/IUXh4ugiGBBDP7+0atWCjHev2I+h61bj47OECfieTfJnkpHaH1s0TJFI3R4ncDMQsYqGE0oJav50eXTORt+Y40uvDpZA5mtRshWkw/OGZeCK67hnyeJjki2poyyOCR5Dh1CrFaBxLYSWwRZtkK0mvzKvZ6xJgq9PgTMnzZUrTNSC1GfmzJCHhbVruQQ4jN2DMD6TwuyGQsLiM9CUwiKMM9ydanrdq7SEfZCkZYOVdTfmNAEdYzix1ciz11FAXmO6QKW9WHKOIUMyw4KJMwUtkcPY9Lfj/DXWtkTBg+zeDyFMafEluHFndnnfkYLFvQtx3H6RfH2tvw2ih6Wl2A+reH/kiq3NesPQZ1g2m2rx4CCsqjHWXXYYl4sgbZYeitarRNqdoRf3H/7qW2XzLkve8bHH23mgvpiRDkFFdr3GhWEVcdauQ1HDtcMcPFQbjFFXGnsZj4pyecymTxyGyfLhPkRXGAvVyGPg6eImm+MyVIuWVM36BwmpsiXF3yGv1jQHU6+N4KStkzgoPB+fAiAKBZ7PcoZNgqZ685s3vhM3Mvd7zG4DkwUZkS5VVHqFRHlP4TL8Z5yUkeHqAdSR8GzmSVkNLEkJLTq6yfSWpDLr3KNIWre9YFSWUgWj6QxiOCWTwz+cMWsbsnjZWssnBGagtgWya4Y85/10aVccd/1p/IkUf3ke1/dTvDFu7emrHKffXtxRQ1IxzhRQ18LPo1/N8jyuzPU1sR77QqxY4EtMirMjvZOsEFs1bszEY8KJWbryblTLopCb5HkMmJoLddSCv2SopX6oqrWPG8RQYAw==",
+        "pageAge": "January 25, 2025",
+        "title": "Year-In-Review: 30 top tech news in 2024 that mattered - Tech Edition",
         "type": "web_search_result",
-        "url": "https://www.morningstar.com/markets",
-      },
-      {
-        "encryptedContent": "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",
-        "pageAge": null,
-        "title": "Markets News, June 9, 2025: Stocks Rise as Investors Await News on US-China Trade Talks; S&P 500, Nasdaq Trading at Highest Levels Since February",
-        "type": "web_search_result",
-        "url": "https://www.investopedia.com/dow-jones-today-06092025-11750420",
+        "url": "https://www.techedt.com/year-in-review-30-top-tech-news-in-2024-that-mattered",
       },
     ],
-    "toolCallId": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
+    "toolCallId": "srvtoolu_01Qxbje4duKBes3Nj42MkZug",
     "toolName": "web_search",
     "type": "tool-result",
   },
   {
-    "id": "id-0",
-    "providerMetadata": {
-      "anthropic": {
-        "pageAge": "1 day ago",
-      },
-    },
-    "sourceType": "url",
-    "title": "Stock market news for June 18, 2025",
-    "type": "source",
-    "url": "https://www.cnbc.com/2025/06/17/stock-market-today-live-updates.html",
-  },
-  {
-    "id": "id-1",
+    "id": "id-11",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
       },
     },
     "sourceType": "url",
-    "title": "Markets News, June 18, 2025: Stocks Close Little Changed After Fed Holds Rates Steady as Investors Monitor News on Israel-Iran Conflict",
+    "title": "Latest News - Apple Developer",
     "type": "source",
-    "url": "https://www.investopedia.com/dow-jones-today-06182025-11756849",
+    "url": "https://developer.apple.com/news/",
   },
   {
-    "id": "id-2",
+    "id": "id-12",
     "providerMetadata": {
       "anthropic": {
-        "pageAge": "October 26, 2020",
+        "pageAge": null,
       },
     },
     "sourceType": "url",
-    "title": "Weekly Stock Market Update | Edward Jones",
+    "title": "Daily Tech News 26 September 2024",
     "type": "source",
-    "url": "https://www.edwardjones.com/us-en/market-news-insights/stock-market-news/stock-market-weekly-update",
+    "url": "https://acecomments.mu.nu/?post=411647",
   },
   {
-    "id": "id-3",
+    "id": "id-13",
     "providerMetadata": {
       "anthropic": {
-        "pageAge": "2 weeks ago",
+        "pageAge": null,
       },
     },
     "sourceType": "url",
-    "title": "June 2025 US Stock Market Outlook: Has the Storm Passed? | Morningstar",
+    "title": "The top technology stories in 2024 from the World Economic Forum | World Economic Forum",
     "type": "source",
-    "url": "https://www.morningstar.com/markets/june-2025-us-stock-market-outlook-has-storm-passed",
+    "url": "https://www.weforum.org/stories/2024/12/top-technology-stories-from-2024/",
   },
   {
-    "id": "id-4",
+    "id": "id-14",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": null,
+      },
+    },
+    "sourceType": "url",
+    "title": "SciTechDaily - Science, Space and Technology News 2025",
+    "type": "source",
+    "url": "https://scitechdaily.com/",
+  },
+  {
+    "id": "id-15",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": null,
+      },
+    },
+    "sourceType": "url",
+    "title": "The Latest AI News and AI Breakthroughs that Matter Most: 2025 | News",
+    "type": "source",
+    "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
+  },
+  {
+    "id": "id-16",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": "December 21, 2015",
+      },
+    },
+    "sourceType": "url",
+    "title": "Technology News",
+    "type": "source",
+    "url": "https://www.cnbc.com/technology/",
+  },
+  {
+    "id": "id-17",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "2 days ago",
       },
     },
     "sourceType": "url",
-    "title": "Stock market today: Dow, S&P 500, Nasdaq stall as Fed holds rates steady, forecasts 2 cuts in 2025",
+    "title": "Technology News -- ScienceDaily",
     "type": "source",
-    "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-stall-as-fed-holds-rates-steady-forecasts-2-cuts-in-2025-180946600.html",
+    "url": "https://www.sciencedaily.com/news/matter_energy/technology/",
   },
   {
-    "id": "id-5",
-    "providerMetadata": {
-      "anthropic": {
-        "pageAge": "2 weeks ago",
-      },
-    },
-    "sourceType": "url",
-    "title": "June 2025 stock market outlook | Fidelity",
-    "type": "source",
-    "url": "https://www.fidelity.com/learning-center/trading-investing/stock-market-outlook",
-  },
-  {
-    "id": "id-6",
+    "id": "id-18",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
       },
     },
     "sourceType": "url",
-    "title": "Markets News, June 10, 2025: Stocks Rise for 3rd Straight Day as Investors Await News on US-China Trade Talks; Tesla, Intel Surge to Pace S&P 500",
+    "title": "MIT Technology Review",
     "type": "source",
-    "url": "https://www.investopedia.com/dow-jones-today-06102025-11751328",
+    "url": "https://www.technologyreview.com/",
   },
   {
-    "id": "id-7",
+    "id": "id-19",
     "providerMetadata": {
       "anthropic": {
-        "pageAge": null,
+        "pageAge": "December 31, 2024",
       },
     },
     "sourceType": "url",
-    "title": "Markets News, June 3, 2025: Major Indexes Rise as Nvidia Leads Big Gains for Chip Stocks; Nasdaq Back in Positive Territory for 2025",
+    "title": "Top Tech News Stories of 2024 - Tech Startups",
     "type": "source",
-    "url": "https://www.investopedia.com/dow-jones-today-06032025-11747070",
+    "url": "https://techstartups.com/2024/12/30/top-tech-news-stories-of-2024/",
   },
   {
-    "id": "id-8",
+    "id": "id-20",
     "providerMetadata": {
       "anthropic": {
-        "pageAge": null,
+        "pageAge": "January 25, 2025",
       },
     },
     "sourceType": "url",
-    "title": "US Markets, Company Earnings, Stock Market Trends, Market News | Morningstar",
+    "title": "Year-In-Review: 30 top tech news in 2024 that mattered - Tech Edition",
     "type": "source",
-    "url": "https://www.morningstar.com/markets",
+    "url": "https://www.techedt.com/year-in-review-30-top-tech-news-in-2024-that-mattered",
   },
   {
-    "id": "id-9",
-    "providerMetadata": {
-      "anthropic": {
-        "pageAge": null,
-      },
-    },
-    "sourceType": "url",
-    "title": "Markets News, June 9, 2025: Stocks Rise as Investors Await News on US-China Trade Talks; S&P 500, Nasdaq Trading at Highest Levels Since February",
-    "type": "source",
-    "url": "https://www.investopedia.com/dow-jones-today-06092025-11750420",
+    "text": "Let me search for more specific tech news from today (September 26, 2024).",
+    "type": "text",
   },
   {
-    "id": "3",
+    "input": "{"query":"\\"September 26 2024\\" tech news breaking"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01HyorfKHSCsjCUVH6WHcNUC",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": [],
+    "toolCallId": "srvtoolu_01HyorfKHSCsjCUVH6WHcNUC",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "text": "Based on the search results, here are the key tech news highlights for today, September 26, 2024:
+
+## Major Tech News for September 26, 2024
+
+**FTX Case Update:**
+",
+    "type": "text",
+  },
+  {
+    "text": "Caroline Ellison, Sam Bankman-Fried's right-hand woman in the FTX kerfuffle, has been sentenced to two years in prison for her part in the fuffling and ordered to pay $11 billion in restitution.",
+    "type": "text",
+  },
+  {
+    "text": "
+
+Unfortunately, the search results don't show many other specific breaking tech news stories from today, September 26, 2024. However, here are some broader tech trends and recent developments that have been making headlines:
+
+## Recent AI Developments:
+- ",
+    "type": "text",
+  },
+  {
+    "text": "Anthropic has launched a Chrome extension enabling its Claude AI agent to interact directly with the browser, manipulating webpages, retrieving content, and automating tasks. This marks the company's first move toward agentic AI with real-time web control.",
+    "type": "text",
+  },
+  {
+    "text": "
+
+- ",
+    "type": "text",
+  },
+  {
+    "text": "Chinese AI firm DeepSeek has unveiled its R1 model, a significant leap in AI performance trained at a cost 70% lower than comparable U.S. models. The company attributes its efficiency to custom hardware, proprietary optimization techniques, and low energy costs in China. Analysts see this as a direct challenge to Western dominance in large language models, especially OpenAI and Anthropic.",
+    "type": "text",
+  },
+  {
+    "text": "
+
+## Technology Industry Context:
+The tech industry continues to be dominated by AI developments, with companies making significant investments and breakthroughs in artificial intelligence capabilities. The FTX case sentencing represents ongoing fallout from the cryptocurrency sector's challenges.
+
+For the most current breaking tech news today, I'd recommend checking major tech news sources directly, as my search results primarily showed more general or older tech news rather than specific breaking stories from September 26, 2024.",
+    "type": "text",
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch tool > txt response > should stream web search tool results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01GpfwV1W5Ase72fzb8F45bX",
+    "modelId": "claude-sonnet-4-20250514",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
     "type": "text-start",
   },
   {
-    "delta": "Based on the search results,",
-    "id": "3",
+    "delta": "I'll fetch the content",
+    "id": "0",
     "type": "text-delta",
   },
   {
-    "delta": " here's a comprehensive overview of current",
-    "id": "3",
+    "delta": " from that Wikipedia page to tell you what it's about.",
+    "id": "0",
     "type": "text-delta",
   },
   {
-    "delta": " stock market trends: 
-
-Market Performance:",
-    "id": "3",
-    "type": "text-delta",
-  },
-  {
-    "id": "3",
+    "id": "0",
     "type": "text-end",
   },
   {
-    "id": "4",
+    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "providerExecuted": true,
+    "toolName": "web_fetch",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "",
+    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "{"url": ",
+    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""https:/",
+    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "/en.wi",
+    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "kip",
+    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ed",
+    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ia.org/",
+    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "wiki/",
+    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "Maglemosian",
+    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_culture"}",
+    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"url": "https://en.wikipedia.org/wiki/Maglemosian_culture"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "toolName": "web_fetch",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "content": {
+        "citations": undefined,
+        "source": {
+          "data": "This article needs additional citations for
+|
+![]() |
+The
+|
+---|
+Maglemosian (c. 9000 – c. 6000 BC) is the name given to a [culture](https://en.wikipedia.org/wiki/Archaeological_culture) of the early [Mesolithic](https://en.wikipedia.org/wiki/Mesolithic) period in [Northern Europe](https://en.wikipedia.org/wiki/Northern_Europe). In [Scandinavia](https://en.wikipedia.org/wiki/Scandinavia), the culture was succeeded by the [Kongemose](https://en.wikipedia.org/wiki/Kongemose_culture) culture.
+The name originates from the [Danish](https://en.wikipedia.org/wiki/Denmark) archeological site Maglemose, situated near [Gørlev](https://en.wikipedia.org/wiki/Gørlev) and [Høng](https://en.wikipedia.org/wiki/Høng) on western [Zealand](https://en.wikipedia.org/wiki/Zealand_(Denmark)), southwest of lake [Tissø](https://en.wikipedia.org/wiki/Tissø). Here the first settlement of the culture was excavated in 1900, by George Sarauw.[[1]](./Maglemosian_culture#cite_note-1) During the following century a long series of similar settlements were excavated from [England](https://en.wikipedia.org/wiki/England) to [Poland](https://en.wikipedia.org/wiki/Poland) and from [Skåne](https://en.wikipedia.org/wiki/Skåne) in [Sweden](https://en.wikipedia.org/wiki/Sweden) to northern [France](https://en.wikipedia.org/wiki/France).
+When the Maglemosian culture flourished, sea levels were much lower than now and what is now mainland Europe and Scandinavia were linked with Britain. The cultural period overlaps the end of the [last ice age](https://en.wikipedia.org/wiki/Weichselian_glaciation),[[2]](./Maglemosian_culture#cite_note-2) when the ice retreated and the glaciers melted. It was a long process and sea levels in [Northern Europe](https://en.wikipedia.org/wiki/Northern_Europe) did not reach current levels until almost 6000 BC, by which time they had inundated large territories previously inhabited by Maglemosian people. Therefore, there is hope that the emerging discipline of [underwater archaeology](https://en.wikipedia.org/wiki/Underwater_archaeology) may reveal interesting findings related to the Maglemosian culture in the future.
+The Maglemosian people lived in forest and wetland environments, using fishing and hunting tools made from wood, bone, and flint [microliths](https://en.wikipedia.org/wiki/Microlith). It appears that they had domesticated the [dog](https://en.wikipedia.org/wiki/Dog).[[3]](./Maglemosian_culture#cite_note-3) Some may have lived settled lives, but most were nomadic.[[citation needed](https://en.wikipedia.org/wiki/Wikipedia:Citation_needed)]
+Huts made of bark have been preserved, in addition to tools made of [flint](https://en.wikipedia.org/wiki/Flint), [bone](https://en.wikipedia.org/wiki/Bone), and [horn](https://en.wikipedia.org/wiki/Horn_(anatomy)). A characteristic feature of the culture is the sharply edged [microliths](https://en.wikipedia.org/wiki/Microlith) of flintstone, used for spear and arrow heads.[[4]](./Maglemosian_culture#cite_note-4) Another notable feature is the [leister](https://en.wikipedia.org/wiki/Leister), a characteristic type of fishing spear, used for [gigging](https://en.wikipedia.org/wiki/Gigging).
+Era | Timespan |
+|
+---|
+![]() |
+This section needs expansion. You can help by [adding to it](//en.wikipedia.org/w/index.php?title=Maglemosian_culture&action=edit§ion=). (January 2020)
+[↑](https://en.wikipedia.org/wiki/Maglemosian_culture#cite_ref-1)[Sarauw, G. F. L.](https://en.wikipedia.org/wiki/Georg_F.L._Sarauw)(1903).["En Stenaldersboplads i Maglemose ved Mullerup – sammenholdt med beslægtede fund"](https://books.google.com/books?id=n5VePAAACAAJ)[A Stone Age settlement in Maglemose near Mullerup – compared with related finds. Resumé: Études sur le premier âge de la pierre du Nord de l'Europe]. Aarbøger for Nordisk Oldkyndighed og Historie (in Danish). 1903. A[German](https://en.wikipedia.org/wiki/German_language)translation appeared in Prähistorische Zeitschrift in 1911[↑](https://en.wikipedia.org/wiki/Maglemosian_culture#cite_ref-2)Jessen, Catherine A.; Pedersen, Kristoffer Buck; Christensen, Charlie; Olsen, Jesper; Mortensen, Morten Fischer; Hansen, Keld Møller (2015).["Early Maglemosian culture in the Preboreal landscape: Archaeology and vegetation from the earliest Mesolithic site in Denmark at Lundby Mose, Sjælland"](https://doi.org/10.1016%2Fj.quaint.2014.03.056). Quaternary International. 378: 73–87.[Bibcode](https://en.wikipedia.org/wiki/Bibcode_(identifier)):[2015QuInt.378...73J](https://ui.adsabs.harvard.edu/abs/2015QuInt.378...73J).[doi](https://en.wikipedia.org/wiki/Doi_(identifier)):[10.1016/j.quaint.2014.03.056](https://doi.org/10.1016%2Fj.quaint.2014.03.056).[↑](https://en.wikipedia.org/wiki/Maglemosian_culture#cite_ref-3)["Stone Age remains are Britain's earliest house"](http://www.manchester.ac.uk/discover/news/stone-age-remains-are-britains-earliest-house/). Retrieved 28 January 2018.[↑](https://en.wikipedia.org/wiki/Maglemosian_culture#cite_ref-4)[Med bue, pil og fiskespyd](http://www.denstoredanske.dk/Danmarks_Oldtid/Stenalder/De_vejl%C3%B8se_skove_9.500-6.400_f.Kr/Med_bue,_pil_og_fiskespyd)Gyldendals Open Encyclopedia (in Danish). Pictures of some Maglemosian tools.
+- Anders Fischer: "Submerged Stone Age – Danish Examples and North sea potential"; i: N.C.Flemming: Submarine Prehistory and Archaeology of the North Sea: research priorities and collaboration with industry. CBA Research Report 141, 2004, s. 23ff
+Danish-language texts
+- Geoffrey Bibby: Spadens vidnedsbyrd; Wormanium 1980,
+[ISBN](https://en.wikipedia.org/wiki/ISBN_(identifier))[87-8516-071-7](https://en.wikipedia.org/wiki/Special:BookSources/87-8516-071-7)s. 109f - Gyldendal og Politikens Danmarkshistorie (red. af Olaf Olsen); Bind 1: I begyndelsen. Fra de ældste tider til ca. år 200 f.Kr. (ved Jørgen Jensen); 1988, s. 47ff
+- Jørgen Jensen: Danmarks Oldtid. Stenalder, 13.000–2.000 f.Kr.; Gyldendal 2001,
+[ISBN](https://en.wikipedia.org/wiki/ISBN_(identifier))[87-00-49038-5](https://en.wikipedia.org/wiki/Special:BookSources/87-00-49038-5)s. 86ff - Anders Fischer: "En håndfuld flint", Skalk nr. 5, 1973, s. 8ff
+- Anders Fischer: "Mennesket og havet i ældre stenalder"; i: Carin Bunte (red): Arkeologi och Naturvetenskab, Lund 2005, s. 276ff
+- Kim Aaris-Sørensen: "Uroksejagt", Skalk nr. 6, 1984, s. 10ff
+- Ole Grøn: "Teltning", Skalk nr. 1, 1988, s. 13f
+- Søren A. Sørensen: "Hytte ved sø", Skalk nr. 3, 1988, s. 25ff
+- Peter Vang Petersen: "Bjørnejagt", Skalk nr. 5, 1991, s. 3ff
+- Poul og Kristian Krabbe: "Vest for Valhal", Skalk nr. 6, 1995, s. 11ff
+- Axel Degn Johansen: "Ikke en sky og ikke en vind!", Skalk nr 2, 2008, s. 8ff",
+          "mediaType": "text/plain",
+          "type": "text",
+        },
+        "title": "Maglemosian culture",
+        "type": "document",
+      },
+      "retrievedAt": "2025-07-17T21:38:38.606000+00:00",
+      "type": "web_fetch_result",
+      "url": "https://en.wikipedia.org/wiki/Maglemosian_culture",
+    },
+    "toolCallId": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
+    "toolName": "web_fetch",
+    "type": "tool-result",
+  },
+  {
+    "id": "3",
     "type": "text-start",
   },
   {
-    "delta": "Through recent trading, the major indexes are showing modest gains for 2025:",
-    "id": "4",
+    "delta": "This",
+    "id": "3",
     "type": "text-delta",
   },
   {
-    "id": "4",
+    "delta": " Wikipedia page is about the **Maglemosian culture**, which",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " was an early Mesolithic (Middle",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Stone Age) archaeological culture that existe",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d in Northern Europe from approximately 9,000 to ",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "6,000 BC.
+
+Here are",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the key points about what this page covers",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":
+
+**Geographic and Temporal Context:**
+- The culture",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " spanned across Northern Europe, from England to Poland and from southern",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Sweden to northern France
+- It existe",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d during a period when sea levels were much lower an",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d Britain was connected to mainland Europe",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- The culture overlapped with the en",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d of the last ice age
+
+**Origins an",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d Discovery:**
+- Named after the Danish archaeological site Maglem",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ose, located near Gørlev and Høng in",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " western Zealand, Denmark
+- First",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " excavated in 1900 by",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " George Sarauw
+- Similar",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " settlements were subsequently discovered across a",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " wide area of Northern Europe
+
+**",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Lifestyle and Technology:**
+- The Maglemosian people lived in",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " forest and wetland environments
+- They were",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " primarily hunter-gatherers who used fishing and hunting tools",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- They had domesticated dogs
+- Most",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " were nomadic, though some may have lived more",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " settled lives
+- They built huts made",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of bark
+
+**Distinctive Tools",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and Artifacts:**
+- Used tools",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " made from wood, bone, fl",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "int, and horn
+- Characteristic shar",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ply-edged flint microliths for spear an",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d arrow heads
+- Notable fishing spears called "leis",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ters" used for gigging (spear",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fishing)
+
+The page also discusses",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the archaeological significance of the culture and mentions",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that underwater archaeology may reveal more findings",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " since much of their territory was later submerged by rising sea levels.",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "id": "3",
     "type": "text-end",
   },
   {
@@ -312,11 +836,20 @@ Market Performance:",
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
+        "stopSequence": null,
         "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
           "cache_creation_input_tokens": 0,
           "cache_read_input_tokens": 0,
-          "input_tokens": 2688,
-          "output_tokens": 2,
+          "input_tokens": 4230,
+          "output_tokens": 446,
+          "server_tool_use": {
+            "web_fetch_requests": 1,
+            "web_search_requests": 0,
+          },
           "service_tier": "standard",
         },
       },
@@ -324,9 +857,748 @@ Market Performance:",
     "type": "finish",
     "usage": {
       "cachedInputTokens": 0,
-      "inputTokens": 2688,
-      "outputTokens": 829,
-      "totalTokens": 3517,
+      "inputTokens": 868,
+      "outputTokens": 446,
+      "totalTokens": 1314,
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search tool > should stream web search tool results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01LHpEgU4KbfgXGVi3UtHQY1",
+    "modelId": "claude-sonnet-4-20250514",
+    "type": "response-metadata",
+  },
+  {
+    "id": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
+    "providerExecuted": true,
+    "toolName": "web_search",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "",
+    "id": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "{"query": "t",
+    "id": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ech news tod",
+    "id": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ay Septembe",
+    "id": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "r 26 2025"}",
+    "id": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"query": "tech news today September 26 2025"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": [
+      {
+        "encryptedContent": "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",
+        "pageAge": null,
+        "title": "The Latest AI News and AI Breakthroughs that Matter Most: 2025 | News",
+        "type": "web_search_result",
+        "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
+      },
+      {
+        "encryptedContent": "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",
+        "pageAge": "3 hours ago",
+        "title": "Fang Junyu's Technology Weekly - September 26, 2025 - Future",
+        "type": "web_search_result",
+        "url": "https://future.forem.com/junyu_fang_a216509a97501d/fang-junyus-technology-weekly-september-26-2025-2ndd",
+      },
+      {
+        "encryptedContent": "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",
+        "pageAge": "1 day ago",
+        "title": "The all-new Apple Ginza opens this Friday, September 26, in Tokyo - Apple",
+        "type": "web_search_result",
+        "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
+      },
+      {
+        "encryptedContent": "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",
+        "pageAge": null,
+        "title": "News Archive | September 2025 | TechRadar",
+        "type": "web_search_result",
+        "url": "https://www.techradar.com/news/archive",
+      },
+      {
+        "encryptedContent": "EqcJCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDLvdVa7H4xcUNqzP+hoMxKuENu4KPIpPnfbkIjDDICSyDfLArM4JpaEVWBQn7a0vFY6rPYp0Y4Xa4cBYhyZyWx2FEteDDODEGouIihAqqghKSgOwYV69AaNWmbJSJmgAGSnAcYQut1lAf1NSaiT76rY6ELO85L31kTLaRPMNqfmusHQUPwqOC1LYmoIKfSup1dVYiMHzHxUQ57H00xl263DVWcpKnwNrZleNLrz+lq+vnXSBr0B/yxaCbl0Ffg4r/8WW5qv+BhzsRPMd46oZWQpqK2AO/Etoy0fg5ZfsZ3vVpcJVbYK0nqLzhwl0PRRx9jII5sRSMwA+Eyz+2+fyb7wlbMqp637qbEQ3pUdczC5JanKnf5FFFf16aZpaK4uqTK8FiBb9A6rHbP2k6QVGP0ZF99TeO4RrGmEtT9Ginet+FDG5at22iX6PzlOd7KnYBQNp8ogvzm9kt2LDB8b2VQHyaRExOJuz9YGBiVMFW/u1x/ccJg/w4Kc45zMcUmNe1W1OQCpxFvhPTvACg6bxj6bx7kIyE2qUlEgsR0k6R0P9yIX9QLLsX31sWj+zBbtA3maaX84TW4whYU8yhAHA5b/jYKM+fv74/2FDOx4traYcEc2hbjzxMG7IVB0Lfbc53ciBzy5Am7rGA+Feutq8FU0LPsHq/IE+4behgeeRN/68KRr8yZUcQ9/t4V0XqSelk4z+Q06KKHGRMN9eV+Gy05TGdCkyNF0Bf6cpdK1gaWe2hhG0rHlWcT/JFa0Is7oc3DihUE6/jrnQ+0vDMX7KdrI51xR2zhQg0yzq/Z7DdHpwxx6lBopRpujZc5AyrpH4Q0NMu5H8N3jSKu51YTeKNykGaZM3qxpYZ/GiQN8R6NTMpoFhud5nlq9FIuRgOAqtCF0Top99GYM3f+q96mXzaH4Kc6GyiHWKWk+GoZP+jCHnoRi5hVCAQJpA++a8WXfQYuDeJkFGwxK7HVGlXokMVVrL1FZ/Rj7aa7BrKilmsi52vS6pmhu2BLJTxZAVTi66gzjRgwcEKVeGLexdrDKa0mdbWMCpJgdqKM+TmvhwMkA1NIEtW+o7Ur0Ur1wlCo766Y4mii1iQHmdUhphDQK0+O2o1wR2dOuyPfkAsMTPZpshKoBSJ0Vwo/sfoYAIZX2aLhOPK7Zje3whxzCtMzDUgi/1JjoxfkEzqb1d3NKK+PZOaA5pX7gSRg1FEs+4dv4DraVXi6/8GibUw2+93VwvYQKfHaZQRVj7NhrZi+/qFiuv3TfivSpK5RdevaQk6jMyD8GMGjLNcRyF4W4iVE5qYbr1GFd4zfQ0JnbtCOaiYJSX6ZYuDkUzG4arrcxv6++Lrnoluarq0AtkHC0SoBLH9zuEGPy6bZXQr3QOG+3pVio+77SbafEqQ8pKo75PGKwY5LgmtHQrlFy6lDZfTDdxV/Vbr6Y7Bof/bbPl7dRw8ltvFsHKIeNPny2R3JO8cBwf5Rw6wr8vMiNSM0tH2GgQb1/8os1/mDQyd3beIAcKridcvxlEhw7l4LOdGAM=",
+        "pageAge": "4 days ago",
+        "title": "Apple releases first iOS 26.1 developer beta for iPhone - 9to5Mac",
+        "type": "web_search_result",
+        "url": "https://9to5mac.com/2025/09/22/ios-26-1-beta-1/",
+      },
+      {
+        "encryptedContent": "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",
+        "pageAge": "2 weeks ago",
+        "title": "Live updates: Apple Event 2025",
+        "type": "web_search_result",
+        "url": "https://www.cnbc.com/2025/09/09/live-updates-apple-event-iphone17-airpods-ios26.html",
+      },
+      {
+        "encryptedContent": "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",
+        "pageAge": "15 hours ago",
+        "title": "📰 Major Tech News: September 25, 2025 - Future",
+        "type": "web_search_result",
+        "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
+      },
+      {
+        "encryptedContent": "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",
+        "pageAge": "1 week ago",
+        "title": "iOS 26.1 beta is coming: When to expect the next update - 9to5Mac",
+        "type": "web_search_result",
+        "url": "https://9to5mac.com/2025/09/16/ios-26-1-beta-is-coming-when-to-expect-the-next-update/",
+      },
+      {
+        "encryptedContent": "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",
+        "pageAge": null,
+        "title": "SciTechDaily - Science, Space and Technology News 2025",
+        "type": "web_search_result",
+        "url": "https://scitechdaily.com/",
+      },
+      {
+        "encryptedContent": "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",
+        "pageAge": "December 21, 2015",
+        "title": "Technology News",
+        "type": "web_search_result",
+        "url": "https://www.cnbc.com/technology/",
+      },
+    ],
+    "toolCallId": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "id-21",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": null,
+      },
+    },
+    "sourceType": "url",
+    "title": "The Latest AI News and AI Breakthroughs that Matter Most: 2025 | News",
+    "type": "source",
+    "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
+  },
+  {
+    "id": "id-22",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": "3 hours ago",
+      },
+    },
+    "sourceType": "url",
+    "title": "Fang Junyu's Technology Weekly - September 26, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/junyu_fang_a216509a97501d/fang-junyus-technology-weekly-september-26-2025-2ndd",
+  },
+  {
+    "id": "id-23",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": "1 day ago",
+      },
+    },
+    "sourceType": "url",
+    "title": "The all-new Apple Ginza opens this Friday, September 26, in Tokyo - Apple",
+    "type": "source",
+    "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
+  },
+  {
+    "id": "id-24",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": null,
+      },
+    },
+    "sourceType": "url",
+    "title": "News Archive | September 2025 | TechRadar",
+    "type": "source",
+    "url": "https://www.techradar.com/news/archive",
+  },
+  {
+    "id": "id-25",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": "4 days ago",
+      },
+    },
+    "sourceType": "url",
+    "title": "Apple releases first iOS 26.1 developer beta for iPhone - 9to5Mac",
+    "type": "source",
+    "url": "https://9to5mac.com/2025/09/22/ios-26-1-beta-1/",
+  },
+  {
+    "id": "id-26",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": "2 weeks ago",
+      },
+    },
+    "sourceType": "url",
+    "title": "Live updates: Apple Event 2025",
+    "type": "source",
+    "url": "https://www.cnbc.com/2025/09/09/live-updates-apple-event-iphone17-airpods-ios26.html",
+  },
+  {
+    "id": "id-27",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": "15 hours ago",
+      },
+    },
+    "sourceType": "url",
+    "title": "📰 Major Tech News: September 25, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
+  },
+  {
+    "id": "id-28",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": "1 week ago",
+      },
+    },
+    "sourceType": "url",
+    "title": "iOS 26.1 beta is coming: When to expect the next update - 9to5Mac",
+    "type": "source",
+    "url": "https://9to5mac.com/2025/09/16/ios-26-1-beta-is-coming-when-to-expect-the-next-update/",
+  },
+  {
+    "id": "id-29",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": null,
+      },
+    },
+    "sourceType": "url",
+    "title": "SciTechDaily - Science, Space and Technology News 2025",
+    "type": "source",
+    "url": "https://scitechdaily.com/",
+  },
+  {
+    "id": "id-30",
+    "providerMetadata": {
+      "anthropic": {
+        "pageAge": "December 21, 2015",
+      },
+    },
+    "sourceType": "url",
+    "title": "Technology News",
+    "type": "source",
+    "url": "https://www.cnbc.com/technology/",
+  },
+  {
+    "id": "2",
+    "type": "text-start",
+  },
+  {
+    "delta": "Base",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d on my search results, here",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are the key tech news developments from today",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (September 26, 2025):
+
+## Apple",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " News
+",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "id": "2",
+    "type": "text-end",
+  },
+  {
+    "id": "3",
+    "type": "text-start",
+  },
+  {
+    "delta": "Apple today announced the grand reopening of Apple Ginza on Friday, September 26, located in the vib",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "rant Ginza district where Apple's retail journey in",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Japan began more than two decades ago. Apple Ginza opens",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to customers Friday, September 26, at 10 a.m. JS",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "T.",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "id": "3",
+    "type": "text-end",
+  },
+  {
+    "id": "4",
+    "type": "text-start",
+  },
+  {
+    "delta": " ",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "id": "4",
+    "type": "text-end",
+  },
+  {
+    "id": "5",
+    "type": "text-start",
+  },
+  {
+    "delta": "Opened in 2003 as Apple's first store outside the U.S., Apple Ginza now",
+    "id": "5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " returns in an all-new four-story design",
+    "id": "5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that brings together the best of Apple's products",
+    "id": "5",
+    "type": "text-delta",
+  },
+  {
+    "delta": ", services, and experiences in one beau",
+    "id": "5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "tifully reimagined space.",
+    "id": "5",
+    "type": "text-delta",
+  },
+  {
+    "id": "5",
+    "type": "text-end",
+  },
+  {
+    "id": "6",
+    "type": "text-start",
+  },
+  {
+    "delta": "
+
+## Recent Apple Product Updates
+",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "id": "6",
+    "type": "text-end",
+  },
+  {
+    "id": "7",
+    "type": "text-start",
+  },
+  {
+    "delta": "Apple is considering building a pilot production line for a foldable iPhone in Taiwan, with plans to launch the new",
+    "id": "7",
+    "type": "text-delta",
+  },
+  {
+    "delta": " foldable iPhone in 2026. Currently, multiple",
+    "id": "7",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sources have confirmed that Apple plans to release",
+    "id": "7",
+    "type": "text-delta",
+  },
+  {
+    "delta": " its first foldable iPhone in 2",
+    "id": "7",
+    "type": "text-delta",
+  },
+  {
+    "delta": "026 as part of the iPhone 18",
+    "id": "7",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lineup.",
+    "id": "7",
+    "type": "text-delta",
+  },
+  {
+    "id": "7",
+    "type": "text-end",
+  },
+  {
+    "id": "8",
+    "type": "text-start",
+  },
+  {
+    "delta": "
+
+",
+    "id": "8",
+    "type": "text-delta",
+  },
+  {
+    "id": "8",
+    "type": "text-end",
+  },
+  {
+    "id": "9",
+    "type": "text-start",
+  },
+  {
+    "delta": "OpenAI launches ChatGPT",
+    "id": "9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Pulse, proactively writing",
+    "id": "9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " your morning briefing. Open",
+    "id": "9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "AI is rolling out a new feature",
+    "id": "9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in ChatGPT called Pulse,",
+    "id": "9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " which generates personalized reports while users sleep",
+    "id": "9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". Pulse provides users with a quick overview of their",
+    "id": "9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " day with 5-10 briefings",
+    "id": "9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ", designed to encourage them to check Chat",
+    "id": "9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "GPT first thing in the morning.",
+    "id": "9",
+    "type": "text-delta",
+  },
+  {
+    "id": "9",
+    "type": "text-end",
+  },
+  {
+    "id": "10",
+    "type": "text-start",
+  },
+  {
+    "delta": "
+
+## Major Tech Industry Developments from Yesterday
+
+",
+    "id": "10",
+    "type": "text-delta",
+  },
+  {
+    "id": "10",
+    "type": "text-end",
+  },
+  {
+    "id": "11",
+    "type": "text-start",
+  },
+  {
+    "delta": "On September 25, 2025, headlines were dominated by seismic shifts in AI infrastructure, potential block",
+    "id": "11",
+    "type": "text-delta",
+  },
+  {
+    "delta": "buster partnerships between legacy chip giants, and escalating regulatory battles that",
+    "id": "11",
+    "type": "text-delta",
+  },
+  {
+    "delta": " could redefine global innovation.",
+    "id": "11",
+    "type": "text-delta",
+  },
+  {
+    "id": "11",
+    "type": "text-end",
+  },
+  {
+    "id": "12",
+    "type": "text-start",
+  },
+  {
+    "delta": "
+
+Key highlights include:
+- ",
+    "id": "12",
+    "type": "text-delta",
+  },
+  {
+    "id": "12",
+    "type": "text-end",
+  },
+  {
+    "id": "13",
+    "type": "text-start",
+  },
+  {
+    "delta": "Microsoft shook up its AI stack by integrating Anthropic's models into Copilot for Microsoft 365, reducing OpenAI dependency and boosting productivity tools like real-time",
+    "id": "13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " analytics.",
+    "id": "13",
+    "type": "text-delta",
+  },
+  {
+    "id": "13",
+    "type": "text-end",
+  },
+  {
+    "id": "14",
+    "type": "text-start",
+  },
+  {
+    "delta": "
+- ",
+    "id": "14",
+    "type": "text-delta",
+  },
+  {
+    "id": "14",
+    "type": "text-end",
+  },
+  {
+    "id": "15",
+    "type": "text-start",
+  },
+  {
+    "delta": "Oracle followed with a $15 billion bond raise for cloud expansion, riding AI demand waves.",
+    "id": "15",
+    "type": "text-delta",
+  },
+  {
+    "id": "15",
+    "type": "text-end",
+  },
+  {
+    "id": "16",
+    "type": "text-start",
+  },
+  {
+    "delta": "
+- ",
+    "id": "16",
+    "type": "text-delta",
+  },
+  {
+    "id": "16",
+    "type": "text-end",
+  },
+  {
+    "id": "17",
+    "type": "text-start",
+  },
+  {
+    "delta": "Google launched Mixboard, an AI mood board app with Gemini-powered suggestions for designers, and rolled conversational editing to more Android phones in",
+    "id": "17",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Photos.",
+    "id": "17",
+    "type": "text-delta",
+  },
+  {
+    "id": "17",
+    "type": "text-end",
+  },
+  {
+    "id": "18",
+    "type": "text-start",
+  },
+  {
+    "delta": "
+
+## Recent iOS Updates
+",
+    "id": "18",
+    "type": "text-delta",
+  },
+  {
+    "id": "18",
+    "type": "text-end",
+  },
+  {
+    "id": "19",
+    "type": "text-start",
+  },
+  {
+    "delta": "With iOS 26 officially launched, Apple is moving forward with iOS 26.1.",
+    "id": "19",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Apple released iOS 26 on September",
+    "id": "19",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 15, bringing the Liquid Glass redesign to",
+    "id": "19",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the iPhone.",
+    "id": "19",
+    "type": "text-delta",
+  },
+  {
+    "id": "19",
+    "type": "text-end",
+  },
+  {
+    "id": "20",
+    "type": "text-start",
+  },
+  {
+    "delta": "
+
+The main tech story today appears to be Apple's significant",
+    "id": "20",
+    "type": "text-delta",
+  },
+  {
+    "delta": " retail milestone with the reopening of their redes",
+    "id": "20",
+    "type": "text-delta",
+  },
+  {
+    "delta": "igned flagship Ginza store in Tokyo, marking over",
+    "id": "20",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 20 years since their first international",
+    "id": "20",
+    "type": "text-delta",
+  },
+  {
+    "delta": " retail expansion.",
+    "id": "20",
+    "type": "text-delta",
+  },
+  {
+    "id": "20",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 15665,
+          "output_tokens": 795,
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 1,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 2037,
+      "outputTokens": 795,
+      "totalTokens": 2832,
     },
   },
 ]

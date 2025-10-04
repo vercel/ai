@@ -1,5 +1,5 @@
-import { JSONValue, SpeechModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { JSONValue, SpeechModelV3 } from '@ai-sdk/provider';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';
@@ -15,7 +15,7 @@ import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
-
+import { VERSION } from '../version';
 /**
 Generates speech audio using a speech model.
 
@@ -49,7 +49,7 @@ export async function generateSpeech({
   /**
 The speech model to use.
      */
-  model: SpeechModelV2;
+  model: SpeechModelV3;
 
   /**
 The text to convert to speech.
@@ -114,13 +114,18 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<SpeechResult> {
-  if (model.specificationVersion !== 'v2') {
+  if (model.specificationVersion !== 'v3') {
     throw new UnsupportedModelVersionError({
       version: model.specificationVersion,
       provider: model.provider,
       modelId: model.modelId,
     });
   }
+
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
 
   const { retry } = prepareRetries({
     maxRetries: maxRetriesArg,
@@ -136,7 +141,7 @@ Only applicable for HTTP-based providers.
       speed,
       language,
       abortSignal,
-      headers,
+      headers: headersWithUserAgent,
       providerOptions,
     }),
   );

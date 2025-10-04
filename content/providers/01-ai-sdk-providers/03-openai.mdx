@@ -168,6 +168,11 @@ The following provider options are available:
   include `['reasoning.encrypted_content']` in the `include` option to ensure reasoning
   content is available across conversation steps.
 
+- **maxToolCalls** _integer_
+  The maximum number of total calls to built-in tools that can be processed in a response.
+  This maximum number applies across all built-in tool calls, not per individual tool.
+  Any further attempts to call a tool by the model will be ignored.
+
 - **metadata** _Record&lt;string, string&gt;_
   Additional metadata to store with the generation.
 
@@ -233,33 +238,6 @@ The following OpenAI-specific metadata is returned:
 
 - **reasoningTokens** _number_
   The number of reasoning tokens that the model generated.
-
-#### Web Search
-
-The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
-
-```ts
-const result = await generateText({
-  model: openai('gpt-5'),
-  prompt: 'What happened in San Francisco last week?',
-  tools: {
-    web_search: openai.tools.webSearch({
-      // optional configuration:
-      searchContextSize: 'high',
-      userLocation: {
-        type: 'approximate',
-        city: 'San Francisco',
-        region: 'California',
-      },
-    }),
-  },
-  // Force web search tool (optional):
-  toolChoice: { type: 'tool', toolName: 'web_search' },
-});
-
-// URL sources
-const sources = result.sources;
-```
 
 #### Reasoning Output
 
@@ -333,7 +311,34 @@ The `textVerbosity` parameter scales output length without changing the underlyi
 - `'medium'`: Balanced detail (default)
 - `'high'`: Verbose responses with comprehensive detail
 
-#### File Search
+#### Web Search Tool
+
+The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
+
+```ts
+const result = await generateText({
+  model: openai('gpt-5'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    web_search: openai.tools.webSearch({
+      // optional configuration:
+      searchContextSize: 'high',
+      userLocation: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'California',
+      },
+    }),
+  },
+  // Force web search tool (optional):
+  toolChoice: { type: 'tool', toolName: 'web_search' },
+});
+
+// URL sources
+const sources = result.sources;
+```
+
+#### File Search Tool
 
 The OpenAI responses API supports file search through the `openai.tools.fileSearch` tool.
 
@@ -345,23 +350,26 @@ const result = await generateText({
   prompt: 'What does the document say about user authentication?',
   tools: {
     file_search: openai.tools.fileSearch({
-      // optional configuration:
-      vectorStoreIds: ['vs_123', 'vs_456'],
-      maxNumResults: 10,
+      vectorStoreIds: ['vs_123'],
+      // configuration below is optional:
+      maxNumResults: 5,
+      filters: {
+        key: 'author',
+        type: 'eq',
+        value: 'Jane Smith',
+      },
       ranking: {
         ranker: 'auto',
-      },
-      filters: {
-        type: 'and',
-        filters: [
-          { key: 'author', type: 'eq', value: 'John Doe' },
-          { key: 'date', type: 'gte', value: '2023-01-01' },
-        ],
+        scoreThreshold: 0.5,
       },
     }),
   },
-  // Force file search tool:
-  toolChoice: { type: 'tool', toolName: 'file_search' },
+  providerOptions: {
+    openai: {
+      // optional: include results
+      include: ['file_search_call.results'],
+    } satisfies OpenAIResponsesProviderOptions,
+  },
 });
 ```
 
@@ -371,9 +379,72 @@ const result = await generateText({
   be customized.
 </Note>
 
-#### Code Interpreter
+#### Image Generation Tool
 
-The OpenAI responses API supports the code interpreter tool through the `openai.tools.codeInterpreter` tool. This allows models to write and execute Python code.
+OpenAI's Responses API supports multi-modal image generation as a provider-defined tool.
+Availability is restricted to specific models (for example, `gpt-5` variants).
+
+You can use the image tool with either `generateText` or `streamText`:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-5'),
+  prompt:
+    'Generate an image of an echidna swimming across the Mozambique channel.',
+  tools: {
+    image_generation: openai.tools.imageGeneration({ outputFormat: 'webp' }),
+  },
+});
+
+for (const toolResult of result.staticToolResults) {
+  if (toolResult.toolName === 'image_generation') {
+    const base64Image = toolResult.output.result;
+  }
+}
+```
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: openai('gpt-5'),
+  prompt:
+    'Generate an image of an echidna swimming across the Mozambique channel.',
+  tools: {
+    image_generation: openai.tools.imageGeneration({
+      outputFormat: 'webp',
+      quality: 'low',
+    }),
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type == 'tool-result' && !part.dynamic) {
+    const base64Image = part.output.result;
+  }
+}
+```
+
+<Note>
+  When you set `store: false`, then previously generated images will not be
+  accessible by the model. We recommend using the image generation tool without
+  setting `store: false`.
+</Note>
+
+For complete details on model availability, image quality controls, supported sizes, and tool-specific parameters,
+refer to the OpenAI documentation:
+
+- Image generation overview and models: [OpenAI Image Generation](https://platform.openai.com/docs/guides/image-generation)
+- Image generation tool parameters (background, size, quality, format, etc.): [Image Generation Tool Options](https://platform.openai.com/docs/guides/tools-image-generation#tool-options)
+
+#### Code Interpreter Tool
+
+The OpenAI responses API supports the code interpreter tool through the `openai.tools.codeInterpreter` tool.
+This allows models to write and execute Python code.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -403,7 +474,36 @@ The code interpreter tool can be configured with:
   be customized.
 </Note>
 
-#### Image Support
+#### Local Shell Tool
+
+The OpenAI responses API support the local shell tool for Codex models through the `openai.tools.localShell` tool.
+Local shell is a tool that allows agents to run shell commands locally on a machine you or the user provides.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5-codex'),
+  tools: {
+    local_shell: openai.tools.localShell({
+      execute: async ({ action }) => {
+        // ... your implementation, e.g. sandbox access ...
+        return { output: stdout };
+      },
+    }),
+  },
+  prompt: 'List the files in my home directory.',
+  stopWhen: stepCountIs(2),
+});
+```
+
+<Note>
+  The tool must be named `local_shell`. This name is required by OpenAI's API
+  specification and cannot be customized. The model can only be
+</Note>
+
+#### Image Inputs
 
 The OpenAI Responses API supports Image inputs for appropriate models.
 You can pass Image files as part of the message content using the 'image' type:
@@ -450,7 +550,7 @@ You can also pass the URL of an image.
 }
 ```
 
-#### PDF support
+#### PDF Inputs
 
 The OpenAI Responses API supports reading PDF files.
 You can pass PDF files as part of the message content using the `file` type:
@@ -554,6 +654,8 @@ OpenAI chat models support also some model specific provider options that are no
 You can pass them in the `providerOptions` argument:
 
 ```ts
+import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+
 const model = openai.chat('gpt-5');
 
 await generateText({
@@ -565,7 +667,7 @@ await generateText({
         '50256': -100,
       },
       user: 'test-user', // optional unique user identifier
-    },
+    } satisfies OpenAIChatLanguageModelOptions,
   },
 });
 ```
@@ -1146,26 +1248,18 @@ The following optional provider options are available for OpenAI completion mode
 
 ### Model Capabilities
 
-| Model                  | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
-| ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-4.1`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4.1-mini`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4.1-nano`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-audio-preview` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4-turbo`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-3.5-turbo`        | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o1`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o3-mini`              | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o3`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o4-mini`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `chatgpt-4o-latest`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-5`                | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-mini`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-nano`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-chat-latest`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model               | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
+| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-5`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-mini`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-nano`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-codex`       | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-4.1`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4.1-mini`      | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4.1-nano`      | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o`            | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-mini`       | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [OpenAI

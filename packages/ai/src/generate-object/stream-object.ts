@@ -1,10 +1,10 @@
 import {
   JSONValue,
-  LanguageModelV2CallWarning,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
+  LanguageModelV3CallWarning,
+  LanguageModelV3FinishReason,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -524,7 +524,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         };
 
         const transformer: Transformer<
-          LanguageModelV2StreamPart,
+          LanguageModelV3StreamPart,
           ObjectStreamInputPart
         > = {
           transform: (chunk, controller) => {
@@ -586,13 +586,13 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         self._request.resolve(request ?? {});
 
         // store information for onFinish callback:
-        let warnings: LanguageModelV2CallWarning[] | undefined;
+        let warnings: LanguageModelV3CallWarning[] | undefined;
         let usage: LanguageModelUsage = {
           inputTokens: undefined,
           outputTokens: undefined,
           totalTokens: undefined,
         };
-        let finishReason: LanguageModelV2FinishReason | undefined;
+        let finishReason: LanguageModelV3FinishReason | undefined;
         let providerMetadata: ProviderMetadata | undefined;
         let object: RESULT | undefined;
         let error: unknown | undefined;
@@ -980,7 +980,7 @@ export type ObjectStreamInputPart =
   | string
   | {
       type: 'stream-start';
-      warnings: LanguageModelV2CallWarning[];
+      warnings: LanguageModelV3CallWarning[];
     }
   | {
       type: 'error';
@@ -994,7 +994,7 @@ export type ObjectStreamInputPart =
     }
   | {
       type: 'finish';
-      finishReason: LanguageModelV2FinishReason;
-      usage: LanguageModelV2Usage;
-      providerMetadata?: SharedV2ProviderMetadata;
+      finishReason: LanguageModelV3FinishReason;
+      usage: LanguageModelV3Usage;
+      providerMetadata?: SharedV3ProviderMetadata;
     };

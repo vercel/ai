@@ -1,7 +1,7 @@
 import {
-  ImageModelV2,
-  ImageModelV2CallWarning,
-  ImageModelV2ProviderMetadata,
+  ImageModelV3,
+  ImageModelV3CallWarning,
+  ImageModelV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -14,10 +14,11 @@ import {
   expect,
   it,
   test,
+  vi,
   vitest,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockImageModelV2 } from '../test/mock-image-model-v2';
+import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { generateImage } from './generate-image';
 
 const prompt = 'sunny day at the beach';
@@ -29,12 +30,18 @@ const jpegBase64 =
   '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k='; // 1x1 black JPEG
 const gifBase64 = 'R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='; // 1x1 transparent GIF
 
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
+
 const createMockResponse = (options: {
   images: string[] | Uint8Array[];
-  warnings?: ImageModelV2CallWarning[];
+  warnings?: ImageModelV3CallWarning[];
   timestamp?: Date;
   modelId?: string;
-  providerMetaData?: ImageModelV2ProviderMetadata;
+  providerMetaData?: ImageModelV3ProviderMetadata;
   headers?: Record<string, string>;
 }) => ({
   images: options.images,
@@ -68,10 +75,10 @@ describe('generateImage', () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<ImageModelV2['doGenerate']>[0];
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
 
     await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
@@ -88,7 +95,9 @@ describe('generateImage', () => {
           style: 'vivid',
         },
       },
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+      },
       abortSignal,
     });
 
@@ -99,14 +108,17 @@ describe('generateImage', () => {
       aspectRatio: '16:9',
       seed: 12345,
       providerOptions: { 'mock-provider': { style: 'vivid' } },
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': 'ai/0.0.0-test',
+      },
       abortSignal,
     });
   });
 
   it('should return warnings', async () => {
     const result = await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -130,7 +142,7 @@ describe('generateImage', () => {
   });
 
   it('should call logWarnings with the correct warnings', async () => {
-    const expectedWarnings: ImageModelV2CallWarning[] = [
+    const expectedWarnings: ImageModelV3CallWarning[] = [
       {
         type: 'other',
         message: 'Setting is not supported',
@@ -143,7 +155,7 @@ describe('generateImage', () => {
     ];
 
     await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -158,11 +170,11 @@ describe('generateImage', () => {
   });
 
   it('should call logWarnings with aggregated warnings from multiple calls', async () => {
-    const warning1: ImageModelV2CallWarning = {
+    const warning1: ImageModelV3CallWarning = {
       type: 'other',
       message: 'Warning from call 1',
     };
-    const warning2: ImageModelV2CallWarning = {
+    const warning2: ImageModelV3CallWarning = {
       type: 'other',
       message: 'Warning from call 2',
     };
@@ -171,7 +183,7 @@ describe('generateImage', () => {
     let callCount = 0;
 
     await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         maxImagesPerCall: 1,
         doGenerate: async () => {
           switch (callCount++) {
@@ -200,7 +212,7 @@ describe('generateImage', () => {
 
   it('should call logWarnings with empty array when no warnings are present', async () => {
     await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -217,7 +229,7 @@ describe('generateImage', () => {
   describe('base64 image data', () => {
     it('should return generated images with correct mime types', async () => {
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           doGenerate: async () =>
             createMockResponse({
               images: [pngBase64, jpegBase64],
@@ -248,7 +260,7 @@ describe('generateImage', () => {
 
     it('should return the first image with correct mime type', async () => {
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           doGenerate: async () =>
             createMockResponse({
               images: [pngBase64, jpegBase64],
@@ -277,7 +289,7 @@ describe('generateImage', () => {
       ];
 
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           doGenerate: async () =>
             createMockResponse({
               images: uint8ArrayImages,
@@ -311,7 +323,7 @@ describe('generateImage', () => {
       let callCount = 0;
 
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           maxImagesPerCall: 2,
           doGenerate: async options => {
             switch (callCount++) {
@@ -325,7 +337,10 @@ describe('generateImage', () => {
                   providerOptions: {
                     'mock-provider': { style: 'vivid' },
                   },
-                  headers: { 'custom-request-header': 'request-header-value' },
+                  headers: {
+                    'custom-request-header': 'request-header-value',
+                    'user-agent': 'ai/0.0.0-test',
+                  },
                   abortSignal: undefined,
                 });
                 return createMockResponse({
@@ -339,7 +354,10 @@ describe('generateImage', () => {
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
-                  headers: { 'custom-request-header': 'request-header-value' },
+                  headers: {
+                    'custom-request-header': 'request-header-value',
+                    'user-agent': 'ai/0.0.0-test',
+                  },
                   abortSignal: undefined,
                 });
                 return createMockResponse({
@@ -356,7 +374,9 @@ describe('generateImage', () => {
         aspectRatio: '16:9',
         seed: 12345,
         providerOptions: { 'mock-provider': { style: 'vivid' } },
-        headers: { 'custom-request-header': 'request-header-value' },
+        headers: {
+          'custom-request-header': 'request-header-value',
+        },
       });
 
       expect(result.images.map(image => image.base64)).toStrictEqual(
@@ -370,7 +390,7 @@ describe('generateImage', () => {
       let callCount = 0;
 
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           maxImagesPerCall: 2,
           doGenerate: async options => {
             switch (callCount++) {
@@ -382,7 +402,10 @@ describe('generateImage', () => {
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
-                  headers: { 'custom-request-header': 'request-header-value' },
+                  headers: {
+                    'custom-request-header': 'request-header-value',
+                    'user-agent': 'ai/0.0.0-test',
+                  },
                   abortSignal: undefined,
                 });
                 return createMockResponse({
@@ -397,7 +420,10 @@ describe('generateImage', () => {
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
-                  headers: { 'custom-request-header': 'request-header-value' },
+                  headers: {
+                    'custom-request-header': 'request-header-value',
+                    'user-agent': 'ai/0.0.0-test',
+                  },
                   abortSignal: undefined,
                 });
                 return createMockResponse({
@@ -415,7 +441,9 @@ describe('generateImage', () => {
         aspectRatio: '16:9',
         seed: 12345,
         providerOptions: { 'mock-provider': { style: 'vivid' } },
-        headers: { 'custom-request-header': 'request-header-value' },
+        headers: {
+          'custom-request-header': 'request-header-value',
+        },
       });
 
       expect(result.warnings).toStrictEqual([
@@ -436,7 +464,7 @@ describe('generateImage', () => {
         const maxImagesPerCallMock = vitest.fn(maxImagesPerCall);
 
         const result = await generateImage({
-          model: new MockImageModelV2({
+          model: new MockImageModelV3({
             maxImagesPerCall: maxImagesPerCallMock,
             doGenerate: async options => {
               switch (callCount++) {
@@ -452,6 +480,7 @@ describe('generateImage', () => {
                     },
                     headers: {
                       'custom-request-header': 'request-header-value',
+                      'user-agent': 'ai/0.0.0-test',
                     },
                     abortSignal: undefined,
                   });
@@ -468,6 +497,7 @@ describe('generateImage', () => {
                     providerOptions: { 'mock-provider': { style: 'vivid' } },
                     headers: {
                       'custom-request-header': 'request-header-value',
+                      'user-agent': 'ai/0.0.0-test',
                     },
                     abortSignal: undefined,
                   });
@@ -485,7 +515,9 @@ describe('generateImage', () => {
           aspectRatio: '16:9',
           seed: 12345,
           providerOptions: { 'mock-provider': { style: 'vivid' } },
-          headers: { 'custom-request-header': 'request-header-value' },
+          headers: {
+            'custom-request-header': 'request-header-value',
+          },
         });
 
         expect(result.images.map(image => image.base64)).toStrictEqual(
@@ -503,7 +535,7 @@ describe('generateImage', () => {
     it('should throw NoImageGeneratedError when no images are returned', async () => {
       await expect(
         generateImage({
-          model: new MockImageModelV2({
+          model: new MockImageModelV3({
             doGenerate: async () =>
               createMockResponse({
                 images: [],
@@ -527,13 +559,14 @@ describe('generateImage', () => {
     it('should include response headers in error when no images generated', async () => {
       await expect(
         generateImage({
-          model: new MockImageModelV2({
+          model: new MockImageModelV3({
             doGenerate: async () =>
               createMockResponse({
                 images: [],
                 timestamp: testDate,
                 headers: {
                   'custom-response-header': 'response-header-value',
+                  'user-agent': 'ai/0.0.0-test',
                 },
               }),
           }),
@@ -548,6 +581,7 @@ describe('generateImage', () => {
             modelId: expect.any(String),
             headers: {
               'custom-response-header': 'response-header-value',
+              'user-agent': 'ai/0.0.0-test',
             },
           },
         ],
@@ -559,7 +593,7 @@ describe('generateImage', () => {
     const testHeaders = { 'x-test': 'value' };
 
     const result = await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -582,7 +616,7 @@ describe('generateImage', () => {
 
   it('should return provider metadata', async () => {
     const result = await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64, pngBase64],

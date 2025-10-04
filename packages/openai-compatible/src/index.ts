@@ -24,3 +24,4 @@ export type {
   OpenAICompatibleProvider,
   OpenAICompatibleProviderSettings,
 } from './openai-compatible-provider';
+export { VERSION } from './version';

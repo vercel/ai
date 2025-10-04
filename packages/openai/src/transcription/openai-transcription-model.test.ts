@@ -1,9 +1,13 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createOpenAI } from '../openai-provider';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const audioData = await readFile(
   path.join(__dirname, 'transcription-test.mp3'),
@@ -114,6 +118,10 @@ describe('doGenerate', () => {
       'openai-organization': 'test-organization',
       'openai-project': 'test-project',
     });
+
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/openai/0.0.0-test`,
+    );
   });
 
   it('should extract the transcription text', async () => {

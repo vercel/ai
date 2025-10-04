@@ -1,15 +1,17 @@
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { VercelChatModelId } from './vercel-chat-options';
+import { VERSION } from './version';
 
 export interface VercelProviderSettings {
   /**
@@ -31,16 +33,16 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface VercelProvider extends ProviderV2 {
+export interface VercelProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
-  (modelId: VercelChatModelId): LanguageModelV2;
+  (modelId: VercelChatModelId): LanguageModelV3;
 
   /**
 Creates a language model for text generation.
 */
-  languageModel(modelId: VercelChatModelId): LanguageModelV2;
+  languageModel(modelId: VercelChatModelId): LanguageModelV3;
 }
 
 export function createVercel(
@@ -49,14 +51,18 @@ export function createVercel(
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.v0.dev/v1',
   );
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'VERCEL_API_KEY',
-      description: 'Vercel',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'VERCEL_API_KEY',
+          description: 'Vercel',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/vercel/${VERSION}`,
+    );
 
   interface CommonModelConfig {
     provider: string;

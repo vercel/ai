@@ -18,6 +18,7 @@ import {
 import {
   InferUIMessageToolCall,
   isToolOrDynamicToolUIPart,
+  ToolUIPart,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
@@ -458,7 +459,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                   state,
                   output,
                   errorText,
-                } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>)
+                } as typeof part)
               : part,
           );
       }
