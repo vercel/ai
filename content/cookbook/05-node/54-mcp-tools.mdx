@@ -16,9 +16,9 @@ Use the official Model Context Protocol Typescript SDK to create the connection 
 import { experimental_createMCPClient, generateText, stepCountIs } from 'ai';
 import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
 let clientOne;
 let clientTwo;
