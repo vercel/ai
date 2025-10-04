@@ -22,7 +22,7 @@ const provider = createAzure({
 const providerApiVersionChanged = createAzure({
   resourceName: 'test-resource',
   apiKey: 'test-api-key',
-  apiVersion: '2024-08-01-preview',
+  apiVersion: '2025-04-01-preview',
 });
 
 const server = createTestServer({
@@ -78,7 +78,7 @@ describe('chat', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should set the correct modified api version', async () => {
@@ -90,7 +90,7 @@ describe('chat', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2024-08-01-preview');
+      ).toStrictEqual('2025-04-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -134,7 +134,7 @@ describe('chat', () => {
         prompt: TEST_PROMPT,
       });
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1',
       );
     });
   });
@@ -188,7 +188,7 @@ describe('completion', () => {
       });
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should pass headers', async () => {
@@ -243,7 +243,7 @@ describe('transcription', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions?api-version=v1',
       );
     });
 
@@ -272,7 +272,7 @@ describe('transcription', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions?api-version=v1',
       );
     });
   });
@@ -293,7 +293,7 @@ describe('speech', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/audio/speech?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/audio/speech?api-version=v1',
       );
     });
   });
@@ -339,7 +339,7 @@ describe('embedding', () => {
       });
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should pass headers', async () => {
@@ -412,7 +412,7 @@ describe('image', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should set the correct modified api version', async () => {
@@ -431,7 +431,7 @@ describe('image', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2024-08-01-preview');
+      ).toStrictEqual('2025-04-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -486,7 +486,7 @@ describe('image', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/images/generations?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/images/generations?api-version=v1',
       );
     });
 
@@ -589,7 +589,7 @@ describe('responses', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should pass headers', async () => {
@@ -634,7 +634,7 @@ describe('responses', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/responses?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1',
       );
     });
 

@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: azure('v0-gpt-35-turbo'), // use your own deployment
+    model: azure('gpt-4.1-mini'), // use your own deployment
     schema: z.object({
       recipe: z.object({
         name: z.string(),

@@ -5,7 +5,7 @@ import { saveAudioFile } from '../lib/save-audio';
 
 async function main() {
   const result = await generateSpeech({
-    model: azure.speech('tts-1'),
+    model: azure.speech('tts-1'), // use your own deployment
     text: 'Hello from the AI SDK!',
   });
 

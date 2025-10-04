@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const { embedding, usage } = await embed({
-    model: azure.embedding('my-embedding-deployment'),
+    model: azure.embedding('text-embedding-3-large'), // use your own deployment
     value: 'sunny day at the beach',
   });
 
