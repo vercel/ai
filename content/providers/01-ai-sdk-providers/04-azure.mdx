@@ -64,7 +64,7 @@ You can use the following optional settings to customize the OpenAI provider ins
 - **apiVersion** _string_
 
   Sets a custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation).
-  Defaults to `preview`.
+  Defaults to `v1`.
 
 - **baseURL** _string_
 
@@ -184,7 +184,7 @@ const { text } = await generateText({
 
 <Note>
   The URL for calling Azure chat models will be constructed as follows:
-  `https://RESOURCE_NAME.openai.azure.com/openai/v1/chat/completions?api-version=preview`
+  `https://RESOURCE_NAME.openai.azure.com/openai/v1/chat/completions?api-version=v1`
 </Note>
 
 Azure OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
