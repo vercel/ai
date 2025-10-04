@@ -128,7 +128,7 @@ export async function convertToBedrockChatMessages(
                       bedrockContent.push({
                         document: {
                           format: getBedrockDocumentFormat(part.mediaType),
-                          name: generateDocumentName(),
+                          name: part.filename ?? generateDocumentName(),
                           source: { bytes: convertToBase64(part.data) },
                           ...(enableCitations && {
                             citations: { enabled: true },
