@@ -23,8 +23,8 @@ async function main() {
   console.log('\n=== Basic Text Generation ===');
   console.log(basicResult.text);
   console.log('\n=== Other Outputs ===');
-  console.log(basicResult.toolCalls);
-  console.log(basicResult.toolResults);
+  console.dir(basicResult.toolCalls,{depth:Infinity});
+  console.dir(basicResult.toolResults,{depth:Infinity});
 }
 
 main().catch(console.error);

@@ -4,7 +4,7 @@ import 'dotenv/config';
 import fs from 'node:fs';
 
 async function main() {
-  const imageData = fs.readFileSync('/Desktop/sonny-angel.jpg');
+  const imageData = fs.readFileSync('data/comic-cat.png');
   const imageBase64_string = imageData.toString('base64');
 
   const { text, usage } = await generateText({
