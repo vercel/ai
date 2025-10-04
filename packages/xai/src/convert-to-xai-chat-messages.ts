@@ -47,6 +47,9 @@ export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
                         part.data instanceof URL
                           ? part.data.toString()
                           : `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                      
+                      // https://docs.x.ai/docs/guides/image-understanding
+                      detail: part.providerOptions?.xai?.imageDetail,
                     },
                   };
                 } else {
