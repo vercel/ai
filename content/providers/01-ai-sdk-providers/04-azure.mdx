@@ -667,10 +667,12 @@ const model = azure.transcription('whisper-1');
   ```ts
   const azure = createAzure({
     useDeploymentBasedUrls: true,
+    apiVersion: '2025-04-01-preview',
   });
   ```
   
   This uses the legacy endpoint format which may be required for certain Azure OpenAI deployments.
+  When using useDeploymentBasedUrls, the default api-version is not valid. You must set it to `2025-04-01-preview` or an earlier value.
 </Note>
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
