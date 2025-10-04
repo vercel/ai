@@ -475,6 +475,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         }),
                         z.object({
                           type: z.literal('container_file_citation'),
+                          container_id: z.string().nullish(),
+                          end_index: z.number().nullish(),
+                          file_id: z.string().nullish(),
+                          filename: z.string().nullish(),
+                          start_index: z.number().nullish(),
                         }),
                       ]),
                     ),
@@ -617,6 +622,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               providerMetadata: {
                 openai: {
                   itemId: part.id,
+                  annotations: contentPart.annotations,
                 },
               },
             });
@@ -638,6 +644,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   mediaType: 'text/plain',
                   title: annotation.quote ?? annotation.filename ?? 'Document',
                   filename: annotation.filename ?? annotation.file_id,
+                });
+              } else if (annotation.type === 'container_file_citation') {
+                content.push({
+                  type: 'file',
+                  mediaType: 'container_file_citation',
+                  data: JSON.stringify(annotation),
                 });
               }
             }
@@ -849,6 +861,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       | undefined
     > = {};
 
+    const ongoingAnnotations: Array<
+      z.infer<typeof responseAnnotationAddedSchema>['annotation']
+    > = [];
+
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
 
@@ -957,6 +973,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
+                ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
@@ -984,7 +1001,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               }
-            } else if (isResponseOutputItemDoneChunk(value)) {
+            } else if (
+              isResponseOutputItemDoneChunk(value) &&
+              value.item.type !== 'message'
+            ) {
               if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
@@ -1116,11 +1136,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerMetadata: {
                     openai: { itemId: value.item.id },
                   },
-                });
-              } else if (value.item.type === 'message') {
-                controller.enqueue({
-                  type: 'text-end',
-                  id: value.item.id,
                 });
               } else if (isResponseOutputItemDoneReasoningChunk(value)) {
                 const activeReasoningPart = activeReasoning[value.item.id];
@@ -1270,6 +1285,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 serviceTier = value.response.service_tier;
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
+              ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
                 controller.enqueue({
                   type: 'source',
@@ -1291,7 +1307,27 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   filename:
                     value.annotation.filename ?? value.annotation.file_id,
                 });
+              } else if (value.annotation.type === 'container_file_citation') {
+                controller.enqueue({
+                  type: 'file',
+                  mediaType: 'container_file_citation',
+                  data: JSON.stringify(value.annotation),
+                });
               }
+            } else if (
+              isResponseOutputItemDoneChunk(value) &&
+              value.item.type === 'message'
+            ) {
+              controller.enqueue({
+                type: 'text-end',
+                id: value.item.id,
+                providerMetadata: {
+                  openai: {
+                    itemId: value.item.id,
+                    annotations: ongoingAnnotations,
+                  },
+                },
+              });
             } else if (isErrorChunk(value)) {
               controller.enqueue({ type: 'error', error: value });
             }
@@ -1496,24 +1532,34 @@ const responseCodeInterpreterCallCodeDoneSchema = z.object({
   code: z.string(),
 });
 
+export const openaiReseponseAnnotationSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('url_citation'),
+    url: z.string(),
+    title: z.string(),
+  }),
+  z.object({
+    type: z.literal('file_citation'),
+    file_id: z.string(),
+    filename: z.string().nullish(),
+    index: z.number().nullish(),
+    start_index: z.number().nullish(),
+    end_index: z.number().nullish(),
+    quote: z.string().nullish(),
+  }),
+  z.object({
+    type: z.literal('container_file_citation'),
+    container_id: z.string().nullish(),
+    end_index: z.number().nullish(),
+    file_id: z.string().nullish(),
+    filename: z.string().nullish(),
+    start_index: z.number().nullish(),
+  }),
+]);
+
 const responseAnnotationAddedSchema = z.object({
   type: z.literal('response.output_text.annotation.added'),
-  annotation: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('url_citation'),
-      url: z.string(),
-      title: z.string(),
-    }),
-    z.object({
-      type: z.literal('file_citation'),
-      file_id: z.string(),
-      filename: z.string().nullish(),
-      index: z.number().nullish(),
-      start_index: z.number().nullish(),
-      end_index: z.number().nullish(),
-      quote: z.string().nullish(),
-    }),
-  ]),
+  annotation: openaiReseponseAnnotationSchema,
 });
 
 const responseReasoningSummaryPartAddedSchema = z.object({
