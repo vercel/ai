@@ -38,6 +38,10 @@ import { LanguageModelUsage } from '../types/usage';
 import { DownloadFunction } from '../util/download/download-function';
 import { prepareHeaders } from '../util/prepare-headers';
 import { prepareRetries } from '../util/prepare-retries';
+import {
+  GenerateObjectOnErrorCallback,
+  GenerateObjectOptions,
+} from './generate-object-options';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
@@ -46,6 +50,8 @@ import { validateObjectGenerationInput } from './validate-object-generation-inpu
 import { VERSION } from '../version';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
+
+export type { GenerateObjectOptions, GenerateObjectOnErrorCallback };
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -125,94 +131,7 @@ export async function generateObject<
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
-  options: Omit<CallSettings, 'stopSequences'> &
-    Prompt &
-    (OUTPUT extends 'enum'
-      ? {
-          /**
-The enum values that the model should use.
-        */
-          enum: Array<RESULT>;
-          mode?: 'json';
-          output: 'enum';
-        }
-      : OUTPUT extends 'no-schema'
-        ? {}
-        : {
-            /**
-The schema of the object that the model should generate.
-        */
-            schema: SCHEMA;
-
-            /**
-Optional name of the output that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema name.
-        */
-            schemaName?: string;
-
-            /**
-Optional description of the output that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema description.
-        */
-            schemaDescription?: string;
-
-            /**
-The mode to use for object generation.
-
-The schema is converted into a JSON schema and used in one of the following ways
-
-- 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
-
-Please note that most providers do not support all modes.
-
-Default and recommended: 'auto' (best mode for the model).
-        */
-            mode?: 'auto' | 'json' | 'tool';
-          }) & {
-      output?: OUTPUT;
-
-      /**
-  The language model to use.
-       */
-      model: LanguageModel;
-      /**
-  A function that attempts to repair the raw output of the model
-  to enable JSON parsing.
-       */
-      experimental_repairText?: RepairTextFunction;
-
-      /**
-  Optional telemetry configuration (experimental).
-         */
-
-      experimental_telemetry?: TelemetrySettings;
-
-      /**
-  Custom download function to use for URLs.
-
-  By default, files are downloaded if the model does not support the URL for the given media type.
-       */
-      experimental_download?: DownloadFunction | undefined;
-
-      /**
-  Additional provider-specific options. They are passed through
-  to the provider from the AI SDK and enable provider-specific
-  functionality that can be fully encapsulated in the provider.
-   */
-      providerOptions?: ProviderOptions;
-
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-      };
-    },
+  options: GenerateObjectOptions<SCHEMA, OUTPUT, RESULT>,
 ): Promise<GenerateObjectResult<RESULT>> {
   const {
     model: modelArg,
@@ -227,6 +146,16 @@ Default and recommended: 'auto' (best mode for the model).
     experimental_telemetry: telemetry,
     experimental_download: download,
     providerOptions,
+    onError = ({
+      error,
+    }: {
+      error: unknown;
+      retry: (
+        newOptions?: Partial<GenerateObjectOptions<SCHEMA, OUTPUT, RESULT>>,
+      ) => Promise<GenerateObjectResult<RESULT>>;
+    }) => {
+      console.error(error);
+    },
     _internal: {
       generateId = originalGenerateId,
       currentDate = () => new Date(),
@@ -483,7 +412,18 @@ Default and recommended: 'auto' (best mode for the model).
       },
     });
   } catch (error) {
-    throw wrapGatewayError(error);
+    const wrappedError = wrapGatewayError(error);
+    onError({
+      error: wrappedError,
+      retry: (
+        newOptions?: Partial<GenerateObjectOptions<SCHEMA, OUTPUT, RESULT>>,
+      ) =>
+        generateObject({
+          ...options,
+          ...newOptions,
+        } as GenerateObjectOptions<SCHEMA, OUTPUT, RESULT>),
+    });
+    throw wrappedError;
   }
 }
 

@@ -578,7 +578,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       type: '(event: OnErrorResult) => Promise<void> |void',
       isOptional: true,
       description:
-        'Callback that is called when an error occurs during streaming. You can use it to log errors.',
+        'Callback that is called when an error occurs during streaming. The callback receives the error and a retry function.',
       properties: [
         {
           type: 'OnErrorResult',
@@ -587,6 +587,12 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
               name: 'error',
               type: 'unknown',
               description: 'The error that occurred.',
+            },
+            {
+              name: 'retry',
+              type: '(newOptions?: Partial<StreamObjectOptions>) => StreamObjectResult',
+              description:
+                'Function to retry the streaming with modified options. The new options are merged with the original options.',
             },
           ],
         },
