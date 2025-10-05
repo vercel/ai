@@ -2089,6 +2089,14 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
+            case 'tool-execution-denial': {
+              controller.enqueue({
+                type: 'tool-execution-denial',
+                toolCallId: part.toolCallId,
+              });
+              break;
+            }
+
             case 'error': {
               controller.enqueue({
                 type: 'error',
@@ -2139,7 +2147,6 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'tool-execution-denial':
             case 'tool-input-end': {
               break;
             }

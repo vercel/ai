@@ -14777,6 +14777,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
+                "toolCallId": "call-1",
+                "type": "tool-execution-denial",
+              },
+              {
                 "type": "start-step",
               },
               {
