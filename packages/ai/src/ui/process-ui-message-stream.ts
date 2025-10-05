@@ -187,7 +187,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.errorText = anyOptions.errorText;
               anyPart.rawInput = anyOptions.rawInput;
               anyPart.preliminary = anyOptions.preliminary;
-              anyPart.title = options.title;
+              if (options.title !== undefined) {
+                anyPart.title = options.title;
+              }
               // once providerExecuted is set, it stays for streaming
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
@@ -264,7 +266,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.errorText = anyOptions.errorText;
               anyPart.rawInput = anyOptions.rawInput ?? anyPart.rawInput;
               anyPart.preliminary = anyOptions.preliminary;
-              anyPart.title = options.title;
+              if (options.title !== undefined) {
+                anyPart.title = options.title;
+              }
               if (
                 anyOptions.providerMetadata != null &&
                 part.state === 'input-available'
