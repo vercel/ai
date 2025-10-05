@@ -827,6 +827,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'start-step') {
+          // reset the recorded data when a new step starts:
+          recordedContent = [];
+          activeReasoningContent = {};
+          activeTextContent = {};
+
           recordedRequest = part.request;
           recordedWarnings = part.warnings;
         }
@@ -856,10 +861,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           logWarnings(recordedWarnings);
 
           recordedSteps.push(currentStepResult);
-
-          recordedContent = [];
-          activeReasoningContent = {};
-          activeTextContent = {};
 
           recordedResponseMessages.push(...stepMessages);
 
@@ -1117,6 +1118,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                 }
               }),
             );
+
+            // toolExecutionStepStreamController?.enqueue({
+            //   type: 'start-step',
+            //   request: { body: undefined },
+            //   warnings: [],
+            // });
 
             initialResponseMessages.push({
               role: 'tool',

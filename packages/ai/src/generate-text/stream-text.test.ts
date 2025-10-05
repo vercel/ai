@@ -14118,20 +14118,6 @@ describe('streamText', () => {
               ],
               "role": "assistant",
             },
-            {
-              "content": [
-                {
-                  "output": {
-                    "type": "text",
-                    "value": "result1",
-                  },
-                  "toolCallId": "call-1",
-                  "toolName": "tool1",
-                  "type": "tool-result",
-                },
-              ],
-              "role": "tool",
-            },
           ]
         `);
       });
