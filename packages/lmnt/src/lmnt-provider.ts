@@ -1,4 +1,4 @@
-import { SpeechModelV2, ProviderV3 } from '@ai-sdk/provider';
+import { SpeechModelV3, ProviderV3 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
@@ -19,7 +19,7 @@ export interface LMNTProvider extends Pick<ProviderV3, 'speechModel'> {
   /**
 Creates a model for speech synthesis.
    */
-  speech(modelId: LMNTSpeechModelId): SpeechModelV2;
+  speech(modelId: LMNTSpeechModelId): SpeechModelV3;
 }
 
 export interface LMNTProviderSettings {
