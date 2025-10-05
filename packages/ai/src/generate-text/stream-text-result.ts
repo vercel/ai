@@ -369,6 +369,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       providerMetadata?: ProviderMetadata;
       providerExecuted?: boolean;
       dynamic?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-input-end';
@@ -377,9 +378,10 @@ export type TextStreamPart<TOOLS extends ToolSet> =
     }
   | {
       type: 'tool-input-delta';
-      id: string;
+      id: string; 
       delta: string;
       providerMetadata?: ProviderMetadata;
+      title?: string;
     }
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object

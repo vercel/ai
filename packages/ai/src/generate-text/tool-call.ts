@@ -14,6 +14,7 @@ export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
     invalid?: false | undefined;
     error?: never;
     providerMetadata?: ProviderMetadata;
+    title?: string;
   };
 }>;
 
@@ -25,6 +26,7 @@ export type DynamicToolCall = {
   providerExecuted?: boolean;
   dynamic: true;
   providerMetadata?: ProviderMetadata;
+  title?: string;
 
   /**
    * True if this is caused by an unparsable tool call or

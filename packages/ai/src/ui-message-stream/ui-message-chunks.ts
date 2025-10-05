@@ -38,11 +38,13 @@ export const uiMessageChunkSchema = z.union([
     toolName: z.string(),
     providerExecuted: z.boolean().optional(),
     dynamic: z.boolean().optional(),
+    title: z.string().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-input-delta'),
     toolCallId: z.string(),
     inputTextDelta: z.string(),
+    title: z.string().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-input-available'),
@@ -52,6 +54,7 @@ export const uiMessageChunkSchema = z.union([
     providerExecuted: z.boolean().optional(),
     providerMetadata: providerMetadataSchema.optional(),
     dynamic: z.boolean().optional(),
+    title: z.string().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-input-error'),
@@ -62,6 +65,7 @@ export const uiMessageChunkSchema = z.union([
     providerMetadata: providerMetadataSchema.optional(),
     dynamic: z.boolean().optional(),
     errorText: z.string(),
+    title: z.string().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-output-available'),
@@ -70,6 +74,7 @@ export const uiMessageChunkSchema = z.union([
     providerExecuted: z.boolean().optional(),
     dynamic: z.boolean().optional(),
     preliminary: z.boolean().optional(),
+    title: z.string().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-output-error'),
@@ -77,6 +82,7 @@ export const uiMessageChunkSchema = z.union([
     errorText: z.string(),
     providerExecuted: z.boolean().optional(),
     dynamic: z.boolean().optional(),
+    title: z.string().optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-start'),
@@ -206,6 +212,7 @@ export type UIMessageChunk<
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-input-error';
@@ -216,6 +223,7 @@ export type UIMessageChunk<
       providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
       errorText: string;
+      title?: string;
     }
   | {
       type: 'tool-output-available';
@@ -224,6 +232,7 @@ export type UIMessageChunk<
       providerExecuted?: boolean;
       dynamic?: boolean;
       preliminary?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-output-error';
@@ -231,18 +240,21 @@ export type UIMessageChunk<
       errorText: string;
       providerExecuted?: boolean;
       dynamic?: boolean;
-    }
+      title?: string;
+      }
   | {
       type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
       providerExecuted?: boolean;
       dynamic?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-input-delta';
       toolCallId: string;
       inputTextDelta: string;
+      title?: string;
     }
   | {
       type: 'source-url';

@@ -1360,6 +1360,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       controller.enqueue({
                         ...chunk,
                         dynamic: tool?.type === 'dynamic',
+                        title: tool?.title,
                       });
                       break;
                     }
@@ -1888,6 +1889,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
+                ...(part.title != null ? { title: part.title } : {}),
               });
               break;
             }
@@ -1897,6 +1899,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-input-delta',
                 toolCallId: part.id,
                 inputTextDelta: part.delta,
+                ...(part.title != null ? { title: part.title } : {}),
               });
               break;
             }
@@ -1919,6 +1922,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   errorText: onError(part.error),
+                  ...(part.title != null ? { title: part.title } : {}),
                 });
               } else {
                 controller.enqueue({
@@ -1933,6 +1937,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
+                  ...(part.title != null ? { title: part.title } : {}),
                 });
               }
 
@@ -1953,6 +1958,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                   ? { preliminary: part.preliminary }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
+                ...(part.title != null ? { title: part.title } : {}),
               });
               break;
             }
@@ -1968,6 +1974,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
+                ...(part.title != null ? { title: part.title } : {}),
               });
               break;
             }
