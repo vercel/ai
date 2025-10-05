@@ -1,4 +1,4 @@
-import { SpeechModelV2, ProviderV3 } from '@ai-sdk/provider';
+import { SpeechModelV3, ProviderV3 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
@@ -15,7 +15,7 @@ export interface HumeProvider extends Pick<ProviderV3, 'speechModel'> {
   /**
 Creates a model for speech synthesis.
    */
-  speech(): SpeechModelV2;
+  speech(): SpeechModelV3;
 }
 
 export interface HumeProviderSettings {

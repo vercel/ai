@@ -2,9 +2,11 @@ import { NoSuchModelError } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
-import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
+import { MockProviderV2 } from '../test/mock-provider-v2';
+import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
+import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
 import { customProvider } from './custom-provider';
 
 const mockLanguageModel = new MockLanguageModelV3();
@@ -108,7 +110,7 @@ describe('imageModel', () => {
 });
 
 describe('transcriptionModel', () => {
-  const mockTranscriptionModel = new MockTranscriptionModelV2();
+  const mockTranscriptionModel = new MockTranscriptionModelV3();
 
   it('should return the transcription model if it exists', () => {
     const provider = customProvider({
@@ -147,7 +149,7 @@ describe('transcriptionModel', () => {
 });
 
 describe('speechModel', () => {
-  const mockSpeechModel = new MockSpeechModelV2();
+  const mockSpeechModel = new MockSpeechModelV3();
 
   it('should return the speech model if it exists', () => {
     const provider = customProvider({
