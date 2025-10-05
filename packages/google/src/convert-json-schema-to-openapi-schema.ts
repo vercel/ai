@@ -17,6 +17,7 @@ export function convertJSONSchemaToOpenAPISchema(
 
   const {
     type,
+    title,
     description,
     required,
     properties,
@@ -28,10 +29,15 @@ export function convertJSONSchemaToOpenAPISchema(
     const: constValue,
     minLength,
     enum: enumValues,
+    additionalProperties,
+    $ref,
+    $defs,
+    definitions,
   } = jsonSchema;
 
   const result: Record<string, unknown> = {};
 
+  if (title) result.title = title;
   if (description) result.description = description;
   if (required) result.required = required;
   if (format) result.format = format;
@@ -113,6 +119,28 @@ export function convertJSONSchemaToOpenAPISchema(
 
   if (minLength !== undefined) {
     result.minLength = minLength;
+  }
+
+  if ($ref) {
+    result.ref = $ref
+      .replace('#/$defs/', '#/defs/')
+      .replace('#/definitions/', '#/defs/');
+  }
+
+  if ($defs) {
+    const defs = {} as Record<string, unknown>;
+    for (const [key, value] of Object.entries($defs)) {
+      defs[key] = convertJSONSchemaToOpenAPISchema(value);
+    }
+    result.defs = defs;
+  }
+
+  if (definitions) {
+    const defs = {} as Record<string, unknown>;
+    for (const [key, value] of Object.entries(definitions)) {
+      defs[key] = convertJSONSchemaToOpenAPISchema(value);
+    }
+    result.defs = defs;
   }
 
   return result;
