@@ -1119,12 +1119,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               }),
             );
 
-            // toolExecutionStepStreamController?.enqueue({
-            //   type: 'start-step',
-            //   request: { body: undefined },
-            //   warnings: [],
-            // });
-
             initialResponseMessages.push({
               role: 'tool',
               content: [
