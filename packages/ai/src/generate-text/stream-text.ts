@@ -1126,7 +1126,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   type: 'tool-result' as const,
                   toolCallId: output.toolCallId,
                   toolName: output.toolName,
-                  input: output.input,
                   output: createToolModelOutput({
                     tool: tools?.[output.toolName],
                     output:

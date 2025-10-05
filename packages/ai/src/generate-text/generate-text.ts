@@ -332,7 +332,6 @@ A function that attempts to repair a tool call that failed to parse.
                 type: 'tool-result' as const,
                 toolCallId: output.toolCallId,
                 toolName: output.toolName,
-                input: output.input,
                 output: createToolModelOutput({
                   tool: tools?.[output.toolName],
                   output:

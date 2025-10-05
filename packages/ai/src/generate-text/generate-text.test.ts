@@ -3595,9 +3595,6 @@ describe('generateText', () => {
             {
               "content": [
                 {
-                  "input": {
-                    "value": "value",
-                  },
                   "output": {
                     "type": "text",
                     "value": "result1",
@@ -3952,9 +3949,6 @@ describe('generateText', () => {
             {
               "content": [
                 {
-                  "input": {
-                    "value": "value1",
-                  },
                   "output": {
                     "type": "text",
                     "value": "result1",
@@ -3964,9 +3958,6 @@ describe('generateText', () => {
                   "type": "tool-result",
                 },
                 {
-                  "input": {
-                    "value": "value2",
-                  },
                   "output": {
                     "type": "text",
                     "value": "result1",

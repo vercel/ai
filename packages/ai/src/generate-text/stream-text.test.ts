@@ -14097,9 +14097,6 @@ describe('streamText', () => {
             {
               "content": [
                 {
-                  "input": {
-                    "value": "value",
-                  },
                   "output": {
                     "type": "text",
                     "value": "result1",
