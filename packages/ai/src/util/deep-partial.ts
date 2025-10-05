@@ -82,6 +82,6 @@ type PartialReadonlyMap<KeyType, ValueType> = {} & ReadonlyMap<
 
 type PartialReadonlySet<T> = {} & ReadonlySet<DeepPartialInternal<T>>;
 
-type PartialObject<ObjectType extends object> = {
+export type PartialObject<ObjectType extends object> = {
   [KeyType in keyof ObjectType]?: DeepPartialInternal<ObjectType[KeyType]>;
 };
