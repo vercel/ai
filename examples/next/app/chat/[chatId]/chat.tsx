@@ -4,6 +4,7 @@ import { invalidateRouterCache } from '@/app/actions';
 import type { MyUIMessage } from '@/util/chat-schema';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import ChatInput from './chat-input';
 import Message from './message';
@@ -70,6 +71,8 @@ export default function ChatComponent({
     inputRef.current?.focus();
   }, []);
 
+  const router = useRouter();
+
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       {messages.map(message => (
@@ -90,11 +93,10 @@ export default function ChatComponent({
           });
         }}
         onSubmit={text => {
-          sendMessage({ text, metadata: { createdAt: Date.now() } });
-
           if (isNewChat) {
-            window.history.pushState(null, '', `/chat/${chatData.id}`);
+            router.push(`/chat/${chatData.id}`);
           }
+          sendMessage({ text, metadata: { createdAt: Date.now() } });
         }}
         inputRef={inputRef}
       />
