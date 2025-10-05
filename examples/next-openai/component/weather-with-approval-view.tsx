@@ -53,7 +53,9 @@ export default function WeatherWithApprovalView({
     case 'output-available':
       return (
         <div className="text-gray-500">
-          Weather in {invocation.input.city}: {invocation.output.weather}
+          {invocation.output.state === 'loading'
+            ? 'Fetching weather information...'
+            : `Weather in ${invocation.input.city}: ${invocation.output.weather}`}
         </div>
       );
     case 'output-error':
