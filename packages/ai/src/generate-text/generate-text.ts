@@ -352,7 +352,7 @@ A function that attempts to repair a tool call that failed to parse.
                     type: 'error-text' as const,
                     value:
                       toolApproval.approvalResponse.reason ??
-                      'Tool execution not approved.',
+                      'Tool execution denied.',
                   },
                 })),
             ],

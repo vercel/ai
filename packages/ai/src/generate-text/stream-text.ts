@@ -1160,7 +1160,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     type: 'error-text' as const,
                     value:
                       toolApproval.approvalResponse.reason ??
-                      'Tool execution not approved.',
+                      'Tool execution denied.',
                   },
                 })),
               ],

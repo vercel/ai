@@ -3732,7 +3732,7 @@ describe('generateText', () => {
                   {
                     "output": {
                       "type": "error-text",
-                      "value": "Tool execution not approved.",
+                      "value": "Tool execution denied.",
                     },
                     "providerOptions": undefined,
                     "toolCallId": "call-1",
@@ -3756,7 +3756,7 @@ describe('generateText', () => {
                 {
                   "output": {
                     "type": "error-text",
-                    "value": "Tool execution not approved.",
+                    "value": "Tool execution denied.",
                   },
                   "toolCallId": "call-1",
                   "toolName": "tool1",

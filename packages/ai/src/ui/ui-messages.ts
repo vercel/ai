@@ -276,7 +276,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       providerExecuted?: boolean;
       callProviderMetadata?: ProviderMetadata;
       approval?: {
-        approvalId: string;
+        id: string;
         approved: true;
         reason?: string;
       };
@@ -289,7 +289,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
       approval: {
-        approvalId: string;
+        id: string;
         approved: false;
         reason?: string;
       };
