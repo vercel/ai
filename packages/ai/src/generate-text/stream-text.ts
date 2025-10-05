@@ -1110,6 +1110,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   messages: initialMessages,
                   abortSignal,
                   experimental_context,
+                  onPreliminaryToolResult: result => {
+                    toolExecutionStepStreamController?.enqueue(result);
+                  },
                 });
 
                 if (result != null) {
