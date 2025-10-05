@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   try {
     const tools = await client.tools();
 
-    console.log('Available tools:', (tools));
+    console.log('Available tools:', tools);
 
     const result = streamText({
       model: openai('gpt-4o-mini'),

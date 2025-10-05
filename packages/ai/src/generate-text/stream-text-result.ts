@@ -378,7 +378,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
     }
   | {
       type: 'tool-input-delta';
-      id: string; 
+      id: string;
       delta: string;
       providerMetadata?: ProviderMetadata;
       title?: string;

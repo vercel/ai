@@ -31,7 +31,7 @@ export default function McpToolTitleExample() {
         </p>
       </div>
 
-      {messages.map( m => (
+      {messages.map(m => (
         <div key={m.id} className="mb-4">
           <div className="font-semibold mb-2">
             {m.role === 'user' ? '👤 User' : '🤖 Assistant'}
@@ -54,7 +54,7 @@ export default function McpToolTitleExample() {
                   </div>
                 ) : null;
               }
-              
+
               if (isToolOrDynamicToolUIPart(part)) {
                 const toolPart = part as ToolUIPart<any> | DynamicToolUIPart;
                 const toolName = getToolOrDynamicToolName(toolPart);

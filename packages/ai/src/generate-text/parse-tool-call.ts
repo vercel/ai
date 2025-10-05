@@ -85,7 +85,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       dynamic: true,
       invalid: true,
       error,
-      title: tools?.[toolCall.toolName]?.title
+      title: tools?.[toolCall.toolName]?.title,
     };
   }
 }
@@ -134,7 +134,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         providerExecuted: toolCall.providerExecuted,
         providerMetadata: toolCall.providerMetadata,
         dynamic: true,
-        title: tool.title
+        title: tool.title,
       }
     : {
         type: 'tool-call',
@@ -143,6 +143,6 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         input: parseResult.value,
         providerExecuted: toolCall.providerExecuted,
         providerMetadata: toolCall.providerMetadata,
-        title: tool.title
+        title: tool.title,
       };
 }

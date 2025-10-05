@@ -241,7 +241,7 @@ export type UIMessageChunk<
       providerExecuted?: boolean;
       dynamic?: boolean;
       title?: string;
-      }
+    }
   | {
       type: 'tool-input-start';
       toolCallId: string;

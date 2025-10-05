@@ -188,7 +188,7 @@ function createMcpServer() {
         .describe('Temperature unit'),
     },
     {
-        title: '🌤️ Weather Information'
+      title: '🌤️ Weather Information',
     },
     async ({
       location,
@@ -221,7 +221,7 @@ function createMcpServer() {
       a: z.number().describe('First number'),
       b: z.number().describe('Second number'),
     },
-    { title: '🔢 Calculator', },
+    { title: '🔢 Calculator' },
     async ({
       operation,
       a,
