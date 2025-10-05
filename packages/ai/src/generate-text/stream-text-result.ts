@@ -20,15 +20,16 @@ import { GeneratedFile } from './generated-file';
 import { ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
+import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
+import { StaticToolExecutionDenial } from './tool-execution-denial';
 import {
   DynamicToolResult,
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -388,6 +389,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
+  | ({ type: 'tool-execution-denial' } & StaticToolExecutionDenial<TOOLS>)
   | ToolApprovalRequestOutput<TOOLS>
   | {
       type: 'start-step';

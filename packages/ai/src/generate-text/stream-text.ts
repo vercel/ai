@@ -7,10 +7,9 @@ import {
   createIdGenerator,
   IdGenerator,
   isAbortError,
-  ModelMessage,
   ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { Span, Tracer } from '@opentelemetry/api';
+import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
@@ -89,6 +88,7 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
+import { StaticToolExecutionDenial } from './tool-execution-denial';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
 
@@ -1098,6 +1098,18 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               .filter(toolApproval => toolApproval.approvalResponse.approved)
               .map(toolApproval => toolApproval.toolCall);
 
+            const deniedToolApprovals = toolApprovals.filter(
+              toolApproval => !toolApproval.approvalResponse.approved,
+            );
+
+            for (const toolApproval of deniedToolApprovals) {
+              toolExecutionStepStreamController?.enqueue({
+                type: 'tool-execution-denial',
+                toolCallId: toolApproval.toolCall.toolCallId,
+                toolName: toolApproval.toolCall.toolName,
+              } as StaticToolExecutionDenial<TOOLS>);
+            }
+
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
             await Promise.all(
@@ -1140,21 +1152,17 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   }),
                 })),
                 // add tool errors for rejected tool calls:
-                ...toolApprovals
-                  .filter(
-                    toolApproval => !toolApproval.approvalResponse.approved,
-                  )
-                  .map(toolApproval => ({
-                    type: 'tool-result' as const,
-                    toolCallId: toolApproval.toolCall.toolCallId,
-                    toolName: toolApproval.toolCall.toolName,
-                    output: {
-                      type: 'error-text' as const,
-                      value:
-                        toolApproval.approvalResponse.reason ??
-                        'Tool execution not approved.',
-                    },
-                  })),
+                ...deniedToolApprovals.map(toolApproval => ({
+                  type: 'tool-result' as const,
+                  toolCallId: toolApproval.toolCall.toolCallId,
+                  toolName: toolApproval.toolCall.toolName,
+                  output: {
+                    type: 'error-text' as const,
+                    value:
+                      toolApproval.approvalResponse.reason ??
+                      'Tool execution not approved.',
+                  },
+                })),
               ],
             });
           } finally {
@@ -2131,6 +2139,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
+            case 'tool-execution-denial':
             case 'tool-input-end': {
               break;
             }
