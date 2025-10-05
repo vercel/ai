@@ -15,4 +15,4 @@ export type JSONObjectLoose = {
   [key: string]: JSONValueLoose | undefined;
 };
 
-export type JSONArrayLoose = JSONValueLoose[];
+export type JSONArrayLoose = (JSONValueLoose | undefined)[];
