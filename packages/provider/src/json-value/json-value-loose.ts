@@ -12,7 +12,7 @@ export type JSONValueLoose =
 
 
 export type JSONObjectLoose = {
-  [key: string]: JSONValueLoose;
+  [key: string]: JSONValueLoose | undefined;
 };
 
 export type JSONArrayLoose = JSONValueLoose[];
