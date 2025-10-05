@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.1.0-beta.10
+
+### Patch Changes
+
+- dedf206: feat(provider/anthropic): expose stop_sequence in provider metadata
+
 ## 2.1.0-beta.9
 
 ### Patch Changes
