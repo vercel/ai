@@ -3621,7 +3621,7 @@ describe('generateText', () => {
       });
     });
 
-    describe('when a call from a single tool that needs approval is rejected', () => {
+    describe('when a call from a single tool that needs approval is denied', () => {
       let result: GenerateTextResult<any, any>;
       let prompts: LanguageModelV3Prompt[];
       let executeFunction: ToolExecuteFunction<any, any>;
@@ -3693,7 +3693,7 @@ describe('generateText', () => {
         });
       });
 
-      it('should execute the tool', async () => {
+      it('should not execute the tool', async () => {
         expect(executeFunction).not.toHaveBeenCalled();
       });
 
