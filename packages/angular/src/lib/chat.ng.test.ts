@@ -1283,7 +1283,6 @@ describe('test sending additional fields during message submission', () => {
   });
 });
 
-
 describe('generateId function', () => {
   it('should use the provided generateId function for both user and assistant messages', async () => {
     server.urls['/api/chat'].response = {
