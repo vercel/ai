@@ -1,4 +1,5 @@
 import { JSONValue } from '../../json-value/json-value';
+import { JSONValueLoose } from '../../json-value/json-value-loose';
 import { SharedV3ProviderOptions } from '../../shared/v3/shared-v3-provider-options';
 import { LanguageModelV3DataContent } from './language-model-v3-data-content';
 
@@ -186,9 +187,15 @@ Result of the tool call.
 
 export type LanguageModelV3ToolResultOutput =
   | { type: 'text'; value: string }
-  | { type: 'json'; value: JSONValue }
+  | {
+      type: 'json';
+      value: JSONValueLoose ;
+    }
   | { type: 'error-text'; value: string }
-  | { type: 'error-json'; value: JSONValue }
+  | {
+      type: 'error-json';
+      value: JSONValueLoose;
+    }
   | {
       type: 'content';
       value: Array<
@@ -216,3 +223,4 @@ IANA media type.
           }
       >;
     };
+
