@@ -88,8 +88,8 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { StaticToolExecutionDenial } from './tool-execution-denial';
 import { ToolOutput } from './tool-output';
+import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
@@ -1104,10 +1104,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
             for (const toolApproval of deniedToolApprovals) {
               toolExecutionStepStreamController?.enqueue({
-                type: 'tool-execution-denial',
+                type: 'tool-output-denied',
                 toolCallId: toolApproval.toolCall.toolCallId,
                 toolName: toolApproval.toolCall.toolName,
-              } as StaticToolExecutionDenial<TOOLS>);
+              } as StaticToolOutputDenied<TOOLS>);
             }
 
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
@@ -2089,9 +2089,9 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'tool-execution-denial': {
+            case 'tool-output-denied': {
               controller.enqueue({
-                type: 'tool-execution-denial',
+                type: 'tool-output-denied',
                 toolCallId: part.toolCallId,
               });
               break;

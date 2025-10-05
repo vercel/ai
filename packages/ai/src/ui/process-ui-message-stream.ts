@@ -536,6 +536,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
+            case 'tool-output-denied': {
+              const toolInvocation = getToolInvocation(chunk.toolCallId);
+              toolInvocation.state = 'output-denied';
+              write();
+              break;
+            }
+
             case 'tool-output-available': {
               if (chunk.dynamic) {
                 const toolInvocation = getDynamicToolInvocation(

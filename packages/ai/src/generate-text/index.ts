@@ -36,7 +36,10 @@ export type {
   StaticToolError,
   TypedToolError,
 } from './tool-error';
-export type { StaticToolExecutionDenial } from './tool-execution-denial';
+export type {
+  StaticToolOutputDenied,
+  TypedToolOutputDenied,
+} from './tool-output-denied';
 export type {
   DynamicToolResult,
   StaticToolResult,

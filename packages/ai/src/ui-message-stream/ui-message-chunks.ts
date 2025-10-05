@@ -84,7 +84,7 @@ export const uiMessageChunkSchema = z.union([
     dynamic: z.boolean().optional(),
   }),
   z.strictObject({
-    type: z.literal('tool-execution-denial'),
+    type: z.literal('tool-output-denied'),
     toolCallId: z.string(),
     dynamic: z.boolean().optional(),
   }),
@@ -248,7 +248,7 @@ export type UIMessageChunk<
       dynamic?: boolean;
     }
   | {
-      type: 'tool-execution-denial';
+      type: 'tool-output-denied';
       toolCallId: string;
       dynamic?: boolean;
     }

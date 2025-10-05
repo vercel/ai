@@ -23,7 +23,7 @@ import { StepResult } from './step-result';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
-import { StaticToolExecutionDenial } from './tool-execution-denial';
+import { StaticToolOutputDenied } from './tool-output-denied';
 import {
   DynamicToolResult,
   StaticToolResult,
@@ -389,7 +389,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
-  | ({ type: 'tool-execution-denial' } & StaticToolExecutionDenial<TOOLS>)
+  | ({ type: 'tool-output-denied' } & StaticToolOutputDenied<TOOLS>)
   | ToolApprovalRequestOutput<TOOLS>
   | {
       type: 'start-step';
