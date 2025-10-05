@@ -3,6 +3,7 @@ import { createVertex } from './google-vertex-provider';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
+import { GoogleVertexSpeechModel } from './google-vertex-speech-model';
 
 // Mock the imported modules
 vi.mock('@ai-sdk/provider-utils', () => ({
@@ -26,6 +27,10 @@ vi.mock('./google-vertex-embedding-model', () => ({
 
 vi.mock('./google-vertex-image-model', () => ({
   GoogleVertexImageModel: vi.fn(),
+}));
+
+vi.mock('./google-vertex-speech-model', () => ({
+  GoogleVertexSpeechModel: vi.fn(),
 }));
 
 describe('google-vertex-provider', () => {
@@ -242,6 +247,42 @@ describe('google-vertex-provider', () => {
           'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google',
         headers: expect.any(Function),
         generateId: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should create a speech model with default settings', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider.speech('gemini-2.5-flash-tts');
+
+    expect(GoogleVertexSpeechModel).toHaveBeenCalledWith(
+      'gemini-2.5-flash-tts',
+      expect.objectContaining({
+        provider: 'google.vertex.speech',
+        baseURL: 'https://texttospeech.googleapis.com/v1',
+        headers: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should use custom baseURL for speech model when provided', () => {
+    const customBaseURL = 'https://custom-endpoint.example.com';
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+      baseURL: customBaseURL,
+    });
+    provider.speech('gemini-2.5-flash-tts');
+
+    expect(GoogleVertexSpeechModel).toHaveBeenCalledWith(
+      'gemini-2.5-flash-tts',
+      expect.objectContaining({
+        provider: 'google.vertex.speech',
+        baseURL: customBaseURL,
+        headers: expect.any(Function),
       }),
     );
   });

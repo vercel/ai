@@ -741,6 +741,139 @@ console.log(
 | `imagen-4.0-fast-generate-preview-06-06`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
 | `imagen-4.0-ultra-generate-preview-06-06` | 1:1, 3:4, 4:3, 9:16, 16:9 |
 
+### Speech Models
+
+You can create [Gemini TTS](https://cloud.google.com/text-to-speech/docs/gemini-tts) models that call the [Google Vertex AI Text-to-Speech API](https://cloud.google.com/text-to-speech/docs) using the `.speech()` factory method.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const { audio } = await generateSpeech({
+  model: vertex.speech('gemini-2.5-flash-tts'),
+  text: 'Hello, welcome to AI SDK!',
+  voice: 'Charon',
+});
+```
+
+Google Vertex speech models support additional settings. You can pass them as an options argument:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { GoogleVertexSpeechProviderOptions } from '@ai-sdk/google-vertex';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const { audio } = await generateSpeech({
+  model: vertex.speech('gemini-2.5-flash-tts'),
+  text: 'Hello, welcome to AI SDK!',
+  voice: 'Kore',
+  language: 'en-US',
+  outputFormat: 'mp3',
+  speed: 1.2,
+  instructions: 'Say this in a friendly and welcoming tone',
+  providerOptions: {
+    google: {
+      pitch: 5.0,
+      volumeGainDb: -3.0,
+    } satisfies GoogleVertexSpeechProviderOptions,
+  },
+});
+```
+
+The following optional provider options are available for Google Vertex speech models:
+
+- **audioEncoding** `LINEAR16` | `MP3` | `OGG_OPUS` | `MULAW` | `ALAW` | `PCM` | `M4A`
+
+  Optional. Audio encoding format. If not specified, the `outputFormat` parameter will be used to determine the encoding.
+
+- **sampleRateHertz** _number_
+
+  Optional. The sample rate in hertz for the audio.
+
+- **speakingRate** _number_
+
+  Optional. The speaking rate/speed. Valid values are [0.25, 2.0]. 1.0 is the normal native speed. 2.0 is twice as fast, and 0.5 is half as fast.
+
+- **pitch** _number_
+
+  Optional. Speaking pitch. Valid values are [-20.0, 20.0]. 20 semitones is equivalent to one octave.
+
+- **volumeGainDb** _number_
+
+  Optional. Volume gain (in dB) of the audio. Valid values are [-96.0, 16.0].
+
+- **multiSpeakerVoiceConfig** _object_
+
+  Optional. Multi-speaker voice configuration for conversations.
+
+  - **speakerVoiceConfigs** _array_
+
+    Array of speaker configurations.
+
+    - **speakerAlias** _string_
+
+      The alias for the speaker (e.g., "Alice").
+
+    - **speakerId** _string_
+
+      The voice ID to use for this speaker.
+
+- **multiSpeakerMarkup** _object_
+
+  Optional. Multi-speaker markup for structured conversations.
+
+  - **turns** _array_
+
+    Array of conversation turns.
+
+    - **speaker** _string_
+
+      The speaker alias for this turn.
+
+    - **text** _string_
+
+      The text to be spoken in this turn.
+
+#### Multi-Speaker Conversations
+
+Gemini TTS supports multi-speaker conversations using `multiSpeakerMarkup` and `multiSpeakerVoiceConfig`:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { GoogleVertexSpeechProviderOptions } from '@ai-sdk/google-vertex';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const { audio } = await generateSpeech({
+  model: vertex.speech('gemini-2.5-flash-tts'),
+  text: 'ignored when using multiSpeakerMarkup',
+  providerOptions: {
+    google: {
+      multiSpeakerMarkup: {
+        turns: [
+          { speaker: 'Alice', text: 'Hi Bob, how are you?' },
+          { speaker: 'Bob', text: 'I am doing well, thanks for asking!' },
+        ],
+      },
+      multiSpeakerVoiceConfig: {
+        speakerVoiceConfigs: [
+          { speakerAlias: 'Alice', speakerId: 'Kore' },
+          { speakerAlias: 'Bob', speakerId: 'Charon' },
+        ],
+      },
+    } satisfies GoogleVertexSpeechProviderOptions,
+  },
+});
+```
+
+#### Model Capabilities
+
+| Model                  | Voices | Multi-Speaker       |
+| ---------------------- | ------ | ------------------- |
+| `gemini-2.5-flash-tts` | 30+    | <Check size={18} /> |
+| `gemini-2.5-pro-tts`   | 30+    | <Check size={18} /> |
+
+Available voices: `Achernar`, `Achird`, `Algenib`, `Algieba`, `Alnilam`, `Aoede`, `Autonoe`, `Callirrhoe`, `Charon`, `Despina`, `Enceladus`, `Erinome`, `Fenrir`, `Gacrux`, `Iapetus`, `Kore`, `Laomedeia`, `Leda`, `Orus`, `Pulcherrima`, `Puck`, `Rasalgethi`, `Sadachbia`, `Sadaltager`, `Schedar`, `Sulafat`, `Umbriel`, `Vindemiatrix`, `Zephyr`, `Zubenelgenubi`
+
 ## Google Vertex Anthropic Provider Usage
 
 The Google Vertex Anthropic provider for the [AI SDK](/docs) offers support for Anthropic's Claude models through the Google Vertex AI APIs. This section provides details on how to set up and use the Google Vertex Anthropic provider.

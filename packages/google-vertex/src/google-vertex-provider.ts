@@ -1,5 +1,10 @@
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { ImageModelV3, LanguageModelV3, ProviderV3 } from '@ai-sdk/provider';
+import {
+  ImageModelV3,
+  LanguageModelV3,
+  ProviderV3,
+  SpeechModelV3,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
@@ -16,6 +21,8 @@ import { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options'
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import { GoogleVertexModelId } from './google-vertex-options';
+import { GoogleVertexSpeechModel } from './google-vertex-speech-model';
+import { GoogleVertexSpeechModelId } from './google-vertex-speech-options';
 import { googleVertexTools } from './google-vertex-tools';
 
 export interface GoogleVertexProvider extends ProviderV3 {
@@ -35,6 +42,16 @@ Creates a model for text generation.
 Creates a model for image generation.
    */
   imageModel(modelId: GoogleVertexImageModelId): ImageModelV3;
+
+  /**
+   * Creates a model for speech generation.
+   */
+  speech(modelId: GoogleVertexSpeechModelId): SpeechModelV3;
+
+  /**
+   * Creates a model for speech generation.
+   */
+  speechModel(modelId: GoogleVertexSpeechModelId): SpeechModelV3;
 
   tools: typeof googleVertexTools;
 }
@@ -149,6 +166,14 @@ export function createVertex(
   const createImageModel = (modelId: GoogleVertexImageModelId) =>
     new GoogleVertexImageModel(modelId, createConfig('image'));
 
+  const createSpeechModel = (modelId: GoogleVertexSpeechModelId) =>
+    new GoogleVertexSpeechModel(modelId, {
+      ...createConfig('speech'),
+      baseURL:
+        withoutTrailingSlash(options.baseURL) ??
+        'https://texttospeech.googleapis.com/v1',
+    });
+
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
       throw new Error(
@@ -163,6 +188,8 @@ export function createVertex(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
   provider.tools = googleVertexTools;
 
   return provider;
